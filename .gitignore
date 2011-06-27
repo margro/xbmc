@@ -1243,6 +1243,9 @@ project/Win32BuildSetup/dependencies/libcdio-10.dll
 /addons/pvr.fortherecord.argus/XBMC_ForTheRecord.lib
 /addons/pvr.fortherecord.argus/libcurl.dll
 /addons/pvr.fortherecord.argus/libcurld.dll
+/addons/pvr.fortherecord.argus-rtsp/XBMC_ForTheRecord_rtsp.lib
+/addons/pvr.fortherecord.argus-rtsp/libcurl.dll
+/addons/pvr.fortherecord.argus-rtsp/libcurld.dll
 /addons/pvr.hts/XBMC_Tvheadend_win32.lib
 /addons/pvr.vdr.vnsi/XBMC_VDR_vnsi_win32.lib
 
@@ -1261,6 +1264,8 @@ project/Win32BuildSetup/dependencies/libcdio-10.dll
 
 /xbmc/pvrclients/ForTheRecord/project/VS2010Express/Debug
 /xbmc/pvrclients/ForTheRecord/project/VS2010Express/Release
+/xbmc/pvrclients/ForTheRecord/project/VS2010Express/Debug-RTSP/
+/xbmc/pvrclients/ForTheRecord/project/VS2010Express/Release-RTSP/
 /xbmc/pvrclients/ForTheRecord/lib/curl-7.21.4/lib/Debug
 /xbmc/pvrclients/ForTheRecord/lib/curl-7.21.4/lib/Release
 /xbmc/pvrclients/ForTheRecord/lib/libcurl.*
