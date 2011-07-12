@@ -35,8 +35,6 @@
 #include "lib/tsreader/TSReader.h"
 #endif
 
-#define SEEK_POSSIBLE 0x10 // flag used to check if protocol allows seeks
-
 using namespace std;
 
 /* Globals */
@@ -45,8 +43,8 @@ int g_iTVServerXBMCBuild = 0;
 /* TVServerXBMC plugin supported versions */
 #define TVSERVERXBMC_MIN_VERSION_STRING         "1.1.0.70"
 #define TVSERVERXBMC_MIN_VERSION_BUILD          70
-#define TVSERVERXBMC_RECOMMENDED_VERSION_STRING "1.1.x.105"
-#define TVSERVERXBMC_RECOMMENDED_VERSION_BUILD  105
+#define TVSERVERXBMC_RECOMMENDED_VERSION_STRING "1.1.x.106"
+#define TVSERVERXBMC_RECOMMENDED_VERSION_BUILD  106
 
 /************************************************************/
 /** Class interface */
@@ -216,9 +214,22 @@ bool cPVRClientMediaPortal::Connect()
     }
   }
 
+  /* Store connection string */
   char buffer[512];
   snprintf(buffer, 512, "%s:%i", g_szHostname.c_str(), g_iPort);
   m_ConnectionString = buffer;
+
+  /* Retrieve card settings (needed for Live TV and recordings folders) */
+  if ( g_iTVServerXBMCBuild >= 106 )
+  {
+    int code;
+    vector<string> lines;
+
+    if ( SendCommand2("GetCardSettings\n", code, lines) )
+    {
+      m_cCards.ParseLines(lines);
+    }
+  }
 
   m_bConnected = true;
   return true;
@@ -236,6 +247,13 @@ void cPVRClientMediaPortal::Disconnect()
 
     if (result.find("True") != std::string::npos )
     {
+#ifdef TSREADER
+      if (m_tsreader)
+      {
+        m_tsreader->Close();
+        delete_null(m_tsreader);
+      }
+#endif
       result = SendCommand("StopTimeshift:\n");
     }
   }
@@ -468,25 +486,25 @@ PVR_ERROR cPVRClientMediaPortal::GetEpg(PVR_HANDLE handle, const PVR_CHANNEL &ch
 
           if (isEnd && epg.StartTime() != 0)
           {
-            broadcast.iUniqueBroadcastId = epg.UniqueId();
-            broadcast.strTitle           = epg.Title();
-            broadcast.iChannelNumber     = channel.iChannelNumber;
-            broadcast.startTime          = epg.StartTime();
-            broadcast.endTime            = epg.EndTime();
-            broadcast.strPlotOutline     = epg.ShortText();
-            broadcast.strPlot            = epg.Description();
-            broadcast.strIconPath        = "";
-            broadcast.iGenreType         = epg.GenreType();
-            broadcast.iGenreSubType      = epg.GenreSubType();
-            //broadcast.genre_text       = epg.Genre();
-            broadcast.firstAired         = epg.OriginalAirDate();
-            broadcast.iParentalRating    = epg.ParentalRating();
-            broadcast.iStarRating        = epg.StarRating();
-            broadcast.bNotify            = false;
-            broadcast.iSeriesNumber      = epg.SeriesNumber();
-            broadcast.iEpisodeNumber     = epg.EpisodeNumber();
-            broadcast.iEpisodePartNumber = atoi(epg.EpisodePart());
-            broadcast.strEpisodeName     = epg.EpisodeName();
+            broadcast.iUniqueBroadcastId  = epg.UniqueId();
+            broadcast.strTitle            = epg.Title();
+            broadcast.iChannelNumber      = channel.iChannelNumber;
+            broadcast.startTime           = epg.StartTime();
+            broadcast.endTime             = epg.EndTime();
+            broadcast.strPlotOutline      = epg.ShortText();
+            broadcast.strPlot             = epg.Description();
+            broadcast.strIconPath         = "";
+            broadcast.iGenreType          = epg.GenreType();
+            broadcast.iGenreSubType       = epg.GenreSubType();
+            broadcast.strGenreDescription = epg.Genre();
+            broadcast.firstAired          = epg.OriginalAirDate();
+            broadcast.iParentalRating     = epg.ParentalRating();
+            broadcast.iStarRating         = epg.StarRating();
+            broadcast.bNotify             = false;
+            broadcast.iSeriesNumber       = epg.SeriesNumber();
+            broadcast.iEpisodeNumber      = epg.EpisodeNumber();
+            broadcast.iEpisodePartNumber  = atoi(epg.EpisodePart());
+            broadcast.strEpisodeName      = epg.EpisodeName();
 
             PVR->TransferEpgEntry(handle, &broadcast);
           }
@@ -1156,6 +1174,7 @@ bool cPVRClientMediaPortal::OpenLiveStream(const PVR_CHANNEL &channelinfo)
     //[0] = rtsp url
     //[1] = original (unresolved) rtsp url
     //[2] = timeshift buffer filename
+    //[3] = card id (TVServerXBMC build >= 106)
 
     XBMC->Log(LOG_INFO, "Channel stream URL: %s, timeshift buffer: %s", timeshiftfields[0].c_str(), timeshiftfields[2].c_str());
     m_iCurrentChannel = channel;
