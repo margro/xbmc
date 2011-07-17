@@ -868,7 +868,7 @@ bool cPVRClientForTheRecord::OpenLiveStream(const PVR_CHANNEL &channelinfo)
     if (m_keepalive.IsThreadRunning())
     {
       long hr = m_keepalive.StopThread();
-      if (hr != S_OK && hr != S_FALSE)
+      if (hr != 0)
       {
         XBMC->Log(LOG_ERROR, "Stop keepalive thread failed with %x.", hr);
       }
@@ -884,7 +884,7 @@ bool cPVRClientForTheRecord::OpenLiveStream(const PVR_CHANNEL &channelinfo)
     XBMC->Log(LOG_INFO, "Live stream file: %s", filename.c_str());
     m_bTimeShiftStarted = true;
     m_iCurrentChannel = channelinfo.iUniqueId;
-    if (m_keepalive.StartThread() != S_OK)
+    if (m_keepalive.StartThread() != 0)
     {
       XBMC->Log(LOG_ERROR, "Start keepalive thread failed.");
     }
@@ -968,7 +968,7 @@ void cPVRClientForTheRecord::CloseLiveStream()
   if (m_keepalive.IsThreadRunning())
   {
     long hr = m_keepalive.StopThread();
-    if (hr != S_OK && hr != S_FALSE)
+    if (hr != 0)
     {
       XBMC->Log(LOG_ERROR, "Stop keepalive thread failed with %x.", hr);
     }
