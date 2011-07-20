@@ -91,10 +91,6 @@ void CAdvancedSettings::Initialize()
   m_videoAllowMpeg4VDPAU = false;
   m_DXVACheckCompatibility = false;
   m_DXVACheckCompatibilityPresent = false;
-  m_DXVADeintQuickSwitch = true;
-  m_DXVADeintAutoMaxWidth = 9999;
-  m_DXVADeintAutoMaxHeight = 9999;
-  m_DXVADeintAutoMaxFps = 99.9f;
 
   m_musicUseTimeSeeking = true;
   m_musicTimeSeekForward = 10;
@@ -210,8 +206,6 @@ void CAdvancedSettings::Initialize()
   m_bVideoLibraryImportWatchedState = false;
   m_bVideoScannerIgnoreErrors = false;
 
-  m_bUseEvilB = true;
-
   m_iTuxBoxStreamtsPort = 31339;
   m_bTuxBoxAudioChannelSelection = false;
   m_bTuxBoxSubMenuSelection = false;
@@ -297,6 +291,7 @@ void CAdvancedSettings::Initialize()
   m_canWindowed = true;
   m_guiVisualizeDirtyRegions = false;
   m_guiAlgorithmDirtyRegions = 0;
+  m_guiDirtyRegionNoFlipTimeout = -1;
 }
 
 bool CAdvancedSettings::Load()
@@ -540,14 +535,6 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
 
     m_DXVACheckCompatibilityPresent = XMLUtils::GetBoolean(pElement,"checkdxvacompatibility", m_DXVACheckCompatibility);
 
-    TiXmlElement* pDXVADeint = pElement->FirstChildElement("dxvadeinterlace");
-    if (pDXVADeint)
-    {
-      XMLUtils::GetBoolean(pDXVADeint,"enablequickswitch", m_DXVADeintQuickSwitch);
-      XMLUtils::GetUInt(pDXVADeint, "automaxhqwidth", m_DXVADeintAutoMaxWidth);
-      XMLUtils::GetUInt(pDXVADeint, "automaxhqheight", m_DXVADeintAutoMaxHeight);
-      XMLUtils::GetFloat(pDXVADeint, "automaxhqfps", m_DXVADeintAutoMaxFps);
-    }
   }
 
   pElement = pRootElement->FirstChildElement("musiclibrary");
@@ -679,7 +666,6 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
   XMLUtils::GetInt(pRootElement, "playlistretries", m_playlistRetries, -1, 5000);
   XMLUtils::GetInt(pRootElement, "playlisttimeout", m_playlistTimeout, 0, 5000);
 
-  XMLUtils::GetBoolean(pRootElement,"rootovershoot",m_bUseEvilB);
   XMLUtils::GetBoolean(pRootElement,"glrectanglehack", m_GLRectangleHack);
   XMLUtils::GetInt(pRootElement,"skiploopfilter", m_iSkipLoopFilter, -16, 48);
   XMLUtils::GetFloat(pRootElement, "forcedswaptime", m_ForcedSwapTime, 0.0, 100.0);
@@ -964,6 +950,7 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
   {
     XMLUtils::GetBoolean(pElement, "visualizedirtyregions", m_guiVisualizeDirtyRegions);
     XMLUtils::GetInt(pElement, "algorithmdirtyregions",     m_guiAlgorithmDirtyRegions);
+    XMLUtils::GetInt(pElement, "nofliptimeout",             m_guiDirtyRegionNoFlipTimeout);
   }
 
   // load in the GUISettings overrides:
