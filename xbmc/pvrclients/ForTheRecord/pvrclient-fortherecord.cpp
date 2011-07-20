@@ -192,7 +192,7 @@ PVR_ERROR cPVRClientForTheRecord::GetEpg(PVR_HANDLE handle, const PVR_CHANNEL &c
         EPG_TAG broadcast;
         cEpg epg;
 
-        memset(&broadcast, NULL, sizeof(EPG_TAG));
+        memset(&broadcast, 0, sizeof(EPG_TAG));
 
         // parse channel list
         for ( int index =0; index < size; ++index )
@@ -565,7 +565,11 @@ PVR_ERROR cPVRClientForTheRecord::GetRecordings(PVR_HANDLE handle)
               {
                 tag.strDirectory = "";
               }
+#ifdef _WIN32
               tag.strStreamURL   = recording.RecordingFileName();
+#else
+              tag.strStreamURL   = recording.CIFSRecordingFileName();
+#endif
               PVR->TransferRecordingEntry(handle, &tag);
               iNumRecordings++;
             }
