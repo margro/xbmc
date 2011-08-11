@@ -48,7 +48,6 @@ namespace EPG
 }
 namespace PVR
 {
-  class CPVREpgInfoTag;
   class CPVRChannel;
   class CPVRRecording;
   class CPVRTimerInfoTag;
@@ -85,7 +84,6 @@ public:
   CFileItem(const CArtist& artist);
   CFileItem(const CGenre& genre);
   CFileItem(const CVideoInfoTag& movie);
-  CFileItem(const PVR::CPVREpgInfoTag& tag);
   CFileItem(const EPG::CEpgInfoTag& tag);
   CFileItem(const PVR::CPVRChannel& channel);
   CFileItem(const PVR::CPVRRecording& record);
@@ -115,6 +113,7 @@ public:
   bool IsPythonScript() const;
   bool IsXBE() const;
   bool IsPlugin() const;
+  bool IsScript() const;
   bool IsAddonsPath() const;
   bool IsShortCut() const;
   bool IsNFO() const;

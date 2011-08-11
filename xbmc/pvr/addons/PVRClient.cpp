@@ -26,7 +26,7 @@
 #include "URL.h"
 #include "guilib/LocalizeStrings.h"
 #include "pvr/PVRManager.h"
-#include "pvr/epg/PVREpg.h"
+#include "epg/Epg.h"
 #include "pvr/channels/PVRChannelGroups.h"
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
@@ -38,46 +38,55 @@
 using namespace std;
 using namespace ADDON;
 using namespace PVR;
+using namespace EPG;
 
 CPVRClient::CPVRClient(const AddonProps& props) :
-    CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>(props),
-    m_bReadyToUse(false),
-    m_strHostName("unknown"),
-    m_strBackendName("unknown"),
-    m_bGotBackendName(false),
-    m_strBackendVersion("unknown"),
-    m_bGotBackendVersion(false),
-    m_strConnectionString("unknown"),
-    m_bGotConnectionString(false),
-    m_strFriendlyName("unknown"),
-    m_bGotFriendlyName(false),
-    m_bGotAddonCapabilities(false)
+    CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>(props)
 {
+  ResetProperties();
 }
 
 CPVRClient::CPVRClient(const cp_extension_t *ext) :
-    CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>(ext),
-    m_bReadyToUse(false),
-    m_strHostName("unknown"),
-    m_strBackendName("unknown"),
-    m_bGotBackendName(false),
-    m_strBackendVersion("unknown"),
-    m_bGotBackendVersion(false),
-    m_strConnectionString("unknown"),
-    m_bGotConnectionString(false),
-    m_strFriendlyName("unknown"),
-    m_bGotFriendlyName(false),
-    m_bGotAddonCapabilities(false)
+    CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>(ext)
 {
+  ResetProperties();
 }
 
 CPVRClient::~CPVRClient(void)
 {
   if (m_pInfo)
-  {
-    delete m_pInfo;
-    m_pInfo = NULL;
-  }
+    SAFE_DELETE(m_pInfo);
+}
+
+void CPVRClient::ResetProperties(void)
+{
+  m_bReadyToUse           = false;
+  m_bGotBackendName       = false;
+  m_bGotBackendVersion    = false;
+  m_bGotConnectionString  = false;
+  m_bGotFriendlyName      = false;
+  m_bGotAddonCapabilities = false;
+  m_strBackendVersion     = "unknown";
+  m_strConnectionString   = "unknown";
+  m_strFriendlyName       = "unknown";
+  m_strHostName           = "unknown";
+  m_strBackendName        = "unknown";
+  ResetAddonCapabilities();
+}
+
+void CPVRClient::ResetAddonCapabilities(void)
+{
+  m_addonCapabilities.bSupportsChannelSettings = false;
+  m_addonCapabilities.bSupportsTimeshift       = false;
+  m_addonCapabilities.bSupportsEPG             = false;
+  m_addonCapabilities.bSupportsTV              = false;
+  m_addonCapabilities.bSupportsRadio           = false;
+  m_addonCapabilities.bSupportsRecordings      = false;
+  m_addonCapabilities.bSupportsTimers          = false;
+  m_addonCapabilities.bSupportsChannelGroups   = false;
+  m_addonCapabilities.bSupportsChannelScan     = false;
+  m_addonCapabilities.bHandlesInputStream      = false;
+  m_addonCapabilities.bHandlesDemuxing         = false;
 }
 
 bool CPVRClient::Create(int iClientId)
@@ -117,8 +126,7 @@ void CPVRClient::Destroy(void)
     /* Tell the client to destroy */
     CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>::Destroy();
     m_menuhooks.clear();
-    delete m_pInfo;
-    m_pInfo = NULL;
+    SAFE_DELETE(m_pInfo);
   }
   catch (exception &e)
   {
@@ -165,8 +173,8 @@ inline void PVRWriteClientRecordingInfo(const CPVRRecording &xbmcRecording, PVR_
   time_t recTime;
   xbmcRecording.RecordingTimeAsUTC().GetAsTime(recTime);
 
-  addonRecording.recordingTime = recTime - g_advancedSettings.m_iPVRTimeCorrection;
-  addonRecording.iClientIndex   = xbmcRecording.m_iClientIndex;
+  addonRecording.recordingTime  = recTime - g_advancedSettings.m_iPVRTimeCorrection;
+  addonRecording.strRecordingId = xbmcRecording.m_strRecordingId.c_str();
   addonRecording.strTitle       = xbmcRecording.m_strTitle.c_str();
   addonRecording.strPlotOutline = xbmcRecording.m_strPlotOutline.c_str();
   addonRecording.strPlot        = xbmcRecording.m_strPlot.c_str();
@@ -227,11 +235,9 @@ inline void PVRWriteClientChannelInfo(const CPVRChannel &xbmcChannel, PVR_CHANNE
   addonChannel.strStreamURL      = xbmcChannel.StreamURL().c_str();
 }
 
-PVR_ERROR CPVRClient::GetAddonCapabilities(PVR_ADDON_CAPABILITIES *pCapabilities)
+PVR_ADDON_CAPABILITIES CPVRClient::GetAddonCapabilities(void)
 {
-  *pCapabilities = m_addonCapabilities;
-
-  return PVR_ERROR_NO_ERROR;
+  return m_addonCapabilities;
 }
 
 const char *CPVRClient::GetBackendName(void)
@@ -347,7 +353,7 @@ void CPVRClient::CallMenuHook(const PVR_MENUHOOK &hook)
   }
 }
 
-PVR_ERROR CPVRClient::GetEPGForChannel(const CPVRChannel &channel, CPVREpg *epg, time_t start /* = 0 */, time_t end /* = 0 */, bool bSaveInDb /* = false*/)
+PVR_ERROR CPVRClient::GetEPGForChannel(const CPVRChannel &channel, CEpg *epg, time_t start /* = 0 */, time_t end /* = 0 */, bool bSaveInDb /* = false*/)
 {
   PVR_ERROR retVal = PVR_ERROR_UNKNOWN;
   if (!m_bReadyToUse)
@@ -363,7 +369,7 @@ PVR_ERROR CPVRClient::GetEPGForChannel(const CPVRChannel &channel, CPVREpg *epg,
 
     PVR_HANDLE_STRUCT handle;
     handle.callerAddress = this;
-    handle.dataAddress = (CPVREpg*) epg;
+    handle.dataAddress = (CEpg*) epg;
     handle.dataIdentifier = bSaveInDb ? 1 : 0; // used by the callback method CAddonCallbacksPVR::PVRTransferEpgEntry()
     retVal = m_pStruct->GetEpg(&handle,
         addonChannel,
@@ -1108,18 +1114,7 @@ PVR_ERROR CPVRClient::SetAddonCapabilities(void)
   if (m_bGotAddonCapabilities)
     return PVR_ERROR_NO_ERROR;
 
-  /* reset all properties to disabled */
-  m_addonCapabilities.bSupportsChannelSettings      = false;
-  m_addonCapabilities.bSupportsTimeshift            = false;
-  m_addonCapabilities.bSupportsEPG                  = false;
-  m_addonCapabilities.bSupportsTV                   = false;
-  m_addonCapabilities.bSupportsRadio                = false;
-  m_addonCapabilities.bSupportsRecordings           = false;
-  m_addonCapabilities.bSupportsTimers               = false;
-  m_addonCapabilities.bSupportsChannelGroups        = false;
-  m_addonCapabilities.bSupportsChannelScan          = false;
-  m_addonCapabilities.bHandlesInputStream           = false;
-  m_addonCapabilities.bHandlesDemuxing              = false;
+  ResetAddonCapabilities();
 
   /* try to get the addon properties */
   try

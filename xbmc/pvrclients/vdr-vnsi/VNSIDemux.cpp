@@ -172,14 +172,6 @@ bool cVNSIDemux::SwitchChannel(const PVR_CHANNEL &channelinfo)
   m_channelinfo = channelinfo;
   m_Streams.iStreamCount  = 0;
 
-  while (m_Streams.iStreamCount == 0 && !ConnectionLost())
-  {
-    DemuxPacket* pkg = Read();
-    if(!pkg)
-      return false;
-    PVR->FreeDemuxPacket(pkg);
-  }
-
   return !ConnectionLost();
 }
 
@@ -462,6 +454,9 @@ bool cVNSIDemux::StreamContentInfo(cResponsePacket *resp)
         m_Streams.stream[i].iHeight           = resp->extract_U32();
         m_Streams.stream[i].iWidth            = resp->extract_U32();
         m_Streams.stream[i].fAspect           = resp->extract_Double();
+
+        // ignore fAspect, this is wrong
+        m_Streams.stream[i].fAspect = 0.0;
       }
       else if (m_Streams.stream[i].iCodecType == AVMEDIA_TYPE_SUBTITLE)
       {

@@ -21,6 +21,9 @@
 
 #include "GUIProgressControl.h"
 #include "GUIInfoManager.h"
+#include "GUIListItem.h"
+#include "GUIWindowManager.h"
+#include "FileItem.h"
 
 CGUIProgressControl::CGUIProgressControl(int parentID, int controlID,
                                          float posX, float posY, float width,
@@ -38,6 +41,7 @@ CGUIProgressControl::CGUIProgressControl(int parentID, int controlID,
     , m_guiOverlay(posX, posY, width, height, overlayTexture)
 {
   m_fPercent = 0;
+  m_fUpdatedInfo = -1;
   m_iInfoCode = 0;
   ControlType = GUICONTROL_PROGRESS;
   m_bReveal = reveal;
@@ -63,6 +67,8 @@ void CGUIProgressControl::Process(unsigned int currentTime, CDirtyRegionList &di
     float percent = m_fPercent;
     if (m_iInfoCode)
       m_fPercent = (float)g_infoManager.GetInt(m_iInfoCode);
+    else if (m_fUpdatedInfo >= 0)
+      m_fPercent = m_fUpdatedInfo;
     if (m_fPercent < 0.0f) m_fPercent = 0.0f;
     if (m_fPercent > 100.0f) m_fPercent = 100.0f;
     changed |= (percent != m_fPercent);
@@ -300,4 +306,24 @@ CStdString CGUIProgressControl::GetDescription() const
   CStdString percent;
   percent.Format("%2.f", m_fPercent);
   return percent;
+}
+
+void CGUIProgressControl::SetListInfo(const CGUIInfoLabel &info)
+{
+  m_listInfo = info;
+}
+
+void CGUIProgressControl::UpdateInfo(const CGUIListItem *item)
+{
+  if (m_listInfo.IsEmpty())
+  {
+    CGUIControl::UpdateInfo(item);
+    return;
+  }
+  else if (m_listInfo.IsConstant() && !m_bInvalidated)
+    return;
+  else if (item)
+    m_fUpdatedInfo = atof(m_listInfo.GetItemLabel(item, false));
+  else if (m_parentID)
+    m_fUpdatedInfo = atof(m_listInfo.GetLabel(m_parentID, false));
 }

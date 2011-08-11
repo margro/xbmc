@@ -456,7 +456,7 @@ bool CGUIDialogPVRChannelManager::OnClickButtonNewChannel(CGUIMessage &message)
   clients.push_back(XBMC_VIRTUAL_CLIENTID);
 
   CLIENTMAP clientMap;
-  if (g_PVRClients->GetActiveClients(&clientMap) > 0)
+  if (g_PVRClients->GetConnectedClients(&clientMap) > 0)
   {
     CLIENTMAPITR itr;
     for (itr = clientMap.begin() ; itr != clientMap.end(); itr++)
@@ -484,7 +484,7 @@ bool CGUIDialogPVRChannelManager::OnClickButtonNewChannel(CGUIMessage &message)
           newchannel->SetVirtual(true);
           newchannel->SetStreamURL(strURL);
           newchannel->SetClientID(XBMC_VIRTUAL_CLIENTID);
-          g_PVRChannelGroups->GetGroupAll(m_bIsRadio)->AddToGroup(newchannel);
+          g_PVRChannelGroups->GetGroupAll(m_bIsRadio)->AddToGroup(*newchannel);
           newchannel->Persist();
 
           CFileItemPtr channel(new CFileItem(newchannel));
@@ -684,7 +684,7 @@ void CGUIDialogPVRChannelManager::Update()
   if( !channels )
     return;
 
-  for (int iChannelPtr = 0; iChannelPtr < channels->GetNumChannels(); iChannelPtr++)
+  for (int iChannelPtr = 0; iChannelPtr < channels->Size(); iChannelPtr++)
   {
     const CPVRChannel *channel = channels->GetByIndex(iChannelPtr);
     CFileItemPtr channelFile(new CFileItem(*channel));
@@ -706,7 +706,7 @@ void CGUIDialogPVRChannelManager::Update()
     if (channel->ClientID() == XBMC_VIRTUAL_CLIENTID) /* XBMC internal */
       clientName = g_localizeStrings.Get(19209);
     else
-      clientName = g_PVRClients->GetClientName(channel->ClientID());
+      g_PVRClients->GetClientName(channel->ClientID(), clientName);
     channelFile->SetProperty("ClientName", clientName);
 
     m_channelItems->Add(channelFile);
@@ -766,10 +766,10 @@ bool CGUIDialogPVRChannelManager::PersistChannel(CFileItemPtr pItem, CPVRChannel
   if (bHidden)
   {
     group->SortByChannelNumber(); // or previous changes will be overwritten
-    group->RemoveFromGroup(channel);
+    group->RemoveFromGroup(*channel);
   }
   else
-    group->SetChannelNumber(channel, ++(*iChannelNumber));
+    group->SetChannelNumber(*channel, ++(*iChannelNumber));
 
   return true;
 }

@@ -223,13 +223,17 @@ void CTsReader::Close()
     } else {
       m_fileReader->CloseFile();
     }
-    delete_null(m_fileReader);
+    SAFE_DELETE(m_fileReader);
   }
 }
 
 void CTsReader::OnZap(void)
 {
-  m_fileReader->SetFilePointer(0LL, FILE_END);
+  if (m_fileReader)
+  {
+    m_fileReader->SetFilePointer(0LL, FILE_END);
+    usleep(100000);
+  }
 }
 
 #endif //TSREADER

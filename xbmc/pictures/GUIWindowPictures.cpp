@@ -19,6 +19,7 @@
  *
  */
 
+#include "threads/SystemClock.h"
 #include "system.h"
 #include "GUIWindowPictures.h"
 #include "Util.h"
@@ -200,13 +201,13 @@ void CGUIWindowPictures::OnPrepareFileItems(CFileItemList& items)
   bool bShowProgress=!g_windowManager.HasModalDialog();
   bool bProgressVisible=false;
 
-  unsigned int tick=CTimeUtils::GetTimeMS();
+  unsigned int tick=XbmcThreads::SystemClockMillis();
 
   while (loader.IsLoading() && m_dlgProgress && !m_dlgProgress->IsCanceled())
   {
     if (bShowProgress)
     { // Do we have to init a progress dialog?
-      unsigned int elapsed=CTimeUtils::GetTimeMS()-tick;
+      unsigned int elapsed=XbmcThreads::SystemClockMillis()-tick;
 
       if (!bProgressVisible && elapsed>1500 && m_dlgProgress)
       { // tag loading takes more then 1.5 secs, show a progress dialog
@@ -443,7 +444,7 @@ void CGUIWindowPictures::GetContextButtons(int itemNumber, CContextButtons &butt
         }
       }
 
-      if (item->IsPlugin() || item->m_strPath.Left(9).Equals("script://") || m_vecItems->IsPlugin())
+      if (item->IsPlugin() || item->IsScript() || m_vecItems->IsPlugin())
         buttons.Add(CONTEXT_BUTTON_PLUGIN_SETTINGS, 1045);
 
       buttons.Add(CONTEXT_BUTTON_GOTO_ROOT, 20128);

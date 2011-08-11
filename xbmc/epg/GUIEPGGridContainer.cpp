@@ -27,10 +27,10 @@
 #include "guilib/DirtyRegion.h"
 #include "lib/tinyXML/tinyxml.h"
 #include "utils/log.h"
-#include "utils/TimeUtils.h"
+#include "threads/SystemClock.h"
 #include "GUIInfoManager.h"
 
-#include "pvr/epg/PVREpgInfoTag.h"
+#include "epg/EpgInfoTag.h"
 #include "pvr/channels/PVRChannel.h"
 
 #include "GUIEPGGridContainer.h"
@@ -466,7 +466,7 @@ void CGUIEPGGridContainer::RenderProgrammeItem(float posX, float posY, float wid
       CFileItem *fileItem = item->IsFileItem() ? (CFileItem *)item : NULL;
       if (fileItem)
       {
-        const CPVREpgInfoTag* tag = (CPVREpgInfoTag *) fileItem->GetEPGInfoTag();
+        const CEpgInfoTag* tag = fileItem->GetEPGInfoTag();
         if (m_orientation == VERTICAL)
           layout->SetWidth(width);
         else
@@ -506,7 +506,7 @@ void CGUIEPGGridContainer::RenderProgrammeItem(float posX, float posY, float wid
       CFileItem *fileItem = item->IsFileItem() ? (CFileItem *)item : NULL;
       if (fileItem)
       {
-        const CPVREpgInfoTag* tag = (CPVREpgInfoTag *) fileItem->GetEPGInfoTag();
+        const CEpgInfoTag* tag = fileItem->GetEPGInfoTag();
         if (m_orientation == VERTICAL)
           layout->SetWidth(width);
         else
@@ -677,7 +677,7 @@ bool CGUIEPGGridContainer::OnMessage(CGUIMessage& message)
       itemsPointer.start = 0;
       for (int i = 0; i < items->Size(); ++i)
       {
-        const CPVREpgInfoTag* tag = (CPVREpgInfoTag *) items->Get(i)->GetEPGInfoTag();
+        const CEpgInfoTag* tag = items->Get(i)->GetEPGInfoTag();
         if (!tag)
           continue;
 
@@ -782,14 +782,14 @@ void CGUIEPGGridContainer::UpdateItems()
 
   blockDuration.SetDateTimeSpan(0, 0, MINSPERBLOCK, 0);
 
-  long tick(CTimeUtils::GetTimeMS());
+  long tick(XbmcThreads::SystemClockMillis());
 
   for (unsigned int row = 0; row < m_channelItems.size(); ++row)
   {
     CDateTime gridCursor  = m_gridStart; //reset cursor for new channel
     unsigned long progIdx = m_epgItemsPtr[row].start;
     unsigned long lastIdx = m_epgItemsPtr[row].stop;
-    int channelnum        = ((CPVREpgInfoTag *)((CFileItem *)m_programmeItems[progIdx].get())->GetEPGInfoTag())->ChannelTag()->ChannelNumber();
+    int channelnum        = ((CFileItem *)m_programmeItems[progIdx].get())->GetEPGInfoTag()->ChannelTag()->ChannelNumber();
 
     /** FOR EACH BLOCK **********************************************************************/
 
@@ -798,10 +798,10 @@ void CGUIEPGGridContainer::UpdateItems()
       while (progIdx <= lastIdx)
       {
         CGUIListItemPtr item = m_programmeItems[progIdx];
-        if (((CPVREpgInfoTag *)((CFileItem *)item.get())->GetEPGInfoTag())->ChannelTag()->ChannelNumber() != channelnum)
+        if (((CFileItem *)item.get())->GetEPGInfoTag()->ChannelTag()->ChannelNumber() != channelnum)
           break;
 
-        const CPVREpgInfoTag* tag = (CPVREpgInfoTag *) ((CFileItem *)item.get())->GetEPGInfoTag();
+        const CEpgInfoTag* tag = ((CFileItem *)item.get())->GetEPGInfoTag();
         if (tag == NULL)
           progIdx++;
 
@@ -837,7 +837,7 @@ void CGUIEPGGridContainer::UpdateItems()
       {
         if (!m_gridIndex[row][block].item)
         {
-          CPVREpgInfoTag broadcast;
+          CEpgInfoTag broadcast;
           CFileItemPtr unknown(new CFileItem(broadcast));
           for (int i = block ; i > block - itemSize; i--)
           {
@@ -872,7 +872,7 @@ void CGUIEPGGridContainer::UpdateItems()
 
   /******************************************* END ******************************************/
 
-  CLog::Log(LOGDEBUG, "%s completed successfully in %u ms", __FUNCTION__, (unsigned int)(CTimeUtils::GetTimeMS()-tick));
+  CLog::Log(LOGDEBUG, "%s completed successfully in %u ms", __FUNCTION__, (unsigned int)(XbmcThreads::SystemClockMillis()-tick));
 
   m_channels = (int)m_epgItemsPtr.size();
   m_item = GetItem(m_channelCursor);
@@ -1457,7 +1457,7 @@ void CGUIEPGGridContainer::LoadLayout(TiXmlElement *layout)
   while (itemElement)
   { // we have a new item layout
     CGUIListItemLayout itemLayout;
-    itemLayout.LoadLayout(itemElement, false);
+    itemLayout.LoadLayout(itemElement, GetParentID(), false);
     m_channelLayouts.push_back(itemLayout);
     itemElement = itemElement->NextSiblingElement("channellayout");
   }
@@ -1465,7 +1465,7 @@ void CGUIEPGGridContainer::LoadLayout(TiXmlElement *layout)
   while (itemElement)
   { // we have a new item layout
     CGUIListItemLayout itemLayout;
-    itemLayout.LoadLayout(itemElement, true);
+    itemLayout.LoadLayout(itemElement, GetParentID(), true);
     m_focusedChannelLayouts.push_back(itemLayout);
     itemElement = itemElement->NextSiblingElement("focusedchannellayout");
   }
@@ -1475,7 +1475,7 @@ void CGUIEPGGridContainer::LoadLayout(TiXmlElement *layout)
   while (itemElement)
   {
     CGUIListItemLayout itemLayout;
-    itemLayout.LoadLayout(itemElement, true);
+    itemLayout.LoadLayout(itemElement, GetParentID(), true);
     m_focusedProgrammeLayouts.push_back(itemLayout);
     itemElement = itemElement->NextSiblingElement("focusedlayout");
   }
@@ -1483,7 +1483,7 @@ void CGUIEPGGridContainer::LoadLayout(TiXmlElement *layout)
   while (itemElement)
   {
     CGUIListItemLayout itemLayout;
-    itemLayout.LoadLayout(itemElement, false);
+    itemLayout.LoadLayout(itemElement, GetParentID(), false);
     m_programmeLayouts.push_back(itemLayout);
     itemElement = itemElement->NextSiblingElement("itemlayout");
   }
@@ -1493,7 +1493,7 @@ void CGUIEPGGridContainer::LoadLayout(TiXmlElement *layout)
   while (itemElement)
   {
     CGUIListItemLayout itemLayout;
-    itemLayout.LoadLayout(itemElement, false);
+    itemLayout.LoadLayout(itemElement, GetParentID(), false);
     m_rulerLayouts.push_back(itemLayout);
     itemElement = itemElement->NextSiblingElement("rulerlayout");
   }
@@ -1651,8 +1651,7 @@ void CGUIEPGGridContainer::GetCurrentLayouts()
   m_channelLayout = NULL;
   for (unsigned int i = 0; i < m_channelLayouts.size(); i++)
   {
-    int condition = m_channelLayouts[i].GetCondition();
-    if (!condition || g_infoManager.GetBool(condition, GetParentID()))
+    if (m_channelLayouts[i].CheckCondition())
     {
       m_channelLayout = &m_channelLayouts[i];
       break;
@@ -1664,8 +1663,7 @@ void CGUIEPGGridContainer::GetCurrentLayouts()
   m_focusedChannelLayout = NULL;
   for (unsigned int i = 0; i < m_focusedChannelLayouts.size(); i++)
   {
-    int condition = m_focusedChannelLayouts[i].GetCondition();
-    if (!condition || g_infoManager.GetBool(condition, GetParentID()))
+    if (m_focusedChannelLayouts[i].CheckCondition())
     {
       m_focusedChannelLayout = &m_focusedChannelLayouts[i];
       break;
@@ -1677,8 +1675,7 @@ void CGUIEPGGridContainer::GetCurrentLayouts()
   m_programmeLayout = NULL;
   for (unsigned int i = 0; i < m_programmeLayouts.size(); i++)
   {
-    int condition = m_programmeLayouts[i].GetCondition();
-    if (!condition || g_infoManager.GetBool(condition, GetParentID()))
+    if (m_programmeLayouts[i].CheckCondition())
     {
       m_programmeLayout = &m_programmeLayouts[i];
       break;
@@ -1690,8 +1687,7 @@ void CGUIEPGGridContainer::GetCurrentLayouts()
   m_focusedProgrammeLayout = NULL;
   for (unsigned int i = 0; i < m_focusedProgrammeLayouts.size(); i++)
   {
-    int condition = m_focusedProgrammeLayouts[i].GetCondition();
-    if (!condition || g_infoManager.GetBool(condition, GetParentID()))
+    if (m_focusedProgrammeLayouts[i].CheckCondition())
     {
       m_focusedProgrammeLayout = &m_focusedProgrammeLayouts[i];
       break;
@@ -1703,8 +1699,7 @@ void CGUIEPGGridContainer::GetCurrentLayouts()
   m_rulerLayout = NULL;
   for (unsigned int i = 0; i < m_rulerLayouts.size(); i++)
   {
-    int condition = m_rulerLayouts[i].GetCondition();
-    if (!condition || g_infoManager.GetBool(condition, GetParentID()))
+    if (m_rulerLayouts[i].CheckCondition())
     {
       m_rulerLayout = &m_rulerLayouts[i];
       break;

@@ -19,6 +19,7 @@
  *
  */
 
+#include "threads/SystemClock.h"
 #include "GUIMediaWindow.h"
 #include "GUIUserMessages.h"
 #include "Util.h"
@@ -623,7 +624,7 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
   }
   else
   {
-    unsigned int time = CTimeUtils::GetTimeMS();
+    unsigned int time = XbmcThreads::SystemClockMillis();
 
     if (strDirectory.IsEmpty())
       SetupShares();
@@ -632,7 +633,7 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
       return false;
 
     // took over a second, and not normally cached, so cache it
-    if (time + 1000 < CTimeUtils::GetTimeMS() && items.CacheToDiscIfSlow())
+    if ((XbmcThreads::SystemClockMillis() - time) > 1000  && items.CacheToDiscIfSlow())
       items.Save(GetID());
 
     // if these items should replace the current listing, then pop it off the top
@@ -870,10 +871,10 @@ bool CGUIMediaWindow::OnClick(int iItem)
     delete pFileDirectory;
   }
 
-  CURL url(pItem->m_strPath);
-  if (url.GetProtocol() == "script")
+  if (pItem->IsScript())
   {
     // execute the script
+    CURL url(pItem->m_strPath);
     AddonPtr addon;
     if (CAddonMgr::Get().GetAddon(url.GetHostName(), addon))
     {
@@ -1403,7 +1404,8 @@ void CGUIMediaWindow::GetContextButtons(int itemNumber, CContextButtons &buttons
     return;
 
   // TODO: FAVOURITES Conditions on masterlock and localisation
-  if (!item->IsParentFolder() && !item->m_strPath.Equals("add") && !item->m_strPath.Equals("newplaylist://") && !item->m_strPath.Left(19).Equals("newsmartplaylist://"))
+  if (!item->IsParentFolder() && !item->m_strPath.Equals("add") && !item->m_strPath.Equals("newplaylist://") &&
+      !item->m_strPath.Left(19).Equals("newsmartplaylist://") && !item->IsAddonsPath())
   {
     if (CFavourites::IsFavourite(item.get(), GetID()))
       buttons.Add(CONTEXT_BUTTON_ADD_FAVOURITE, 14077);     // Remove Favourite

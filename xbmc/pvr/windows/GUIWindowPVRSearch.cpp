@@ -27,13 +27,14 @@
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/dialogs/GUIDialogPVRGuideSearch.h"
-#include "pvr/epg/PVREpgContainer.h"
+#include "epg/EpgContainer.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "GUIWindowPVR.h"
 #include "utils/log.h"
 #include "pvr/addons/PVRClients.h"
 
 using namespace PVR;
+using namespace EPG;
 
 CGUIWindowPVRSearch::CGUIWindowPVRSearch(CGUIWindowPVR *parent) :
   CGUIWindowPVRCommon(parent, PVR_WINDOW_SEARCH, CONTROL_BTNSEARCH, CONTROL_LIST_SEARCH),
@@ -52,7 +53,7 @@ void CGUIWindowPVRSearch::GetContextButtons(int itemNumber, CContextButtons &but
   {
     if (pItem->GetEPGInfoTag()->EndAsLocalTime() > CDateTime::GetCurrentDateTime())
     {
-      if (((CPVREpgInfoTag *) pItem->GetEPGInfoTag())->Timer() == NULL)
+      if (!pItem->GetEPGInfoTag()->HasTimer())
       {
         if (pItem->GetEPGInfoTag()->StartAsLocalTime() < CDateTime::GetCurrentDateTime())
           buttons.Add(CONTEXT_BUTTON_START_RECORD, 264);   /* RECORD programme */
@@ -73,7 +74,8 @@ void CGUIWindowPVRSearch::GetContextButtons(int itemNumber, CContextButtons &but
     buttons.Add(CONTEXT_BUTTON_SORTBY_NAME, 103);         /* Sort by Name */
     buttons.Add(CONTEXT_BUTTON_SORTBY_DATE, 104);         /* Sort by Date */
     buttons.Add(CONTEXT_BUTTON_CLEAR, 19232);             /* Clear search results */
-    if (g_PVRClients->HasMenuHooks(((CPVREpgInfoTag *) pItem->GetEPGInfoTag())->ChannelTag()->ClientID()))
+    if (pItem->GetEPGInfoTag()->HasPVRChannel() &&
+        g_PVRClients->HasMenuHooks(pItem->GetEPGInfoTag()->ChannelTag()->ClientID()))
       buttons.Add(CONTEXT_BUTTON_MENU_HOOKS, 19195);      /* PVR client specific action */
   }
 }
@@ -121,7 +123,8 @@ void CGUIWindowPVRSearch::UpdateData(void)
       dlgProgress->Progress();
     }
 
-    g_PVREpg->GetEPGSearch(m_parent->m_vecItems, m_searchfilter);
+    // TODO get this from the selected channel group
+    g_EpgContainer.GetEPGSearch(*m_parent->m_vecItems, m_searchfilter);
     if (dlgProgress)
       dlgProgress->Close();
 

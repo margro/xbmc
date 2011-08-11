@@ -32,7 +32,7 @@
 #include "pvr/dialogs/GUIDialogPVRGuideInfo.h"
 #include "pvr/dialogs/GUIDialogPVRRecordingInfo.h"
 #include "pvr/dialogs/GUIDialogPVRTimerSettings.h"
-#include "pvr/epg/PVREpgInfoTag.h"
+#include "epg/EpgInfoTag.h"
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/windows/GUIWindowPVR.h"
@@ -45,6 +45,7 @@
 
 using namespace std;
 using namespace PVR;
+using namespace EPG;
 
 CGUIWindowPVRCommon::CGUIWindowPVRCommon(CGUIWindowPVR *parent, PVRWindow window,
     unsigned int iControlButton, unsigned int iControlList)
@@ -180,7 +181,7 @@ bool CGUIWindowPVRCommon::OnAction(const CAction &action)
 {
   bool bReturn = false;
 
-  if (action.GetID() == ACTION_PREVIOUS_MENU ||
+  if (action.GetID() == ACTION_NAV_BACK ||
       action.GetID() == ACTION_PARENT_DIR)
   {
     g_windowManager.PreviousWindow();
@@ -318,8 +319,8 @@ bool CGUIWindowPVRCommon::OnContextButtonMenuHooks(CFileItem *item, CONTEXT_BUTT
   {
     bReturn = true;
 
-    if (item->IsEPG())
-      g_PVRClients->ProcessMenuHooks(((CPVREpgInfoTag *) item->GetEPGInfoTag())->ChannelTag()->ClientID());
+    if (item->IsEPG() && item->GetEPGInfoTag()->HasPVRChannel())
+      g_PVRClients->ProcessMenuHooks(item->GetEPGInfoTag()->ChannelTag()->ClientID());
     else if (item->IsPVRChannel())
       g_PVRClients->ProcessMenuHooks(item->GetPVRChannelInfoTag()->ClientID());
     else if (item->IsPVRRecording())
@@ -401,7 +402,7 @@ bool CGUIWindowPVRCommon::ActionRecord(CFileItem *item)
 {
   bool bReturn = false;
 
-  CPVREpgInfoTag *epgTag = (CPVREpgInfoTag *) item->GetEPGInfoTag();
+  CEpgInfoTag *epgTag = item->GetEPGInfoTag();
   if (!epgTag)
     return bReturn;
 
@@ -447,7 +448,7 @@ bool CGUIWindowPVRCommon::ActionDeleteRecording(CFileItem *item)
 
   /* check if the recording tag is valid */
   CPVRRecording *recTag = (CPVRRecording *) item->GetPVRRecordingInfoTag();
-  if (!recTag || recTag->m_iClientIndex < 0)
+  if (!recTag || recTag->m_strRecordingId.IsEmpty())
     return bReturn;
 
   /* show a confirmation dialog */
@@ -497,7 +498,7 @@ bool CGUIWindowPVRCommon::ActionPlayEpg(CFileItem *item)
 {
   bool bReturn = false;
 
-  CPVREpgInfoTag *epgTag = (CPVREpgInfoTag *) item->GetEPGInfoTag();
+  CEpgInfoTag *epgTag = item->GetEPGInfoTag();
   if (!epgTag)
     return bReturn;
 
@@ -625,11 +626,7 @@ bool CGUIWindowPVRCommon::PlayRecording(CFileItem *item, bool bPlayMinimized /* 
     return false;
   }
 
-  if (!g_application.PlayFile(*item, false))
-  {
-    CGUIDialogOK::ShowAndGetInput(19033,0,19036,0);
-    return false;
-  }
+  g_application.getApplicationMessenger().PlayFile(*item, false);
 
   return true;
 }
@@ -663,7 +660,10 @@ bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = fal
       bSwitchSuccessful = g_application.m_pPlayer->SwitchChannel(*item->GetPVRChannelInfoTag());
 
     if (!bSwitchSuccessful)
-      bSwitchSuccessful = g_application.PlayFile(*item, false);
+    {
+      g_application.getApplicationMessenger().PlayFile(*item, false);
+      return true;
+    }
 
     if (!bSwitchSuccessful)
     {
@@ -680,7 +680,7 @@ bool CGUIWindowPVRCommon::StartRecordFile(CFileItem *item)
   if (!item->HasEPGInfoTag())
     return false;
 
-  CPVREpgInfoTag *tag = (CPVREpgInfoTag *) item->GetEPGInfoTag();
+  CEpgInfoTag *tag = item->GetEPGInfoTag();
   if (!tag || !tag->ChannelTag() || tag->ChannelTag()->ChannelNumber() <= 0)
     return false;
 
@@ -714,7 +714,7 @@ bool CGUIWindowPVRCommon::StopRecordFile(CFileItem *item)
   if (!item->HasEPGInfoTag())
     return false;
 
-  CPVREpgInfoTag *tag = (CPVREpgInfoTag *) item->GetEPGInfoTag();
+  CEpgInfoTag *tag = item->GetEPGInfoTag();
   if (!tag || !tag->ChannelTag() || tag->ChannelTag()->ChannelNumber() <= 0)
     return false;
 
@@ -734,7 +734,7 @@ void CGUIWindowPVRCommon::ShowEPGInfo(CFileItem *item)
   }
   else if (item->IsPVRChannel())
   {
-    const CPVREpgInfoTag *epgnow = item->GetPVRChannelInfoTag()->GetEPGNow();
+    const CEpgInfoTag *epgnow = item->GetPVRChannelInfoTag()->GetEPGNow();
     if (!epgnow)
     {
       CGUIDialogOK::ShowAndGetInput(19033,0,19055,0);

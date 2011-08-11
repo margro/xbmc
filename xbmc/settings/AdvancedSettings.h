@@ -124,6 +124,11 @@ class CAdvancedSettings
     bool m_DXVACheckCompatibility;
     bool m_DXVACheckCompatibilityPresent;
 
+    bool m_DXVADeintQuickSwitch;
+    unsigned m_DXVADeintAutoMaxWidth;
+    unsigned m_DXVADeintAutoMaxHeight;
+    float m_DXVADeintAutoMaxFps;
+
     CStdString m_videoDefaultPlayer;
     CStdString m_videoDefaultDVDPlayer;
     float m_videoPlayCountMinimumPercent;
@@ -234,6 +239,7 @@ class CAdvancedSettings
     int m_iEpgUpdateCheckInterval;  // seconds
     int m_iEpgCleanupInterval;      // seconds
     int m_iEpgActiveTagCheckInterval; // seconds
+    int m_iEpgRetryInterruptedUpdateInterval; // seconds
 
     // EDL Commercial Break
     bool m_bEdlMergeShortCommBreaks;
@@ -289,6 +295,7 @@ class CAdvancedSettings
     bool m_bPVRShowEpgInfoOnEpgItemSelect; /*!< @brief when selecting an EPG fileitem, show the EPG info dialog if this setting is true. start playback on the selected channel if false */
     int m_iPVRMinVideoCacheLevel;      /*!< @brief cache up to this level in the video buffer buffer before resuming playback if the buffers run dry */
     int m_iPVRMinAudioCacheLevel;      /*!< @brief cache up to this level in the audio buffer before resuming playback if the buffers run dry */
+    bool m_bPVRCacheInDvdPlayer; /*!< @brief true to use "CACHESTATE_PVR" in CDVDPlayer (default) */
 
     bool m_measureRefreshrate; //when true the videoreferenceclock will measure the refreshrate when direct3d is used
                                //otherwise it will use the windows refreshrate

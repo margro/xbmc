@@ -19,6 +19,7 @@
  *
  */
 
+#include "threads/SystemClock.h"
 #include "system.h"
 #include "GUIWindowFullScreen.h"
 #include "Application.h"
@@ -280,6 +281,9 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
 
   case ACTION_SHOW_SUBTITLES:
     {
+      if (g_application.m_pPlayer->GetSubtitleCount() == 0)
+        return true;
+
       g_settings.m_currentVideoSettings.m_SubtitleOn = !g_settings.m_currentVideoSettings.m_SubtitleOn;
       g_application.m_pPlayer->SetSubtitleVisible(g_settings.m_currentVideoSettings.m_SubtitleOn);
       CStdString sub, lang;
@@ -475,7 +479,7 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
 #endif
       }
       m_bShowViewModeInfo = true;
-      m_dwShowViewModeTimeout = CTimeUtils::GetTimeMS();
+      m_dwShowViewModeTimeout = XbmcThreads::SystemClockMillis();
     }
     return true;
     break;
@@ -588,7 +592,7 @@ void CGUIWindowFullScreen::OnWindowLoaded()
     if( pProgress->GetInfo() == 0 || pProgress->GetVisibleCondition() == 0)
     {
       pProgress->SetInfo(PLAYER_PROGRESS);
-      pProgress->SetVisibleCondition(PLAYER_DISPLAY_AFTER_SEEK, false);
+      pProgress->SetVisibleCondition("player.displayafterseek");
       pProgress->SetVisible(true);
     }
   }
@@ -596,17 +600,19 @@ void CGUIWindowFullScreen::OnWindowLoaded()
   CGUILabelControl* pLabel = (CGUILabelControl*)GetControl(LABEL_BUFFERING);
   if(pLabel && pLabel->GetVisibleCondition() == 0)
   {
-    pLabel->SetVisibleCondition(PLAYER_CACHING, false);
+    pLabel->SetVisibleCondition("player.caching");
     pLabel->SetVisible(true);
   }
 
   pLabel = (CGUILabelControl*)GetControl(LABEL_CURRENT_TIME);
   if(pLabel && pLabel->GetVisibleCondition() == 0)
   {
-    pLabel->SetVisibleCondition(PLAYER_DISPLAY_AFTER_SEEK, false);
+    pLabel->SetVisibleCondition("player.displayafterseek");
     pLabel->SetVisible(true);
     pLabel->SetLabel("$INFO(VIDEOPLAYER.TIME) / $INFO(VIDEOPLAYER.DURATION)");
   }
+
+  m_showCodec.Parse("player.showcodec", GetID());
 
   FillInTVGroups();
 }
@@ -764,8 +770,9 @@ EVENT_RESULT CGUIWindowFullScreen::OnMouseEvent(const CPoint &point, const CMous
   }
   if (event.m_id != ACTION_MOUSE_MOVE || event.m_offsetX || event.m_offsetY)
   { // some other mouse action has occurred - bring up the OSD
+    // if it is not already running
     CGUIDialogVideoOSD *pOSD = (CGUIDialogVideoOSD *)g_windowManager.GetWindow(WINDOW_DIALOG_VIDEO_OSD);
-    if (pOSD)
+    if (pOSD && !pOSD->IsDialogRunning())
     {
       pOSD->SetAutoClose(3000);
       pOSD->DoModal();
@@ -790,7 +797,8 @@ void CGUIWindowFullScreen::FrameMove()
   }
 
   //------------------------
-  if (g_infoManager.GetBool(PLAYER_SHOWCODEC))
+  m_showCodec.Update();
+  if (m_showCodec)
   {
     // show audio codec info
     CStdString strAudio, strVideo, strGeneral;
@@ -844,7 +852,7 @@ void CGUIWindowFullScreen::FrameMove()
   //----------------------
   // ViewMode Information
   //----------------------
-  if (m_bShowViewModeInfo && CTimeUtils::GetTimeMS() - m_dwShowViewModeTimeout > 2500)
+  if (m_bShowViewModeInfo && XbmcThreads::SystemClockMillis() - m_dwShowViewModeTimeout > 2500)
   {
     m_bShowViewModeInfo = false;
   }
@@ -898,7 +906,7 @@ void CGUIWindowFullScreen::FrameMove()
 
   if (m_timeCodeShow && m_timeCodePosition != 0)
   {
-    if ( (CTimeUtils::GetTimeMS() - m_timeCodeTimeout) >= 2500)
+    if ( (XbmcThreads::SystemClockMillis() - m_timeCodeTimeout) >= 2500)
     {
       m_timeCodeShow = false;
       m_timeCodePosition = 0;
@@ -921,7 +929,7 @@ void CGUIWindowFullScreen::FrameMove()
     OnMessage(msg);
   }
 
-  if (g_infoManager.GetBool(PLAYER_SHOWCODEC) || m_bShowViewModeInfo)
+  if (m_showCodec || m_bShowViewModeInfo)
   {
     SET_CONTROL_VISIBLE(LABEL_ROW1);
     SET_CONTROL_VISIBLE(LABEL_ROW2);
@@ -1028,7 +1036,7 @@ void CGUIWindowFullScreen::ChangetheTimeCode(int remote)
   if (remote >= REMOTE_0 && remote <= REMOTE_9)
   {
     m_timeCodeShow = true;
-    m_timeCodeTimeout = CTimeUtils::GetTimeMS();
+    m_timeCodeTimeout = XbmcThreads::SystemClockMillis();
 
     if (m_timeCodePosition < 6)
       m_timeCodeStamp[m_timeCodePosition++] = remote - REMOTE_0;

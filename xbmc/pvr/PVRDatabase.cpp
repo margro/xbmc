@@ -113,8 +113,7 @@ bool CPVRDatabase::CreateTables()
         "CREATE TABLE channelgroups ("
           "idGroup    integer primary key,"
           "bIsRadio   bool, "
-          "sName      varchar(64),"
-          "iSortOrder integer"
+          "sName      varchar(64)"
         ");"
     );
     m_pDS->exec("CREATE INDEX idx_channelgroups_bIsRadio on channelgroups(bIsRadio);");
@@ -204,6 +203,10 @@ bool CPVRDatabase::UpdateOldVersion(int iVersion)
         m_pDS->exec("ALTER TABLE channelsettings ADD bCustomNonLinStretch bool;");
         m_pDS->exec("ALTER TABLE channelsettings ADD bPostProcess bool;");
         m_pDS->exec("ALTER TABLE channelsettings ADD iScalingMethod integer;");
+      }
+      if (iVersion < 16)
+      {
+        /* sqlite apparently can't delete columns from an existing table, so just leave the extra column alone */
       }
     }
   }
@@ -348,7 +351,7 @@ int CPVRDatabase::Get(CPVRChannelGroupInternal &results)
 
         CLog::Log(LOGDEBUG, "PVRDB - %s - channel '%s' loaded from the database",
             __FUNCTION__, channel->m_strChannelName.c_str());
-        results.InsertInGroup(channel, m_pDS->fv("iChannelNumber").get_asInt());
+        results.InsertInGroup(*channel, m_pDS->fv("iChannelNumber").get_asInt(), false);
         m_pDS->next();
         ++iReturn;
       }
@@ -481,26 +484,91 @@ bool CPVRDatabase::RemoveChannelsFromGroup(const CPVRChannelGroup &group)
   return DeleteValues("map_channelgroups_channels", strWhereClause);
 }
 
+bool CPVRDatabase::GetCurrentGroupMembers(const CPVRChannelGroup &group, vector<int> &members)
+{
+  bool bReturn(false);
+
+  CStdString strCurrentMembersQuery = FormatSQL("SELECT idChannel FROM map_channelgroups_channels WHERE idGroup = %u", group.GroupID());
+  if (ResultQuery(strCurrentMembersQuery))
+  {
+    try
+    {
+      while (!m_pDS->eof())
+      {
+        members.push_back(m_pDS->fv("idChannel").get_asInt());
+        m_pDS->next();
+      }
+      m_pDS->close();
+      bReturn = true;
+    }
+    catch (...)
+    {
+      CLog::Log(LOGERROR, "PVRDB - %s - couldn't load channels from the database", __FUNCTION__);
+    }
+  }
+
+  return bReturn;
+}
+
+bool CPVRDatabase::DeleteChannelsFromGroup(const CPVRChannelGroup &group, const vector<int> &channelsToDelete)
+{
+  bool bDelete(true);
+  unsigned int iDeletedChannels(0);
+
+  while (iDeletedChannels < channelsToDelete.size())
+  {
+    CStdString strChannelsToDelete;
+    CStdString strWhereClause;
+
+    for (unsigned int iChannelPtr = 0; iChannelPtr + iDeletedChannels < channelsToDelete.size() && iChannelPtr < 50; iChannelPtr++)
+      strChannelsToDelete.AppendFormat(", %d", channelsToDelete.at(iDeletedChannels + iChannelPtr));
+
+    if (!strChannelsToDelete.IsEmpty())
+    {
+      strChannelsToDelete = strChannelsToDelete.Right(strChannelsToDelete.length() - 2);
+      strWhereClause = FormatSQL("idGroup = %u AND idChannel IN (%s)", group.GroupID(), strChannelsToDelete.c_str());
+      bDelete = DeleteValues("map_channelgroups_channels", strWhereClause) && bDelete;
+    }
+
+    iDeletedChannels += 50;
+  }
+
+  return bDelete;
+}
+
 bool CPVRDatabase::RemoveStaleChannelsFromGroup(const CPVRChannelGroup &group)
 {
-  bool bDelete = false;
-  /* First remove channels that don't exist in the main channels table */
-  CStdString strWhereClause = FormatSQL("idChannel IN (SELECT map_channelgroups_channels.idChannel FROM map_channelgroups_channels LEFT JOIN channels on map_channelgroups_channels.idChannel = channels.idChannel WHERE channels.idChannel IS NULL)");
-  bDelete = DeleteValues("map_channelgroups_channels", strWhereClause);
+  bool bDelete(true);
+
+  if (!group.IsInternalGroup())
+  {
+    /* First remove channels that don't exist in the main channels table */
+    CStdString strWhereClause = FormatSQL("idChannel IN (SELECT map_channelgroups_channels.idChannel FROM map_channelgroups_channels LEFT JOIN channels on map_channelgroups_channels.idChannel = channels.idChannel WHERE channels.idChannel IS NULL)");
+    bDelete = DeleteValues("map_channelgroups_channels", strWhereClause);
+  }
 
   if (group.size() > 0)
   {
-    CStdString strTmpChannels;
-    for (unsigned int iChannelPtr = 0; iChannelPtr < group.size(); iChannelPtr++)
-      strTmpChannels.AppendFormat(", %d", group.at(iChannelPtr).iChannelNumber);
-    strTmpChannels = strTmpChannels.Right(strTmpChannels.length() - 2);
+    vector<int> currentMembers;
+    if (GetCurrentGroupMembers(group, currentMembers))
+    {
+      vector<int> channelsToDelete;
+      for (unsigned int iChannelPtr = 0; iChannelPtr < currentMembers.size(); iChannelPtr++)
+      {
+        if (!group.IsGroupMember(currentMembers.at(iChannelPtr)))
+          channelsToDelete.push_back(currentMembers.at(iChannelPtr));
+      }
 
-    strWhereClause = FormatSQL("idGroup = %u AND iChannelNumber NOT IN (%s)", group.GroupID(), strTmpChannels.c_str());
+      bDelete = DeleteChannelsFromGroup(group, channelsToDelete) && bDelete;
+    }
   }
   else
-    strWhereClause = FormatSQL("idGroup = %u", group.GroupID());
+  {
+    CStdString strWhereClause = FormatSQL("idGroup = %u", group.GroupID());
+    bDelete = DeleteValues("map_channelgroups_channels", strWhereClause) && bDelete;
+  }
 
-  return bDelete && DeleteValues("map_channelgroups_channels", strWhereClause);
+  return bDelete;
 }
 
 bool CPVRDatabase::DeleteChannelGroups(void)
@@ -540,7 +608,6 @@ bool CPVRDatabase::Get(CPVRChannelGroups &results)
 
         data.SetGroupID(m_pDS->fv("idGroup").get_asInt());
         data.SetGroupName(m_pDS->fv("sName").get_asString());
-        data.SetSortOrder(m_pDS->fv("iSortOrder").get_asInt());
 
         results.Update(data);
 
@@ -586,7 +653,7 @@ int CPVRDatabase::GetGroupMembers(CPVRChannelGroup &group)
         int iChannelNumber = m_pDS->fv("iChannelNumber").get_asInt();
         CPVRChannel *channel = (CPVRChannel *) g_PVRChannelGroups->GetByChannelIDFromAll(iChannelId);
 
-        if (channel && group.AddToGroup(channel, iChannelNumber))
+        if (channel && group.AddToGroup(*channel, iChannelNumber))
           ++iReturn;
 
         m_pDS->next();
@@ -612,17 +679,17 @@ bool CPVRDatabase::Persist(CPVRChannelGroup &group)
   {
     /* new group */
     strQuery = FormatSQL("INSERT INTO channelgroups ("
-        "bIsRadio, sName, iSortOrder) "
-        "VALUES (%i, '%s', %i);",
-        (group.IsRadio() ? 1 :0), group.GroupName().c_str(), group.SortOrder());
+        "bIsRadio, sName) "
+        "VALUES (%i, '%s');",
+        (group.IsRadio() ? 1 :0), group.GroupName().c_str());
   }
   else
   {
     /* update group */
     strQuery = FormatSQL("REPLACE INTO channelgroups ("
-        "idGroup, bIsRadio, sName, iSortOrder) "
-        "VALUES (%i, %i, '%s', %i);",
-        group.GroupID(), (group.IsRadio() ? 1 :0), group.GroupName().c_str(), group.SortOrder());
+        "idGroup, bIsRadio, sName) "
+        "VALUES (%i, %i, '%s');",
+        group.GroupID(), (group.IsRadio() ? 1 :0), group.GroupName().c_str());
   }
 
   if (ExecuteQuery(strQuery))

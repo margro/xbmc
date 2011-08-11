@@ -36,94 +36,11 @@ namespace EPG
 {
   #define g_EpgContainer CEpgContainer::Get()
 
-  class CEpgContainer : public std::vector<CEpg *>,
-                   public Observer,
-                   public Observable,
-                   private CThread
+  class CEpgContainer : public Observer,
+    public Observable,
+    private CThread
   {
     friend class CEpgDatabase;
-
-  protected:
-    CEpgDatabase m_database;           /*!< the EPG database */
-
-    /** @name Configuration */
-    //@{
-    bool         m_bIgnoreDbForClient; /*!< don't save the EPG data in the database */
-    int          m_iDisplayTime;       /*!< hours of EPG data to fetch */
-    int          m_iUpdateTime;        /*!< update the full EPG after this period */
-    //@}
-
-    /** @name Class state properties */
-    //@{
-    bool         m_bDatabaseLoaded;    /*!< true if we already loaded the EPG from the database */
-    time_t       m_iLastEpgCleanup;    /*!< the time the EPG was cleaned up */
-    time_t       m_iLastEpgUpdate;     /*!< the time the EPG was updated */
-    time_t       m_iLastEpgActiveTagCheck; /*!< the time the EPG checked for active tag updates */
-    //@}
-
-    CGUIDialogExtendedProgressBar *m_progressDialog; /*!< the progress dialog that is visible when updating the first time */
-    CCriticalSection               m_critSection;    /*!< a critical section for changes to this container */
-
-    /*!
-     * @brief Load the EPG settings.
-     * @return True if the settings were loaded successfully, false otherwise.
-     */
-    virtual bool LoadSettings(void);
-
-    /*!
-     * @brief Remove old EPG entries.
-     * @return True if the old entries were removed successfully, false otherwise.
-     */
-    virtual bool RemoveOldEntries(void);
-
-    /*!
-     * @brief Load and update the EPG data.
-     * @param bShowProgress Show a progress bar if true.
-     * @return True if the update was successful, false otherwise.
-     */
-    virtual bool UpdateEPG(bool bShowProgress = false);
-
-    /*!
-     * @return True if a running update should be interrupted, false otherwise.
-     */
-    virtual bool InterruptUpdate(void) const;
-
-    /*!
-     * @brief Load or update a single table.
-     * @param epg The table to update.
-     * @param start The start time to use.
-     * @param end The end time to use.
-     * @return True if the load or update was successful, false otherwise.
-     */
-    virtual bool UpdateSingleTable(CEpg *epg, const time_t start, const time_t end);
-
-    /*!
-     * @brief A hook that will be called on every update thread iteration.
-     */
-    virtual void ProcessHook(const CDateTime &time) {};
-
-    /*!
-     * @brief A hook that is called after the tables have been loaded from the database.
-     * @return True if the hook was executed successfully, false otherwise.
-     */
-    virtual bool AutoCreateTablesHook(void) { return true; }
-
-    /*!
-     * @brief Create a new EPG table.
-     * @param iEpgId The table ID or -1 to create a new one.
-     * @return The new table.
-     */
-    virtual CEpg *CreateEpg(int iEpgId);
-
-    /*!
-     * @brief EPG update thread
-     */
-    virtual void Process(void);
-
-    /*!
-     * @brief Create a new EPG table container.
-     */
-    CEpgContainer(void);
 
   public:
     /*!
@@ -188,7 +105,7 @@ namespace EPG
      * @brief Update an entry in this container.
      * @param tag The table to update.
      * @param bUpdateDatabase If set to true, this table will be persisted in the database.
-     * @return True if it was updated successfully, false otherwise.
+     * @return The updated epg table or NULL if it couldn't be found.
      */
     virtual bool UpdateEntry(const CEpg &entry, bool bUpdateDatabase = false);
 
@@ -198,26 +115,26 @@ namespace EPG
      * @param filter The filter to apply.
      * @return The amount of entries that were added.
      */
-    virtual int GetEPGSearch(CFileItemList* results, const EpgSearchFilter &filter);
+    virtual int GetEPGSearch(CFileItemList &results, const EpgSearchFilter &filter);
 
     /*!
      * @brief Get all EPG tables.
      * @param results The fileitem list to store the results in.
      * @return The amount of entries that were added.
      */
-    virtual int GetEPGAll(CFileItemList* results);
+    virtual int GetEPGAll(CFileItemList &results);
 
     /*!
      * @brief Get the start time of the first entry.
      * @return The start time.
      */
-    virtual const CDateTime GetFirstEPGDate(void) const;
+    virtual const CDateTime GetFirstEPGDate(void);
 
     /*!
       * @brief Get the end time of the last entry.
       * @return The end time.
       */
-    virtual const CDateTime GetLastEPGDate(void) const;
+    virtual const CDateTime GetLastEPGDate(void);
 
     /*!
      * @brief Get an EPG table given it's ID.
@@ -227,11 +144,11 @@ namespace EPG
     virtual CEpg *GetById(int iEpgId) const;
 
     /*!
-     * @brief Get an EPG table given it's index in this container.
-     * @param iIndex The index.
+     * @brief Get an EPG table given a PVR channel.
+     * @param channel The channel to get the EPG table for.
      * @return The table or NULL if it wasn't found.
      */
-    virtual CEpg *GetByIndex(unsigned int iIndex) const;
+    virtual CEpg *GetByChannel(const PVR::CPVRChannel &channel) const;
 
     /*!
      * @brief Notify EPG table observers when the currently active tag changed.
@@ -240,8 +157,121 @@ namespace EPG
     virtual bool CheckPlayingEvents(void);
 
     /*!
+     * @brief The next EPG ID to be given to a table when the db isn't being used.
+     * @return The next ID.
+     */
+    unsigned int NextEpgId(void);
+
+    /*!
      * @brief Close the progress bar if it's visible.
      */
-    virtual void CloseUpdateDialog(void);
+    virtual void CloseProgressDialog(void);
+
+    /*!
+     * @brief Show the progress bar
+     */
+    virtual void ShowProgressDialog(void);
+
+    /*!
+     * @brief Update the progress bar.
+     * @param iCurrent The current position.
+     * @param iMax The maximum position.
+     * @param strText The text to display.
+     */
+    virtual void UpdateProgressDialog(int iCurrent, int iMax, const CStdString &strText);
+
+    /*!
+     * @return True to not to store EPG entries in the database.
+     */
+    virtual bool IgnoreDB(void) const { return m_bIgnoreDbForClient; }
+
+    /*!
+     * @brief Wait for an EPG update to finish.
+     * @param bInterrupt True to interrupt a running update.
+     */
+    void WaitForUpdateFinish(bool bInterrupt = true);
+
+    /*!
+     * @brief Set to true to prevent updates.
+     * @param bSetTo The new value.
+     */
+    void PreventUpdates(bool bSetTo = true) { m_bPreventUpdates = bSetTo;  }
+
+  protected:
+    /*!
+     * @brief Insert an epg into the table. If the table already contains an entry with the same id, then that entry will be replaced.
+     * @param epg The EPG to insert.
+     */
+    virtual void InsertEpg(CEpg *epg);
+
+    /*!
+     * @brief Load the EPG settings.
+     * @return True if the settings were loaded successfully, false otherwise.
+     */
+    virtual bool LoadSettings(void);
+
+    /*!
+     * @brief Remove old EPG entries.
+     * @return True if the old entries were removed successfully, false otherwise.
+     */
+    virtual bool RemoveOldEntries(void);
+
+    /*!
+     * @brief Load and update the EPG data.
+     * @param bShowProgress Show a progress bar if true.
+     * @return True if the update has not been interrupted, false otherwise.
+     */
+    virtual bool UpdateEPG(bool bShowProgress = false);
+
+    /*!
+     * @return True if a running update should be interrupted, false otherwise.
+     */
+    virtual bool InterruptUpdate(void) const;
+
+    /*!
+     * @brief Create a new EPG table.
+     * @param iEpgId The table ID or -1 to create a new one.
+     * @return The new table.
+     */
+    virtual CEpg *CreateEpg(int iEpgId);
+
+    /*!
+     * @brief EPG update thread
+     */
+    virtual void Process(void);
+
+    /*!
+     * @brief Create a new EPG table container.
+     */
+    CEpgContainer(void);
+
+    /*!
+     * @brief Load all tables from the database
+     */
+    void LoadFromDB(void);
+
+    CEpgDatabase m_database;           /*!< the EPG database */
+
+    /** @name Configuration */
+    //@{
+    bool         m_bIgnoreDbForClient; /*!< don't save the EPG data in the database */
+    int          m_iDisplayTime;       /*!< hours of EPG data to fetch */
+    int          m_iUpdateTime;        /*!< update the full EPG after this period */
+    //@}
+
+    /** @name Class state properties */
+    //@{
+    bool         m_bIsUpdating;        /*!< true while an update is running */
+    bool         m_bPreventUpdates;    /*!< true to prevent EPG updates */
+    time_t       m_iLastEpgCleanup;    /*!< the time the EPG was cleaned up */
+    time_t       m_iNextEpgUpdate;     /*!< the time the EPG will be updated */
+    time_t       m_iNextEpgActiveTagCheck; /*!< the time the EPG will be checked for active tag updates */
+    unsigned int m_iNextEpgId;         /*!< the next epg ID that will be given to a new table when the db isn't being used */
+    std::vector<CEpg*> m_epgs;         /*!< the EPGs in this container */
+    //@}
+
+    CGUIDialogExtendedProgressBar *m_progressDialog; /*!< the progress dialog that is visible when updating the first time */
+    CCriticalSection               m_critSection;    /*!< a critical section for changes to this container */
+    CEvent                         m_updateEvent;    /*!< trigger when an update finishes */
   };
 }

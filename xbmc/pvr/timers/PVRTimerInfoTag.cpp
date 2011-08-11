@@ -30,7 +30,7 @@
 #include "PVRTimers.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/epg/PVREpgContainer.h"
+#include "epg/EpgContainer.h"
 #include "pvr/addons/PVRClients.h"
 
 #include "epg/Epg.h"
@@ -43,7 +43,7 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(void)
   m_strTitle           = "";
   m_strDirectory       = "/";
   m_strSummary         = "";
-  m_iClientId          = g_PVRClients->GetFirstID();
+  m_iClientId          = g_PVRClients->GetFirstConnectedClientID();
   m_iClientIndex       = -1;
   m_iClientChannelUid  = -1;
   m_iPriority          = g_guiSettings.GetInt("pvrrecord.defaultpriority");
@@ -91,7 +91,7 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(const PVR_TIMER &timer, CPVRChannel *channel,
 
   if (timer.iEpgUid > 0)
   {
-    m_epgInfo = (CPVREpgInfoTag *) channel->GetEPG()->GetTag(timer.iEpgUid, m_StartTime);
+    m_epgInfo = channel->GetEPG()->GetTag(timer.iEpgUid, m_StartTime);
     if (m_epgInfo)
       m_strGenre = m_epgInfo->Genre();
   }
@@ -128,6 +128,12 @@ bool CPVRTimerInfoTag::operator ==(const CPVRTimerInfoTag& right) const
           m_iMarginEnd         == right.m_iMarginEnd &&
           m_state              == right.m_state &&
           bChannelsMatch);
+}
+
+CPVRTimerInfoTag::~CPVRTimerInfoTag(void)
+{
+  if (m_epgInfo)
+    m_epgInfo->SetTimer(NULL);
 }
 
 /**
@@ -338,14 +344,14 @@ void CPVRTimerInfoTag::UpdateEpgEvent(bool bClear /* = false */)
       return;
 
     /* try to get the EPG table */
-    CPVREpg *epg = channel->GetEPG();
+    CEpg *epg = channel->GetEPG();
     if (!epg)
       return;
 
     /* try to set the timer on the epg tag that matches with a 2 minute margin */
-    m_epgInfo = (CPVREpgInfoTag *) epg->GetTagBetween(StartAsLocalTime() - CDateTimeSpan(0, 0, 2, 0), EndAsLocalTime() + CDateTimeSpan(0, 0, 2, 0));
+    m_epgInfo = (CEpgInfoTag *) epg->GetTagBetween(StartAsLocalTime() - CDateTimeSpan(0, 0, 2, 0), EndAsLocalTime() + CDateTimeSpan(0, 0, 2, 0));
     if (!m_epgInfo)
-      m_epgInfo = (CPVREpgInfoTag *) epg->GetTagAround(StartAsLocalTime());
+      m_epgInfo = (CEpgInfoTag *) epg->GetTagAround(StartAsLocalTime());
 
     if (m_epgInfo)
       m_epgInfo->SetTimer(this);
@@ -381,7 +387,7 @@ void CPVRTimerInfoTag::DisplayError(PVR_ERROR err) const
   return;
 }
 
-void CPVRTimerInfoTag::SetEpgInfoTag(CPVREpgInfoTag *tag)
+void CPVRTimerInfoTag::SetEpgInfoTag(CEpgInfoTag *tag)
 {
   if (m_epgInfo != tag)
   {
@@ -431,7 +437,7 @@ bool CPVRTimerInfoTag::SetDuration(int iDuration)
   return false;
 }
 
-CPVRTimerInfoTag *CPVRTimerInfoTag::CreateFromEpg(const CPVREpgInfoTag &tag)
+CPVRTimerInfoTag *CPVRTimerInfoTag::CreateFromEpg(const CEpgInfoTag &tag)
 {
   /* create a new timer */
   CPVRTimerInfoTag *newTag = new CPVRTimerInfoTag();
@@ -483,8 +489,8 @@ CPVRTimerInfoTag *CPVRTimerInfoTag::CreateFromEpg(const CPVREpgInfoTag &tag)
   }
 
   /* we might have a copy of the tag here, so get the real one from the pvrmanager */
-  const CPVREpg *epgTable = channel->GetEPG();
-  newTag->m_epgInfo = epgTable ? (CPVREpgInfoTag *) epgTable->GetTag(tag.UniqueBroadcastID(), tag.StartAsUTC()) : NULL;
+  const CEpg *epgTable = channel->GetEPG();
+  newTag->m_epgInfo = epgTable ? epgTable->GetTag(tag.UniqueBroadcastID(), tag.StartAsUTC()) : NULL;
 
   /* unused only for reference */
   newTag->m_strFileNameAndPath = "pvr://timers/new";
@@ -516,30 +522,34 @@ const CDateTime &CPVRTimerInfoTag::FirstDayAsLocalTime(void) const
   return tmp;
 }
 
+void CPVRTimerInfoTag::GetNotificationText(CStdString &strText) const
+{
+  switch (m_state)
+  {
+  case PVR_TIMER_STATE_ABORTED:
+  case PVR_TIMER_STATE_CANCELLED:
+    strText.Format("%s: '%s'", g_localizeStrings.Get(19224), m_strTitle.c_str());
+    break;
+  case PVR_TIMER_STATE_SCHEDULED:
+    strText.Format("%s: '%s'", g_localizeStrings.Get(19225), m_strTitle.c_str());
+    break;
+  case PVR_TIMER_STATE_RECORDING:
+    strText.Format("%s: '%s'", g_localizeStrings.Get(19226), m_strTitle.c_str());
+    break;
+  case PVR_TIMER_STATE_COMPLETED:
+    strText.Format("%s: '%s'", g_localizeStrings.Get(19227), m_strTitle.c_str());
+    break;
+  default:
+    break;
+  }
+}
+
 void CPVRTimerInfoTag::QueueNotification(void) const
 {
   if (g_guiSettings.GetBool("pvrrecord.timernotifications"))
   {
     CStdString strMessage;
-
-    switch (m_state)
-    {
-    case PVR_TIMER_STATE_ABORTED:
-    case PVR_TIMER_STATE_CANCELLED:
-      strMessage.Format("%s: '%s'", g_localizeStrings.Get(19224), m_strTitle.c_str());
-      break;
-    case PVR_TIMER_STATE_SCHEDULED:
-      strMessage.Format("%s: '%s'", g_localizeStrings.Get(19225), m_strTitle.c_str());
-      break;
-    case PVR_TIMER_STATE_RECORDING:
-      strMessage.Format("%s: '%s'", g_localizeStrings.Get(19226), m_strTitle.c_str());
-      break;
-    case PVR_TIMER_STATE_COMPLETED:
-      strMessage.Format("%s: '%s'", g_localizeStrings.Get(19227), m_strTitle.c_str());
-      break;
-    default:
-      break;
-    }
+    GetNotificationText(strMessage);
 
     if (!strMessage.IsEmpty())
       CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(19166), strMessage);

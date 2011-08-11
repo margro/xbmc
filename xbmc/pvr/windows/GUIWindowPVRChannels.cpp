@@ -26,13 +26,14 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIWindowManager.h"
+#include "GUIInfoManager.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/dialogs/GUIDialogPVRGroupManager.h"
 #include "pvr/windows/GUIWindowPVR.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/timers/PVRTimers.h"
-#include "pvr/epg/PVREpgContainer.h"
+#include "epg/EpgContainer.h"
 #include "settings/GUISettings.h"
 #include "settings/Settings.h"
 #include "storage/MediaManager.h"
@@ -40,6 +41,7 @@
 #include "threads/SingleLock.h"
 
 using namespace PVR;
+using namespace EPG;
 
 CGUIWindowPVRChannels::CGUIWindowPVRChannels(CGUIWindowPVR *parent, bool bRadio) :
   CGUIWindowPVRCommon(parent,
@@ -54,15 +56,17 @@ CGUIWindowPVRChannels::CGUIWindowPVRChannels(CGUIWindowPVR *parent, bool bRadio)
 
 CGUIWindowPVRChannels::~CGUIWindowPVRChannels(void)
 {
-  g_PVREpg->UnregisterObserver(this);
+  g_EpgContainer.UnregisterObserver(this);
   g_PVRTimers->UnregisterObserver(this);
+  g_infoManager.UnregisterObserver(this);
 }
 
 void CGUIWindowPVRChannels::ResetObservers(void)
 {
   CSingleLock lock(m_critSection);
-  g_PVREpg->RegisterObserver(this);
+  g_EpgContainer.RegisterObserver(this);
   g_PVRTimers->RegisterObserver(this);
+  g_infoManager.RegisterObserver(this);
 }
 
 void CGUIWindowPVRChannels::GetContextButtons(int itemNumber, CContextButtons &buttons) const
@@ -135,7 +139,7 @@ void CGUIWindowPVRChannels::SetSelectedGroup(CPVRChannelGroup *group)
 
 void CGUIWindowPVRChannels::Notify(const Observable &obs, const CStdString& msg)
 {
-  if (msg.Equals("channelgroup") || msg.Equals("timers-reset") || msg.Equals("timers") || msg.Equals("epg-now"))
+  if (msg.Equals("channelgroup") || msg.Equals("timers-reset") || msg.Equals("timers") || msg.Equals("epg-current-event") || msg.Equals("current-item"))
   {
     if (IsVisible())
       SetInvalid();
@@ -175,7 +179,7 @@ void CGUIWindowPVRChannels::UpdateData(void)
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
 
-  g_PVREpg->RegisterObserver(this);
+  g_EpgContainer.RegisterObserver(this);
   g_PVRTimers->RegisterObserver(this);
 
   /* lock the graphics context while updating */
@@ -320,7 +324,7 @@ bool CGUIWindowPVRChannels::OnContextButtonHide(CFileItem *item, CONTEXT_BUTTON 
     if (!pDialog->IsConfirmed())
       return bReturn;
 
-    g_PVRManager.GetPlayingGroup(m_bRadio)->RemoveFromGroup(channel);
+    g_PVRManager.GetPlayingGroup(m_bRadio)->RemoveFromGroup(*channel);
     UpdateData();
 
     bReturn = true;

@@ -21,6 +21,7 @@
 
 #include "GUIDialogAddonInfo.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "dialogs/GUIDialogOK.h"
 #include "addons/AddonManager.h"
 #include "AddonDatabase.h"
 #include "FileItem.h"
@@ -31,6 +32,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "utils/JobManager.h"
 #include "utils/FileOperationJob.h"
+#include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "addons/AddonInstaller.h"
 #include "Application.h"
@@ -126,11 +128,12 @@ void CGUIDialogAddonInfo::UpdateControls()
   bool isEnabled = isInstalled && m_item->GetProperty("Addon.Enabled").Equals("true");
   bool isUpdatable = isInstalled && m_item->GetProperty("Addon.UpdateAvail").Equals("true");
   // TODO: System addons should be able to be disabled
-  bool canDisable = isInstalled && (!isSystem || m_localAddon->Type() == ADDON_PVRDLL) && !m_localAddon->IsInUse();
+  bool isPVR = m_localAddon->Type() == ADDON_PVRDLL;
+  bool canDisable = isInstalled && (!isSystem || isPVR) && !m_localAddon->IsInUse();
   bool canInstall = !isInstalled && m_item->GetProperty("Addon.Broken").IsEmpty();
   bool isRepo = (isInstalled && m_localAddon->Type() == ADDON_REPOSITORY) || (m_addon && m_addon->Type() == ADDON_REPOSITORY);
 
-  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_INSTALL, canDisable || canInstall);
+  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_INSTALL, (canDisable || canInstall) && !isPVR);
   SET_CONTROL_LABEL(CONTROL_BTN_INSTALL, isInstalled ? 24037 : 24038);
 
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_ENABLE, canDisable);
@@ -159,6 +162,26 @@ void CGUIDialogAddonInfo::OnUninstall()
 {
   if (!m_localAddon.get())
     return;
+
+  // ensure the addon is not a dependency of other installed addons
+  VECADDONS addons;
+  CStdStringArray deps;
+  CAddonMgr::Get().GetAllAddons(addons);
+  for (VECADDONS::iterator it  = addons.begin();
+                           it != addons.end();++it)
+  {
+    if ((*it)->GetDeps().find(m_localAddon->ID()) != (*it)->GetDeps().end())
+      deps.push_back((*it)->Name());
+  }
+
+  if (deps.size())
+  {
+    CStdString strLine0, strLine1;
+    StringUtils::JoinString(deps, ", ", strLine1);
+    strLine0.Format(g_localizeStrings.Get(24046), m_localAddon->Name().c_str());
+    CGUIDialogOK::ShowAndGetInput(24037, strLine0, strLine1, 24047);
+    return;
+  }
 
   // ensure the addon isn't disabled in our database
   CAddonDatabase database;

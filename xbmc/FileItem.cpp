@@ -40,8 +40,7 @@
 #include "music/MusicDatabase.h"
 #include "SortFileItem.h"
 #include "utils/TuxBoxUtil.h"
-#include "pvr/epg/PVREpg.h"
-#include "pvr/epg/PVREpgInfoTag.h"
+#include "epg/Epg.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
@@ -140,34 +139,6 @@ CFileItem::CFileItem(const CVideoInfoTag& movie)
   SetCachedVideoThumb();
 }
 
-CFileItem::CFileItem(const CPVREpgInfoTag& tag)
-{
-  m_musicInfoTag = NULL;
-  m_videoInfoTag = NULL;
-  m_epgInfoTag = NULL;
-  m_pvrChannelInfoTag = NULL;
-  m_pvrRecordingInfoTag = NULL;
-  m_pvrTimerInfoTag = NULL;
-  m_pictureInfoTag = NULL;
-
-  Reset();
-
-  m_strPath = tag.Path();
-  m_bIsFolder = false;
-  *GetEPGInfoTag() = tag;
-  *GetPVRChannelInfoTag() = *tag.ChannelTag();
-  if (tag.Timer())
-    *GetPVRTimerInfoTag() = *tag.Timer();
-  SetLabel(tag.Title());
-  m_strLabel2 = tag.Plot();
-
-  if (!tag.Icon().IsEmpty())
-  {
-    SetThumbnailImage(tag.Icon());
-    SetIconImage(tag.Icon());
-  }
-}
-
 CFileItem::CFileItem(const CEpgInfoTag& tag)
 {
   m_musicInfoTag = NULL;
@@ -205,7 +176,7 @@ CFileItem::CFileItem(const CPVRChannel& channel)
   m_pictureInfoTag = NULL;
 
   Reset();
-  CPVREpgInfoTag *epgNow = channel.GetEPGNow();
+  const CEpgInfoTag *epgNow = channel.GetEPGNow();
 
   m_strPath = channel.Path();
   m_bIsFolder = false;
@@ -1026,6 +997,11 @@ bool CFileItem::IsPlugin() const
   return URIUtils::IsPlugin(m_strPath);
 }
 
+bool CFileItem::IsScript() const
+{
+  return URIUtils::IsScript(m_strPath);
+}
+
 bool CFileItem::IsAddonsPath() const
 {
   return URIUtils::IsAddonsPath(m_strPath);
@@ -1328,15 +1304,9 @@ void CFileItem::CleanString()
   if (IsLiveTV())
     return;
 
-  bool bIsFolder = m_bIsFolder;
-
-  // make sure we don't append the extension to stacked dvd folders
-  if (HasProperty("isstacked") && IsOpticalMediaFile())
-    bIsFolder = true;
-
   CStdString strLabel = GetLabel();
   CStdString strTitle, strTitleAndYear, strYear;
-  CUtil::CleanString(strLabel, strTitle, strTitleAndYear, strYear, (bIsFolder || !g_guiSettings.GetBool("filelists.showextensions") ) );
+  CUtil::CleanString(strLabel, strTitle, strTitleAndYear, strYear, true );
   SetLabel(strTitleAndYear);
 }
 
@@ -3274,7 +3244,7 @@ CVideoInfoTag* CFileItem::GetVideoInfoTag()
 CEpgInfoTag* CFileItem::GetEPGInfoTag()
 {
   if (!m_epgInfoTag)
-    m_epgInfoTag = new CPVREpgInfoTag;
+    m_epgInfoTag = new CEpgInfoTag;
 
   return m_epgInfoTag;
 }

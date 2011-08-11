@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "libPlatform/os-dependent.h"
+#include "os-dependent.h"
 
 #include "client.h"
 #include "timers.h"
@@ -30,6 +30,8 @@
 #include "epg.h"
 #include "utils.h"
 #include "pvrclient-mediaportal.h"
+//#include <ctime>
+#include "lib/tinyxml/tinyxml.h"
 
 #ifdef TSREADER
 #include "lib/tsreader/TSReader.h"
@@ -72,7 +74,7 @@ cPVRClientMediaPortal::~cPVRClientMediaPortal()
   XBMC->Log(LOG_DEBUG, "->~cPVRClientMediaPortal()");
   if (m_bConnected)
     Disconnect();
-  delete_null(m_tcpclient);
+  SAFE_DELETE(m_tcpclient);
 }
 
 string cPVRClientMediaPortal::SendCommand(string command)
@@ -232,6 +234,15 @@ bool cPVRClientMediaPortal::Connect()
   }
 
   m_bConnected = true;
+
+  // Read the genre string to type/subtype translation file:
+  if(g_bReadGenre)
+  {
+    string sGenreFile = g_szClientPath + PATH_SEPARATOR_CHAR + "resources" + PATH_SEPARATOR_CHAR + "genre_translation.xml";
+
+    LoadGenreXML(sGenreFile);
+  }
+
   return true;
 }
 
@@ -251,7 +262,7 @@ void cPVRClientMediaPortal::Disconnect()
       if (m_tsreader)
       {
         m_tsreader->Close();
-        delete_null(m_tsreader);
+        SAFE_DELETE(m_tsreader);
       }
 #endif
       result = SendCommand("StopTimeshift:\n");
@@ -441,7 +452,7 @@ PVR_ERROR cPVRClientMediaPortal::GetEpg(PVR_HANDLE handle, const PVR_CHANNEL &ch
 
   starttime = *gmtime( &iStart );
   endtime = *gmtime( &iEnd );
-  XBMC->Log(LOG_DEBUG, "->RequestEPGForChannel(%i)", channel.iUniqueId);
+  //XBMC->Log(LOG_DEBUG, "->RequestEPGForChannel(%i)", channel.iUniqueId);
 
   if (!IsUp())
     return PVR_ERROR_SERVER_ERROR;
@@ -469,6 +480,7 @@ PVR_ERROR cPVRClientMediaPortal::GetEpg(PVR_HANDLE handle, const PVR_CHANNEL &ch
     if( result.length() != 0)
     {
       memset(&broadcast, NULL, sizeof(EPG_TAG));
+      epg.SetGenreMap(&m_genremap);
 
       Tokenize(result, lines, ",");
 
@@ -810,10 +822,13 @@ PVR_ERROR cPVRClientMediaPortal::GetRecordings(PVR_HANDLE handle)
 
     XBMC->Log(LOG_DEBUG, "RECORDING: %s", data.c_str() );
 
+    CStdString strRecordingId;
     cRecording recording;
     if (recording.ParseLine(data))
     {
-      tag.iClientIndex   = recording.Index();
+      strRecordingId.Format("%i", recording.Index());
+
+      tag.strRecordingId = strRecordingId.c_str();
       tag.strTitle       = recording.Title();
       tag.strDirectory   = ""; //used in XBMC as directory structure below "Server X - hostname"
       tag.strPlotOutline = g_iTVServerXBMCBuild >= 105 ? recording.EpisodeName() : tag.strTitle;
@@ -877,7 +892,7 @@ PVR_ERROR cPVRClientMediaPortal::DeleteRecording(const PVR_RECORDING &recording)
   if (!IsUp())
     return PVR_ERROR_SERVER_ERROR;
 
-  snprintf(command, 256, "DeleteRecordedTV:%i\n", recording.iClientIndex);
+  snprintf(command, 256, "DeleteRecordedTV:%s\n", recording.strRecordingId);
 
   result = SendCommand(command);
 
@@ -901,18 +916,18 @@ PVR_ERROR cPVRClientMediaPortal::RenameRecording(const PVR_RECORDING &recording)
   if (!IsUp())
     return PVR_ERROR_SERVER_ERROR;
 
-  snprintf(command, 512, "UpdateRecording:%i|%s\n",
-    recording.iClientIndex,
+  snprintf(command, 512, "UpdateRecording:%s|%s\n",
+    recording.strRecordingId,
     uri::encode(uri::PATH_TRAITS, recording.strTitle).c_str());
 
   result = SendCommand(command);
 
   if(result.find("True") == string::npos)
   {
-    XBMC->Log(LOG_DEBUG, "RenameRecording(%i) to %s [failed]", recording.iClientIndex, recording.strTitle);
+    XBMC->Log(LOG_DEBUG, "RenameRecording(%s) to %s [failed]", recording.strRecordingId, recording.strTitle);
     return PVR_ERROR_NOT_DELETED;
   }
-  XBMC->Log(LOG_DEBUG, "RenameRecording(%i) to %s [done]", recording.iClientIndex, recording.strTitle);
+  XBMC->Log(LOG_DEBUG, "RenameRecording(%s) to %s [done]", recording.strRecordingId, recording.strTitle);
 
   // Although XBMC initiates the rename of this recording, we still have to trigger XBMC to update its
   // recordings list to see the renamed recording at the XBMC side
@@ -1197,7 +1212,6 @@ bool cPVRClientMediaPortal::OpenLiveStream(const PVR_CHANNEL &channelinfo)
       { // Continue with the existing TsReader.
         XBMC->Log(LOG_INFO, "Re-using existing TsReader...");
         m_tsreader->OnZap();
-        usleep(100000);
         return true;
       }
       else
@@ -1286,7 +1300,7 @@ void cPVRClientMediaPortal::CloseLiveStream(void)
     if (m_tsreader)
     {
       m_tsreader->Close();
-      delete_null(m_tsreader);
+      SAFE_DELETE(m_tsreader);
     }
 #endif
     result = SendCommand("StopTimeshift:\n");
@@ -1312,7 +1326,7 @@ bool cPVRClientMediaPortal::SwitchChannel(const PVR_CHANNEL &channel)
     {
       //Only remove the TSReader for TVServerXBMC older than v1.1.0.90
       m_tsreader->Close();
-      delete_null(m_tsreader);
+      SAFE_DELETE(m_tsreader);
     }
   }
 #endif
@@ -1343,7 +1357,7 @@ PVR_ERROR cPVRClientMediaPortal::SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 // These URLs are stored in the field PVR_RECORDINGINFO_OLD.stream_url
 bool cPVRClientMediaPortal::OpenRecordedStream(const PVR_RECORDING &recording)
 {
-  XBMC->Log(LOG_DEBUG, "->OpenRecordedStream(index=%i)", recording.iClientIndex);
+  XBMC->Log(LOG_DEBUG, "->OpenRecordedStream(index=%s)", recording.strRecordingId);
   if (!IsUp())
      return false;
 #ifdef TSREADER
@@ -1371,7 +1385,7 @@ bool cPVRClientMediaPortal::OpenRecordedStream(const PVR_RECORDING &recording)
       cRecording myrecording;
       if (myrecording.ParseLine(data))
       {
-        if( myrecording.Index() == recording.iClientIndex)
+        if( myrecording.Index() == atoi(recording.strRecordingId))
         {
           XBMC->Log(LOG_DEBUG, "RECORDING: %s", data.c_str() );
 
@@ -1404,9 +1418,9 @@ bool cPVRClientMediaPortal::OpenRecordedStream(const PVR_RECORDING &recording)
     char           command[256];
 
     if(g_bUseRecordingsDir)
-      snprintf(command, 256, "GetRecordingInfo:%i|False\n", recording.iClientIndex);
+      snprintf(command, 256, "GetRecordingInfo:%s|False\n", recording.strRecordingId);
     else
-      snprintf(command, 256, "GetRecordingInfo:%i|True\n", recording.iClientIndex);
+      snprintf(command, 256, "GetRecordingInfo:%s|True\n", recording.strRecordingId);
     result = SendCommand(command);
 
     if(result.length() > 0)
@@ -1459,6 +1473,7 @@ void cPVRClientMediaPortal::CloseRecordedStream(void)
   {
     XBMC->Log(LOG_DEBUG, "CloseRecordedStream: Stop TSReader...");
     m_tsreader->Close();
+    SAFE_DELETE(m_tsreader);
   }
   else
   {
@@ -1593,4 +1608,87 @@ const char* cPVRClientMediaPortal::GetLiveStreamURL(const PVR_CHANNEL &channelin
     }
     return m_PlaybackURL.c_str();
   }
+}
+
+bool cPVRClientMediaPortal::LoadGenreXML(const std::string &filename)
+{
+  TiXmlDocument xmlDoc;
+  if (!xmlDoc.LoadFile(filename))
+  {
+    XBMC->Log(LOG_DEBUG, "unable to load %s: %s at line %d", filename.c_str(), xmlDoc.ErrorDesc(), xmlDoc.ErrorRow());
+    return false;
+  }
+
+  XBMC->Log(LOG_DEBUG, "Opened %s to read genre string to type/subtype translation table", filename.c_str());
+
+  TiXmlHandle hDoc(&xmlDoc);
+	TiXmlElement* pElem;
+	TiXmlHandle hRoot(0);
+  string sGenre;
+  const char* sGenreType = NULL;
+  const char* sGenreSubType = NULL;
+  genre_t genre;
+
+	// block: genrestrings
+	pElem = hDoc.FirstChildElement("genrestrings").Element();
+	// should always have a valid root but handle gracefully if it does
+	if (!pElem)
+  {
+    XBMC->Log(LOG_DEBUG, "Could not find <genrestrings> element");    
+    return false;
+  }
+		
+  //This should hold: pElem->Value() == "genrestrings"
+
+	// save this for later
+	hRoot=TiXmlHandle(pElem);
+
+  // iterate through all genre elements
+  TiXmlElement* pGenreNode = hRoot.FirstChildElement("genre").Element();
+  //This should hold: pGenreNode->Value() == "genre"
+
+  if (!pElem)
+  {
+    XBMC->Log(LOG_DEBUG, "Could not find <genre> element");    
+    return false;
+  }
+
+  for (pGenreNode; pGenreNode; pGenreNode = pGenreNode->NextSiblingElement("genre"))
+  {
+    const char* sGenreString = pGenreNode->GetText();
+
+    if (sGenreString)
+    {
+      sGenreType = pGenreNode->Attribute("type");
+		  sGenreSubType = pGenreNode->Attribute("subtype");
+
+      if ((sGenreType) && (strlen(sGenreType) > 2))
+      {
+        if(sscanf(sGenreType + 2, "%x", &genre.type) != 1)
+          genre.type = 0;
+      }
+      else
+      {
+        genre.type = 0;
+      }
+
+      if ((sGenreSubType) && (strlen(sGenreSubType) > 2 ))
+      {
+        if(sscanf(sGenreSubType + 2, "%x", &genre.subtype) != 1)
+          genre.subtype = 0;
+      }
+      else
+      {
+        genre.subtype = 0;
+      }
+
+      if (genre.type > 0)
+      {
+        XBMC->Log(LOG_DEBUG, "Genre '%s' => 0x%x, 0x%x", sGenreString, genre.type, genre.subtype);
+        m_genremap.insert(std::pair<std::string, genre_t>(sGenreString, genre));
+      }
+    }
+	}
+
+  return true;
 }

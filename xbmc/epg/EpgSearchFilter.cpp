@@ -28,8 +28,14 @@
 #include "EpgSearchFilter.h"
 #include "EpgContainer.h"
 
+#include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/recordings/PVRRecordings.h"
+#include "pvr/timers/PVRTimers.h"
+
 using namespace std;
 using namespace EPG;
+using namespace PVR;
 
 void EpgSearchFilter::Reset()
 {
@@ -46,6 +52,13 @@ void EpgSearchFilter::Reset()
   m_bIgnorePresentTimers     = false;
   m_bIgnorePresentRecordings = false;
   m_bPreventRepeats          = false;
+
+  /* pvr specific filters */
+  m_iChannelNumber           = EPG_SEARCH_UNSET;
+  m_bFTAOnly                 = false;
+  m_iChannelGroup            = EPG_SEARCH_UNSET;
+  m_bIgnorePresentTimers     = true;
+  m_bIgnorePresentRecordings = true;
 }
 
 bool EpgSearchFilter::MatchGenre(const CEpgInfoTag &tag) const
@@ -99,19 +112,23 @@ bool EpgSearchFilter::FilterEntry(const CEpgInfoTag &tag) const
   return (MatchGenre(tag) &&
       MatchDuration(tag) &&
       MatchStartAndEndTimes(tag) &&
-      MatchSearchTerm(tag));
+      MatchSearchTerm(tag)) &&
+      (!tag.HasPVRChannel() ||
+      (MatchChannelNumber(tag) &&
+       MatchChannelGroup(tag) &&
+       (!m_bFTAOnly || !tag.ChannelTag()->IsEncrypted())));
 }
 
-int EpgSearchFilter::RemoveDuplicates(CFileItemList *results)
+int EpgSearchFilter::RemoveDuplicates(CFileItemList &results)
 {
-  unsigned int iSize = results->Size();
+  unsigned int iSize = results.Size();
 
   for (unsigned int iResultPtr = 0; iResultPtr < iSize; iResultPtr++)
   {
-    const CEpgInfoTag *epgentry_1 = results->Get(iResultPtr)->GetEPGInfoTag();
+    const CEpgInfoTag *epgentry_1 = results.Get(iResultPtr)->GetEPGInfoTag();
     for (unsigned int iTagPtr = 0; iTagPtr < iSize; iTagPtr++)
     {
-      const CEpgInfoTag *epgentry_2 = results->Get(iTagPtr)->GetEPGInfoTag();
+      const CEpgInfoTag *epgentry_2 = results.Get(iTagPtr)->GetEPGInfoTag();
       if (iResultPtr == iTagPtr)
         continue;
 
@@ -120,7 +137,7 @@ int EpgSearchFilter::RemoveDuplicates(CFileItemList *results)
           epgentry_1->PlotOutline() != epgentry_2->PlotOutline())
         continue;
 
-      results->Remove(iTagPtr);
+      results.Remove(iTagPtr);
       iResultPtr--;
       iTagPtr--;
       iSize--;
@@ -128,4 +145,95 @@ int EpgSearchFilter::RemoveDuplicates(CFileItemList *results)
   }
 
   return iSize;
+}
+
+
+bool EpgSearchFilter::MatchChannelNumber(const CEpgInfoTag &tag) const
+{
+  bool bReturn(true);
+
+  if (m_iChannelNumber != EPG_SEARCH_UNSET)
+  {
+    const CPVRChannelGroup *group = (m_iChannelGroup != EPG_SEARCH_UNSET) ? CPVRManager::Get().ChannelGroups()->GetByIdFromAll(m_iChannelGroup) : g_PVRChannelGroups->GetGroupAllTV();
+    if (!group)
+      group = CPVRManager::Get().ChannelGroups()->GetGroupAllTV();
+
+    bReturn = (m_iChannelNumber == (int) group->GetChannelNumber(*tag.ChannelTag()));
+  }
+
+  return bReturn;
+}
+
+bool EpgSearchFilter::MatchChannelGroup(const CEpgInfoTag &tag) const
+{
+  bool bReturn(true);
+
+  if (m_iChannelGroup != EPG_SEARCH_UNSET)
+  {
+    const CPVRChannelGroup *group = CPVRManager::Get().ChannelGroups()->GetByIdFromAll(m_iChannelGroup);
+    bReturn = (group && group->IsGroupMember(*tag.ChannelTag()));
+  }
+
+  return bReturn;
+}
+
+int EpgSearchFilter::FilterRecordings(CFileItemList &results)
+{
+  int iRemoved(0);
+  CPVRRecordings *recordings = CPVRManager::Get().Recordings();
+
+  // TODO not thread safe and inefficient!
+  for (unsigned int iRecordingPtr = 0; iRecordingPtr < recordings->size(); iRecordingPtr++)
+  {
+    CPVRRecording *recording = recordings->at(iRecordingPtr);
+    if (!recording)
+      continue;
+
+    for (int iResultPtr = 0; iResultPtr < results.Size(); iResultPtr++)
+    {
+      const CEpgInfoTag *epgentry  = results.Get(iResultPtr)->GetEPGInfoTag();
+
+      /* no match */
+      if (!epgentry ||
+          epgentry->Title()       != recording->m_strTitle ||
+          epgentry->Plot()        != recording->m_strPlot)
+        continue;
+
+      results.Remove(iResultPtr);
+      iResultPtr--;
+      ++iRemoved;
+    }
+  }
+
+  return iRemoved;
+}
+
+int EpgSearchFilter::FilterTimers(CFileItemList &results)
+{
+  int iRemoved(0);
+  CPVRTimers *timers = CPVRManager::Get().Timers();
+
+  // TODO not thread safe and inefficient!
+  for (unsigned int iTimerPtr = 0; iTimerPtr < timers->size(); iTimerPtr++)
+  {
+    CPVRTimerInfoTag *timer = timers->at(iTimerPtr);
+    if (!timer)
+      continue;
+
+    for (int iResultPtr = 0; iResultPtr < results.Size(); iResultPtr++)
+    {
+      const CEpgInfoTag *epgentry = results.Get(iResultPtr)->GetEPGInfoTag();
+      if (!epgentry ||
+          *epgentry->ChannelTag() != *timer->m_channel ||
+          epgentry->StartAsUTC()   <  timer->StartAsUTC() ||
+          epgentry->EndAsUTC()     >  timer->EndAsUTC())
+        continue;
+
+      results.Remove(iResultPtr);
+      iResultPtr--;
+      ++iRemoved;
+    }
+  }
+
+  return iRemoved;
 }

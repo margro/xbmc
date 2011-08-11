@@ -122,7 +122,7 @@ public:
 CDVDPlayerVideo::CDVDPlayerVideo( CDVDClock* pClock
                                 , CDVDOverlayContainer* pOverlayContainer
                                 , CDVDMessageQueue& parent)
-: CThread()
+: CThread("CDVDPlayerVideo")
 , m_messageQueue("video")
 , m_messageParent(parent)
 {
@@ -271,7 +271,6 @@ void CDVDPlayerVideo::CloseStream(bool bWaitForBuffers)
 
 void CDVDPlayerVideo::OnStartup()
 {
-  CThread::SetName("CDVDPlayerVideo");
   m_iDroppedFrames = 0;
 
   m_crop.x1 = m_crop.x2 = 0.0f;
@@ -502,7 +501,7 @@ void CDVDPlayerVideo::Process()
         mFilters = CDVDVideoCodec::FILTER_DEINTERLACE_ANY;
       else if(mInt == VS_INTERLACEMETHOD_DEINTERLACE_HALF)
         mFilters = CDVDVideoCodec::FILTER_DEINTERLACE_ANY | CDVDVideoCodec::FILTER_DEINTERLACE_HALFED;
-      else if(mInt == VS_INTERLACEMETHOD_AUTO)
+      else if((mInt == VS_INTERLACEMETHOD_AUTO) && !g_renderManager.Supports(VS_INTERLACEMETHOD_DXVA_BOB))
         mFilters = CDVDVideoCodec::FILTER_DEINTERLACE_ANY | CDVDVideoCodec::FILTER_DEINTERLACE_FLAGGED;
 
       mFilters = m_pVideoCodec->SetFilters(mFilters);
@@ -602,7 +601,8 @@ void CDVDPlayerVideo::Process()
             {
               if((mInt == VS_INTERLACEMETHOD_DEINTERLACE)
               || (mInt == VS_INTERLACEMETHOD_AUTO && (picture.iFlags & DVP_FLAG_INTERLACED)
-                                                  && !g_renderManager.Supports(VS_INTERLACEMETHOD_RENDER_BOB)))
+                                                  && !g_renderManager.Supports(VS_INTERLACEMETHOD_RENDER_BOB)
+                                                  && !g_renderManager.Supports(VS_INTERLACEMETHOD_DXVA_BOB)))
               {
                 if (!sPostProcessType.empty())
                   sPostProcessType += ",";
@@ -914,6 +914,9 @@ int CDVDPlayerVideo::OutputPicture(DVDVideoPicture* pPicture, double pts)
    || m_output.framerate != m_fFrameRate
    || m_output.color_format != (unsigned int)pPicture->format
    || ( m_output.color_matrix != pPicture->color_matrix && pPicture->color_matrix != 0 ) // don't reconfigure on unspecified
+   || ( m_output.chroma_position != pPicture->chroma_position && pPicture->chroma_position != 0 )
+   || ( m_output.color_primaries != pPicture->color_primaries && pPicture->color_primaries != 0 )
+   || ( m_output.color_transfer != pPicture->color_transfer && pPicture->color_transfer != 0 )
    || m_output.color_range != pPicture->color_range)
   {
     CLog::Log(LOGNOTICE, " fps: %f, pwidth: %i, pheight: %i, dwidth: %i, dheight: %i",
@@ -942,6 +945,51 @@ int CDVDPlayerVideo::OutputPicture(DVDVideoPicture* pPicture, double pts)
           flags |= CONF_FLAGS_YUVCOEF_BT709;
         else
           flags |= CONF_FLAGS_YUVCOEF_BT601;
+        break;
+    }
+
+    switch(pPicture->chroma_position)
+    {
+      case 1:
+        flags |= CONF_FLAGS_CHROMA_LEFT;
+        break;
+      case 2:
+        flags |= CONF_FLAGS_CHROMA_CENTER;
+        break;
+      case 3:
+        flags |= CONF_FLAGS_CHROMA_TOPLEFT;
+        break;
+    }
+
+    switch(pPicture->color_primaries)
+    {
+      case 1:
+        flags |= CONF_FLAGS_COLPRI_BT709;
+        break;
+      case 4:
+        flags |= CONF_FLAGS_COLPRI_BT470M;
+        break;
+      case 5:
+        flags |= CONF_FLAGS_COLPRI_BT470BG;
+        break;
+      case 6:
+        flags |= CONF_FLAGS_COLPRI_170M;
+        break;
+      case 7:
+        flags |= CONF_FLAGS_COLPRI_240M;
+        break;
+    }
+
+    switch(pPicture->color_transfer)
+    {
+      case 1:
+        flags |= CONF_FLAGS_TRC_BT709;
+        break;
+      case 4:
+        flags |= CONF_FLAGS_TRC_GAMMA22;
+        break;
+      case 5:
+        flags |= CONF_FLAGS_TRC_GAMMA28;
         break;
     }
 
@@ -1006,6 +1054,9 @@ int CDVDPlayerVideo::OutputPicture(DVDVideoPicture* pPicture, double pts)
     m_output.framerate = m_fFrameRate;
     m_output.color_format = pPicture->format;
     m_output.color_matrix = pPicture->color_matrix;
+    m_output.chroma_position = pPicture->chroma_position;
+    m_output.color_primaries = pPicture->color_primaries;
+    m_output.color_transfer = pPicture->color_transfer;
     m_output.color_range = pPicture->color_range;
   }
 

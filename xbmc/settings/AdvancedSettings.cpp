@@ -91,6 +91,10 @@ void CAdvancedSettings::Initialize()
   m_videoAllowMpeg4VDPAU = false;
   m_DXVACheckCompatibility = false;
   m_DXVACheckCompatibilityPresent = false;
+  m_DXVADeintQuickSwitch = true;
+  m_DXVADeintAutoMaxWidth = 9999;
+  m_DXVADeintAutoMaxHeight = 9999;
+  m_DXVADeintAutoMaxFps = 99.9f;
 
   m_musicUseTimeSeeking = true;
   m_musicTimeSeekForward = 10;
@@ -224,6 +228,7 @@ void CAdvancedSettings::Initialize()
   m_iEpgUpdateCheckInterval = 300; /* check if tables need to be updated every 5 minutes */
   m_iEpgCleanupInterval = 900;     /* remove old entries from the EPG every 15 minutes */
   m_iEpgActiveTagCheckInterval = 60; /* check for updated active tags every minute */
+  m_iEpgRetryInterruptedUpdateInterval = 30; /* retry an interrupted epg update after 30 seconds */
 
   m_bEdlMergeShortCommBreaks = false;      // Off by default
   m_iEdlMaxCommBreakLength = 8 * 30 + 10;  // Just over 8 * 30 second commercial break.
@@ -278,6 +283,7 @@ void CAdvancedSettings::Initialize()
   m_bPVRShowEpgInfoOnEpgItemSelect = true;
   m_iPVRMinVideoCacheLevel         = 5;
   m_iPVRMinAudioCacheLevel         = 5;
+  m_bPVRCacheInDvdPlayer           = true;
 
   m_measureRefreshrate = false;
 
@@ -535,6 +541,14 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
 
     m_DXVACheckCompatibilityPresent = XMLUtils::GetBoolean(pElement,"checkdxvacompatibility", m_DXVACheckCompatibility);
 
+    TiXmlElement* pDXVADeint = pElement->FirstChildElement("dxvadeinterlace");
+    if (pDXVADeint)
+    {
+      XMLUtils::GetBoolean(pDXVADeint,"enablequickswitch", m_DXVADeintQuickSwitch);
+      XMLUtils::GetUInt(pDXVADeint, "automaxhqwidth", m_DXVADeintAutoMaxWidth);
+      XMLUtils::GetUInt(pDXVADeint, "automaxhqheight", m_DXVADeintAutoMaxHeight);
+      XMLUtils::GetFloat(pDXVADeint, "automaxhqfps", m_DXVADeintAutoMaxFps);
+    }
   }
 
   pElement = pRootElement->FirstChildElement("musiclibrary");
@@ -709,6 +723,7 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetInt(pElement, "updatecheckinterval", m_iEpgUpdateCheckInterval);
     XMLUtils::GetInt(pElement, "cleanupinterval", m_iEpgCleanupInterval);
     XMLUtils::GetInt(pElement, "activetagcheckinterval", m_iEpgActiveTagCheckInterval);
+    XMLUtils::GetInt(pElement, "retryinterruptedupdateinterval", m_iEpgRetryInterruptedUpdateInterval);
   }
 
   // EDL commercial break handling
@@ -890,6 +905,7 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetBoolean(pPVR, "showepginfoonselect", m_bPVRShowEpgInfoOnEpgItemSelect);
     XMLUtils::GetInt(pPVR, "minvideocachelevel", m_iPVRMinVideoCacheLevel, 0, 100);
     XMLUtils::GetInt(pPVR, "minaudiocachelevel", m_iPVRMinAudioCacheLevel, 0, 100);
+    XMLUtils::GetBoolean(pPVR, "cacheindvdplayer", m_bPVRCacheInDvdPlayer);
   }
 
   XMLUtils::GetBoolean(pRootElement, "measurerefreshrate", m_measureRefreshrate);

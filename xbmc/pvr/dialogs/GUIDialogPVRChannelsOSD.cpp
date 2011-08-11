@@ -27,19 +27,22 @@
 #include "GUIDialogPVRGuideInfo.h"
 #include "ViewState.h"
 #include "settings/GUISettings.h"
+#include "GUIInfoManager.h"
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/epg/PVREpg.h"
+#include "epg/Epg.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 
 using namespace std;
 using namespace PVR;
+using namespace EPG;
 
 #define CONTROL_LIST                  11
 
-CGUIDialogPVRChannelsOSD::CGUIDialogPVRChannelsOSD()
-    : CGUIDialog(WINDOW_DIALOG_PVR_OSD_CHANNELS, "DialogPVRChannelsOSD.xml")
+CGUIDialogPVRChannelsOSD::CGUIDialogPVRChannelsOSD() :
+    CGUIDialog(WINDOW_DIALOG_PVR_OSD_CHANNELS, "DialogPVRChannelsOSD.xml"),
+    Observer()
 {
   m_vecItems = new CFileItemList;
 }
@@ -47,6 +50,9 @@ CGUIDialogPVRChannelsOSD::CGUIDialogPVRChannelsOSD()
 CGUIDialogPVRChannelsOSD::~CGUIDialogPVRChannelsOSD()
 {
   delete m_vecItems;
+
+  if (IsObserving(g_infoManager))
+    g_infoManager.UnregisterObserver(this);
 }
 
 bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
@@ -106,6 +112,10 @@ void CGUIDialogPVRChannelsOSD::Update()
 {
   // lock our display, as this window is rendered from the player thread
   g_graphicsContext.Lock();
+
+  if (!IsObserving(g_infoManager))
+    g_infoManager.RegisterObserver(this);
+
   m_viewControl.SetCurrentView(DEFAULT_VIEW_LIST);
 
   // empty the list ready for population
@@ -117,7 +127,7 @@ void CGUIDialogPVRChannelsOSD::Update()
 
   if (group)
   {
-    group->GetMembers(m_vecItems);
+    group->GetMembers(*m_vecItems);
     m_viewControl.SetItems(*m_vecItems);
     m_viewControl.SetSelectedItem(group->GetIndex(channel));
   }
@@ -131,18 +141,12 @@ void CGUIDialogPVRChannelsOSD::Clear()
   m_vecItems->Clear();
 }
 
-void CGUIDialogPVRChannelsOSD::CloseOrSelect(void)
+void CGUIDialogPVRChannelsOSD::CloseOrSelect(unsigned int iItem)
 {
   if (g_guiSettings.GetBool("pvrmenu.closechannelosdonswitch"))
-  {
     Close();
-  }
   else
-  {
-    CPVRChannel channel;
-    g_PVRManager.GetCurrentChannel(&channel);
-    m_viewControl.SetSelectedItem(channel.ChannelNumber() - 1);
-  }
+    m_viewControl.SetSelectedItem(iItem);
 }
 
 void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
@@ -153,17 +157,22 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
 
   if (pItem->m_strPath == g_application.CurrentFile())
   {
-    CloseOrSelect();
+    CloseOrSelect(item);
     return;
   }
 
-  if (!g_application.PlayFile(*pItem))
+  if (g_PVRManager.IsPlaying() && pItem->HasPVRChannelInfoTag() && g_application.m_pPlayer)
   {
-    CGUIDialogOK::ShowAndGetInput(19033,0,19136,0);
-    return;
+    if (!g_application.m_pPlayer->SwitchChannel(*pItem->GetPVRChannelInfoTag()))
+    {
+      Close(true);
+      return;
+    }
   }
+  else
+    g_application.getApplicationMessenger().PlayFile(*pItem);
 
-  CloseOrSelect();
+  CloseOrSelect(item);
 }
 
 void CGUIDialogPVRChannelsOSD::ShowInfo(int item)
@@ -175,7 +184,7 @@ void CGUIDialogPVRChannelsOSD::ShowInfo(int item)
   if (pItem && pItem->IsPVRChannel())
   {
     /* Get the current running show on this channel from the EPG storage */
-    CPVREpgInfoTag *epgnow = pItem->GetPVRChannelInfoTag()->GetEPGNow();
+    const CEpgInfoTag *epgnow = pItem->GetPVRChannelInfoTag()->GetEPGNow();
     if (!epgnow)
       return;
     CFileItem *itemNow  = new CFileItem(*epgnow);
@@ -214,4 +223,10 @@ CGUIControl *CGUIDialogPVRChannelsOSD::GetFirstFocusableControl(int id)
     id = m_viewControl.GetCurrentControl();
 
   return CGUIWindow::GetFirstFocusableControl(id);
+}
+
+void CGUIDialogPVRChannelsOSD::Notify(const Observable &obs, const CStdString& msg)
+{
+  if (msg.Equals("current-item"))
+    Update();
 }

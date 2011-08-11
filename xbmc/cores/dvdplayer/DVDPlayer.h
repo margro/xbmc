@@ -229,6 +229,7 @@ public:
   virtual CStdString GetPlayingTitle();
 
   virtual bool SwitchChannel(const PVR::CPVRChannel &channel);
+  virtual bool CachePVRStream(void) const;
 
   enum ECacheState
   { CACHESTATE_DONE = 0
@@ -306,6 +307,7 @@ protected:
   bool ReadPacket(DemuxPacket*& packet, CDemuxStream*& stream);
   bool IsValidStream(CCurrentStream& stream);
   bool IsBetterStream(CCurrentStream& current, CDemuxStream* stream);
+  bool CheckDelayedChannelEntry(void);
 
   bool OpenInputStream();
   bool OpenDemuxStream();
@@ -322,7 +324,7 @@ protected:
   ECacheState  m_caching;
   CFileItem    m_item;
   unsigned int m_scanStart;
-  long         m_ChannelEntryTimeOut;
+  unsigned int m_iChannelEntryTimeOut;
 
 
   CCurrentStream m_CurrentAudio;
@@ -369,8 +371,8 @@ protected:
     }
 
     int state;                // current dvdstate
-    DWORD iDVDStillTime;      // total time in ticks we should display the still before continuing
-    DWORD iDVDStillStartTime; // time in ticks when we started the still
+    unsigned int iDVDStillTime;      // total time in ticks we should display the still before continuing
+    unsigned int iDVDStillStartTime; // time in ticks when we started the still
     int iSelectedSPUStream;   // mpeg stream id, or -1 if disabled
     int iSelectedAudioStream; // mpeg stream id, or -1 if disabled
   } m_dvd;

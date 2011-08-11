@@ -102,7 +102,7 @@ void CPVRRecordings::GetContents(const CStdString &strDirectory, CFileItemList *
     CFileItemPtr pFileItem(new CFileItem(*current));
     pFileItem->SetLabel2(current->RecordingTimeAsLocalTime().GetAsLocalizedDateTime(true, false));
     pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
-    pFileItem->m_strPath.Format("pvr://recordings/%05i-%05i.pvr", current->m_iClientId, current->m_iClientIndex);
+    pFileItem->m_strPath.Format("pvr://recordings/%05i-%s.pvr", current->m_iClientId, current->m_strRecordingId);
     results->Add(pFileItem);
   }
 }
@@ -260,20 +260,23 @@ CPVRRecording *CPVRRecordings::GetByPath(CStdString &path)
 
   if (fileName.Left(11) == "recordings/")
   {
+    // remove "recordings/" from filename
     fileName.erase(0,11);
     int iClientID = atoi(fileName.c_str());
+    // remove client id from filename
     fileName.erase(0,6);
 
     if (fileName.IsEmpty())
       return tag;
 
-    int iClientIndex = atoi(fileName.c_str());
+    // remove ".pvr" from filename
+    fileName.erase(fileName.end() - 4, fileName.end());
 
     for (unsigned int iRecordingPtr = 0; iRecordingPtr < size(); iRecordingPtr++)
     {
       CPVRRecording *recording = at(iRecordingPtr);
 
-      if (recording->m_iClientId == iClientID && recording->m_iClientIndex == iClientIndex)
+      if (recording->m_iClientId == iClientID && recording->m_strRecordingId.Equals(fileName))
       {
         tag = recording;
         break;
@@ -302,7 +305,7 @@ void CPVRRecordings::UpdateEntry(const CPVRRecording &tag)
   {
     CPVRRecording *currentTag = at(iRecordingPtr);
     if (currentTag->m_iClientId == tag.m_iClientId &&
-        currentTag->m_iClientIndex == tag.m_iClientIndex)
+        currentTag->m_strRecordingId.Equals(tag.m_strRecordingId))
     {
       currentTag->Update(tag);
       bFound = true;
