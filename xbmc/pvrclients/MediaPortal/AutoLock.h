@@ -1,5 +1,6 @@
+#pragma once
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -16,22 +17,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef TSREADER
+#include "CriticalSection.h"
 
-#include "AutoLock.h"
-
-/*
- * \brief CAutoLock constructor
- * \param pCritSec
- */
-CAutoLock::CAutoLock(CCritSec* pCritSec)
+class  CAutoLock  
 {
-  m_pAutoLock = pCritSec;
-  m_pAutoLock->Lock();
-}
-
-CAutoLock::~CAutoLock()
-{
-  m_pAutoLock->Unlock();
-}
-#endif //TSREADER
+  public:
+    CAutoLock(CCriticalSection* pCritSec);
+    ~CAutoLock();
+  protected:
+    CCriticalSection* m_pAutoLock;
+};

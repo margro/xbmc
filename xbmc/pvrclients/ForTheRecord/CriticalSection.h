@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -19,15 +19,15 @@
 
 #include "os-dependent.h"
 
-class CCritSec  
+class CCriticalSection
 {
   public:
-    CCritSec();
-    virtual ~CCritSec();
+    CCriticalSection();
+    virtual ~CCriticalSection();
 
     void Lock(void);
     void Unlock(void);
 
   protected:
-     criticalsection_t m_CritSec;
+     criticalsection_t m_CriticalSection;
 };

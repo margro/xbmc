@@ -117,10 +117,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\AutoLock.cpp" />
     <ClCompile Include="..\..\Cards.cpp" />
     <ClCompile Include="..\..\channels.cpp" />
     <ClCompile Include="..\..\client.cpp" />
     <ClCompile Include="..\..\..\..\..\addons\library.xbmc.addon\dlfcn-win32.cpp" />
+    <ClCompile Include="..\..\CriticalSection.cpp" />
     <ClCompile Include="..\..\epg.cpp" />
     <ClCompile Include="..\..\lib\tinyxml\tinystr.cpp" />
     <ClCompile Include="..\..\lib\tinyxml\tinyxml.cpp" />
@@ -134,10 +136,12 @@
     <ClCompile Include="..\..\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\AutoLock.h" />
     <ClInclude Include="..\..\Cards.h" />
     <ClInclude Include="..\..\channels.h" />
     <ClInclude Include="..\..\client.h" />
     <ClInclude Include="..\..\..\..\..\addons\library.xbmc.addon\dlfcn-win32.h" />
+    <ClInclude Include="..\..\CriticalSection.h" />
     <ClInclude Include="..\..\epg.h" />
     <ClInclude Include="..\..\lib\tinyxml\tinystr.h" />
     <ClInclude Include="..\..\lib\tinyxml\tinyxml.h" />

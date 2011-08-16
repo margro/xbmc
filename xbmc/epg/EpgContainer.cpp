@@ -49,6 +49,7 @@ CEpgContainer::CEpgContainer(void) :
   m_progressDialog = NULL;
   m_bStop = true;
   m_bIsUpdating = false;
+  m_bIsInitialising = true;
   m_iNextEpgId = 0;
   m_bPreventUpdates = false;
   m_updateEvent.Reset();
@@ -79,8 +80,6 @@ unsigned int CEpgContainer::NextEpgId(void)
 
 void CEpgContainer::Clear(bool bClearDb /* = false */)
 {
-  CSingleLock lock(m_critSection);
-
   /* make sure the update thread is stopped */
   bool bThreadRunning = !m_bStop;
   if (bThreadRunning && !Stop())
@@ -98,10 +97,15 @@ void CEpgContainer::Clear(bool bClearDb /* = false */)
       timers->at(iTimerPtr)->SetEpgInfoTag(NULL);
   }
 
-  /* clear all epg tables and remove pointers to epg tables on channels */
-  for (unsigned int iEpgPtr = 0; iEpgPtr < m_epgs.size(); iEpgPtr++)
-    delete m_epgs[iEpgPtr];
-  m_epgs.clear();
+  {
+    CSingleLock lock(m_critSection);
+    /* clear all epg tables and remove pointers to epg tables on channels */
+    for (unsigned int iEpgPtr = 0; iEpgPtr < m_epgs.size(); iEpgPtr++)
+      delete m_epgs[iEpgPtr];
+    m_epgs.clear();
+    m_iNextEpgUpdate  = 0;
+    m_bIsInitialising = true;
+  }
 
   /* clear the database entries */
   if (bClearDb && !m_bIgnoreDbForClient)
@@ -113,9 +117,8 @@ void CEpgContainer::Clear(bool bClearDb /* = false */)
     }
   }
 
-  m_iNextEpgUpdate  = 0;
-
-  lock.Leave();
+  SetChanged();
+  NotifyObservers("epg", true);
 
   if (bThreadRunning)
     Start();
@@ -168,7 +171,6 @@ void CEpgContainer::Process(void)
   lock.Leave();
 
   bool bUpdateEpg(true);
-  bool bShowProgress(true);
   while (!m_bStop && !g_application.m_bStop)
   {
     CDateTime::GetCurrentDateTime().GetAsTime(iNow);
@@ -177,8 +179,8 @@ void CEpgContainer::Process(void)
     lock.Leave();
 
     /* load or update the EPG */
-    if (!InterruptUpdate() && bUpdateEpg)
-      bShowProgress = !UpdateEPG(bShowProgress);
+    if (!InterruptUpdate() && bUpdateEpg && UpdateEPG(m_bIsInitialising))
+      m_bIsInitialising = false;
 
     /* clean up old entries */
     if (!m_bStop && iNow >= m_iLastEpgCleanup)
@@ -240,7 +242,7 @@ bool CEpgContainer::UpdateEntry(const CEpg &entry, bool bUpdateDatabase /* = fal
   if (!epg)
   {
     /* table does not exist yet, create a new one */
-    unsigned int iEpgId = entry.EpgID() > 0 ? entry.EpgID() : NextEpgId();
+    unsigned int iEpgId = !m_bIgnoreDbForClient ? entry.EpgID() : NextEpgId();
     epg = CreateEpg(iEpgId);
     if (epg)
       InsertEpg(epg);
@@ -345,18 +347,16 @@ bool CEpgContainer::DeleteEpg(const CEpg &epg, bool bDeleteFromDatabase /* = fal
 
 void CEpgContainer::CloseProgressDialog(void)
 {
-  CSingleLock lock(m_critSection);
   if (m_progressDialog)
   {
     m_progressDialog->Close(true, 0, true, false);
     m_progressDialog = NULL;
   }
- }
+}
 
 void CEpgContainer::ShowProgressDialog(void)
 {
-  CSingleLock lock(m_critSection);
-  if (!m_progressDialog)
+  if (!m_progressDialog && !g_PVRManager.IsInitialising())
   {
     m_progressDialog = (CGUIDialogExtendedProgressBar *)g_windowManager.GetWindow(WINDOW_DIALOG_EXT_PROGRESS);
     m_progressDialog->Show();
@@ -366,7 +366,6 @@ void CEpgContainer::ShowProgressDialog(void)
 
 void CEpgContainer::UpdateProgressDialog(int iCurrent, int iMax, const CStdString &strText)
 {
-  CSingleLock lock(m_critSection);
   if (!m_progressDialog)
     ShowProgressDialog();
 
@@ -385,7 +384,7 @@ bool CEpgContainer::InterruptUpdate(void) const
   bReturn = g_application.m_bStop || m_bStop || m_bPreventUpdates;
   lock.Leave();
 
-  return bReturn || g_PVRManager.IsInitialising() ||
+  return bReturn ||
     (g_guiSettings.GetBool("epg.preventupdateswhileplayingtv") &&
      g_PVRManager.IsStarted() &&
      g_PVRManager.IsPlaying());
@@ -583,4 +582,10 @@ bool CEpgContainer::CheckPlayingEvents(void)
   }
 
   return bReturn;
+}
+
+bool CEpgContainer::IsInitialising(void) const
+{
+  CSingleLock lock(m_critSection);
+  return m_bIsInitialising;
 }

@@ -176,6 +176,8 @@ namespace INFO
 #define LCD_TIME_44                 179
 #define SYSTEM_ALARM_LESS_OR_EQUAL  180
 #define SYSTEM_PROFILECOUNT         181
+#define SYSTEM_ISFULLSCREEN         182
+#define SYSTEM_ISSTANDALONE         183
 
 #define NETWORK_IP_ADDRESS          190
 #define NETWORK_MAC_ADDRESS         191
@@ -345,6 +347,8 @@ namespace INFO
 #define STRING_COMPARE              411
 #define STRING_STR                  412
 #define INTEGER_GREATER_THAN        413
+#define STRING_STR_LEFT             414
+#define STRING_STR_RIGHT            415
 
 #define SKIN_BOOL                   600
 #define SKIN_STRING                 601
@@ -654,7 +658,7 @@ public:
   bool EvaluateBool(const CStdString &expression, int context = 0);
 
   int TranslateString(const CStdString &strCondition);
-  int GetInt(int info, int contextWindow = 0) const;
+  int GetInt(int info, int contextWindow = 0, const CGUIListItem *item = NULL) const;
   CStdString GetLabel(int info, int contextWindow = 0);
 
   CStdString GetImage(int info, int contextWindow);
@@ -717,6 +721,7 @@ public:
 
   void ResetCache();
 
+  int GetItemInt(const CGUIListItem *item, int info) const;
   CStdString GetItemLabel(const CFileItem *item, int info) const;
   CStdString GetItemImage(const CFileItem *item, int info) const;
 
@@ -765,6 +770,7 @@ protected:
   };
 
   bool GetMultiInfoBool(const GUIInfo &info, int contextWindow = 0, const CGUIListItem *item = NULL);
+  int GetMultiInfoInt(const GUIInfo &info, int contextWindow = 0) const;
   CStdString GetMultiInfoLabel(const GUIInfo &info, int contextWindow = 0) const;
   int TranslateListItem(const Property &info);
   int TranslateMusicPlayerString(const CStdString &info) const;
