@@ -46,8 +46,8 @@ int g_iTVServerXBMCBuild = 0;
 /* TVServerXBMC plugin supported versions */
 #define TVSERVERXBMC_MIN_VERSION_STRING         "1.1.0.70"
 #define TVSERVERXBMC_MIN_VERSION_BUILD          70
-#define TVSERVERXBMC_RECOMMENDED_VERSION_STRING "1.1.x.106"
-#define TVSERVERXBMC_RECOMMENDED_VERSION_BUILD  106
+#define TVSERVERXBMC_RECOMMENDED_VERSION_STRING "1.1.x.107"
+#define TVSERVERXBMC_RECOMMENDED_VERSION_BUILD  107
 
 /************************************************************/
 /** Class interface */
@@ -579,20 +579,35 @@ PVR_ERROR cPVRClientMediaPortal::GetChannels(PVR_HANDLE handle, bool bRadio)
 
   if(bRadio)
   {
-    XBMC->Log(LOG_DEBUG, "RequestChannelList for Radio group:%s", g_szRadioGroup.c_str());
-
     if(!g_bRadioEnabled)
     {
       XBMC->Log(LOG_INFO, "Fetching radio channels is disabled.");
       return PVR_ERROR_NO_ERROR;
     }
 
-    command.Format("ListRadioChannels:%s\n", uri::encode(uri::PATH_TRAITS, g_szRadioGroup).c_str());
+    if (g_szRadioGroup.length() > 0)
+    {
+      XBMC->Log(LOG_DEBUG, "GetChannels(radio) for radio group:%s", g_szRadioGroup.c_str());
+      command.Format("ListRadioChannels:%s\n", uri::encode(uri::PATH_TRAITS, g_szRadioGroup).c_str());
+    }
+    else
+    {
+      XBMC->Log(LOG_DEBUG, "GetChannels(radio) all channels");
+      command = "ListRadioChannels\n";
+    }
   }
   else
   {
-    XBMC->Log(LOG_DEBUG, "RequestChannelList for TV group:%s", g_szTVGroup.c_str());
-    command.Format("ListTVChannels:%s\n", uri::encode(uri::PATH_TRAITS, g_szTVGroup).c_str());
+    if (g_szTVGroup.length() > 0)
+    {
+      XBMC->Log(LOG_DEBUG, "GetChannels(tv) for TV group:%s", g_szTVGroup.c_str());
+      command.Format("ListTVChannels:%s\n", uri::encode(uri::PATH_TRAITS, g_szTVGroup).c_str());
+    }
+    else
+    {
+      XBMC->Log(LOG_DEBUG, "GetChannels(tv) all channels");
+      command = "ListTVChannels\n";
+    }
   }
 
   if( !SendCommand2(command.c_str(), code, lines) )
@@ -692,9 +707,17 @@ PVR_ERROR cPVRClientMediaPortal::GetChannelGroups(PVR_HANDLE handle, bool bRadio
 
   if(bRadio)
   {
-    XBMC->Log(LOG_DEBUG, "GetChannelGroups for radio");
-    if (!SendCommand2("ListRadioGroups\n", code, lines))
-      return PVR_ERROR_SERVER_ERROR;
+    if (g_bRadioEnabled)
+    {
+      XBMC->Log(LOG_DEBUG, "GetChannelGroups for radio");
+      if (!SendCommand2("ListRadioGroups\n", code, lines))
+        return PVR_ERROR_SERVER_ERROR;
+    }
+    else
+    {
+      XBMC->Log(LOG_DEBUG, "Skipping GetChannelGroups for radio. Radio support is disabled.");
+      return PVR_ERROR_NO_ERROR;
+    }
   }
   else
   {
@@ -742,8 +765,16 @@ PVR_ERROR cPVRClientMediaPortal::GetChannelGroupMembers(PVR_HANDLE handle, const
 
   if(group.bIsRadio)
   {
-    XBMC->Log(LOG_DEBUG, "%s: for group '%s', radio=%i", __FUNCTION__, group.strGroupName, group.bIsRadio);
-    command.Format("ListRadioChannels:%s\n", uri::encode(uri::PATH_TRAITS, group.strGroupName).c_str());
+    if (g_bRadioEnabled)
+    {
+      XBMC->Log(LOG_DEBUG, "%s: for group '%s', radio=%i", __FUNCTION__, group.strGroupName, group.bIsRadio);
+      command.Format("ListRadioChannels:%s\n", uri::encode(uri::PATH_TRAITS, group.strGroupName).c_str());
+    }
+    else
+    {
+      XBMC->Log(LOG_DEBUG, "Skipping GetChannelGroupMembers for radio. Radio support is disabled.");
+      return PVR_ERROR_NO_ERROR;
+    }
   }
   else
   {
