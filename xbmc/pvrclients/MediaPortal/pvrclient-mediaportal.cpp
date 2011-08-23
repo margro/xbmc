@@ -871,13 +871,15 @@ PVR_ERROR cPVRClientMediaPortal::GetRecordings(PVR_HANDLE handle)
 
     CStdString strRecordingId;
     cRecording recording;
+    recording.SetCardSettings(&m_cCards);
+
     if (recording.ParseLine(data))
     {
       strRecordingId.Format("%i", recording.Index());
 
       tag.strRecordingId = strRecordingId.c_str();
       tag.strTitle       = recording.Title();
-      tag.strDirectory   = ""; //used in XBMC as directory structure below "Server X - hostname"
+      tag.strDirectory   = recording.Directory(); //used in XBMC as directory structure below "Recordings"
       tag.strPlotOutline = g_iTVServerXBMCBuild >= 105 ? recording.EpisodeName() : tag.strTitle;
       tag.strPlot        = recording.Description();
       tag.strChannelName = recording.ChannelName();
@@ -1281,6 +1283,11 @@ bool cPVRClientMediaPortal::OpenLiveStream(const PVR_CHANNEL &channelinfo)
 
     if(g_bDirectTSFileRead)
     { // Timeshift buffer
+      if (g_szTimeshiftDir.length() > 0)
+      {
+        m_tsreader->SetCardSettings(&m_cCards);
+        m_tsreader->SetDirectory(g_szTimeshiftDir);
+      }
       m_tsreader->Open(timeshiftfields[2].c_str());
     }
     else
