@@ -324,7 +324,7 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
       else if (message.GetParam1() == GUI_MSG_REMOVED_MEDIA)
       {
         if ((m_vecItems->IsVirtualDirectoryRoot() ||
-             m_vecItems->GetPath().Left(10).Equals("sources://")) && IsActive())
+             m_vecItems->IsSourcesPath()) && IsActive())
         {
           int iItem = m_viewControl.GetSelectedItem();
           Update(m_vecItems->GetPath());
@@ -348,7 +348,7 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
       else if (message.GetParam1()==GUI_MSG_UPDATE_SOURCES)
       { // State of the sources changed, so update our view
         if ((m_vecItems->IsVirtualDirectoryRoot() ||
-             m_vecItems->GetPath().Left(10).Equals("sources://")) && IsActive())
+             m_vecItems->IsSourcesPath()) && IsActive())
         {
           int iItem = m_viewControl.GetSelectedItem();
           Update(m_vecItems->GetPath());
@@ -664,7 +664,8 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
   CStdStringArray regexps;
   int iWindow = GetID();
 
-  if (iWindow == WINDOW_VIDEO_FILES)
+  // TODO: Do we want to limit the directories we apply the video ones to?
+  if (iWindow == WINDOW_VIDEO_NAV)
     regexps = g_advancedSettings.m_videoExcludeFromListingRegExps;
   if (iWindow == WINDOW_MUSIC_FILES)
     regexps = g_advancedSettings.m_audioExcludeFromListingRegExps;

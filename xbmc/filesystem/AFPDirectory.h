@@ -1,5 +1,6 @@
+#pragma once
 /*
- *      Copyright (C) 2009-2010 Team XBMC
+ *      Copyright (C) 2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,41 +20,27 @@
  *
  */
 
-#ifndef GUI_ACTION_DESCRIPTOR
-#define GUI_ACTION_DESCRIPTOR
+#include "IDirectory.h"
+#include "MediaSource.h"
+#include "URL.h"
 
-#include "utils/StdString.h"
-#include "system.h"
+struct afp_file_info;
 
-class CGUIActionDescriptor
+namespace XFILE
+{
+class CAFPDirectory : public IDirectory
 {
 public:
-  typedef enum { LANG_XBMC = 0, LANG_PYTHON = 1 /*, LANG_JAVASCRIPT = 2 */ } ActionLang;
+  CAFPDirectory(void);
+  virtual ~CAFPDirectory(void);
+  virtual bool GetDirectory(const CStdString& strPath, CFileItemList &items);
+  virtual DIR_CACHE_TYPE GetCacheType(const CStdString &strPath) const { return DIR_CACHE_ONCE; };
+  virtual bool Create(const char* strPath);
+  virtual bool Exists(const char* strPath);
+  virtual bool Remove(const char* strPath);
 
-  CGUIActionDescriptor()
-  {
-    m_lang = LANG_XBMC;
-    m_action = "";
-    m_sourceWindowId = -1;
-  }
-
-  CGUIActionDescriptor(CStdString& action)
-  {
-    m_lang = LANG_XBMC;
-    m_action = action;
-    m_sourceWindowId = -1;
-  }
-
-  CGUIActionDescriptor(ActionLang lang, CStdString& action)
-  {
-    m_lang = lang;
-    m_action = action;
-    m_sourceWindowId = -1;
-  }
-
-  CStdString m_action;
-  ActionLang m_lang;
-  int m_sourceWindowId; // the id of the window that was a source of an action
+  afp_file_info *Open(const CURL &url);
+private:
+  afp_file_info *OpenDir(const CURL &url, CStdString& strAuth);
 };
-
-#endif
+}

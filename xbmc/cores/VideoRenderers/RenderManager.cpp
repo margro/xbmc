@@ -210,7 +210,7 @@ CStdString CXBMCRenderManager::GetVSyncState()
   return state;
 }
 
-bool CXBMCRenderManager::Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags)
+bool CXBMCRenderManager::Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags, unsigned int format)
 {
   /* make sure any queued frame was fully presented */
   double timeout = m_presenttime + 0.1;
@@ -230,7 +230,7 @@ bool CXBMCRenderManager::Configure(unsigned int width, unsigned int height, unsi
     return false;
   }
 
-  bool result = m_pRenderer->Configure(width, height, d_width, d_height, fps, flags);
+  bool result = m_pRenderer->Configure(width, height, d_width, d_height, fps, flags, format);
   if(result)
   {
     if( flags & CONF_FLAGS_FULLSCREEN )
@@ -286,21 +286,15 @@ void CXBMCRenderManager::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
 
   CSharedLock lock(m_sharedSection);
 
-  if     ( m_presentmethod == VS_INTERLACEMETHOD_RENDER_BOB
-        || m_presentmethod == VS_INTERLACEMETHOD_RENDER_BOB_INVERTED
-        || m_presentmethod == VS_INTERLACEMETHOD_DXVA_BOB
-        || m_presentmethod == VS_INTERLACEMETHOD_DXVA_BOB_INVERTED
-        || m_presentmethod == VS_INTERLACEMETHOD_DXVA_HQ
-        || m_presentmethod == VS_INTERLACEMETHOD_DXVA_HQ_INVERTED)
-    PresentBob(clear, flags, alpha);
-  else if( m_presentmethod == VS_INTERLACEMETHOD_RENDER_WEAVE
-        || m_presentmethod == VS_INTERLACEMETHOD_RENDER_WEAVE_INVERTED)
-    PresentSingle(clear, flags | RENDER_FLAG_BOTH, alpha);
+  if( m_presentmethod == VS_INTERLACEMETHOD_RENDER_WEAVE
+   || m_presentmethod == VS_INTERLACEMETHOD_RENDER_WEAVE_INVERTED)
+    m_pRenderer->RenderUpdate(clear, flags | RENDER_FLAG_BOTH, alpha);
   else
-    PresentSingle(clear, flags | RENDER_FLAG_LAST, alpha);
+    m_pRenderer->RenderUpdate(clear, flags | RENDER_FLAG_LAST, alpha);
 
   m_overlays.Render();
 
+  m_presentstep = PRESENT_IDLE;
   m_presentevent.Set();
 }
 
@@ -525,7 +519,7 @@ void CXBMCRenderManager::FlipPage(volatile bool& bStop, double timestamp /* = 0L
     {
       if(m_presentfield == FS_NONE)
         m_presentmethod = VS_INTERLACEMETHOD_NONE;
-      else if(m_pRenderer->Supports(VS_INTERLACEMETHOD_RENDER_BOB) || m_pRenderer->Supports(VS_INTERLACEMETHOD_DXVA_BOB))
+      else if(m_pRenderer->Supports(VS_INTERLACEMETHOD_RENDER_BOB) || m_pRenderer->Supports(VS_INTERLACEMETHOD_DXVA_ANY))
         m_presentmethod = VS_INTERLACEMETHOD_RENDER_BOB;
       else
         m_presentmethod = VS_INTERLACEMETHOD_NONE;
@@ -594,17 +588,15 @@ void CXBMCRenderManager::Present()
   if     ( m_presentmethod == VS_INTERLACEMETHOD_RENDER_BOB
         || m_presentmethod == VS_INTERLACEMETHOD_RENDER_BOB_INVERTED
         || m_presentmethod == VS_INTERLACEMETHOD_DXVA_BOB
-        || m_presentmethod == VS_INTERLACEMETHOD_DXVA_BOB_INVERTED
-        || m_presentmethod == VS_INTERLACEMETHOD_DXVA_HQ
-        || m_presentmethod == VS_INTERLACEMETHOD_DXVA_HQ_INVERTED)
-    PresentBob(true, 0 , 255);
+        || m_presentmethod == VS_INTERLACEMETHOD_DXVA_BEST)
+    PresentBob();
   else if( m_presentmethod == VS_INTERLACEMETHOD_RENDER_WEAVE
         || m_presentmethod == VS_INTERLACEMETHOD_RENDER_WEAVE_INVERTED)
     PresentWeave();
   else if( m_presentmethod == VS_INTERLACEMETHOD_RENDER_BLEND )
     PresentBlend();
   else
-    PresentSingle(true, 0 , 255);
+    PresentSingle();
 
   m_overlays.Render();
 
@@ -616,35 +608,35 @@ void CXBMCRenderManager::Present()
 }
 
 /* simple present method */
-void CXBMCRenderManager::PresentSingle(bool clear, DWORD flags, DWORD alpha)
+void CXBMCRenderManager::PresentSingle()
 {
   CSingleLock lock(g_graphicsContext);
 
-  m_pRenderer->RenderUpdate(clear, flags, alpha);
+  m_pRenderer->RenderUpdate(true, 0, 255);
   m_presentstep = PRESENT_IDLE;
 }
 
 /* new simpler method of handling interlaced material, *
  * we just render the two fields right after eachother */
-void CXBMCRenderManager::PresentBob(bool clear, DWORD flags, DWORD alpha)
+void CXBMCRenderManager::PresentBob()
 {
   CSingleLock lock(g_graphicsContext);
 
   if(m_presentstep == PRESENT_FRAME)
   {
     if( m_presentfield == FS_BOT)
-      m_pRenderer->RenderUpdate(clear, flags | RENDER_FLAG_BOT, alpha);
+      m_pRenderer->RenderUpdate(true, RENDER_FLAG_BOT | RENDER_FLAG_FIELD0, 255);
     else
-      m_pRenderer->RenderUpdate(clear, flags | RENDER_FLAG_TOP, alpha);
+      m_pRenderer->RenderUpdate(true, RENDER_FLAG_TOP | RENDER_FLAG_FIELD0, 255);
     m_presentstep = PRESENT_FRAME2;
     g_application.NewFrame();
   }
   else
   {
     if( m_presentfield == FS_TOP)
-      m_pRenderer->RenderUpdate(clear, flags | RENDER_FLAG_BOT, alpha);
+      m_pRenderer->RenderUpdate(true, RENDER_FLAG_BOT | RENDER_FLAG_FIELD1, 255);
     else
-      m_pRenderer->RenderUpdate(clear, flags | RENDER_FLAG_TOP, alpha);
+      m_pRenderer->RenderUpdate(true, RENDER_FLAG_TOP | RENDER_FLAG_FIELD1, 255);
     m_presentstep = PRESENT_IDLE;
   }
 }
@@ -704,9 +696,8 @@ int CXBMCRenderManager::AddVideoPicture(DVDVideoPicture& pic)
   if (!m_pRenderer)
     return -1;
 
-#ifdef HAS_DX
-  m_pRenderer->AddProcessor(&pic);
-#endif
+  if(m_pRenderer->AddVideoPicture(&pic))
+    return 1;
 
   YV12Image image;
   int index = m_pRenderer->GetImage(&image);
@@ -726,6 +717,10 @@ int CXBMCRenderManager::AddVideoPicture(DVDVideoPicture& pic)
        || pic.format == DVDVideoPicture::FMT_UYVY)
   {
     CDVDCodecUtils::CopyYUV422PackedPicture(&image, &pic);
+  }
+  else if(pic.format == DVDVideoPicture::FMT_DXVA)
+  {
+    CDVDCodecUtils::CopyDXVA2Picture(&image, &pic);
   }
 #ifdef HAVE_LIBVDPAU
   else if(pic.format == DVDVideoPicture::FMT_VDPAU)

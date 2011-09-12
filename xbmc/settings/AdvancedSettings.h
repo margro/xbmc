@@ -123,11 +123,7 @@ class CAdvancedSettings
     std::vector<RefreshOverride> m_videoAdjustRefreshOverrides;
     bool m_DXVACheckCompatibility;
     bool m_DXVACheckCompatibilityPresent;
-
-    bool m_DXVADeintQuickSwitch;
-    unsigned m_DXVADeintAutoMaxWidth;
-    unsigned m_DXVADeintAutoMaxHeight;
-    float m_DXVADeintAutoMaxFps;
+    bool m_DXVAForceProcessorRenderer;
 
     CStdString m_videoDefaultPlayer;
     CStdString m_videoDefaultDVDPlayer;

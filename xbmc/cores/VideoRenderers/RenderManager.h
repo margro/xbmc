@@ -68,7 +68,7 @@ public:
   void SetViewMode(int iViewMode) { CSharedLock lock(m_sharedSection); if (m_pRenderer) m_pRenderer->SetViewMode(iViewMode); };
 
   // Functions called from mplayer
-  bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags);
+  bool Configure(unsigned int width, unsigned int height, unsigned int d_width, unsigned int d_height, float fps, unsigned flags, unsigned int format);
   bool IsConfigured();
 
   int AddVideoPicture(DVDVideoPicture& picture);
@@ -142,6 +142,14 @@ public:
 
   void UpdateResolution();
 
+  unsigned int GetProcessorSize()
+  {
+    CSharedLock lock(m_sharedSection);
+    if (m_pRenderer)
+      return m_pRenderer->GetProcessorSize();
+    return 0;
+  }
+
 #ifdef HAS_GL
   CLinuxRendererGL *m_pRenderer;
 #elif HAS_GLES == 2
@@ -159,9 +167,9 @@ public:
 
 protected:
 
-  void PresentSingle(bool clear, DWORD flags, DWORD alpha);
+  void PresentSingle();
   void PresentWeave();
-  void PresentBob(bool clear, DWORD flags, DWORD alpha);
+  void PresentBob();
   void PresentBlend();
 
   bool m_bPauseDrawing;   // true if we should pause rendering

@@ -1005,6 +1005,16 @@ void CDVDDemuxFFmpeg::AddStream(int iId)
           st->iFpsRate  = 0;
           st->iFpsScale = 0;
         }
+
+        if (pStream->codec_info_nb_frames >  0
+        &&  pStream->codec_info_nb_frames <= 2
+        &&  m_pInput->IsStreamType(DVDSTREAM_TYPE_DVD))
+        {
+          CLog::Log(LOGDEBUG, "%s - fps may be unreliable since ffmpeg decoded only %d frame(s)", __FUNCTION__, pStream->codec_info_nb_frames);
+          st->iFpsRate  = 0;
+          st->iFpsScale = 0;
+        }
+
         st->iWidth = pStream->codec->width;
         st->iHeight = pStream->codec->height;
         if (pStream->sample_aspect_ratio.num == 0)
