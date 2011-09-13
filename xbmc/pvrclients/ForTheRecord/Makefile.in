@@ -1,0 +1,40 @@
+#
+# Makefile for the XBMC ForTheRecord AddOn
+#
+# See the README for copyright information and
+# how to reach the author.
+#
+
+LIBS   = -ldl -lpthread -lcurl
+LIBDIR = @abs_top_srcdir@/addons/pvr.fortherecord.argus-rtsp
+LIB    = @abs_top_srcdir@/addons/pvr.fortherecord.argus-rtsp/XBMC_ForTheRecord.pvr
+
+SRCS   = utils.cpp \
+        activerecording.cpp \
+        channel.cpp \
+        epg.cpp \
+        recording.cpp \
+        recordingsummary.cpp \
+        recordinggroup.cpp \
+        thread.cpp \
+        tools.cpp \
+        upcomingrecording.cpp \
+        uri.cpp \
+        lib/jsoncpp/src/lib_json/json_reader.cpp \
+        lib/jsoncpp/src/lib_json/json_writer.cpp \
+        lib/jsoncpp/src/lib_json/json_value.cpp \
+        KeepAliveThread.cpp \
+        fortherecordrpc.cpp \
+        pvrclient-fortherecord.cpp \
+        client.cpp
+
+include ../Makefile.include
+
+INCLUDES += -Ilib/jsoncpp/include/
+
+clean:
+	-rm -f $(OBJS) $(LIB) *.P *~
+
+$(LIB): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared -g $(OBJS) $(LIBS) $(LIBDIRS) $(SILIB) -o $(LIB)
+

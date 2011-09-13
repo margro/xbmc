@@ -16,18 +16,20 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if defined TSREADER
+#include "thread.h"
 
-#include "lib/tsreader/TSThread.h"
-
-class CKeepAliveThread: public TSThread
+class CKeepAliveThread : cThread
 {
-  public:
-    CKeepAliveThread();
-    virtual ~CKeepAliveThread(void);
+public:
+  CKeepAliveThread();
+  virtual ~CKeepAliveThread(void);
 
-  private:
-    virtual void ThreadProc();
+  bool IsThreadRunning() { return Active(); }
+  long StopThread(unsigned long dwTimeoutMilliseconds  = 1000) { Cancel(dwTimeoutMilliseconds / 1000); return 0; }
+  long StartThread(void) { Start(); return 0; }
+
+
+private:
+  virtual void Action();
 };
 
-#endif

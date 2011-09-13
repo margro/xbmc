@@ -16,8 +16,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#include "os-dependent.h"
+#ifdef TSREADER
+//#include "os-dependent.h"
+#include "libPlatform/os-dependent.h"
+#else
+#include "libPlatform/os-dependent.h"
+#endif 
 
 #include <vector>
 
@@ -28,9 +32,9 @@
 #include "recording.h"
 #include "guideprogram.h"
 
+#include "KeepAliveThread.h"
 #ifdef TSREADER
 //#include "lib/tsreader/TSReader.h"
-#include "KeepAliveThread.h"
 class CTsReader;
 #endif
 
@@ -102,11 +106,13 @@ private:
   void Close();
   bool FetchRecordingDetails(const Json::Value& data, cRecording& recording);
   bool FetchGuideProgramDetails(std::string Id, cGuideProgram& guideprogram);
+  bool _OpenLiveStream(const PVR_CHANNEL &channel);
 
   int                     m_iCurrentChannel;
   bool                    m_bConnected;
   //bool                    m_bStop;
   bool                    m_bTimeShiftStarted;
+  std::string             m_PlaybackURL;
   std::string             m_BackendName;
   int                     m_BackendVersion;
   time_t                  m_BackendUTCoffset;
@@ -118,7 +124,7 @@ private:
 //  CURL*                   m_curl;
 #ifdef TSREADER
   CTsReader*              m_tsreader;
-  CKeepAliveThread        m_keepalive;
 #endif //TSREADER
+  CKeepAliveThread        m_keepalive;
 
 };

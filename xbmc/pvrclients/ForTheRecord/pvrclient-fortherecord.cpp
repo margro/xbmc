@@ -45,7 +45,9 @@ cPVRClientForTheRecord::cPVRClientForTheRecord()
   m_bTimeShiftStarted      = false;
   m_BackendUTCoffset       = 0;
   m_BackendTime            = 0;
+#if defined TSREADER
   m_tsreader               = NULL;
+#endif
   m_channel_id_offset      = 0;
   m_epg_id_offset          = 0;
   m_iCurrentChannel        = 0;
@@ -190,7 +192,7 @@ PVR_ERROR cPVRClientForTheRecord::GetEpg(PVR_HANDLE handle, const PVR_CHANNEL &c
         EPG_TAG broadcast;
         cEpg epg;
 
-        memset(&broadcast, NULL, sizeof(EPG_TAG));
+        memset(&broadcast, 0, sizeof(EPG_TAG));
 
         // parse channel list
         for ( int index =0; index < size; ++index )
@@ -329,8 +331,17 @@ PVR_ERROR cPVRClientForTheRecord::GetChannels(PVR_HANDLE handle, bool bRadio)
         tag.bIsRadio = (channel.Type() == ForTheRecord::Radio ? true : false);
         tag.bIsHidden = false;
         //Use OpenLiveStream to read from the timeshift .ts file or an rtsp stream
+#ifdef TSREADER
         tag.strStreamURL = "";
         tag.strInputFormat = "mpegts";
+#else
+        //Use GetLiveStreamURL to fetch an rtsp stream
+        if(bRadio)
+          tag.strStreamURL = "pvr://stream/radio/%i.ts"; //stream.c_str();
+        else
+          tag.strStreamURL = "pvr://stream/tv/%i.ts"; //stream.c_str();
+        tag.strInputFormat = "";
+#endif
 
         if (!tag.bIsRadio)
         {
@@ -558,7 +569,11 @@ PVR_ERROR cPVRClientForTheRecord::GetRecordings(PVR_HANDLE handle)
               {
                 tag.strDirectory = "";
               }
+#ifdef _WIN32
               tag.strStreamURL   = recording.RecordingFileName();
+#else
+              tag.strStreamURL   = recording.CIFSRecordingFileName();
+#endif
               PVR->TransferRecordingEntry(handle, &tag);
               iNumRecordings++;
             }
@@ -846,10 +861,9 @@ cChannel* cPVRClientForTheRecord::FetchChannel(std::string channelid)
   return NULL;
 }
 
-
-bool cPVRClientForTheRecord::OpenLiveStream(const PVR_CHANNEL &channelinfo)
+bool cPVRClientForTheRecord::_OpenLiveStream(const PVR_CHANNEL &channelinfo)
 {
-  XBMC->Log(LOG_DEBUG, "->OpenLiveStream(%i)", channelinfo.iUniqueId);
+  XBMC->Log(LOG_DEBUG, "->_OpenLiveStream(%i)", channelinfo.iUniqueId);
 
   cChannel* channel = FetchChannel(channelinfo.iUniqueId);
 
@@ -862,7 +876,7 @@ bool cPVRClientForTheRecord::OpenLiveStream(const PVR_CHANNEL &channelinfo)
     if (m_keepalive.IsThreadRunning())
     {
       long hr = m_keepalive.StopThread();
-      if (hr != S_OK && hr != S_FALSE)
+      if (hr != 0)
       {
         XBMC->Log(LOG_ERROR, "Stop keepalive thread failed with %x.", hr);
       }
@@ -878,7 +892,7 @@ bool cPVRClientForTheRecord::OpenLiveStream(const PVR_CHANNEL &channelinfo)
     XBMC->Log(LOG_INFO, "Live stream file: %s", filename.c_str());
     m_bTimeShiftStarted = true;
     m_iCurrentChannel = channelinfo.iUniqueId;
-    if (m_keepalive.StartThread() != S_OK)
+    if (m_keepalive.StartThread() != 0)
     {
       XBMC->Log(LOG_ERROR, "Start keepalive thread failed.");
     }
@@ -907,6 +921,16 @@ bool cPVRClientForTheRecord::OpenLiveStream(const PVR_CHANNEL &channelinfo)
   }
 
   return false;
+}
+
+bool cPVRClientForTheRecord::OpenLiveStream(const PVR_CHANNEL &channelinfo)
+{
+#ifdef TSREADER
+  return _OpenLiveStream(channelinfo);
+#else
+  // RTSP version will start stream when GetLiveStreamURL is called
+  return true;
+#endif
 }
 
 int cPVRClientForTheRecord::ReadLiveStream(unsigned char* pBuffer, unsigned int iBufferSize)
@@ -962,7 +986,7 @@ void cPVRClientForTheRecord::CloseLiveStream()
   if (m_keepalive.IsThreadRunning())
   {
     long hr = m_keepalive.StopThread();
-    if (hr != S_OK && hr != S_FALSE)
+    if (hr != 0)
     {
       XBMC->Log(LOG_ERROR, "Stop keepalive thread failed with %x.", hr);
     }
@@ -990,9 +1014,16 @@ void cPVRClientForTheRecord::CloseLiveStream()
 bool cPVRClientForTheRecord::SwitchChannel(const PVR_CHANNEL &channelinfo)
 {
   XBMC->Log(LOG_DEBUG, "->SwitchChannel(%i)", channelinfo.iUniqueId);
+  bool fRc = false;
 
-  //CloseLiveStream();
-  return OpenLiveStream(channelinfo);
+#ifndef TSREADER
+  CloseLiveStream();
+  usleep(10000000);
+  fRc = _OpenLiveStream(channelinfo);
+#else
+  fRc = OpenLiveStream(channelinfo);
+#endif
+  return fRc;
 }
 
 
@@ -1031,5 +1062,16 @@ int cPVRClientForTheRecord::ReadRecordedStream(unsigned char* pBuffer, unsigned 
  */
 const char* cPVRClientForTheRecord::GetLiveStreamURL(const PVR_CHANNEL &channelinfo)
 {
-  return false;
+  XBMC->Log(LOG_DEBUG, "->GetLiveStreamURL(%i)", channelinfo.iUniqueId);
+  bool rc = _OpenLiveStream(channelinfo);
+  if (!rc) rc = _OpenLiveStream(channelinfo);
+  if (rc)
+  {
+    m_bTimeShiftStarted = true;
+  }
+  // sigh, the only reason to use a class member here is to have storage for the const char *
+  // pointing to the std::string when this method returns (and locals would go out of scope)
+  m_PlaybackURL = ForTheRecord::GetLiveStreamURL();
+  XBMC->Log(LOG_DEBUG, "<-GetLiveStreamURL returns URL(%s)", m_PlaybackURL.c_str());
+  return m_PlaybackURL.c_str();
 }
