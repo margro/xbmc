@@ -1083,7 +1083,7 @@ PVR_ERROR cPVRClientMediaPortal::GetTimers(PVR_HANDLE handle)
       }
     }
   }
-
+   PVR->TriggerRecordingUpdate();
   return PVR_ERROR_NO_ERROR;
 }
 
