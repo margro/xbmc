@@ -205,23 +205,13 @@ void CPVRTimerInfoTag::UpdateSummary(void)
   {
 	   if(!m_bIsRepeating)
 	   {
-		    if(this->IsRecording())
-			{
-		        m_strSummary.Format("*%s %s %s %s",
-			    StartAsLocalTime().GetAsLocalizedDate(),
-			    StartAsLocalTime().GetAsLocalizedTime(StringUtils::EmptyString, false),
-			    g_localizeStrings.Get(19160),
-			    EndAsLocalTime().GetAsLocalizedTime(StringUtils::EmptyString, false));
-			}
-			else
-			{
+
     			m_strSummary.Format("%s %s %s %s %s",
 				StartAsLocalTime().GetAsLocalizedDate(),
 				g_localizeStrings.Get(19159),
 				StartAsLocalTime().GetAsLocalizedTime(StringUtils::EmptyString, false),
 				g_localizeStrings.Get(19160),
 				EndAsLocalTime().GetAsLocalizedTime(StringUtils::EmptyString, false));
-			}
 	   }
 	   else
        {
