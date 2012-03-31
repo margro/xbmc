@@ -134,10 +134,13 @@ void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList 
     if (!results->Contains(strFilePath))
     {
       CFileItemPtr pFileItem;
+      CStdString thumb;
+      thumb.Format("C:/TV/%s/%s.jpg", strCurrent, strCurrent);
       pFileItem.reset(new CFileItem(strCurrent, true));
       pFileItem->SetPath(strFilePath);
       pFileItem->SetLabel(strCurrent);
       pFileItem->SetLabelPreformated(true);
+      pFileItem->SetThumbnailImage(thumb);
       results->Add(pFileItem);
     }
   }
