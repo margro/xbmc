@@ -463,6 +463,13 @@ CStdString CWIN32Util::GetProfilePath()
   if (strProfilePath.length() == 0)
     strProfilePath = strHomePath;
 
+#ifdef _WINDOWS
+  if (strProfilePath.length() > 0)
+  {
+	  strProfilePath = SmbToUnc(strProfilePath);
+  }
+#endif
+
   URIUtils::AddSlashAtEnd(strProfilePath);
 
   return strProfilePath;
