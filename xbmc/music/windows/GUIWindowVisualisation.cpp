@@ -27,8 +27,14 @@
 #include "guilib/GUIWindowManager.h"
 #include "settings/Settings.h"
 #include "settings/AdvancedSettings.h"
+#include "dialogs/GUIDialogNumeric.h"
+#include "guilib/LocalizeStrings.h"
+#include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "utils/log.h"
 
 using namespace MUSIC_INFO;
+using namespace PVR;
 
 #define START_FADE_LENGTH  2.0f // 2 seconds on startup
 
@@ -101,6 +107,67 @@ bool CGUIWindowVisualisation::OnAction(const CAction &action)
       g_infoManager.SetShowInfo(true);
     }
     break;
+
+  case REMOTE_0:
+  case REMOTE_1:
+  case REMOTE_2:
+  case REMOTE_3:
+  case REMOTE_4:
+  case REMOTE_5:
+  case REMOTE_6:
+  case REMOTE_7:
+  case REMOTE_8:
+  case REMOTE_9:
+    {
+      if (g_application.CurrentFileItem().IsLiveTV())
+      {
+          CPVRChannelPtr channel;
+        int iChannelNumber = -1;
+        g_PVRManager.GetCurrentChannel(channel);
+
+        if (action.GetID() == REMOTE_0)
+        {
+          iChannelNumber = g_PVRManager.GetPreviousChannel();
+          if (iChannelNumber > 0)
+            CLog::Log(LOGDEBUG, "switch to channel number %d", iChannelNumber);
+          else
+            CLog::Log(LOGDEBUG, "no previous channel number found");
+        }
+        else
+        {
+          int autoCloseTime = g_guiSettings.GetBool("pvrplayback.switchautoclose") ? 1500 : 0;
+          CStdString strChannel;
+          strChannel.Format("%i", action.GetID() - REMOTE_0);
+          if (CGUIDialogNumeric::ShowAndGetNumber(strChannel, g_localizeStrings.Get(19000), autoCloseTime) || autoCloseTime)
+            iChannelNumber = atoi(strChannel.c_str());
+        }
+
+        if (iChannelNumber > 0 && iChannelNumber != channel->ChannelNumber())
+        {
+          CPVRChannelGroupPtr selectedGroup = g_PVRManager.GetPlayingGroup(channel->IsRadio());
+          CFileItemPtr channel = selectedGroup->GetByChannelNumber(iChannelNumber);
+          if (!channel || !channel->HasPVRChannelInfoTag())
+            return false;
+
+          OnAction(CAction(ACTION_CHANNEL_SWITCH, (float)iChannelNumber));
+        }
+	  }
+	  return true;
+	}
+	break;
+
+  case ACTION_CHANNEL_SWITCH:
+	{
+		if (g_application.CurrentFileItem().IsLiveTV())
+		{
+			if (g_application.m_pPlayer != NULL && g_application.m_pPlayer->OnAction(action))
+			{
+				return true;
+			}
+		}
+	}
+	break;
+
     // TODO: These should be mapped to it's own function - at the moment it's overriding
     // the global action of fastforward/rewind and OSD.
 /*  case KEY_BUTTON_Y:

@@ -25,6 +25,7 @@
 #include "settings/Settings.h"
 #include "settings/GUISettings.h"
 #include "addons/GUIWindowAddonBrowser.h"
+#include "application.h"
 
 #define CONTROL_VIS_BUTTON       500
 #define CONTROL_LOCK_BUTTON      501
@@ -75,6 +76,14 @@ bool CGUIDialogMusicOSD::OnAction(const CAction &action)
   case ACTION_SHOW_OSD:
     Close();
     return true;
+
+  case ACTION_NEXT_ITEM:
+  case ACTION_PREV_ITEM:
+    // these could indicate next chapter if audio supports it
+    if (g_application.m_pPlayer != NULL && g_application.m_pPlayer->OnAction(action))
+	{
+      return true;
+	}
 
   default:
     break;

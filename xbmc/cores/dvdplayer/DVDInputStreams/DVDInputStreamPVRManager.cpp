@@ -244,7 +244,22 @@ bool CDVDInputStreamPVRManager::NextChannel(bool preview/* = false*/)
       return CloseAndOpen(item->GetPath().c_str());
   }
   else if (m_pLiveTV)
-    return m_pLiveTV->NextChannel(preview);
+  {
+	  if (g_PVRManager.IsPlayingRadio())
+	  {
+			CPVRChannelPtr channel;
+			g_PVRManager.GetCurrentChannel(channel);
+			CFileItemPtr item = g_PVRChannelGroups->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelUp(*channel);
+
+			// Is playing a web stream and the new channel is mpeg radio stream.
+			if (!channel->StreamURL().IsEmpty() && item.get() && item.get()->HasPVRChannelInfoTag() && item.get()->GetPVRChannelInfoTag()->StreamURL().IsEmpty())
+			{
+				return CloseAndOpen(item->GetPath().c_str());
+			}
+		}
+		return m_pLiveTV->NextChannel(preview);
+	}
+	
   return false;
 }
 
@@ -260,7 +275,22 @@ bool CDVDInputStreamPVRManager::PrevChannel(bool preview/* = false*/)
       return CloseAndOpen(item->GetPath().c_str());
   }
   else if (m_pLiveTV)
-    return m_pLiveTV->PrevChannel(preview);
+  {
+	  if (g_PVRManager.IsPlayingRadio())
+	  {
+			CPVRChannelPtr channel;
+			g_PVRManager.GetCurrentChannel(channel);
+			CFileItemPtr item = g_PVRChannelGroups->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelDown(*channel);
+
+	 		// Is playing a web stream and the new channel is mpeg radio stream.
+			if (!channel->StreamURL().IsEmpty() && item.get() && item.get()->HasPVRChannelInfoTag() && item.get()->GetPVRChannelInfoTag()->StreamURL().IsEmpty())
+			{
+				return CloseAndOpen(item->GetPath().c_str());
+			}
+		}
+		return m_pLiveTV->PrevChannel(preview);
+	}
+	
   return false;
 }
 
@@ -276,7 +306,22 @@ bool CDVDInputStreamPVRManager::SelectChannelByNumber(unsigned int iChannelNumbe
       return CloseAndOpen(item->GetPath().c_str());
   }
   else if (m_pLiveTV)
-    return m_pLiveTV->SelectChannel(iChannelNumber);
+  {
+	  if (g_PVRManager.IsPlayingRadio())
+	  {
+			CPVRChannelPtr channel;
+			g_PVRManager.GetCurrentChannel(channel);
+			CFileItemPtr item = g_PVRChannelGroups->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelNumber(iChannelNumber);
+
+			// Is playing a web stream and the new channel is mpeg radio stream.
+			if (!channel->StreamURL().IsEmpty() && item.get() && item.get()->HasPVRChannelInfoTag() && item.get()->GetPVRChannelInfoTag()->StreamURL().IsEmpty())
+			{
+				return CloseAndOpen(item->GetPath().c_str());
+			}
+		}
+
+		return m_pLiveTV->SelectChannel(iChannelNumber);
+  }
 
   return false;
 }
@@ -291,7 +336,20 @@ bool CDVDInputStreamPVRManager::SelectChannel(const CPVRChannel &channel)
   }
   else if (m_pLiveTV)
   {
-    return m_pLiveTV->SelectChannel(channel.ChannelNumber());
+	  if (g_PVRManager.IsPlayingRadio())
+	  {
+			CPVRChannelPtr currentChannel;
+			g_PVRManager.GetCurrentChannel(currentChannel);
+
+			// Is playing a web stream and the new channel is mpeg radio stream.
+			if (!currentChannel->StreamURL().IsEmpty() && channel.StreamURL().IsEmpty())
+			{
+			    CFileItem item(channel);
+				return CloseAndOpen(item.GetPath().c_str());
+			}
+		}
+
+	  return m_pLiveTV->SelectChannel(channel.ChannelNumber());
   }
 
   return false;

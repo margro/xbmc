@@ -2706,7 +2706,12 @@ bool CApplication::OnAction(const CAction &action)
   // previous : play previous song from playlist
   if (action.GetID() == ACTION_PREV_ITEM)
   {
-    // first check whether we're within 3 seconds of the start of the track
+	  if (g_PVRManager.IsPlayingRadio() && m_pPlayer && m_pPlayer->OnAction(action))
+	  {
+		  return true;
+	  }
+
+     // first check whether we're within 3 seconds of the start of the track
     // if not, we just revert to the start of the track
     if (m_pPlayer && m_pPlayer->CanSeek() && GetTime() > 3)
     {
@@ -2723,7 +2728,12 @@ bool CApplication::OnAction(const CAction &action)
   // next : play next song from playlist
   if (action.GetID() == ACTION_NEXT_ITEM)
   {
-    if (IsPlaying() && m_pPlayer->SkipNext())
+  	  if (g_PVRManager.IsPlayingRadio() && m_pPlayer && m_pPlayer->OnAction(action))
+	  {
+		  return true;
+	  }
+
+	  if (IsPlaying() && m_pPlayer->SkipNext())
       return true;
 
     if (IsPaused())
@@ -4112,8 +4122,16 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
 
     if( IsPlayingAudio() )
     {
-      if (g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO)
-        g_windowManager.ActivateWindow(WINDOW_VISUALISATION);
+		if (g_windowManager.GetActiveWindow() != WINDOW_VISUALISATION && item.HasPVRChannelInfoTag())
+		{
+			if (item.GetPVRChannelInfoTag()->IsRadio() && options.fullscreen)
+			{
+				g_windowManager.ActivateWindow(WINDOW_VISUALISATION);
+			}
+		}
+
+		if (g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO)
+			g_windowManager.ActivateWindow(WINDOW_VISUALISATION);
     }
 
 #ifdef HAS_VIDEO_PLAYBACK
