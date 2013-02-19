@@ -36,6 +36,7 @@
 #include "filesystem/File.h"
 #include "filesystem/CurlFile.h"
 #include "URL.h"
+#include "pvr/PVRManager.h"
 
 #define SCROBBLER_CLIENT              "xbm"
 //#define SCROBBLER_CLIENT              "tst"     // For testing ONLY!
@@ -46,6 +47,8 @@
 #define SCROBBLER_MIN_DURATION        30        // seconds. API rule
 #define SCROBBLER_ACTION_SUBMIT       1
 #define SCROBBLER_ACTION_NOWPLAYING   2
+
+using namespace PVR;
 
 CScrobbler::CScrobbler(const CStdString &strHandshakeURL, const CStdString &strLogPrefix)
   : CThread("CScrobbler")
@@ -85,6 +88,9 @@ void CScrobbler::AddSong(const MUSIC_INFO::CMusicInfoTag &tag, bool lastfmradio)
 
   if (!CanScrobble() || !tag.Loaded())
     return;
+
+  if (g_PVRManager.IsPlayingRadio())
+	  return;
 
   if (tag.GetArtist().empty() || tag.GetTitle().IsEmpty())
     return;
