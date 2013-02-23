@@ -3429,21 +3429,6 @@ int CDVDPlayer::OnDVDNavResult(void* pData, int iMessage)
   return NAVRESULT_NOP;
 }
 
-bool CDVDPlayer::ShowPVRChannelInfo(void)
-{
-  bool bReturn(false);
-
-  if (g_guiSettings.GetBool("pvrmenu.infoswitch"))
-  {
-    int iTimeout = g_guiSettings.GetBool("pvrmenu.infotimeout") ? g_guiSettings.GetInt("pvrmenu.infotime") : 0;
-    g_PVRManager.ShowPlayerInfo(iTimeout);
-
-    bReturn = true;
-  }
-
-  return bReturn;
-}
-
 bool CDVDPlayer::OnAction(const CAction &action)
 {
 #define THREAD_ACTION(action) \
@@ -3631,7 +3616,6 @@ bool CDVDPlayer::OnAction(const CAction &action)
       case ACTION_CHANNEL_UP:
         m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_NEXT));
         g_infoManager.SetDisplayAfterSeek();
-        ShowPVRChannelInfo();
         return true;
       break;
 
@@ -3640,7 +3624,6 @@ bool CDVDPlayer::OnAction(const CAction &action)
       case ACTION_CHANNEL_DOWN:
         m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_PREV));
         g_infoManager.SetDisplayAfterSeek();
-        ShowPVRChannelInfo();
         return true;
       break;
 
@@ -3650,7 +3633,6 @@ bool CDVDPlayer::OnAction(const CAction &action)
         int channel = action.GetAmount();
         m_messenger.Put(new CDVDMsgInt(CDVDMsg::PLAYER_CHANNEL_SELECT_NUMBER, channel));
         g_infoManager.SetDisplayAfterSeek();
-        ShowPVRChannelInfo();
         return true;
       }
       break;

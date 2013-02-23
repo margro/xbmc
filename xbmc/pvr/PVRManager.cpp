@@ -1011,6 +1011,8 @@ bool CPVRManager::UpdateItem(CFileItem& item)
     }
   }
 
+  ShowPlayerInfo();
+
   return false;
 }
 
@@ -1170,10 +1172,13 @@ bool CPVRManager::IsIdle(void) const
   return true;
 }
 
-void CPVRManager::ShowPlayerInfo(int iTimeout)
+void CPVRManager::ShowPlayerInfo()
 {
-  if (IsStarted() && m_guiInfo)
+  if (IsStarted() && m_guiInfo && g_guiSettings.GetBool("pvrmenu.infoswitch"))
+  {
+    int iTimeout = g_guiSettings.GetBool("pvrmenu.infotimeout") ? g_guiSettings.GetInt("pvrmenu.infotime") : 0;
     m_guiInfo->ShowPlayerInfo(iTimeout);
+  }
 }
 
 void CPVRManager::LocalizationChanged(void)

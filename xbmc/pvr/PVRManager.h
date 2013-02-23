@@ -189,7 +189,7 @@ namespace PVR
      * @param iTimeout Hide the player info after iTimeout seconds.
      * @todo not really the right place for this :-)
      */
-    void ShowPlayerInfo(int iTimeout);
+    void ShowPlayerInfo();
 
     /*!
      * @brief Reset the TV database to it's initial state and delete all the data inside.
