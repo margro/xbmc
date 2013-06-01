@@ -28,17 +28,14 @@ class URIUtils
 public:
   URIUtils(void);
   virtual ~URIUtils(void);
-  static CStdString GetParentFolderURI(const CStdString& uri,
-                                       bool preserveFileNameInPath);
   static bool IsInPath(const CStdString &uri, const CStdString &baseURI);
 
   static void GetDirectory(const CStdString& strFilePath,
                            CStdString& strDirectoryPath);
   static CStdString GetDirectory(const CStdString &filePath);
-
-  static const CStdString GetExtension(const CStdString& strFileName);
-  static void GetExtension(const CStdString& strFile, CStdString& strExtension);
   static const CStdString GetFileName(const CStdString& strFileNameAndPath);
+
+  static CStdString GetExtension(const CStdString& strFileName);
   static void RemoveExtension(CStdString& strFileName);
   static CStdString ReplaceExtension(const CStdString& strFile,
                                      const CStdString& strNewExtension);

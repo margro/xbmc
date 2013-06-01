@@ -1324,6 +1324,9 @@
     <ClCompile Include="..\..\xbmc\network\UdpClient.cpp">
       <Filter>network</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\network\WakeOnAccess.cpp">
+      <Filter>network</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\network\WebServer.cpp">
       <Filter>network</Filter>
     </ClCompile>
@@ -3030,6 +3033,12 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDDemuxers\DVDDemuxCDDA.cpp">
       <Filter>cores\dvdplayer\DVDDemuxers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\Environment.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\LegacyPathTranslation.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\xbmc\win32\pch.h">
@@ -4253,6 +4262,9 @@
       <Filter>network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\network\UdpClient.h">
+      <Filter>network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\network\WakeOnAccess.h">
       <Filter>network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\network\WebServer.h">
@@ -5932,6 +5944,12 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDDemuxers\DVDDemuxCDDA.h">
       <Filter>cores\dvdplayer\DVDDemuxers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\Environment.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\LegacyPathTranslation.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

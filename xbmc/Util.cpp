@@ -242,8 +242,7 @@ void CUtil::CleanString(const CStdString& strFileName, CStdString& strTitle, CSt
 
   CRegExp reTags(true);
   CRegExp reYear;
-  CStdString strExtension;
-  URIUtils::GetExtension(strFileName, strExtension);
+  CStdString strExtension = URIUtils::GetExtension(strFileName);
 
   if (!reYear.RegComp(g_advancedSettings.m_videoCleanDateTimeRegExp))
   {
@@ -1570,8 +1569,7 @@ void CUtil::GetSkinThemes(vector<CStdString>& vecTheme)
     CFileItemPtr pItem = items[i];
     if (!pItem->m_bIsFolder)
     {
-      CStdString strExtension;
-      URIUtils::GetExtension(pItem->GetPath(), strExtension);
+      CStdString strExtension = URIUtils::GetExtension(pItem->GetPath());
       if ((strExtension == ".xpr" && pItem->GetLabel().CompareNoCase("Textures.xpr")) ||
           (strExtension == ".xbt" && pItem->GetLabel().CompareNoCase("Textures.xbt")))
       {
@@ -1639,6 +1637,15 @@ bool CUtil::Command(const CStdStringArray& arrArgs, bool waitExit)
   int n = 0;
   if (child == 0)
   {
+    if (!waitExit)
+    {
+      // fork again in order not to leave a zombie process
+      child = fork();
+      if (child == -1)
+        _exit(2);
+      else if (child != 0)
+        _exit(0);
+    }
     close(0);
     close(1);
     close(2);
@@ -1653,7 +1660,7 @@ bool CUtil::Command(const CStdStringArray& arrArgs, bool waitExit)
   }
   else
   {
-    if (waitExit) waitpid(child, &n, 0);
+    waitpid(child, &n, 0);
   }
 
   return (waitExit) ? (WEXITSTATUS(n) == 0) : true;

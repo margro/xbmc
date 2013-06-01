@@ -29,6 +29,7 @@
 
 #include <sys/stat.h>
 #ifdef _LINUX
+#include <fcntl.h>
 #include <sys/ioctl.h>
 #else
 #include <io.h>
@@ -37,6 +38,7 @@
 #endif
 #include "utils/log.h"
 
+#include <algorithm>
 
 using namespace XFILE;
 
@@ -46,7 +48,8 @@ using namespace XFILE;
 
 //*********************************************************************************************
 CHDFile::CHDFile()
-    : m_hFile(INVALID_HANDLE_VALUE)
+    : m_hFile(INVALID_HANDLE_VALUE),
+      m_i64LastDropPos(0)
 {}
 
 //*********************************************************************************************
@@ -74,7 +77,8 @@ CStdString CHDFile::GetLocal(const CURL &url)
     }
   }
 
-#ifndef _LINUX
+#ifdef TARGET_WINDOWS
+  path.Insert(0, "\\\\?\\");
   path.Replace('/', '\\');
 #endif
 
@@ -100,6 +104,7 @@ bool CHDFile::Open(const CURL& url)
 
   m_i64FilePos = 0;
   m_i64FileLen = 0;
+  m_i64LastDropPos = 0;
 
   return true;
 }
@@ -113,7 +118,10 @@ bool CHDFile::Exists(const CURL& url)
   CStdStringW strWFile;
   URIUtils::RemoveSlashAtEnd(strFile);
   g_charsetConverter.utf8ToW(strFile, strWFile, false);
-  return (_wstat64(strWFile.c_str(), &buffer)==0);
+  DWORD attributes = GetFileAttributesW(strWFile);
+  if(attributes == INVALID_FILE_ATTRIBUTES)
+    return false;
+  return true;
 #else
   return (_stat64(strFile.c_str(), &buffer)==0);
 #endif
@@ -151,6 +159,8 @@ int CHDFile::Stat(const CURL& url, struct __stat64* buffer)
 
 #ifdef _WIN32
   CStdStringW strWFile;
+  /* _wstat64 can't handle long paths therefore we remove the \\?\ */
+  strFile.Replace("\\\\?\\", "");
   // win32 can only stat root drives with a slash at the end
   if(strFile.length() == 2 && strFile[1] ==':')
     URIUtils::AddSlashAtEnd(strFile);
@@ -207,6 +217,20 @@ unsigned int CHDFile::Read(void *lpBuf, int64_t uiBufSize)
   if ( ReadFile((HANDLE)m_hFile, lpBuf, (DWORD)uiBufSize, &nBytesRead, NULL) )
   {
     m_i64FilePos += nBytesRead;
+#if defined(HAVE_POSIX_FADVISE)
+    // Drop the cache between where we last seeked and 16 MB behind where
+    // we are now, to make sure the file doesn't displace everything else.
+    // However, we never throw out the first 16 MB of the file, as we might
+    // want the header etc., and we never ask the OS to drop in chunks of
+    // less than 1 MB.
+    int64_t start_drop = std::max<int64_t>(m_i64LastDropPos, 16 << 20);
+    int64_t end_drop = std::max<int64_t>(m_i64FilePos - (16 << 20), 0);
+    if (end_drop - start_drop >= (1 << 20))
+    {
+      posix_fadvise((*m_hFile).fd, start_drop, end_drop - start_drop, POSIX_FADV_DONTNEED);
+      m_i64LastDropPos = end_drop;
+    }
+#endif
     return nBytesRead;
   }
   return 0;
@@ -257,6 +281,12 @@ int64_t CHDFile::Seek(int64_t iFilePosition, int iWhence)
   }
   if (bSuccess)
   {
+    if (m_i64FilePos != lNewPos.QuadPart)
+    {
+      // If we seek, disable the cache drop heuristic until we
+      // have played sequentially for a while again from here.
+      m_i64LastDropPos = lNewPos.QuadPart;
+    }
     m_i64FilePos = lNewPos.QuadPart;
     return m_i64FilePos;
   }

@@ -35,9 +35,15 @@
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 #include "view/ViewStateSettings.h"
 
 using namespace std;
+
+#if defined(TARGET_WINDOWS) // disable 4355: 'this' used in base member initializer list
+#pragma warning(push)
+#pragma warning(disable: 4355)
+#endif // defined(TARGET_WINDOWS)
 
 #define SETTINGS_PICTURES               WINDOW_SETTINGS_MYPICTURES - WINDOW_SETTINGS_START
 #define SETTINGS_PROGRAMS               WINDOW_SETTINGS_MYPROGRAMS - WINDOW_SETTINGS_START
@@ -122,7 +128,6 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
     case GUI_MSG_WINDOW_INIT:
     {
       m_delayedSetting.reset();
-      m_currentSetting.reset();
       if (message.GetParam1() != WINDOW_INVALID && !m_returningFromSkinLoad)
       { // coming to this window first time (ie not returning back from some other window)
         // so we reset our section and control states
@@ -156,15 +161,16 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
       CGUIWindow::OnMessage(message);
       if (!m_returningFromSkinLoad)
       {
-        // cancel any delayed changes
-        if (m_delayedSetting != NULL)
+        int focusedControl = GetFocusedControlID();
+
+        // cancel any delayed changes if the focused control has changed
+        if (m_delayedSetting != NULL && m_delayedSetting->GetID() != focusedControl)
         {
           m_delayedTimer.Stop();
           CGUIMessage message(GUI_MSG_UPDATE_ITEM, GetID(), GetID(), 1); // param1 = 1 for "reset the control if it's invalid"
-          OnMessage(message);
+          g_windowManager.SendThreadMessage(message, GetID());
         }
 
-        int focusedControl = GetFocusedControlID();
         // check if we have changed the category and need to create new setting controls
         if (focusedControl >= CONTROL_START_BUTTONS && focusedControl < (int)(CONTROL_START_BUTTONS + m_categories.size()) &&
             focusedControl - CONTROL_START_BUTTONS != m_iCategory)
@@ -179,8 +185,6 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
           m_iCategory = focusedControl - CONTROL_START_BUTTONS;
           CreateSettings();
         }
-        else if (focusedControl >= CONTROL_START_CONTROL && focusedControl < (int)(CONTROL_START_CONTROL + m_settingControls.size()))
-          m_currentSetting = GetSettingControl(focusedControl);
       }
       return true;
     }
@@ -205,12 +209,18 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
     {
       if (m_delayedSetting != NULL)
       {
+        // first get the delayed setting and reset its member variable
+        // to avoid handling the delayed setting twice in case the OnClick()
+        // performed later causes the window to be deinitialized (e.g. when
+        // changing the language)
+        BaseSettingControlPtr delayedSetting = m_delayedSetting;
+        m_delayedSetting.reset();
+
         // if updating the setting fails and param1 has been specifically set
         // we need to call OnSettingChanged() to restore a valid value in the
         // setting control
-        if (!m_delayedSetting->OnClick() && message.GetParam1() != 0)
-          OnSettingChanged(m_delayedSetting->GetSetting());
-        m_delayedSetting.reset();
+        if (!delayedSetting->OnClick() && message.GetParam1() != 0)
+          OnSettingChanged(delayedSetting->GetSetting());
         return true;
       }
       break;
@@ -474,8 +484,6 @@ void CGUIWindowSettingsCategory::FreeControls()
 
 void CGUIWindowSettingsCategory::FreeSettingsControls()
 {
-  m_currentSetting.reset();
-
   // clear the settings group
   CGUIControlGroupList *control = (CGUIControlGroupList *)GetControl(SETTINGS_GROUP_ID);
   if (control)
@@ -512,68 +520,19 @@ void CGUIWindowSettingsCategory::OnSettingChanged(const CSetting *setting)
   if (pControl == NULL)
     return;
 
-  const SettingDependencyMap& deps = m_settings.GetDependencies(setting->GetId());
-  for (SettingDependencyMap::const_iterator depsIt = deps.begin(); depsIt != deps.end(); depsIt++)
-  {
-    for (SettingDependencies::const_iterator depIt = depsIt->second.begin(); depIt != depsIt->second.end(); depIt++)
-      UpdateControl(depsIt->first, *depIt);
-  }
-  
-  // update GUI of the changed setting as the change could have been triggered by something else
   pControl->Update();
 }
 
-void CGUIWindowSettingsCategory::UpdateControl(const std::string &dependingSetting, const CSettingDependency &dependency)
+void CGUIWindowSettingsCategory::OnSettingPropertyChanged(const CSetting *setting, const char *propertyName)
 {
-  if (dependingSetting.empty())
+  if (setting == NULL || propertyName == NULL)
     return;
 
-  BaseSettingControlPtr pControl = GetSettingControl(dependingSetting);
-  if (pControl == NULL)
+  BaseSettingControlPtr settingControl = GetSettingControl(setting->GetId());
+  if (settingControl == NULL)
     return;
 
-  CSetting *pSetting = pControl->GetSetting();
-  if (pSetting == NULL)
-    return;
-
-  CheckDependency(pControl, dependency);
-
-  const SettingDependencyMap& deps = m_settings.GetDependencies(pSetting->GetId());
-  for (SettingDependencyMap::const_iterator depsIt = deps.begin(); depsIt != deps.end(); depsIt++)
-  {
-    for (SettingDependencies::const_iterator depIt = depsIt->second.begin(); depIt != depsIt->second.end(); depIt++)
-      UpdateControl(depsIt->first, *depIt);
-  }
-
-  // update GUI of the changed setting as the change could have been triggered by something else
-  pControl->Update();
-}
-
-void CGUIWindowSettingsCategory::CheckDependency(BaseSettingControlPtr pSettingControl, const CSettingDependency &dependency)
-{
-  if (pSettingControl == NULL || pSettingControl->GetControl() == NULL)
-    return;
-
-  CSetting *pSetting = pSettingControl->GetSetting();
-  if (pSetting == NULL)
-    return;
-
-  switch (dependency.GetType())
-  {
-    case SettingDependencyTypeEnable:
-      pSettingControl->SetEnabled(dependency.Check());
-      break;
-
-    case SettingDependencyTypeUpdate:
-    {
-      FillControl(pSetting, pSettingControl->GetControl());
-      break;
-    }
-
-    case SettingDependencyTypeNone:
-    default:
-      break;
-  }
+  settingControl->Update();
 }
 
 void CGUIWindowSettingsCategory::CreateSettings()
@@ -617,9 +576,7 @@ void CGUIWindowSettingsCategory::CreateSettings()
     {
       CSetting *pSetting = *settingIt;
       settingMap.insert(pSetting->GetId());
-      CGUIControl* pControl = AddSetting(pSetting, group->GetWidth(), iControlID);
-
-      FillControl(pSetting, pControl);
+      AddSetting(pSetting, group->GetWidth(), iControlID);
     }
   }
 
@@ -640,18 +597,6 @@ void CGUIWindowSettingsCategory::UpdateSettings()
     if (pSetting == NULL || pControl == NULL)
       continue;
 
-    // update the setting's control's state (enabled/disabled etc)
-    const SettingDependencies &deps = pSetting->GetDependencies();
-    for (SettingDependencies::const_iterator dep = deps.begin(); dep != deps.end(); dep++)
-    {
-      // don't check "update" dependencies here as all the controls are already
-      // setup properly based on the existing values
-      if (dep->GetType() == SettingDependencyTypeUpdate)
-        continue;
-
-      CheckDependency(pSettingControl, *dep);
-    }
-
     pSettingControl->Update();
   }
 }
@@ -664,6 +609,26 @@ CGUIControl* CGUIWindowSettingsCategory::AddSetting(CSetting *pSetting, float wi
   BaseSettingControlPtr pSettingControl;
   CGUIControl *pControl = NULL;
 
+  // determine the label and any possible indentation in case of sub settings
+  string label = g_localizeStrings.Get(pSetting->GetLabel());
+  int parentLevels = 0;
+  CSetting *parentSetting = m_settings.GetSetting(pSetting->GetParent());
+  while (parentSetting != NULL)
+  {
+    parentLevels++;
+    parentSetting = m_settings.GetSetting(parentSetting->GetParent());
+  }
+
+  if (parentLevels > 0)
+  {
+    // add additional 2 spaces indentation for anything past one level
+    string indentation;
+    for (int index = 1; index < parentLevels; index++)
+      indentation.append("  ");
+    label = StringUtils::Format(g_localizeStrings.Get(168).c_str(), indentation.c_str(), label.c_str());
+  }
+
+  // create the proper controls
   switch (pSetting->GetControl().GetType())
   {
     case SettingControlTypeCheckmark:
@@ -672,7 +637,7 @@ CGUIControl* CGUIWindowSettingsCategory::AddSetting(CSetting *pSetting, float wi
       if (pControl == NULL)
         return NULL;
 
-      ((CGUIRadioButtonControl *)pControl)->SetLabel(g_localizeStrings.Get(pSetting->GetLabel()));
+      ((CGUIRadioButtonControl *)pControl)->SetLabel(label);
       pSettingControl.reset(new CGUIControlRadioButtonSetting((CGUIRadioButtonControl *)pControl, iControlID, pSetting));
       break;
     }
@@ -683,7 +648,7 @@ CGUIControl* CGUIWindowSettingsCategory::AddSetting(CSetting *pSetting, float wi
       if (pControl == NULL)
         return NULL;
 
-      ((CGUISpinControlEx *)pControl)->SetText(g_localizeStrings.Get(pSetting->GetLabel()));
+      ((CGUISpinControlEx *)pControl)->SetText(label);
       pSettingControl.reset(new CGUIControlSpinExSetting((CGUISpinControlEx *)pControl, iControlID, pSetting));
       break;
     }
@@ -694,8 +659,19 @@ CGUIControl* CGUIWindowSettingsCategory::AddSetting(CSetting *pSetting, float wi
       if (pControl == NULL)
         return NULL;
       
-      ((CGUIEditControl *)pControl)->SetLabel(g_localizeStrings.Get(pSetting->GetLabel()));
+      ((CGUIEditControl *)pControl)->SetLabel(label);
       pSettingControl.reset(new CGUIControlEditSetting((CGUIEditControl *)pControl, iControlID, pSetting));
+      break;
+    }
+    
+    case SettingControlTypeList:
+    {
+      pControl = new CGUIButtonControl(*m_pOriginalButton);
+      if (pControl == NULL)
+        return NULL;
+      
+      ((CGUIButtonControl *)pControl)->SetLabel(g_localizeStrings.Get(pSetting->GetLabel()));
+      pSettingControl.reset(new CGUIControlListSetting((CGUIButtonControl *)pControl, iControlID, pSetting));
       break;
     }
     
@@ -705,7 +681,7 @@ CGUIControl* CGUIWindowSettingsCategory::AddSetting(CSetting *pSetting, float wi
       if (pControl == NULL)
         return NULL;
       
-      ((CGUIButtonControl *)pControl)->SetLabel(g_localizeStrings.Get(pSetting->GetLabel()));
+      ((CGUIButtonControl *)pControl)->SetLabel(label);
       pSettingControl.reset(new CGUIControlButtonSetting((CGUIButtonControl *)pControl, iControlID, pSetting));
       break;
     }
@@ -808,60 +784,4 @@ BaseSettingControlPtr CGUIWindowSettingsCategory::GetSettingControl(int controlI
     return BaseSettingControlPtr();
 
   return m_settingControls[controlId - CONTROL_START_CONTROL];
-}
-
-void CGUIWindowSettingsCategory::FillControl(CSetting *pSetting, CGUIControl *pSettingControl)
-{
-  void *filler = CSettings::Get().GetSettingOptionsFiller(pSetting);
-  if (filler == NULL)
-    return;
-
-  if (pSetting->GetType() == SettingTypeInteger)
-  {
-    CSettingInt *pSettingInt = (CSettingInt*)pSetting;
-
-    // get the list of options and the current option
-    IntegerSettingOptions options;
-    int currentOption = pSettingInt->GetValue();
-    ((IntegerSettingOptionsFiller)filler)(pSetting, options, currentOption);
-
-    // clear the spinner control
-    CGUISpinControlEx *pSpinControl = (CGUISpinControlEx *)pSettingControl;
-    pSpinControl->Clear();
-
-    // fill the spinner control
-    for (IntegerSettingOptions::const_iterator option = options.begin(); option != options.end(); option++)
-      pSpinControl->AddLabel(option->first, option->second);
-
-    // set the current option
-    pSpinControl->SetValue(currentOption);
-
-    // check if the current setting has changed
-    if (currentOption != pSettingInt->GetValue())
-      pSettingInt->SetValue(currentOption);
-  }
-  else if (pSetting->GetType() == SettingTypeString)
-  {
-    CSettingString *pSettingString = (CSettingString*)pSetting;
-
-    // get the list of options and the current option
-    StringSettingOptions options;
-    std::string currentOption = pSettingString->GetValue();
-    ((StringSettingOptionsFiller)filler)(pSetting, options, currentOption);
-
-    // clear the spinner control
-    CGUISpinControlEx *pSpinControl = (CGUISpinControlEx *)pSettingControl;
-    pSpinControl->Clear();
-
-    // fill the spinner control
-    for (StringSettingOptions::const_iterator option = options.begin(); option != options.end(); option++)
-      pSpinControl->AddLabel(option->first, option->second);
-
-    // set the current option
-    pSpinControl->SetStringValue(currentOption);
-
-    // check if the current setting has changed
-    if (currentOption.compare(pSettingString->GetValue()) != 0)
-      pSettingString->SetValue(currentOption);
-  }
 }

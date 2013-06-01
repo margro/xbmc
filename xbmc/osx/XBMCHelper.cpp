@@ -32,6 +32,7 @@
 #include "dialogs/GUIDialogYesNo.h"
 #include "utils/log.h"
 #include "system.h"
+#include "settings/Setting.h"
 #include "settings/Settings.h"
 #include "utils/SystemInfo.h"
 
@@ -172,8 +173,7 @@ void XBMCHelper::Configure()
   m_mode = CSettings::Get().GetInt("input.appleremotemode");
   m_sequenceDelay = CSettings::Get().GetInt("input.appleremotesequencetime");
   m_alwaysOn = CSettings::Get().GetBool("input.appleremotealwayson");
-  CStdString port_string = CSettings::Get().GetString("services.esport");
-  m_port = atoi(port_string.c_str());
+  m_port = CSettings::Get().GetInt("services.esport");
 
 
   // Don't let it enable if sofa control or remote buddy is around.

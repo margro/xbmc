@@ -356,7 +356,7 @@ CStdString CSysInfo::GetCPUSerial()
 bool CSysInfo::IsAeroDisabled()
 {
 #ifdef _WIN32
-  if (IsVistaOrHigher())
+  if (IsWindowsVersionAtLeast(CSysInfo::WindowsVersionVista))
   {
     BOOL aeroEnabled = FALSE;
     HRESULT res = DwmIsCompositionEnabled(&aeroEnabled);
@@ -369,24 +369,6 @@ bool CSysInfo::IsAeroDisabled()
   }
 #endif
   return false;
-}
-
-bool CSysInfo::IsVistaOrHigher()
-{
-#ifdef TARGET_WINDOWS
-  return IsWindowsVersionAtLeast(WindowsVersionVista);
-#else // TARGET_WINDOWS
-  return false;
-#endif // TARGET_WINDOWS
-}
-
-bool CSysInfo::IsWindows8OrHigher()
-{
-#ifdef TARGET_WINDOWS
-  return IsWindowsVersionAtLeast(WindowsVersionWin8);
-#else // TARGET_WINDOWS
-  return false;
-#endif // TARGET_WINDOWS
 }
 
 CSysInfo::WindowsVersion CSysInfo::m_WinVer = WindowsVersionUnknown;
@@ -684,8 +666,8 @@ CStdString CSysInfo::GetUnameVersion()
   FILE* pipe = popen("uname -rm", "r");
   if (pipe)
   {
-    char buffer[256] = {'\0'};
-    if (fread(buffer, sizeof(char), sizeof(buffer), pipe) > 0 && !ferror(pipe))
+    char buffer[256];
+    if (fgets(buffer, sizeof(buffer), pipe))
     {
       result = buffer;
 #if defined(TARGET_DARWIN)
@@ -782,16 +764,6 @@ bool CSysInfo::HasVideoToolBoxDecoder()
 
 #if defined(HAVE_VIDEOTOOLBOXDECODER)
   result = DarwinHasVideoToolboxDecoder();
-#endif
-  return result;
-}
-
-bool CSysInfo::HasVDADecoder()
-{
-  bool        result = false;
-
-#if defined(TARGET_DARWIN_OSX)
-  result = Cocoa_HasVDADecoder();
 #endif
   return result;
 }

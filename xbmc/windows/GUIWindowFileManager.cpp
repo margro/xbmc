@@ -25,6 +25,7 @@
 #include "Util.h"
 #include "filesystem/Directory.h"
 #include "filesystem/ZipManager.h"
+#include "filesystem/FileDirectoryFactory.h"
 #include "dialogs/GUIDialogContextMenu.h"
 #include "guilib/GUIListContainer.h"
 #include "dialogs/GUIDialogMediaSource.h"
@@ -494,9 +495,8 @@ bool CGUIWindowFileManager::Update(int iList, const CStdString &strDirectory)
   for (int i = 0; i < (int)m_vecItems[iList]->Size(); i++)
   {
     CFileItemPtr pItem = m_vecItems[iList]->Get(i);
-    CStdString strExtension;
-    URIUtils::GetExtension(pItem->GetPath(), strExtension);
-    if (pItem->IsHD() && strExtension == ".tbn")
+    if (pItem->IsHD() &&
+        URIUtils::GetExtension(pItem->GetPath()).CompareNoCase(".tbn") == 0)
     {
       pItem->SetArt("thumb", pItem->GetPath());
     }
@@ -539,6 +539,17 @@ void CGUIWindowFileManager::OnClick(int iList, int iItem)
       Update(1,m_Directory[1]->GetPath());
     }
     return;
+  }
+
+  if (!pItem->m_bIsFolder && pItem->IsFileFolder(EFILEFOLDER_MASK_ALL))
+  {
+    XFILE::IFileDirectory *pFileDirectory = NULL;
+    pFileDirectory = XFILE::CFileDirectoryFactory::Create(pItem->GetPath(), pItem.get(), "");
+    if(pFileDirectory)
+      pItem->m_bIsFolder = true;
+    else if(pItem->m_bIsFolder)
+      pItem->m_bIsFolder = false;
+    delete pFileDirectory;
   }
 
   if (pItem->m_bIsFolder)

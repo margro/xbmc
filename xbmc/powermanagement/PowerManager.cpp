@@ -23,6 +23,7 @@
 #include "Application.h"
 #include "cores/AudioEngine/AEFactory.h"
 #include "input/KeyboardStat.h"
+#include "settings/Setting.h"
 #include "settings/Settings.h"
 #include "windowing/WindowingFactory.h"
 #include "utils/log.h"
@@ -216,7 +217,12 @@ int CPowerManager::BatteryLevel()
 }
 void CPowerManager::ProcessEvents()
 {
-  m_instance->PumpPowerEvents(this);
+  static int nesting = 0;
+
+  if (++nesting == 1)
+    m_instance->PumpPowerEvents(this);
+
+  nesting--;
 }
 
 void CPowerManager::OnSleep()

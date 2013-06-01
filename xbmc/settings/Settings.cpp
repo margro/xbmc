@@ -50,6 +50,7 @@
 #endif // defined(TARGET_LINUX)
 #include "network/NetworkServices.h"
 #include "network/upnp/UPnPSettings.h"
+#include "network/WakeOnAccess.h"
 #if defined(TARGET_DARWIN_OSX)
 #include "osx/XBMCHelper.h"
 #include "cores/AudioEngine/Engines/CoreAudio/CoreAudioHardware.h"
@@ -411,6 +412,7 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterSubSettings(&CViewStateSettings::Get());
 
   // unregister ISettingsHandler implementations
+  m_settingsManager->UnregisterSettingsHandler(&CWakeOnAccess::Get());
   m_settingsManager->UnregisterSettingsHandler(&g_advancedSettings);
   m_settingsManager->UnregisterSettingsHandler(&CMediaSourceSettings::Get());
   m_settingsManager->UnregisterSettingsHandler(&CPlayerCoreFactory::Get());
@@ -453,21 +455,6 @@ CSettingSection* CSettings::GetSection(const std::string &section) const
     return NULL;
 
   return m_settingsManager->GetSection(section);
-}
-
-SettingDependencyMap CSettings::GetDependencies(const std::string &id) const
-{
-  return m_settingsManager->GetDependencies(id);
-}
-
-SettingDependencyMap CSettings::GetDependencies(const CSetting *setting) const
-{
-  return m_settingsManager->GetDependencies(setting);
-}
-
-void* CSettings::GetSettingOptionsFiller(const CSetting *setting)
-{
-  return m_settingsManager->GetSettingOptionsFiller(setting);
 }
 
 bool CSettings::GetBool(const std::string &id) const
@@ -738,10 +725,9 @@ void CSettings::InitializeConditions()
 #ifdef HAVE_LIBVA
   m_settingsManager->AddCondition("have_libva");
 #endif
-#ifdef HAVE_LIBVDADECODER
+#ifdef TARGET_DARWIN_OSX
   m_settingsManager->AddCondition("have_libvdadecoder");
-  if (g_sysinfo.HasVDADecoder())
-    m_settingsManager->AddCondition("hasvdadecoder");
+  m_settingsManager->AddCondition("hasvdadecoder");
 #endif
 #ifdef HAVE_LIBVDPAU
   m_settingsManager->AddCondition("have_libvdpau");
@@ -757,7 +743,7 @@ void CSettings::InitializeConditions()
 #endif
 #if defined(TARGET_WINDOWS) && defined(HAS_DX)
   m_settingsManager->AddCondition("has_dx");
-  if (g_sysinfo.IsVistaOrHigher())
+  if (g_sysinfo.IsWindowsVersionAtLeast(CSysInfo::WindowsVersionVista))
     m_settingsManager->AddCondition("hasdxva2");
 #endif
 
@@ -799,6 +785,7 @@ void CSettings::InitializeISettingsHandlers()
 #ifdef HAS_UPNP
   m_settingsManager->RegisterSettingsHandler(&CUPnPSettings::Get());
 #endif
+  m_settingsManager->RegisterSettingsHandler(&CWakeOnAccess::Get());
 }
 
 void CSettings::InitializeISubSettings()

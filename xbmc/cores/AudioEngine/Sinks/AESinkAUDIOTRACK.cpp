@@ -32,7 +32,7 @@
 #if defined(__ARM_NEON__)
 #include <arm_neon.h>
 #include "utils/CPUInfo.h"
-#include "android/activity/JNIThreading.h"
+#include "android/jni/JNIThreading.h"
 
 // LGPLv2 from PulseAudio
 // float values from AE are pre-clamped so we do not need to clamp again here
@@ -240,10 +240,6 @@ unsigned int CAESinkAUDIOTRACK::AddPackets(uint8_t *data, unsigned int frames, b
         break;
     }
   }
-  // AddPackets runs under a non-idled AE thread we must block or sleep.
-  // Trying to calc the optimal sleep is tricky so just a minimal sleep.
-  Sleep(10);
-
   return hasAudio ? write_frames:frames;
 }
 

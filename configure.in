@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([xbmc], [12.9.4], [http://trac.xbmc.org])
+AC_INIT([xbmc], [12.9.5], [http://trac.xbmc.org])
 AC_CONFIG_HEADERS([xbmc/config.h])
 AH_TOP([#pragma once])
 m4_include([m4/ax_python_devel.m4])
@@ -141,8 +141,6 @@ vaapi_not_found="== Could not find libva. VAAPI support disabled. =="
 vaapi_disabled="== VAAPI support manually disabled. =="
 crystalhd_not_found="== Could not find libcrystalhd. CrystalHD support disabled. =="
 crystalhd_disabled="== CrystalHD support manually disabled. =="
-vdadecoder_enabled="== VDADecoder support enabled. =="
-vdadecoder_disabled="== VDADecoder support manually disabled. =="
 vtbdecoder_enabled="== VTBDecoder support enabled. =="
 vtbdecoder_disabled="== VTBDecoder support manually disabled. =="
 openmax_disabled="== OpenMax support manually disabled. =="
@@ -262,12 +260,6 @@ AC_ARG_ENABLE([crystalhd],
   [enable CrystalHD decoding (default is auto)])],
   [use_crystalhd=$enableval],
   [use_crystalhd=auto])
-
-AC_ARG_ENABLE([vdadecoder],
-  [AS_HELP_STRING([--enable-vdadecoder],
-  [enable VDADecoder decoding (default is auto)])],
-  [use_vdadecoder=$enableval],
-  [use_vdadecoder=auto])
 
 AC_ARG_ENABLE([vtbdecoder],
   [AS_HELP_STRING([--enable-vtbdecoder],
@@ -608,7 +600,6 @@ case $host in
      use_neon=yes
      use_libcec=no
      use_crystalhd=no
-     use_vdadecoder=no
      use_vtbdecoder=yes
      use_optical_drive=no
      use_dvdcss=no
@@ -633,7 +624,6 @@ case $host in
      ;;
   powerpc-apple-darwin*)
      use_joystick=no
-     use_vdadecoder=no
      use_vtbdecoder=no
      use_crystalhd=no
      ARCH="powerpc-osx"
@@ -863,7 +853,7 @@ AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_UTIME_NULL
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([atexit dup2 fdatasync floor fs_stat_dev ftime ftruncate getcwd gethostbyaddr gethostbyname gethostname getpagesize getpass gettimeofday inet_ntoa lchown localeconv memchr memmove memset mkdir modf munmap pow rmdir select setenv setlocale socket sqrt strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr strtol strtoul sysinfo tzset utime])
+AC_CHECK_FUNCS([atexit dup2 fdatasync floor fs_stat_dev ftime ftruncate getcwd gethostbyaddr gethostbyname gethostname getpagesize getpass gettimeofday inet_ntoa lchown localeconv memchr memmove memset mkdir modf munmap pow rmdir select setenv setlocale socket sqrt strcasecmp strchr strcspn strdup strerror strncasecmp strpbrk strrchr strspn strstr strtol strtoul sysinfo tzset utime posix_fadvise])
 
 # Check for various sizes
 AC_CHECK_SIZEOF([int])
@@ -1032,6 +1022,7 @@ AC_CHECK_LIB([tinyxml],     [main],, AC_MSG_ERROR($missing_library))
 if test "$target_platform" = "target_android" ; then
   AC_CHECK_LIB([android],     [main],, AC_MSG_ERROR($missing_library))
   AC_CHECK_LIB([log],         [__android_log_vprint],, AC_MSG_ERROR($missing_library))
+  AC_CHECK_LIB([jnigraphics],     [main],, AC_MSG_ERROR($missing_library))
 fi
 PKG_CHECK_MODULES([FRIBIDI],    [fribidi],
   [INCLUDES="$INCLUDES $FRIBIDI_CFLAGS"; LIBS="$LIBS $FRIBIDI_LIBS"],
@@ -1820,26 +1811,6 @@ else
   USE_CRYSTALHD=0
 fi
 
-# VDADecoder
-if test "x$use_vdadecoder" != "xno"; then
-  if test "$host_vendor" = "apple" ; then
-    HAVE_LIBVDADECODER=1
-    AC_DEFINE([HAVE_LIBVDADECODER], [1], [Define to 1 if you have the 'VDADecoder' library.])
-    AC_MSG_NOTICE($vdadecoder_enabled)
-    USE_VDA=1
-  else
-    if test "x$use_vdadecoder" = "xyes"; then
-      AC_MSG_ERROR([VDA Decoder not supported on this platform])
-    else
-      use_vdadecoder="no"
-      AC_MSG_NOTICE($vdadecoder_disabled)
-    fi
-    USE_VDA=0
-  fi
-else
-  AC_MSG_NOTICE($vdadecoder_disabled)
-fi
-
 # VTBDecoder
 if test "x$use_vtbdecoder" != "xno"; then
   if test "$host_vendor" = "apple" ; then
@@ -2035,12 +2006,6 @@ if test "x$use_crystalhd" != "xno"; then
   final_message="$final_message\n  CrystalHD:\tYes"
 else
   final_message="$final_message\n  CrystalHD:\tNo"
-fi
-
-if test "x$use_vdadecoder" != "xno"; then
-  final_message="$final_message\n  VDADecoder:\tYes"
-else
-  final_message="$final_message\n  VDADecoder:\tNo"
 fi
 
 if test "x$use_vtbdecoder" != "xno"; then
@@ -2455,6 +2420,7 @@ OUTPUT_FILES="Makefile \
     xbmc/peripherals/devices/Makefile \
     xbmc/android/activity/Makefile \
     xbmc/android/loader/Makefile \
+    xbmc/android/jni/Makefile \
     xbmc/utils/Makefile \
     xbmc/main/Makefile"
 
@@ -2509,7 +2475,6 @@ AC_SUBST(USE_LIBSMBCLIENT)
 AC_SUBST(USE_LIBNFS)
 AC_SUBST(USE_LIBAFPCLIENT)
 AC_SUBST(USE_AIRPLAY)
-AC_SUBST(USE_VDA)
 AC_SUBST(USE_OPENMAX)
 AC_SUBST(USE_PULSE)
 AC_SUBST(USE_XRANDR)

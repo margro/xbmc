@@ -19,6 +19,7 @@
  *
  */
 
+#include <map>
 #include <set>
 #include <vector>
 
@@ -99,9 +100,13 @@ protected:
   CDisplaySettings const& operator=(CDisplaySettings const&);
   virtual ~CDisplaySettings();
 
+  DisplayMode GetCurrentDisplayMode() const;
+
   static RESOLUTION GetResolutionFromString(const std::string &strResolution);
   static std::string GetStringFromResolution(RESOLUTION resolution, float refreshrate = 0.0f);
   static RESOLUTION GetResolutionForScreen();
+
+  static RESOLUTION FindBestMatchingResolution(const std::map<RESOLUTION, RESOLUTION_INFO> &resolutionInfos, int screen, int width, int height, float refreshrate, bool interlaced);
 
 private:
   // holds the real gui resolution
@@ -116,13 +121,6 @@ private:
   float m_verticalShift;      // current vertical shift
   bool  m_nonLinearStretched;   // current non-linear stretch
 
-  /*!
-   \brief A set of pairs consisting of a setting identifier
-   and a boolean value which should be ignored in specific
-   situations. If the boolean value is "true" the whole
-   OnSettingChanging() logic must be skipped once. If it
-   is "false" only showing the GUI dialog must be skipped.
-   */
-  std::set< std::pair<std::string, bool> > m_ignoreSettingChanging;
+  bool m_resolutionChangeAborted;
   CCriticalSection m_critical;
 };

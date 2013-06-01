@@ -56,6 +56,9 @@
 #include "utils/Variant.h"
 #include "music/karaoke/karaokelyricsfactory.h"
 #include "utils/Mime.h"
+#ifdef HAS_ASAP_CODEC
+#include "cores/paplayer/ASAPCodec.h"
+#endif
 
 using namespace std;
 using namespace XFILE;
@@ -777,7 +780,7 @@ bool CFileItem::IsVideo() const
      return true;
   }
 
-  URIUtils::GetExtension(m_strPath, extension);
+  extension = URIUtils::GetExtension(m_strPath);
 
   if (extension.IsEmpty())
     return false;
@@ -819,8 +822,7 @@ bool CFileItem::IsDiscStub() const
     return dbItem.IsDiscStub();
   }
 
-  CStdString strExtension;
-  URIUtils::GetExtension(m_strPath, strExtension);
+  CStdString strExtension = URIUtils::GetExtension(m_strPath);
 
   if (strExtension.IsEmpty())
     return false;
@@ -852,7 +854,7 @@ bool CFileItem::IsAudio() const
      return true;
   }
 
-  URIUtils::GetExtension(m_strPath, extension);
+  extension = URIUtils::GetExtension(m_strPath);
 
   if (extension.IsEmpty())
     return false;
@@ -900,20 +902,47 @@ bool CFileItem::IsInternetStream(const bool bStrictCheck /* = false */) const
   return URIUtils::IsInternetStream(m_strPath, bStrictCheck);
 }
 
-bool CFileItem::IsFileFolder() const
+bool CFileItem::IsFileFolder(EFileFolderType types) const
 {
-  return (
-    IsSmartPlayList() ||
-   (IsPlayList() && g_advancedSettings.m_playlistAsFolders) ||
-    IsAPK() ||
-    IsZIP() ||
-    IsRAR() ||
-    IsRSS() ||
-    IsType(".ogg") ||
-    IsType(".nsf") ||
-    IsType(".sid") ||
-    IsType(".sap")
-    );
+  EFileFolderType always_type = EFILEFOLDER_TYPE_ALWAYS;
+
+  /* internet streams are not directly expanded */
+  if(IsInternetStream())
+    always_type = EFILEFOLDER_TYPE_ONCLICK;
+
+
+  if(types & always_type)
+  {
+    if( IsSmartPlayList()
+    || (IsPlayList() && g_advancedSettings.m_playlistAsFolders)
+    || IsAPK()
+    || IsZIP()
+    || IsRAR()
+    || IsRSS()
+    || IsType(".ogg")
+    || IsType(".oga")
+    || IsType(".nsf")
+    || IsType(".sid")
+    || IsType(".sap")
+    || IsType(".xsp")
+#if defined(TARGET_ANDROID)
+    || IsType(".apk")
+#endif
+#ifdef HAS_ASAP_CODEC
+    || ASAPCodec::IsSupportedFormat(URIUtils::GetExtension(m_strPath))
+#endif
+    )
+      return true;
+  }
+
+  if(types & EFILEFOLDER_TYPE_ONBROWSE)
+  {
+    if((IsPlayList() && !g_advancedSettings.m_playlistAsFolders)
+    || IsDVDImage())
+      return true;
+  }
+
+  return false;
 }
 
 
@@ -922,8 +951,7 @@ bool CFileItem::IsSmartPlayList() const
   if (HasProperty("library.smartplaylist") && GetProperty("library.smartplaylist").asBoolean())
     return true;
 
-  CStdString strExtension;
-  URIUtils::GetExtension(m_strPath, strExtension);
+  CStdString strExtension = URIUtils::GetExtension(m_strPath);
   strExtension.ToLower();
   return (strExtension == ".xsp");
 }
@@ -950,8 +978,7 @@ bool CFileItem::IsNFO() const
 
 bool CFileItem::IsDVDImage() const
 {
-  CStdString strExtension;
-  URIUtils::GetExtension(m_strPath, strExtension);
+  CStdString strExtension = URIUtils::GetExtension(m_strPath);
   return (strExtension.Equals(".img") || strExtension.Equals(".iso") || strExtension.Equals(".nrg"));
 }
 

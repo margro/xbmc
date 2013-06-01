@@ -114,12 +114,16 @@ namespace XFILE
           int64_t         m_filePos;
           bool            m_bFirstLoop;
           bool            m_isPaused;
+          bool            m_sendRange;
 
           char*           m_readBuffer;
 
           /* returned http header */
           CHttpHeader m_httpheader;
           bool        m_headerdone;
+
+          struct XCURL::curl_slist* m_curlHeaderList;
+          struct XCURL::curl_slist* m_curlAliasList;
 
           size_t ReadCallback(char *buffer, size_t size, size_t nitems);
           size_t WriteCallback(char *buffer, size_t size, size_t nitems);
@@ -145,6 +149,7 @@ namespace XFILE
 
     protected:
       CReadState*     m_state;
+      CReadState*     m_oldState;
       unsigned int    m_bufferSize;
       int64_t         m_writeOffset;
 
@@ -181,9 +186,6 @@ namespace XFILE
       unsigned int    m_overflowSize;     // size of the overflow buffer
 
       int             m_stillRunning;     // Is background url fetch still in progress?
-
-      struct XCURL::curl_slist* m_curlAliasList;
-      struct XCURL::curl_slist* m_curlHeaderList;
 
       typedef std::map<CStdString, CStdString> MAPHTTPHEADERS;
       MAPHTTPHEADERS m_requestheaders;

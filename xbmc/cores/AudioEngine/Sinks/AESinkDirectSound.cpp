@@ -234,7 +234,7 @@ bool CAESinkDirectSound::Initialize(AEAudioFormat &format, std::string &device)
   dsbdesc.dwFlags = DSBCAPS_GETCURRENTPOSITION2 /** Better position accuracy */
                   | DSBCAPS_GLOBALFOCUS;         /** Allows background playing */
 
-  if (!g_sysinfo.IsVistaOrHigher())
+  if (!g_sysinfo.IsWindowsVersionAtLeast(CSysInfo::WindowsVersionVista))
     dsbdesc.dwFlags |= DSBCAPS_LOCHARDWARE;     /** Needed for 5.1 on emu101k, fails by design on Vista */
 
   dsbdesc.dwBufferBytes = m_dwBufferLen;
@@ -388,7 +388,8 @@ unsigned int CAESinkDirectSound::AddPackets(uint8_t *data, unsigned int frames, 
   {
     if (m_isDirtyDS)
       return INT_MAX;
-    Sleep(total * 1000 / m_AvgBytesPerSec);
+    else
+      return 0;
   }
 
   while (len)
@@ -478,7 +479,7 @@ void CAESinkDirectSound::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bo
   HRESULT                hr;
 
   /* See if we are on Windows XP */
-  if (!g_sysinfo.IsVistaOrHigher())
+  if (!g_sysinfo.IsWindowsVersionAtLeast(CSysInfo::WindowsVersionVista))
   {
     /* We are on XP - WASAPI not supported - enumerate using DS devices */
     LPGUID deviceGUID = NULL;

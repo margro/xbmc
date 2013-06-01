@@ -36,7 +36,6 @@
 #include <taglib/unsynchronizedlyricsframe.h>
 #include <taglib/attachedpictureframe.h>
 
-#undef byte
 #include <taglib/tstring.h>
 #include <taglib/tpropertymap.h>
 
@@ -88,8 +87,7 @@ static const vector<string> StringListToVectorString(const StringList& stringLis
 
 bool CTagLoaderTagLib::Load(const string& strFileName, CMusicInfoTag& tag, EmbeddedArt *art /* = NULL */)
 {  
-  CStdString strExtension;
-  URIUtils::GetExtension(strFileName, strExtension);
+  CStdString strExtension = URIUtils::GetExtension(strFileName);
   strExtension.ToLower();
   strExtension.TrimLeft('.');
 

@@ -63,6 +63,8 @@ public:
    virtual CStdString GetMacAddress(void) = 0;
    virtual void GetMacAddressRaw(char rawMac[6]) = 0;
 
+   virtual bool GetHostMacAddress(unsigned long host, CStdString& mac) = 0;
+
    virtual CStdString GetCurrentIPAddress() = 0;
    virtual CStdString GetCurrentNetmask() = 0;
    virtual CStdString GetCurrentDefaultGateway(void) = 0;
@@ -109,6 +111,10 @@ public:
    // Return true if the magic packet was send
    bool WakeOnLan(const char *mac);
 
+   // Return true if host replies to ping
+   bool PingHost(unsigned long host, unsigned short port, unsigned int timeout_ms = 2000, bool readability_check = false);
+   virtual bool PingHost(unsigned long host, unsigned int timeout_ms = 2000) = 0;
+
    // Get/set the nameserver(s)
    virtual std::vector<CStdString> GetNameServers(void) = 0;
    virtual void SetNameServers(std::vector<CStdString> nameServers) = 0;
@@ -127,3 +133,9 @@ public:
 #else
 #include "windows/NetworkWin32.h"
 #endif
+
+//creates, binds and listens a tcp socket on the desired port. Set bindLocal to
+//true to bind to localhost only. The socket will listen over ipv6 if possible
+//and fall back to ipv4 if ipv6 is not available on the platform.
+int CreateTCPServerSocket(const int port, const bool bindLocal, const int backlog, const char *callerName);
+

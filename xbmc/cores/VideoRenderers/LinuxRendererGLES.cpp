@@ -69,6 +69,12 @@ CLinuxRendererGLES::YUVBUFFER::YUVBUFFER()
   memset(&fields, 0, sizeof(fields));
   memset(&image , 0, sizeof(image));
   flipindex = 0;
+#ifdef HAVE_LIBOPENMAX
+  openMaxBuffer = NULL;
+#endif
+#ifdef HAVE_VIDEOTOOLBOXDECODER
+  cvBufferRef = NULL;
+#endif
 }
 
 CLinuxRendererGLES::YUVBUFFER::~YUVBUFFER()
@@ -79,15 +85,7 @@ CLinuxRendererGLES::CLinuxRendererGLES()
 {
   m_textureTarget = GL_TEXTURE_2D;
   for (int i = 0; i < NUM_BUFFERS; i++)
-  {
     m_eventTexturesDone[i] = new CEvent(false,true);
-#if defined(HAVE_LIBOPENMAX)
-    m_buffers[i].openMaxBuffer = 0;
-#endif
-#ifdef HAVE_VIDEOTOOLBOXDECODER
-    m_buffers[i].cvBufferRef = NULL;
-#endif
-  }
 
   m_renderMethod = RENDER_GLSL;
   m_oldRenderMethod = m_renderMethod;
@@ -142,13 +140,6 @@ CLinuxRendererGLES::~CLinuxRendererGLES()
   }
 
   delete m_dllSwScale;
-}
-
-void CLinuxRendererGLES::ManageTextures()
-{
-  m_NumYV12Buffers = 2;
-  //m_iYV12RenderBuffer = 0;
-  return;
 }
 
 bool CLinuxRendererGLES::ValidateRenderTarget()
@@ -362,7 +353,7 @@ void CLinuxRendererGLES::CalculateTextureSourceRects(int source, int num_planes)
 
 void CLinuxRendererGLES::LoadPlane( YUVPLANE& plane, int type, unsigned flipindex
                                 , unsigned width, unsigned height
-                                , int stride, void* data )
+                                , unsigned int stride, void* data )
 {
   if(plane.flipindex == flipindex)
     return;
@@ -377,7 +368,7 @@ void CLinuxRendererGLES::LoadPlane( YUVPLANE& plane, int type, unsigned flipinde
   if(stride != width * bps)
   {
     unsigned char* src = (unsigned char*)data;
-    for (int y = 0; y < height;++y, src += stride)
+    for (unsigned int y = 0; y < height;++y, src += stride)
       glTexSubImage2D(m_textureTarget, 0, 0, y, width, 1, type, GL_UNSIGNED_BYTE, src);
   } else {
     glTexSubImage2D(m_textureTarget, 0, 0, 0, width, height, type, GL_UNSIGNED_BYTE, pixelData);
@@ -412,11 +403,10 @@ void CLinuxRendererGLES::Reset()
   }
 }
 
-void CLinuxRendererGLES::Update(bool bPauseDrawing)
+void CLinuxRendererGLES::Update()
 {
   if (!m_bConfigured) return;
   ManageDisplay();
-  ManageTextures();
 }
 
 void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
@@ -430,7 +420,6 @@ void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
   if (m_renderMethod & RENDER_BYPASS)
   {
     ManageDisplay();
-    ManageTextures();
     // if running bypass, then the player might need the src/dst rects
     // for sizing video playback on a layer other than the gles layer.
     if (m_RenderUpdateCallBackFn)
@@ -470,7 +459,6 @@ void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
     return;
 
   ManageDisplay();
-  ManageTextures();
 
   g_graphicsContext.BeginPaint();
 
@@ -2004,17 +1992,26 @@ EINTERLACEMETHOD CLinuxRendererGLES::AutoInterlaceMethod()
 #endif
 }
 
-#ifdef HAVE_LIBOPENMAX
-void CLinuxRendererGLES::AddProcessor(COpenMax* openMax, DVDVideoPicture *picture)
+unsigned int CLinuxRendererGLES::GetProcessorSize()
 {
-  YUVBUFFER &buf = m_buffers[NextYV12Texture()];
+  if(m_format == RENDER_FMT_OMXEGL
+  || m_format == RENDER_FMT_CVBREF)
+    return 1;
+  else
+    return 0;
+}
+
+#ifdef HAVE_LIBOPENMAX
+void CLinuxRendererGLES::AddProcessor(COpenMax* openMax, DVDVideoPicture *picture, int index)
+{
+  YUVBUFFER &buf = m_buffers[index];
   buf.openMaxBuffer = picture->openMaxBuffer;
 }
 #endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
-void CLinuxRendererGLES::AddProcessor(struct __CVBuffer *cvBufferRef)
+void CLinuxRendererGLES::AddProcessor(struct __CVBuffer *cvBufferRef, int index)
 {
-  YUVBUFFER &buf = m_buffers[NextYV12Texture()];
+  YUVBUFFER &buf = m_buffers[index];
   if (buf.cvBufferRef)
     CVBufferRelease(buf.cvBufferRef);
   buf.cvBufferRef = cvBufferRef;

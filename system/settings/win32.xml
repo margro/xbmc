@@ -27,7 +27,7 @@
         </setting>
       </group>
     </category>
-    <category id="smb" label="1200" help="">
+    <category id="smb">
       <visible>false</visible>
     </category>
   </section>

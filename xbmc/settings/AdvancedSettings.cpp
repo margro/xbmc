@@ -28,6 +28,7 @@
 #include "utils/LangCodeExpander.h"
 #include "LangInfo.h"
 #include "profiles/ProfilesManager.h"
+#include "settings/Setting.h"
 #include "settings/Settings.h"
 #include "utils/StringUtils.h"
 #include "utils/SystemInfo.h"
@@ -46,7 +47,6 @@ using namespace std;
 CAdvancedSettings::CAdvancedSettings()
 {
   m_initialized = false;
-  m_loaded = false;
 }
 
 void CAdvancedSettings::OnSettingsLoaded()
@@ -410,9 +410,6 @@ bool CAdvancedSettings::Load()
 
 void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
 {
-  if (m_loaded)
-    return;
-
   CXBMCTinyXML advancedXML;
   if (!CFile::Exists(file))
   {
@@ -1124,9 +1121,6 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetInt(pElement, "nofliptimeout",             m_guiDirtyRegionNoFlipTimeout);
   }
 
-  // must be done before calling CSettings::Load() to avoid an infinite loop
-  m_loaded = true;
-
   // load in the settings overrides
   CSettings::Get().Load(pRootElement, true);  // true to hide the settings we read in
 }
@@ -1150,8 +1144,6 @@ void CAdvancedSettings::Clear()
 
   m_logFolder.clear();
   m_userAgent.clear();
-
-  m_loaded = false;
 }
 
 void CAdvancedSettings::GetCustomTVRegexps(TiXmlElement *pRootElement, SETTINGS_TVSHOWLIST& settings)

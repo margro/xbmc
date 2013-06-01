@@ -7411,7 +7411,8 @@ bool CVideoDatabase::GetRandomMusicVideo(CFileItem* item, int& idSong, const CSt
 
     // We don't use PrepareSQL here, as the WHERE clause is already formatted.
     CStdString strSQL;
-    strSQL.Format("select * from musicvideoview where %s order by RANDOM() limit 1",strWhere.c_str());
+    strSQL.Format("select * from musicvideoview where %s",strWhere.c_str());
+    strSQL += PrepareSQL(" order by RANDOM() limit 1");
     CLog::Log(LOGDEBUG, "%s query = %s", __FUNCTION__, strSQL.c_str());
     // run query
     if (!m_pDS->query(strSQL.c_str()))
@@ -8444,7 +8445,9 @@ void CVideoDatabase::ExportToXML(const CStdString &path, bool singleFiles /* = f
 
           if (item.IsOpticalMediaFile())
           {
-            nfoFile = URIUtils::GetParentFolderURI(nfoFile, true);
+            nfoFile = URIUtils::AddFileToFolder(
+                                    URIUtils::GetParentPath(nfoFile),
+                                    URIUtils::GetFileName(nfoFile));
           }
 
           if (overwrite || !CFile::Exists(nfoFile, false))

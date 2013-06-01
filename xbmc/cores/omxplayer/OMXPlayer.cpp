@@ -826,11 +826,6 @@ bool COMXPlayer::ReadPacket(DemuxPacket*& packet, CDemuxStream*& stream)
     }
 
     UpdateCorrection(packet, m_offset_pts);
-    // this groupId stuff is getting a bit messy, need to find a better way
-    // currently it is used to determine if a menu overlay is associated with a picture
-    // for dvd's we use as a group id, the current cell and the current title
-    // to be a bit more precise we alse count the number of disc's in case of a pts wrap back in the same cell / title
-    packet->iGroupId = m_pInputStream->GetCurrentGroupId();
 
     if(packet->iStreamId < 0)
       return true;
@@ -1178,7 +1173,13 @@ void COMXPlayer::Process()
       CDVDDemuxUtils::FreeDemuxPacket(pPacket);
       continue;
     }
-
+    if (pPacket)
+    {
+      // reset eos state when we get a packet (e.g. for case of seek after eos)
+      bOmxWaitVideo = false;
+      bOmxWaitAudio = false;
+      bOmxSentEOFs = false;
+    }
     if (!pPacket)
     {
       // when paused, demuxer could be be returning empty
@@ -4303,11 +4304,6 @@ bool COMXPlayer::WaitForPausedThumbJobs(int timeout_ms)
   }
 
   return false;
-}
-
-void COMXPlayer::Update(bool bPauseDrawing)
-{
-  g_renderManager.Update(bPauseDrawing);
 }
 
 void COMXPlayer::GetRenderFeatures(std::vector<int> &renderFeatures)

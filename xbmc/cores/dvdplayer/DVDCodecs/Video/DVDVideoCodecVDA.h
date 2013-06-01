@@ -23,7 +23,6 @@
 #include <CoreVideo/CoreVideo.h>
 
 class DllSwScale;
-class DllLibVDADecoder;
 class CBitstreamConverter;
 struct frame_queue;
 
@@ -42,7 +41,7 @@ public:
   virtual bool ClearPicture(DVDVideoPicture* pDvdVideoPicture);
   virtual void SetDropState(bool bDrop);
   virtual const char* GetName(void) { return (const char*)m_pFormatName; }
-  
+  virtual unsigned GetAllowedReferences();
 protected:
   void DisplayQueuePop(void);
   void UYVY422_to_YUV420P(uint8_t *yuv422_ptr, int yuv422_stride, DVDVideoPicture *picture);
@@ -52,7 +51,6 @@ protected:
     void *decompressionOutputRefCon, CFDictionaryRef frameInfo,
     OSStatus status, uint32_t infoFlags, CVImageBufferRef imageBuffer);
 
-  DllLibVDADecoder  *m_dll;
   void              *m_vda_decoder;   // opaque vdadecoder reference
   int32_t           m_format;
   const char        *m_pFormatName;
