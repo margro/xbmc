@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 // FileAFP.cpp: implementation of the CAFPFile class.
 //
 //////////////////////////////////////////////////////////////////////
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #include "system.h"
 
 #if defined(HAS_FILESYSTEM_AFP)
@@ -477,7 +477,7 @@ bool CAFPFile::Open(const CURL& url)
   CLog::Log(LOGDEBUG,"CAFPFile::Open - opened %s, fd=%d",url.GetFileName().c_str(), m_pFp ? m_pFp->fileid:-1);
   m_url = url;
   
-#ifdef _LINUX
+#ifdef TARGET_POSIX
   struct __stat64 tmpBuffer;
 #else
   struct stat tmpBuffer;
@@ -730,4 +730,4 @@ bool CAFPFile::IsValidFile(const CStdString& strFileName)
   return true;
 }
 #endif // HAS_FILESYSTEM_AFP
-#endif // _LINUX
+#endif // TARGET_POSIX

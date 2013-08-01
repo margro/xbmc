@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -388,7 +388,7 @@ void CGraphicContext::SetVideoResolution(RESOLUTION res, bool forceUpdate)
 
   if (g_advancedSettings.m_fullScreen)
   {
-#if defined (TARGET_DARWIN) || defined (_WIN32)
+#if defined (TARGET_DARWIN) || defined (TARGET_WINDOWS)
     bool blankOtherDisplays = CSettings::Get().GetBool("videoscreen.blankdisplays");
     g_Windowing.SetFullScreen(true,  CDisplaySettings::Get().GetResolutionInfo(res), blankOtherDisplays);
 #else

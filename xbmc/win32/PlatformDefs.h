@@ -3,7 +3,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
  *
  */
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 
 #define LINE_ENDING "\r\n"
 
@@ -82,9 +82,8 @@ typedef long          __off_t;
 extern "C" char * strptime(const char *buf, const char *fmt, struct tm *tm);
 extern "C" int strverscmp (const char *s1, const char *s2);
 extern "C" char * strcasestr(const char* haystack, const char* needle);
-extern int pgwin32_putenv(const char *envval);
 
-#endif // _WIN32
+#endif // TARGET_WINDOWS
 
 #endif //__PLATFORM_DEFS_H__
 

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,11 +25,9 @@
 
 TEST(TestMime, GetMimeType_string)
 {
-  std::string refstr, varstr;
-
-  refstr = "video/x-msvideo";
-  varstr = CMime::GetMimeType("avi");
-  EXPECT_STREQ(refstr.c_str(), varstr.c_str());
+  EXPECT_STREQ("video/avi",       CMime::GetMimeType("avi").c_str());
+  EXPECT_STRNE("video/x-msvideo", CMime::GetMimeType("avi").c_str());
+  EXPECT_STRNE("video/avi",       CMime::GetMimeType("xvid").c_str());
 }
 
 TEST(TestMime, GetMimeType_CFileItem)

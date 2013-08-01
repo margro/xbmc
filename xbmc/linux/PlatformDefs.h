@@ -3,7 +3,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
  *
  */
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 
 #define LINE_ENDING "\n"
 
@@ -51,7 +51,7 @@
 #if defined(TARGET_DARWIN_OSX)
 #include <libkern/OSTypes.h>
 #endif
-#elif defined(__FreeBSD__)
+#elif defined(TARGET_FREEBSD)
 #include <stdio.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
@@ -85,7 +85,7 @@
 #include <stdint.h>
 
 #ifndef PRId64
-#ifdef _MSC_VER
+#ifdef TARGET_WINDOWS
 #define PRId64 "I64d"
 #else
 #if __WORDSIZE == 64
@@ -97,7 +97,7 @@
 #endif
 
 #ifndef PRIu64
-#ifdef _MSC_VER
+#ifdef TARGET_WINDOWS
 #define PRIu64 "I64u"
 #else
 #if __WORDSIZE == 64
@@ -109,7 +109,7 @@
 #endif
 	
 #ifndef PRIx64
-#ifdef _MSC_VER
+#ifdef TARGET_WINDOWS
 #define PRIx64 "I64x"
 #else
 #if __WORDSIZE == 64
@@ -128,7 +128,7 @@
 #define PRIuS "zu"
 #endif
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 
 #define XXLog(a,b) printf("%s", (b))
 
@@ -172,7 +172,7 @@
 #define CALLBACK    __stdcall
 #define WINAPI      __stdcall
 #define WINAPIV     __cdecl
-#if !defined(TARGET_DARWIN) && !defined(__FreeBSD__)
+#if !defined(TARGET_DARWIN) && !defined(TARGET_FREEBSD)
 #define APIENTRY    WINAPI
 #else
 #define APIENTRY

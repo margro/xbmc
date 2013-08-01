@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2009-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #if defined(TARGET_DARWIN_OSX)
 #include <CoreServices/CoreServices.h>
 #include "utils/URIUtils.h"
-#elif defined(_LINUX)
+#elif defined(TARGET_POSIX)
 #else
 #endif
 
@@ -34,7 +34,7 @@ bool IsAliasShortcut(CStdString &path)
 #if defined(TARGET_DARWIN_OSX)
   // Note: regular files that have an .alias extension can be
   //   reported as an alias when clearly, they are not. Trap them out.
-  if (URIUtils::GetExtension(path) != ".alias")
+  if (!URIUtils::HasExtension(path, ".alias"))
   {
     FSRef fileRef;
     Boolean targetIsFolder, wasAliased;
@@ -52,9 +52,9 @@ bool IsAliasShortcut(CStdString &path)
       }
     }
   }
-#elif defined(_LINUX)
+#elif defined(TARGET_POSIX)
   // Linux does not use alias or shortcut methods
-#elif defined(WIN32)
+#elif defined(TARGET_WINDOWS)
 /* Needs testing under Windows platform so ignore shortcuts for now
     if (CUtil::GetExtension(path) == ".lnk")
     {
@@ -85,10 +85,10 @@ void TranslateAliasShortcut(CStdString &path)
       }
     }
   }
-#elif defined(_LINUX)
+#elif defined(TARGET_POSIX)
   // Linux does not use alias or shortcut methods
 
-#elif defined(WIN32)
+#elif defined(TARGET_WINDOWS)
 /* Needs testing under Windows platform so ignore shortcuts for now
   CComPtr<IShellLink> ipShellLink;
 

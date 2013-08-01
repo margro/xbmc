@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "utils/URIUtils.h"
 #include "filesystem/File.h"
 
+
 ASAPCodec::ASAPCodec()
 {
   m_CodecName = "asap";
@@ -38,9 +39,7 @@ bool ASAPCodec::Init(const CStdString &strFile, unsigned int filecache)
 
   CStdString strFileToLoad = strFile;
   int song = -1;
-  CStdString strExtension = URIUtils::GetExtension(strFile);
-  strExtension.MakeLower();
-  if (strExtension == ".asapstream")
+  if (URIUtils::HasExtension(strFile, ".asapstream"))
   {
     CStdString strFileName = URIUtils::GetFileName(strFile);
     int iStart = strFileName.ReverseFind('-') + 1;
@@ -96,3 +95,4 @@ bool ASAPCodec::IsSupportedFormat(const CStdString &strExt)
     || ext == "tmc" || ext == "tm8" || ext == "tm2"
     || ext == "cms" || ext == "cm3" || ext == "dlt";
 }
+

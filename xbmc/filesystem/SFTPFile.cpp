@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  *
  */
 
-
 #include "threads/SystemClock.h"
 #include "SFTPFile.h"
 #ifdef HAS_FILESYSTEM_SFTP
@@ -31,16 +30,17 @@
 #include <fcntl.h>
 #include <sstream>
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #pragma comment(lib, "ssh.lib")
 #endif
 
-#ifdef TARGET_WINDOWS
+#ifndef S_ISDIR
 #define S_ISDIR(m) ((m & _S_IFDIR) != 0)
+#endif
+#ifndef S_ISREG
 #define S_ISREG(m) ((m & _S_IFREG) != 0)
 #endif
-
-#ifdef _MSC_VER
+#ifndef O_RDONLY
 #define O_RDONLY _O_RDONLY
 #endif
 

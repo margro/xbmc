@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,18 +38,6 @@ using namespace std;
 #define HOLD_TIME_END   3000
 #define SCROLLING_GAP   200U
 #define SCROLLING_THRESHOLD 300U
-
-
-IGUIContainer::IGUIContainer(int parentID, int controlID, float posX, float posY, float width, float height)
-  : CGUIControl(parentID, controlID, posX, posY, width, height)
-{
-}
-
-void IGUIContainer::SetType(VIEW_TYPE type, const CStdString &label)
-{
-  m_type = type;
-  m_label = label;
-}
 
 CGUIBaseContainer::CGUIBaseContainer(int parentID, int controlID, float posX, float posY, float width, float height, ORIENTATION orientation, const CScroller& scroller, int preloadItems)
     : IGUIContainer(parentID, controlID, posX, posY, width, height)

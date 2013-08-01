@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -69,7 +69,7 @@ int64_t CShoutcastFile::GetLength()
 bool CShoutcastFile::Open(const CURL& url)
 {
   CURL url2(url);
-  url2.SetProtocolOptions("noshout=true&Icy-MetaData=1");
+  url2.SetProtocolOptions(url2.GetProtocolOptions()+"&noshout=true&Icy-MetaData=1");
   url2.SetProtocol("http");
 
   bool result=false;

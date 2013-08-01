@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -173,6 +173,7 @@ CVDPAU::CVDPAU()
   vdp_video_mixer_query_feature_support = NULL;
   vdp_video_mixer_destroy = NULL;
   vdp_video_mixer_render = NULL;
+  m_hwContext.bitstream_buffers_allocated = 0;
 }
 
 bool CVDPAU::Open(AVCodecContext* avctx, const enum PixelFormat, unsigned int surfaces)
@@ -184,7 +185,7 @@ bool CVDPAU::Open(AVCodecContext* avctx, const enum PixelFormat, unsigned int su
     return false;
   }
 
-  if ((avctx->codec_id == CODEC_ID_MPEG4) && !g_advancedSettings.m_videoAllowMpeg4VDPAU)
+  if ((avctx->codec_id == AV_CODEC_ID_MPEG4) && !g_advancedSettings.m_videoAllowMpeg4VDPAU)
     return false;
 
   if (!dl_handle)
@@ -213,10 +214,10 @@ bool CVDPAU::Open(AVCodecContext* avctx, const enum PixelFormat, unsigned int su
     SpewHardwareAvailable();
 
     VdpDecoderProfile profile = 0;
-    if(avctx->codec_id == CODEC_ID_H264)
+    if(avctx->codec_id == AV_CODEC_ID_H264)
       profile = VDP_DECODER_PROFILE_H264_HIGH;
 #ifdef VDP_DECODER_PROFILE_MPEG4_PART2_ASP
-    else if(avctx->codec_id == CODEC_ID_MPEG4)
+    else if(avctx->codec_id == AV_CODEC_ID_MPEG4)
       profile = VDP_DECODER_PROFILE_MPEG4_PART2_ASP;
 #endif
     if(profile)
@@ -952,8 +953,7 @@ void CVDPAU::ReadFormatOf( AVCodecID codec
       vdp_decoder_profile = VDP_DECODER_PROFILE_VC1_ADVANCED;
       vdp_chroma_type     = VDP_CHROMA_TYPE_420;
       break;
-#if (defined PIX_FMT_VDPAU_MPEG4_IN_AVUTIL) && \
-    (defined VDP_DECODER_PROFILE_MPEG4_PART2_ASP)
+#if (defined VDP_DECODER_PROFILE_MPEG4_PART2_ASP)
     case AV_CODEC_ID_MPEG4:
       vdp_decoder_profile = VDP_DECODER_PROFILE_MPEG4_PART2_ASP;
       vdp_chroma_type     = VDP_CHROMA_TYPE_420;

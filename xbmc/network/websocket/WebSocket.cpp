@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -320,7 +320,7 @@ const CWebSocketMessage* CWebSocket::Handle(const char* &buffer, size_t &length,
         }
 
         // adjust the length and the buffer values
-        length -= frame->GetFrameLength();
+        length -= (size_t)frame->GetFrameLength();
         buffer += frame->GetFrameLength();
 
         if (frame->IsControlFrame())
@@ -395,7 +395,7 @@ const CWebSocketMessage* CWebSocket::Handle(const char* &buffer, size_t &length,
         if (frame->IsValid())
         {
           // adjust the length and the buffer values
-          length -= frame->GetFrameLength();
+          length -= (size_t)frame->GetFrameLength();
           buffer += frame->GetFrameLength();
         }
 

@@ -95,6 +95,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     static CAdvancedSettings* getInstance();
 
     virtual void OnSettingsLoaded();
+    virtual void OnSettingsUnloaded();
 
     virtual void OnSettingChanged(const CSetting *setting);
 
@@ -299,7 +300,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     int m_iEdlCommBreakAutowait;    // seconds
     int m_iEdlCommBreakAutowind;    // seconds
 
-    bool m_bFirstLoop;
     int m_curlconnecttimeout;
     int m_curllowspeedtime;
     int m_curlretries;
@@ -336,7 +336,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
 
     CStdString m_cpuTempCmd;
     CStdString m_gpuTempCmd;
-    int m_bgInfoLoaderMaxThreads;
 
     /* PVR/TV related advanced settings */
     int m_iPVRTimeCorrection;     /*!< @brief correct all times (epg tags, timer tags, recording tags) by this amount of minutes. defaults to 0. */
@@ -363,6 +362,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     unsigned int m_addonPackageFolderSize;
 
     unsigned int m_cacheMemBufferSize;
+    bool m_alwaysForceBuffer;
 
     bool m_jsonOutputCompact;
     unsigned int m_jsonTcpPort;

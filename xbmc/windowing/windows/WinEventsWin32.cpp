@@ -1,22 +1,22 @@
 /*
 *      Copyright (C) 2005-2013 Team XBMC
-*      http://www.xbmc.org
-*
-*  This Program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  This Program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, see
-*  <http://www.gnu.org/licenses/>.
-*
-*/
+ *      http://xbmc.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -49,8 +49,10 @@
 #include "utils/JobManager.h"
 #include "network/Zeroconf.h"
 #include "network/ZeroconfBrowser.h"
+#include "GUIUserMessages.h"
+#include "utils/CharsetConverter.h"
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 
 using namespace PERIPHERALS;
 
@@ -509,6 +511,27 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
     {
       switch (wParam)
       {
+        case VK_V:
+          if(GetKeyState(VK_CONTROL) & 0x8000)
+          {
+            // CTRL+V
+            if(OpenClipboard(NULL))
+            {
+              CStdString strtext;
+              HANDLE htext = GetClipboardData(CF_UNICODETEXT);
+              CStdStringW strwtext = (WCHAR*)htext;
+              g_charsetConverter.wToUTF8(strwtext, strtext);
+              if(!strtext.empty())
+              {
+                CGUIMessage msg(GUI_MSG_INPUT_TEXT, 0, 0);
+                msg.SetLabel(strtext);
+                g_windowManager.SendMessage(msg, g_windowManager.GetFocusedWindow());
+              }
+              CloseClipboard();
+              return(0);
+            }
+          }
+          break;
         case VK_CONTROL:
           if ( lParam & EXTENDED_KEYMASK )
             wParam = VK_RCONTROL;

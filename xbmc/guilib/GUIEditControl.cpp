@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ const unsigned int CGUIEditControl::smsDelay = 1000;
 
 using namespace std;
 
-#ifdef WIN32
+#ifdef TARGET_WINDOWS
 extern HWND g_hWnd;
 #endif
 
@@ -584,7 +584,7 @@ void CGUIEditControl::OnPasteClipboard()
     m_cursorPos+=strlen(szStr);
     UpdateText();
   }
-#elif defined _WIN32
+#elif defined TARGET_WINDOWS
   if (OpenClipboard(g_hWnd))
   {
     HGLOBAL hglb = GetClipboardData(CF_TEXT);

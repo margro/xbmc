@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@
 #include "DVDDemuxers/DVDDemuxUtils.h"
 #include "utils/log.h"
 #include "threads/SingleLock.h"
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #include "config.h"
 #endif
 
@@ -85,7 +85,7 @@ void CDVDPlayerSubtitle::SendMessage(CDVDMsg* pMsg)
         }
       }
     }
-    else if (m_streaminfo.codec == CODEC_ID_DVD_SUBTITLE)
+    else if (m_streaminfo.codec == AV_CODEC_ID_DVD_SUBTITLE)
     {
       CDVDOverlaySpu* pSPUInfo = m_dvdspus.AddData(pPacket->pData, pPacket->iSize, pPacket->pts);
       if (pSPUInfo)
@@ -102,8 +102,8 @@ void CDVDPlayerSubtitle::SendMessage(CDVDMsg* pMsg)
     CDVDMsgSubtitleClutChange* pData = (CDVDMsgSubtitleClutChange*)pMsg;
     for (int i = 0; i < 16; i++)
     {
-      BYTE* color = m_dvdspus.m_clut[i];
-      BYTE* t = (BYTE*)pData->m_data[i];
+      uint8_t* color = m_dvdspus.m_clut[i];
+      uint8_t* t = (uint8_t*)pData->m_data[i];
 
 // pData->m_data[i] points to an uint32_t
 // Byte swapping is needed between big and little endian systems
@@ -169,7 +169,7 @@ bool CDVDPlayerSubtitle::OpenStream(CDVDStreamInfo &hints, string &filename)
   }
 
   // dvd's use special subtitle decoder
-  if(hints.codec == CODEC_ID_DVD_SUBTITLE && filename == "dvd")
+  if(hints.codec == AV_CODEC_ID_DVD_SUBTITLE && filename == "dvd")
     return true;
 
   m_pOverlayCodec = CDVDFactoryCodec::CreateOverlayCodec(hints);

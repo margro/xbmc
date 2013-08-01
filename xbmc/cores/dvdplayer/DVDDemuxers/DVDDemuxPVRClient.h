@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,22 +23,6 @@
 #include <map>
 #include "DllAvCodec.h"
 #include "DllAvFormat.h"
-
-#ifndef _LINUX
-#include <libavformat/avformat.h>
-#else
-extern "C" {
-#if (defined USE_EXTERNAL_FFMPEG)
-  #if (defined HAVE_LIBAVFORMAT_AVFORMAT_H)
-    #include <libavformat/avformat.h>
-  #elif (defined HAVE_FFMPEG_AVFORMAT_H)
-    #include <ffmpeg/avformat.h>
-  #endif
-#else
-  #include "libavformat/avformat.h"
-#endif
-}
-#endif
 
 #include "pvr/addons/PVRClient.h"
 

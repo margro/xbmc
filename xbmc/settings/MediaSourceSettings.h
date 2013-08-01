@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ public:
   static std::string GetSourcesFile();
   
   virtual void OnSettingsLoaded();
-  virtual void OnSettingsCleared();
+  virtual void OnSettingsUnloaded();
 
   bool Load();
   bool Load(const std::string &file);
@@ -46,15 +46,15 @@ public:
   const std::string& GetDefaultSource(const std::string &type) const;
   void SetDefaultSource(const std::string &type, const std::string &source);
 
-  bool UpdateSource(const std::string &strType, const std::string strOldName, const std::string &strUpdateChild, const std::string &strUpdateValue);
-  bool DeleteSource(const std::string &strType, const std::string &strName, const std::string strPath, bool virtualSource = false);
+  bool UpdateSource(const std::string &strType, const std::string &strOldName, const std::string &strUpdateChild, const std::string &strUpdateValue);
+  bool DeleteSource(const std::string &strType, const std::string &strName, const std::string &strPath, bool virtualSource = false);
   bool AddShare(const std::string &type, const CMediaSource &share);
   bool UpdateShare(const std::string &type, const std::string &oldName, const CMediaSource &share);
 
 protected:
   CMediaSourceSettings();
   CMediaSourceSettings(const CMediaSourceSettings&);
-  CMediaSourceSettings const& operator=(CMediaSourceSettings const&);
+  CMediaSourceSettings& operator=(CMediaSourceSettings const&);
   virtual ~CMediaSourceSettings();
 
 private:

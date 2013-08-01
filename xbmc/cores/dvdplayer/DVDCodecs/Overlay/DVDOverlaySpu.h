@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ public:
     memcpy(highlight_color, src.highlight_color, sizeof(highlight_color));
   }
 
-  BYTE result[2*65536 + 20]; // rle data
+  uint8_t result[2*65536 + 20]; // rle data
   int pTFData; // pointer to top field picture data (needs rle parsing)
   int pBFData; // pointer to bottom field picture data (needs rle parsing)
   int x;

@@ -53,11 +53,11 @@ class PERIPHERALS::DllLibCEC : public DllDynamic, DllLibCECInterface
 };
 
 CPeripheralBusCEC::CPeripheralBusCEC(CPeripherals *manager) :
-    CPeripheralBus(manager, PERIPHERAL_BUS_CEC),
+    CPeripheralBus("PeripBusCEC", manager, PERIPHERAL_BUS_CEC),
     m_dll(new DllLibCEC),
     m_cecAdapter(NULL)
 {
-  m_iRescanTime = 1000;
+  m_iRescanTime = 5000;
   if (!m_dll->Load() || !m_dll->IsLoaded())
   {
     delete m_dll;

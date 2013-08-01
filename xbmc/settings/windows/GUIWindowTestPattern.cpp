@@ -1,8 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
- *
- *      Test patterns designed by Ofer LaOr - hometheater.co.il
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,6 +27,12 @@
 CGUIWindowTestPattern::CGUIWindowTestPattern(void)
     : CGUIWindow(WINDOW_TEST_PATTERN, "")
 {
+  m_pattern = 0;
+  m_bounceX = 0;
+  m_bounceY = 0;
+  m_bounceDirectionX = 0;
+  m_bounceDirectionY = 0;
+  m_blinkFrame = 0;
   m_needsScaling = false;
 }
 

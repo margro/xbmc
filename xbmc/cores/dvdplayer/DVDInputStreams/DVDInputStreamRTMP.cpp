@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
 #endif
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #include "system.h" // just for HAS_LIBRTMP
 #endif
 
@@ -188,7 +188,7 @@ void CDVDInputStreamRTMP::Close()
   m_bPaused = false;
 }
 
-int CDVDInputStreamRTMP::Read(BYTE* buf, int buf_size)
+int CDVDInputStreamRTMP::Read(uint8_t* buf, int buf_size)
 {
   int i = m_libRTMP.Read(m_rtmp, (char *)buf, buf_size);
   if (i < 0)

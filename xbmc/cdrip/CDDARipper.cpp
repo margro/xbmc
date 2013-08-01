@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -44,6 +44,9 @@
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "utils/URIUtils.h"
+#include "settings/MediaSourceSettings.h"
+#include "Application.h"
+#include "music/MusicDatabase.h"
 
 using namespace std;
 using namespace XFILE;
@@ -56,6 +59,7 @@ CCDDARipper& CCDDARipper::GetInstance()
 }
 
 CCDDARipper::CCDDARipper()
+  : CJobQueue(false, 1) //enforce fifo and non-parallel processing
 {
 }
 
@@ -67,7 +71,7 @@ CCDDARipper::~CCDDARipper()
 bool CCDDARipper::RipTrack(CFileItem* pItem)
 {
   // don't rip non cdda items
-  if (URIUtils::GetExtension(pItem->GetPath()).CompareNoCase(".cdda") != 0)
+  if (!URIUtils::HasExtension(pItem->GetPath(), ".cdda"))
   {
     CLog::Log(LOGDEBUG, "cddaripper: file is not a cdda track");
     return false;
@@ -151,6 +155,8 @@ const char* CCDDARipper::GetExtension(int iEncoder)
   if (iEncoder == CDDARIP_ENCODER_WAV) return ".wav";
   if (iEncoder == CDDARIP_ENCODER_VORBIS) return ".ogg";
   if (iEncoder == CDDARIP_ENCODER_FLAC) return ".flac";
+  if (iEncoder == CDDARIP_ENCODER_FFMPEG_M4A) return ".m4a";
+  if (iEncoder == CDDARIP_ENCODER_FFMPEG_WMA) return ".wma";
   return ".mp3";
 }
 
@@ -182,7 +188,7 @@ bool CCDDARipper::CreateAlbumDir(const MUSIC_INFO::CMusicInfoTag& infoTag, CStdS
   CFileItem ripPath(strDirectory, true);
   if (ripPath.IsSmb())
     legalType = LEGAL_WIN32_COMPAT;
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   if (ripPath.IsHD())
     legalType = LEGAL_WIN32_COMPAT;
 #endif
@@ -303,7 +309,22 @@ CStdString CCDDARipper::GetTrackName(CFileItem *item)
 void CCDDARipper::OnJobComplete(unsigned int jobID, bool success, CJob* job)
 {
   if (success)
+  {
+    if(CJobQueue::QueueEmpty())
+    {
+      CStdString dir;
+      URIUtils::GetDirectory(((CCDDARipJob*)job)->GetOutput(), dir);
+      bool unimportant;
+      int source = CUtil::GetMatchingSource(dir, *CMediaSourceSettings::Get().CMediaSourceSettings::GetSources("music"), unimportant);
+
+      CMusicDatabase database;
+      database.Open();
+      if (source>=0 && database.InsideScannedPath(dir))
+        g_application.StartMusicScan(dir);
+      database.Close();
+    }
     return CJobQueue::OnJobComplete(jobID, success, job);
+  }
 
   CancelJobs();
 }

@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,8 +36,8 @@ public:
 
   virtual bool Open(CDVDStreamInfo &hints, CDVDCodecOptions &options);
   virtual void Dispose();
-  virtual int  Decode(BYTE* pData, int iSize);
-  virtual int  GetData(BYTE** dst);
+  virtual int  Decode(uint8_t* pData, int iSize);
+  virtual int  GetData(uint8_t** dst);
   virtual void Reset();
   virtual int  GetChannels               ();
   virtual int  GetEncodedChannels        ();

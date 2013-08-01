@@ -88,6 +88,30 @@ msgctxt "#32126"
 msgid "Animated map"
 msgstr "Εφέ χάρτη"
 
+msgctxt "#32127"
+msgid "Location 4"
+msgstr "Τοποθεσία 4"
+
+msgctxt "#32128"
+msgid "Location 5"
+msgstr "Τοποθεσία 5"
+
+msgctxt "#32129"
+msgid "Location 4 display name"
+msgstr "Ονομασία Τοποθεσίας 4"
+
+msgctxt "#32130"
+msgid "Location 5 display name"
+msgstr "Ονομασία Τοποθεσίας 5"
+
+msgctxt "#32131"
+msgid "Location 4 id"
+msgstr "ID Τοποθεσίας 4"
+
+msgctxt "#32132"
+msgid "Location 5 id"
+msgstr "ID Τοποθεσίας 5"
+
 msgctxt "#32501"
 msgid "New Moon"
 msgstr "Νέα Σελήνη"

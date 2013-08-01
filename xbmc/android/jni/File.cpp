@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,11 +17,14 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "File.h"
 #include "jutils/jutils-details.hpp"
 
 using namespace jni;
+
 std::string CJNIFile::getAbsolutePath()
 {
-  return jcast<std::string>(call_method<jhstring>(m_object, "getAbsolutePath", "()Ljava/lang/String;"));
+  return jcast<std::string>(call_method<jhstring>(m_object,
+    "getAbsolutePath", "()Ljava/lang/String;"));
 }

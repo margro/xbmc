@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,8 +29,8 @@ public:
   virtual ~CDVDAudioCodecPcm();
   virtual bool Open(CDVDStreamInfo &hints, CDVDCodecOptions &options);
   virtual void Dispose();
-  virtual int Decode(BYTE* pData, int iSize);
-  virtual int GetData(BYTE** dst);
+  virtual int Decode(uint8_t* pData, int iSize);
+  virtual int GetData(uint8_t** dst);
   virtual void Reset();
   virtual int GetChannels();
   virtual CAEChannelInfo GetChannelMap();
@@ -41,10 +41,11 @@ public:
 protected:
   virtual void SetDefault();
 
-  short m_decodedData[131072]; // could be a bit to big
+  short* m_decodedData;
+  int m_decodedDataBufSize;
   int m_decodedDataSize;
 
-  CodecID m_codecID;
+  AVCodecID m_codecID;
   int m_iSourceSampleRate;
   int m_iSourceChannels;
   int m_iSourceBitrate;
@@ -52,4 +53,8 @@ protected:
   int m_iOutputChannels;
 
   short table[256];
+
+private:
+  CDVDAudioCodecPcm(const CDVDAudioCodecPcm&);
+  CDVDAudioCodecPcm const& operator=(CDVDAudioCodecPcm const&);
 };

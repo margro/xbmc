@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -77,7 +77,7 @@ CoffLoader::~CoffLoader()
 {
   if ( hModule )
   {
-#ifdef _LINUX
+#ifdef TARGET_POSIX
     free(hModule);
 #else
     VirtualFree(hModule, 0, MEM_RELEASE);
@@ -209,7 +209,7 @@ int CoffLoader::LoadCoffHModule(FILE *fp)
     return 0;
 
   // alloc aligned memory
-#ifdef _LINUX
+#ifdef TARGET_POSIX
   hModule = malloc(tempWindowsHeader.SizeOfImage);
 #else
   hModule = VirtualAllocEx(0, (PVOID)tempWindowsHeader.ImageBase, tempWindowsHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);

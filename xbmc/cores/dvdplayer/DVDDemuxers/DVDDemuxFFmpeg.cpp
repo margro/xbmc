@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 #ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
 #endif
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #include "stdint.h"
 #endif
 #include "DVDDemuxFFmpeg.h"
@@ -47,6 +47,7 @@
 #include "threads/Thread.h"
 #include "threads/SystemClock.h"
 #include "utils/TimeUtils.h"
+#include "URL.h"
 
 void CDemuxStreamAudioFFmpeg::GetStreamInfo(std::string& strInfo)
 {
@@ -184,7 +185,7 @@ static int dvd_file_read(void *h, uint8_t* buf, int size)
   return pInputStream->Read(buf, size);
 }
 /*
-static int dvd_file_write(URLContext *h, BYTE* buf, int size)
+static int dvd_file_write(URLContext *h, uint8_t* buf, int size)
 {
   return -1;
 }
@@ -286,25 +287,32 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput)
   {
     // special stream type that makes avformat handle file opening
     // allows internal ffmpeg protocols to be used
+    CURL url = m_pInput->GetURL();
+    CStdString protocol = url.GetProtocol();
+
+    AVDictionary *options = GetFFMpegOptionsFromURL(url);
+
     int result=-1;
-    if (strFile.substr(0,6) == "mms://")
+    if (protocol.Equals("mms"))
     {
       // try mmsh, then mmst
-      CStdString strFile2;
-      strFile2.Format("mmsh://%s",strFile.substr(6,strFile.size()-6).c_str());
-      result = m_dllAvFormat.avformat_open_input(&m_pFormatContext, strFile2.c_str(), iformat, NULL);
+      url.SetProtocol("mmsh");
+      url.SetProtocolOptions("");
+      result = m_dllAvFormat.avformat_open_input(&m_pFormatContext, url.Get().c_str(), iformat, &options);
       if (result < 0)
       {
-        strFile = "mmst://";
-        strFile += strFile2.Mid(7).c_str();
+        url.SetProtocol("mmst");
+        strFile = url.Get();
       } 
     }
-    if (result < 0 && m_dllAvFormat.avformat_open_input(&m_pFormatContext, strFile.c_str(), iformat, NULL) < 0 )
+    if (result < 0 && m_dllAvFormat.avformat_open_input(&m_pFormatContext, strFile.c_str(), iformat, &options) < 0 )
     {
       CLog::Log(LOGDEBUG, "Error, could not open file %s", strFile.c_str());
       Dispose();
+      m_dllAvUtil.av_dict_free(&options);
       return false;
     }
+    m_dllAvUtil.av_dict_free(&options);
   }
   else
   {
@@ -334,7 +342,7 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput)
       if (trySPDIFonly || (iformat && strcmp(iformat->name, "wav") == 0))
       {
         AVProbeData pd;
-        BYTE probe_buffer[FFMPEG_FILE_BUFFER_SIZE + AVPROBE_PADDING_SIZE];
+        uint8_t probe_buffer[FFMPEG_FILE_BUFFER_SIZE + AVPROBE_PADDING_SIZE];
 
         // init probe data
         pd.buf = probe_buffer;
@@ -456,7 +464,7 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput)
       CLog::Log(LOGWARNING,"could not find codec parameters for %s", strFile.c_str());
       if (m_pInput->IsStreamType(DVDSTREAM_TYPE_DVD)
       ||  m_pInput->IsStreamType(DVDSTREAM_TYPE_BLURAY)
-      || (m_pFormatContext->nb_streams == 1 && m_pFormatContext->streams[0]->codec->codec_id == CODEC_ID_AC3))
+      || (m_pFormatContext->nb_streams == 1 && m_pFormatContext->streams[0]->codec->codec_id == AV_CODEC_ID_AC3))
       {
         // special case, our codecs can still handle it.
       }
@@ -578,6 +586,44 @@ void CDVDDemuxFFmpeg::SetSpeed(int iSpeed)
   }
 }
 
+AVDictionary *CDVDDemuxFFmpeg::GetFFMpegOptionsFromURL(const CURL &url)
+{
+  CStdString protocol = url.GetProtocol();
+
+  AVDictionary *options = NULL;
+
+  if (protocol.Equals("http") || protocol.Equals("https"))
+  {
+    std::map<CStdString, CStdString> protocolOptions;
+    url.GetProtocolOptions(protocolOptions);
+    std::string headers;
+    bool hasUserAgent = false;
+    for(std::map<CStdString, CStdString>::const_iterator it = protocolOptions.begin(); it != protocolOptions.end(); ++it)
+    {
+      const CStdString &name = it->first;
+      const CStdString &value = it->second;
+
+      if (name.Equals("seekable"))
+        m_dllAvUtil.av_dict_set(&options, "seekable", value.c_str(), 0);
+      else if (name.Equals("User-Agent"))
+      {
+        m_dllAvUtil.av_dict_set(&options, "user-agent", value.c_str(), 0);
+        hasUserAgent = true;
+      }
+      else if (!name.Equals("auth") && !name.Equals("Encoding"))
+        // all other protocol options can be added as http header.
+        headers.append(name).append(": ").append(value).append("\r\n");
+    }
+    if (!hasUserAgent)
+      // set default xbmc user-agent.
+      m_dllAvUtil.av_dict_set(&options, "user-agent", g_advancedSettings.m_userAgent.c_str(), 0);
+
+    if (!headers.empty())
+      m_dllAvUtil.av_dict_set(&options, "headers", headers.c_str(), 0);
+  }
+  return options;
+}
+
 double CDVDDemuxFFmpeg::ConvertTimestamp(int64_t pts, int den, int num)
 {
   if (pts == (int64_t)AV_NOPTS_VALUE)
@@ -596,7 +642,8 @@ double CDVDDemuxFFmpeg::ConvertTimestamp(int64_t pts, int den, int num)
 
   if(timestamp > starttime)
     timestamp -= starttime;
-  else if( timestamp + 0.1f > starttime )
+  // allow for largest possible difference in pts and dts for a single packet
+  else if( timestamp + 0.5f > starttime )
     timestamp = 0;
 
   return timestamp*DVD_TIME_BASE;
@@ -650,7 +697,7 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
     // check size and stream index for being in a valid range
     else if (m_pkt.pkt.size < 0 ||
              m_pkt.pkt.stream_index < 0 ||
-             m_pkt.pkt.stream_index >= m_pFormatContext->nb_streams)
+             m_pkt.pkt.stream_index >= (int)m_pFormatContext->nb_streams)
     {
       // XXX, in some cases ffmpeg returns a negative packet size
       if(m_pFormatContext->pb && !m_pFormatContext->pb->eof_reached)
@@ -711,7 +758,7 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
         }
 
         // we need to get duration slightly different for matroska embedded text subtitels
-        if(m_bMatroska && stream->codec->codec_id == CODEC_ID_TEXT && m_pkt.pkt.convergence_duration != 0)
+        if(m_bMatroska && stream->codec->codec_id == AV_CODEC_ID_TEXT && m_pkt.pkt.convergence_duration != 0)
           m_pkt.pkt.duration = m_pkt.pkt.convergence_duration;
 
         if(m_bAVI && stream->codec && stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
@@ -1043,7 +1090,7 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
           st->bVFR = false;
 
         // never trust pts in avi files with h264.
-        if (m_bAVI && pStream->codec->codec_id == CODEC_ID_H264)
+        if (m_bAVI && pStream->codec->codec_id == AV_CODEC_ID_H264)
           st->bPTSInvalid = true;
 
         //average fps is more accurate for mkv files
@@ -1096,15 +1143,15 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
         
         if ( m_pInput->IsStreamType(DVDSTREAM_TYPE_DVD) )
         {
-          if (pStream->codec->codec_id == CODEC_ID_PROBE)
+          if (pStream->codec->codec_id == AV_CODEC_ID_PROBE)
           {
-            // fix MPEG-1/MPEG-2 video stream probe returning CODEC_ID_PROBE for still frames.
+            // fix MPEG-1/MPEG-2 video stream probe returning AV_CODEC_ID_PROBE for still frames.
             // ffmpeg issue 1871, regression from ffmpeg r22831.
             if ((pStream->id & 0xF0) == 0xE0)
             {
-              pStream->codec->codec_id = CODEC_ID_MPEG2VIDEO;
+              pStream->codec->codec_id = AV_CODEC_ID_MPEG2VIDEO;
               pStream->codec->codec_tag = MKTAG('M','P','2','V');
-              CLog::Log(LOGERROR, "%s - CODEC_ID_PROBE detected, forcing CODEC_ID_MPEG2VIDEO", __FUNCTION__);
+              CLog::Log(LOGERROR, "%s - AV_CODEC_ID_PROBE detected, forcing AV_CODEC_ID_MPEG2VIDEO", __FUNCTION__);
             }
           }
         }
@@ -1118,7 +1165,7 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
       }
     case AVMEDIA_TYPE_SUBTITLE:
       {
-        if (pStream->codec->codec_id == CODEC_ID_DVB_TELETEXT && CSettings::Get().GetBool("videoplayer.teletextenabled"))
+        if (pStream->codec->codec_id == AV_CODEC_ID_DVB_TELETEXT && CSettings::Get().GetBool("videoplayer.teletextenabled"))
         {
           CDemuxStreamTeletext* st = new CDemuxStreamTeletext();
           stream = st;
@@ -1138,10 +1185,8 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
       }
     case AVMEDIA_TYPE_ATTACHMENT:
       { //mkv attachments. Only bothering with fonts for now.
-        if(pStream->codec->codec_id == CODEC_ID_TTF
-#if (!defined USE_EXTERNAL_FFMPEG)
-          || pStream->codec->codec_id == CODEC_ID_OTF
-#endif
+        if(pStream->codec->codec_id == AV_CODEC_ID_TTF
+          || pStream->codec->codec_id == AV_CODEC_ID_OTF
           )
         {
           std::string fileName = "special://temp/fonts/";
@@ -1194,7 +1239,7 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
     if( pStream->codec->extradata && pStream->codec->extradata_size > 0 )
     {
       stream->ExtraSize = pStream->codec->extradata_size;
-      stream->ExtraData = new BYTE[pStream->codec->extradata_size];
+      stream->ExtraData = new uint8_t[pStream->codec->extradata_size];
       memcpy(stream->ExtraData, pStream->codec->extradata, pStream->codec->extradata_size);
     }
 
@@ -1209,19 +1254,19 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
       // id's reported from libdvdnav
       switch(stream->codec)
       {
-        case CODEC_ID_AC3:
+        case AV_CODEC_ID_AC3:
           stream->iPhysicalId = pStream->id - 128;
           break;
-        case CODEC_ID_DTS:
+        case AV_CODEC_ID_DTS:
           stream->iPhysicalId = pStream->id - 136;
           break;
-        case CODEC_ID_MP2:
+        case AV_CODEC_ID_MP2:
           stream->iPhysicalId = pStream->id - 448;
           break;
-        case CODEC_ID_PCM_S16BE:
+        case AV_CODEC_ID_PCM_S16BE:
           stream->iPhysicalId = pStream->id - 160;
           break;
-        case CODEC_ID_DVD_SUBTITLE:
+        case AV_CODEC_ID_DVD_SUBTITLE:
           stream->iPhysicalId = pStream->id - 0x20;
           break;
         default:
@@ -1387,7 +1432,7 @@ void CDVDDemuxFFmpeg::GetStreamCodecName(int iStreamId, CStdString &strName)
 
 #ifdef FF_PROFILE_DTS_HD_MA
     /* use profile to determine the DTS type */
-    if (stream->codec == CODEC_ID_DTS)
+    if (stream->codec == AV_CODEC_ID_DTS)
     {
       if (stream->profile == FF_PROFILE_DTS_HD_MA)
         strName = "dtshd_ma";

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 #include "threads/Atomics.h"
 #endif
 
-#if defined(__ANDROID__)
+#if defined(TARGET_ANDROID)
 #include <time64.h>
 #endif
 
@@ -44,7 +44,7 @@
  */
 #define IsLeapYear(y) ((!(y % 4)) ? (((!(y % 400)) && (y % 100)) ? 1 : 0) : 0)
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 
 void WINAPI Sleep(DWORD dwMilliSeconds)
 {
@@ -116,7 +116,7 @@ BOOL   SystemTimeToFileTime(const SYSTEMTIME* lpSystemTime,  LPFILETIME lpFileTi
   CAtomicSpinLock lock(timegm_lock);
 #endif
 
-#if defined(__ANDROID__)
+#if defined(TARGET_ANDROID)
   time64_t t = timegm64(&sysTime);
 #else
   time_t t = timegm(&sysTime);

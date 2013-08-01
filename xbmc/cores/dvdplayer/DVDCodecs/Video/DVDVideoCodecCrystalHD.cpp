@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
-#elif defined(_WIN32)
+#elif defined(TARGET_WINDOWS)
 #include "system.h"
 #include "DllAvCodec.h"
 #endif
@@ -55,11 +55,11 @@ bool CDVDVideoCodecCrystalHD::Open(CDVDStreamInfo &hints, CDVDCodecOptions &opti
   {
     switch (hints.codec)
     {
-      case CODEC_ID_MPEG2VIDEO:
+      case AV_CODEC_ID_MPEG2VIDEO:
         m_CodecType = CRYSTALHD_CODEC_ID_MPEG2;
         m_pFormatName = "chd-mpeg2";
       break;
-      case CODEC_ID_H264:
+      case AV_CODEC_ID_H264:
         switch(hints.profile)
         {
           case FF_PROFILE_H264_HIGH_10:
@@ -86,11 +86,11 @@ bool CDVDVideoCodecCrystalHD::Open(CDVDStreamInfo &hints, CDVDCodecOptions &opti
 
         m_pFormatName = "chd-h264";
       break;
-      case CODEC_ID_VC1:
+      case AV_CODEC_ID_VC1:
         m_CodecType = CRYSTALHD_CODEC_ID_VC1;
         m_pFormatName = "chd-vc1";
       break;
-      case CODEC_ID_WMV3:
+      case AV_CODEC_ID_WMV3:
         m_CodecType = CRYSTALHD_CODEC_ID_WMV3;
         m_pFormatName = "chd-wmv3";
       break;
@@ -132,7 +132,7 @@ void CDVDVideoCodecCrystalHD::Dispose(void)
   }
 }
 
-int CDVDVideoCodecCrystalHD::Decode(BYTE *pData, int iSize, double dts, double pts)
+int CDVDVideoCodecCrystalHD::Decode(uint8_t *pData, int iSize, double dts, double pts)
 {
   if (!pData)
   {

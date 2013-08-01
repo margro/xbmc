@@ -1,3 +1,22 @@
+/*
+ *      Copyright (C) 2012-2013 Team XBMC
+ *      http://xbmc.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
+ *
+ */
 #include "UPnPServer.h"
 #include "UPnPInternal.h"
 #include "Application.h"
@@ -24,6 +43,7 @@
 #include "video/VideoDatabase.h"
 #include "guilib/GUIWindowManager.h"
 #include "xbmc/GUIUserMessages.h"
+#include "utils/FileUtils.h"
 
 using namespace std;
 using namespace ANNOUNCEMENT;
@@ -298,7 +318,7 @@ CUPnPServer::Build(CFileItemPtr                  item,
                 }
             }
         } else if (file_path.StartsWith("library://") || file_path.StartsWith("videodb://")) {
-            if (path == "library://video" ) {
+            if (path == "library://video/" ) {
                 item->SetLabel("Video Library");
                 item->SetLabelPreformated(true);
             } else {
@@ -454,7 +474,7 @@ static NPT_String TranslateWMPObjectId(NPT_String id)
         id = "virtualpath://upnproot/";
     } else if (id == "15") {
         // Xbox 360 asking for videos
-        id = "library://video";
+        id = "library://video/";
     } else if (id == "16") {
         // Xbox 360 asking for photos
     } else if (id == "107") {
@@ -475,23 +495,7 @@ static NPT_String TranslateWMPObjectId(NPT_String id)
 NPT_Result
 ObjectIDValidate(const NPT_String& id)
 {
-    if(id.Find("..") != -1)
-        return NPT_ERROR_NO_SUCH_FILE;
-    if(id.StartsWith("virtualpath://upnproot/"))
-        return NPT_SUCCESS;
-    else if(id.StartsWith("musicdb://"))
-        return NPT_SUCCESS;
-    else if(id.StartsWith("videodb://"))
-        return NPT_SUCCESS;
-    else if(id.StartsWith("library://video"))
-        return NPT_SUCCESS;
-    else if(id.StartsWith("sources://video"))
-        return NPT_SUCCESS;
-    else if(id.StartsWith("special://musicplaylists"))
-        return NPT_SUCCESS;
-    else if(id.StartsWith("special://profile/playlists"))
-        return NPT_SUCCESS;
-    else if(id.StartsWith("special://videoplaylists"))
+    if (CFileUtils::RemoteAccessAllowed(id.GetChars()))
         return NPT_SUCCESS;
     return NPT_ERROR_NO_SUCH_FILE;
 }
@@ -515,7 +519,6 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
     NPT_String                     didl;
     NPT_Reference<PLT_MediaObject> object;
     NPT_String                     id = TranslateWMPObjectId(object_id);
-    vector<CStdString>             paths;
     CFileItemPtr                   item;
     NPT_Reference<CThumbLoader>    thumb_loader;
 
@@ -542,16 +545,28 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
         // determine if it's a container by calling CDirectory::Exists
         item.reset(new CFileItem((const char*)id, CDirectory::Exists((const char*)id)));
 
-        // determine parent id for shared paths only
-        // otherwise let db find out
+        // attempt to determine the parent of this item
         CStdString parent;
-        if (!URIUtils::GetParentPath((const char*)id, parent)) parent = "0";
-
-//#ifdef WMP_ID_MAPPING
-//        if (!id.StartsWith("musicdb://") && !id.StartsWith("videodb://")) {
-//            parent = "";
-//        }
-//#endif
+        if (URIUtils::IsVideoDb((const char*)id) || URIUtils::IsMusicDb((const char*)id) || StringUtils::StartsWith((const char*)id, "library://video/")) {
+            if (!URIUtils::GetParentPath((const char*)id, parent)) {
+                parent = "0";
+            }
+        }
+        else {
+            // non-library objects - playlists / sources
+            //
+            // we could instead store the parents in a hash during every browse
+            // or could handle this in URIUtils::GetParentPath() possibly,
+            // however this is quicker to implement and subsequently purge when a
+            // better solution presents itself
+            CStdString child_id((const char*)id);
+            if      (StringUtils::StartsWith(child_id, "special://musicplaylists/"))          parent = "musicdb://";
+            else if (StringUtils::StartsWith(child_id, "special://videoplaylists/"))          parent = "library://video/";
+            else if (StringUtils::StartsWith(child_id, "sources://video/"))                   parent = "library://video/";
+            else if (StringUtils::StartsWith(child_id, "special://profile/playlists/music/")) parent = "special://musicplaylists/";
+            else if (StringUtils::StartsWith(child_id, "special://profile/playlists/video/")) parent = "special://videoplaylists/";
+            else parent = "sources://video/"; // this can only match video sources
+        }
 
         if (item->IsVideoDb()) {
             thumb_loader = NPT_Reference<CThumbLoader>(new CVideoThumbLoader());
@@ -560,7 +575,7 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
             thumb_loader = NPT_Reference<CThumbLoader>(new CMusicThumbLoader());
         }
         if (!thumb_loader.IsNull()) {
-            thumb_loader->Initialize();
+            thumb_loader->OnLoaderStart();
         }
         object = Build(item, true, context, thumb_loader, parent.empty()?NULL:parent.c_str());
     }
@@ -635,7 +650,7 @@ CUPnPServer::OnBrowseDirectChildren(PLT_ActionReference&          action,
             items.Add(item);
 
             // video library
-            item.reset(new CFileItem("library://video", true));
+            item.reset(new CFileItem("library://video/", true));
             item->SetLabel("Video Library");
             item->SetLabelPreformated(true);
             items.Add(item);
@@ -714,7 +729,7 @@ CUPnPServer::BuildResponse(PLT_ActionReference&          action,
     NPT_Reference<CThumbLoader> thumb_loader;
 
     if (URIUtils::IsVideoDb(items.GetPath()) ||
-        StringUtils::StartsWith(items.GetPath(), "library://video") ||
+        StringUtils::StartsWith(items.GetPath(), "library://video/") ||
         StringUtils::StartsWith(items.GetPath(), "special://profile/playlists/video/")) {
 
         thumb_loader = NPT_Reference<CThumbLoader>(new CVideoThumbLoader());
@@ -725,7 +740,7 @@ CUPnPServer::BuildResponse(PLT_ActionReference&          action,
         thumb_loader = NPT_Reference<CThumbLoader>(new CMusicThumbLoader());
     }
     if (!thumb_loader.IsNull()) {
-        thumb_loader->Initialize();
+        thumb_loader->OnLoaderStart();
     }
 
     // this isn't pretty but needed to properly hide the addons node from clients

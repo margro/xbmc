@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 #include <vector>
 #include <climits>
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #include <errno.h>
 #include <inttypes.h>
 #include "../linux/XFileUtils.h"
@@ -322,6 +322,9 @@ void CCurlFile::CReadState::SetResume(void)
 
 long CCurlFile::CReadState::Connect(unsigned int size)
 {
+  if (m_filePos != 0)
+    CLog::Log(LOGDEBUG,"CurlFile::CReadState::Connect - Resume from position %"PRId64, m_filePos);
+
   SetResume();
   g_curlInterface.multi_add_handle(m_multiHandle, m_easyHandle);
 

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -69,7 +69,7 @@ bool CDVDDemuxBXA::Open(CDVDInputStream* pInput)
   if(!pInput || !pInput->IsStreamType(DVDSTREAM_TYPE_FILE))
     return false;
 
-  if(pInput->Read((BYTE *)&m_header, sizeof(Demux_BXA_FmtHeader)) < 1)
+  if(pInput->Read((uint8_t *)&m_header, sizeof(Demux_BXA_FmtHeader)) < 1)
     return false;
 
   // file valid?
@@ -91,7 +91,7 @@ bool CDVDDemuxBXA::Open(CDVDInputStream* pInput)
   m_stream->iBitRate        = m_header.sampleRate * m_header.channels * m_header.bitsPerSample;
   m_stream->iChannels       = m_header.channels;
   m_stream->type            = STREAM_AUDIO;
-  m_stream->codec           = CODEC_ID_PCM_S16LE;
+  m_stream->codec           = AV_CODEC_ID_PCM_S16LE;
 
   return true;
 }

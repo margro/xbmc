@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "cores/IPlayer.h"
+#include "settings/MediaSettings.h"
 
 using namespace JSONRPC;
 using namespace PLAYLIST;
@@ -110,33 +111,40 @@ JSONRPC_STATUS CPlayerOperations::GetItem(const CStdString &method, ITransportLa
     case Audio:
     {
       fileItem = CFileItemPtr(new CFileItem(g_application.CurrentFileItem()));
-      if (fileItem->GetLabel().empty())
+      if (IsPVRChannel())
       {
-        if (IsPVRChannel())
+        CPVRChannelPtr currentChannel;
+        if (g_PVRManager.GetCurrentChannel(currentChannel) && currentChannel.get() != NULL)
+          fileItem = CFileItemPtr(new CFileItem(*currentChannel.get()));
+      }
+      else if (player == Video)
+      {
+        if (!CVideoLibrary::FillFileItem(g_application.CurrentFile(), fileItem, parameterObject))
         {
-          CPVRChannelPtr currentChannel;
-          if (g_PVRManager.GetCurrentChannel(currentChannel) && currentChannel.get() != NULL)
-            fileItem = CFileItemPtr(new CFileItem(*currentChannel.get()));
-        }
-        else if (player == Video)
-        {
-          if (!CVideoLibrary::FillFileItem(g_application.CurrentFile(), fileItem, parameterObject))
+          const CVideoInfoTag *currentVideoTag = g_infoManager.GetCurrentMovieTag();
+          if (currentVideoTag != NULL)
           {
-            const CVideoInfoTag *currentVideoTag = g_infoManager.GetCurrentMovieTag();
-            if (currentVideoTag != NULL)
-              fileItem = CFileItemPtr(new CFileItem(*currentVideoTag));
-            fileItem->SetPath(g_application.CurrentFileItem().GetPath());
+            CStdString originalLabel = fileItem->GetLabel();
+            fileItem->SetFromVideoInfoTag(*currentVideoTag);
+            if (fileItem->GetLabel().empty())
+              fileItem->SetLabel(originalLabel);
           }
+          fileItem->SetPath(g_application.CurrentFileItem().GetPath());
         }
-        else
+      }
+      else
+      {
+        if (!CAudioLibrary::FillFileItem(g_application.CurrentFile(), fileItem, parameterObject))
         {
-          if (!CAudioLibrary::FillFileItem(g_application.CurrentFile(), fileItem, parameterObject))
+          const MUSIC_INFO::CMusicInfoTag *currentMusicTag = g_infoManager.GetCurrentSongTag();
+          if (currentMusicTag != NULL)
           {
-            const MUSIC_INFO::CMusicInfoTag *currentMusicTag = g_infoManager.GetCurrentSongTag();
-            if (currentMusicTag != NULL)
-              fileItem = CFileItemPtr(new CFileItem(*currentMusicTag));
-            fileItem->SetPath(g_application.CurrentFileItem().GetPath());
+            CStdString originalLabel = fileItem->GetLabel();
+            fileItem = CFileItemPtr(new CFileItem(*currentMusicTag));
+            if (fileItem->GetLabel().empty())
+              fileItem->SetLabel(originalLabel);
           }
+          fileItem->SetPath(g_application.CurrentFileItem().GetPath());
         }
       }
 
@@ -1438,7 +1446,7 @@ JSONRPC_STATUS CPlayerOperations::GetPropertyValue(PlayerType player, const CStd
         if (g_application.m_pPlayer)
         {
           result = CVariant(CVariant::VariantTypeObject);
-          int index = g_application.m_pPlayer->GetSubtitle();
+          int index = CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleStream;
           if (index >= 0)
           {
             SPlayerSubtitleStreamInfo info;

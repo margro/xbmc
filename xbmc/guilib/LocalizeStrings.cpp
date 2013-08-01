@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "utils/URIUtils.h"
 #include "utils/POUtils.h"
 #include "filesystem/Directory.h"
+#include "threads/SingleLock.h"
 
 CLocalizeStrings::CLocalizeStrings(void)
 {
@@ -188,6 +189,7 @@ bool CLocalizeStrings::Load(const CStdString& strPathName, const CStdString& str
   bool bLoadFallback = !strLanguage.Equals(SOURCE_LANGUAGE);
 
   CStdString encoding;
+  CSingleLock lock(m_critSection);
   Clear();
 
   if (!LoadStr2Mem(strPathName, strLanguage, encoding))

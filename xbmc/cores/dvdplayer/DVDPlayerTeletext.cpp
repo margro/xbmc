@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -113,7 +113,7 @@ CDVDTeletextData::~CDVDTeletextData()
 
 bool CDVDTeletextData::CheckStream(CDVDStreamInfo &hints)
 {
-  if (hints.codec == CODEC_ID_DVB_TELETEXT)
+  if (hints.codec == AV_CODEC_ID_DVB_TELETEXT)
     return true;
 
   return false;
@@ -123,7 +123,7 @@ bool CDVDTeletextData::OpenStream(CDVDStreamInfo &hints)
 {
   m_messageQueue.Init();
 
-  if (hints.codec == CODEC_ID_DVB_TELETEXT)
+  if (hints.codec == AV_CODEC_ID_DVB_TELETEXT)
   {
     CLog::Log(LOGNOTICE, "Creating teletext data thread");
     Create();

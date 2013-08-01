@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,7 +49,8 @@ class CSettingDependencyCondition : public CSettingConditionItem
 public:
   CSettingDependencyCondition(CSettingsManager *settingsManager = NULL)
     : CSettingConditionItem(settingsManager),
-      m_operator(SettingDependencyOperatorEquals)
+      m_target(SettingDependencyTargetNone),  
+      m_operator(SettingDependencyOperatorEquals)      
   { }
   virtual ~CSettingDependencyCondition() { }
 

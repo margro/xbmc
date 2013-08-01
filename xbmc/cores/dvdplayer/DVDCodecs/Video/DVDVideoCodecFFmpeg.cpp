@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  */
 
 #include "system.h"
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
 #endif
 #include "DVDVideoCodecFFmpeg.h"
@@ -29,7 +29,7 @@
 #include "DVDCodecs/DVDCodecs.h"
 #include "DVDCodecs/DVDCodecUtils.h"
 #include "DVDVideoPPFFmpeg.h"
-#if defined(_LINUX) || defined(_WIN32)
+#if defined(TARGET_POSIX) || defined(TARGET_WINDOWS)
 #include "utils/CPUInfo.h"
 #endif
 #include "settings/AdvancedSettings.h"
@@ -38,7 +38,7 @@
 #include "boost/shared_ptr.hpp"
 #include "threads/Atomics.h"
 
-#ifndef _LINUX
+#ifndef TARGET_POSIX
 #define RINT(x) ((x) >= 0 ? ((int)((x) + 0.5)) : ((int)((x) - 0.5)))
 #else
 #include <math.h>
@@ -56,6 +56,9 @@
 #endif
 #ifdef HAVE_LIBVA
 #include "VAAPI.h"
+#endif
+#ifdef TARGET_DARWIN_OSX
+#include "VDA.h"
 #endif
 
 using namespace boost;
@@ -101,7 +104,7 @@ enum PixelFormat CDVDVideoCodecFFmpeg::GetFormat( struct AVCodecContext * avctx
 #ifdef HAVE_LIBVA
     // mpeg4 vaapi decoding is disabled
     if(*cur == PIX_FMT_VAAPI_VLD && CSettings::Get().GetBool("videoplayer.usevaapi") 
-    && (avctx->codec_id != CODEC_ID_MPEG4 || g_advancedSettings.m_videoAllowMpeg4VAAPI)) 
+    && (avctx->codec_id != AV_CODEC_ID_MPEG4 || g_advancedSettings.m_videoAllowMpeg4VAAPI)) 
     {
       if (ctx->GetHardware() != NULL)
       {
@@ -109,6 +112,20 @@ enum PixelFormat CDVDVideoCodecFFmpeg::GetFormat( struct AVCodecContext * avctx
       }
 
       VAAPI::CDecoder* dec = new VAAPI::CDecoder();
+      if(dec->Open(avctx, *cur, ctx->m_uSurfacesCount))
+      {
+        ctx->SetHardware(dec);
+        return *cur;
+      }
+      else
+        dec->Release();
+    }
+#endif
+
+#ifdef TARGET_DARWIN_OSX
+    if (*cur == AV_PIX_FMT_VDA_VLD && CSettings::Get().GetBool("videoplayer.usevda"))
+    {
+      VDA::CDecoder* dec = new VDA::CDecoder();
       if(dec->Open(avctx, *cur, ctx->m_uSurfacesCount))
       {
         ctx->SetHardware(dec);
@@ -181,7 +198,7 @@ bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
   pCodec = NULL;
   m_pCodecContext = NULL;
 
-  if (hints.codec == CODEC_ID_H264)
+  if (hints.codec == AV_CODEC_ID_H264)
   {
     switch(hints.profile)
     {
@@ -239,8 +256,8 @@ bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
   // ffmpeg with enabled neon will crash and burn if this is enabled
   m_pCodecContext->flags &= CODEC_FLAG_EMU_EDGE;
 #else
-  if (pCodec->id != CODEC_ID_H264 && pCodec->capabilities & CODEC_CAP_DR1
-      && pCodec->id != CODEC_ID_VP8
+  if (pCodec->id != AV_CODEC_ID_H264 && pCodec->capabilities & CODEC_CAP_DR1
+      && pCodec->id != AV_CODEC_ID_VP8
      )
     m_pCodecContext->flags |= CODEC_FLAG_EMU_EDGE;
 #endif
@@ -275,8 +292,8 @@ bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
 
   int num_threads = std::min(8 /*MAX_THREADS*/, g_cpuInfo.getCPUCount());
   if( num_threads > 1 && !hints.software && m_pHardware == NULL // thumbnail extraction fails when run threaded
-  && ( pCodec->id == CODEC_ID_H264
-    || pCodec->id == CODEC_ID_MPEG4 ))
+  && ( pCodec->id == AV_CODEC_ID_H264
+    || pCodec->id == AV_CODEC_ID_MPEG4 ))
     m_pCodecContext->thread_count = num_threads;
 
   if (m_dllAvCodec.avcodec_open2(m_pCodecContext, pCodec, NULL) < 0)
@@ -404,7 +421,7 @@ static double pts_itod(int64_t pts)
   return u.pts_d;
 }
 
-int CDVDVideoCodecFFmpeg::Decode(BYTE* pData, int iSize, double dts, double pts)
+int CDVDVideoCodecFFmpeg::Decode(uint8_t* pData, int iSize, double dts, double pts)
 {
   int iGotPicture = 0, len = 0;
 
@@ -475,8 +492,8 @@ int CDVDVideoCodecFFmpeg::Decode(BYTE* pData, int iSize, double dts, double pts)
     m_iLastKeyframe = 300;
 
   /* h264 doesn't always have keyframes + won't output before first keyframe anyway */
-  if(m_pCodecContext->codec_id == CODEC_ID_H264
-  || m_pCodecContext->codec_id == CODEC_ID_SVQ3)
+  if(m_pCodecContext->codec_id == AV_CODEC_ID_H264
+  || m_pCodecContext->codec_id == AV_CODEC_ID_SVQ3)
     m_started = true;
 
   if(m_pHardware == NULL)
@@ -559,7 +576,11 @@ bool CDVDVideoCodecFFmpeg::GetPictureCommon(DVDVideoPicture* pDvdVideoPicture)
   /* use variable in the frame */
   AVRational pixel_aspect = m_pCodecContext->sample_aspect_ratio;
   if (m_pBufferRef)
+#if defined(LIBAVFILTER_FROM_FFMPEG)
     pixel_aspect = m_pBufferRef->video->sample_aspect_ratio;
+#else
+    pixel_aspect = m_pBufferRef->video->pixel_aspect;
+#endif
 
   if (pixel_aspect.num == 0)
     aspect_ratio = 0;

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -47,11 +47,15 @@ public:
   bool Initialize();
   void LogFirmwareVerison();
   void Deinitialize();
+  int GetArmMem() { return m_arm_mem; }
+  int GetGpuMem() { return m_gpu_mem; }
 
 private:
   DllBcmHost *m_DllBcmHost;
   bool       m_initialized;
   bool       m_omx_initialized;
+  int        m_arm_mem;
+  int        m_gpu_mem;
   COMXCore   *m_OMX;
 };
 

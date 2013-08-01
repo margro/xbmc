@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ bool CPlayerController::OnAction(const CAction &action)
       if (CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleOn)
       {
         SPlayerSubtitleStreamInfo info;
-        g_application.m_pPlayer->GetSubtitleStreamInfo(g_application.m_pPlayer->GetSubtitle(), info);
+        g_application.m_pPlayer->GetSubtitleStreamInfo(CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleStream, info);
         if (!g_LangCodeExpander.Lookup(lang, info.language))
           lang = g_localizeStrings.Get(13205); // Unknown
 
@@ -209,9 +209,15 @@ bool CPlayerController::OnAction(const CAction &action)
         CMediaSettings::Get().GetCurrentVideoSettings().m_AudioStream = 0;
       g_application.m_pPlayer->SetAudioStream(CMediaSettings::Get().GetCurrentVideoSettings().m_AudioStream);    // Set the audio stream to the one selected
       CStdString aud;
+      CStdString lan;
       SPlayerAudioStreamInfo info;
       g_application.m_pPlayer->GetAudioStreamInfo(CMediaSettings::Get().GetCurrentVideoSettings().m_AudioStream, info);
-      aud = info.name;
+      if (!g_LangCodeExpander.Lookup(lan, info.language))
+        lan = g_localizeStrings.Get(13205); // Unknown
+      if (info.name.empty())
+        aud = lan;
+      else
+        aud.Format("%s - %s", lan.c_str(), info.name.c_str());
       CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(460), aud, DisplTime, false, MsgTime);
       return true;
     }

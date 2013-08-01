@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,23 +17,30 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "AudioManager.h"
 #include "jutils/jutils-details.hpp"
 
 using namespace jni;
 
 int CJNIAudioManager::STREAM_MUSIC(0);
-CJNIAudioManager::CJNIAudioManager(const jni::jhobject &object) : CJNIBase(object)
+
+void CJNIAudioManager::PopulateStaticFields()
 {
-  STREAM_MUSIC = (get_static_field<int>(m_object, "STREAM_MUSIC"));
+  jhclass clazz = find_class("android/media/AudioManager");
+  STREAM_MUSIC  = (get_static_field<int>(clazz, "STREAM_MUSIC"));
 }
 
 int CJNIAudioManager::getStreamMaxVolume()
 {
-  return call_method<jint>(m_object, "getStreamMaxVolume", "(I)I", STREAM_MUSIC);
+  return call_method<jint>(m_object,
+    "getStreamMaxVolume", "(I)I",
+    STREAM_MUSIC);
 }
 
 void CJNIAudioManager::setStreamVolume(int index /* 0 */, int flags /* NONE */)
 {
-  call_method<void>(m_object, "setStreamVolume", "(III)V", STREAM_MUSIC, index, flags);
+  call_method<void>(m_object,
+    "setStreamVolume", "(III)V",
+    STREAM_MUSIC, index, flags);
 }

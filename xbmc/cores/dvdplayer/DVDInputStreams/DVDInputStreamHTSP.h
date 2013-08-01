@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ public:
   virtual ~CDVDInputStreamHTSP();
   virtual bool    Open(const char* file, const std::string &content);
   virtual void    Close();
-  virtual int     Read(BYTE* buf, int buf_size);
+  virtual int     Read(uint8_t* buf, int buf_size);
   virtual int64_t Seek(int64_t offset, int whence) { return -1; }
   virtual bool Pause(double dTime) { return false; };
   virtual bool    IsEOF();
@@ -46,7 +46,7 @@ public:
   bool            PrevChannel(bool preview = false);
   bool            SelectChannelByNumber(unsigned int channel);
   bool            SelectChannel(const PVR::CPVRChannel &channel) { return false; }
-  bool            GetSelectedChannel(PVR::CPVRChannel *channel) {return false; }
+  static bool     GetSelectedChannel(PVR::CPVRChannel *channel) {return false; }
   bool            UpdateItem(CFileItem& item);
 
   bool            CanRecord()         { return false; }

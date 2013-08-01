@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
 #endif
 #include "network/Network.h"
@@ -33,6 +33,7 @@
 #include "MusicDatabaseDirectory.h"
 #include "MusicSearchDirectory.h"
 #include "VideoDatabaseDirectory.h"
+#include "FavouritesDirectory.h"
 #include "LibraryDirectory.h"
 #include "AddonsDirectory.h"
 #include "SourcesDirectory.h"
@@ -46,7 +47,7 @@
 #include "network/WakeOnAccess.h"
 
 #ifdef HAS_FILESYSTEM_SMB
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #include "windows/WINSMBDirectory.h"
 #else
 #include "SMBDirectory.h"
@@ -165,6 +166,7 @@ IDirectory* CDirectoryFactory::Create(const CStdString& strPath)
   if (strProtocol == "musicsearch") return new CMusicSearchDirectory();
   if (strProtocol == "videodb") return new CVideoDatabaseDirectory();
   if (strProtocol == "library") return new CLibraryDirectory();
+  if (strProtocol == "favourites") return new CFavouritesDirectory();
   if (strProtocol == "filereader")
     return CDirectoryFactory::Create(url.GetFileName());
 
@@ -178,7 +180,7 @@ IDirectory* CDirectoryFactory::Create(const CStdString& strPath)
     if (strProtocol == "sftp" || strProtocol == "ssh") return new CSFTPDirectory();
 #endif
 #ifdef HAS_FILESYSTEM_SMB
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
     if (strProtocol == "smb") return new CWINSMBDirectory();
 #else
     if (strProtocol == "smb") return new CSMBDirectory();

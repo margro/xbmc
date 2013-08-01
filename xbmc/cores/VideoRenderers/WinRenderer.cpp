@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -228,6 +228,15 @@ bool CWinRenderer::Configure(unsigned int width, unsigned int height, unsigned i
     m_iYV12RenderBuffer = 0;
     // reinitialize the filters/shaders
     m_bFilterInitialized = false;
+  }
+  else
+  {
+    if (m_VideoBuffers[m_iYV12RenderBuffer] != NULL)
+      m_VideoBuffers[m_iYV12RenderBuffer]->StartDecode();
+
+    m_iYV12RenderBuffer = 0;
+    if (m_VideoBuffers[0] != NULL)
+      m_VideoBuffers[0]->StartRender();
   }
 
   m_fps = fps;

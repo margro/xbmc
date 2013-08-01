@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -91,7 +91,7 @@ void CDVDInputStreamHttp::Close()
   m_pFile = NULL;
 }
 
-int CDVDInputStreamHttp::Read(BYTE* buf, int buf_size)
+int CDVDInputStreamHttp::Read(uint8_t* buf, int buf_size)
 {
   unsigned int ret = 0;
   if (m_pFile) ret = m_pFile->Read(buf, buf_size);

@@ -2,12 +2,10 @@
 \file GUIWindowMusicBase.h
 \brief
 */
-
 #pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -88,7 +86,7 @@ protected:
   bool FindAlbumInfo(const CFileItem* album, MUSIC_GRABBER::CMusicAlbumInfo& albumInfo, ALLOW_SELECTION allowSelection);
   bool FindArtistInfo(const CFileItem* artist, MUSIC_GRABBER::CMusicArtistInfo& artistInfo, ALLOW_SELECTION allowSelection);
 
-  void ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo = true);
+  bool ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo = true);
   void ShowArtistInfo(const CFileItem *pItem, bool bShowInfo = true);
   void ShowSongInfo(CFileItem* pItem);
   void UpdateThumb(const CAlbum &album, const CStdString &path);

@@ -10,7 +10,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
  */
 
 #include "utils/StdString.h"
+#include "threads/CriticalSection.h"
 
 #include <map>
 
@@ -101,6 +102,7 @@ protected:
   static const uint32_t block_size = 4096;
   std::map<CStdString, uint32_t> m_blocks;
   typedef std::map<CStdString, uint32_t>::iterator iBlocks;
+  CCriticalSection m_critSection;
 };
 
 /*!

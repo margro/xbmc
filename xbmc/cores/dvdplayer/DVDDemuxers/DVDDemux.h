@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,25 +31,10 @@ class CDVDInputStream;
 #pragma warning(disable:4244)
 #endif
 
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
 #endif
-#ifndef _LINUX
-// enum CodecID; // auto defined when neccesary
-#include <libavcodec/avcodec.h>
-#else
-extern "C" {
-#if (defined USE_EXTERNAL_FFMPEG)
-  #if (defined HAVE_LIBAVCODEC_AVCODEC_H)
-    #include <libavcodec/avcodec.h>
-  #elif (defined HAVE_FFMPEG_AVCODEC_H)
-    #include <ffmpeg/avcodec.h>
-  #endif
-#else
-  #include "libavcodec/avcodec.h"
-#endif
-}
-#endif
+#include "DllAvCodec.h"
 
 #ifndef __GNUC__
 #pragma warning(pop)
@@ -88,7 +73,7 @@ public:
   {
     iId = 0;
     iPhysicalId = 0;
-    codec = (CodecID)0; // CODEC_ID_NONE
+    codec = (AVCodecID)0; // AV_CODEC_ID_NONE
     codec_fourcc = 0;
     profile = FF_PROFILE_UNKNOWN;
     level = 0;
@@ -122,7 +107,7 @@ public:
 
   int iId;         // most of the time starting from 0
   int iPhysicalId; // id
-  CodecID codec;
+  AVCodecID codec;
   unsigned int codec_fourcc; // if available
   int profile; // encoder profile of the stream reported by the decoder. used to qualify hw decoders.
   int level;   // encoder level of the stream reported by the decoder. used to qualify hw decoders.

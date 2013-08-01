@@ -46,6 +46,7 @@
 #include "guilib/GUIColorManager.h"
 #include "guilib/GUITextLayout.h"
 #include "addons/Skin.h"
+#include "interfaces/generic/ScriptInvocationManager.h"
 #ifdef HAS_PYTHON
 #include "interfaces/python/XBPython.h"
 #endif
@@ -105,7 +106,7 @@
 #include <SDL/SDL.h>
 #endif
 
-#if defined(FILESYSTEM) && !defined(_LINUX)
+#if defined(FILESYSTEM) && !defined(TARGET_POSIX)
 #include "filesystem/FileDAAP.h"
 #endif
 #ifdef HAS_UPNP
@@ -113,7 +114,7 @@
 #include "network/upnp/UPnPSettings.h"
 #include "filesystem/UPnPDirectory.h"
 #endif
-#if defined(_LINUX) && defined(HAS_FILESYSTEM_SMB)
+#if defined(TARGET_POSIX) && defined(HAS_FILESYSTEM_SMB)
 #include "filesystem/SMBDirectory.h"
 #endif
 #ifdef HAS_FILESYSTEM_NFS
@@ -136,7 +137,7 @@
 #endif
 #include "network/Zeroconf.h"
 #include "network/ZeroconfBrowser.h"
-#ifndef _LINUX
+#ifndef TARGET_POSIX
 #include "threads/platform/win/Win32Exception.h"
 #endif
 #ifdef HAS_EVENT_SERVER
@@ -320,7 +321,7 @@
 #include "settings/SkinSettings.h"
 #include "view/ViewStateSettings.h"
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #include "XHandle.h"
 #endif
 
@@ -339,10 +340,6 @@
 
 #if defined(TARGET_ANDROID)
 #include "android/activity/XBMCApp.h"
-#endif
-
-#ifdef TARGET_LINUX
-#include "linux/LinuxTimezone.h"
 #endif
 
 #ifdef TARGET_WINDOWS
@@ -406,6 +403,7 @@ CApplication::CApplication(void)
   m_bPlaybackStarting = false;
   m_ePlayState = PLAY_STATE_NONE;
   m_skinReloading = false;
+  m_loggingIn = false;
 
 #ifdef HAS_GLX
   XInitThreads();
@@ -462,7 +460,6 @@ CApplication::~CApplication(void)
   delete m_seekHandler;
   delete m_playerController;
   delete m_pInertialScrollingHandler;
-
 }
 
 bool CApplication::OnEvent(XBMC_Event& newEvent)
@@ -602,14 +599,14 @@ bool CApplication::Create()
     g_graphicsContext.ResetOverscan((RESOLUTION)i, CDisplaySettings::Get().GetResolutionInfo(i).Overscan);
   }
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
   tzset();   // Initialize timezone information variables
 #endif
 
   // Grab a handle to our thread to be used later in identifying the render thread.
   m_threadID = CThread::GetCurrentThreadId();
 
-#ifndef _LINUX
+#ifndef TARGET_POSIX
   //floating point precision to 24 bits (faster performance)
   _controlfp(_PC_24, _MCW_PC);
 
@@ -646,17 +643,28 @@ bool CApplication::Create()
 
   CLog::Log(LOGNOTICE, "-----------------------------------------------------------------------");
 #if defined(TARGET_DARWIN_OSX)
-  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Platform: Darwin OSX (%s). Built on %s", g_infoManager.GetVersion().c_str(), g_sysinfo.GetUnameVersion().c_str(), __DATE__);
+  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Built on " __DATE__ " (GCC version %i.%i.%i). Platform: Darwin OSX (%s)", 
+              g_infoManager.GetVersion().c_str(), __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__, g_sysinfo.GetUnameVersion().c_str());
 #elif defined(TARGET_DARWIN_IOS)
-  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Platform: Darwin iOS (%s). Built on %s", g_infoManager.GetVersion().c_str(), g_sysinfo.GetUnameVersion().c_str(), __DATE__);
-#elif defined(__FreeBSD__)
-  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Platform: FreeBSD (%s). Built on %s", g_infoManager.GetVersion().c_str(), g_sysinfo.GetUnameVersion().c_str(), __DATE__);
-#elif defined(_LINUX)
-  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Platform: Linux (%s, %s). Built on %s", g_infoManager.GetVersion().c_str(), g_sysinfo.GetLinuxDistro().c_str(), g_sysinfo.GetUnameVersion().c_str(), __DATE__);
-#elif defined(_WIN32)
-  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Platform: %s. Built on %s (compiler %i)", g_infoManager.GetVersion().c_str(), g_sysinfo.GetKernelVersion().c_str(), __DATE__, _MSC_VER);
-  CLog::Log(LOGNOTICE, g_cpuInfo.getCPUModel().c_str());
-  CLog::Log(LOGNOTICE, CWIN32Util::GetResInfoString());
+  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Built on " __DATE__ " (GCC version %i.%i.%i). Platform: Darwin iOS (%s)",
+              g_infoManager.GetVersion().c_str(), __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__, g_sysinfo.GetUnameVersion().c_str());
+#elif defined(TARGET_FREEBSD)
+  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Built on " __DATE__ " (GCC version %i.%i.%i). Platform: FreeBSD (%s)",
+              g_infoManager.GetVersion().c_str(), __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__, g_sysinfo.GetUnameVersion().c_str());
+#elif defined(TARGET_POSIX)
+  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Built on " __DATE__ " (GCC version %i.%i.%i). Platform: Linux (%s, %s)",
+              g_infoManager.GetVersion().c_str(), __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__, g_sysinfo.GetLinuxDistro().c_str(), g_sysinfo.GetUnameVersion().c_str());
+#elif defined(TARGET_WINDOWS)
+  CLog::Log(LOGNOTICE, "Starting XBMC (%s), Built on " __DATE__ " (MSVC version %i). Platform: %s", g_infoManager.GetVersion().c_str(), _MSC_VER, g_sysinfo.GetKernelVersion().c_str());
+#endif
+#if defined(_DEBUG)
+  CLog::Log(LOGINFO, "Using Debug XBMC build");
+#elif defined(NDEBUG)
+  CLog::Log(LOGINFO, "Using Release XBMC build");
+#endif
+#if defined(TARGET_WINDOWS)
+  CLog::Log(LOGNOTICE, "%s", g_cpuInfo.getCPUModel().c_str());
+  CLog::Log(LOGNOTICE, "%s", CWIN32Util::GetResInfoString().c_str());
   CLog::Log(LOGNOTICE, "Running with %s rights", (CWIN32Util::IsCurrentUserLocalAdministrator() == TRUE) ? "administrator" : "restricted");
   CLog::Log(LOGNOTICE, "Aero is %s", (g_sysinfo.IsAeroDisabled() == true) ? "disabled" : "enabled");
 #endif
@@ -698,9 +706,9 @@ bool CApplication::Create()
   // for python scripts that check the OS
 #if defined(TARGET_DARWIN)
   setenv("OS","OS X",true);
-#elif defined(_LINUX)
+#elif defined(TARGET_POSIX)
   setenv("OS","Linux",true);
-#elif defined(_WIN32)
+#elif defined(TARGET_WINDOWS)
   CEnvironment::setenv("OS", "win32");
 #endif
 
@@ -781,6 +789,10 @@ bool CApplication::Create()
   // initialize the addon database (must be before the addon manager is init'd)
   CDatabaseManager::Get().Initialize(true);
 
+#ifdef HAS_PYTHON
+  CScriptInvocationManager::Get().RegisterLanguageInvocationHandler(&g_pythonParser, ".py");
+#endif // HAS_PYTHON
+
   // start-up Addons Framework
   // currently bails out if either cpluff Dll is unavailable or system dir can not be scanned
   if (!CAddonMgr::Get().Init())
@@ -843,13 +855,13 @@ bool CApplication::CreateGUI()
   //depending on how it's compiled, SDL periodically calls XResetScreenSaver when it's fullscreen
   //this might bring the monitor out of standby, so we have to disable it explicitly
   //by passing 0 for overwrite to setsenv, the user can still override this by setting the environment variable
-#if defined(_LINUX) && !defined(TARGET_DARWIN)
+#if defined(TARGET_POSIX) && !defined(TARGET_DARWIN)
   setenv("SDL_VIDEO_ALLOW_SCREENSAVER", "1", 0);
 #endif
 
 #endif // HAS_SDL
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
   // for nvidia cards - vsync currently ALWAYS enabled.
   // the reason is that after screen has been setup changing this env var will make no difference.
   setenv("__GL_SYNC_TO_VBLANK", "1", 0);
@@ -994,7 +1006,7 @@ bool CApplication::InitDirectoriesLinux()
          might be mixed case.
 */
 
-#if defined(_LINUX) && !defined(TARGET_DARWIN)
+#if defined(TARGET_POSIX) && !defined(TARGET_DARWIN)
   CStdString userName;
   if (getenv("USER"))
     userName = getenv("USER");
@@ -1168,7 +1180,7 @@ bool CApplication::InitDirectoriesOSX()
 
 bool CApplication::InitDirectoriesWin32()
 {
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   CStdString xbmcPath;
 
   CUtil::GetHomePath(xbmcPath);
@@ -1211,12 +1223,12 @@ void CApplication::CreateUserDirs()
 
 bool CApplication::Initialize()
 {
-#if defined(HAS_DVD_DRIVE) && !defined(_WIN32) // somehow this throws an "unresolved external symbol" on win32
+#if defined(HAS_DVD_DRIVE) && !defined(TARGET_WINDOWS) // somehow this throws an "unresolved external symbol" on win32
   // turn off cdio logging
   cdio_loglevel_default = CDIO_LOG_ERROR;
 #endif
 
-#ifdef _LINUX // TODO: Win32 has no special://home/ mapping by default, so we
+#ifdef TARGET_POSIX // TODO: Win32 has no special://home/ mapping by default, so we
               //       must create these here. Ideally this should be using special://home/ and
               //       be platform agnostic (i.e. unify the InitDirectories*() functions)
   if (!m_bPlatformDirectories)
@@ -1421,9 +1433,7 @@ bool CApplication::Initialize()
   if (!CProfilesManager::Get().UsingLoginScreen())
   {
     UpdateLibraries();
-#ifdef HAS_PYTHON
-    g_pythonParser.m_bLogin = true;
-#endif
+    SetLoggingIn(true);
   }
 
   m_slowTimer.StartZero();
@@ -1515,7 +1525,7 @@ void CApplication::StopPVRManager()
 
 void CApplication::StartServices()
 {
-#if !defined(_WIN32) && defined(HAS_DVD_DRIVE)
+#if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
   // Start Thread for DVD Mediatype detection
   CLog::Log(LOGNOTICE, "start dvd mediatype detection");
   m_DetectDVDType.Create(false, THREAD_MINSTACKSIZE);
@@ -1533,7 +1543,7 @@ void CApplication::StopServices()
 {
   m_network->NetworkMessage(CNetwork::SERVICES_DOWN, 0);
 
-#if !defined(_WIN32) && defined(HAS_DVD_DRIVE)
+#if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
   CLog::Log(LOGNOTICE, "stop dvd detect media");
   m_DetectDVDType.StopThread();
 #endif
@@ -2181,6 +2191,20 @@ bool CApplication::OnKey(const CKey& key)
   m_idleTimer.StartZero();
   bool processKey = AlwaysProcess(action);
 
+  if (StringUtils::StartsWith(action.GetName(),"CECToggleState") || StringUtils::StartsWith(action.GetName(),"CECStandby"))
+  {
+    bool ret = true;
+
+    CLog::Log(LOGDEBUG, "%s: action %s [%d], toggling state of playing device", __FUNCTION__, action.GetName().c_str(), action.GetID());
+    // do not wake up the screensaver right after switching off the playing device
+    if (StringUtils::StartsWith(action.GetName(),"CECToggleState"))
+      ret = CApplicationMessenger::Get().CECToggleState();
+    else
+      ret = CApplicationMessenger::Get().CECStandby();
+    if (!ret) /* display is switched off */
+      return true;
+  }
+
   ResetScreenSaver();
 
   // allow some keys to be processed while the screensaver is active
@@ -2478,6 +2502,22 @@ bool CApplication::OnAction(const CAction &action)
     return true;
   }
 
+  // Now check with the playlist player if action can be handled.
+  // In case of the action PREV_ITEM, we only allow the playlist player to take it if we're less than 3 seconds into playback.
+  if (!(action.GetID() == ACTION_PREV_ITEM && m_pPlayer && m_pPlayer->CanSeek() && GetTime() > 3) )
+  {
+    if (g_playlistPlayer.OnAction(action))
+      return true;
+  }
+
+  // Now check with the player if action can be handled.
+  if (g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
+      (g_windowManager.GetActiveWindow() == WINDOW_DIALOG_VIDEO_OSD && (action.GetID() == ACTION_NEXT_ITEM || action.GetID() == ACTION_PREV_ITEM || action.GetID() == ACTION_CHANNEL_UP || action.GetID() == ACTION_CHANNEL_DOWN)))
+  {
+    if (m_pPlayer != NULL && m_pPlayer->OnAction(action))
+      return true;
+  }
+
   // stop : stops playing current audio song
   if (action.GetID() == ACTION_STOP)
   {
@@ -2485,34 +2525,12 @@ bool CApplication::OnAction(const CAction &action)
     return true;
   }
 
-  // previous : play previous song from playlist
-  if (action.GetID() == ACTION_PREV_ITEM)
+  // In case the playlist player nor the player didn't handle PREV_ITEM, because we are past the 3 secs limit.
+  // If so, we just jump to the start of the track.
+  if (action.GetID() == ACTION_PREV_ITEM && m_pPlayer && m_pPlayer->CanSeek())
   {
-    // first check whether we're within 3 seconds of the start of the track
-    // if not, we just revert to the start of the track
-    if (m_pPlayer && m_pPlayer->CanSeek() && GetTime() > 3)
-    {
-      SeekTime(0);
-      SetPlaySpeed(1);
-    }
-    else
-    {
-      g_playlistPlayer.PlayPrevious();
-    }
-    return true;
-  }
-
-  // next : play next song from playlist
-  if (action.GetID() == ACTION_NEXT_ITEM)
-  {
-    if (IsPlaying() && m_pPlayer->SkipNext())
-      return true;
-
-    if (IsPaused())
-      m_pPlayer->Pause();
-
-    g_playlistPlayer.PlayNext();
-
+    SeekTime(0);
+    SetPlaySpeed(1);
     return true;
   }
 
@@ -3264,7 +3282,7 @@ bool CApplication::Cleanup()
     CSettings::Get().Uninitialize();
     g_advancedSettings.Clear();
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
     CXHandle::DumpObjectTracker();
 
 #ifdef HAS_DVD_DRIVE
@@ -3385,17 +3403,16 @@ void CApplication::Stop(int exitCode)
     CCrystalHD::RemoveInstance();
 #endif
 
-  g_mediaManager.Stop();
+    g_mediaManager.Stop();
 
-  // Stop services before unloading Python
-  CAddonMgr::Get().StopServices(false);
+    // Stop services before unloading Python
+    CAddonMgr::Get().StopServices(false);
 
-/* Python resource freeing must be done after skin has been unloaded, not before
-   some windows still need it when deinitializing during skin unloading. */
-#ifdef HAS_PYTHON
-  CLog::Log(LOGNOTICE, "stop python");
-  g_pythonParser.FreeResources();
-#endif
+    // stop all remaining scripts; must be done after skin has been unloaded,
+    // not before some windows still need it when deinitializing during skin
+    // unloading
+    CScriptInvocationManager::Get().Uninitialize();
+
     g_Windowing.DestroyRenderSystem();
     g_Windowing.DestroyWindow();
     g_Windowing.DestroyWindowSystem();
@@ -3632,6 +3649,10 @@ PlayBackRet CApplication::PlayStack(const CFileItem& item, bool bRestart)
 
 PlayBackRet CApplication::PlayFile(const CFileItem& item, bool bRestart)
 {
+  // Ensure the MIME type has been retrieved for http:// and shout:// streams
+  if (item.GetMimeType().empty())
+    const_cast<CFileItem&>(item).FillInMimeType();
+
   if (!bRestart)
   {
     SaveCurrentFileSettings();
@@ -3975,7 +3996,7 @@ PlayBackRet CApplication::PlayFile(const CFileItem& item, bool bRestart)
 
     }
 
-#if !defined(TARGET_DARWIN) && !defined(_LINUX)
+#if !defined(TARGET_POSIX)
     g_audioManager.Enable(false);
 #endif
 
@@ -4896,7 +4917,7 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr)
 #ifdef HAS_PYTHON
     if (item.IsPythonScript())
     { // a python script
-      g_pythonParser.evalFile(item.GetPath().c_str(),ADDON::AddonPtr());
+      CScriptInvocationManager::Get().Execute(item.GetPath());
     }
     else
 #endif
@@ -4921,10 +4942,21 @@ void CApplication::Process()
   // (this can only be done after g_windowManager.Render())
   CApplicationMessenger::Get().ProcessWindowMessages();
 
-#ifdef HAS_PYTHON
-  // process any Python scripts
-  g_pythonParser.Process();
-#endif
+  if (m_loggingIn)
+  {
+    m_loggingIn = false;
+
+    // autoexec.py - profile
+    CStdString strAutoExecPy = CSpecialProtocol::TranslatePath("special://profile/autoexec.py");
+
+    if (XFILE::CFile::Exists(strAutoExecPy))
+      CScriptInvocationManager::Get().Execute(strAutoExecPy);
+    else
+      CLog::Log(LOGDEBUG, "no profile autoexec.py (%s) found, skipping", strAutoExecPy.c_str());
+  }
+
+  // handle any active scripts
+  CScriptInvocationManager::Get().Process();
 
   // process messages, even if a movie is playing
   CApplicationMessenger::Get().ProcessMessages();
@@ -5025,7 +5057,7 @@ void CApplication::ProcessSlow()
     UPNP::CUPnP::GetInstance()->UpdateState();
 #endif
 
-#if defined(_LINUX) && defined(HAS_FILESYSTEM_SMB)
+#if defined(TARGET_POSIX) && defined(HAS_FILESYSTEM_SMB)
   smb.CheckIfIdle();
 #endif
 

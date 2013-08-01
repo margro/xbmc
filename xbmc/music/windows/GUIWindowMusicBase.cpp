@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -339,7 +339,7 @@ void CGUIWindowMusicBase::OnInfo(CFileItem *pItem, bool bShowInfo)
     }
   }
 
-  // check the first song we find in the folder, and grab it's album info
+  // check the first song we find in the folder, and grab its album info
   for (int i = 0; i < items.Size(); i++)
   {
     CFileItemPtr pItem = items[i];
@@ -347,9 +347,13 @@ void CGUIWindowMusicBase::OnInfo(CFileItem *pItem, bool bShowInfo)
     if (pItem->HasMusicInfoTag() && pItem->GetMusicInfoTag()->Loaded() &&
        !pItem->GetMusicInfoTag()->GetAlbum().IsEmpty())
     {
-      ShowAlbumInfo(pItem.get());
+      bool result = ShowAlbumInfo(pItem.get());
+
       if (m_dlgProgress && bShowInfo)
         m_dlgProgress->Close();
+
+      if (!result) // Something went wrong, so bail for the rest
+        break;
     }
   }
 
@@ -420,7 +424,7 @@ void CGUIWindowMusicBase::ShowArtistInfo(const CFileItem *pItem, bool bShowInfo 
     m_dlgProgress->Close();
 }
 
-void CGUIWindowMusicBase::ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo /* = true */)
+bool CGUIWindowMusicBase::ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo /* = true */)
 {
   CQueryParams params;
   CDirectoryNode::GetDatabaseInfo(pItem->GetPath(), params);
@@ -431,12 +435,19 @@ void CGUIWindowMusicBase::ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo /
         !m_musicdatabase.GetAlbumInfo(params.GetAlbumId(), albumInfo.GetAlbum(), &albumInfo.GetAlbum().songs))
     {
       if (!CProfilesManager::Get().GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
-        break; // should display a dialog saying no permissions
+      {
+        // TODO: should display a dialog saying no permissions
+        if (m_dlgProgress)
+          m_dlgProgress->Close();
+        return false;
+      }
 
       if (g_application.IsMusicScanning())
       {
         CGUIDialogOK::ShowAndGetInput(189, 14057, 0, 0);
-        break;
+        if (m_dlgProgress)
+          m_dlgProgress->Close();
+        return false;
       }
 
       // show dialog box indicating we're searching the album
@@ -453,7 +464,9 @@ void CGUIWindowMusicBase::ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo /
       if (scanner.UpdateDatabaseAlbumInfo(pItem->GetPath(), albumInfo, bShowInfo) != INFO_ADDED || !albumInfo.Loaded())
       {
         CGUIDialogOK::ShowAndGetInput(185, 0, 500, 0);
-        break;
+        if (m_dlgProgress)
+          m_dlgProgress->Close();
+        return false;
       }
     }
 
@@ -479,6 +492,7 @@ void CGUIWindowMusicBase::ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo /
   }
   if (m_dlgProgress)
     m_dlgProgress->Close();
+  return true;
 }
 
 void CGUIWindowMusicBase::ShowSongInfo(CFileItem* pItem)
@@ -1024,7 +1038,8 @@ void CGUIWindowMusicBase::UpdateThumb(const CAlbum &album, const CStdString &pat
     CMusicInfoScanner::FileItemsToAlbums(items, albums);
     if (albums.size() == 1)
     { // set as folder thumb as well
-      CThumbLoader::SetCachedImage(items, "thumb", albumPath);
+      CMusicThumbLoader loader;
+      loader.SetCachedImage(items, "thumb", albumPath);
     }
   }
 
@@ -1091,7 +1106,10 @@ bool CGUIWindowMusicBase::GetDirectory(const CStdString &strDirectory, CFileItem
   items.SetArt("thumb", "");
   bool bResult = CGUIMediaWindow::GetDirectory(strDirectory, items);
   if (bResult)
-    CMusicThumbLoader::FillThumb(items);
+  {
+    CMusicThumbLoader loader;
+    loader.FillThumb(items);
+  }
 
   // add in the "New Playlist" item if we're in the playlists folder
   if ((items.GetPath() == "special://musicplaylists/") && !items.Contains("newplaylist://"))

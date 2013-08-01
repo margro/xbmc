@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,12 +25,13 @@
 #include "cdioSupport.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
+#include "utils/Environment.h"
 #include <cdio/logging.h>
 #include <cdio/util.h>
 #include <cdio/mmc.h>
 #include <cdio/cd_types.h>
 
-#if defined(_WIN32)
+#if defined(TARGET_WINDOWS)
 #pragma comment(lib, "libcdio.dll.lib")
 #endif
 
@@ -211,8 +212,9 @@ char* CLibcdio::GetDeviceFileName()
 
   if (s_defaultDevice == NULL)
   {
-    if (getenv("XBMC_DVD_DEVICE") != NULL)
-      s_defaultDevice = strdup(getenv("XBMC_DVD_DEVICE"));
+    std::string strEnvDvd = CEnvironment::getenv("XBMC_DVD_DEVICE");
+    if (!strEnvDvd.empty())
+      s_defaultDevice = strdup(strEnvDvd.c_str());
     else
     {
       CdIo_t *p_cdio = ::cdio_open(NULL, DRIVER_UNKNOWN);

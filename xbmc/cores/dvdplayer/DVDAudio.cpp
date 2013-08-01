@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ CPTSOutputQueue::CPTSOutputQueue()
   Flush();
 }
 
-void CPTSOutputQueue::Add(double pts, double delay, double duration)
+void CPTSOutputQueue::Add(double pts, double delay, double duration, double timestamp)
 {
   CSingleLock lock(m_sync);
 
@@ -47,7 +47,7 @@ void CPTSOutputQueue::Add(double pts, double delay, double duration)
 
   TPTSItem item;
   item.pts = pts;
-  item.timestamp = CDVDClock::GetAbsoluteClock() + delay;
+  item.timestamp = timestamp + delay;
   item.duration = duration;
 
   // first one is applied directly
@@ -58,7 +58,7 @@ void CPTSOutputQueue::Add(double pts, double delay, double duration)
 
   // call function to make sure the queue
   // doesn't grow should nobody call it
-  Current();
+  Current(timestamp);
 }
 void CPTSOutputQueue::Flush()
 {
@@ -70,7 +70,7 @@ void CPTSOutputQueue::Flush()
   m_current.duration = 0.0;
 }
 
-double CPTSOutputQueue::Current()
+double CPTSOutputQueue::Current(double timestamp)
 {
   CSingleLock lock(m_sync);
 
@@ -80,7 +80,7 @@ double CPTSOutputQueue::Current()
     m_queue.pop();
   }
 
-  while( !m_queue.empty() && CDVDClock::GetAbsoluteClock() >= m_queue.front().timestamp )
+  while( !m_queue.empty() && timestamp >= m_queue.front().timestamp )
   {
     m_current = m_queue.front();
     m_queue.pop();
@@ -88,7 +88,7 @@ double CPTSOutputQueue::Current()
 
   if( m_current.timestamp == 0 ) return m_current.pts;
 
-  return m_current.pts + min(m_current.duration, (CDVDClock::GetAbsoluteClock() - m_current.timestamp));
+  return m_current.pts + min(m_current.duration, (timestamp - m_current.timestamp));
 }
 
 
@@ -116,7 +116,7 @@ CDVDAudio::~CDVDAudio()
   free(m_pBuffer);
 }
 
-bool CDVDAudio::Create(const DVDAudioFrame &audioframe, CodecID codec, bool needresampler)
+bool CDVDAudio::Create(const DVDAudioFrame &audioframe, AVCodecID codec, bool needresampler)
 {
   CLog::Log(LOGNOTICE,
     "Creating audio stream (codec id: %i, channels: %i, sample rate: %i, %s)",
@@ -179,13 +179,9 @@ void CDVDAudio::Destroy()
   m_time.Flush();
 }
 
-DWORD CDVDAudio::AddPacketsRenderer(unsigned char* data, DWORD len, CSingleLock &lock)
+unsigned int CDVDAudio::AddPacketsRenderer(unsigned char* data, unsigned int len, CSingleLock &lock)
 {
   if(!m_pAudioStream)
-    return 0;
-
-  DWORD bps = m_channelLayout.Count() * m_iBitrate * (m_iBitsPerSample>>3);
-  if(!bps)
     return 0;
 
   //Calculate a timeout when this definitely should be done
@@ -194,8 +190,8 @@ DWORD CDVDAudio::AddPacketsRenderer(unsigned char* data, DWORD len, CSingleLock 
   timeout += DVD_SEC_TO_TIME(1.0);
   timeout += CDVDClock::GetAbsoluteClock();
 
-  DWORD  total = len;
-  DWORD  copied;
+  unsigned int  total = len;
+  unsigned int  copied;
   do
   {
     copied = m_pAudioStream->AddData(data, len);
@@ -218,22 +214,22 @@ DWORD CDVDAudio::AddPacketsRenderer(unsigned char* data, DWORD len, CSingleLock 
   return total - len;
 }
 
-DWORD CDVDAudio::AddPackets(const DVDAudioFrame &audioframe)
+unsigned int CDVDAudio::AddPackets(const DVDAudioFrame &audioframe)
 {
   CSingleLock lock (m_critSection);
 
   unsigned char* data = audioframe.data;
-  DWORD len = audioframe.size;
+  unsigned int len = audioframe.size;
 
-  DWORD total = len;
-  DWORD copied;
+  unsigned int total = len;
+  unsigned int copied;
 
   if (m_iBufferSize > 0) // See if there are carryover bytes from the last call. need to add them 1st.
   {
     copied = std::min(m_dwPacketSize - m_iBufferSize % m_dwPacketSize, len); // Smaller of either the data provided or the leftover data
     if(copied)
     {
-      m_pBuffer = (BYTE*)realloc(m_pBuffer, m_iBufferSize + copied);
+      m_pBuffer = (uint8_t*)realloc(m_pBuffer, m_iBufferSize + copied);
       memcpy(m_pBuffer + m_iBufferSize, data, copied); // Tack the caller's data onto the end of the buffer
       data += copied; // Move forward in caller's data
       len -= copied; // Decrease amount of data available from caller
@@ -262,13 +258,15 @@ DWORD CDVDAudio::AddPackets(const DVDAudioFrame &audioframe)
   // if we have more data left, save it for the next call to this funtion
   if (len > 0 && !m_bStop)
   {
-    m_pBuffer     = (BYTE*)realloc(m_pBuffer, len);
+    m_pBuffer     = (uint8_t*)realloc(m_pBuffer, len);
     m_iBufferSize = len;
     memcpy(m_pBuffer, data, len);
   }
 
   double time_added = DVD_SEC_TO_TIME(m_SecondsPerByte * (data - audioframe.data));
-  m_time.Add(audioframe.pts, GetDelay() - time_added, audioframe.duration);
+  double delay      = GetDelay();
+  double timestamp  = CDVDClock::GetAbsoluteClock();
+  m_time.Add(audioframe.pts, delay - time_added, audioframe.duration, timestamp);
 
   return total;
 }
@@ -279,12 +277,12 @@ void CDVDAudio::Finish()
   if (!m_pAudioStream)
     return;
 
-  DWORD silence = m_dwPacketSize - m_iBufferSize % m_dwPacketSize;
+  unsigned int silence = m_dwPacketSize - m_iBufferSize % m_dwPacketSize;
 
   if(silence > 0 && m_iBufferSize > 0)
   {
     CLog::Log(LOGDEBUG, "CDVDAudio::Drain - adding %d bytes of silence, buffer size: %d, chunk size: %d", silence, m_iBufferSize, m_dwPacketSize);
-    m_pBuffer = (BYTE*)realloc(m_pBuffer, m_iBufferSize + silence);
+    m_pBuffer = (uint8_t*)realloc(m_pBuffer, m_iBufferSize + silence);
     memset(m_pBuffer+m_iBufferSize, 0, silence);
     m_iBufferSize += silence;
   }
@@ -430,5 +428,12 @@ void CDVDAudio::SetPlayingPts(double pts)
 {
   CSingleLock lock (m_critSection);
   m_time.Flush();
-  m_time.Add(pts, GetDelay(), 0);
+  double delay     = GetDelay();
+  double timestamp = CDVDClock::GetAbsoluteClock();
+  m_time.Add(pts, delay, 0, timestamp);
+}
+
+double CDVDAudio::GetPlayingPts()
+{
+  return m_time.Current(CDVDClock::GetAbsoluteClock());
 }

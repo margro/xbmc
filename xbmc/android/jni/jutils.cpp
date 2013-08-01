@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,10 +49,13 @@
 #define DBG(fmt, ...)
 #include <string>
 #include "jutils/jutils-details.hpp"
+
 namespace jni
 {
+
 namespace details
 {
+
 std::string jcast_helper<std::string, jstring>::cast(jstring const &v)
 {
     JNIEnv *env = xbmc_jnienv();
@@ -72,8 +75,49 @@ std::string jcast_helper<std::string, jstring>::cast(jstring const &v)
 jhstring jcast_helper<jhstring, std::string>::cast(const std::string &s)
 {
     JNIEnv *env = xbmc_jnienv();
-    jstring obj = env->NewStringUTF(s.c_str());
-    return jhstring(obj);
+    jstring ret = NULL;
+    if (!s.empty())
+    {
+      ret = env->NewStringUTF(s.c_str());
+    }
+    return jhstring(ret);
+}
+
+jhobjectArray jcast_helper<jhobjectArray, std::vector<std::string> >::cast(const std::vector<std::string> &s)
+{
+  JNIEnv *env = xbmc_jnienv();
+  jobjectArray ret = NULL;
+  if (!s.empty())
+  {
+    ret = env->NewObjectArray(s.size(), env->FindClass("java/lang/String"), NULL);
+    for (unsigned int i = 0; i < s.size(); i++)
+    env->SetObjectArrayElement(ret, i, env->NewStringUTF(s[i].c_str()));
+  }
+  return jhobjectArray(ret);
+}
+
+std::vector<std::string> jcast_helper<std::vector<std::string>, jobjectArray >::cast(const jobjectArray &s)
+{
+  JNIEnv *env = xbmc_jnienv();
+  std::vector<std::string> ret;
+  jstring element;
+  const char* newString = NULL;
+  if (!s)
+    return ret;
+
+  unsigned int arraySize = env->GetArrayLength(s);
+  ret.reserve(arraySize);
+  for (unsigned int i = 0; i < arraySize; ++i)
+  {
+    element = (jstring) env->GetObjectArrayElement(s, i);
+    newString = env->GetStringUTFChars(element, JNI_FALSE);
+    if (newString)
+    {
+      ret.push_back(newString);
+      env->ReleaseStringUTFChars(element, newString);
+    }
+  }
+  return ret;
 }
 
 #define CRYSTAX_PP_CAT(a, b, c) CRYSTAX_PP_CAT_IMPL(a, b, c)
@@ -149,7 +193,7 @@ jhobject new_object(JNIEnv *env, jclass cls, jmethodID mid, ...)
 template <typename T>
 struct result_helper
 {
-    static T make_result(JNIEnv *env, T obj) {return obj;}
+    static T make_result(JNIEnv *env, T obj) {(void)env; return obj;}
 };
 
 template <typename T>

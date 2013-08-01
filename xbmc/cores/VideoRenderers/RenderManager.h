@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include "threads/Thread.h"
 #include "settings/VideoSettings.h"
 #include "OverlayRenderer.h"
+#include <deque>
 
 class CRenderCapture;
 
@@ -107,7 +108,7 @@ public:
   void AddOverlay(CDVDOverlay* o, double pts)
   {
     CSharedLock lock(m_sharedSection);
-    m_overlays.AddOverlay(o, pts, (m_QueueOutput + 1) % m_QueueSize);
+    m_overlays.AddOverlay(o, pts, m_free.front());
   }
 
   void AddCleanup(OVERLAY::COverlay* o)
@@ -120,7 +121,7 @@ public:
 
   RESOLUTION GetResolution();
 
-  float GetMaximumFPS();
+  static float GetMaximumFPS();
   inline bool IsStarted() { return m_bIsStarted;}
   double GetDisplayLatency() { return m_displayLatency; }
   int    GetSkippedFrames()  { return m_QueueSkip; }
@@ -132,7 +133,7 @@ public:
 
   EINTERLACEMETHOD AutoInterlaceMethod(EINTERLACEMETHOD mInt);
 
-  double GetPresentTime();
+  static double GetPresentTime();
   void  WaitPresentTime(double presenttime);
 
   CStdString GetVSyncState();
@@ -184,8 +185,6 @@ protected:
   void PresentFields(bool clear, DWORD flags, DWORD alpha);
   void PresentBlend(bool clear, DWORD flags, DWORD alpha);
 
-  int  GetNextRender();
-  int  GetNextDecode();
   void PrepareNextRender();
 
   EINTERLACEMETHOD AutoInterlaceMethodInternal(EINTERLACEMETHOD mInt);
@@ -212,39 +211,31 @@ protected:
     PRESENT_METHOD_BLEND,
     PRESENT_METHOD_WEAVE,
     PRESENT_METHOD_BOB,
-    PRESENT_METHOD_BYPASS,
   };
 
   double m_displayLatency;
   void UpdateDisplayLatency();
 
-  // Render Buffer State Description:
-  //
-  // Output:      is the buffer about to or having its texture prepared for render (ie from output thread).
-  //              Cannot go past the "Displayed" buffer (otherwise we will probably overwrite buffers not yet
-  //              displayed or even rendered).
-  // Render:      is the current buffer being or having been submitted for render to back buffer.
-  //              Cannot go past "Output" buffer (else it would be rendering old output).
-
-  int m_QueueRender;
-  int m_QueueOutput;
   int m_QueueSize;
   int m_QueueSkip;
 
-  struct
+  struct SPresent
   {
     double         timestamp;
     EFIELDSYNC     presentfield;
     EPRESENTMETHOD presentmethod;
   } m_Queue[NUM_BUFFERS];
 
-  double     m_presenttime;
+  std::deque<int> m_free;
+  std::deque<int> m_queued;
+  std::deque<int> m_discard;
+
+  ERenderFormat   m_format;
+
   double     m_presentcorr;
   double     m_presenterr;
   double     m_errorbuff[ERRORBUFFSIZE];
   int        m_errorindex;
-  EFIELDSYNC m_presentfield;
-  EPRESENTMETHOD m_presentmethod;
   EPRESENTSTEP     m_presentstep;
   int        m_presentsource;
   XbmcThreads::ConditionVariable  m_presentevent;
@@ -261,6 +252,9 @@ protected:
   //set to true when adding something to m_captures, set to false when m_captures is made empty
   //std::list::empty() isn't thread safe, using an extra bool will save a lock per render when no captures are requested
   bool                       m_hasCaptures; 
+
+  // temporary fix for RendererHandlesPresent after #2811
+  bool m_firstFlipPage;
 };
 
 extern CXBMCRenderManager g_renderManager;

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -498,7 +498,7 @@ void CDVDPlayerAudio::OnStartup()
 
   g_dvdPerformanceCounter.EnableAudioDecodePerformance(this);
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   CoInitializeEx(NULL, COINIT_MULTITHREADED);
 #endif
 }
@@ -824,7 +824,7 @@ void CDVDPlayerAudio::OnExit()
 {
   g_dvdPerformanceCounter.DisableAudioDecodePerformance();
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   CoUninitialize();
 #endif
 

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2009-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -99,7 +99,7 @@ CStdString XBMC::XBMC_MD5::GetMD5(const CStdString &text)
 
 #include <sys/types.h>		/* for stupid systems */
 #include <string.h>		/* for memcpy() */
-#if defined(HAVE_CONFIG_H) && !defined(_WIN32)
+#if defined(HAVE_CONFIG_H) && !defined(TARGET_WINDOWS)
 #include "../config.h"
 #endif
 

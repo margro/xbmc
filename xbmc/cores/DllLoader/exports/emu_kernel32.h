@@ -3,7 +3,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #define MAX_LEADBYTES             12
 #define MAX_DEFAULTCHAR           2
 
-#if defined (_LINUX)
+#if defined (TARGET_POSIX)
 typedef struct _STARTUPINFOA
 {
   DWORD cb;
@@ -90,7 +90,7 @@ SYSTEM_INFO, *LPSYSTEM_INFO;
 #endif
 
 typedef DWORD LCTYPE;
-#if defined (_LINUX)
+#if defined (TARGET_POSIX)
 typedef BOOL (*PHANDLER_ROUTINE)(DWORD);
 
 typedef struct _OSVERSIONINFO
@@ -115,7 +115,7 @@ typedef struct _OSVERSIONINFOW
 }
 OSVERSIONINFOW, *LPOSVERSIONINFOW;
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #define EXCEPTION_MAXIMUM_PARAMETERS 15
 typedef struct _EXCEPTION_RECORD {
   DWORD ExceptionCode;
@@ -132,7 +132,7 @@ typedef struct _EXCEPTION_RECORD {
 
 #endif
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #define LANG_ENGLISH 0x09
 #define SUBLANG_ENGLISH_US 0x01
 #define MAKELCID(lgid, srtid)  ((DWORD)((((DWORD)((WORD  )(srtid))) << 16) | ((DWORD)((WORD  )(lgid)))))
@@ -175,7 +175,7 @@ typedef struct _EXCEPTION_RECORD {
 // LOCAL defines from mingw
 #define MAX_LEADBYTES 	12
 #define MAX_DEFAULTCHAR	2
-#if defined (_LINUX)
+#if defined (TARGET_POSIX)
 #define LOCALE_NOUSEROVERRIDE	0x80000000
 #define LOCALE_USE_CP_ACP	0x40000000
 #if (WINVER >= 0x0400)

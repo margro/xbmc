@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -314,7 +314,7 @@ namespace XFILE
   {
     CFileItemList list;
     bool filesExist = false;
-    if (playlistType == "songs" || playlistType == "albums")
+    if (playlistType == "songs" || playlistType == "albums" || playlistType == "artists")
       filesExist = CDirectory::GetDirectory("special://musicplaylists/", list, ".xsp", false);
     else // all others are video
       filesExist = CDirectory::GetDirectory("special://videoplaylists/", list, ".xsp", false);

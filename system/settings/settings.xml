@@ -390,11 +390,6 @@
           <level>2</level>
           <default>true</default>
         </setting>
-        <setting id="videoplayer.usevda" type="boolean" label="13429" help="36160">
-          <visible>HasVDADecoder</visible>
-          <level>2</level>
-          <default>true</default>
-        </setting>
         <setting id="videoplayer.useomx" type="boolean" label="13430" help="36161">
           <visible>HAVE_LIBOPENMAX</visible>
           <level>2</level>
@@ -1601,7 +1596,7 @@
             <allowempty>true</allowempty>
           </constraints>
         </setting>
-        <setting id="weather.addonsettings" type="action" parent="weather.addon" label="21417" help="36103">
+        <setting id="weather.addonsettings" type="action" parent="weather.addon" label="21417" help="36419">
           <level>0</level>
           <dependencies>
             <dependency type="enable" on="property" name="AddonHasSettings" setting="weather.addon" />

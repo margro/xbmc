@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,15 +18,16 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
 
 class CJNIBitSet : public CJNIBase
 {
 public:
-  ~CJNIBitSet(){};
-  CJNIBitSet(const jni::jhobject &object) : CJNIBase(object){};
   CJNIBitSet();
   CJNIBitSet(int);
+  CJNIBitSet(const jni::jhobject &object) : CJNIBase(object) {};
+  ~CJNIBitSet() {};
 
   void flip(int);
   void flip(int, int);
@@ -39,17 +40,17 @@ public:
   void clear();
   bool get(int);
   CJNIBitSet get(int, int);
-  int nextSetBit(int);
-  int nextClearBit(int);
-  int length();
+  int  nextSetBit(int);
+  int  nextClearBit(int);
+  int  length();
   bool isEmpty();
   bool intersects(const CJNIBitSet &);
-  int cardinality();
+  int  cardinality();
   void jand(const CJNIBitSet &);
   void jor(const CJNIBitSet &);
   void jxor(const CJNIBitSet &);
   void jandNot(const CJNIBitSet &);
-  int hashCode();
-  int size();
+  int  hashCode();
+  int  size();
   std::string toString();
 };

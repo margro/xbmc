@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2012 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -60,6 +60,7 @@ protected:
   
   void CreateSettings();
   void UpdateSettings();
+  void SetDescription(const CVariant &label);
   CGUIControl* AddSetting(CSetting *pSetting, float width, int &iControlID);
   CGUIControl* AddSeparator(float width, int &iControlID);
   CGUIControl* AddSettingControl(CGUIControl *pControl, BaseSettingControlPtr pSettingControl, float width, int &iControlID);

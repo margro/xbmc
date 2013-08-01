@@ -3,7 +3,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include "PlatformDefs.h"
 #include "XHandlePublic.h"
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #define XBMC_FILE_SEP '/'
 #else
 #define XBMC_FILE_SEP '\\'

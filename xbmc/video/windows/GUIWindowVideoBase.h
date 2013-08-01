@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ enum VideoSelectAction
   SELECT_ACTION_PLAYPART
 };
 
-class CGUIWindowVideoBase : public CGUIMediaWindow, public IBackgroundLoaderObserver, public IStreamDetailsObserver
+class CGUIWindowVideoBase : public CGUIMediaWindow, public IBackgroundLoaderObserver
 {
 public:
   CGUIWindowVideoBase(int id, const CStdString &xmlFile);
@@ -50,7 +50,6 @@ public:
 
   void AddToDatabase(int iItem);
   virtual void OnInfo(CFileItem* pItem, const ADDON::ScraperPtr& scraper);
-  virtual void OnStreamDetails(const CStreamDetails &details, const CStdString &strFileName, long lFileId);
   static void MarkWatched(const CFileItemPtr &pItem, bool bMark);
   static void UpdateVideoTitle(const CFileItem* pItem);
 

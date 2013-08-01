@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ bool CDVDDemuxCDDA::Open(CDVDInputStream* pInput)
   m_stream->iBitRate        = 44100 * 2 * 16;
   m_stream->iChannels       = 2;
   m_stream->type            = STREAM_AUDIO;
-  m_stream->codec           = CODEC_ID_PCM_S16LE;
+  m_stream->codec           = AV_CODEC_ID_PCM_S16LE;
 
   return true;
 }

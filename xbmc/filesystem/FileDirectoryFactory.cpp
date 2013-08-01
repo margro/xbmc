@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -62,6 +62,9 @@ CFileDirectoryFactory::~CFileDirectoryFactory(void)
 // return NULL + set pItem->m_bIsFolder to remove it completely from list.
 IFileDirectory* CFileDirectoryFactory::Create(const CStdString& strPath, CFileItem* pItem, const CStdString& strMask)
 {
+  if (URIUtils::IsStack(strPath)) // disqualify stack as we need to work with each of the parts instead
+    return NULL;
+
   CStdString strExtension=URIUtils::GetExtension(strPath);
   strExtension.MakeLower();
 

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,14 +18,21 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
 
 class CJNIURI : public CJNIBase
 {
-  public:
+public:
+  CJNIURI(const jni::jhobject &uri) : CJNIBase(uri) {};
+  ~CJNIURI() {};
+
+  std::string getScheme() const;
+  std::string toString()  const;
+  std::string getLastPathSegment() const;
+  std::string getPath()   const;
   static CJNIURI parse(std::string uriString);
-  ~CJNIURI(){};
+
 private:
-  CJNIURI(const jni::jhobject &uri) : CJNIBase(uri){};
   CJNIURI();
 };

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -286,7 +286,10 @@ bool CDirectory::Remove(const CStdString& strPath)
     auto_ptr<IDirectory> pDirectory(CDirectoryFactory::Create(realPath));
     if (pDirectory.get())
       if(pDirectory->Remove(realPath.c_str()))
+      {
+        g_directoryCache.ClearFile(realPath);
         return true;
+      }
   }
   XBMCCOMMONS_HANDLE_UNCHECKED
   catch (...)

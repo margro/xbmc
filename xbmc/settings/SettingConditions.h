@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ public:
   void AddCondition(const std::string &condition);
   void AddCondition(const std::string &identifier, SettingConditionCheck condition);
 
-  bool Check(const std::string &condition, const std::string &value = "", const std::string settingId = "") const;
+  bool Check(const std::string &condition, const std::string &value = "", const std::string &settingId = "") const;
 
 private:
   CSettingConditionsManager(const CSettingConditionsManager&);

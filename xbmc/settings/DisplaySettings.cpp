@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -525,7 +525,7 @@ void CDisplaySettings::SettingOptionsRefreshRatesFiller(const CSetting *setting,
   vector<REFRESHRATE> refreshrates = g_Windowing.RefreshRates(resInfo.iScreen, resInfo.iScreenWidth, resInfo.iScreenHeight, resInfo.dwFlags);
 
   bool match = false;
-  for (vector<REFRESHRATE>::const_iterator refreshrate = refreshrates.begin(); refreshrate != refreshrates.end(); refreshrate++)
+  for (vector<REFRESHRATE>::const_iterator refreshrate = refreshrates.begin(); refreshrate != refreshrates.end(); ++refreshrate)
   {
     std::string screenmode = GetStringFromResolution((RESOLUTION)refreshrate->ResInfo_Index, refreshrate->RefreshRate);
     if (!match && StringUtils::EqualsNoCase(((CSettingString*)setting)->GetValue(), screenmode))
@@ -550,7 +550,7 @@ void CDisplaySettings::SettingOptionsResolutionsFiller(const CSetting *setting, 
   {
     std::map<RESOLUTION, RESOLUTION_INFO> resolutionInfos;
     vector<RESOLUTION_WHR> resolutions = g_Windowing.ScreenResolutions(info.iScreen, info.fRefreshRate);
-    for (vector<RESOLUTION_WHR>::const_iterator resolution = resolutions.begin(); resolution != resolutions.end(); resolution++)
+    for (vector<RESOLUTION_WHR>::const_iterator resolution = resolutions.begin(); resolution != resolutions.end(); ++resolution)
     {
       list.push_back(make_pair(
         StringUtils::Format("%dx%d%s", resolution->width, resolution->height,
@@ -589,7 +589,7 @@ void CDisplaySettings::SettingOptionsScreensFiller(const CSetting *setting, std:
 
 void CDisplaySettings::SettingOptionsVerticalSyncsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current)
 {
-#if defined(_LINUX) && !defined(TARGET_DARWIN)
+#if defined(TARGET_POSIX) && !defined(TARGET_DARWIN)
   list.push_back(make_pair(g_localizeStrings.Get(13101), VSYNC_DRIVER));
 #endif
   list.push_back(make_pair(g_localizeStrings.Get(13106), VSYNC_DISABLED));

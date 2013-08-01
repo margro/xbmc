@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -133,11 +133,4 @@ private:
   CStreamDetailVideo *m_pBestVideo;
   CStreamDetailAudio *m_pBestAudio;
   CStreamDetailSubtitle *m_pBestSubtitle;
-};
-
-class IStreamDetailsObserver
-{
-public:
-  virtual ~IStreamDetailsObserver() {}
-  virtual void OnStreamDetails(const CStreamDetails &details, const CStdString &strFileName, long lFileId) = 0;
 };

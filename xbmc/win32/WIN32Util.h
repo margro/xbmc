@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,9 +21,7 @@
  */
 
 #include "URL.h"
-#if _MSC_VER > 1400
 #include "Cfgmgr32.h"
-#endif
 #include "MediaSource.h"
 #include "guilib/Geometry.h"
 #include "powermanagement/PowerManager.h"
@@ -59,6 +57,8 @@ public:
   static CStdString GetSpecialFolder(int csidl);
   static CStdString GetSystemPath();
   static CStdString GetProfilePath();
+  static CStdString NormalToExtendedLengthPath(const CStdString &strPath);
+  static CStdString ExtendedToNormalLengthPath(const CStdString &strPath);
   static CStdString UncToSmb(const CStdString &strPath);
   static CStdString SmbToUnc(const CStdString &strPath);
   static void ExtendDllPath();
@@ -89,9 +89,7 @@ public:
   static bool IsUsbDevice(const CStdStringW &strWdrive);
 
 private:
-#if _MSC_VER > 1400
   static DEVINST GetDrivesDevInstByDiskNumber(long DiskNumber);
-#endif
 };
 
 

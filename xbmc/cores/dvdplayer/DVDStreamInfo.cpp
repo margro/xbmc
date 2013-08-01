@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ CDVDStreamInfo::~CDVDStreamInfo()
 
 void CDVDStreamInfo::Clear()
 {
-  codec = CODEC_ID_NONE;
+  codec = AV_CODEC_ID_NONE;
   type = STREAM_NONE;
   software = false;
   codec_tag  = 0;

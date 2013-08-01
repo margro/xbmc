@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -120,7 +120,7 @@ bool CSettingControl::setAttributes(const std::string &strAttributes)
   std::vector<std::string> attributeList = StringUtils::Split(strAttributes, ",");
 
   int controlAttributes = SettingControlAttributeNone;
-  for (std::vector<std::string>::const_iterator attribute = attributeList.begin(); attribute != attributeList.end(); attribute++)
+  for (std::vector<std::string>::const_iterator attribute = attributeList.begin(); attribute != attributeList.end(); ++attribute)
   {
     if (StringUtils::EqualsNoCase(*attribute, "hidden"))
       controlAttributes |= (int)SettingControlAttributeHidden;

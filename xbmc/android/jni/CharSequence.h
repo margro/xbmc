@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,14 +18,17 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
 
 class CJNICharSequence : public CJNIBase
 {
 public:
-  ~CJNICharSequence(){};
-  CJNICharSequence(const jni::jhobject &object) : CJNIBase(object){};
+  CJNICharSequence(const jni::jhobject &object) : CJNIBase(object) {};
+  ~CJNICharSequence() {};
+
   std::string toString();
+
 private:
   CJNICharSequence();
 };

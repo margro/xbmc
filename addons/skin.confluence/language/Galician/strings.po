@@ -1,16 +1,15 @@
 # XBMC Media Center language file
 # Addon Name: Confluence
 # Addon id: skin.confluence
-# Addon version: 2.1.3
 # Addon Provider: Jezz_X, Team XBMC
 msgid ""
 msgstr ""
-"Project-Id-Version: XBMC Main Translation Project (Frodo)\n"
+"Project-Id-Version: XBMC Main\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: XBMC Translation Team\n"
-"Language-Team: Galician (http://www.transifex.com/projects/p/XBMC-Main-Frodo/language/gl/)\n"
+"Language-Team: Galician (http://www.transifex.com/projects/p/xbmc-main/language/gl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -36,6 +35,10 @@ msgstr "Ocultar información"
 msgctxt "#31006"
 msgid "View Options"
 msgstr "Ver opcións"
+
+msgctxt "#31007"
+msgid "Settings Options"
+msgstr "Opcións dos axustes"
 
 msgctxt "#31008"
 msgid "Fullscreen"
@@ -108,6 +111,10 @@ msgstr "AXIÑA ADIANTE"
 msgctxt "#31045"
 msgid "REWIND"
 msgstr "REBOBINAR"
+
+msgctxt "#31046"
+msgid "SEEKING"
+msgstr "BUSCANDO"
 
 msgctxt "#31048"
 msgid "Visualization Presets"
@@ -540,3 +547,43 @@ msgstr "Colleitando información da predición..."
 msgctxt "#31910"
 msgid "Map & Alerts"
 msgstr "Mapas e Alertas"
+
+msgctxt "#31950"
+msgid "WEATHER"
+msgstr "O TEMPO"
+
+msgctxt "#31951"
+msgid "PICTURES"
+msgstr "IMAXES"
+
+msgctxt "#31952"
+msgid "LIVE TV"
+msgstr "TV EN DIRECTO"
+
+msgctxt "#31953"
+msgid "VIDEOS"
+msgstr "VÍDEOS"
+
+msgctxt "#31954"
+msgid "MOVIES"
+msgstr "FILMES"
+
+msgctxt "#31955"
+msgid "TV SHOWS"
+msgstr "SERIES DE TV"
+
+msgctxt "#31956"
+msgid "MUSIC"
+msgstr "MÚSICA"
+
+msgctxt "#31957"
+msgid "PROGRAMS"
+msgstr "PROGRAMAS"
+
+msgctxt "#31958"
+msgid "PLAY DISC"
+msgstr "REPRODUCIR DISCO"
+
+msgctxt "#31959"
+msgid "SYSTEM"
+msgstr "SISTEMA"

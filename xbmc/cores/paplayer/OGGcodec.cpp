@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -55,10 +55,8 @@ bool OGGCodec::Init(const CStdString &strFile1, unsigned int filecache)
 
   m_CurrentStream=0;
 
-  CStdString strExtension = URIUtils::GetExtension(strFile);
-
   //  A bitstream inside a ogg file?
-  if (strExtension==".oggstream")
+  if (URIUtils::HasExtension(strFile, ".oggstream"))
   {
     //  Extract the bitstream to play
     CStdString strFileName=URIUtils::GetFileName(strFile);

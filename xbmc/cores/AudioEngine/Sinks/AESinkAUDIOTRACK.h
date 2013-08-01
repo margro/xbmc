@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 
 #include "Interfaces/AESink.h"
 #include "Utils/AEDeviceInfo.h"
+#include "threads/CriticalSection.h"
 
 class AERingBuffer;
 
@@ -52,8 +53,9 @@ private:
   AEAudioFormat      m_format;
   double             m_volume;
   bool               m_volume_changed;
+  CCriticalSection   m_volume_lock;
   volatile int       m_min_frames;
-  int16_t           *m_alignedS16LE;
+  int16_t           *m_alignedS16;
   AERingBuffer      *m_sinkbuffer;
   unsigned int       m_sink_frameSize;
   double             m_sinkbuffer_sec;
@@ -62,6 +64,7 @@ private:
   CEvent             m_wake;
   CEvent             m_inited;
   volatile bool      m_draining;
+  CCriticalSection   m_drain_lock;
   bool               m_passthrough;
 
   double             m_audiotrackbuffer_sec;

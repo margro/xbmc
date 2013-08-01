@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -12,9 +12,9 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  Lesser General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *  You should have received a copy of the GNU General Public License
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 #include "system.h"
@@ -268,14 +268,14 @@ bool CDecoder::Open(AVCodecContext *avctx, enum PixelFormat fmt, unsigned int su
 
   vector<VAProfile> accepted;
   switch (avctx->codec_id) {
-    case CODEC_ID_MPEG2VIDEO:
+    case AV_CODEC_ID_MPEG2VIDEO:
       accepted.push_back(VAProfileMPEG2Main);
       break;
-    case CODEC_ID_MPEG4:
-    case CODEC_ID_H263:
+    case AV_CODEC_ID_MPEG4:
+    case AV_CODEC_ID_H263:
       accepted.push_back(VAProfileMPEG4AdvancedSimple);
       break;
-    case CODEC_ID_H264:
+    case AV_CODEC_ID_H264:
     {
 #ifdef FF_PROFILE_H264_BASELINE
       if  (avctx->profile == FF_PROFILE_H264_BASELINE)
@@ -294,10 +294,10 @@ bool CDecoder::Open(AVCodecContext *avctx, enum PixelFormat fmt, unsigned int su
       }
       break;
     }
-    case CODEC_ID_WMV3:
+    case AV_CODEC_ID_WMV3:
       accepted.push_back(VAProfileVC1Main);
       break;
-    case CODEC_ID_VC1:
+    case AV_CODEC_ID_VC1:
       accepted.push_back(VAProfileVC1Advanced);
       break;
     default:
@@ -384,7 +384,7 @@ bool CDecoder::EnsureContext(AVCodecContext *avctx)
   m_refs = avctx->refs;
   if(m_refs == 0)
   {
-    if(avctx->codec_id == CODEC_ID_H264)
+    if(avctx->codec_id == AV_CODEC_ID_H264)
       m_refs = 16;
     else
       m_refs = 2;
@@ -395,6 +395,12 @@ bool CDecoder::EnsureContext(AVCodecContext *avctx)
 bool CDecoder::EnsureSurfaces(AVCodecContext *avctx, unsigned n_surfaces_count)
 {
   CLog::Log(LOGDEBUG, "VAAPI - making sure %d surfaces are allocated for given %d references", n_surfaces_count, avctx->refs);
+
+  if(n_surfaces_count > m_surfaces_max)
+  {
+    CLog::Log(LOGERROR, "VAAPI - Failed to ensure surfaces! Requested %d surfaces. Maximum possible count is %d!", n_surfaces_count, m_surfaces_max);
+    return false;
+  }
 
   if(n_surfaces_count <= m_surfaces_count)
     return true;

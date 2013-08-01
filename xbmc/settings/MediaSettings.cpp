@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ CMediaSettings::CMediaSettings()
   m_additionalSubtitleDirectoryChecked = 0;
 
   m_musicNeedsUpdate = 0;
-  m_musicNeedsUpdate = 0;
+  m_videoNeedsUpdate = 0;
 }
 
 CMediaSettings::~CMediaSettings()

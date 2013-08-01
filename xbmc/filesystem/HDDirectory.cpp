@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include "utils/AliasShortcutUtils.h"
 #include "utils/URIUtils.h"
 
-#ifndef _LINUX
+#ifndef TARGET_POSIX
 #include "utils/CharsetConverter.h"
 #endif
 
@@ -35,7 +35,8 @@
 #define INVALID_FILE_ATTRIBUTES ((DWORD) -1)
 #endif
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
+#include "win32/WIN32Util.h"
 typedef WIN32_FIND_DATAW LOCAL_WIN32_FIND_DATA;
 #define LocalFindFirstFile FindFirstFileW
 #define LocalFindNextFile FindNextFileW
@@ -68,7 +69,7 @@ bool CHDDirectory::GetDirectory(const CStdString& strPath1, CFileItemList &items
 
   memset(&wfd, 0, sizeof(wfd));
   URIUtils::AddSlashAtEnd(strRoot);
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   strRoot.Replace("/", "\\");
 #endif
   if (URIUtils::IsDVD(strRoot) && m_isoReader.IsScanned())
@@ -78,10 +79,10 @@ bool CHDDirectory::GetDirectory(const CStdString& strPath1, CFileItemList &items
     m_isoReader.Reset();
   }
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   CStdStringW strSearchMask;
-  g_charsetConverter.utf8ToW(strRoot, strSearchMask, false);
-  strSearchMask.Insert(0, L"\\\\?\\");
+  CStdString strExtendedRoot = CWIN32Util::NormalToExtendedLengthPath(strRoot);
+  g_charsetConverter.utf8ToW(strExtendedRoot, strSearchMask, false);
   strSearchMask += "*.*";
 #else
   CStdString strSearchMask = strRoot;
@@ -101,7 +102,7 @@ bool CHDDirectory::GetDirectory(const CStdString& strPath1, CFileItemList &items
       if (wfd.cFileName[0] != 0)
       {
         CStdString strLabel;
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
         g_charsetConverter.wToUTF8(wfd.cFileName,strLabel);
 #else
         strLabel = wfd.cFileName;
@@ -149,13 +150,12 @@ bool CHDDirectory::Create(const char* strPath)
   CStdString strPath1 = strPath;
   URIUtils::AddSlashAtEnd(strPath1);
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   if (strPath1.size() == 3 && strPath1[1] == ':')
     return Exists(strPath);  // A drive - we can't "create" a drive
+  CStdString strExtPath = CWIN32Util::NormalToExtendedLengthPath(strPath1);
   CStdStringW strWPath1;
-  strPath1.Replace("/", "\\");
-  g_charsetConverter.utf8ToW(strPath1, strWPath1, false);
-  strWPath1.Insert(0, L"\\\\?\\");
+  g_charsetConverter.utf8ToW(strExtPath, strWPath1, false);
   if(::CreateDirectoryW(strWPath1, NULL))
 #else
   if(::CreateDirectory(strPath1.c_str(), NULL))
@@ -169,11 +169,10 @@ bool CHDDirectory::Create(const char* strPath)
 
 bool CHDDirectory::Remove(const char* strPath)
 {
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   CStdStringW strWPath;
-  g_charsetConverter.utf8ToW(strPath, strWPath, false);
-  strWPath.Replace(L"/", L"\\");
-  strWPath.Insert(0, L"\\\\?\\");
+  CStdString strExtPath = CWIN32Util::NormalToExtendedLengthPath(strPath);
+  g_charsetConverter.utf8ToW(strExtPath, strWPath, false);
   return (::RemoveDirectoryW(strWPath) || GetLastError() == ERROR_PATH_NOT_FOUND) ? true : false;
 #else
   return ::RemoveDirectory(strPath) ? true : false;
@@ -185,12 +184,11 @@ bool CHDDirectory::Exists(const char* strPath)
   if (!strPath || !*strPath)
     return false;
   CStdString strReplaced=strPath;
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   CStdStringW strWReplaced;
-  strReplaced.Replace("/","\\");
+  strReplaced = CWIN32Util::NormalToExtendedLengthPath(strReplaced);
   URIUtils::AddSlashAtEnd(strReplaced);
   g_charsetConverter.utf8ToW(strReplaced, strWReplaced, false);
-  strWReplaced.Insert(0, L"\\\\?\\");
   DWORD attributes = GetFileAttributesW(strWReplaced);
 #else
   DWORD attributes = GetFileAttributes(strReplaced.c_str());

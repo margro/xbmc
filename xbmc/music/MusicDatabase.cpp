@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -187,7 +187,7 @@ bool CMusicDatabase::CreateTables()
     CLog::Log(LOGINFO, "create song index3");
     m_pDS->exec("CREATE INDEX idxSong3 ON song(idAlbum)");
     CLog::Log(LOGINFO, "create song index6");
-    m_pDS->exec("CREATE UNIQUE INDEX idxSong6 ON song( idPath, strFileName(255) )");
+    m_pDS->exec("CREATE INDEX idxSong6 ON song( idPath, strFileName(255) )");
     CLog::Log(LOGINFO, "create song index7");
     m_pDS->exec("CREATE UNIQUE INDEX idxSong7 ON song( idAlbum, strMusicBrainzTrackID(36) )");
 
@@ -364,12 +364,15 @@ int CMusicDatabase::AddSong(const int idAlbum,
     bHasKaraoke = CKaraokeLyricsFactory::HasLyrics(strPathAndFileName);
 #endif
 
-    strSQL=PrepareSQL("SELECT * FROM song WHERE (idAlbum = %i AND strMusicBrainzTrackID = '%s') OR (idAlbum=%i AND dwFileNameCRC='%ul' AND strTitle='%s' AND strMusicBrainzTrackID IS NULL)",
-                      idAlbum,
-                      strMusicBrainzTrackID.c_str(),
-                      idAlbum,
-                      crc,
-                      strTitle.c_str());
+    if (!strMusicBrainzTrackID.empty())
+      strSQL = PrepareSQL("SELECT * FROM song WHERE idAlbum = %i AND strMusicBrainzTrackID = '%s'",
+                          idAlbum,
+                          strMusicBrainzTrackID.c_str());
+    else
+      strSQL = PrepareSQL("SELECT * FROM song WHERE idAlbum=%i AND dwFileNameCRC='%ul' AND strTitle='%s' AND strMusicBrainzTrackID IS NULL",
+                          idAlbum,
+                          crc,
+                          strTitle.c_str());
 
     if (!m_pDS->query(strSQL.c_str()))
       return -1;
@@ -440,13 +443,13 @@ int CMusicDatabase::AddSong(const int idAlbum,
   return idSong;
 }
 
-  int CMusicDatabase::UpdateSong(int idSong,
-                                 const CStdString& strTitle, const CStdString& strMusicBrainzTrackID,
-                                 const CStdString& strPathAndFileName, const CStdString& strComment, const CStdString& strThumb,
-                                 const std::vector<std::string>& artists, const std::vector<std::string>& genres,
-                                 int iTrack, int iDuration, int iYear,
-                                 int iTimesPlayed, int iStartOffset, int iEndOffset,
-                                 const CDateTime& dtLastPlayed, char rating, int iKaraokeNumber)
+int CMusicDatabase::UpdateSong(int idSong,
+                               const CStdString& strTitle, const CStdString& strMusicBrainzTrackID,
+                               const CStdString& strPathAndFileName, const CStdString& strComment, const CStdString& strThumb,
+                               const std::vector<std::string>& artists, const std::vector<std::string>& genres,
+                               int iTrack, int iDuration, int iYear,
+                               int iTimesPlayed, int iStartOffset, int iEndOffset,
+                               const CDateTime& dtLastPlayed, char rating, int iKaraokeNumber)
 {
   CStdString sql;
   if (idSong < 0)
@@ -497,10 +500,13 @@ int CMusicDatabase::AddAlbum(const CStdString& strAlbum, const CStdString& strMu
     if (NULL == m_pDB.get()) return -1;
     if (NULL == m_pDS.get()) return -1;
 
-    strSQL=PrepareSQL("SELECT * FROM album WHERE strMusicBrainzAlbumID = '%s' OR (strArtists = '%s' AND strAlbum like '%s' and strMusicBrainzAlbumID IS NULL)",
-                      strMusicBrainzAlbumID.c_str(),
-                      strArtist.c_str(),
-                      strAlbum.c_str());
+    if (!strMusicBrainzAlbumID.empty())
+      strSQL = PrepareSQL("SELECT * FROM album WHERE strMusicBrainzAlbumID = '%s'",
+                        strMusicBrainzAlbumID.c_str());
+    else
+      strSQL = PrepareSQL("SELECT * FROM album WHERE strArtists = '%s' AND strAlbum like '%s' and strMusicBrainzAlbumID IS NULL",
+                          strArtist.c_str(),
+                          strAlbum.c_str());
     m_pDS->query(strSQL.c_str());
 
     if (m_pDS->num_rows() == 0)
@@ -607,9 +613,13 @@ int CMusicDatabase::AddArtist(const CStdString& strArtist, const CStdString& str
     if (NULL == m_pDB.get()) return -1;
     if (NULL == m_pDS.get()) return -1;
 
-     strSQL = PrepareSQL("SELECT * FROM artist WHERE strMusicBrainzArtistID = '%s' OR (strArtist = '%s' AND strMusicBrainzArtistID IS NULL)",
-                         strMusicBrainzArtistID.IsEmpty() ? "x" : strMusicBrainzArtistID.c_str(),
-                         strArtist.c_str());
+    if (!strMusicBrainzArtistID.empty())
+      strSQL = PrepareSQL("SELECT * FROM artist WHERE strMusicBrainzArtistID = '%s'",
+                          strMusicBrainzArtistID.c_str());
+    else
+      strSQL = PrepareSQL("SELECT * FROM artist WHERE strArtist = '%s' AND strMusicBrainzArtistID IS NULL",
+                          strArtist.c_str());
+
     m_pDS->query(strSQL.c_str());
 
     if (m_pDS->num_rows() == 0)
@@ -2022,8 +2032,7 @@ bool CMusicDatabase::CleanupSongsByIds(const CStdString &strSongIds)
       //  Special case for streams inside an ogg file. (oggstream)
       //  The last dir in the path is the ogg file that
       //  contains the stream, so test if its there
-      CStdString strExtension=URIUtils::GetExtension(strFileName);
-      if (strExtension==".oggstream" || strExtension==".nsfstream")
+      if (URIUtils::HasExtension(strFileName, ".oggstream|.nsfstream"))
       {
         CStdString strFileAndPath=strFileName;
         URIUtils::GetDirectory(strFileAndPath, strFileName);
@@ -2191,6 +2200,12 @@ bool CMusicDatabase::CleanupPaths()
     CLog::Log(LOGERROR, "Exception in CMusicDatabase::CleanupPaths() or was aborted");
   }
   return false;
+}
+
+bool CMusicDatabase::InsideScannedPath(const CStdString& path)
+{
+  CStdString sql = PrepareSQL("select idPath from path where SUBSTR(strPath,1,%i)='%s' LIMIT 1", path.size(), path.c_str());
+  return !GetSingleValue(sql).empty();
 }
 
 bool CMusicDatabase::CleanupArtists()
@@ -3724,7 +3739,7 @@ bool CMusicDatabase::UpdateOldVersion(int version)
   if (version < 33)
   {
     m_pDS->exec("DROP INDEX idxSong6 ON song");
-    m_pDS->exec("CREATE UNIQUE INDEX idxSong6 on song( idPath, strFileName(255) )");
+    m_pDS->exec("CREATE INDEX idxSong6 on song( idPath, strFileName(255) )");
   }
 
   if (version < 34)
@@ -3777,6 +3792,13 @@ bool CMusicDatabase::UpdateOldVersion(int version)
       }
     }
   }
+ 
+  if (version < 37)
+  {
+    m_pDS->exec("DROP INDEX idxSong6 ON song");
+    m_pDS->exec("CREATE INDEX idxSong6 on song( idPath, strFileName(255) )");
+  }
+    
   // always recreate the views after any table change
   CreateViews();
 
@@ -3785,7 +3807,7 @@ bool CMusicDatabase::UpdateOldVersion(int version)
 
 int CMusicDatabase::GetMinVersion() const
 {
-  return 36;
+  return 37;
 }
 
 unsigned int CMusicDatabase::GetSongIDs(const Filter &filter, vector<pair<int,int> > &songIDs)
@@ -3890,9 +3912,9 @@ bool CMusicDatabase::SaveAlbumThumb(int idAlbum, const CStdString& strThumb)
   SetArtForItem(idAlbum, "album", "thumb", strThumb);
   // TODO: We should prompt the user to update the art for songs
   CStdString sql = PrepareSQL("UPDATE art"
-                              " SET art_url='-'"
+                              " SET url='-'"
                               " WHERE media_type='song'"
-                              " AND art_type='thumb'"
+                              " AND type='thumb'"
                               " AND media_id IN"
                               " (SELECT idSong FROM song WHERE idAlbum=%ld)", idAlbum);
   ExecuteQuery(sql);

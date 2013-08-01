@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string>
+#include "../../../xbmc/addons/include/xbmc_addon_types.h"
 #include "../../../addons/library.xbmc.addon/libXBMC_addon.h"
 #include "../../../xbmc/addons/AddonCallbacks.h"
 
@@ -113,8 +114,7 @@ DLLEXPORT char* XBMC_get_dvd_menu_language(void *hdl, void* cb)
   if (cb == NULL)
     return "";
 
-  string buffer = ((CB_AddOnLib*)cb)->GetDVDMenuLanguage(((AddonCB*)hdl)->addonData);
-  return strdup(buffer.c_str());
+  return ((CB_AddOnLib*)cb)->GetDVDMenuLanguage(((AddonCB*)hdl)->addonData);
 }
 
 DLLEXPORT void XBMC_free_string(void* hdl, void* cb, char* str)

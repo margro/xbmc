@@ -1,5 +1,22 @@
-
-#include "Dialog.h"
+ /*
+ *      Copyright (C) 2005-2013 Team XBMC
+ *      http://xbmc.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
+ *
+ */
 #include "LanguageHook.h"
 
 #include "dialogs/GUIDialogOK.h"
@@ -11,6 +28,7 @@
 #include "settings/MediaSourceSettings.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "ModuleXbmcgui.h"
+#include "guilib/GUIKeyboardFactory.h"
 
 #define ACTIVE_WINDOW g_windowManager.GetActiveWindow()
 
@@ -236,7 +254,7 @@ namespace XBMCAddon
       return value;
     }
 
-    void Dialog::notification(const String& heading, const String& message, const String& icon, int time)
+    void Dialog::notification(const String& heading, const String& message, const String& icon, int time, bool sound)
     {
       DelayedCallGuard dcguard(languageHook);
 
@@ -249,15 +267,92 @@ namespace XBMCAddon
         strIcon = icon;
       
       if (strIcon.Equals(getNOTIFICATION_INFO()))
-        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, heading, message, iTime);
+        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, heading, message, iTime, sound);
       else if (strIcon.Equals(getNOTIFICATION_WARNING()))
-        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, heading, message, iTime);
+        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, heading, message, iTime, sound);
       else if (strIcon.Equals(getNOTIFICATION_ERROR()))
-        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, heading, message, iTime);
+        CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, heading, message, iTime, sound);
       else
-        CGUIDialogKaiToast::QueueNotification(strIcon, heading, message, iTime);
+        CGUIDialogKaiToast::QueueNotification(strIcon, heading, message, iTime, sound);
     }
     
+    String Dialog::input(const String& heading, const String& defaultt, int type, int option, int autoclose) throw (WindowException)
+    {
+      DelayedCallGuard dcguard(languageHook);
+      CStdString value(defaultt);
+      SYSTEMTIME timedate;
+      GetLocalTime(&timedate);
+
+      switch (type)
+      {
+        case INPUT_ALPHANUM:
+          {
+            bool bHiddenInput = option & ALPHANUM_HIDE_INPUT;
+            if (!CGUIKeyboardFactory::ShowAndGetInput(value, heading, true, bHiddenInput, autoclose))
+              value = emptyString;
+          }
+          break;
+        case INPUT_NUMERIC:
+          {
+            if (!CGUIDialogNumeric::ShowAndGetNumber(value, heading, autoclose))
+              value = emptyString;
+          }
+          break;
+        case INPUT_DATE:
+          {
+            if (!defaultt.empty() && defaultt.size() == 10)
+            {
+              CStdString sDefault = defaultt;
+              timedate.wDay = atoi(sDefault.Left(2));
+              timedate.wMonth = atoi(sDefault.Mid(3,4));
+              timedate.wYear = atoi(sDefault.Right(4));
+            }
+            if (CGUIDialogNumeric::ShowAndGetDate(timedate, heading))
+              value.Format("%2d/%2d/%4d", timedate.wDay, timedate.wMonth, timedate.wYear);
+            else
+              value = emptyString;
+          }
+          break;
+        case INPUT_TIME:
+          {
+            if (!defaultt.empty() && defaultt.size() == 5)
+            {
+              CStdString sDefault = defaultt;
+              timedate.wHour = atoi(sDefault.Left(2));
+              timedate.wMinute = atoi(sDefault.Right(2));
+            }
+            if (CGUIDialogNumeric::ShowAndGetTime(timedate, heading))
+              value.Format("%2d:%02d", timedate.wHour, timedate.wMinute);
+            else
+              value = emptyString;
+          }
+          break;
+        case INPUT_IPADDRESS:
+          {
+            if (!CGUIDialogNumeric::ShowAndGetIPAddress(value, heading))
+              value = emptyString;
+          }
+          break;
+        case INPUT_PASSWORD:
+          {
+            bool bResult = false;
+
+            if (option & PASSWORD_VERIFY)
+              bResult = CGUIKeyboardFactory::ShowAndVerifyPassword(value, heading, 0, autoclose) == 0 ? true : false;
+            else
+              bResult = CGUIKeyboardFactory::ShowAndVerifyNewPassword(value, heading, true, autoclose);
+
+            if (!bResult)
+              value = emptyString;
+          }
+        default:
+          value = emptyString;
+          break;
+      }
+
+      return value;
+    }
+
     DialogProgress::~DialogProgress() { TRACE; deallocating(); }
 
     void DialogProgress::deallocating()

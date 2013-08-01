@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,17 +18,19 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
 
 class CJNIStatFs : public CJNIBase
 {
 public:
   CJNIStatFs(const std::string &path);
-  CJNIStatFs(const jni::jhobject &object) : CJNIBase(object){};
-  ~CJNIStatFs(){};
-  void restat(const std::string &path);
-  int getBlockSize();
-  int getBlockCount();
-  int getFreeBlocks();
-  int getAvailableBlocks();
+  CJNIStatFs(const jni::jhobject &object) : CJNIBase(object) {};
+  ~CJNIStatFs() {};
+
+  void  restat(const std::string &path);
+  int   getBlockSize();
+  int   getBlockCount();
+  int   getFreeBlocks();
+  int   getAvailableBlocks();
 };

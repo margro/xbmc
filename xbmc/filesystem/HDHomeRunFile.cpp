@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -57,11 +57,7 @@ bool CHomeRunFile::Exists(const CURL& url)
    * The filename starts with "tuner" and has no extension. This check will cover off requests
    * for *.tbn, *.jpg, *.jpeg, *.edl etc. that do not exist.
    */
-  if(path.Left(5) == "tuner"
-  && URIUtils::GetExtension(path).IsEmpty())
-    return true;
-
-  return false;
+  return path.Left(5) == "tuner" && !URIUtils::HasExtension(path);
 }
 
 int64_t CHomeRunFile::Seek(int64_t iFilePosition, int iWhence)

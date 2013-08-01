@@ -1,27 +1,27 @@
 /*
-* XBMC Media Center
-* Linux OpenGL Renderer
-* Copyright (c) 2007 Frodo/jcmarshall/vulkanr/d4rk
-*
-* Based on XBoxRenderer by Frodo/jcmarshall
-* Portions Copyright (c) by the authors of ffmpeg / xvid /mplayer
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*/
+ *      Copyright (c) 2007 Frodo/jcmarshall/vulkanr/d4rk
+ *      Based on XBoxRenderer by Frodo/jcmarshall
+ *      Portions Copyright (c) by the authors of ffmpeg / xvid /mplayer
+ *      Copyright (C) 2007-2013 Team XBMC
+ *      http://xbmc.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
+ *
+ */
 #include "system.h"
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
 #endif
 
@@ -597,7 +597,9 @@ void CLinuxRendererGL::Flush()
 
 void CLinuxRendererGL::ReleaseBuffer(int idx)
 {
+#if defined(HAVE_LIBVDPAU) || defined(HAVE_LIBVA) || defined(TARGET_DARWIN)
   YUVBUFFER &buf = m_buffers[idx];
+#endif
 #ifdef HAVE_LIBVDPAU
   SAFE_RELEASE(buf.vdpau);
 #endif
@@ -973,7 +975,7 @@ void CLinuxRendererGL::LoadShaders(int field)
     switch(requestedMethod)
     {
       case RENDER_METHOD_AUTO:
-#if defined(_LINUX) && !defined(__APPLE__)
+#if defined(TARGET_POSIX) && !defined(TARGET_DARWIN)
        //with render method set to auto, don't try glsl on ati if we're on linux
        //it seems to be broken in a random way with every new driver release
        tryGlsl = g_Windowing.GetRenderVendor().Left(3).CompareNoCase("ati") != 0;

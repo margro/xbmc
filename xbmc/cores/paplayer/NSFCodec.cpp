@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -49,9 +49,7 @@ bool NSFCodec::Init(const CStdString &strFile, unsigned int filecache)
 
   CStdString strFileToLoad = strFile;
   m_iTrack = 0;
-  CStdString strExtension = URIUtils::GetExtension(strFile);
-  strExtension.MakeLower();
-  if (strExtension==".nsfstream")
+  if (URIUtils::HasExtension(strFile, ".nsfstream"))
   {
     //  Extract the track to play
     CStdString strFileName=URIUtils::GetFileName(strFile);

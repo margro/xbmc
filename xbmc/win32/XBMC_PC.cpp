@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include "XbmcContext.h"
 #include "GUIInfoManager.h"
 #include "utils/StringUtils.h"
+#include "utils/CPUInfo.h"
 
 #ifndef _DEBUG
 #define XBMC_TRACK_EXCEPTIONS
@@ -90,6 +91,12 @@ INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE, LPSTR commandLine, INT )
     return 0;
   }
 #endif
+
+  if((g_cpuInfo.GetCPUFeatures() & CPU_FEATURE_SSE2) == 0)
+  {
+    MessageBox(NULL, "No SSE2 support detected", "XBMC: Fatal Error", MB_OK|MB_ICONERROR);
+    return 0;
+  }
 
   //Initialize COM
   CoInitializeEx(NULL, COINIT_MULTITHREADED);

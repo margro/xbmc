@@ -2,6 +2,9 @@
  *      Copyright (C) 2010 Team Boxee
  *      http://www.boxee.tv
  *
+ *      Copyright (C) 2010-2013 Team XBMC
+ *      http://xbmc.org
+ *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
@@ -16,11 +19,10 @@
  *  along with XBMC; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
+ *  Note: parts of this code comes from libdvdread.
+ *  Jorgen Lundman and team boxee did the necessary modifications to support udf 2.5
  *
- * Note: parts of this code comes from libdvdread.
- * Jorgen Lundman and team boxee did the necessary modifications to support udf 2.5
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -282,7 +284,7 @@ uint32_t UDFFilePos(struct FileAD *File, uint64_t pos, uint64_t *res)
     return 0;
 
   *res = (uint64_t)(File->Partition_Start + File->AD_chain[i].Location) * DVD_VIDEO_LB_LEN + pos;
-  return File->AD_chain[i].Length - pos;
+  return File->AD_chain[i].Length - (uint32_t)pos;
 }
 
 uint32_t UDFFileBlockPos(struct FileAD *File, uint32_t lb)
@@ -291,7 +293,7 @@ uint32_t UDFFileBlockPos(struct FileAD *File, uint32_t lb)
   uint32_t rem;
   rem = UDFFilePos(File, lb * DVD_VIDEO_LB_LEN, &res);
   if(rem > 0)
-    return res / DVD_VIDEO_LB_LEN;
+    return (uint32_t)(res / DVD_VIDEO_LB_LEN);
   else
     return 0;
 }

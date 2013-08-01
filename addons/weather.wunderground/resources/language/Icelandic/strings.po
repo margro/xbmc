@@ -20,6 +20,10 @@ msgctxt "#32121"
 msgid "Weekend"
 msgstr "Helgi"
 
+msgctxt "#32510"
+msgid "Warning"
+msgstr "Athugið"
+
 msgctxt "#32514"
 msgid "Outlook"
 msgstr "Veðurspá"

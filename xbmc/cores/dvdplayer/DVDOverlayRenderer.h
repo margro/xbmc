@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ class CDVDOverlaySSA;
 
 typedef struct stDVDPictureRenderer
 {
-  BYTE* data[4];
+  uint8_t* data[4];
   int stride[4];
 
   int width;

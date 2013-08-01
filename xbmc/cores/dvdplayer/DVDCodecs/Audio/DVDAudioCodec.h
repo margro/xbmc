@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include "system.h"
 #include "cores/AudioEngine/AEAudioFormat.h"
 
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
 #endif
 #include <vector>
@@ -56,13 +56,13 @@ public:
    * returns bytes used or -1 on error
    *
    */
-  virtual int Decode(BYTE* pData, int iSize) = 0;
+  virtual int Decode(uint8_t* pData, int iSize) = 0;
 
   /*
    * returns nr of bytes used or -1 on error
    * the data is valid until the next Decode call
    */
-  virtual int GetData(BYTE** dst) = 0;
+  virtual int GetData(uint8_t** dst) = 0;
 
   /*
    * resets the decoder

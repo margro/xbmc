@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ class CDVDAudioCodec;
 
 typedef struct stDVDAudioFrame
 {
-  BYTE* data;
+  uint8_t* data;
   double pts;
   double duration;
   unsigned int size;
@@ -148,7 +148,7 @@ protected:
     }
 
     CDVDMsgDemuxerPacket*  msg;
-    BYTE*                  data;
+    uint8_t*               data;
     int                    size;
     double                 dts;
 

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,14 +18,18 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "Drawable.h"
+
 class CJNIBitmap;
+
 class CJNIBitmapDrawable : public CJNIDrawable
 {
 public:
   CJNIBitmapDrawable();
-  CJNIBitmapDrawable(const jni::jhobject &object) : CJNIDrawable(object){};
-  CJNIBitmapDrawable(const CJNIDrawable &drawable) : CJNIDrawable(drawable.get()){};
+  CJNIBitmapDrawable(const jni::jhobject &object)  : CJNIDrawable(object) {};
+  CJNIBitmapDrawable(const CJNIDrawable &drawable) : CJNIDrawable(drawable.get_raw()) {};
+  ~CJNIBitmapDrawable() {};
+
   CJNIBitmap getBitmap();
-  ~CJNIBitmapDrawable(){};
 };

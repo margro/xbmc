@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -42,7 +42,8 @@ namespace PVR
     void SetProgInfo(const CFileItem *item);
 
   protected:
-    void Update();
+    virtual void OnInitWindow();
+
     bool ActionStartTimer(const EPG::CEpgInfoTag *tag);
     bool ActionCancelTimer(CFileItemPtr timer);
 

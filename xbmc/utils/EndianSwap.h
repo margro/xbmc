@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,11 +25,11 @@
 
 /* Include config.h to define (or not) WORDS_BIGENDIAN
    File created by configure */
-#if defined(__linux__) || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD)
+#if defined(TARGET_POSIX)
 #include "config.h"
 #include <inttypes.h>
 #endif
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #define __inline__ __inline
 #include <stdint.h>
 #endif

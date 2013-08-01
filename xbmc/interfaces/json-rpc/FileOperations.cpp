@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,12 +30,10 @@
 #include "Util.h"
 #include "URL.h"
 #include "utils/URIUtils.h"
+#include "utils/FileUtils.h"
 
 using namespace XFILE;
 using namespace JSONRPC;
-
-static const unsigned int SourcesSize = 5;
-static CStdString SourceNames[] = { "programs", "files", "video", "music", "pictures" };
 
 JSONRPC_STATUS CFileOperations::GetRootDirectory(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
@@ -82,15 +80,8 @@ JSONRPC_STATUS CFileOperations::GetDirectory(const CStdString &method, ITranspor
   CFileItemList items;
   CStdString strPath = parameterObject["directory"].asString();
 
-  // Check if this directory is part of a source and whether it's locked
-  bool isSource;
-  for (unsigned int index = 0; index < SourcesSize; index++)
-  {
-    VECSOURCES* sources = CMediaSourceSettings::Get().GetSources(SourceNames[index]);
-    int sourceIndex = CUtil::GetMatchingSource(strPath, *sources, isSource);
-    if (sourceIndex >= 0 && sourceIndex < (int)sources->size() && sources->at(sourceIndex).m_iHasLock == 2)
-      return InvalidParams;
-  }
+  if (!CFileUtils::RemoteAccessAllowed(strPath))
+    return InvalidParams;
 
   CStdStringArray regexps;
   CStdString extensions = "";
@@ -129,26 +120,20 @@ JSONRPC_STATUS CFileOperations::GetDirectory(const CStdString &method, ITranspor
           (media == "picture" && items[i]->HasPictureInfoTag()) ||
            media == "files" ||
            URIUtils::IsUPnP(items.GetPath()))
-      {
           filteredFiles.Add(items[i]);
-      }
       else
       {
         CFileItemPtr fileItem(new CFileItem());
         if (FillFileItem(items[i], fileItem, media, parameterObject))
-        {
             filteredFiles.Add(fileItem);
-        }
         else
-        {
             filteredFiles.Add(items[i]);
-        }
       }
     }
 
     // Check if the "properties" list exists
-    // and make sure it contains the "file"
-    // field
+    // and make sure it contains the "file" and "filetype"
+    // fields
     CVariant param = parameterObject;
     if (!param.isMember("properties"))
       param["properties"] = CVariant(CVariant::VariantTypeArray);
@@ -165,6 +150,7 @@ JSONRPC_STATUS CFileOperations::GetDirectory(const CStdString &method, ITranspor
 
     if (!hasFileField)
       param["properties"].append("file");
+    param["properties"].append("filetype");
 
     HandleFileItemList("id", true, "files", filteredFiles, param, result);
 
@@ -178,6 +164,9 @@ JSONRPC_STATUS CFileOperations::GetFileDetails(const CStdString &method, ITransp
 {
   CStdString file = parameterObject["file"].asString();
   if (!CFile::Exists(file))
+    return InvalidParams;
+
+  if (!CFileUtils::RemoteAccessAllowed(file))
     return InvalidParams;
 
   CStdString path;
@@ -210,6 +199,7 @@ JSONRPC_STATUS CFileOperations::GetFileDetails(const CStdString &method, ITransp
 
   if (!hasFileField)
     param["properties"].append("file");
+  param["properties"].append("filetype");
 
   HandleFileItem("id", true, "filedetails", item, parameterObject, param["properties"], result, false);
   return OK;

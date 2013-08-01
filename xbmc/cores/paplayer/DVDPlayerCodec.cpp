@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -97,7 +97,7 @@ bool DVDPlayerCodec::Init(const CStdString &strFile, unsigned int filecache)
   }
   catch(...)
   {
-    CLog::Log(LOGERROR, "%s: Exception thrown when opeing demuxer", __FUNCTION__);
+    CLog::Log(LOGERROR, "%s: Exception thrown when opening demuxer", __FUNCTION__);
     if (m_pDemuxer)
     {
       delete m_pDemuxer;

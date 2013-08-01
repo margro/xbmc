@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include <map>
 
 class CDVDDemuxFFmpeg;
+class CURL;
 
 class CDemuxStreamVideoFFmpeg
   : public CDemuxStreamVideo
@@ -127,6 +128,7 @@ protected:
   void CreateStreams(unsigned int program = UINT_MAX);
   void DisposeStreams();
 
+  AVDictionary *GetFFMpegOptionsFromURL(const CURL &url);
   double ConvertTimestamp(int64_t pts, int den, int num);
   void UpdateCurrentPTS();
   bool IsProgramChange();

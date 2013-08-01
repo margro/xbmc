@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ public:
     LockType mode;
     CStdString code;
     bool addonManager;
-    bool settings;
+    LOCK_LEVEL::SETTINGS_LOCK settings;
     bool music;
     bool video;
     bool files;
@@ -67,7 +67,11 @@ public:
   bool hasSources() const { return m_bSources; }
   bool canWriteSources() const { return m_bCanWriteSources; }
   bool hasAddons() const { return m_bAddons; }
-  bool settingsLocked() const { return m_locks.settings; }
+  /**
+   \brief Returns wich settings levels are locked for the current profile
+   \sa LOCK_LEVEL::SETTINGS_LOCK
+   */
+  LOCK_LEVEL::SETTINGS_LOCK settingsLockLevel() const { return m_locks.settings; }
   bool addonmanagerLocked() const { return m_locks.addonManager; }
   bool musicLocked() const { return m_locks.music; }
   bool videoLocked() const { return m_locks.video; }

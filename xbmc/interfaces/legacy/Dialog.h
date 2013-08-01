@@ -1,6 +1,6 @@
  /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,9 +13,8 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,16 @@
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "Alternative.h"
+
+#define INPUT_ALPHANUM        0
+#define INPUT_NUMERIC         1
+#define INPUT_DATE            2
+#define INPUT_TIME            3
+#define INPUT_IPADDRESS       4
+#define INPUT_PASSWORD        5
+
+#define PASSWORD_VERIFY       1
+#define ALPHANUM_HIDE_INPUT   2
 
 namespace XBMCAddon
 {
@@ -219,12 +228,13 @@ namespace XBMCAddon
       String numeric(int type, const String& heading, const String& defaultt = emptyString);
       
       /**
-       * notification(heading, message[, icon, time]) -- Show a Notification alert.
+       * notification(heading, message[, icon, time, sound]) -- Show a Notification alert.
        * 
        * heading        : string - dialog heading.
        * message        : string - dialog message.
        * icon           : [opt] string - icon to use. (default xbmcgui.NOTIFICATION_INFO)
        * time           : [opt] integer - time in milliseconds (default 5000)
+       * sound          : [opt] bool - play notification sound (default True)
        * 
        * Builtin Icons:
        *   xbmcgui.NOTIFICATION_INFO
@@ -235,7 +245,43 @@ namespace XBMCAddon
        *   - dialog = xbmcgui.Dialog()
        *   - dialog.notification('Movie Trailers', 'Finding Nemo download finished.', xbmcgui.NOTIFICATION_INFO, 5000)\n
        */
-      void notification(const String& heading, const String& message, const String& icon = emptyString, int time = 0);
+      void notification(const String& heading, const String& message, const String& icon = emptyString, int time = 0, bool sound = true);
+
+      /**
+       * input(heading[, default, type, option, autoclose]) -- Show an Input dialog.
+       *
+       * heading        : string - dialog heading.
+       * default        : [opt] string - default value. (default=empty string)
+       * type           : [opt] integer - the type of keyboard dialog. (default=xbmcgui.INPUT_ALPHANUM)
+       * option         : [opt] integer - option for the dialog. (see Options below)
+       * autoclose      : [opt] integer - milliseconds to autoclose dialog. (default=do not autoclose)
+       *
+       * Types:
+       *   xbmcgui.INPUT_ALPHANUM         (standard keyboard)
+       *   xbmcgui.INPUT_NUMERIC          (format: #)
+       *   xbmcgui.INPUT_DATE             (format: DD/MM/YYYY)
+       *   xbmcgui.INPUT_TIME             (format: HH:MM)
+       *   xbmcgui.INPUT_IPADDRESS        (format: #.#.#.#)
+       *   xbmcgui.INPUT_PASSWORD         (return md5 hash of input, input is masked)
+       *
+       * Options Password Dialog:
+       *   xbmcgui.PASSWORD_VERIFY (verifies an existing (default) md5 hashed password)
+       *
+       * Options Alphanum Dialog:
+       *   xbmcgui.ALPHANUM_HIDE_INPUT (masks input)
+       *
+       * *Note, Returns the entered data as a string.
+       *        Returns an empty string if dialog was canceled.
+       *
+       * example:
+       *   - dialog = xbmcgui.Dialog()
+       *   - d = dialog.input('Enter secret code', type=xbmcgui.INPUT_ALPHANUM, option=xbmcgui.ALPHANUM_HIDE_INPUT)\n
+       */
+      String input(const String& heading,
+                   const String& defaultt = emptyString,
+                   int type = INPUT_ALPHANUM,
+                   int option = 0,
+                   int autoclose = 0) throw (WindowException);
     };
 
     /**

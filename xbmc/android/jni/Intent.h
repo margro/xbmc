@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
 
 class CJNIURI;
@@ -25,15 +26,15 @@ class CJNIIntent : public CJNIBase
 {
 public:
   CJNIIntent(const std::string &action = "");
-  ~CJNIIntent(){};
-  CJNIIntent(const jni::jhobject &intent) : CJNIBase(intent){};
+  CJNIIntent(const jni::jhobject &intent) : CJNIBase(intent) {};
+  ~CJNIIntent() {};
 
   std::string getAction();
   std::string getDataString();
   std::string getPackage();
   std::string getType();
 
-  int getIntExtra(const std::string &name, int defaultValue);
+  int  getIntExtra(const std::string &name, int defaultValue);
 
   bool hasExtra(const std::string &name);
   bool hasCategory(const std::string &category);
@@ -50,4 +51,5 @@ public:
 
   void setPackage(const std::string &packageName);
   void setType(const std::string &type);
+  CJNIURI getData() const;
 };

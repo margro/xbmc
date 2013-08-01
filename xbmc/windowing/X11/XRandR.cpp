@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 #include "utils/XBMCTinyXML.h"
 #include "../xbmc/utils/log.h"
 
-#if defined(__FreeBSD__)
+#if defined(TARGET_FREEBSD)
 #include <sys/types.h>
 #include <sys/wait.h>
 #endif

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -223,7 +223,6 @@ void CFileCache::Process()
       bool sourceSeekFailed = false;
       if (!cacheReachEOF)
       {
-        CLog::Log(LOGDEBUG,"CFileCache::Process - Request seek on source to %"PRId64, cacheMaxPos);
         m_nSeekResult = m_source.Seek(cacheMaxPos, SEEK_SET);
         if (m_nSeekResult != cacheMaxPos)
         {

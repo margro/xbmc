@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,20 +18,25 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
 
 class CJNIWakeLock;
+
 class CJNIPowerManager : public CJNIBase
 {
 public:
-  CJNIWakeLock newWakeLock(const std::string &name);
-  void reboot(const std::string &reason);
-  void goToSleep(int64_t timestamp);
+  CJNIPowerManager(const jni::jhobject &object) : CJNIBase(object) {};
+  ~CJNIPowerManager() {};
 
-  CJNIPowerManager(const jni::jhobject &object);
-  ~CJNIPowerManager(){};
+  CJNIWakeLock  newWakeLock(const std::string &name);
+  void          reboot(const std::string &reason);
+  void          goToSleep(int64_t timestamp);
+
+  static void   PopulateStaticFields();
 
 private:
   CJNIPowerManager();
+
   static int FULL_WAKE_LOCK;
 };

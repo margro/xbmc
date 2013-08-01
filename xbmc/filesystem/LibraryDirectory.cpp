@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ bool CLibraryDirectory::GetDirectory(const CStdString& strPath, CFileItemList &i
   if (libNode.IsEmpty())
     return false;
 
-  if (URIUtils::GetExtension(libNode).Equals(".xml"))
+  if (URIUtils::HasExtension(libNode, ".xml"))
   { // a filter node
     TiXmlElement *node = LoadXML(libNode);
     if (node)

@@ -8,7 +8,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -487,7 +487,7 @@ namespace INFO
 
 #define VERSION_MAJOR 13
 #define VERSION_MINOR 0
-#define VERSION_TAG "-ALPHA5"
+#define VERSION_TAG "-ALPHA6"
 
 #define LISTITEM_START              35000
 #define LISTITEM_THUMB              (LISTITEM_START)

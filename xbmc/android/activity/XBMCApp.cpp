@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -44,6 +44,8 @@
 #include "guilib/GUIWindowManager.h"
 #include "utils/log.h"
 #include "ApplicationMessenger.h"
+#include "utils/StringUtils.h"
+#include "AppParamParser.h"
 #include <android/bitmap.h>
 #include "android/jni/JNIThreading.h"
 #include "android/jni/BroadcastReceiver.h"
@@ -64,6 +66,10 @@
 #include "android/jni/BitmapDrawable.h"
 #include "android/jni/Bitmap.h"
 #include "android/jni/CharSequence.h"
+#include "android/jni/URI.h"
+#include "android/jni/Cursor.h"
+#include "android/jni/ContentResolver.h"
+#include "android/jni/MediaStore.h"
 
 #define GIGABYTES       1073741824
 
@@ -81,7 +87,9 @@ ANativeWindow* CXBMCApp::m_window = NULL;
 int CXBMCApp::m_batteryLevel = 0;
 
 CXBMCApp::CXBMCApp(ANativeActivity* nativeActivity)
-  : CJNIContext(nativeActivity), m_wakeLock(NULL)
+  : CJNIContext(nativeActivity)
+  , CJNIBroadcastReceiver("org/xbmc/xbmc/XBMCBroadcastReceiver")
+  , m_wakeLock(NULL)
 {
   m_activity = nativeActivity;
   m_firstrun = true;
@@ -116,11 +124,15 @@ void CXBMCApp::onStart()
 void CXBMCApp::onResume()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
+  CJNIIntentFilter batteryFilter;
+  batteryFilter.addAction("android.intent.action.BATTERY_CHANGED");
+  registerReceiver(*this, batteryFilter);
 }
 
 void CXBMCApp::onPause()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
+  unregisterReceiver(*this);
 }
 
 void CXBMCApp::onStop()
@@ -236,9 +248,21 @@ void CXBMCApp::run()
   CJNIIntent startIntent = getIntent();
   android_printf("XBMC Started with action: %s\n",startIntent.getAction().c_str());
 
-  CJNIIntentFilter batteryFilter;
-  batteryFilter.addAction("android.intent.action.BATTERY_CHANGED");
-  registerReceiver(*this, batteryFilter);
+  std::string filenameToPlay = GetFilenameFromIntent(startIntent);
+  if (!filenameToPlay.empty())
+  {
+    int argc = 2;
+    const char** argv = (const char**) malloc(argc*sizeof(char*));
+
+    std::string exe_name("XBMC");
+    argv[0] = exe_name.c_str();
+    argv[1] = filenameToPlay.c_str();
+
+    CAppParamParser appParamParser;
+    appParamParser.Parse((const char **)argv, argc);
+
+    free(argv);
+  }
 
   android_printf(" => waiting for a window");
   // Hack!
@@ -344,7 +368,7 @@ bool CXBMCApp::GetIconSize(const string &packageName, int *width, int *height)
   AndroidBitmapInfo info;
   CJNIBitmapDrawable drawable = (CJNIBitmapDrawable)GetPackageManager().getApplicationIcon(packageName);
   CJNIBitmap icon(drawable.getBitmap());
-  AndroidBitmap_getInfo(env, icon.get(), &info);
+  AndroidBitmap_getInfo(env, icon.get_raw(), &info);
   *width = info.width;
   *height = info.height;
   return true;
@@ -356,11 +380,11 @@ bool CXBMCApp::GetIcon(const string &packageName, void* buffer, unsigned int buf
   JNIEnv* env = xbmc_jnienv();
   CJNIBitmapDrawable drawable = (CJNIBitmapDrawable)GetPackageManager().getApplicationIcon(packageName);
   CJNIBitmap bitmap(drawable.getBitmap());
-  AndroidBitmap_lockPixels(env, bitmap.get(), &bitmapBuf);
+  AndroidBitmap_lockPixels(env, bitmap.get_raw(), &bitmapBuf);
   if (bitmapBuf)
   {
     memcpy(buffer, bitmapBuf, bufSize);
-    AndroidBitmap_unlockPixels(env, bitmap.get());
+    AndroidBitmap_unlockPixels(env, bitmap.get_raw());
     return true;
   }
   return false;
@@ -511,6 +535,16 @@ void CXBMCApp::onReceive(CJNIIntent intent)
     m_batteryLevel = intent.getIntExtra("level",-1);
 }
 
+void CXBMCApp::onNewIntent(CJNIIntent intent)
+{
+  std::string action = intent.getAction();
+  if (action == "android.intent.action.VIEW")
+  {
+    std::string playFile = GetFilenameFromIntent(intent);
+    CApplicationMessenger::Get().MediaPlay(playFile);
+  }
+}
+
 void CXBMCApp::SetupEnv()
 {
   setenv("XBMC_ANDROID_SYSTEM_LIBS", CJNISystem::getProperty("java.library.path").c_str(), 0);
@@ -535,4 +569,33 @@ void CXBMCApp::SetupEnv()
     setenv("HOME", externalDir.c_str(), 0);
   else
     setenv("HOME", getenv("XBMC_TEMP"), 0);
+}
+
+std::string CXBMCApp::GetFilenameFromIntent(const CJNIIntent &intent)
+{
+    std::string ret;
+    if (!intent)
+      return ret;
+    CJNIURI data = intent.getData();
+    if (!data)
+      return ret;
+    std::string scheme = data.getScheme();
+    StringUtils::ToLower(scheme);
+    if (scheme == "content")
+    {
+      std::vector<std::string> filePathColumn;
+      filePathColumn.push_back(CJNIMediaStoreMediaColumns::DATA);
+      CJNICursor cursor = getContentResolver().query(data, filePathColumn, std::string(), std::vector<std::string>(), std::string());
+      if(cursor.moveToFirst())
+      {
+        int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+        ret = cursor.getString(columnIndex);
+      }
+      cursor.close();
+    }
+    else if(scheme == "file")
+      ret = data.getPath();
+    else
+      ret = data.toString();
+  return ret;
 }

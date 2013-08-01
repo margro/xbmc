@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include "FileItem.h"
 #include "filesystem/StackDirectory.h"
 #include "addons/Addon.h"
-#ifndef _LINUX
+#ifndef TARGET_POSIX
 #include <sys\types.h>
 #include <sys\stat.h>
 #endif
@@ -120,7 +120,7 @@ void CURL::Parse(const CStdString& strURL1)
       struct __stat64 s;
       if (XFILE::CFile::Stat(archiveName, &s) == 0)
       {
-#ifdef _LINUX
+#ifdef TARGET_POSIX
         if (!S_ISDIR(s.st_mode))
 #else
         if (!(s.st_mode & S_IFDIR))
@@ -501,7 +501,7 @@ const CStdString CURL::GetFileNameWithoutPath() const
 
 char CURL::GetDirectorySeparator() const
 {
-#ifndef _LINUX
+#ifndef TARGET_POSIX
   if ( IsLocal() )
     return '\\';
   else

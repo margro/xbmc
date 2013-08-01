@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -86,12 +86,12 @@ bool CDVDDemuxShoutcast::Open(CDVDInputStream* pInput)
       stricmp(strMimeType.c_str(), CONTENT_TYPE_AACPLUS) == 0)
   {
     // need an aac decoder first
-    m_pDemuxStream->codec = CODEC_ID_AAC;
+    m_pDemuxStream->codec = AV_CODEC_ID_AAC;
   }
   else // (stricmp(strMimeType, CONTENT_TYPE_MP3) == 0)
   {
     // default to mp3
-    m_pDemuxStream->codec = CODEC_ID_MP3;
+    m_pDemuxStream->codec = AV_CODEC_ID_MP3;
   }
 
   return true;
@@ -149,7 +149,7 @@ DemuxPacket* CDVDDemuxShoutcast::Read()
   {
     // we already have read m_iMetaStreamInterval bytes of streaming data
     // metadata follows
-    BYTE l;
+    uint8_t l;
     int iRead = m_pInput->Read(&l, 1);
     if (iRead > 0)
     {
@@ -158,7 +158,7 @@ DemuxPacket* CDVDDemuxShoutcast::Read()
       if (iMetaLength > 0)
       {
         // iMetaLength cannot be larger then 16 * 255
-        BYTE buffer[16 * 255];
+        uint8_t buffer[16 * 255];
 
         // skip meta data for now
         m_pInput->Read(buffer, iMetaLength);

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
-#elif defined(_WIN32)
+#elif defined(TARGET_WINDOWS)
 #include "system.h"
 #endif
 
@@ -57,7 +57,7 @@ bool CDVDVideoCodecOpenMax::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
 
     switch (hints.codec)
     {
-      case CODEC_ID_H264:
+      case AV_CODEC_ID_H264:
       {
         m_pFormatName = "omx-h264";
         if (hints.extrasize < 7 || hints.extradata == NULL)
@@ -71,13 +71,13 @@ bool CDVDVideoCodecOpenMax::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
           m_convert_bitstream = bitstream_convert_init(hints.extradata, hints.extrasize);
       }
       break;
-      case CODEC_ID_MPEG4:
+      case AV_CODEC_ID_MPEG4:
         m_pFormatName = "omx-mpeg4";
       break;
-      case CODEC_ID_MPEG2VIDEO:
+      case AV_CODEC_ID_MPEG2VIDEO:
         m_pFormatName = "omx-mpeg2";
       break;
-      case CODEC_ID_VC1:
+      case AV_CODEC_ID_VC1:
         m_pFormatName = "omx-vc1";
       break;
       default:
@@ -143,7 +143,7 @@ void CDVDVideoCodecOpenMax::SetDropState(bool bDrop)
   m_omx_decoder->SetDropState(bDrop);
 }
 
-int CDVDVideoCodecOpenMax::Decode(BYTE* pData, int iSize, double dts, double pts)
+int CDVDVideoCodecOpenMax::Decode(uint8_t* pData, int iSize, double dts, double pts)
 {
   if (pData)
   {
@@ -259,7 +259,7 @@ bool CDVDVideoCodecOpenMax::bitstream_convert_init(void *in_extradata, int in_ex
   return true;
 }
 
-bool CDVDVideoCodecOpenMax::bitstream_convert(BYTE* pData, int iSize, uint8_t **poutbuf, int *poutbuf_size)
+bool CDVDVideoCodecOpenMax::bitstream_convert(uint8_t* pData, int iSize, uint8_t **poutbuf, int *poutbuf_size)
 {
   // based on h264_mp4toannexb_bsf.c (ffmpeg)
   // which is Copyright (c) 2007 Benoit Fouet <benoit.fouet@free.fr>

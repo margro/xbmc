@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -519,8 +519,9 @@ namespace PVR
     /*!
      * @brief Open selection and progress PVR actions.
      * @param iClientId The ID of the client to process the menu entries for. Process the menu entries for the active channel if iClientId < 0.
+     * @param item The selected file item for which the hook was called.
      */
-    void ProcessMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat);
+    void ProcessMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat, const CFileItem *item);
 
     //@}
 

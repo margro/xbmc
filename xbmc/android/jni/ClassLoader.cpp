@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,11 +17,15 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "ClassLoader.h"
 #include "jutils/jutils-details.hpp"
+
 using namespace jni;
 
 jhclass CJNIClassLoader::loadClass(std::string className)
 {
-  return (jhclass)call_method<jhclass>(m_object, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;", jcast<jhstring>(className)); 
+  return call_method<jhclass>(m_object,
+    "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;",
+    jcast<jhstring>(className)); 
 }

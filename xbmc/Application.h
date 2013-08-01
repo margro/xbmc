@@ -52,10 +52,10 @@ class CPlayerController;
 #include "settings/ISettingsHandler.h"
 #include "settings/ISettingCallback.h"
 #include "settings/ISubSettings.h"
-#if !defined(_WIN32) && defined(HAS_DVD_DRIVE)
+#if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
 #include "storage/DetectDVDType.h"
 #endif
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #include "win32/WIN32Util.h"
 #endif
 #include "utils/Stopwatch.h"
@@ -269,7 +269,7 @@ public:
   MEDIA_DETECT::CAutorun* m_Autorun;
 #endif
 
-#if !defined(_WIN32) && defined(HAS_DVD_DRIVE)
+#if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
   MEDIA_DETECT::CDetectDVDMedia m_DetectDVDType;
 #endif
 
@@ -359,6 +359,9 @@ public:
   bool SetLanguage(const CStdString &strLanguage);
 
   ReplayGainSettings& GetReplayGainSettings() { return m_replayGainSettings; }
+
+  void SetLoggingIn(bool loggingIn) { m_loggingIn = loggingIn; }
+
 protected:
   virtual bool OnSettingsSaving() const;
 
@@ -374,6 +377,8 @@ protected:
 
   bool m_skinReloading; // if true we disallow LoadSkin until ReloadSkin is called
 
+  bool m_loggingIn;
+
 #if defined(TARGET_DARWIN_IOS)
   friend class CWinEventsIOS;
 #endif
@@ -382,7 +387,7 @@ protected:
   ADDON::AddonPtr m_screenSaver;
 
   // timer information
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   CWinIdleTimer m_idleTimer;
   CWinIdleTimer m_screenSaverTimer;
 #else

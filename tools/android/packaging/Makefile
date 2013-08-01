@@ -3,7 +3,7 @@ include ../../depends/Makefile.include
 OBJS = libcurl.so \
   librtmp.so  libmad.so \
   libafpclient.so  \
-  libplist.so \
+  libplist.so libshairplay.so \
   libxbogg.so libxbvorbis.so libxbvorbisfile.so libxbFLAC.so libxbmpeg2.so \
   libxbmpeg2convert.so libnfs.so libass.so
 
@@ -98,7 +98,7 @@ libs: $(PREFIX)/lib/xbmc/libxbmc.so
 	cp -fp xbmc/libs/$(CPU)/* xbmc/lib/$(CPU)
 
 $(PREFIX)/lib/xbmc/libxbmc.so: $(SRCLIBS)
-	$(MAKE) -C ../depends/xbmc
+	$(MAKE) -C ../../depends/target/xbmc
 
 $(SRCLIBS):
 

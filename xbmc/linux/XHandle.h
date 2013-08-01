@@ -3,7 +3,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
  *
  */
 
-#ifndef _WIN32
+#ifndef TARGET_WINDOWS
 
 #include <list>
 
@@ -50,7 +50,7 @@ public:
 
   // simulate mutex and critical section
   CCriticalSection *m_hMutex;
-  int       RecursionCount;  // for mutex - for compatibility with WIN32 critical section
+  int       RecursionCount;  // for mutex - for compatibility with TARGET_WINDOWS critical section
   int       fd;
   bool      m_bManualEvent;
   time_t    m_tmCreation;

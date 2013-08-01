@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -104,7 +104,7 @@ bool CAutorun::PlayDisc(const CStdString& path, bool bypassSettings, bool startF
   if (mediaPath.IsEmpty())
     mediaPath = path;
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   if (mediaPath.IsEmpty() || mediaPath.CompareNoCase("iso9660://") == 0)
     mediaPath = g_mediaManager.TranslateDevicePath("");
 #endif
@@ -455,7 +455,7 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
 
 void CAutorun::HandleAutorun()
 {
-#ifndef _WIN32
+#ifndef TARGET_WINDOWS
   if (!m_bEnable)
   {
     CDetectDVDMedia::m_evAutorun.Reset();
@@ -523,6 +523,8 @@ void CAutorun::SettingOptionAudioCdEncodersFiller(const CSetting *setting, std::
 #endif
   list.push_back(make_pair(g_localizeStrings.Get(34002), CDDARIP_ENCODER_WAV));
   list.push_back(make_pair(g_localizeStrings.Get(34005), CDDARIP_ENCODER_FLAC));
+  list.push_back(make_pair(g_localizeStrings.Get(34006), CDDARIP_ENCODER_FFMPEG_M4A));
+  list.push_back(make_pair(g_localizeStrings.Get(34007), CDDARIP_ENCODER_FFMPEG_WMA));
 }
 
 #endif

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -156,6 +156,13 @@ void CJobQueue::CancelJobs()
   for_each(m_jobQueue.begin(), m_jobQueue.end(), mem_fun_ref(&CJobPointer::FreeJob));
   m_jobQueue.clear();
   m_processing.clear();
+}
+
+
+bool CJobQueue::QueueEmpty() const
+{
+  CSingleLock lock(m_section);
+  return m_jobQueue.empty();
 }
 
 CJobManager &CJobManager::GetInstance()

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,16 +18,17 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
 
 class CJNIIntentFilter : public CJNIBase
 {
 public:
   CJNIIntentFilter();
+  CJNIIntentFilter(const jni::jhobject &object) : CJNIBase(object) {};
   CJNIIntentFilter(const std::string &action);
+  ~CJNIIntentFilter() {};
+
   void addDataScheme(std::string scheme);
   void addAction(std::string action);
-
-  ~CJNIIntentFilter(){};
-  CJNIIntentFilter(const jni::jhobject &object) : CJNIBase(object){};
 };

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 
 //#define WEBSERVER_DEBUG
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #pragma comment(lib, "libmicrohttpd.dll.lib")
 #endif
 
@@ -838,17 +838,7 @@ void CWebServer::SetCredentials(const string &username, const string &password)
 
 bool CWebServer::PrepareDownload(const char *path, CVariant &details, std::string &protocol)
 {
-  bool exists = false;
-  CFile *file = new CFile();
-  if (file->Open(path))
-  {
-    exists = true;
-    file->Close();
-  }
-
-  delete file;
-
-  if (exists)
+  if (CFile::Exists(path))
   {
     protocol = "http";
     string url;
@@ -861,9 +851,10 @@ bool CWebServer::PrepareDownload(const char *path, CVariant &details, std::strin
     CURL::Encode(strPath);
     url += strPath;
     details["path"] = url;
+    return true;
   }
 
-  return exists;
+  return false;
 }
 
 bool CWebServer::Download(const char *path, CVariant &result)

@@ -10,7 +10,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -56,11 +56,10 @@ public:
   virtual bool CanFocus() const { return true; };
   virtual CRect CalcRenderRegion() const;
 
-  void SetIntervals(const std::vector<int>& vecIntervals);
-  void SetUrls(const std::vector<std::string>& vecUrl, bool rtl);
-
   virtual void OnFocus();
   virtual void OnUnFocus();
+
+  void SetUrlSet(const int urlset);
 
 protected:
   virtual bool UpdateColors();
@@ -81,5 +80,6 @@ protected:
   bool m_rtl;
   CScrollInfo m_scrollInfo;
   bool m_stopped;
+  int  m_urlset;
 };
 #endif

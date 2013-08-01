@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -548,7 +548,7 @@ namespace VIDEO
   INFO_RET CVideoInfoScanner::RetrieveInfoForMovie(CFileItem *pItem, bool bDirNames, ScraperPtr &info2, bool useLocal, CScraperUrl* pURL, CGUIDialogProgress* pDlgProgress)
   {
     if (pItem->m_bIsFolder || !pItem->IsVideo() || pItem->IsNFO() ||
-       (pItem->IsPlayList() && !URIUtils::GetExtension(pItem->GetPath()).Equals(".strm")))
+       (pItem->IsPlayList() && !URIUtils::HasExtension(pItem->GetPath(), ".strm")))
       return INFO_NOT_NEEDED;
 
     if (ProgressCancelled(pDlgProgress, 198, pItem->GetLabel()))
@@ -597,7 +597,7 @@ namespace VIDEO
   INFO_RET CVideoInfoScanner::RetrieveInfoForMusicVideo(CFileItem *pItem, bool bDirNames, ScraperPtr &info2, bool useLocal, CScraperUrl* pURL, CGUIDialogProgress* pDlgProgress)
   {
     if (pItem->m_bIsFolder || !pItem->IsVideo() || pItem->IsNFO() ||
-       (pItem->IsPlayList() && !URIUtils::GetExtension(pItem->GetPath()).Equals(".strm")))
+       (pItem->IsPlayList() && !URIUtils::HasExtension(pItem->GetPath(), ".strm")))
       return INFO_NOT_NEEDED;
 
     if (ProgressCancelled(pDlgProgress, 20394, pItem->GetLabel()))
@@ -871,7 +871,7 @@ namespace VIDEO
 
     for (unsigned int i=0;i<expression.size();++i)
     {
-      CRegExp reg;
+      CRegExp reg(true);
       if (!reg.RegComp(expression[i].regexp))
         continue;
 
@@ -940,7 +940,7 @@ namespace VIDEO
       // add what we found by now
       episodeList.push_back(episode);
 
-      CRegExp reg2;
+      CRegExp reg2(true);
       // check the remainder of the string for any further episodes.
       if (!byDate && reg2.RegComp(g_advancedSettings.m_tvshowMultiPartEnumRegExp))
       {
@@ -1393,16 +1393,25 @@ namespace VIDEO
       }
 
       EPISODE key(file->iSeason, file->iEpisode, file->iSubepisode);
+      EPISODE backupkey(file->iSeason, file->iEpisode, 0);
       bool bFound = false;
       EPISODELIST::iterator guide = episodes.begin();;
       EPISODELIST matches;
 
       for (; guide != episodes.end(); ++guide )
       {
-        if ((file->iEpisode!=-1) && (file->iSeason!=-1) && (key==*guide))
+        if ((file->iEpisode!=-1) && (file->iSeason!=-1))
         {
-          bFound = true;
-          break;
+          if (key==*guide)
+          {
+            bFound = true;
+            break;
+          }
+          else if ((file->iSubepisode!=0) && (backupkey==*guide))
+          {
+            matches.push_back(*guide);
+            continue;
+          }
         }
         if (file->cDate.IsValid() && guide->cDate.IsValid() && file->cDate==guide->cDate)
         {
@@ -1493,9 +1502,6 @@ namespace VIDEO
     // Find a matching .nfo file
     if (!item->m_bIsFolder)
     {
-      // file
-      CStdString strExtension = URIUtils::GetExtension(item->GetPath());
-
       if (URIUtils::IsInRAR(item->GetPath())) // we have a rarred item - we want to check outside the rars
       {
         CFileItem item2(*item);
@@ -1537,7 +1543,7 @@ namespace VIDEO
       else
       {
         // already an .nfo file?
-        if ( strcmpi(strExtension.c_str(), ".nfo") == 0 )
+        if (URIUtils::HasExtension(item->GetPath(), ".nfo"))
           nfoFile = item->GetPath();
         // no, create .nfo file
         else
@@ -1635,7 +1641,8 @@ namespace VIDEO
     if (!imdbThumb.IsEmpty())
     {
       CFileItem folderItem(folder, true);
-      CThumbLoader::SetCachedImage(folderItem, "thumb", imdbThumb);
+      CThumbLoader loader;
+      loader.SetCachedImage(folderItem, "thumb", imdbThumb);
     }
   }
 
@@ -1812,7 +1819,10 @@ namespace VIDEO
     CNfoFile::NFOResult result=CNfoFile::NO_NFO;
     if (!strNfoFile.IsEmpty() && CFile::Exists(strNfoFile))
     {
-      result = m_nfoReader.Create(strNfoFile,info,pItem->GetVideoInfoTag()->m_iEpisode);
+      if (info->Content() == CONTENT_TVSHOWS && !pItem->m_bIsFolder)
+        result = m_nfoReader.Create(strNfoFile,info,pItem->GetVideoInfoTag()->m_iEpisode);
+      else
+        result = m_nfoReader.Create(strNfoFile,info);
 
       CStdString type;
       switch(result)

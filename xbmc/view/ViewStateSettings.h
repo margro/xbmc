@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -45,6 +45,7 @@ public:
   SettingLevel GetSettingLevel() const { return m_settingLevel; }
   void SetSettingLevel(SettingLevel settingLevel);
   void CycleSettingLevel();
+  SettingLevel GetNextSettingLevel() const;
 
 protected:
   CViewStateSettings();

@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ public:
 
   virtual bool Open(const char* strFile, const std::string& content);
   virtual void Close();
-  virtual int Read(BYTE* buf, int buf_size);
+  virtual int Read(uint8_t* buf, int buf_size);
   virtual int64_t Seek(int64_t offset, int whence);
   virtual bool Pause(double dTime) { return false; };
   virtual int GetBlockSize() { return DVDSTREAM_BLOCK_SIZE_DVD; }
@@ -139,7 +139,7 @@ public:
   double GetTimeStampCorrection() { return (double)(m_iVobUnitCorrection * 1000) / 90; }
 protected:
 
-  int ProcessBlock(BYTE* buffer, int* read);
+  int ProcessBlock(uint8_t* buffer, int* read);
 
   void CheckButtons();
 
@@ -157,8 +157,8 @@ protected:
   int ConvertSubtitleStreamId_XBMCToExternal(int id);
   int ConvertSubtitleStreamId_ExternalToXBMC(int id);
 
-  void SetAudioStreamName(DVDNavStreamInfo &info, const audio_attr_t audio_attributes);
-  void SetSubtitleStreamName(DVDNavStreamInfo &info, const subp_attr_t subp_attributes);
+  static void SetAudioStreamName(DVDNavStreamInfo &info, const audio_attr_t audio_attributes);
+  static void SetSubtitleStreamName(DVDNavStreamInfo &info, const subp_attr_t subp_attributes);
 
   DllDvdNav m_dll;
   bool m_bCheckButtons;
@@ -186,7 +186,7 @@ protected:
 
   IDVDPlayer* m_pDVDPlayer;
 
-  BYTE m_lastblock[DVD_VIDEO_BLOCKSIZE];
-  int  m_lastevent;
+  uint8_t m_lastblock[DVD_VIDEO_BLOCKSIZE];
+  int     m_lastevent;
 };
 

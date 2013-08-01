@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -64,10 +64,10 @@ public:
   virtual unsigned int GetBitRate() = 0;
 
   /**
-   * Returns the CodecID of the encoder
+   * Returns the AVCodecID of the encoder
    * @return the ffmpeg codec id
    */
-  virtual CodecID GetCodecID() = 0;
+  virtual AVCodecID GetCodecID() = 0;
 
   /**
    * Return the number of frames needed to encode

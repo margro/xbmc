@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,13 +18,16 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-// This class contains only static methods, so no need to inherit from JNIBase.
+
 #include <stdint.h>
+
+// This class contains only static methods, so no need to inherit from JNIBase.
 class CJNISystemClock
 {
 public:
   static int64_t uptimeMillis();
+
 private:
-  CJNISystemClock(){};
-  ~CJNISystemClock(){};
+  CJNISystemClock()  {};
+  ~CJNISystemClock() {};
 };

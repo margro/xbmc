@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "WakeLock.h"
 #include "jutils/jutils-details.hpp"
 
@@ -24,11 +25,13 @@ using namespace jni;
 
 void CJNIWakeLock::acquire()
 {
-  call_method<void>(m_object, "acquire", "()V");
+  call_method<void>(m_object,
+    "acquire", "()V");
 }
 
 void CJNIWakeLock::release()
 {
-  call_method<void>(m_object, "release", "()V");
+  call_method<void>(m_object,
+    "release", "()V");
 }
 

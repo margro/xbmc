@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,6 +36,16 @@ CSong::CSong(CFileItem& item)
   strTitle = tag.GetTitle();
   genre = tag.GetGenre();
   artist = tag.GetArtist();
+  bool hasMusicBrainzArtist = !tag.GetMusicBrainzArtistID().empty();
+  const vector<string>& artists = hasMusicBrainzArtist ? tag.GetMusicBrainzArtistID() : tag.GetArtist();
+  for (vector<string>::const_iterator it = artists.begin(); it != artists.end(); ++it)
+  {
+    CStdString artistName = hasMusicBrainzArtist && !artist.empty() ? artist[0] : *it;
+    CStdString artistId = hasMusicBrainzArtist ? *it : StringUtils::EmptyString;
+    CStdString strJoinPhrase = (it == --artists.end() ? "" : g_advancedSettings.m_musicItemSeparator);
+    CArtistCredit artistCredit(artistName, artistId, strJoinPhrase);
+    artistCredits.push_back(artistCredit);
+  }
   strAlbum = tag.GetAlbum();
   albumArtist = tag.GetAlbumArtist();
   strMusicBrainzTrackID = tag.GetMusicBrainzTrackID();

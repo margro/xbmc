@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 #include "threads/SystemClock.h"
 #include "CacheStrategy.h"
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 #include "PlatformInclude.h"
 #endif
 #include "Util.h"
@@ -28,7 +28,7 @@
 #include "threads/SingleLock.h"
 #include "utils/TimeUtils.h"
 #include "SpecialProtocol.h"
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #include "PlatformDefs.h" //for PRIdS, PRId64
 #endif
 
@@ -209,9 +209,10 @@ int64_t CSimpleFileCache::Seek(int64_t iFilePosition)
   }
 
   int64_t nDiff = iTarget - m_nWritePosition;
-  if ( nDiff > 500000 || (nDiff > 0 && WaitForData((unsigned int)(iTarget - m_nReadPosition), 5000) == CACHE_RC_TIMEOUT)  ) {
-    CLog::Log(LOGWARNING,"%s - attempt to seek past read data (seek to %"PRId64". max: %"PRId64". reset read pointer. (%"PRId64")", __FUNCTION__, iTarget, m_nWritePosition, iFilePosition);
-    return  CACHE_RC_ERROR;
+  if (nDiff > 500000 || (nDiff > 0 && WaitForData((unsigned int)(iTarget - m_nReadPosition), 5000) == CACHE_RC_TIMEOUT))
+  {
+    CLog::Log(LOGDEBUG,"CSimpleFileCache::Seek - Attempt to seek past read data");
+    return CACHE_RC_ERROR;
   }
 
   LARGE_INTEGER pos;

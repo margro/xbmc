@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,6 +39,10 @@ CPlayList* CPlayListFactory::Create(const CFileItem& item)
 {
   if( item.IsInternetStream() )
   {
+    // Ensure the MIME type has been retrieved for http:// and shout:// streams
+    if (item.GetMimeType().empty())
+      const_cast<CFileItem&>(item).FillInMimeType();
+
     CStdString strMimeType = item.GetMimeType();
     strMimeType.MakeLower();
 
@@ -129,18 +133,7 @@ bool CPlayListFactory::IsPlaylist(const CFileItem& item)
 
 bool CPlayListFactory::IsPlaylist(const CStdString& filename)
 {
-  CStdString extension = URIUtils::GetExtension(filename);
-  extension.ToLower();
-
-  if (extension == ".m3u") return true;
-  if (extension == ".b4s") return true;
-  if (extension == ".pls") return true;
-  if (extension == ".strm") return true;
-  if (extension == ".wpl") return true;
-  if (extension == ".asx") return true;
-  if (extension == ".ram") return true;
-  if (extension == ".url") return true;
-  if (extension == ".pxml") return true;
-  return false;
+  return URIUtils::HasExtension(filename,
+                     ".m3u|.b4s|.pls|.strm|.wpl|.asx|.ram|.url|.pxml");
 }
 

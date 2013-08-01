@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,14 +13,13 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "FavouritesOperations.h"
-#include "Favourites.h"
+#include "filesystem/FavouritesDirectory.h"
 #include "input/ButtonTranslator.h"
 #include "utils/RegExp.h"
 #include "utils/StringUtils.h"
@@ -31,11 +30,12 @@
 
 using namespace std;
 using namespace JSONRPC;
+using namespace XFILE;
 
 JSONRPC_STATUS CFavouritesOperations::GetFavourites(const CStdString &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
   CFileItemList favourites;
-  CFavourites::Load(favourites);
+  CFavouritesDirectory::Load(favourites);
   
   string type = !parameterObject["type"].isNull() ? parameterObject["type"].asString() : "";
 
@@ -158,7 +158,7 @@ JSONRPC_STATUS CFavouritesOperations::AddFavourite(const CStdString &method, ITr
   if (ParameterNotNull(parameterObject,"thumbnail"))
     item.SetArt("thumb", parameterObject["thumbnail"].asString());
 
-  if (CFavourites::AddOrRemove(&item, contextWindow))
+  if (CFavouritesDirectory::AddOrRemove(&item, contextWindow))
     return ACK;
   else
     return FailedToExecute;

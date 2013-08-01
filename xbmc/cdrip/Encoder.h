@@ -3,7 +3,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,7 +38,9 @@ enum CDDARipEncoder
   CDDARIP_ENCODER_LAME    = 0,
   CDDARIP_ENCODER_VORBIS,
   CDDARIP_ENCODER_WAV,
-  CDDARIP_ENCODER_FLAC
+  CDDARIP_ENCODER_FLAC,
+  CDDARIP_ENCODER_FFMPEG_M4A,
+  CDDARIP_ENCODER_FFMPEG_WMA
 };
 
 enum CDDARipQuality
@@ -74,6 +76,7 @@ protected:
   bool FileCreate(const char* filename);
   bool FileClose();
   int FileWrite(const void *pBuffer, uint32_t iBytes);
+  int64_t FileSeek(int64_t iFilePosition, int iWhence = SEEK_SET);
 
   int WriteStream(const void *pBuffer, uint32_t iBytes);
   int FlushStream();

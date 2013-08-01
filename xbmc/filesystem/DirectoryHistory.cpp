@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -116,6 +116,15 @@ CStdString CDirectoryHistory::RemoveParentPath(bool filter /* = false */)
 void CDirectoryHistory::ClearPathHistory()
 {
   m_vecPathHistory.clear();
+}
+
+void CDirectoryHistory::ClearSearchHistory()
+{
+  for (vector<CPathHistoryItem>::iterator it = m_vecPathHistory.begin(); it != m_vecPathHistory.end(); ++it)
+  {
+    if (it->GetPath().Left(14) == "musicsearch://")
+      it = m_vecPathHistory.erase(it);
+  }
 }
 
 void CDirectoryHistory::DumpPathHistory()

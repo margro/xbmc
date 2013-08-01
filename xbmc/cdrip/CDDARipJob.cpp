@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -198,6 +198,10 @@ CEncoder* CCDDARipJob::SetupEncoder(CFile& reader)
   case CDDARIP_ENCODER_FLAC:
     encoder = new CEncoderFlac();
     break;
+  case CDDARIP_ENCODER_FFMPEG_M4A:
+  case CDDARIP_ENCODER_FFMPEG_WMA:
+    encoder = new CEncoderFFmpeg();
+    break;
   case CDDARIP_ENCODER_WAV:
   default:
     encoder = new CEncoderWav();
@@ -234,7 +238,7 @@ CEncoder* CCDDARipJob::SetupEncoder(CFile& reader)
 CStdString CCDDARipJob::SetupTempFile()
 {
   char tmp[MAX_PATH];
-#ifndef _LINUX
+#ifndef TARGET_POSIX
   GetTempFileName(CSpecialProtocol::TranslatePath("special://temp/"), "riptrack", 0, tmp);
 #else
   int fd;

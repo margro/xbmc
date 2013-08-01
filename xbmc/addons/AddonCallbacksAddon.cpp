@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "FileItem.h"
 #include "network/Network.h"
 #include "utils/CharsetConverter.h"
+#include "cores/dvdplayer/DVDCodecs/DVDCodecs.h"
 
 using namespace XFILE;
 
@@ -219,6 +220,20 @@ bool CAddonCallbacksAddon::GetAddonSetting(void *addonData, const char *strSetti
           {
             *(bool*) settingValue = (bool) (addonHelper->m_addon->GetSetting(id) == "true" ? true : false);
             return true;
+          }
+          else if (strcmpi(type, "slider") == 0)
+          {
+            const char *option = setting->Attribute("option");
+            if (option && strcmpi(option, "int") == 0)
+            {
+              *(int*) settingValue = (int) atoi(addonHelper->m_addon->GetSetting(id));
+              return true;
+            }
+            else
+            {
+              *(float*) settingValue = (float) atof(addonHelper->m_addon->GetSetting(id));
+              return true;
+            }
           }
         }
         setting = setting->NextSiblingElement("setting");

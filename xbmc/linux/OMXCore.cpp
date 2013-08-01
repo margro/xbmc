@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMCn
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
-#elif defined(_WIN32)
+#elif defined(TARGET_WINDOWS)
 #include "system.h"
 #endif
 
@@ -33,7 +33,7 @@
 
 #include "OMXClock.h"
 
-#ifdef _LINUX
+#ifdef TARGET_LINUX
 #include "XMemUtils.h"
 #endif
 
@@ -427,9 +427,6 @@ void COMXCoreComponent::TransitionToStateLoaded()
 {
   if(!m_handle)
     return;
-
-  if(GetState() == OMX_StateExecuting)
-    SetStateForComponent(OMX_StatePause);
 
   if(GetState() != OMX_StateIdle)
     SetStateForComponent(OMX_StateIdle);
@@ -1670,6 +1667,11 @@ OMX_ERRORTYPE COMXCoreComponent::DecoderEventHandler(
     case OMX_EventPortSettingsChanged:
       #if defined(OMX_DEBUG_EVENTHANDLER)
       CLog::Log(LOGDEBUG, "%s::%s %s - OMX_EventPortSettingsChanged(output)\n", CLASSNAME, __func__, ctx->GetName().c_str());
+      #endif
+    break;
+    case OMX_EventParamOrConfigChanged:
+      #if defined(OMX_DEBUG_EVENTHANDLER)
+      CLog::Log(LOGDEBUG, "%s::%s %s - OMX_EventParamOrConfigChanged(output)\n", CLASSNAME, __func__, ctx->GetName().c_str());
       #endif
     break;
     #if defined(OMX_DEBUG_EVENTHANDLER)

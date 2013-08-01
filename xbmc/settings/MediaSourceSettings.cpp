@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ void CMediaSourceSettings::OnSettingsLoaded()
   Load();
 }
 
-void CMediaSourceSettings::OnSettingsCleared()
+void CMediaSourceSettings::OnSettingsUnloaded()
 {
   Clear();
 }
@@ -187,7 +187,7 @@ void CMediaSourceSettings::SetDefaultSource(const std::string &type, const std::
 }
 
 // NOTE: This function does NOT save the sources.xml file - you need to call SaveSources() separately.
-bool CMediaSourceSettings::UpdateSource(const std::string &strType, const std::string strOldName, const std::string &strUpdateChild, const std::string &strUpdateValue)
+bool CMediaSourceSettings::UpdateSource(const std::string &strType, const std::string &strOldName, const std::string &strUpdateChild, const std::string &strUpdateValue)
 {
   VECSOURCES *pShares = GetSources(strType);
   if (pShares == NULL)
@@ -223,7 +223,7 @@ bool CMediaSourceSettings::UpdateSource(const std::string &strType, const std::s
   return false;
 }
 
-bool CMediaSourceSettings::DeleteSource(const std::string &strType, const std::string &strName, const std::string strPath, bool virtualSource /* = false */)
+bool CMediaSourceSettings::DeleteSource(const std::string &strType, const std::string &strName, const std::string &strPath, bool virtualSource /* = false */)
 {
   VECSOURCES *pShares = GetSources(strType);
   if (pShares == NULL)
@@ -331,10 +331,7 @@ bool CMediaSourceSettings::GetSource(const std::string &category, const TiXmlNod
       {
         // translate special tags
         if (!strPath.empty() && strPath.at(0) == '$')
-        {
-          string strPathOld(strPath);
           strPath = CUtil::TranslateSpecialSource(strPath);
-        }
 
         // need to check path validity again as CUtil::TranslateSpecialSource() may have failed
         if (!strPath.empty())
@@ -366,7 +363,7 @@ bool CMediaSourceSettings::GetSource(const std::string &category, const TiXmlNod
   else
   {
     // validate the paths
-    for (vector<string>::const_iterator path = vecPaths.begin(); path != vecPaths.end(); path++)
+    for (vector<string>::const_iterator path = vecPaths.begin(); path != vecPaths.end(); ++path)
     {
       CURL url(*path);
       string protocol = url.GetProtocol();
@@ -415,6 +412,8 @@ bool CMediaSourceSettings::GetSource(const std::string &category, const TiXmlNod
 
   if (pThumbnailNode && pThumbnailNode->FirstChild())
     share.m_strThumbnailImage = pThumbnailNode->FirstChild()->Value();
+
+  XMLUtils::GetBoolean(source, "allowsharing", share.m_allowSharing);
 
   return true;
 }
@@ -485,8 +484,11 @@ bool CMediaSourceSettings::SetSources(TiXmlNode *root, const char *section, cons
       XMLUtils::SetString(&source, "lockcode", share.m_strLockCode);
       XMLUtils::SetInt(&source, "badpwdcount", share.m_iBadPwdCount);
     }
+
     if (!share.m_strThumbnailImage.empty())
       XMLUtils::SetPath(&source, "thumbnail", share.m_strThumbnailImage);
+
+    XMLUtils::SetBoolean(&source, "allowsharing", share.m_allowSharing);
 
     sectionNode->InsertEndChild(source);
   }

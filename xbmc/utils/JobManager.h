@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -135,6 +135,13 @@ public:
    */
   virtual void OnJobComplete(unsigned int jobID, bool success, CJob *job);
 
+protected:
+  /*!
+   \brief Returns if we still have jobs waiting to be processed
+   NOTE: This function does not take into account the jobs that are currently processing 
+   */
+  bool QueueEmpty() const;
+  
 private:
   void QueueNextJob();
 

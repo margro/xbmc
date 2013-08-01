@@ -561,8 +561,7 @@ BuildObject(CFileItem&                    item,
             CTextureCache::GetWrappedImageURL(thumb).c_str());
 
         // Set DLNA profileID by extension, defaulting to JPEG.
-        NPT_String ext = URIUtils::GetExtension(thumb).c_str();
-        if (strcmp(ext, ".png") == 0) {
+        if (URIUtils::HasExtension(thumb, ".png")) {
             art.dlna_profile = "PNG_TN";
         } else {
             art.dlna_profile = "JPEG_TN";
@@ -816,7 +815,7 @@ bool GetResource(const PLT_MediaObject* entry, CFileItem& item)
 
   // store original path so we remember it
   item.SetProperty("original_listitem_url",  item.GetPath());
-  item.SetProperty("original_listitem_mime", item.GetMimeType(false));
+  item.SetProperty("original_listitem_mime", item.GetMimeType());
 
   // look for a resource with "xbmc-get" protocol
   // if we can't find one, try to find a valid resource

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ void CDVDInputStreamTV::Close()
   m_eof = true;
 }
 
-int CDVDInputStreamTV::Read(BYTE* buf, int buf_size)
+int CDVDInputStreamTV::Read(uint8_t* buf, int buf_size)
 {
   if(!m_pFile) return -1;
 

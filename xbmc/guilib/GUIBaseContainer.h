@@ -7,7 +7,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,34 +25,14 @@
  *
  */
 
-#include "GUIControl.h"
+#include "IGUIContainer.h"
 #include "GUIListItemLayout.h"
-#include "boost/shared_ptr.hpp"
 #include "utils/Stopwatch.h"
-
-typedef boost::shared_ptr<CGUIListItem> CGUIListItemPtr;
 
 /*!
  \ingroup controls
  \brief
  */
-
-class IGUIContainer : public CGUIControl
-{
-protected:
-  VIEW_TYPE m_type;
-  CStdString m_label;
-public:
-  IGUIContainer(int parentID, int controlID, float posX, float posY, float width, float height);
-  virtual bool IsContainer() const { return true; };
-
-  VIEW_TYPE GetType() const { return m_type; };
-  const CStdString &GetLabel() const { return m_label; };
-  void SetType(VIEW_TYPE type, const CStdString &label);
-
-  virtual CGUIListItemPtr GetListItem(int offset, unsigned int flag = 0) const = 0;
-  virtual CStdString GetLabel(int info) const                                  = 0;
-};
 
 class CGUIBaseContainer : public IGUIContainer
 {
@@ -203,7 +183,16 @@ protected:
    this also marks the control as dirty (if needed)
    */
   void SetOffset(int offset);
+  /*! \brief Returns the index of the first visible row
+   returns the first row. This may be outside of the range of available items. Use GetItemOffset() to retrieve the first visible item in the list.
+   \sa GetItemOffset
+  */
   inline int GetOffset() const { return m_offset; };
+  /*! \brief Returns the index of the first visible item
+   returns the first visible item. This will always be in the range of available items. Use GetOffset() to retrieve the first visible row in the list.
+   \sa GetOffset
+  */
+  inline int GetItemOffset() const { return CorrectOffset(GetOffset(), 0); }
 
 private:
   int m_cursor;

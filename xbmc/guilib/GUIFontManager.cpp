@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -82,7 +82,7 @@ static bool CheckFont(CStdString& strPath, const CStdString& newPath,
   if (!XFILE::CFile::Exists(strPath))
   {
     strPath = URIUtils::AddFileToFolder(newPath,filename);
-#ifdef _LINUX
+#ifdef TARGET_POSIX
     strPath = CSpecialProtocol::TranslatePathConvertCase(strPath);
 #endif
     return false;
@@ -116,7 +116,7 @@ CGUIFont* GUIFontManager::LoadTTF(const CStdString& strFontName, const CStdStrin
   else
     strPath = strFilename;
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
   strPath = CSpecialProtocol::TranslatePathConvertCase(strPath);
 #endif
 
@@ -596,11 +596,9 @@ void GUIFontManager::SettingOptionsFontsFiller(const CSetting *setting, std::vec
     {
       CFileItemPtr pItem = items[i];
 
-      if (!pItem->m_bIsFolder)
+      if (!pItem->m_bIsFolder
+          && URIUtils::HasExtension(pItem->GetLabel(), ".ttf"))
       {
-        if (!URIUtils::GetExtension(pItem->GetLabel()).Equals(".ttf"))
-          continue;
-
         list.push_back(make_pair(pItem->GetLabel(), pItem->GetLabel()));
       }
     }

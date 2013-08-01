@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
 #include "addons/PluginSource.h"
+#include "interfaces/generic/ScriptInvocationManager.h"
 #include "network/NetworkServices.h"
 #include "utils/log.h"
 #include "storage/MediaManager.h"
@@ -78,10 +79,6 @@
 
   #include "input/windows/IRServerSuite.h"
 
-#endif
-
-#ifdef HAS_PYTHON
-#include "interfaces/python/XBPython.h"
 #endif
 
 #if defined(TARGET_DARWIN)
@@ -123,10 +120,12 @@ const BUILT_IN commands[] = {
   { "Suspend",                    false,  "Suspends the system" },
   { "InhibitIdleShutdown",        false,  "Inhibit idle shutdown" },
   { "AllowIdleShutdown",          false,  "Allow idle shutdown" },
+  { "ActivateScreensaver",        false,  "Activate Screensaver" },
   { "RestartApp",                 false,  "Restart XBMC" },
   { "Minimize",                   false,  "Minimize XBMC" },
   { "Reset",                      false,  "Reset the system (same as reboot)" },
   { "Mastermode",                 false,  "Control master mode" },
+  { "SetGUILanguage",             true,   "Set GUI Language" },
   { "ActivateWindow",             true,   "Activate the specified window" },
   { "ActivateWindowAndFocus",     true,   "Activate the specified window and sets focus to the specified id" },
   { "ReplaceWindowAndFocus",      true,   "Replaces the current window with the new one and sets focus to the specified id" },
@@ -205,6 +204,9 @@ const BUILT_IN commands[] = {
   { "UpdateAddonRepos",           false,  "Check add-on repositories for updates" },
   { "UpdateLocalAddons",          false,  "Check for local add-on changes" },
   { "ToggleDPMS",                 false,  "Toggle DPMS mode manually"},
+  { "CECToggleState",             false,  "Toggle state of playing device via a CEC peripheral"},
+  { "CECActivateSource",          false,  "Wake up playing device via a CEC peripheral"},
+  { "CECStandby",                 false,  "Put playing device on standby via a CEC peripheral"},
   { "Weather.Refresh",            false,  "Force weather data refresh"},
   { "Weather.LocationNext",       false,  "Switch to next weather location"},
   { "Weather.LocationPrevious",   false,  "Switch to previous weather location"},
@@ -291,6 +293,10 @@ int CBuiltins::Execute(const CStdString& execString)
     bool inhibit = (params.size() == 1 && params[0].Equals("true"));
     CApplicationMessenger::Get().InhibitIdleShutdown(inhibit);
   }
+  else if (execute.Equals("activatescreensaver"))
+  {
+    CApplicationMessenger::Get().ActivateScreensaver();
+  }
   else if (execute.Equals("minimize"))
   {
     CApplicationMessenger::Get().Minimize();
@@ -325,6 +331,13 @@ int CBuiltins::Execute(const CStdString& execString)
     CUtil::DeleteVideoDatabaseDirectoryCache();
     CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE);
     g_windowManager.SendMessage(msg);
+  }
+  else if (execute.Equals("setguilanguage"))
+  {
+    if (params.size())
+    {
+      CApplicationMessenger::Get().SetGUILanguage(params[0]);
+    }
   }
   else if (execute.Equals("takescreenshot"))
   {
@@ -375,7 +388,7 @@ int CBuiltins::Execute(const CStdString& execString)
     {
       // disable the screensaver
       g_application.WakeUpScreenSaverAndDPMS();
-#if defined(__APPLE__) && defined(__arm__)
+#if defined(TARGET_DARWIN_IOS)
       if (params[0].Equals("shutdownmenu"))
         CBuiltins::Execute("Quit");
 #endif
@@ -401,8 +414,7 @@ int CBuiltins::Execute(const CStdString& execString)
   else if (execute.Equals("runscript") && params.size())
   {
 #if defined(TARGET_DARWIN_OSX)
-    if (URIUtils::GetExtension(strParameterCaseIntact) == ".applescript" ||
-        URIUtils::GetExtension(strParameterCaseIntact) == ".scpt")
+    if (URIUtils::HasExtension(strParameterCaseIntact, ".applescript|.scpt"))
     {
       CStdString osxPath = CSpecialProtocol::TranslatePath(strParameterCaseIntact);
       Cocoa_DoAppleScriptFile(osxPath.c_str());
@@ -410,8 +422,9 @@ int CBuiltins::Execute(const CStdString& execString)
     else
 #endif
     {
-#ifdef HAS_PYTHON
-      vector<CStdString> argv = params;
+      vector<string> argv;
+      for (vector<CStdString>::const_iterator param = params.begin(); param != params.end(); ++param)
+        argv.push_back(*param);
 
       vector<CStdString> path;
       //split the path up to find the filename
@@ -424,8 +437,7 @@ int CBuiltins::Execute(const CStdString& execString)
       if (CAddonMgr::Get().GetAddon(params[0], script))
         scriptpath = script->LibPath();
 
-      g_pythonParser.evalFile(scriptpath, argv,script);
-#endif
+      CScriptInvocationManager::Get().Execute(scriptpath, script, argv);
     }
   }
 #if defined(TARGET_DARWIN_OSX)
@@ -436,7 +448,6 @@ int CBuiltins::Execute(const CStdString& execString)
 #endif
   else if (execute.Equals("stopscript"))
   {
-#ifdef HAS_PYTHON
     CStdString scriptpath(params[0]);
 
     // Test to see if the param is an addon ID
@@ -444,8 +455,7 @@ int CBuiltins::Execute(const CStdString& execString)
     if (CAddonMgr::Get().GetAddon(params[0], script))
       scriptpath = script->LibPath();
 
-    g_pythonParser.StopScript(scriptpath);
-#endif
+    CScriptInvocationManager::Get().Stop(scriptpath);
   }
   else if (execute.Equals("system.exec"))
   {
@@ -1583,6 +1593,18 @@ int CBuiltins::Execute(const CStdString& execString)
   else if (execute.Equals("toggledpms"))
   {
     g_application.ToggleDPMS(true);
+  }
+  else if (execute.Equals("cectogglestate"))
+  {
+    CApplicationMessenger::Get().CECToggleState();
+  }
+  else if (execute.Equals("cecactivatesource"))
+  {
+    CApplicationMessenger::Get().CECActivateSource();
+  }
+  else if (execute.Equals("cecstandby"))
+  {
+    CApplicationMessenger::Get().CECStandby();
   }
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
   else if (execute.Equals("lirc.stop"))

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,11 +18,16 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
 
 class CJNIDhcpInfo : public CJNIBase
 {
 public:
+  CJNIDhcpInfo();
+  CJNIDhcpInfo(const jni::jhobject &object);
+  ~CJNIDhcpInfo(){};
+
   std::string toString();
   int ipAddress;
   int gateway;
@@ -32,9 +37,4 @@ public:
   int serverAddress;
   int leaseDuration;
   int describeContents();
-
-  CJNIDhcpInfo();
-  ~CJNIDhcpInfo(){};
-  CJNIDhcpInfo(const jni::jhobject &object);
-private:
 };

@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ public:
   virtual ~CDVDInputStreamTV();
   virtual bool    Open(const char* strFile, const std::string &content);
   virtual void    Close();
-  virtual int     Read(BYTE* buf, int buf_size);
+  virtual int     Read(uint8_t* buf, int buf_size);
   virtual int64_t Seek(int64_t offset, int whence);
   virtual bool Pause(double dTime) { return false; };
   virtual bool    IsEOF();

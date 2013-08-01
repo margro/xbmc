@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -204,7 +204,7 @@ public:
 
 private:
   void copy(const CSettingInt &setting);
-  bool fromString(const std::string &strValue, int &value) const;
+  static bool fromString(const std::string &strValue, int &value);
 
   int m_value;
   int m_default;
@@ -253,7 +253,7 @@ public:
 
 private:
   virtual void copy(const CSettingNumber &setting);
-  bool fromString(const std::string &strValue, double &value) const;
+  static bool fromString(const std::string &strValue, double &value);
 
   double m_value;
   double m_default;

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "DVDInputStreamFile.h"
 #include "filesystem/File.h"
 #include "filesystem/IFile.h"
+#include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
 
@@ -52,6 +53,12 @@ bool CDVDInputStreamFile::Open(const char* strFile, const std::string& content)
     return false;
 
   unsigned int flags = READ_TRUNCATED | READ_BITRATE | READ_CHUNKED;
+
+  if ( g_advancedSettings.m_alwaysForceBuffer && 
+       !URIUtils::IsOnDVD(strFile) && 
+       !URIUtils::IsBluray(strFile) )
+    flags |= READ_CACHED; 
+
 
   if (content == "video/mp4" || content == "video/x-msvideo" || content == "video/avi")
     flags |= READ_MULTI_STREAM;
@@ -85,7 +92,7 @@ void CDVDInputStreamFile::Close()
   m_eof = true;
 }
 
-int CDVDInputStreamFile::Read(BYTE* buf, int buf_size)
+int CDVDInputStreamFile::Read(uint8_t* buf, int buf_size)
 {
   if(!m_pFile) return -1;
 

@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -89,6 +89,12 @@
   #define HAS_UPNP
 #endif
 
+#if defined(HAVE_LIBMDNSEMBEDDED)
+  #define HAS_ZEROCONF
+  #define HAS_MDNS
+  #define HAS_MDNS_EMBEDDED
+#endif
+
 /**********************
  * Non-free Components
  **********************/
@@ -122,6 +128,7 @@
 #define HAS_FILESYSTEM_SMB
 #define HAS_FILESYSTEM_NFS
 #define HAS_ZEROCONF
+#define HAS_MDNS
 #define HAS_AIRPLAY
 #define HAS_AIRTUNES
 #define HAVE_LIBSHAIRPLAY
@@ -189,18 +196,6 @@
 
 #ifdef HAVE_LIBSSH
 #define HAS_FILESYSTEM_SFTP
-#endif
-
-/*****************
- * Git revision
- *****************/
-
-#if defined(TARGET_DARWIN)
-#include "../git_revision.h"
-#endif
-
-#ifndef GIT_REV
-#define GIT_REV "Unknown"
 #endif
 
 /****************************************

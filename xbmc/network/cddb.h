@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 #include <sstream>
 #include <iostream>
 #include <map>
-#ifndef _LINUX
+#ifndef TARGET_POSIX
 #include <strstream>
 #endif
 #include "storage/cdioSupport.h"

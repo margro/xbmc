@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -54,6 +54,7 @@ void CMediaSource::FromNameAndPaths(const CStdString &category, const CStdString
   m_strLockCode = "0";
   m_iBadPwdCount = 0;
   m_iHasLock = 0;
+  m_allowSharing = true;
 
   if (URIUtils::IsMultiPath(strPath))
     m_iDriveType = SOURCE_TYPE_VPATH;

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -88,6 +88,46 @@ bool in_ether (const char *bufp, unsigned char *addr)
 
   return true;
 }
+
+int NetworkAccessPoint::getQuality() const
+{
+  // Cisco dBm lookup table (partially nonlinear)
+  // Source: "Converting Signal Strength Percentage to dBm Values, 2002"
+  int quality;
+  if (m_dBm >= -10) quality = 100;
+  else if (m_dBm >= -20) quality = 85 + (m_dBm + 20);
+  else if (m_dBm >= -30) quality = 77 + (m_dBm + 30);
+  else if (m_dBm >= -60) quality = 48 + (m_dBm + 60);
+  else if (m_dBm >= -98) quality = 13 + (m_dBm + 98);
+  else if (m_dBm >= -112) quality = 1 + (m_dBm + 112);
+  else quality = 0;
+  return quality;
+}
+
+int NetworkAccessPoint::FreqToChannel(float frequency)
+{
+  int IEEE80211Freq[] = {2412, 2417, 2422, 2427, 2432,
+                         2437, 2442, 2447, 2452, 2457,
+                         2462, 2467, 2472, 2484,
+                         5180, 5200, 5210, 5220, 5240, 5250,
+                         5260, 5280, 5290, 5300, 5320,
+                         5745, 5760, 5765, 5785, 5800, 5805, 5825};
+  int IEEE80211Ch[] =   {   1,    2,    3,    4,    5,
+                            6,    7,    8,    9,   10,
+                           11,   12,   13,   14,
+                           36,   40,   42,   44,   48,   50,
+                           52,   56,   58,   60,   64,
+                          149,  152,  153,  157,  160,  161,  165};
+  // Round frequency to the nearest MHz
+  int mod_chan = (int)(frequency / 1000000 + 0.5f);
+  for (unsigned int i = 0; i < sizeof(IEEE80211Freq) / sizeof(int); ++i)
+  {
+    if (IEEE80211Freq[i] == mod_chan)
+      return IEEE80211Ch[i];
+  }
+  return 0; // unknown
+}
+
 
 CNetwork::CNetwork()
 {
@@ -276,7 +316,7 @@ bool CNetwork::WakeOnLan(const char* mac)
 static const char* ConnectHostPort(SOCKET soc, const struct sockaddr_in& addr, struct timeval& timeOut, bool tryRead)
 {
   // set non-blocking
-#ifdef _MSC_VER
+#ifdef TARGET_WINDOWS
   u_long nonblocking = 1;
   int result = ioctlsocket(soc, FIONBIO, &nonblocking);
 #else
@@ -290,7 +330,7 @@ static const char* ConnectHostPort(SOCKET soc, const struct sockaddr_in& addr, s
 
   if (result < 0)
   {
-#ifdef _MSC_VER
+#ifdef TARGET_WINDOWS
     if (WSAGetLastError() != WSAEWOULDBLOCK)
 #else
     if (errno != EINPROGRESS)
@@ -377,7 +417,7 @@ bool CNetwork::PingHost(unsigned long ipaddr, unsigned short port, unsigned int 
 
   if (err_msg && *err_msg)
   {
-#ifdef _MSC_VER
+#ifdef TARGET_WINDOWS
     CStdString sock_err = WUSysMsg(WSAGetLastError());
 #else
     CStdString sock_err = strerror(errno);

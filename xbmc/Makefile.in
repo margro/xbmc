@@ -8,8 +8,8 @@ SRCS=Application.cpp \
      DatabaseManager.cpp \
      DbUrl.cpp \
      DynamicDll.cpp \
-     Favourites.cpp \
      FileItem.cpp \
+     GitRevision.cpp \
      GUIInfoManager.cpp \
      GUILargeTextureManager.cpp \
      GUIPassword.cpp \

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *      Some code borrowed from Dmitry Moskalchuk.
  *
  * Copyright (c) 2011-2012 Dmitry Moskalchuk <dm@crystax.net>.
@@ -53,6 +53,7 @@ JavaVM *jvm()
 
 static void jnienv_detach_thread(void *arg)
 {
+  (void)arg;
   if (!jvm())
     return;
   __android_log_print(ANDROID_LOG_VERBOSE, "XBMC","detaching thread");

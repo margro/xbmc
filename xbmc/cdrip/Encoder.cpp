@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -87,6 +87,14 @@ int CEncoder::FileWrite(const void *pBuffer, uint32_t iBytes)
     return -1;
 
   return dwBytesWritten;
+}
+
+int64_t CEncoder::FileSeek(int64_t iFilePosition, int iWhence)
+{
+  if (!m_file)
+    return -1;
+  FlushStream();
+  return m_file->Seek(iFilePosition, iWhence);
 }
 
 // write the stream to our writebuffer, and write the buffer to disk if it's full

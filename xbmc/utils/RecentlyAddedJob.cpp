@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ bool CRecentlyAddedJob::UpdateVideo()
   CFileItemList  items;
   CVideoDatabase videodatabase;
   CVideoThumbLoader loader;
-  loader.Initialize();
+  loader.OnLoaderStart();
   
   videodatabase.Open();
 
@@ -213,7 +213,7 @@ bool CRecentlyAddedJob::UpdateMusic()
   CFileItemList  musicItems;
   CMusicDatabase musicdatabase;
   CMusicThumbLoader loader;
-  loader.Initialize();
+  loader.OnLoaderStart();
   
   musicdatabase.Open();
   

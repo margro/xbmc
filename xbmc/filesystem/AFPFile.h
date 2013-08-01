@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #define FILEAFP_H_
 
 
-#ifdef _LINUX
+#ifdef TARGET_POSIX
 
 #include "IFile.h"
 #include "URL.h"
@@ -132,5 +132,5 @@ protected:
   struct afp_volume    *m_pAfpVol;  
 };
 }
-#endif // _LINUX
+#endif // TARGET_POSIX
 #endif // FILEAFP_H_

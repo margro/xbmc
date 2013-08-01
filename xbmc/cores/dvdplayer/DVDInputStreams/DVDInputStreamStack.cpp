@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -106,7 +106,7 @@ void CDVDInputStreamStack::Close()
   m_eof = true;
 }
 
-int CDVDInputStreamStack::Read(BYTE* buf, int buf_size)
+int CDVDInputStreamStack::Read(uint8_t* buf, int buf_size)
 {
   if(m_file == NULL || m_eof)
     return 0;

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "jutils/jutils.hpp"
 
 class CJNIBase
@@ -27,7 +28,7 @@ class CJNIBase
 
 public:
   operator safe_bool_type() const { return !m_object ?  0 : &CJNIBase::non_null_object; }
-  const jni::jhobject& get() const { return m_object; }
+  const jni::jhobject& get_raw() const { return m_object; }
 
 protected:
   CJNIBase(jni::jhobject const& object);

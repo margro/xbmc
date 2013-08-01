@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 #include "FileItem.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/log.h"
+#include "view/ViewStateSettings.h"
 
 CGUIPassword::CGUIPassword(void)
 {
@@ -317,16 +318,48 @@ bool CGUIPassword::CheckLock(LockType btnType, const CStdString& strPassword, in
   return (iVerifyPasswordResult==0);
 }
 
+bool CGUIPassword::CheckSettingLevelLock(const SettingLevel& level, bool enforce /*=false*/)
+{
+  LOCK_LEVEL::SETTINGS_LOCK lockLevel = CProfilesManager::Get().GetCurrentProfile().settingsLockLevel();
+  
+  if (lockLevel == LOCK_LEVEL::NONE)
+    return true;
+  
+    //check if we are already in settings and in an level that needs unlocking
+  int windowID = g_windowManager.GetActiveWindow();
+  if ((int)lockLevel-1 <= (short)CViewStateSettings::Get().GetSettingLevel() && 
+     (windowID == WINDOW_SETTINGS_MENU || 
+         (windowID >= WINDOW_SCREEN_CALIBRATION &&
+          windowID <= WINDOW_SETTINGS_MYPVR)))
+    return true; //Already unlocked
+  
+  else if (lockLevel == LOCK_LEVEL::ALL)
+    return IsMasterLockUnlocked(true);
+  else if ((int)lockLevel-1 <= (short)level)
+  {
+    if (enforce)
+      return IsMasterLockUnlocked(true);
+    else if (!IsMasterLockUnlocked(false))
+    {
+      //Current Setting level is higher than our permission... so lower the viewing level
+      SettingLevel newLevel = (SettingLevel)(short)(lockLevel-2);
+      CViewStateSettings::Get().SetSettingLevel(newLevel);
+    }
+  }
+  return true;
+
+}
+
 bool CGUIPassword::CheckMenuLock(int iWindowID)
 {
   bool bCheckPW         = false;
   int iSwitch = iWindowID;
 
   // check if a settings subcategory was called from other than settings window
-  if (iWindowID >= WINDOW_SCREEN_CALIBRATION && iWindowID <= WINDOW_SETTINGS_APPEARANCE)
+  if (iWindowID >= WINDOW_SCREEN_CALIBRATION && iWindowID <= WINDOW_SETTINGS_MYPVR)
   {
     int iCWindowID = g_windowManager.GetActiveWindow();
-    if (iCWindowID != WINDOW_SETTINGS_MENU && (iCWindowID < WINDOW_SCREEN_CALIBRATION || iCWindowID > WINDOW_SETTINGS_APPEARANCE))
+    if (iCWindowID != WINDOW_SETTINGS_MENU && (iCWindowID < WINDOW_SCREEN_CALIBRATION || iCWindowID > WINDOW_SETTINGS_MYPVR))
       iSwitch = WINDOW_SETTINGS_MENU;
   }
 
@@ -349,7 +382,7 @@ bool CGUIPassword::CheckMenuLock(int iWindowID)
   switch (iSwitch)
   {
     case WINDOW_SETTINGS_MENU:  // Settings
-      bCheckPW = CProfilesManager::Get().GetCurrentProfile().settingsLocked();
+      return CheckSettingLevelLock(CViewStateSettings::Get().GetSettingLevel());
       break;
     case WINDOW_ADDON_BROWSER:  // Addons
       bCheckPW = CProfilesManager::Get().GetCurrentProfile().addonmanagerLocked();

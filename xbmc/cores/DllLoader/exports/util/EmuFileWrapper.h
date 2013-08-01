@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include "system.h"
 #include "threads/CriticalSection.h"
 
-#if defined(_LINUX) && !defined(TARGET_DARWIN) && !defined(__FreeBSD__) && !defined(__ANDROID__)
+#if defined(TARGET_POSIX) && !defined(TARGET_DARWIN) && !defined(TARGET_FREEBSD) && !defined(TARGET_ANDROID)
 #define _file _fileno
 #endif
 
@@ -69,10 +69,10 @@ public:
   EmuFileObject* GetFileObjectByStream(FILE* stream);  
   XFILE::CFile* GetFileXbmcByDescriptor(int fd);
   XFILE::CFile* GetFileXbmcByStream(FILE* stream);
-  int GetDescriptorByStream(FILE* stream);
+  static int GetDescriptorByStream(FILE* stream);
   FILE* GetStreamByDescriptor(int fd);
-  bool DescriptorIsEmulatedFile(int fd);
-  bool StreamIsEmulatedFile(FILE* stream);
+  static bool DescriptorIsEmulatedFile(int fd);
+  static bool StreamIsEmulatedFile(FILE* stream);
 private:
   EmuFileObject m_files[MAX_EMULATED_FILES];
   CCriticalSection m_criticalSection;

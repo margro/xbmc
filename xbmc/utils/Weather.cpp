@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined WIN32)
+#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
   #include "config.h"
 #endif
 #include "Weather.h"
@@ -41,7 +41,7 @@
 #include "URIUtils.h"
 #include "log.h"
 #include "addons/AddonManager.h"
-#include "interfaces/python/XBPython.h"
+#include "interfaces/generic/ScriptInvocationManager.h"
 #include "CharsetConverter.h"
 #include "addons/GUIDialogAddonSettings.h"
 
@@ -85,7 +85,7 @@ bool CWeatherJob::DoWork()
     return false;
 
   // initialize our sys.argv variables
-  std::vector<CStdString> argv;
+  std::vector<std::string> argv;
   argv.push_back(addon->LibPath());
 
   CStdString strSetting;
@@ -95,11 +95,12 @@ bool CWeatherJob::DoWork()
   // Download our weather
   CLog::Log(LOGINFO, "WEATHER: Downloading weather");
   // call our script, passing the areacode
-  if (g_pythonParser.evalFile(argv[0], argv,addon))
+  int scriptId = -1;
+  if ((scriptId = CScriptInvocationManager::Get().Execute(argv[0], addon, argv)) >= 0)
   {
     while (true)
     {
-      if (!g_pythonParser.isRunning(g_pythonParser.getScriptId(addon->LibPath().c_str())))
+      if (!CScriptInvocationManager::Get().IsRunning(scriptId))
         break;
       Sleep(100);
     }

@@ -1,3 +1,22 @@
+/*
+ *      Copyright (C) 2010-2013 Team XBMC
+ *      http://xbmc.org
+ *
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with XBMC; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
+ *
+ */
 #ifndef __XBMC_CLIENT_H__
 #define __XBMC_CLIENT_H__
 
@@ -5,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #include <winsock.h>
 #else
 #include <sys/socket.h>
@@ -131,14 +150,14 @@ public:
 
   static void Clean()
   {
-  #ifdef _WIN32
+  #ifdef TARGET_WINDOWS
     WSACleanup();
   #endif
   }
 
   static bool Initialize()
   {
-  #ifdef _WIN32
+  #ifdef TARGET_WINDOWS
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(1, 1), &wsaData))
       return false;

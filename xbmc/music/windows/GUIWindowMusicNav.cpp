@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -772,7 +772,7 @@ void CGUIWindowMusicNav::OnSearchUpdate()
   if (!search.IsEmpty())
   {
     CStdString path = "musicsearch://" + search + "/";
-    m_history.ClearPathHistory();
+    m_history.ClearSearchHistory();
     Update(path);
   }
   else if (m_vecItems->IsVirtualDirectoryRoot())

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ bool CDNSNameCache::Lookup(const CStdString& strHostName, CStdString& strIpAddre
   if(g_DNSCache.GetCached(strHostName, strIpAddress))
     return true;
 
-#ifndef _WIN32
+#ifndef TARGET_WINDOWS
   // perform netbios lookup (win32 is handling this via gethostbyname)
   char nmb_ip[100];
   char line[200];

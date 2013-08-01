@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -254,8 +254,6 @@ bool CDVDInputStreamBluray::Open(const char* strFile, const std::string& content
   CStdString strPath(strFile);
   CStdString filename;
   CStdString root;
-  CStdString ext(URIUtils::GetExtension(strPath));
-  ext.ToLower();
 
   if(strPath.Left(7).Equals("bluray:"))
   {
@@ -263,8 +261,7 @@ bool CDVDInputStreamBluray::Open(const char* strFile, const std::string& content
     root     = url.GetHostName();
     filename = URIUtils::GetFileName(url.GetFileName());
   }
-  else if(ext == ".iso"
-       || ext == ".img")
+  else if(URIUtils::HasExtension(strPath, ".iso|.img"))
   {
     CURL url("udf://");
     url.SetHostName(strPath);
@@ -352,7 +349,7 @@ bool CDVDInputStreamBluray::Open(const char* strFile, const std::string& content
     m_navmode = false;
     m_title = GetTitleLongest();
   }
-  else if(URIUtils::GetExtension(filename).Equals(".mpls"))
+  else if(URIUtils::HasExtension(filename, ".mpls"))
   {
     m_navmode = false;
     m_title = GetTitleFile(filename);
@@ -421,6 +418,7 @@ bool CDVDInputStreamBluray::Open(const char* strFile, const std::string& content
       CLog::Log(LOGERROR, "CDVDInputStreamBluray::Open - failed to select title %d", m_title->idx);
       return false;
     }
+    m_clip = 0;
   }
 
   return true;
@@ -586,7 +584,7 @@ void CDVDInputStreamBluray::ProcessEvent() {
   m_event.event = BD_EVENT_NONE;
 }
 
-int CDVDInputStreamBluray::Read(BYTE* buf, int buf_size)
+int CDVDInputStreamBluray::Read(uint8_t* buf, int buf_size)
 {
   if(m_navmode)
   {

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "utils/log.h"
 #include "dll_util.h"
 
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
 #include <windows.h>
 #endif
 #include <stdlib.h>
@@ -102,7 +102,7 @@ uintptr_t create_dummy_function(const char* strDllName, const char* strFunctionN
 
 uintptr_t get_win_function_address(const char* strDllName, const char* strFunctionName)
 {
-#ifdef _WIN32
+#ifdef TARGET_WINDOWS
   HMODULE handle = GetModuleHandle(strDllName);
   if(handle == NULL)
   {

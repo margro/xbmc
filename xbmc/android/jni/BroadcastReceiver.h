@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,17 +18,21 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "JNIBase.h"
-class CJNIContext;
+class CJNIIntent;
+
 class CJNIBroadcastReceiver : public CJNIBase
 {
 public:
-  static CJNIContext *jni_app_context;
+  static void _onReceive(JNIEnv *env, jobject context, jobject intent);
+
 protected:
-  void DestroyBroadcastReceiver();
-  CJNIBroadcastReceiver(CJNIContext *context);
+  CJNIBroadcastReceiver(const std::string &className);
   ~CJNIBroadcastReceiver(){};
-  void InitializeBroadcastReceiver();
+
+  virtual void onReceive(CJNIIntent intent)=0;
+
 private:
-  explicit CJNIBroadcastReceiver(jni::jhobject const& object);
+  static CJNIBroadcastReceiver *m_receiverInstance;
 };

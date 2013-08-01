@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -120,7 +120,11 @@ void CAnnouncementManager::Announce(AnnouncementFlag flag, const char *sender, c
       CVideoDatabase videodatabase;
       if (videodatabase.Open())
       {
-        if (videodatabase.LoadVideoInfo(item->GetPath(), *item->GetVideoInfoTag()))
+        CStdString path = item->GetPath();
+        CStdString videoInfoTagPath(item->GetVideoInfoTag()->m_strFileNameAndPath);
+        if (videoInfoTagPath.Find("removable://") == 0)
+          path = videoInfoTagPath;
+        if (videodatabase.LoadVideoInfo(path, *item->GetVideoInfoTag()))
           id = item->GetVideoInfoTag()->m_iDbId;
 
         videodatabase.Close();

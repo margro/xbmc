@@ -124,6 +124,8 @@ config.log
 
 # /lib/
 /lib/Makefile
+/lib/*/1
+/lib/*/win32/1
 
 # /lib/asap/
 /lib/asap/Makefile
@@ -138,8 +140,11 @@ config.log
 /lib/addons/library.xbmc.addon/Makefile
 /lib/addons/library.xbmc.gui/Makefile
 /lib/addons/library.xbmc.pvr/Makefile
+/lib/addons/library.xbmc.codec/Makefile
 /lib/addons/library.xbmc.addon/project/VS2010Express/Release
 /lib/addons/library.xbmc.addon/project/VS2010Express/Debug
+/lib/addons/library.xbmc.codec/project/VS2010Express/Release
+/lib/addons/library.xbmc.codec/project/VS2010Express/Debug
 /lib/addons/library.xbmc.gui/project/VS2010Express/Release
 /lib/addons/library.xbmc.gui/project/VS2010Express/Debug
 /lib/addons/library.xbmc.pvr/project/VS2010Express/Release
@@ -368,6 +373,8 @@ lib/cmyth/Makefile
 /project/VS2010Express/objs
 /project/VS2010Express/ipch
 /project/VS2010Express/*.vsp
+/project/VS2010Express/*.metaproj
+/project/VS2010Express/*.metaproj.tmp
 
 # /skin/
 /skin/Confluence/media/Textures.xbt
@@ -706,6 +713,7 @@ lib/cmyth/Makefile
 /xbmc/visualizations/fishBMC/Makefile
 
 #/xbmc/win32/
+# no longer used
 /xbmc/win32/git_rev.h
 
 # /lib/ffmpeg/
@@ -1213,6 +1221,8 @@ lib/cmyth/Makefile
 
 /addons/library.xbmc.addon/libXBMC_addon.dll
 /addons/library.xbmc.addon/libXBMC_addon.lib
+/addons/library.xbmc.codec/libXBMC_codec.dll
+/addons/library.xbmc.codec/libXBMC_codec.lib
 /addons/library.xbmc.gui/libXBMC_gui.dll
 /addons/library.xbmc.gui/libXBMC_gui.lib
 /addons/library.xbmc.pvr/libXBMC_pvr.dll

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 
 #include "xbmc.h"
 #include "android/jni/Context.h"
+#include "android/jni/BroadcastReceiver.h"
 
 // forward delares
 class CJNIWakeLock;
@@ -51,12 +52,13 @@ struct androidPackage
 };
 
 
-class CXBMCApp : public IActivityHandler, public CJNIContext
+class CXBMCApp : public IActivityHandler, public CJNIContext, public CJNIBroadcastReceiver
 {
 public:
   CXBMCApp(ANativeActivity *nativeActivity);
   virtual ~CXBMCApp();
   virtual void onReceive(CJNIIntent intent);
+  virtual void onNewIntent(CJNIIntent intent);
 
   bool isValid() { return m_activity != NULL; }
 
@@ -108,6 +110,7 @@ protected:
 private:
   static bool HasLaunchIntent(const std::string &package);
   bool getWakeLock();
+  std::string GetFilenameFromIntent(const CJNIIntent &intent);
   void run();
   void stop();
   void SetupEnv();
