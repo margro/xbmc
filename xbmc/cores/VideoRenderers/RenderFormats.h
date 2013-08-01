@@ -34,6 +34,7 @@ enum ERenderFormat {
   RENDER_FMT_OMXEGL,
   RENDER_FMT_CVBREF,
   RENDER_FMT_BYPASS,
+  RENDER_FMT_EGLIMG,
 };
 
 #endif

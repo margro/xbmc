@@ -23,7 +23,6 @@
 #include "GUIInfoManager.h"
 #include "Application.h"
 #include "music/tags/MusicInfoTag.h"
-#include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
@@ -78,7 +77,7 @@ bool CVisualisation::Create(int x, int y, int w, int h, void *device)
   m_pInfo->y = y;
   m_pInfo->width = w;
   m_pInfo->height = h;
-  m_pInfo->pixelRatio = CDisplaySettings::Get().GetResolutionInfo(g_graphicsContext.GetVideoResolution()).fPixelRatio;
+  m_pInfo->pixelRatio = g_graphicsContext.GetResInfo().fPixelRatio;
 
   m_pInfo->name = strdup(Name().c_str());
   m_pInfo->presets = strdup(CSpecialProtocol::TranslatePath(Path()).c_str());
@@ -111,6 +110,7 @@ bool CVisualisation::Create(int x, int y, int w, int h, void *device)
 
     if (g_application.m_pPlayer)
       g_application.m_pPlayer->RegisterAudioCallback(this);
+    CAEFactory::RegisterAudioCallback(this);
 
     return true;
   }
@@ -175,6 +175,7 @@ void CVisualisation::Render()
 void CVisualisation::Stop()
 {
   if (g_application.m_pPlayer) g_application.m_pPlayer->UnRegisterAudioCallback();
+  CAEFactory::UnregisterAudioCallback();
   if (Initialized())
   {
     CAddonDll<DllVisualisation, Visualisation, VIS_PROPS>::Stop();

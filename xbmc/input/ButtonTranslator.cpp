@@ -223,6 +223,13 @@ static const ActionMapping actions[] =
         {"settingsreset"      , ACTION_SETTINGS_RESET},
         {"settingslevelchange", ACTION_SETTINGS_LEVEL_CHANGE},
 
+        // 3D movie playback/GUI
+        {"stereomode"                , ACTION_STEREOMODE_SELECT}, // cycle 3D modes, for now an alias for next
+        {"nextstereomode"            , ACTION_STEREOMODE_NEXT},
+        {"previousstereomode"        , ACTION_STEREOMODE_PREVIOUS},
+        {"togglestereomode"          , ACTION_STEREOMODE_TOGGLE},
+        {"stereomodetomono"          , ACTION_STEREOMODE_TOMONO},
+
         // PVR actions
         {"channelup"             , ACTION_CHANNEL_UP},
         {"channeldown"           , ACTION_CHANNEL_DOWN},
@@ -1399,6 +1406,8 @@ uint32_t CButtonTranslator::TranslateKeyboardButton(TiXmlElement *pButton)
         button_id |= CKey::MODIFIER_ALT;
       else if (substr == "super" || substr == "win")
         button_id |= CKey::MODIFIER_SUPER;
+      else if (substr == "meta" || substr == "cmd")
+        button_id |= CKey::MODIFIER_META;
       else
         CLog::Log(LOGERROR, "Keyboard Translator: Unknown key modifier %s in %s", substr.c_str(), strMod.c_str());
      }

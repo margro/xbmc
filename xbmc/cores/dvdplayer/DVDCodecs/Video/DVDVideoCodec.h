@@ -38,6 +38,8 @@ class CVDPAU;
 class COpenMax;
 class COpenMaxVideo;
 struct OpenMaxVideoBuffer;
+class CStageFrightVideo;
+typedef void* EGLImageKHR;
 
 // should be entirely filled by all codecs
 struct DVDVideoPicture
@@ -69,6 +71,11 @@ struct DVDVideoPicture
     struct {
       struct __CVBuffer *cvBufferRef;
     };
+    
+    struct {
+      CStageFrightVideo* stf;
+      EGLImageKHR eglimg;
+    };
   };
 
   unsigned int iFlags;
@@ -82,6 +89,7 @@ struct DVDVideoPicture
   unsigned int color_primaries;
   unsigned int color_transfer;
   unsigned int extended_format;
+  char         stereo_mode[32];
 
   int8_t* qscale_table; // Quantization parameters, primarily used by filters
   int qscale_stride;

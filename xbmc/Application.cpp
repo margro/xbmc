@@ -44,6 +44,7 @@
 #include "playlists/PlayListFactory.h"
 #include "guilib/GUIFontManager.h"
 #include "guilib/GUIColorManager.h"
+#include "guilib/StereoscopicsManager.h"
 #include "guilib/GUITextLayout.h"
 #include "addons/Skin.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
@@ -939,11 +940,11 @@ bool CApplication::CreateGUI()
   if (!CButtonTranslator::GetInstance().Load())
     return false;
 
-  int iResolution = g_graphicsContext.GetVideoResolution();
+  RESOLUTION_INFO info = g_graphicsContext.GetResInfo();
   CLog::Log(LOGINFO, "GUI format %ix%i, Display %s",
-            CDisplaySettings::Get().GetResolutionInfo(iResolution).iWidth,
-            CDisplaySettings::Get().GetResolutionInfo(iResolution).iHeight,
-            CDisplaySettings::Get().GetResolutionInfo(iResolution).strMode.c_str());
+            info.iWidth,
+            info.iHeight,
+            info.strMode.c_str());
   g_windowManager.Initialize();
 
   return true;
@@ -1414,6 +1415,8 @@ bool CApplication::Initialize()
         StartPVRManager(false);
         g_windowManager.ActivateWindow(g_SkinInfo->GetFirstWindow());
       }
+
+      CStereoscopicsManager::Get().Initialize();
     }
 
   }
@@ -1846,6 +1849,7 @@ void CApplication::LoadSkin(const SkinPtr& skin)
   g_windowManager.AddMsgTarget(&g_playlistPlayer);
   g_windowManager.AddMsgTarget(&g_infoManager);
   g_windowManager.AddMsgTarget(&g_fontManager);
+  g_windowManager.AddMsgTarget(&CStereoscopicsManager::Get());
   g_windowManager.SetCallback(*this);
   g_windowManager.Initialize();
   CTextureCache::Get().Initialize();
@@ -2115,8 +2119,25 @@ void CApplication::Render()
   g_renderManager.FrameMove();
 
   CDirtyRegionList dirtyRegions = g_windowManager.GetDirty();
-  if (RenderNoPresent())
-    hasRendered = true;
+  if(g_graphicsContext.GetStereoMode())
+  {
+    g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_LEFT);
+    if(RenderNoPresent())
+      hasRendered = true;
+
+    if(g_graphicsContext.GetStereoMode() != RENDER_STEREO_MODE_MONO)
+    {
+      g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_RIGHT);
+      if(RenderNoPresent())
+        hasRendered = true;
+    }
+    g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_OFF);
+  }
+  else
+  {
+    if(RenderNoPresent())
+      hasRendered = true;
+  }
 
   g_renderManager.FrameFinish();
 
@@ -2314,15 +2335,32 @@ bool CApplication::OnKey(const CKey& key)
         if (key.GetFromService())
           action = CAction(key.GetButtonCode() != KEY_INVALID ? key.GetButtonCode() : 0, key.GetUnicode());
         else
-        { // see if we've got an ascii key
-          if (key.GetUnicode())
+        {
+          // Check for paste keypress
+#ifdef TARGET_WINDOWS
+          // In Windows paste is ctrl-V
+          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_CTRL)
+#elif defined(TARGET_LINUX)
+          // In Linux paste is ctrl-V
+          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_CTRL)
+#elif defined(TARGET_DARWIN_OSX)
+          // In OSX paste is cmd-V
+          if (key.GetVKey() == XBMCVK_V && key.GetModifiers() == CKey::MODIFIER_META)
+#else
+          // Placeholder for other operating systems
+          if (false)
+#endif
+            action = CAction(ACTION_PASTE);
+          // If the unicode is non-zero the keypress is a non-printing character
+          else if (key.GetUnicode())
             action = CAction(key.GetAscii() | KEY_ASCII, key.GetUnicode());
+          // The keypress is a non-printing character
           else
             action = CAction(key.GetVKey() | KEY_VKEY);
         }
       }
 
-      CLog::Log(LOGDEBUG, "%s: %s pressed, trying keyboard action %i", __FUNCTION__, g_Keyboard.GetKeyName((int) key.GetButtonCode()).c_str(), action.GetID());
+      CLog::Log(LOGDEBUG, "%s: %s pressed, trying keyboard action %x", __FUNCTION__, g_Keyboard.GetKeyName((int) key.GetButtonCode()).c_str(), action.GetID());
 
       if (OnAction(action))
         return true;
@@ -2536,6 +2574,10 @@ bool CApplication::OnAction(const CAction &action)
 
   // forward action to g_PVRManager and break if it was able to handle it
   if (g_PVRManager.OnAction(action))
+    return true;
+
+  // forward action to graphic context and see if it can handle it
+  if (CStereoscopicsManager::Get().OnAction(action))
     return true;
 
   if (IsPlaying())
