@@ -1494,6 +1494,33 @@
     ],
     "returns": { "type": "boolean", "description": "Fullscreen state" }
   },
+  "GUI.SetStereoscopicMode": {
+    "type": "method",
+    "description": "Sets the stereoscopic mode of the GUI to the given mode",
+    "transport": "Response",
+    "permission": "ControlGUI",
+    "params": [
+      { "name": "mode", "type": "string", "enum": [ "toggle", "tomono", "next", "previous", "select", "off", "split_vertical", "split_horizontal", "row_interleaved", "hardware_based", "anaglyph_cyan_red", "anaglyph_green_magenta", "monoscopic" ], "required": true }
+    ],
+    "returns": "string"
+  },
+  "GUI.GetStereoscopicModes": {
+    "type": "method",
+    "description": "Returns the supported stereoscopic modes of the GUI",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [],
+    "returns": {
+      "type": "object",
+      "properties": {
+        "stereoscopicmodes" : {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "GUI.Stereoscopy.Mode" }
+        }
+      }
+    }
+  },
   "Addons.GetAddons": {
     "type": "method",
     "description": "Gets all available addons",
@@ -1640,6 +1667,40 @@
       }
     }
   },
+  "PVR.GetBroadcasts": {
+    "type": "method",
+    "description": "Retrieves the program of a specific channel",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "channelid", "$ref": "Library.Id", "required": true },
+      { "name": "properties", "$ref": "PVR.Fields.Broadcast" },
+      { "name": "limits", "$ref": "List.Limits" }
+    ],
+    "returns": { "type": "object",
+      "properties": {
+        "limits": { "$ref": "List.LimitsReturned", "required": true },
+        "broadcasts": { "type": "array", "required": true,
+          "items": { "$ref": "PVR.Details.Broadcast" }
+        }
+      }
+    }
+  },
+  "PVR.GetBroadcastDetails": {
+    "type": "method",
+    "description": "Retrieves the details of a specific broadcast",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "broadcastid", "$ref": "Library.Id", "required": true },
+      { "name": "properties", "$ref": "PVR.Fields.Broadcast" }
+    ],
+    "returns": { "type": "object",
+      "properties": {
+        "broadcastdetails": { "$ref": "PVR.Details.Broadcast" }
+      }
+    }
+  },      
   "PVR.Record": {
     "type": "method",
     "description": "Toggle recording of a channel",

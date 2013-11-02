@@ -31,8 +31,6 @@ namespace XCURL
   struct curl_slist;
 }
 
-class CHttpHeader;
-
 namespace XFILE
 {
   class CCurlFile : public IFile
@@ -61,6 +59,7 @@ namespace XFILE
       virtual unsigned int Read(void* lpBuf, int64_t uiBufSize)  { return m_state->Read(lpBuf, uiBufSize); }
       virtual int Write(const void* lpBuf, int64_t uiBufSize);
       virtual CStdString GetMimeType()                           { return m_state->m_httpheader.GetMimeType(); }
+      virtual CStdString GetContent()                            { return GetMimeType(); }
       virtual int IoControl(EIoControl request, void* param);
 
       bool Post(const CStdString& strURL, const CStdString& strPostData, CStdString& strHTML);
@@ -77,6 +76,7 @@ namespace XFILE
       void SetCustomRequest(CStdString &request)                 { m_customrequest = request; }
       void UseOldHttpVersion(bool bUse)                          { m_useOldHttpVersion = bUse; }
       void SetContentEncoding(CStdString encoding)               { m_contentencoding = encoding; }
+      void SetAcceptCharset(const std::string& charset)          { m_acceptCharset = charset; }
       void SetTimeout(int connecttimeout)                        { m_connecttimeout = connecttimeout; }
       void SetLowSpeedTime(int lowspeedtime)                     { m_lowspeedtime = lowspeedtime; }
       void SetPostData(CStdString postdata)                      { m_postdata = postdata; }
@@ -90,6 +90,7 @@ namespace XFILE
       void SetBufferSize(unsigned int size);
 
       const CHttpHeader& GetHttpHeader() { return m_state->m_httpheader; }
+      std::string GetServerReportedCharset(void);
 
       /* static function that will get content type of a file */
       static bool GetHttpHeader(const CURL &url, CHttpHeader &headers);
@@ -120,7 +121,8 @@ namespace XFILE
 
           /* returned http header */
           CHttpHeader m_httpheader;
-          bool        m_headerdone;
+          bool        IsHeaderDone(void)
+          { return m_httpheader.IsHeaderDone(); }
 
           struct XCURL::curl_slist* m_curlHeaderList;
           struct XCURL::curl_slist* m_curlAliasList;
@@ -160,6 +162,7 @@ namespace XFILE
       ProxyType       m_proxytype;
       CStdString      m_customrequest;
       CStdString      m_contentencoding;
+      std::string     m_acceptCharset;
       CStdString      m_ftpauth;
       CStdString      m_ftpport;
       CStdString      m_binary;

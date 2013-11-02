@@ -154,6 +154,8 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "GUI.ActivateWindow",                           CGUIOperations::ActivateWindow },
   { "GUI.ShowNotification",                         CGUIOperations::ShowNotification },
   { "GUI.SetFullscreen",                            CGUIOperations::SetFullscreen },
+  { "GUI.SetStereoscopicMode",                      CGUIOperations::SetStereoscopicMode },
+  { "GUI.GetStereoscopicModes",                     CGUIOperations::GetStereoscopicModes },
 
 // PVR operations
   { "PVR.GetProperties",                            CPVROperations::GetProperties },
@@ -161,6 +163,8 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "PVR.GetChannelGroupDetails",                   CPVROperations::GetChannelGroupDetails },
   { "PVR.GetChannels",                              CPVROperations::GetChannels },
   { "PVR.GetChannelDetails",                        CPVROperations::GetChannelDetails },
+  { "PVR.GetBroadcasts",                            CPVROperations::GetBroadcasts },
+  { "PVR.GetBroadcastDetails",                      CPVROperations::GetBroadcastDetails },
   { "PVR.Record",                                   CPVROperations::Record },
   { "PVR.Scan",                                     CPVROperations::Scan },
 

@@ -18,7 +18,6 @@
  *
  */
 
-#include "threads/SystemClock.h"
 #include "system.h"
 #include "DVDPlayer.h"
 
@@ -636,7 +635,7 @@ bool CDVDPlayer::OpenInputStream()
   m_clock.Reset();
   m_dvd.Clear();
   m_errorCount = 0;
-  m_iChannelEntryTimeOut = 0;
+  m_ChannelEntryTimeOut.SetInfinite();
 
   return true;
 }
@@ -1223,14 +1222,14 @@ bool CDVDPlayer::CheckDelayedChannelEntry(void)
 {
   bool bReturn(false);
 
-  if (m_iChannelEntryTimeOut > 0 && XbmcThreads::SystemClockMillis() >= m_iChannelEntryTimeOut)
+  if (m_ChannelEntryTimeOut.IsTimePast())
   {
     CFileItem currentFile(g_application.CurrentFileItem());
     CPVRChannel *currentChannel = currentFile.GetPVRChannelInfoTag();
     SwitchChannel(*currentChannel);
 
     bReturn = true;
-    m_iChannelEntryTimeOut = 0;
+    m_ChannelEntryTimeOut.SetInfinite();
   }
 
   return bReturn;
@@ -2282,11 +2281,11 @@ void CDVDPlayer::HandleMessages()
             if (bShowPreview)
             {
               UpdateApplication(0);
-              m_iChannelEntryTimeOut = XbmcThreads::SystemClockMillis() + CSettings::Get().GetInt("pvrplayback.channelentrytimeout");
+              m_ChannelEntryTimeOut.Set(CSettings::Get().GetInt("pvrplayback.channelentrytimeout"));
             }
             else
             {
-              m_iChannelEntryTimeOut = 0;
+              m_ChannelEntryTimeOut.SetInfinite();
               SAFE_DELETE(m_pDemuxer);
 
               g_infoManager.SetDisplayAfterSeek();
@@ -2752,6 +2751,7 @@ int CDVDPlayer::GetAudioStream()
 
 void CDVDPlayer::SetAudioStream(int iStream)
 {
+  CMediaSettings::Get().GetCurrentVideoSettings().m_AudioStream = iStream;
   m_messenger.Put(new CDVDMsgPlayerSetAudioStream(iStream));
   SynchronizeDemuxer(100);
 }
@@ -2872,7 +2872,7 @@ bool CDVDPlayer::OpenAudioStream(int iStream, int source, bool reset)
 
   /* audio normally won't consume full cpu, so let it have prio */
   m_dvdPlayerAudio.SetPriority(GetPriority()+1);
-
+  CMediaSettings::Get().GetCurrentVideoSettings().m_AudioStream =  m_SelectionStreams.IndexOf(STREAM_AUDIO, source, iStream);
   return true;
 }
 
