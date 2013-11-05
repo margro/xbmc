@@ -30,7 +30,8 @@
 
 using namespace std;
 
-CGUIControl::CGUIControl()
+CGUIControl::CGUIControl() :
+  m_diffuseColor(0xffffffff)
 {
   m_hasProcessed = false;
   m_bHasFocus = false;
@@ -42,7 +43,6 @@ CGUIControl::CGUIControl()
   m_visibleCondition = 0;
   m_enableCondition = 0;
   m_enabled = true;
-  m_diffuseColor = 0xffffffff;
   m_posX = 0;
   m_posY = 0;
   m_width = 0;
@@ -58,7 +58,8 @@ CGUIControl::CGUIControl()
 }
 
 CGUIControl::CGUIControl(int parentID, int controlID, float posX, float posY, float width, float height)
-: m_hitRect(posX, posY, posX + width, posY + height)
+: m_hitRect(posX, posY, posX + width, posY + height),
+  m_diffuseColor(0xffffffff)
 {
   m_posX = posX;
   m_posY = posY;
@@ -69,7 +70,6 @@ CGUIControl::CGUIControl(int parentID, int controlID, float posX, float posY, fl
   m_parentID = parentID;
   m_visible = VISIBLE;
   m_visibleFromSkinCondition = true;
-  m_diffuseColor = 0xffffffff;
   m_forceHidden = false;
   m_visibleCondition = 0;
   m_enableCondition = 0;
@@ -133,29 +133,34 @@ void CGUIControl::DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyreg
 
   changed |= Animate(currentTime);
 
-  m_cachedTransform = g_graphicsContext.AddTransform(m_transform);
-  if (m_hasCamera)
-    g_graphicsContext.SetCameraPosition(m_camera);
-
   if (IsVisible())
   {
+    m_cachedTransform = g_graphicsContext.AddTransform(m_transform);
+    if (m_hasCamera)
+      g_graphicsContext.SetCameraPosition(m_camera);
+
     Process(currentTime, dirtyregions);
     m_bInvalidated = false;
+
+    if (dirtyRegion != m_renderRegion)
+    {
+      dirtyRegion.Union(m_renderRegion);
+      changed = true;
+    }
+
+    if (m_hasCamera)
+      g_graphicsContext.RestoreCameraPosition();
+    g_graphicsContext.RemoveTransform();
   }
 
-  changed |=  m_controlIsDirty;
-
-  if (changed || dirtyRegion != m_renderRegion)
-  {
-    dirtyRegion.Union(m_renderRegion);
-    dirtyregions.push_back(dirtyRegion);
-  }
-
-  if (m_hasCamera)
-    g_graphicsContext.RestoreCameraPosition();
-  g_graphicsContext.RemoveTransform();
+  changed |= m_controlIsDirty;
 
   m_controlIsDirty = false;
+
+  if (changed)
+  {
+    dirtyregions.push_back(dirtyRegion);
+  }
 }
 
 void CGUIControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyregions)
@@ -171,18 +176,20 @@ void CGUIControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyregio
 // 3. reset the animation transform
 void CGUIControl::DoRender()
 {
-  g_graphicsContext.SetTransform(m_cachedTransform);
-  if (m_hasCamera)
-    g_graphicsContext.SetCameraPosition(m_camera);
   if (IsVisible())
   {
+    g_graphicsContext.SetTransform(m_cachedTransform);
+    if (m_hasCamera)
+      g_graphicsContext.SetCameraPosition(m_camera);
+
     GUIPROFILER_RENDER_BEGIN(this);
     Render();
     GUIPROFILER_RENDER_END(this);
+
+    if (m_hasCamera)
+      g_graphicsContext.RestoreCameraPosition();
+    g_graphicsContext.RemoveTransform();
   }
-  if (m_hasCamera)
-    g_graphicsContext.RestoreCameraPosition();
-  g_graphicsContext.RemoveTransform();
 }
 
 bool CGUIControl::OnAction(const CAction &action)
@@ -222,7 +229,7 @@ bool CGUIControl::OnAction(const CAction &action)
   return false;
 }
 
-bool CGUIControl::Navigate(int direction)
+bool CGUIControl::Navigate(int direction) const
 {
   if (HasFocus())
   {
@@ -268,7 +275,7 @@ void CGUIControl::OnPrevControl()
   Navigate(ACTION_PREV_CONTROL);
 }
 
-bool CGUIControl::SendWindowMessage(CGUIMessage &message)
+bool CGUIControl::SendWindowMessage(CGUIMessage &message) const
 {
   CGUIWindow *pWindow = g_windowManager.GetWindow(GetParentID());
   if (pWindow)
@@ -534,7 +541,7 @@ void CGUIControl::SetVisible(bool bVisible, bool setVisState)
   if (bVisible && setVisState)
   {  // TODO: currently we only update m_visible from GUI_MSG_VISIBLE (SET_CONTROL_VISIBLE)
      //       otherwise we just set m_forceHidden
-    GUIVISIBLE visible = m_visible;
+    GUIVISIBLE visible;
     if (m_visibleCondition)
       visible = g_infoManager.GetBoolValue(m_visibleCondition) ? VISIBLE : HIDDEN;
     else
@@ -586,8 +593,11 @@ bool CGUIControl::OnMouseOver(const CPoint &point)
   if (g_Mouse.GetState() != MOUSE_STATE_DRAG)
     g_Mouse.SetState(MOUSE_STATE_FOCUS);
   if (!CanFocus()) return false;
-  CGUIMessage msg(GUI_MSG_SETFOCUS, GetParentID(), GetID());
-  OnMessage(msg);
+  if (!HasFocus())
+  {
+    CGUIMessage msg(GUI_MSG_SETFOCUS, GetParentID(), GetID());
+    OnMessage(msg);
+  }
   return true;
 }
 
@@ -925,10 +935,13 @@ bool CGUIControl::CanFocusFromPoint(const CPoint &point) const
 
 void CGUIControl::UnfocusFromPoint(const CPoint &point)
 {
-  CPoint controlPoint(point);
-  m_transform.InverseTransformPosition(controlPoint.x, controlPoint.y);
-  if (!HitTest(controlPoint))
-    SetFocus(false);
+  if (HasFocus())
+  {
+    CPoint controlPoint(point);
+    m_transform.InverseTransformPosition(controlPoint.x, controlPoint.y);
+    if (!HitTest(controlPoint))
+      SetFocus(false);
+  }
 }
 
 bool CGUIControl::HasID(int id) const

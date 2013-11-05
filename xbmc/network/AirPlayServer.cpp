@@ -38,7 +38,8 @@
 #include "ApplicationMessenger.h"
 #include "utils/md5.h"
 #include "utils/Variant.h"
-#include "guilib/GUIWindowManager.h"
+#include "settings/Settings.h"
+#include "guilib/Key.h"
 #include "URL.h"
 #include "cores/IPlayer.h"
 #include "interfaces/AnnouncementManager.h"
@@ -670,7 +671,7 @@ void CAirPlayServer::backupVolume()
 
 void CAirPlayServer::restoreVolume()
 {
-  if (ServerInstance->m_origVolume != -1)
+  if (ServerInstance->m_origVolume != -1 && CSettings::Get().GetBool("services.airplayvolumecontrol"))
   {
     g_application.SetVolume((float)ServerInstance->m_origVolume);
     ServerInstance->m_origVolume = -1;
@@ -729,14 +730,14 @@ int CAirPlayServer::CTCPClient::ProcessRequest( CStdString& responseHeader,
       }
       else if (rate == 0)
       {
-        if (g_application.m_pPlayer && g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused())
+        if (g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused())
         {
           CApplicationMessenger::Get().MediaPause();
         }
       }
       else
       {
-        if (g_application.m_pPlayer && g_application.m_pPlayer->IsPlaying() && g_application.m_pPlayer->IsPaused())
+        if (g_application.m_pPlayer->IsPausedPlayback())
         {
           CApplicationMessenger::Get().MediaPause();
         }
@@ -762,7 +763,7 @@ int CAirPlayServer::CTCPClient::ProcessRequest( CStdString& responseHeader,
       {
         float oldVolume = g_application.GetVolume();
         volume *= 100;
-        if(oldVolume != volume)
+        if(oldVolume != volume && CSettings::Get().GetBool("services.airplayvolumecontrol"))
         {
           backupVolume();
           g_application.SetVolume(volume);          
@@ -864,6 +865,9 @@ int CAirPlayServer::CTCPClient::ProcessRequest( CStdString& responseHeader,
       CFileItem fileToPlay(location, false);
       fileToPlay.SetProperty("StartPercent", position*100.0f);
       ServerInstance->AnnounceToClients(EVENT_LOADING);
+      // froce to internal dvdplayer cause it is the only
+      // one who will work well with airplay
+      g_application.m_eForcedNextPlayer = EPC_DVDPLAYER;
       CApplicationMessenger::Get().MediaPlay(fileToPlay);
     }
   }
@@ -880,7 +884,7 @@ int CAirPlayServer::CTCPClient::ProcessRequest( CStdString& responseHeader,
     {
       CLog::Log(LOGDEBUG, "AIRPLAY: got GET request %s", uri.c_str());
       
-      if (g_application.m_pPlayer && g_application.m_pPlayer->GetTotalTime())
+      if (g_application.m_pPlayer->GetTotalTime())
       {
         float position = ((float) g_application.m_pPlayer->GetTime()) / 1000;
         responseBody.Format("duration: %.6f\r\nposition: %.6f\r\n", (float)g_application.m_pPlayer->GetTotalTime() / 1000, position);
@@ -894,7 +898,7 @@ int CAirPlayServer::CTCPClient::ProcessRequest( CStdString& responseHeader,
     {
       const char* found = strstr(queryString.c_str(), "position=");
       
-      if (found && g_application.m_pPlayer)
+      if (found && g_application.m_pPlayer->HasPlayer())
       {
         int64_t position = (int64_t) (atof(found + strlen("position=")) * 1000.0);
         g_application.m_pPlayer->SeekTime(position);
@@ -920,7 +924,7 @@ int CAirPlayServer::CTCPClient::ProcessRequest( CStdString& responseHeader,
       }
       else //if we are not playing and get the stop request - we just wanna stop picture streaming
       {
-        g_windowManager.PreviousWindow();
+        CApplicationMessenger::Get().SendAction(ACTION_PREVIOUS_MENU);
       }
     }
   }
@@ -977,13 +981,13 @@ int CAirPlayServer::CTCPClient::ProcessRequest( CStdString& responseHeader,
     {
       status = AIRPLAY_STATUS_NEED_AUTH;
     }
-    else if (g_application.m_pPlayer)
+    else if (g_application.m_pPlayer->HasPlayer())
     {
       if (g_application.m_pPlayer->GetTotalTime())
       {
         position = ((float) g_application.m_pPlayer->GetTime()) / 1000;
         duration = ((float) g_application.m_pPlayer->GetTotalTime()) / 1000;
-        playing = g_application.m_pPlayer ? !g_application.m_pPlayer->IsPaused() : false;
+        playing = !g_application.m_pPlayer->IsPaused();
         cachePosition = position + (duration * g_application.m_pPlayer->GetCachePercentage() / 100.0f);
       }
 

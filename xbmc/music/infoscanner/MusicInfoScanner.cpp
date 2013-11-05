@@ -121,13 +121,18 @@ void CMusicInfoScanner::Process()
       bool cancelled = false;
       for (std::set<std::string>::const_iterator it = m_pathsToScan.begin(); it != m_pathsToScan.end(); it++)
       {
-        /*
-         * A copy of the directory path is used because the path supplied is
-         * immediately removed from the m_pathsToScan set in DoScan(). If the
-         * reference points to the entry in the set a null reference error
-         * occurs.
-         */
-        if (!DoScan(*it))
+        if (!CDirectory::Exists(*it) && !m_bClean)
+        {
+          /*
+           * Note that this will skip scanning (if m_bClean is disabled) if the directory really
+           * doesn't exist. Since the music scanner is fed with a list of existing paths from the DB
+           * and cleans out all songs under that path as its first step before re-adding files, if 
+           * the entire source is offline we totally empty the music database in one go.
+           */
+          CLog::Log(LOGWARNING, "%s directory '%s' does not exist - skipping scan.", __FUNCTION__, it->c_str());
+          continue;
+        }
+        else if (!DoScan(*it))
           cancelled = true;
         commit = !cancelled;
       }
@@ -250,6 +255,7 @@ void CMusicInfoScanner::Start(const CStdString& strDirectory, int flags)
   }
   else
     m_pathsToScan.insert(strDirectory);
+  m_bClean = g_advancedSettings.m_bMusicLibraryCleanOnUpdate;
 
   m_scanType = 0;
   Create();
@@ -390,7 +396,7 @@ bool CMusicInfoScanner::DoScan(const CStdString& strDirectory)
   // sort and get the path hash.  Note that we don't filter .cue sheet items here as we want
   // to detect changes in the .cue sheet as well.  The .cue sheet items only need filtering
   // if we have a changed hash.
-  items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+  items.Sort(SortByLabel, SortOrderAscending);
   CStdString hash;
   GetPathHash(items, hash);
 
@@ -405,7 +411,7 @@ bool CMusicInfoScanner::DoScan(const CStdString& strDirectory)
 
     // filter items in the sub dir (for .cue sheet support)
     items.FilterCueItems();
-    items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+    items.Sort(SortByLabel, SortOrderAscending);
 
     // and then scan in the new information
     if (RetrieveMusicInfo(strDirectory, items) > 0)
@@ -803,7 +809,7 @@ int CMusicInfoScanner::RetrieveMusicInfo(const CStdString& strDirectory, CFileIt
       m_musicDatabase.AddAlbumArtist(cachedArtist->second.idArtist,
                                      cachedAlbum->second.idAlbum,
                                      artistCredit->GetJoinPhrase(),
-                                     artistCredit == album->artistCredits.begin() ? false : true,
+                                     artistCredit == cachedAlbum->second.artistCredits.begin() ? false : true,
                                      std::distance(cachedAlbum->second.artistCredits.begin(), artistCredit));
     }
 

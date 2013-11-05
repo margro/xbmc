@@ -48,15 +48,16 @@ struct AudioSettings
   std::string device;
   std::string driver;
   std::string passthoughdevice;
-  int mode;
   int channels;
   bool ac3passthrough;
+  bool eac3passthrough;
   bool dtspassthrough;
-  bool aacpassthrough;
   bool truehdpassthrough;
   bool dtshdpassthrough;
-  bool multichannellpcm;
   bool stereoupmix;
+  bool passthrough;
+  int config;
+  unsigned int samplerate;
   AEQuality resampleQuality;
 };
 
@@ -73,6 +74,7 @@ public:
     VOLUME,
     PAUSESTREAM,
     RESUMESTREAM,
+    FLUSHSTREAM,
     STREAMRGAIN,
     STREAMVOLUME,
     STREAMAMP,
@@ -106,7 +108,6 @@ public:
     FREESTREAM,
     STREAMSAMPLE,
     DRAINSTREAM,
-    FLUSHSTREAM,
   };
   enum InSignal
   {
@@ -213,9 +214,10 @@ public:
 
   virtual void EnumerateOutputDevices(AEDeviceList &devices, bool passthrough);
   virtual std::string GetDefaultDevice(bool passthrough);
-  virtual bool SupportsRaw();
-  virtual bool SupportsDrain();
+  virtual bool SupportsRaw(AEDataFormat format);
+  virtual bool SupportsSilenceTimeout();
   virtual bool SupportsQualityLevel(enum AEQuality level);
+  virtual bool IsSettingVisible(const std::string &settingId);
 
   virtual void RegisterAudioCallback(IAudioCallback* pCallback);
   virtual void UnregisterAudioCallback();
@@ -245,21 +247,23 @@ protected:
   bool InitSink();
   void DrainSink();
   void UnconfigureSink();
+  bool IsSinkCompatible(const AEAudioFormat format, const std::string &device);
   void Start();
   void Dispose();
   void LoadSettings();
   bool NeedReconfigureBuffers();
   bool NeedReconfigureSink();
-  void ApplySettingsToFormat(AEAudioFormat &format, AudioSettings &settings, bool setmode = false);
+  void ApplySettingsToFormat(AEAudioFormat &format, AudioSettings &settings, int *mode = NULL);
   void Configure(AEAudioFormat *desiredFmt = NULL);
+  AEAudioFormat GetInputFormat(AEAudioFormat *desiredFmt = NULL);
   CActiveAEStream* CreateStream(MsgStreamNew *streamMsg);
   void DiscardStream(CActiveAEStream *stream);
   void SFlushStream(CActiveAEStream *stream);
+  void FlushEngine();
   void ClearDiscardedBuffers();
   void SStopSound(CActiveAESound *sound);
   void DiscardSound(CActiveAESound *sound);
-  float CalcStreamAmplification(CActiveAEStream *stream, CSampleBuffer *buf);
-  void ChangeResampleQuality();
+  void ChangeResamplers();
 
   bool RunStages();
   bool HasWork();
@@ -268,6 +272,8 @@ protected:
   bool ResampleSound(CActiveAESound *sound);
   void MixSounds(CSoundPacket &dstSample);
   void Deamplify(CSoundPacket &dstSample);
+
+  bool CompareFormat(AEAudioFormat &lhs, AEAudioFormat &rhs);
 
   CEvent m_inMsgEvent;
   CEvent m_outMsgEvent;
@@ -293,6 +299,7 @@ protected:
   AEAudioFormat m_sinkRequestFormat;
   AEAudioFormat m_encoderFormat;
   AEAudioFormat m_internalFormat;
+  AEAudioFormat m_inputFormat;
   AudioSettings m_settings;
   CEngineStats m_stats;
   IAEEncoder *m_encoder;

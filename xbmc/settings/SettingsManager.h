@@ -30,7 +30,7 @@
 #include "ISubSettings.h"
 #include "SettingConditions.h"
 #include "SettingDependency.h"
-#include "threads/CriticalSection.h"
+#include "threads/SharedSection.h"
 
 class CSettingSection;
 class CSettingUpdate;
@@ -396,7 +396,7 @@ private:
   SettingCreatorMap m_settingCreators;
 
   std::set<ISubSettings*> m_subSettings;
-  typedef std::set<ISettingsHandler*> SettingsHandlers;
+  typedef std::vector<ISettingsHandler*> SettingsHandlers;
   SettingsHandlers m_settingsHandlers;
 
   CSettingConditionsManager m_conditions;
@@ -408,5 +408,6 @@ private:
   typedef std::map<std::string, SettingOptionsFiller> SettingOptionsFillerMap;
   SettingOptionsFillerMap m_optionsFillers;
 
-  CCriticalSection m_critical;
+  CSharedSection m_critical;
+  CSharedSection m_settingsCritical;
 };

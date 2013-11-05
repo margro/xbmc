@@ -135,7 +135,7 @@ SettingList CSettingGroup::GetSettings(SettingLevel level) const
 
   for (SettingList::const_iterator it = m_settings.begin(); it != m_settings.end(); ++it)
   {
-    if ((*it)->GetLevel() <= level && (*it)->IsVisible())
+    if ((*it)->GetLevel() <= level && (*it)->MeetsRequirements())
       settings.push_back(*it);
   }
 
@@ -169,7 +169,7 @@ bool CSettingCategory::Deserialize(const TiXmlNode *node, bool update /* = false
   int tmp = -1;
   if (element->QueryIntAttribute(XML_ATTR_LABEL, &tmp) == TIXML_SUCCESS && tmp > 0)
     m_label = tmp;
-  if (element->QueryIntAttribute(XML_ATTR_HELP, &m_help) == TIXML_SUCCESS && m_help > 0)
+  if (element->QueryIntAttribute(XML_ATTR_HELP, &tmp) == TIXML_SUCCESS && tmp > 0)
     m_help = tmp;
 
   const TiXmlNode *accessNode = node->FirstChild("access");
@@ -221,7 +221,7 @@ SettingGroupList CSettingCategory::GetGroups(SettingLevel level) const
 
   for (SettingGroupList::const_iterator it = m_groups.begin(); it != m_groups.end(); ++it)
   {
-    if ((*it)->IsVisible() && (*it)->GetSettings(level).size() > 0)
+    if ((*it)->MeetsRequirements() && (*it)->IsVisible() && (*it)->GetSettings(level).size() > 0)
       groups.push_back(*it);
   }
 
@@ -307,7 +307,7 @@ SettingCategoryList CSettingSection::GetCategories(SettingLevel level) const
 
   for (SettingCategoryList::const_iterator it = m_categories.begin(); it != m_categories.end(); ++it)
   {
-    if ((*it)->IsVisible() && (*it)->GetGroups(level).size() > 0)
+    if ((*it)->MeetsRequirements() && (*it)->IsVisible() && (*it)->GetGroups(level).size() > 0)
       categories.push_back(*it);
   }
 

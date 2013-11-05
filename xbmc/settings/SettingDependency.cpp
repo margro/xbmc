@@ -131,12 +131,12 @@ bool CSettingDependencyCondition::setTarget(const std::string &target)
 bool CSettingDependencyCondition::setOperator(const std::string &op)
 {
   size_t length = 0;
-  if (StringUtils::EndsWith(op, "is"))
+  if (StringUtils::EndsWithNoCase(op, "is"))
   {
     m_operator = SettingDependencyOperatorEquals;
     length = 2;
   }
-  else if (StringUtils::EndsWith(op, "contains"))
+  else if (StringUtils::EndsWithNoCase(op, "contains"))
   {
     m_operator = SettingDependencyOperatorContains;
     length = 8;
@@ -245,6 +245,8 @@ bool CSettingDependency::setType(const std::string &type)
     m_type = SettingDependencyTypeEnable;
   else if (StringUtils::EqualsNoCase(type, "update"))
     m_type = SettingDependencyTypeUpdate;
+  else if (StringUtils::EqualsNoCase(type, "visible"))
+    m_type = SettingDependencyTypeVisible;
   else
     return false;
 

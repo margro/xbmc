@@ -57,7 +57,8 @@ public:
   const SettingList& GetSettings() const { return m_settings; }
   /*!
    \brief Gets the list of settings assigned to the given setting level (or
-   below) belonging to the setting group.
+   below) and that meet the requirements conditions belonging to the setting
+   group.
 
    \param level Level the settings should be assigned to
    \return List of settings belonging to the setting group
@@ -98,11 +99,23 @@ public:
    */
   const int GetLabel() const { return m_label; }
   /*!
+   \brief Sets the localizeable label ID of the setting category.
+
+   \param label Localizeable label ID of the setting category
+   */
+  void SetLabel(int label) { m_label = label; }
+  /*!
    \brief Gets the localizeable help ID of the setting category.
 
    \return Localizeable help ID of the setting category
    */
   const int GetHelp() const { return m_help; }
+  /*!
+   \brief Sets the localizeable help ID of the setting category.
+
+   \param label Localizeable help ID of the setting category
+   */
+  void SetHelp(int help) { m_help = help; }
   /*!
    \brief Gets the full list of setting groups belonging to the setting
    category.
@@ -112,7 +125,8 @@ public:
   const SettingGroupList& GetGroups() const { return m_groups; }
   /*!
    \brief Gets the list of setting groups belonging to the setting category
-   that contain settings assigned to the given setting level (or below).
+   that contain settings assigned to the given setting level (or below) and
+   that meet the requirements and visibility conditions.
 
    \param level Level the settings should be assigned to
    \return List of setting groups belonging to the setting category
@@ -163,11 +177,23 @@ public:
    */
   const int GetLabel() const { return m_label; }
   /*!
+   \brief Sets the localizeable label ID of the setting section.
+
+   \param label Localizeable label ID of the setting section
+   */
+  void SetLabel(int label) { m_label = label; }
+  /*!
    \brief Gets the localizeable help ID of the setting section.
 
    \return Localizeable help ID of the setting section
    */
   const int GetHelp() const { return m_help; }
+  /*!
+   \brief Sets the localizeable help ID of the setting section.
+
+   \param label Localizeable help ID of the setting section
+   */
+  void SetHelp(int help) { m_help = help; }
   /*!
    \brief Gets the full list of setting categories belonging to the setting
    section.
@@ -177,7 +203,8 @@ public:
   const SettingCategoryList& GetCategories() const { return m_categories; }
   /*!
    \brief Gets the list of setting categories belonging to the setting section
-   that contain settings assigned to the given setting level (or below).
+   that contain settings assigned to the given setting level (or below) and
+   that meet the requirements and visibility conditions.
 
    \param level Level the settings should be assigned to
    \return List of setting categories belonging to the setting section

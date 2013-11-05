@@ -197,7 +197,7 @@ extern "C" void __stdcall update_emu_environ()
   // Use a proxy, if the GUI was configured as such
   if (CSettings::Get().GetBool("network.usehttpproxy")
       && !CSettings::Get().GetString("network.httpproxyserver").empty()
-      && !CSettings::Get().GetString("network.httpproxyport").empty()
+      && CSettings::Get().GetInt("network.httpproxyport") > 0
       && CSettings::Get().GetInt("network.httpproxytype") == 0)
   {
     CStdString strProxy;
@@ -209,7 +209,7 @@ extern "C" void __stdcall update_emu_environ()
     }
 
     strProxy += CSettings::Get().GetString("network.httpproxyserver");
-    strProxy += ":" + CSettings::Get().GetString("network.httpproxyport");
+    strProxy.AppendFormat(":%d", CSettings::Get().GetInt("network.httpproxyport"));
 
     CEnvironment::setenv( "HTTP_PROXY", "http://" + strProxy, true );
     CEnvironment::setenv( "HTTPS_PROXY", "http://" + strProxy, true );
@@ -516,7 +516,7 @@ extern "C"
     bool bResult;
 
     // We need to validate the path here as some calls from ie. libdvdnav
-    // or the python DLLs have malformed slashes on Win32 & Xbox
+    // or the python DLLs have malformed slashes on Win32
     // (-> E:\test\VIDEO_TS/VIDEO_TS.BUP))
     if (bWrite)
       bResult = pFile->OpenForWrite(CUtil::ValidatePath(str), bOverwrite);

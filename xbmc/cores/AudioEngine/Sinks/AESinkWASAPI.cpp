@@ -192,9 +192,9 @@ CAESinkWASAPI::CAESinkWASAPI() :
   m_uiBufferLen(0),
   m_avgTimeWaiting(50),
   m_sinkLatency(0.0),
+  m_lastWriteToBuffer(0),
   m_pBuffer(NULL),
-  m_bufferPtr(0),
-  m_hnsRequestedDuration(0)
+  m_bufferPtr(0)
 {
   m_channelLayout.Reset();
 }
@@ -232,7 +232,7 @@ bool CAESinkWASAPI::Initialize(AEAudioFormat &format, std::string &device)
   hr = pEnumDevices->GetCount(&uiCount);
   EXIT_ON_FAILURE(hr, __FUNCTION__": Retrieval of audio endpoint count failed.")
 
-  if(StringUtils::EndsWith(device, std::string("default")))
+  if(StringUtils::EndsWithNoCase(device, std::string("default")))
     bdefault = true;
 
   if(!bdefault)
@@ -375,7 +375,7 @@ void CAESinkWASAPI::Deinitialize()
   m_bufferPtr = 0;
 }
 
-bool CAESinkWASAPI::IsCompatible(const AEAudioFormat format, const std::string &device)
+bool CAESinkWASAPI::IsCompatible(const AEAudioFormat &format, const std::string &device)
 {
   if (!m_initialized || m_isDirty)
     return false;
@@ -418,7 +418,19 @@ double CAESinkWASAPI::GetDelay()
   if (!m_initialized)
     return 0.0;
 
-  return m_sinkLatency;
+  double time_played = 0.0;
+  if (m_running)
+  {
+    unsigned int now = XbmcThreads::SystemClockMillis();
+    time_played = (double)(now-m_lastWriteToBuffer) / 1000;
+  }
+
+  double delay = m_sinkLatency - time_played + (double)m_bufferPtr / (double)m_format.m_sampleRate;
+
+  if (delay < 0)
+    delay = 0.0;
+
+  return delay;
 }
 
 double CAESinkWASAPI::GetCacheTime()
@@ -466,7 +478,7 @@ unsigned int CAESinkWASAPI::AddPackets(uint8_t *data, unsigned int frames, bool 
   {
     memcpy(m_pBuffer+m_bufferPtr*m_format.m_frameSize, data, FramesToCopy*m_format.m_frameSize);
     m_bufferPtr += FramesToCopy;
-    if (frames != m_format.m_frames)
+    if (m_bufferPtr != m_format.m_frames)
       return frames;
   }
 
@@ -488,12 +500,7 @@ unsigned int CAESinkWASAPI::AddPackets(uint8_t *data, unsigned int frames, bool 
       return INT_MAX;
     }
 
-    /* Inject one buffer of silence if sink has just opened */
-    /* to avoid losing start of stream or GUI sound         */
-    if (g_advancedSettings.m_streamSilence)
-      memcpy(buf, data, NumFramesRequested * m_format.m_frameSize); //fill buffer with audio
-    else
-      memset(buf,    0, NumFramesRequested * m_format.m_frameSize); //fill buffer with silence
+    memset(buf, 0, NumFramesRequested * m_format.m_frameSize); //fill buffer with silence
 
     hr = m_pRenderClient->ReleaseBuffer(NumFramesRequested, flags); //pass back to audio driver
     if (FAILED(hr))
@@ -508,7 +515,7 @@ unsigned int CAESinkWASAPI::AddPackets(uint8_t *data, unsigned int frames, bool 
     if (FAILED(hr))
       CLog::Log(LOGERROR, __FUNCTION__": AudioClient Start Failed");
     m_running = true; //signal that we're processing frames
-    return g_advancedSettings.m_streamSilence ? NumFramesRequested : 0U;
+    return 0U;
   }
 
 #ifndef _DEBUG
@@ -533,15 +540,8 @@ unsigned int CAESinkWASAPI::AddPackets(uint8_t *data, unsigned int frames, bool 
   {
     if(eventAudioCallback != WAIT_OBJECT_0 || !&buf)
     {
-      /* Event handle timed out - flag sink as dirty for re-initializing */
       CLog::Log(LOGERROR, __FUNCTION__": Endpoint Buffer timed out");
-      if (g_advancedSettings.m_streamSilence)
-      {
-        m_isDirty = true; //flag new device or re-init needed
-        Deinitialize();
-        m_running = false;
-        return INT_MAX;
-      }
+      return INT_MAX;
     }
   }
 
@@ -579,6 +579,7 @@ unsigned int CAESinkWASAPI::AddPackets(uint8_t *data, unsigned int frames, bool 
     #endif
     return INT_MAX;
   }
+  m_lastWriteToBuffer = XbmcThreads::SystemClockMillis();
 
   if (FramesToCopy != frames)
   {
@@ -1137,6 +1138,7 @@ bool CAESinkWASAPI::InitializeExclusive(AEAudioFormat &format)
 initialize:
 
   AEChannelsFromSpeakerMask(wfxex.dwChannelMask);
+  format.m_channelLayout = m_channelLayout;
 
   /* When the stream is raw, the values in the format structure are set to the link    */
   /* parameters, so store the encoded stream values here for the IsCompatible function */
@@ -1169,11 +1171,7 @@ initialize:
 
   REFERENCE_TIME audioSinkBufferDurationMsec, hnsLatency;
 
-  /* Get m_audioSinkBufferSizeMsec from advancedsettings.xml */
-  audioSinkBufferDurationMsec = (REFERENCE_TIME)g_advancedSettings.m_audioSinkBufferDurationMsec * 10000;
-
-  /* Use advancedsetting value for buffer size as long as it's over minimum set above */
-  audioSinkBufferDurationMsec = (REFERENCE_TIME)std::max(audioSinkBufferDurationMsec, (REFERENCE_TIME)500000);
+  audioSinkBufferDurationMsec = (REFERENCE_TIME)500000;
   audioSinkBufferDurationMsec = (REFERENCE_TIME)((audioSinkBufferDurationMsec / format.m_frameSize) * format.m_frameSize); //even number of frames
 
   if (AE_IS_RAW(format.m_dataFormat))
@@ -1181,8 +1179,6 @@ initialize:
 
   hr = m_pAudioClient->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
                                     audioSinkBufferDurationMsec, audioSinkBufferDurationMsec, &wfxex.Format, NULL);
-
-  m_hnsRequestedDuration = audioSinkBufferDurationMsec;
 
   if (hr == AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED)
   {
@@ -1319,7 +1315,7 @@ void CAESinkWASAPI::Drain()
   if(!m_pAudioClient)
     return;
 
-  Sleep( (DWORD)(m_hnsRequestedDuration / 10000));
+  Sleep( (DWORD)(GetDelay()*500) );
 
   if (m_running)
   {

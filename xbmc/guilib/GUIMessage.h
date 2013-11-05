@@ -133,6 +133,8 @@
 
 #define GUI_MSG_WINDOW_LOAD 43
 
+#define GUI_MSG_VALIDITY_CHANGED  44
+
 #define GUI_MSG_USER         1000
 
 /*!
@@ -305,7 +307,7 @@ public:
   CGUIMessage(int msg, int senderID, int controlID, int param1, int param2, const CGUIListItemPtr &item);
   CGUIMessage(const CGUIMessage& msg);
   virtual ~CGUIMessage(void);
-  const CGUIMessage& operator = (const CGUIMessage& msg);
+  CGUIMessage& operator = (const CGUIMessage& msg);
 
   int GetControlId() const ;
   int GetMessage() const;

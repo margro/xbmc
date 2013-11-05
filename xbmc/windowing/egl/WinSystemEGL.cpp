@@ -25,6 +25,8 @@
 #include "filesystem/SpecialProtocol.h"
 #include "guilib/GraphicContext.h"
 #include "settings/DisplaySettings.h"
+#include "guilib/IDirtyRegionSolver.h"
+#include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/DisplaySettings.h"
 #include "utils/log.h"
@@ -95,6 +97,12 @@ bool CWinSystemEGL::InitWindowSystem()
     return false;
   }
 
+  EGLint surface_type = EGL_WINDOW_BIT;
+  // for the non-trivial dirty region modes, we need the EGL buffer to be preserved across updates
+  if (g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_COST_REDUCTION ||
+      g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_UNION)
+    surface_type |= EGL_SWAP_BEHAVIOR_PRESERVED_BIT;
+
   EGLint configAttrs [] = {
         EGL_RED_SIZE,        8,
         EGL_GREEN_SIZE,      8,
@@ -104,7 +112,7 @@ bool CWinSystemEGL::InitWindowSystem()
         EGL_STENCIL_SIZE,    0,
         EGL_SAMPLE_BUFFERS,  0,
         EGL_SAMPLES,         0,
-        EGL_SURFACE_TYPE,    EGL_WINDOW_BIT,
+        EGL_SURFACE_TYPE,    surface_type,
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
         EGL_NONE
   };
@@ -157,13 +165,20 @@ bool CWinSystemEGL::CreateWindow(RESOLUTION_INFO &res)
     }
   }
 
-  int width = 0, height = 0;
-  if (!m_egl->GetSurfaceSize(m_display, m_surface, &width, &height))
+  /* The intel driver on wayland is broken and always returns a surface
+   * size of -1, -1. Work around it for now */
+  if (m_egl->TrustSurfaceSize())
   {
-    CLog::Log(LOGERROR, "%s: Surface is invalid",__FUNCTION__);
-    return false;
+    int width = 0, height = 0;
+    if (!m_egl->GetSurfaceSize(m_display, m_surface, &width, &height))
+    {
+      CLog::Log(LOGERROR, "%s: Surface is invalid",__FUNCTION__);
+      return false;
+    }
+    CLog::Log(LOGDEBUG, "%s: Created surface of size %ix%i",__FUNCTION__, width, height);
   }
-  CLog::Log(LOGDEBUG, "%s: Created surface of size %ix%i",__FUNCTION__, width, height);
+  else
+    CLog::Log(LOGDEBUG, "%s: Cannot reliably get surface size with this backend",__FUNCTION__);
 
   EGLint contextAttrs[] =
   {
@@ -190,6 +205,14 @@ bool CWinSystemEGL::CreateWindow(RESOLUTION_INFO &res)
   {
     CLog::Log(LOGERROR, "%s: Could not bind to context",__FUNCTION__);
     return false;
+  }
+
+  // for the non-trivial dirty region modes, we need the EGL buffer to be preserved across updates
+  if (g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_COST_REDUCTION ||
+      g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_UNION)
+  {
+    if (!m_egl->SurfaceAttrib(m_display, m_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED))
+      CLog::Log(LOGDEBUG, "%s: Could not set EGL_SWAP_BEHAVIOR",__FUNCTION__);
   }
 
   m_bWindowCreated = true;
@@ -302,10 +325,20 @@ void CWinSystemEGL::UpdateResolutions()
   RESOLUTION_INFO resDesktop, curDisplay;
   std::vector<RESOLUTION_INFO> resolutions;
 
-  if (!m_egl->ProbeResolutions(resolutions) || !resolutions.size())
+  if (!m_egl->ProbeResolutions(resolutions) || resolutions.empty())
   {
-    CLog::Log(LOGERROR, "%s: Could not find any possible resolutions",__FUNCTION__);
-    return;
+    CLog::Log(LOGWARNING, "%s: ProbeResolutions failed. Trying safe default.",__FUNCTION__);
+
+    RESOLUTION_INFO fallback;
+    if (m_egl->GetPreferredResolution(&fallback))
+    {
+      resolutions.push_back(fallback);
+    }
+    else
+    {
+      CLog::Log(LOGERROR, "%s: Fatal Error, GetPreferredResolution failed",__FUNCTION__);
+      return;
+    }
   }
 
   /* ProbeResolutions includes already all resolutions.

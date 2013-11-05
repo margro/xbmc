@@ -41,6 +41,7 @@
 #include "powermanagement\PowerManager.h"
 #include "utils/SystemInfo.h"
 #include "utils/Environment.h"
+#include "utils/URIUtils.h"
 
 // default Broadcom registy bits (setup when installing a CrystalHD card)
 #define BC_REG_PATH       "Software\\Broadcom\\MediaPC"
@@ -93,9 +94,9 @@ CStdString CWIN32Util::URLEncode(const CURL &url)
   flat += url.GetHostName();
 
   /* okey sadly since a slash is an invalid name we have to tokenize */
-  std::vector<CStdString> parts;
-  std::vector<CStdString>::iterator it;
-  CUtil::Tokenize(url.GetFileName(), parts, "/");
+  std::vector<std::string> parts;
+  std::vector<std::string>::iterator it;
+  StringUtils::Tokenize(url.GetFileName(), parts, "/");
   for( it = parts.begin(); it != parts.end(); it++ )
   {
     flat += "/";
@@ -432,16 +433,19 @@ int CWIN32Util::GetDesktopColorDepth()
 CStdString CWIN32Util::GetSpecialFolder(int csidl)
 {
   CStdString strProfilePath;
-  WCHAR szPath[MAX_PATH];
+  static const int bufSize = MAX_PATH;
+  WCHAR* buf = new WCHAR[bufSize];
 
-  if(SUCCEEDED(SHGetFolderPathW(NULL,csidl,NULL,0,szPath)))
+  if(SUCCEEDED(SHGetFolderPathW(NULL, csidl, NULL, SHGFP_TYPE_CURRENT, buf)))
   {
-    g_charsetConverter.wToUTF8(szPath, strProfilePath);
+    buf[bufSize-1] = 0;
+    g_charsetConverter.wToUTF8(buf, strProfilePath);
     strProfilePath = UncToSmb(strProfilePath);
   }
   else
     strProfilePath = "";
-
+  
+  delete[] buf;
   return strProfilePath;
 }
 
@@ -473,7 +477,7 @@ CStdString CWIN32Util::GetProfilePath()
 CStdString CWIN32Util::UncToSmb(const CStdString &strPath)
 {
   CStdString strRetPath(strPath);
-  if(strRetPath.Left(2).Equals("\\\\"))
+  if(StringUtils::StartsWith(strRetPath, "\\\\"))
   {
     strRetPath = "smb:" + strPath;
     strRetPath.Replace("\\","/");
@@ -484,7 +488,7 @@ CStdString CWIN32Util::UncToSmb(const CStdString &strPath)
 CStdString CWIN32Util::SmbToUnc(const CStdString &strPath)
 {
   CStdString strRetPath(strPath);
-  if(strRetPath.Left(6).Equals("smb://"))
+  if(StringUtils::StartsWithNoCase(strRetPath, "smb://"))
   {
     strRetPath.Replace("smb://","\\\\");
     strRetPath.Replace("/","\\");
@@ -515,6 +519,65 @@ CStdString CWIN32Util::ExtendedToNormalLengthPath(const CStdString &strPath)
   strRetPath.Replace("\\\\?\\", "");
   strRetPath.Replace("UNC\\", "\\\\");
   return strRetPath;
+}
+
+bool CWIN32Util::AddExtraLongPathPrefix(std::wstring& path)
+{
+  const wchar_t* const str = path.c_str();
+  if (path.length() < 4 || str[0] != L'\\' || str[1] != L'\\' || str[3] != L'\\' || str[2] != L'?')
+  {
+    path.insert(0, L"\\\\?\\");
+    return true;
+  }
+  return false;
+}
+
+bool CWIN32Util::RemoveExtraLongPathPrefix(std::wstring& path)
+{
+  const wchar_t* const str = path.c_str();
+  if (path.length() >= 4 && str[0] == L'\\' && str[1] == L'\\' && str[3] == L'\\' && str[2] == L'?')
+  {
+    path.erase(0, 4);
+    return true;
+  }
+  return false;
+}
+
+std::wstring CWIN32Util::ConvertPathToWin32Form(const std::string& pathUtf8)
+{
+  std::wstring result;
+  if (pathUtf8.empty())
+    return result;
+
+  bool convertResult;
+
+  if (pathUtf8.compare(0, 2, "\\\\", 2) != 0) // pathUtf8 don't start from "\\"
+  { // assume local file path in form 'C:\Folder\File.ext'
+    std::string formedPath("\\\\?\\"); // insert "\\?\" prefix
+    formedPath += URIUtils::FixSlashesAndDups(pathUtf8, '\\'); // fix duplicated and forward slashes
+    convertResult = g_charsetConverter.utf8ToW(formedPath, result, false, false, true);
+  }
+
+  else if (pathUtf8.compare(0, 8, "\\\\?\\UNC\\", 8) == 0) // pathUtf8 starts from "\\?\UNC\"
+    convertResult = g_charsetConverter.utf8ToW(URIUtils::FixSlashesAndDups(pathUtf8, '\\', 7), result, false, false, true); // fix duplicated and forward slashes, don't touch "\\?\UNC" prefix
+
+  else if (pathUtf8.compare(0, 4, "\\\\?\\", 4) == 0) // pathUtf8 starts from "\\?\", but it's not UNC path
+    convertResult = g_charsetConverter.utf8ToW(URIUtils::FixSlashesAndDups(pathUtf8, '\\', 4), result, false, false, true); // fix duplicated and forward slashes, don't touch "\\?\" prefix
+
+  else // pathUtf8 starts from "\\", but not from "\\?\UNC\"
+  { // assume UNC path in form '\\server\share\folder\file.ext'
+    std::string formedPath("\\\\?\\UNC\\"); // append "\\?\UNC\" prefix
+    formedPath.append(URIUtils::FixSlashesAndDups(pathUtf8, '\\', 2), 2, std::string::npos); // fix duplicated and forward slashes, skip and cut out two first slashes
+    convertResult = g_charsetConverter.utf8ToW(formedPath, result, false, false, true);
+  }
+
+  if (!convertResult)
+  {
+    CLog::Log(LOGERROR, "Error converting path \"%s\" to Win32 wide string!", pathUtf8.c_str());
+    return L"";
+  }
+
+  return result;
 }
 
 void CWIN32Util::ExtendDllPath()
@@ -1359,21 +1422,6 @@ extern "C" {
 }
 
 
-bool CWIN32Util::Is64Bit()
-{
-  bool bRet= false;
-  typedef VOID (WINAPI *LPFN_GETNATIVESYSTEMINFO) (LPSYSTEM_INFO);
-  LPFN_GETNATIVESYSTEMINFO fnGetNativeSystemInfo= ( LPFN_GETNATIVESYSTEMINFO ) GetProcAddress( GetModuleHandle( TEXT( "kernel32" ) ), "GetNativeSystemInfo" );
-  SYSTEM_INFO sSysInfo;
-  memset( &sSysInfo, 0, sizeof( sSysInfo ) );
-  if (fnGetNativeSystemInfo != NULL)
-  {
-    fnGetNativeSystemInfo(&sSysInfo);
-    if (sSysInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) bRet= true;
-  }
-  return bRet;
-}
-
 LONG CWIN32Util::UtilRegGetValue( const HKEY hKey, const char *const pcKey, DWORD *const pdwType, char **const ppcBuffer, DWORD *const pdwSizeBuff, const DWORD dwSizeAdd )
 {
   DWORD dwSize;
@@ -1396,7 +1444,7 @@ LONG CWIN32Util::UtilRegGetValue( const HKEY hKey, const char *const pcKey, DWOR
 
 bool CWIN32Util::UtilRegOpenKeyEx( const HKEY hKeyParent, const char *const pcKey, const REGSAM rsAccessRights, HKEY *hKey, const bool bReadX64 )
 {
-  const REGSAM rsAccessRightsTmp= ( Is64Bit() ? rsAccessRights | ( bReadX64 ? KEY_WOW64_64KEY : KEY_WOW64_32KEY ) : rsAccessRights );
+  const REGSAM rsAccessRightsTmp= ( CSysInfo::GetKernelBitness() == 64 ? rsAccessRights | ( bReadX64 ? KEY_WOW64_64KEY : KEY_WOW64_32KEY ) : rsAccessRights );
   bool bRet= ( ERROR_SUCCESS == RegOpenKeyEx(hKeyParent, pcKey, 0, rsAccessRightsTmp, hKey));
   return bRet;
 }

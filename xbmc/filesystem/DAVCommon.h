@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2012 Team XBMC
+ *      Copyright (C) 2005-2013 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -26,7 +26,7 @@ namespace XFILE
   class CDAVCommon
   {
     public:
-      static bool ValueWithoutNamespace(const TiXmlNode *pNode, const CStdString& value);
-      static CStdString GetStatusTag(const TiXmlElement *pElement);
+      static bool ValueWithoutNamespace(const TiXmlNode *pNode, const std::string& value);
+      static std::string GetStatusTag(const TiXmlElement *pElement);
   };
 }

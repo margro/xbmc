@@ -25,7 +25,7 @@
 
 #include "utils/log.h"
 #include "Windowsx.h"
-#include "windowing/WinEvents.h"
+#include "WinEventsWin32.h"
 #include "WIN32Util.h"
 #include "storage/windows/Win32StorageProvider.h"
 #include "Application.h"
@@ -392,6 +392,12 @@ bool CWinEventsWin32::MessagePump()
   return true;
 }
 
+size_t CWinEventsWin32::GetQueueSize()
+{
+  MSG  msg;
+  return PeekMessage( &msg, NULL, 0U, 0U, PM_NOREMOVE );
+}
+
 LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
   XBMC_Event newEvent;
@@ -487,7 +493,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
       switch( wParam&0xFFF0 )
       {
         case SC_MONITORPOWER:
-          if (g_application.IsPlaying() || g_application.IsPaused())
+          if (g_application.m_pPlayer->IsPlaying() || g_application.m_pPlayer->IsPausedPlayback())
             return 0;
           else if(CSettings::Get().GetInt("powermanagement.displaysoff") == 0)
             return 0;

@@ -1417,8 +1417,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
 
 void CGUIAddonWindow::AllocResources(bool forceLoad /*= FALSE */)
 {
-  CStdString tmpDir;
-  URIUtils::GetDirectory(GetProperty("xmlfile").asString(), tmpDir);
+  CStdString tmpDir = URIUtils::GetDirectory(GetProperty("xmlfile").asString());
   CStdString fallbackMediaPath;
   URIUtils::GetParentPath(tmpDir, fallbackMediaPath);
   URIUtils::RemoveSlashAtEnd(fallbackMediaPath);
@@ -1432,9 +1431,6 @@ void CGUIAddonWindow::AllocResources(bool forceLoad /*= FALSE */)
 
 void CGUIAddonWindow::FreeResources(bool forceUnLoad /*= FALSE */)
 {
-  // Unload temporary language strings
-  ClearAddonStrings();
-
   CGUIMediaWindow::FreeResources(forceUnLoad);
 }
 
@@ -1518,12 +1514,6 @@ void CGUIAddonWindow::WaitForActionEvent(unsigned int timeout)
 void CGUIAddonWindow::PulseActionEvent()
 {
   m_actionEvent.Set();
-}
-
-void CGUIAddonWindow::ClearAddonStrings()
-{
-  // Unload temporary language strings
-  g_localizeStrings.ClearBlock(m_addon->Path());
 }
 
 bool CGUIAddonWindow::OnClick(int iItem)

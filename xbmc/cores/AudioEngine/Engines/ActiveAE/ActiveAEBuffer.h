@@ -21,7 +21,7 @@
 
 #include "DllAvUtil.h"
 #include "DllSwResample.h"
-#include "AEAudioFormat.h"
+#include "Utils/AEAudioFormat.h"
 #include "Interfaces/AE.h"
 #include <deque>
 
@@ -34,6 +34,7 @@ struct SampleConfig
   uint64_t channel_layout;
   int channels;
   int sample_rate;
+  int bits_per_sample;
 };
 
 /**
@@ -89,7 +90,7 @@ class CActiveAEBufferPoolResample : public CActiveAEBufferPool
 public:
   CActiveAEBufferPoolResample(AEAudioFormat inputFormat, AEAudioFormat outputFormat, AEQuality quality);
   virtual ~CActiveAEBufferPoolResample();
-  virtual bool Create(unsigned int totaltime, bool remap);
+  virtual bool Create(unsigned int totaltime, bool remap, bool upmix);
   void ChangeResampler();
   bool ResampleBuffers(unsigned int timestamp = 0);
   float GetDelay();
@@ -106,7 +107,7 @@ public:
   bool m_changeResampler;
   double m_resampleRatio;
   AEQuality m_resampleQuality;
-  unsigned int m_outSampleRate;
+  bool m_stereoUpmix;
 };
 
 }

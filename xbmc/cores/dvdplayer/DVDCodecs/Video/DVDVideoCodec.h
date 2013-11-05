@@ -34,12 +34,14 @@
 
 namespace DXVA { class CSurfaceContext; }
 namespace VAAPI { struct CHolder; }
-class CVDPAU;
+namespace VDPAU { class CVdpauRenderPicture; }
 class COpenMax;
 class COpenMaxVideo;
 struct OpenMaxVideoBuffer;
 class CStageFrightVideo;
+class CDVDMediaCodecInfo;
 typedef void* EGLImageKHR;
+
 
 // should be entirely filled by all codecs
 struct DVDVideoPicture
@@ -57,7 +59,7 @@ struct DVDVideoPicture
       DXVA::CSurfaceContext* context;
     };
     struct {
-      CVDPAU* vdpau;
+      VDPAU::CVdpauRenderPicture* vdpau;
     };
     struct {
       VAAPI::CHolder* vaapi;
@@ -71,10 +73,14 @@ struct DVDVideoPicture
     struct {
       struct __CVBuffer *cvBufferRef;
     };
-    
+
     struct {
       CStageFrightVideo* stf;
       EGLImageKHR eglimg;
+    };
+
+    struct {
+      CDVDMediaCodecInfo *mediacodec;
     };
   };
 

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2012 Team XBMC
+ *      Copyright (C) 2005-2013 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -72,6 +72,9 @@ using namespace std;
 #define CONTROL_START_CONTROL           -80
 #define CONTRL_BTN_LEVELS               20
 
+#define RESET_SETTING_ID                "settings.reset"
+#define EMPTY_CATEGORY_ID               "categories.empty"
+
 typedef struct {
   int id;
   string name;
@@ -92,7 +95,9 @@ static const SettingGroup s_settingGroupMap[] = { { SETTINGS_PICTURES,    "pictu
 CGUIWindowSettingsCategory::CGUIWindowSettingsCategory(void)
     : CGUIWindow(WINDOW_SETTINGS_MYPICTURES, "SettingsCategory.xml"),
       m_settings(CSettings::Get()),
-      m_iCategory(0), m_iSection(0),
+      m_iSetting(0), m_iCategory(0), m_iSection(0),
+      m_resetSetting(NULL),
+      m_dummyCategory(NULL),
       m_pOriginalSpin(NULL),
       m_pOriginalRadioButton(NULL),
       m_pOriginalCategoryButton(NULL),
@@ -127,6 +132,9 @@ CGUIWindowSettingsCategory::~CGUIWindowSettingsCategory(void)
     delete m_pOriginalEdit;
     m_pOriginalEdit = NULL;
   }
+
+  delete m_resetSetting;
+  delete m_dummyCategory;
 }
 
 bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
@@ -142,6 +150,14 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
         m_iCategory = 0;
         ResetControlStates();
       }
+
+      m_resetSetting = new CSettingAction(RESET_SETTING_ID);
+      m_resetSetting->SetLabel(10041);
+      m_resetSetting->SetHelp(10045);
+
+      m_dummyCategory = new CSettingCategory(EMPTY_CATEGORY_ID);
+      m_dummyCategory->SetLabel(10046);
+      m_dummyCategory->SetHelp(10047);
       
       m_iSection = (int)message.GetParam2() - (int)CGUIWindow::GetID();
       CGUIWindow::OnMessage(message);
@@ -175,17 +191,26 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
         if (m_delayedSetting != NULL && m_delayedSetting->GetID() != focusedControl)
         {
           m_delayedTimer.Stop();
-          CGUIMessage message(GUI_MSG_UPDATE_ITEM, GetID(), GetID(), 1); // param1 = 1 for "reset the control if it's invalid"
+          CGUIMessage message(GUI_MSG_UPDATE_ITEM, GetID(), m_delayedSetting->GetID(), 1); // param1 = 1 for "reset the control if it's invalid"
           g_windowManager.SendThreadMessage(message, GetID());
         }
+        // update the value of the previous setting (in case it was invalid)
+        else if (m_iSetting >= CONTROL_START_CONTROL && m_iSetting < (int)(CONTROL_START_CONTROL + m_settingControls.size()))
+        {
+          CGUIMessage message(GUI_MSG_UPDATE_ITEM, GetID(), m_iSetting, 1); // param1 = 1 for "reset the control if it's invalid"
+          g_windowManager.SendThreadMessage(message, GetID());
+        }
+
+        CVariant description;
 
         // check if we have changed the category and need to create new setting controls
         if (focusedControl >= CONTROL_START_BUTTONS && focusedControl < (int)(CONTROL_START_BUTTONS + m_categories.size()))
         {
           int categoryIndex = focusedControl - CONTROL_START_BUTTONS;
+          const CSettingCategory* category = m_categories.at(categoryIndex);
           if (categoryIndex != m_iCategory)
           {
-            if (!m_categories[categoryIndex]->CanAccess())
+            if (!category->CanAccess())
             {
               // unable to go to this category - focus the previous one
               SET_CONTROL_FOCUS(CONTROL_START_BUTTONS + m_iCategory, 0);
@@ -195,13 +220,21 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
             m_iCategory = categoryIndex;
             CreateSettings();
           }
+
+          description = category->GetHelp();
         }
         else if (focusedControl >= CONTROL_START_CONTROL && focusedControl < (int)(CONTROL_START_CONTROL + m_settingControls.size()))
         {
+          m_iSetting = focusedControl;
           CSetting *setting = GetSettingControl(focusedControl)->GetSetting();
           if (setting != NULL)
-            SetDescription(setting->GetHelp());
+            description = setting->GetHelp();
         }
+
+        // set the description of the currently focused category/setting
+        if (description.isInteger() ||
+           (description.isString() && !description.empty()))
+          SetDescription(description);
       }
       return true;
     }
@@ -239,6 +272,15 @@ bool CGUIWindowSettingsCategory::OnMessage(CGUIMessage &message)
         if (!delayedSetting->OnClick() && message.GetParam1() != 0)
           OnSettingChanged(delayedSetting->GetSetting());
         return true;
+      }
+      else if (message.GetControlId() >= CONTROL_START_CONTROL && message.GetControlId() < (int)(CONTROL_START_CONTROL + m_settingControls.size()))
+      {
+        BaseSettingControlPtr settingControl = GetSettingControl(message.GetControlId());
+        if (settingControl.get() != NULL && settingControl->GetSetting() != NULL)
+        {
+          OnSettingChanged(settingControl->GetSetting());
+          return true;
+        }
       }
       break;
     }
@@ -425,6 +467,8 @@ void CGUIWindowSettingsCategory::SetupControls(bool createSettings /* = true */)
 
   // get the categories we need
   m_categories = section->GetCategories(CViewStateSettings::Get().GetSettingLevel());
+  if (m_categories.empty())
+    m_categories.push_back(m_dummyCategory);
 
   // go through the categories and create the necessary buttons
   int buttonIdOffset = 0;
@@ -488,7 +532,7 @@ void CGUIWindowSettingsCategory::OnTimeout()
 
   // we send a thread message so that it's processed the following frame (some settings won't
   // like being changed during Render())
-  CGUIMessage message(GUI_MSG_UPDATE_ITEM, GetID(), GetID(), 1); // param1 = 1 for "reset the control if it's invalid"
+  CGUIMessage message(GUI_MSG_UPDATE_ITEM, GetID(), m_delayedSetting->GetID());
   g_windowManager.SendThreadMessage(message, GetID());
 }
 
@@ -567,6 +611,13 @@ void CGUIWindowSettingsCategory::CreateSettings()
 
   if (!settingMap.empty())
     m_settings.RegisterCallback(this, settingMap);
+
+  if (!settingMap.empty())
+  {
+    // add "Reset" control
+    AddSeparator(group->GetWidth(), iControlID);
+    AddSetting(m_resetSetting, group->GetWidth(), iControlID);
+  }
   
   // update our settings (turns controls on/off as appropriate)
   UpdateSettings();
@@ -732,6 +783,12 @@ CGUIControl* CGUIWindowSettingsCategory::AddSettingControl(CGUIControl *pControl
 
 void CGUIWindowSettingsCategory::OnClick(BaseSettingControlPtr pSettingControl)
 {
+  if (pSettingControl->GetSetting()->GetId() == RESET_SETTING_ID)
+  {
+    OnAction(CAction(ACTION_SETTINGS_RESET));
+    return;
+  }
+
   // we need to first set the delayed setting and then execute OnClick()
   // because OnClick() triggers OnSettingChanged() and there we need to
   // know if the changed setting is delayed or not

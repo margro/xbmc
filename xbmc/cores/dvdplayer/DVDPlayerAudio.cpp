@@ -145,10 +145,8 @@ CDVDPlayerAudio::~CDVDPlayerAudio()
 
 bool CDVDPlayerAudio::OpenStream( CDVDStreamInfo &hints )
 {
-  bool passthrough = AUDIO_IS_BITSTREAM(CSettings::Get().GetInt("audiooutput.mode"));
-
   CLog::Log(LOGNOTICE, "Finding audio codec for: %i", hints.codec);
-  CDVDAudioCodec* codec = CDVDFactoryCodec::CreateAudioCodec(hints, passthrough);
+  CDVDAudioCodec* codec = CDVDFactoryCodec::CreateAudioCodec(hints);
   if( !codec )
   {
     CLog::Log(LOGERROR, "Unsupported audio codec");
@@ -175,9 +173,14 @@ void CDVDPlayerAudio::OpenStream( CDVDStreamInfo &hints, CDVDAudioCodec* codec )
   /* store our stream hints */
   m_streaminfo = hints;
 
-  /* update codec information from what codec gave ut */
-  m_streaminfo.channels = m_pAudioCodec->GetChannels();
-  m_streaminfo.samplerate = m_pAudioCodec->GetSampleRate();
+  /* update codec information from what codec gave out, if any */
+  int channelsFromCodec = m_pAudioCodec->GetChannels();
+  int samplerateFromCodec = m_pAudioCodec->GetEncodedSampleRate();
+
+  if (channelsFromCodec > 0)
+    m_streaminfo.channels = channelsFromCodec;
+  if (samplerateFromCodec > 0)
+    m_streaminfo.samplerate = samplerateFromCodec;
 
   /* check if we only just got sample rate, in which case the previous call
    * to CreateAudioCodec() couldn't have started passthrough */
@@ -231,6 +234,11 @@ void CDVDPlayerAudio::CloseStream(bool bWaitForBuffers)
     m_dvdAudio.Drain();
     m_bStop = true;
   }
+  else
+  {
+    m_dvdAudio.Flush();
+  }
+
   m_dvdAudio.Destroy();
 
   // uninit queue
@@ -295,7 +303,7 @@ int CDVDPlayerAudio::DecodeFrame(DVDAudioFrame &audioframe, bool bDropPacket)
       audioframe.size = m_pAudioCodec->GetData(&audioframe.data);
       audioframe.pts  = m_audioClock;
 
-      if (audioframe.size <= 0)
+      if (audioframe.size == 0)
         continue;
 
       audioframe.channel_layout        = m_pAudioCodec->GetChannelMap();
@@ -307,12 +315,12 @@ int CDVDPlayerAudio::DecodeFrame(DVDAudioFrame &audioframe, bool bDropPacket)
       audioframe.encoded_sample_rate   = m_pAudioCodec->GetEncodedSampleRate();
       audioframe.passthrough           = m_pAudioCodec->NeedPassthrough();
 
-      if (m_streaminfo.samplerate != audioframe.sample_rate)
+      if (m_streaminfo.samplerate != audioframe.encoded_sample_rate)
       {
         // The sample rate has changed or we just got it for the first time
         // for this stream. See if we should enable/disable passthrough due
         // to it.
-        m_streaminfo.samplerate = audioframe.sample_rate;
+        m_streaminfo.samplerate = audioframe.encoded_sample_rate;
         if (!switched && SwitchCodecIfNeeded()) {
           // passthrough has been enabled/disabled, reprocess the packet
           m_decode.data -= len;
@@ -525,7 +533,6 @@ void CDVDPlayerAudio::Process()
 {
   CLog::Log(LOGNOTICE, "running thread: CDVDPlayerAudio::Process()");
 
-  int result;
   bool packetadded(false);
 
   DVDAudioFrame audioframe;
@@ -534,7 +541,7 @@ void CDVDPlayerAudio::Process()
   while (!m_bStop)
   {
     //Don't let anybody mess with our global variables
-    result = DecodeFrame(audioframe, m_speed > DVD_PLAYSPEED_NORMAL || m_speed < 0 ||
+    int result = DecodeFrame(audioframe, m_speed > DVD_PLAYSPEED_NORMAL || m_speed < 0 ||
                          CAEFactory::IsSuspended()); // blocks if no audio is available, but leaves critical section before doing so
 
     UpdatePlayerInfo();
@@ -859,12 +866,8 @@ void CDVDPlayerAudio::WaitForBuffers()
 
 bool CDVDPlayerAudio::SwitchCodecIfNeeded()
 {
-  // check if passthrough is disabled
-  if (!AUDIO_IS_BITSTREAM(CSettings::Get().GetInt("audiooutput.mode")))
-    return false;
-
   CLog::Log(LOGDEBUG, "CDVDPlayerAudio: Sample rate changed, checking for passthrough");
-  CDVDAudioCodec *codec = CDVDFactoryCodec::CreateAudioCodec(m_streaminfo, true);
+  CDVDAudioCodec *codec = CDVDFactoryCodec::CreateAudioCodec(m_streaminfo);
   if (!codec || codec->NeedPassthrough() == m_pAudioCodec->NeedPassthrough()) {
     // passthrough state has not changed
     delete codec;

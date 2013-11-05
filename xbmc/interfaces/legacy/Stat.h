@@ -29,20 +29,20 @@ namespace XBMCAddon
   namespace xbmcvfs
   {
     /**
-     * Stat(path) -- Get file or file system status.
-     * 
-     * path        : file or folder
-     * 
-     * example:
-     *   st = xbmcvfs.Stat(path)
-     *   modified = st.st_mtime()
+     * Stat(path) -- Get file or file system status.\n
+     * \n
+     * path        : file or folder\n
+     * \n
+     * example:\n
+     *   st = xbmcvfs.Stat(path)\n
+     *   modified = st.st_mtime()\n
      */
     class Stat : public AddonClass
     {
       struct __stat64 st;
       
     public:
-      Stat(const String& path) : AddonClass("Stat")
+      Stat(const String& path)
       {
         DelayedCallGuard dg;
         XFILE::CFile::Stat(path, &st);

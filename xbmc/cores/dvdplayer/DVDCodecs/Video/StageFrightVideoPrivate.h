@@ -32,7 +32,6 @@
 #include <media/stagefright/MediaBufferGroup.h>
 #include <media/stagefright/MediaDefs.h>
 #include <media/stagefright/MediaSource.h>
-#include <media/stagefright/MetaData.h>
 
 #include <binder/ProcessState.h>
 #include <media/stagefright/OMXClient.h>
@@ -100,7 +99,7 @@ public:
   CStageFrightDecodeThread* decode_thread;
 
   sp<MediaSource> source;
-  
+
   MediaBuffer* inbuf[INBUFCOUNT];
 
   GLuint mPgm;

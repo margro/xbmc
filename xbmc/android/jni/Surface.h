@@ -25,8 +25,24 @@ class CJNISurfaceTexture;
 class CJNISurface : public CJNIBase
 {
 public:
-  CJNISurface(CJNISurfaceTexture *surf_texture);
-  ~CJNISurface();
-  
-  void release();
+  CJNISurface(const CJNISurfaceTexture &surfaceTexture);
+  CJNISurface(const jni::jhobject &object) : CJNIBase(object) {};
+  ~CJNISurface() {};
+
+  bool        isValid();
+  void        release();
+//CJNICanvas  lockCanvas(CJNIRect);
+//void        unlockCanvasAndPost(const CJNICanvas &canvas);
+//void        unlockCanvas(const CJNICanvas &canvas);
+  std::string toString();
+
+  int         describeContents();
+  static void PopulateStaticFields();
+  static int  ROTATION_0;
+  static int  ROTATION_90;
+  static int  ROTATION_180;
+  static int  ROTATION_270;
+
+private:
+  static const char *m_classname;
 };

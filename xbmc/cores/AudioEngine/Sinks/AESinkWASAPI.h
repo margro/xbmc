@@ -37,7 +37,7 @@ public:
 
     virtual bool Initialize  (AEAudioFormat &format, std::string &device);
     virtual void Deinitialize();
-    virtual bool IsCompatible(const AEAudioFormat format, const std::string &device);
+    virtual bool IsCompatible(const AEAudioFormat &format, const std::string &device);
 
     virtual double       GetDelay                    ();
     virtual double       GetCacheTime                ();
@@ -79,8 +79,8 @@ private:
     unsigned int        m_uiBufferLen;    /* wasapi endpoint buffer size, in frames */
     double              m_avgTimeWaiting; /* time between next buffer of data from SoftAE and driver call for data */
     double              m_sinkLatency;    /* time in seconds of total duration of the two WASAPI buffers */
+    unsigned int        m_lastWriteToBuffer;
 
     uint8_t            *m_pBuffer;
     int                 m_bufferPtr;
-    REFERENCE_TIME      m_hnsRequestedDuration;
 };

@@ -149,7 +149,7 @@ bool XMLUtils::GetString(const TiXmlNode* pRootNode, const char* strTag, std::st
     return true;
   }
   strStringValue.clear();
-  return false;
+  return true;
 }
 
 bool XMLUtils::HasChild(const TiXmlNode* pRootNode, const char* strTag)
@@ -191,7 +191,7 @@ bool XMLUtils::GetAdditiveString(const TiXmlNode* pRootNode, const char* strTag,
   Parses the XML for multiple tags of the given name.
   Does not clear the array to support chaining.
 */
-bool XMLUtils::GetStringArray(const TiXmlNode* pRootNode, const char* strTag, std::vector<std::string>& arrayValue, bool clear /* = false */, const std::string separator /* = "" */)
+bool XMLUtils::GetStringArray(const TiXmlNode* pRootNode, const char* strTag, std::vector<std::string>& arrayValue, bool clear /* = false */, const std::string& separator /* = "" */)
 {
   std::string strTemp;
   const TiXmlElement* node = pRootNode->FirstChildElement(strTag);
@@ -279,7 +279,7 @@ bool XMLUtils::GetPath(const TiXmlNode* pRootNode, const char* strTag, CStdStrin
 bool XMLUtils::GetDate(const TiXmlNode* pRootNode, const char* strTag, CDateTime& date)
 {
   CStdString strDate;
-  if (GetString(pRootNode, strTag, strDate))
+  if (GetString(pRootNode, strTag, strDate) && !strDate.empty())
   {
     date.SetFromDBDate(strDate);
     return true;
@@ -291,7 +291,7 @@ bool XMLUtils::GetDate(const TiXmlNode* pRootNode, const char* strTag, CDateTime
 bool XMLUtils::GetDateTime(const TiXmlNode* pRootNode, const char* strTag, CDateTime& dateTime)
 {
   CStdString strDateTime;
-  if (GetString(pRootNode, strTag, strDateTime))
+  if (GetString(pRootNode, strTag, strDateTime) && !strDateTime.empty())
   {
     dateTime.SetFromDBDateTime(strDateTime);
     return true;

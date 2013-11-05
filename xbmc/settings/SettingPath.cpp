@@ -20,7 +20,6 @@
 
 #include "SettingPath.h"
 #include "settings/SettingsManager.h"
-#include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/XBMCTinyXML.h"
@@ -46,7 +45,7 @@ CSettingPath::CSettingPath(const std::string &id, const CSettingPath &setting)
 
 bool CSettingPath::Deserialize(const TiXmlNode *node, bool update /* = false */)
 {
-  CSingleLock lock(m_critical);
+  CExclusiveLock lock(m_critical);
 
   if (!CSettingString::Deserialize(node, update))
     return false;
@@ -56,17 +55,6 @@ bool CSettingPath::Deserialize(const TiXmlNode *node, bool update /* = false */)
       m_control.GetAttributes() != SettingControlAttributeNone)
   {
     CLog::Log(LOGERROR, "CSettingPath: invalid <control> of \"%s\"", m_id.c_str());
-    return false;
-  }
-    
-  // get the default value by abusing the FromString
-  // implementation to parse the default value
-  CStdString value;
-  if (XMLUtils::GetString(node, XML_ELM_DEFAULT, value))
-    m_value = m_default = value;
-  else if (!update && !m_allowEmpty)
-  {
-    CLog::Log(LOGERROR, "CSettingPath: error reading the default value of \"%s\"", m_id.c_str());
     return false;
   }
     
@@ -110,6 +98,7 @@ void CSettingPath::copy(const CSettingPath &setting)
 {
   CSettingString::Copy(setting);
 
+  CExclusiveLock lock(m_critical);
   m_writable = setting.m_writable;
   m_sources = setting.m_sources;
 }

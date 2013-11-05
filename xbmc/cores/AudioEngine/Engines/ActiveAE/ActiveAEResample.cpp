@@ -36,7 +36,7 @@ CActiveAEResample::~CActiveAEResample()
   m_dllSwResample.Unload();
 }
 
-bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, CAEChannelInfo *remapLayout, AEQuality quality)
+bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst_rate, AVSampleFormat dst_fmt, int dst_bits, uint64_t src_chan_layout, int src_channels, int src_rate, AVSampleFormat src_fmt, int src_bits, bool upmix, CAEChannelInfo *remapLayout, AEQuality quality)
 {
   if (!m_dllAvUtil.Load() || !m_dllSwResample.Load())
     return false;
@@ -45,10 +45,12 @@ bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst
   m_dst_channels = dst_channels;
   m_dst_rate = dst_rate;
   m_dst_fmt = dst_fmt;
+  m_dst_bits = dst_bits;
   m_src_chan_layout = src_chan_layout;
   m_src_channels = src_channels;
   m_src_rate = src_rate;
   m_src_fmt = src_fmt;
+  m_src_bits = src_bits;
 
   if (m_dst_chan_layout == 0)
     m_dst_chan_layout = m_dllAvUtil.av_get_default_channel_layout(m_dst_channels);
@@ -75,6 +77,20 @@ bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst
     m_dllAvUtil.av_opt_set_int(m_pContext,"filter_size", 32, 0);
   }
 
+  if (m_dst_fmt == AV_SAMPLE_FMT_S32 || m_dst_fmt == AV_SAMPLE_FMT_S32P)
+  {
+    m_dllAvUtil.av_opt_set_int(m_pContext, "output_sample_bits", m_dst_bits, 0);
+  }
+
+  // tell resampler to clamp float values
+  // not required for sink stage (remapLayout == true)
+  if ((m_dst_fmt == AV_SAMPLE_FMT_FLT || m_dst_fmt == AV_SAMPLE_FMT_FLTP) &&
+      (m_src_fmt == AV_SAMPLE_FMT_FLT || m_src_fmt == AV_SAMPLE_FMT_FLTP) &&
+      !remapLayout)
+  {
+     m_dllAvUtil.av_opt_set_double(m_pContext, "rematrix_maxval", 1.0, 0);
+  }
+
   if(!m_pContext)
   {
     CLog::Log(LOGERROR, "CActiveAEResample::Init - create context failed");
@@ -86,12 +102,55 @@ bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst
     // remapLayout is the layout of the sink, if the channel is in our src layout
     // the channel is mapped by setting coef 1.0
     memset(m_rematrix, 0, sizeof(m_rematrix));
+    m_dst_chan_layout = 0;
     for (unsigned int out=0; out<remapLayout->Count(); out++)
     {
+      m_dst_chan_layout += (uint64_t) (1 << out);
       int idx = GetAVChannelIndex((*remapLayout)[out], m_src_chan_layout);
       if (idx >= 0)
       {
         m_rematrix[out][idx] = 1.0;
+      }
+    }
+
+    m_dllAvUtil.av_opt_set_int(m_pContext, "out_channel_count", m_dst_channels, 0);
+    m_dllAvUtil.av_opt_set_int(m_pContext, "out_channel_layout", m_dst_chan_layout, 0);
+
+    if (m_dllSwResample.swr_set_matrix(m_pContext, (const double*)m_rematrix, AE_CH_MAX) < 0)
+    {
+      CLog::Log(LOGERROR, "CActiveAEResample::Init - setting channel matrix failed");
+      return false;
+    }
+  }
+  // stereo upmix
+  else if (upmix && m_src_channels == 2 && m_dst_channels > 2)
+  {
+    memset(m_rematrix, 0, sizeof(m_rematrix));
+    for (int out=0; out<m_dst_channels; out++)
+    {
+      uint64_t out_chan = m_dllAvUtil.av_channel_layout_extract_channel(m_dst_chan_layout, out);
+      switch(out_chan)
+      {
+        case AV_CH_FRONT_LEFT:
+        case AV_CH_BACK_LEFT:
+        case AV_CH_SIDE_LEFT:
+          m_rematrix[out][0] = 1.0;
+          break;
+        case AV_CH_FRONT_RIGHT:
+        case AV_CH_BACK_RIGHT:
+        case AV_CH_SIDE_RIGHT:
+          m_rematrix[out][1] = 1.0;
+          break;
+        case AV_CH_FRONT_CENTER:
+          m_rematrix[out][0] = 0.5;
+          m_rematrix[out][1] = 0.5;
+          break;
+        case AV_CH_LOW_FREQUENCY:
+          m_rematrix[out][0] = 0.5;
+          m_rematrix[out][1] = 0.5;
+          break;
+        default:
+          break;
       }
     }
 
@@ -101,6 +160,7 @@ bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst
       return false;
     }
   }
+
   if(m_dllSwResample.swr_init(m_pContext) < 0)
   {
     CLog::Log(LOGERROR, "CActiveAEResample::Init - init resampler failed");
@@ -109,8 +169,19 @@ bool CActiveAEResample::Init(uint64_t dst_chan_layout, int dst_channels, int dst
   return true;
 }
 
-int CActiveAEResample::Resample(uint8_t **dst_buffer, int dst_samples, uint8_t **src_buffer, int src_samples)
+int CActiveAEResample::Resample(uint8_t **dst_buffer, int dst_samples, uint8_t **src_buffer, int src_samples, double ratio)
 {
+  if (ratio != 1.0)
+  {
+    if (m_dllSwResample.swr_set_compensation(m_pContext,
+                                            (dst_samples*ratio-dst_samples)*m_dst_rate/m_src_rate,
+                                             dst_samples*m_dst_rate/m_src_rate) < 0)
+    {
+      CLog::Log(LOGERROR, "CActiveAEResample::Resample - set compensation failed");
+      return 0;
+    }
+  }
+
   int ret = m_dllSwResample.swr_convert(m_pContext, dst_buffer, dst_samples, (const uint8_t**)src_buffer, src_samples);
   if (ret < 0)
   {
@@ -203,29 +274,33 @@ AVSampleFormat CActiveAEResample::GetAVSampleFormat(AEDataFormat format)
   if      (format == AE_FMT_U8)     return AV_SAMPLE_FMT_U8;
   else if (format == AE_FMT_S16NE)  return AV_SAMPLE_FMT_S16;
   else if (format == AE_FMT_S32NE)  return AV_SAMPLE_FMT_S32;
+  else if (format == AE_FMT_S24NE4) return AV_SAMPLE_FMT_S32;
   else if (format == AE_FMT_FLOAT)  return AV_SAMPLE_FMT_FLT;
   else if (format == AE_FMT_DOUBLE) return AV_SAMPLE_FMT_DBL;
 
   else if (format == AE_FMT_U8P)     return AV_SAMPLE_FMT_U8P;
   else if (format == AE_FMT_S16NEP)  return AV_SAMPLE_FMT_S16P;
   else if (format == AE_FMT_S32NEP)  return AV_SAMPLE_FMT_S32P;
+  else if (format == AE_FMT_S24NE4P) return AV_SAMPLE_FMT_S32P;
   else if (format == AE_FMT_FLOATP)  return AV_SAMPLE_FMT_FLTP;
   else if (format == AE_FMT_DOUBLEP) return AV_SAMPLE_FMT_DBLP;
 
   return AV_SAMPLE_FMT_FLT;
 }
 
-AEDataFormat CActiveAEResample::GetAESampleFormat(AVSampleFormat format)
+AEDataFormat CActiveAEResample::GetAESampleFormat(AVSampleFormat format, int bits)
 {
   if      (format == AV_SAMPLE_FMT_U8)   return AE_FMT_U8;
   else if (format == AV_SAMPLE_FMT_S16)  return AE_FMT_S16NE;
-  else if (format == AV_SAMPLE_FMT_S32)  return AE_FMT_S32NE;
+  else if (format == AV_SAMPLE_FMT_S32 && bits == 32)  return AE_FMT_S32NE;
+  else if (format == AV_SAMPLE_FMT_S32 && bits == 24)  return AE_FMT_S24NE4;
   else if (format == AV_SAMPLE_FMT_FLT)  return AE_FMT_FLOAT;
   else if (format == AV_SAMPLE_FMT_DBL)  return AE_FMT_DOUBLE;
 
   else if (format == AV_SAMPLE_FMT_U8P)   return AE_FMT_U8P;
   else if (format == AV_SAMPLE_FMT_S16P)  return AE_FMT_S16NEP;
-  else if (format == AV_SAMPLE_FMT_S32P)  return AE_FMT_S32NEP;
+  else if (format == AV_SAMPLE_FMT_S32P && bits == 32)  return AE_FMT_S32NEP;
+  else if (format == AV_SAMPLE_FMT_S32P && bits == 24)  return AE_FMT_S24NE4P;
   else if (format == AV_SAMPLE_FMT_FLTP)  return AE_FMT_FLOATP;
   else if (format == AV_SAMPLE_FMT_DBLP)  return AE_FMT_DOUBLEP;
 

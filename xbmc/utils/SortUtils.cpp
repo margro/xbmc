@@ -522,6 +522,26 @@ bool SorterIgnoreFoldersDescending(const SortItem &left, const SortItem &right)
   return StringUtils::AlphaNumericCompare(labelLeft.c_str(), labelRight.c_str()) > 0;
 }
 
+bool SorterIndirectAscending(const SortItemPtr &left, const SortItemPtr &right)
+{
+  return SorterAscending(*left, *right);
+}
+
+bool SorterIndirectDescending(const SortItemPtr &left, const SortItemPtr &right)
+{
+  return SorterDescending(*left, *right);
+}
+
+bool SorterIndirectIgnoreFoldersAscending(const SortItemPtr &left, const SortItemPtr &right)
+{
+  return SorterIgnoreFoldersAscending(*left, *right);
+}
+
+bool SorterIndirectIgnoreFoldersDescending(const SortItemPtr &left, const SortItemPtr &right)
+{
+  return SorterIgnoreFoldersDescending(*left, *right);
+}
+
 map<SortBy, SortUtils::SortPreparator> fillPreparators()
 {
   map<SortBy, SortUtils::SortPreparator> preparators;
@@ -617,6 +637,7 @@ map<SortBy, Fields> fillSortingFields()
   sortingFields[SortByEpisodeNumber].insert(FieldTitle);
   sortingFields[SortByEpisodeNumber].insert(FieldSortTitle);
   sortingFields[SortBySeason].insert(FieldSeason);
+  sortingFields[SortBySeason].insert(FieldSeasonSpecialSort);
   sortingFields[SortByNumberOfEpisodes].insert(FieldNumberOfEpisodes);
   sortingFields[SortByNumberOfWatchedEpisodes].insert(FieldNumberOfWatchedEpisodes);
   sortingFields[SortByTvShowStatus].insert(FieldTvShowStatus);
@@ -649,7 +670,7 @@ map<SortBy, Fields> fillSortingFields()
 map<SortBy, SortUtils::SortPreparator> SortUtils::m_preparators = fillPreparators();
 map<SortBy, Fields> SortUtils::m_sortingFields = fillSortingFields();
 
-void SortUtils::Sort(SortBy sortBy, SortOrder sortOrder, SortAttribute attributes, SortItems& items, int limitEnd /* = -1 */, int limitStart /* = 0 */)
+void SortUtils::Sort(SortBy sortBy, SortOrder sortOrder, SortAttribute attributes, DatabaseResults& items, int limitEnd /* = -1 */, int limitStart /* = 0 */)
 {
   if (sortBy != SortByNone)
   {
@@ -660,7 +681,7 @@ void SortUtils::Sort(SortBy sortBy, SortOrder sortOrder, SortAttribute attribute
       Fields sortingFields = GetFieldsForSorting(sortBy);
 
       // Prepare the string used for sorting and store it under FieldSort
-      for (SortItems::iterator item = items.begin(); item != items.end(); item++)
+      for (DatabaseResults::iterator item = items.begin(); item != items.end(); item++)
       {
         // add all fields to the item that are required for sorting if they are currently missing
         for (Fields::const_iterator field = sortingFields.begin(); field != sortingFields.end(); field++)
@@ -686,6 +707,50 @@ void SortUtils::Sort(SortBy sortBy, SortOrder sortOrder, SortAttribute attribute
   }
   if (limitEnd > 0 && (size_t)limitEnd < items.size())
     items.erase(items.begin() + limitEnd, items.end());
+}
+
+void SortUtils::Sort(SortBy sortBy, SortOrder sortOrder, SortAttribute attributes, SortItems& items, int limitEnd /* = -1 */, int limitStart /* = 0 */)
+{
+  if (sortBy != SortByNone)
+  {
+    // get the matching SortPreparator
+    SortPreparator preparator = getPreparator(sortBy);
+    if (preparator != NULL)
+    {
+      Fields sortingFields = GetFieldsForSorting(sortBy);
+
+      // Prepare the string used for sorting and store it under FieldSort
+      for (SortItems::iterator item = items.begin(); item != items.end(); item++)
+      {
+        // add all fields to the item that are required for sorting if they are currently missing
+        for (Fields::const_iterator field = sortingFields.begin(); field != sortingFields.end(); field++)
+        {
+          if ((*item)->find(*field) == (*item)->end())
+            (*item)->insert(pair<Field, CVariant>(*field, CVariant::ConstNullVariant));
+        }
+
+        CStdStringW sortLabel;
+        g_charsetConverter.utf8ToW(preparator(attributes, **item), sortLabel, false);
+        (*item)->insert(pair<Field, CVariant>(FieldSort, CVariant(sortLabel)));
+      }
+
+      // Do the sorting
+      std::stable_sort(items.begin(), items.end(), getSorterIndirect(sortOrder, attributes));
+    }
+  }
+
+  if (limitStart > 0 && (size_t)limitStart < items.size())
+  {
+    items.erase(items.begin(), items.begin() + limitStart);
+    limitEnd -= limitStart;
+  }
+  if (limitEnd > 0 && (size_t)limitEnd < items.size())
+    items.erase(items.begin() + limitEnd, items.end());
+}
+
+void SortUtils::Sort(const SortDescription &sortDescription, DatabaseResults& items)
+{
+  Sort(sortDescription.sortBy, sortDescription.sortOrder, sortDescription.sortAttributes, items, sortDescription.limitEnd, sortDescription.limitStart);
 }
 
 void SortUtils::Sort(const SortDescription &sortDescription, SortItems& items)
@@ -729,6 +794,14 @@ SortUtils::Sorter SortUtils::getSorter(SortOrder sortOrder, SortAttribute attrib
     return sortOrder == SortOrderDescending ? SorterIgnoreFoldersDescending : SorterIgnoreFoldersAscending;
 
   return sortOrder == SortOrderDescending ? SorterDescending : SorterAscending;
+}
+
+SortUtils::SorterIndirect SortUtils::getSorterIndirect(SortOrder sortOrder, SortAttribute attributes)
+{
+  if (attributes & SortAttributeIgnoreFolders)
+    return sortOrder == SortOrderDescending ? SorterIndirectIgnoreFoldersDescending : SorterIndirectIgnoreFoldersAscending;
+
+  return sortOrder == SortOrderDescending ? SorterIndirectDescending : SorterIndirectAscending;
 }
 
 const Fields& SortUtils::GetFieldsForSorting(SortBy sortBy)
@@ -785,8 +858,8 @@ const sort_map table[] = {
   { SortByFile,                     SORT_METHOD_FILE,                         SortAttributeIgnoreFolders, 561 },
   { SortByRating,                   SORT_METHOD_SONG_RATING,                  SortAttributeNone,          563 },
   { SortByRating,                   SORT_METHOD_VIDEO_RATING,                 SortAttributeIgnoreFolders, 563 },
-  { SortBySortTitle,                SORT_METHOD_VIDEO_SORT_TITLE,             SortAttributeIgnoreFolders, 556 },
-  { SortBySortTitle,                SORT_METHOD_VIDEO_SORT_TITLE_IGNORE_THE,  (SortAttribute)(SortAttributeIgnoreFolders | SortAttributeIgnoreArticle), 556 },
+  { SortBySortTitle,                SORT_METHOD_VIDEO_SORT_TITLE,             SortAttributeIgnoreFolders, 171 },
+  { SortBySortTitle,                SORT_METHOD_VIDEO_SORT_TITLE_IGNORE_THE,  (SortAttribute)(SortAttributeIgnoreFolders | SortAttributeIgnoreArticle), 171 },
   { SortByYear,                     SORT_METHOD_YEAR,                         SortAttributeIgnoreFolders, 562 },
   { SortByProductionCode,           SORT_METHOD_PRODUCTIONCODE,               SortAttributeNone,          20368 },
   { SortByProgramCount,             SORT_METHOD_PROGRAM_COUNT,                SortAttributeNone,          567 }, // label is "play count"

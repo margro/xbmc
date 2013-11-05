@@ -50,12 +50,14 @@
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
+#include "utils/URIUtils.h"
 #include "XBDateTime.h"
 #include "input/ButtonTranslator.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "windowing/WindowingFactory.h"
 #include "cores/IPlayer.h"
+#include "filesystem/File.h"
 
 #include <stdio.h>
 #include <algorithm>
@@ -176,17 +178,19 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     return true;
 
   case ACTION_BIG_STEP_BACK:
+  case ACTION_CHAPTER_OR_BIG_STEP_BACK:
     if (m_timeCodePosition > 0)
       SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_BACKWARD);
     else
-      g_application.m_pPlayer->Seek(false, true);
+      g_application.m_pPlayer->Seek(false, true, action.GetID() == ACTION_CHAPTER_OR_BIG_STEP_BACK);
     return true;
 
   case ACTION_BIG_STEP_FORWARD:
+  case ACTION_CHAPTER_OR_BIG_STEP_FORWARD:
     if (m_timeCodePosition > 0)
       SeekToTimeCodeStamp(SEEK_RELATIVE, SEEK_FORWARD);
     else
-      g_application.m_pPlayer->Seek(true, true);
+      g_application.m_pPlayer->Seek(true, true, action.GetID() == ACTION_CHAPTER_OR_BIG_STEP_FORWARD);
     return true;
 
   case ACTION_NEXT_SCENE:
@@ -262,7 +266,7 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
           if (!channel || !channel->HasPVRChannelInfoTag())
             return false;
 
-          OnAction(CAction(ACTION_CHANNEL_SWITCH, (float)iChannelNumber));
+          g_application.OnAction(CAction(ACTION_CHANNEL_SWITCH, (float)iChannelNumber));
         }
       }
       else
@@ -374,7 +378,7 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
     {
       // check whether we've come back here from a window during which time we've actually
       // stopped playing videos
-      if (message.GetParam1() == WINDOW_INVALID && !g_application.IsPlayingVideo())
+      if (message.GetParam1() == WINDOW_INVALID && !g_application.m_pPlayer->IsPlayingVideo())
       { // why are we here if nothing is playing???
         g_windowManager.PreviousWindow();
         return true;
@@ -401,8 +405,9 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
       {
         CSingleLock lock (m_fontLock);
 
-        CStdString fontPath = "special://xbmc/media/Fonts/";
-        fontPath += CSettings::Get().GetString("subtitles.font");
+        CStdString fontPath = URIUtils::AddFileToFolder("special://home/media/Fonts/", CSettings::Get().GetString("subtitles.font"));
+        if (!XFILE::CFile::Exists(fontPath))
+          fontPath = URIUtils::AddFileToFolder("special://xbmc/media/Fonts/", CSettings::Get().GetString("subtitles.font"));
 
         // We scale based on PAL4x3 - this at least ensures all sizing is constant across resolutions.
         RESOLUTION_INFO pal(720, 576, 0);
@@ -487,7 +492,7 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
               CFileItemPtr switchChannel = selectedGroup->GetByChannelNumber(1);
 
               if (switchChannel && switchChannel->HasPVRChannelInfoTag())
-                OnAction(CAction(ACTION_CHANNEL_SWITCH, (float) switchChannel->GetPVRChannelInfoTag()->ChannelNumber()));
+                g_application.OnAction(CAction(ACTION_CHANNEL_SWITCH, (float) switchChannel->GetPVRChannelInfoTag()->ChannelNumber()));
               else
               {
                 CLog::Log(LOGERROR, "%s - cannot find channel '1' in group %s", __FUNCTION__, selectedGroup->GroupName().c_str());
@@ -558,12 +563,12 @@ EVENT_RESULT CGUIWindowFullScreen::OnMouseEvent(const CPoint &point, const CMous
 
 void CGUIWindowFullScreen::FrameMove()
 {
-  if (g_application.GetPlaySpeed() != 1)
+  if (g_application.m_pPlayer->GetPlaySpeed() != 1)
     g_infoManager.SetDisplayAfterSeek();
   if (m_bShowCurrentTime)
     g_infoManager.SetDisplayAfterSeek();
 
-  if (!g_application.m_pPlayer) return;
+  if (!g_application.m_pPlayer->HasPlayer()) return;
 
   if( g_application.m_pPlayer->IsCaching() )
   {
@@ -751,7 +756,7 @@ void CGUIWindowFullScreen::Process(unsigned int currentTime, CDirtyRegionList &d
 
 void CGUIWindowFullScreen::Render()
 {
-  if (g_application.m_pPlayer)
+  if (g_application.m_pPlayer->HasPlayer())
     RenderTTFSubtitles();
   CGUIWindow::Render();
 }
@@ -759,9 +764,6 @@ void CGUIWindowFullScreen::Render()
 void CGUIWindowFullScreen::RenderTTFSubtitles()
 {
   if ((g_application.GetCurrentPlayer() == EPC_MPLAYER ||
-#if defined(HAS_AMLPLAYER)
-       g_application.GetCurrentPlayer() == EPC_AMLPLAYER ||
-#endif
 #if defined(HAS_OMXPLAYER)
        g_application.GetCurrentPlayer() == EPC_OMXPLAYER ||
 #endif

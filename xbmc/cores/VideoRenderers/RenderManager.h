@@ -30,12 +30,13 @@
 #include "settings/VideoSettings.h"
 #include "OverlayRenderer.h"
 #include <deque>
+#include "PlatformDefs.h"
 
 class CRenderCapture;
 
 namespace DXVA { class CProcessor; }
 namespace VAAPI { class CSurfaceHolder; }
-class CVDPAU;
+namespace VDPAU { class CVdpauRenderPicture; }
 struct DVDVideoPicture;
 
 #define ERRORBUFFSIZE 30

@@ -95,8 +95,8 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
 
 void CGUIDialogPVRChannelsOSD::OnInitWindow()
 {
-  /* Close dialog immediately if now TV or radio channel is playing */
-  if (!g_PVRManager.IsPlaying())
+  /* Close dialog immediately if neither a TV nor a radio channel is playing */
+  if (!g_PVRManager.IsPlayingTV() && !g_PVRManager.IsPlayingRadio())
   {
     Close();
     return;
@@ -148,8 +148,10 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
 CPVRChannelGroupPtr CGUIDialogPVRChannelsOSD::GetPlayingGroup()
 {
   CPVRChannelPtr channel;
-  g_PVRManager.GetCurrentChannel(channel);
-  return g_PVRManager.GetPlayingGroup(channel->IsRadio());
+  if(g_PVRManager.GetCurrentChannel(channel))
+    return g_PVRManager.GetPlayingGroup(channel->IsRadio());
+  else
+    return CPVRChannelGroupPtr();
 }
 
 void CGUIDialogPVRChannelsOSD::Update()
@@ -190,7 +192,8 @@ void CGUIDialogPVRChannelsOSD::SaveControlStates()
   CGUIDialog::SaveControlStates();
 
   CPVRChannelGroupPtr group = GetPlayingGroup();
-  SaveSelectedItem(group->GroupID());
+  if(group)
+    SaveSelectedItem(group->GroupID());
 }
 
 void CGUIDialogPVRChannelsOSD::RestoreControlStates()
@@ -230,7 +233,7 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
     return;
   }
 
-  if (g_PVRManager.IsPlaying() && pItem->HasPVRChannelInfoTag() && g_application.m_pPlayer)
+  if (g_PVRManager.IsPlaying() && pItem->HasPVRChannelInfoTag() && g_application.m_pPlayer->HasPlayer())
   {
     CPVRChannel *channel = pItem->GetPVRChannelInfoTag();
     if (!g_PVRManager.CheckParentalLock(*channel) ||

@@ -118,7 +118,7 @@ protected:
 
   // modifying glyphs
   void EmboldenGlyph(FT_GlyphSlot slot);
-  void ObliqueGlyph(FT_GlyphSlot slot);
+  static void ObliqueGlyph(FT_GlyphSlot slot);
 
   CBaseTexture* m_texture;        // texture that holds our rendered characters (8bit alpha only)
 
@@ -131,7 +131,7 @@ protected:
    Accounts for spacing between lines to avoid characters overlapping.
    */
   unsigned int GetTextureLineHeight() const;
-  static unsigned int spacing_between_characters_in_texture;
+  static const unsigned int spacing_between_characters_in_texture;
 
   color_t m_color;
 
@@ -169,6 +169,8 @@ protected:
   CStdString m_strFileName;
 
 private:
+  CGUIFontTTFBase(const CGUIFontTTFBase&);
+  CGUIFontTTFBase& operator=(const CGUIFontTTFBase&);
   int m_referenceCount;
 };
 

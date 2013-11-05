@@ -60,7 +60,7 @@ CAutorun::~CAutorun()
 
 void CAutorun::ExecuteAutorun(const CStdString& path, bool bypassSettings, bool ignoreplaying, bool startFromBeginning )
 {
-  if ((!ignoreplaying && (g_application.IsPlayingAudio() || g_application.IsPlayingVideo() || g_windowManager.HasModalDialog())) || g_windowManager.GetActiveWindow() == WINDOW_LOGIN_SCREEN)
+  if ((!ignoreplaying && (g_application.m_pPlayer->IsPlayingAudio() || g_application.m_pPlayer->IsPlayingVideo() || g_windowManager.HasModalDialog())) || g_windowManager.GetActiveWindow() == WINDOW_LOGIN_SCREEN)
     return ;
 
   CCdInfo* pInfo = g_mediaManager.GetCdInfo(path);
@@ -138,7 +138,7 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
   }
 
   // Sorting necessary for easier HDDVD handling
-  vecItems.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+  vecItems.Sort(SortByLabel, SortOrderAscending);
 
   bool bAllowVideo = true;
 //  bool bAllowPictures = true;
@@ -183,7 +183,6 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
             item.m_lStartOffset = STARTOFFSET_RESUME;
 
           g_application.PlayFile(item, false);
-          bPlaying = true;
           return true;
         }
 
@@ -201,7 +200,6 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
             item.m_lStartOffset = STARTOFFSET_RESUME;
 
           g_application.PlayFile(item, false);
-          bPlaying = true;
           return true;
         }
 
@@ -220,7 +218,7 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
           {
             // HD DVD Standard says the highest numbered playlist has to be handled first.
             CLog::Log(LOGINFO,"HD DVD: Playlist found. Set filetypes to *.xpl for external player.");
-            items.Sort(SORT_METHOD_LABEL, SortOrderDescending);
+            items.Sort(SortByLabel, SortOrderDescending);
             phddvdItem = pItem; 
             hddvdname = URIUtils::GetFileName(items[0]->GetPath());
             CLog::Log(LOGINFO,"HD DVD: %s", items[0]->GetPath().c_str());
@@ -240,7 +238,7 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
             {
               // HD DVD Standard says the lowest numbered ifo has to be handled first.
               CLog::Log(LOGINFO,"HD DVD: IFO found. Set filename to HV* and filetypes to *.ifo for external player.");
-              items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+              items.Sort(SortByLabel, SortOrderAscending);
               phddvdItem = pItem; 
               hddvdname = URIUtils::GetFileName(items[0]->GetPath());
               CLog::Log(LOGINFO,"HD DVD: %s",items[0]->GetPath().c_str());
@@ -253,7 +251,7 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
           if (items.Size())
           {
             // Sort *.evo files in alphabetical order.
-            items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+            items.Sort(SortByLabel, SortOrderAscending);
             int64_t asize = 0;
             int ecount = 0;
             // calculate average size of elements above 1gb
@@ -269,7 +267,7 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
               if (items[j]->m_dwSize >= asize)
                 sitems.Add (items[j]);
             // Sort *.evo files by size.
-            items.Sort(SORT_METHOD_SIZE, SortOrderDescending);
+            items.Sort(SortBySize, SortOrderDescending);
             // Add other files with descending size to bottom of new list.
             for (int j = 0; j < items.Size(); j++)
               if (items[j]->m_dwSize < asize)
@@ -297,7 +295,6 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
             {
               CLog::Log(LOGINFO,"HD DVD: External singlefile playback initiated: %s",hddvdname.c_str());
               g_application.PlayFile(item, false);
-              bPlaying = true;
               return true;
             } else
               CLog::Log(LOGINFO,"HD DVD: No external player found. Fallback to internal one.");
@@ -310,7 +307,6 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
           g_playlistPlayer.Add(PLAYLIST_VIDEO, items);
           g_playlistPlayer.SetCurrentPlaylist(PLAYLIST_VIDEO);
           g_playlistPlayer.Play(0);
-          bPlaying = true;
           return true;
         }
 				
@@ -329,12 +325,11 @@ bool CAutorun::RunDisc(IDirectory* pDir, const CStdString& strDrive, int& nAdded
           CDirectory::GetDirectory(pItem->GetPath(), items, strExt);
           if (items.Size())
           {
-            items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+            items.Sort(SortByLabel, SortOrderAscending);
             g_playlistPlayer.ClearPlaylist(PLAYLIST_VIDEO);
             g_playlistPlayer.Add(PLAYLIST_VIDEO, items);
             g_playlistPlayer.SetCurrentPlaylist(PLAYLIST_VIDEO);
             g_playlistPlayer.Play(0);
-            bPlaying = true;
             return true;
           }
         }

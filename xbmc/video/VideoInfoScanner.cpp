@@ -473,8 +473,7 @@ namespace VIDEO
       idTvShow = m_database.GetTvShowId(pItem->GetPath());
     else
     {
-      CStdString strPath;
-      URIUtils::GetDirectory(pItem->GetPath(),strPath);
+      CStdString strPath = URIUtils::GetDirectory(pItem->GetPath());
       idTvShow = m_database.GetTvShowId(strPath);
     }
     if (idTvShow > -1 && (fetchEpisodes || !pItem->m_bIsFolder))
@@ -704,7 +703,7 @@ namespace VIDEO
     */
 
     // since we're doing this now anyway, should other items be stacked?
-    items.Sort(SORT_METHOD_FULLPATH, SortOrderAscending);
+    items.Sort(SortByPath, SortOrderAscending);
     int x = 0;
     while (x < items.Size())
     {
@@ -747,8 +746,7 @@ namespace VIDEO
     {
       if (items[i]->m_bIsFolder)
         continue;
-      CStdString strPath;
-      URIUtils::GetDirectory(items[i]->GetPath(), strPath);
+      CStdString strPath = URIUtils::GetDirectory(items[i]->GetPath());
       URIUtils::RemoveSlashAtEnd(strPath); // want no slash for the test that follows
 
       if (URIUtils::GetFileName(strPath).Equals("sample"))
@@ -871,7 +869,7 @@ namespace VIDEO
 
     for (unsigned int i=0;i<expression.size();++i)
     {
-      CRegExp reg(true);
+      CRegExp reg(true, true);
       if (!reg.RegComp(expression[i].regexp))
         continue;
 
@@ -909,7 +907,7 @@ namespace VIDEO
 
       // Grab the remainder from first regexp run
       // as second run might modify or empty it.
-      std::string remainder = reg.GetReplaceString("\\3");
+      std::string remainder(reg.GetMatch(3));
 
       /*
        * Check if the files base path is a dedicated folder that contains
@@ -940,7 +938,7 @@ namespace VIDEO
       // add what we found by now
       episodeList.push_back(episode);
 
-      CRegExp reg2(true);
+      CRegExp reg2(true, true);
       // check the remainder of the string for any further episodes.
       if (!byDate && reg2.RegComp(g_advancedSettings.m_tvshowMultiPartEnumRegExp))
       {
@@ -959,13 +957,13 @@ namespace VIDEO
                       g_advancedSettings.m_tvshowMultiPartEnumRegExp.c_str());
 
             episodeList.push_back(episode);
-            remainder = reg.GetReplaceString("\\3");
+            remainder = reg.GetMatch(3);
             offset = 0;
           }
           else if (((regexp2pos < regexppos) && regexp2pos != -1) ||
                    (regexp2pos >= 0 && regexppos == -1))
           {
-            episode.iEpisode = atoi(reg2.GetReplaceString("\\1").c_str());
+            episode.iEpisode = atoi(reg2.GetMatch(1).c_str());
             CLog::Log(LOGDEBUG, "VideoInfoScanner: Adding multipart episode %u [%s]",
                       episode.iEpisode, g_advancedSettings.m_tvshowMultiPartEnumRegExp.c_str());
             episodeList.push_back(episode);
@@ -980,8 +978,8 @@ namespace VIDEO
 
   bool CVideoInfoScanner::GetEpisodeAndSeasonFromRegExp(CRegExp &reg, EPISODE &episodeInfo, int defaultSeason)
   {
-    std::string season = reg.GetReplaceString("\\1");
-    std::string episode = reg.GetReplaceString("\\2");
+    std::string season(reg.GetMatch(1));
+    std::string episode(reg.GetMatch(2));
 
     if (!season.empty() || !episode.empty())
     {
@@ -1017,9 +1015,9 @@ namespace VIDEO
 
   bool CVideoInfoScanner::GetAirDateFromRegExp(CRegExp &reg, EPISODE &episodeInfo)
   {
-    std::string param1 = reg.GetReplaceString("\\1");
-    std::string param2 = reg.GetReplaceString("\\2");
-    std::string param3 = reg.GetReplaceString("\\3");
+    std::string param1(reg.GetMatch(1));
+    std::string param2(reg.GetMatch(2));
+    std::string param3(reg.GetMatch(3));
 
     if (!param1.empty() && !param2.empty() && !param3.empty())
     {
@@ -1281,8 +1279,7 @@ namespace VIDEO
             thumb.find("/") == string::npos &&
             thumb.find("\\") == string::npos)
         {
-          CStdString strPath;
-          URIUtils::GetDirectory(pItem->GetPath(), strPath);
+          CStdString strPath = URIUtils::GetDirectory(pItem->GetPath());
           thumb = URIUtils::AddFileToFolder(strPath, thumb);
         }
       }
@@ -1506,15 +1503,13 @@ namespace VIDEO
       {
         CFileItem item2(*item);
         CURL url(item->GetPath());
-        CStdString strPath;
-        URIUtils::GetDirectory(url.GetHostName(), strPath);
+        CStdString strPath = URIUtils::GetDirectory(url.GetHostName());
         item2.SetPath(URIUtils::AddFileToFolder(strPath, URIUtils::GetFileName(item->GetPath())));
         return GetnfoFile(&item2, bGrabAny);
       }
 
       // grab the folder path
-      CStdString strPath;
-      URIUtils::GetDirectory(item->GetPath(), strPath);
+      CStdString strPath = URIUtils::GetDirectory(item->GetPath());
 
       if (bGrabAny && !item->IsStack())
       { // looking up by folder name - movie.nfo takes priority - but not for stacked items (handled below)
@@ -1578,9 +1573,12 @@ namespace VIDEO
       // see if there is a unique nfo file in this folder, and if so, use that
       CFileItemList items;
       CDirectory dir;
-      CStdString strPath = item->GetPath();
-      if (!item->m_bIsFolder)
-        URIUtils::GetDirectory(item->GetPath(), strPath);
+      CStdString strPath;
+      if (item->m_bIsFolder)
+        strPath = item->GetPath();
+      else
+        strPath = URIUtils::GetDirectory(item->GetPath());
+
       if (dir.GetDirectory(strPath, items, ".nfo") && items.Size())
       {
         int numNFO = -1;
@@ -1711,7 +1709,7 @@ namespace VIDEO
         CStdString name = URIUtils::GetFileName(items[i]->GetPath());
         if (reg.RegFind(name) > -1)
         {
-          int season = atoi(reg.GetReplaceString("\\1").c_str());
+          int season = atoi(reg.GetMatch(1).c_str());
           if (season > maxSeasons)
             maxSeasons = season;
         }
@@ -1917,8 +1915,7 @@ namespace VIDEO
     if (item.IsStack())
       strCheck = CStackDirectory::GetFirstStackedFile(item.GetPath());
 
-    CStdString strDirectory;
-    URIUtils::GetDirectory(strCheck, strDirectory);
+    CStdString strDirectory = URIUtils::GetDirectory(strCheck);
     if (URIUtils::IsInRAR(strCheck))
     {
       CStdString strPath=strDirectory;
@@ -1928,8 +1925,8 @@ namespace VIDEO
     {
       strCheck = strDirectory;
       URIUtils::RemoveSlashAtEnd(strCheck);
-      if (URIUtils::GetFileName(strCheck).size() == 3 && URIUtils::GetFileName(strCheck).Left(2).Equals("cd"))
-        URIUtils::GetDirectory(strCheck, strDirectory);
+      if (URIUtils::GetFileName(strCheck).size() == 3 && StringUtils::StartsWithNoCase(URIUtils::GetFileName(strCheck), "cd"))
+        strDirectory = URIUtils::GetDirectory(strCheck);
     }
     return strDirectory;
   }

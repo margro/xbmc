@@ -26,6 +26,7 @@
 #include "threads/CriticalSection.h"
 #include "video/VideoReferenceClock.h"
 #include "utils/MathUtils.h"
+#include "threads/Atomics.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
@@ -917,7 +918,8 @@ int CXBMCRenderManager::AddVideoPicture(DVDVideoPicture& pic)
     CDVDCodecUtils::CopyDXVA2Picture(&image, &pic);
   }
 #ifdef HAVE_LIBVDPAU
-  else if(pic.format == RENDER_FMT_VDPAU)
+  else if(pic.format == RENDER_FMT_VDPAU
+       || pic.format == RENDER_FMT_VDPAU_420)
     m_pRenderer->AddProcessor(pic.vdpau, index);
 #endif
 #ifdef HAVE_LIBOPENMAX
@@ -935,6 +937,10 @@ int CXBMCRenderManager::AddVideoPicture(DVDVideoPicture& pic)
 #ifdef HAS_LIBSTAGEFRIGHT
   else if(pic.format == RENDER_FMT_EGLIMG)
     m_pRenderer->AddProcessor(pic.stf, pic.eglimg, index);
+#endif
+#if defined(TARGET_ANDROID)
+  else if(pic.format == RENDER_FMT_MEDIACODEC)
+    m_pRenderer->AddProcessor(pic.mediacodec, index);
 #endif
 
   m_pRenderer->ReleaseImage(index, false);

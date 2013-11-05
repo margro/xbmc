@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <window>
 	<defaultcontrol always="true">100</defaultcontrol>
 	<include>dialogeffect</include>
@@ -227,7 +228,6 @@
 				<width>55</width>
 				<height>55</height>
 				<label>31351</label>
-				<altlabel>208</altlabel>
 				<font>-</font>
 				<texturefocus>OSDStopFO.png</texturefocus>
 				<texturenofocus>OSDStopNF.png</texturenofocus>
@@ -390,7 +390,7 @@
 
 		<!-- LiveTV -->
 		<control type="group">
-			<posx>240r</posx>
+			<posx>300r</posx>
 			<posy>60r</posy>
 			<animation effect="fade" time="200">VisibleChange</animation>
 			<visible>![Window.IsVisible(SliderDialog) | Window.IsVisible(OSDVideoSettings) | Window.IsVisible(OSDAudioSettings) | Window.IsVisible(VideoBookmarks) | Window.IsVisible(PVROSDChannels) | Window.IsVisible(PVROSDGuide)]</visible>
@@ -496,7 +496,6 @@
 			<posy>350r</posy>
 			<width>256</width>
 			<height>300</height>
-			<align>bottom</align>
 			<itemgap>0</itemgap>
 			<onleft>400</onleft>
 			<onright>400</onright>
@@ -618,7 +617,6 @@
 			<posy>350r</posy>
 			<width>256</width>
 			<height>300</height>
-			<align>bottom</align>
 			<itemgap>0</itemgap>
 			<onleft>500</onleft>
 			<onright>500</onright>
@@ -718,7 +716,6 @@
 			<posy>350r</posy>
 			<width>256</width>
 			<height>300</height>
-			<align>bottom</align>
 			<itemgap>0</itemgap>
 			<onleft>550</onleft>
 			<onright>550</onright>

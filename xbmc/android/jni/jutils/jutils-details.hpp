@@ -71,6 +71,12 @@ struct jcast_helper<std::vector<std::string>, jobjectArray>
     static std::vector<std::string> cast(jobjectArray const &v);
 };
 
+template <typename T>
+struct jcast_helper<std::vector<T>, jobjectArray>
+{
+    static std::vector<T> cast(jobjectArray const &v);
+};
+
 template <>
 struct jcast_helper<jhstring, std::string>
 {
@@ -88,7 +94,7 @@ struct jcast_helper<std::string, jhstring>
 {
     static std::string cast(jhstring const &v)
     {
-        return jcast_helper<std::string, jstring>::cast(v);
+        return jcast_helper<std::string, jstring>::cast(v.get());
     }
 };
 
@@ -97,9 +103,38 @@ struct jcast_helper<std::vector<std::string>, jhobjectArray>
 {
     static std::vector<std::string> cast(jhobjectArray const &v)
     {
-        return jcast_helper<std::vector<std::string>, jobjectArray>::cast(v);
+        return jcast_helper<std::vector<std::string>, jobjectArray>::cast(v.get());
     }
 };
+
+template <typename T>
+struct jcast_helper<std::vector<T>, jhobjectArray>
+{
+    static std::vector<T> cast(jhobjectArray const &v)
+    {
+        return jcast_helper<std::vector<T>, jobjectArray>::cast(v.get());
+    }
+};
+
+
+template <typename T>
+std::vector<T> jcast_helper<std::vector<T>, jobjectArray>::cast(jobjectArray const &v)
+{
+  JNIEnv *env = xbmc_jnienv();
+  jsize size = 0;
+  if(v)
+    size = env->GetArrayLength(v);
+
+  std::vector<T> vec;
+  vec.reserve(size);
+
+  for (int i = 0; i < size; i++)
+  {
+    T element((jhobject)env->GetObjectArrayElement(v, i));
+    vec.emplace_back(element);
+  }
+  return vec;
+}
 
 
 } // namespace details

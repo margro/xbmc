@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -46,8 +46,8 @@ bool CXImage::LoadImageFromMemory(unsigned char* buffer, unsigned int bufSize, u
   memset(&m_image, 0, sizeof(m_image));
 
   std::string strExt = m_strMimeType;
-  int nPos = strExt.find('/');
-  if (nPos > -1)
+  size_t nPos = strExt.find('/');
+  if (nPos != std::string::npos)
     strExt.erase(0, nPos + 1);
 
   if(!m_dll.LoadImageFromMemory(buffer, bufSize, strExt.c_str(), width, height, &m_image))

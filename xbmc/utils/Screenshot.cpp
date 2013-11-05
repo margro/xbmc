@@ -29,6 +29,10 @@
 #include "windowing/WindowingFactory.h"
 #include "pictures/Picture.h"
 
+#ifdef TARGET_RASPBERRY_PI
+#include "xbmc/linux/RBP.h"
+#endif
+
 #ifdef HAS_VIDEO_PLAYBACK
 #include "cores/VideoRenderers/RenderManager.h"
 #endif
@@ -56,11 +60,15 @@ CScreenshotSurface::CScreenshotSurface()
 
 bool CScreenshotSurface::capture()
 {
-
-#ifdef HAS_DX
+#if defined(TARGET_RASPBERRY_PI)
+  g_RBP.GetDisplaySize(m_width, m_height);
+  m_buffer = g_RBP.CaptureDisplay(m_width, m_height, &m_stride, true, false);
+  if (!m_buffer)
+    return false;
+#elif defined(HAS_DX)
   LPDIRECT3DSURFACE9 lpSurface = NULL, lpBackbuffer = NULL;
   g_graphicsContext.Lock();
-  if (g_application.IsPlayingVideo())
+  if (g_application.m_pPlayer->IsPlayingVideo())
   {
 #ifdef HAS_VIDEO_PLAYBACK
     g_renderManager.SetupScreenshot();
@@ -106,7 +114,7 @@ bool CScreenshotSurface::capture()
 #elif defined(HAS_GL) || defined(HAS_GLES)
 
   g_graphicsContext.BeginPaint();
-  if (g_application.IsPlayingVideo())
+  if (g_application.m_pPlayer->IsPlayingVideo())
   {
 #ifdef HAS_VIDEO_PLAYBACK
     g_renderManager.SetupScreenshot();

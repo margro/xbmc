@@ -1,5 +1,5 @@
 include ../../Makefile.include
-DEPS= ../../Makefile.include Makefile 
+DEPS= ../../Makefile.include Makefile
 INCLUDES += -I$(PREFIX)/opt/android-source/frameworks/base/include
 INCLUDES += -I$(PREFIX)/opt/android-source/frameworks/base/native/include
 INCLUDES += -I$(PREFIX)/opt/android-source/frameworks/base/include/media/stagefright
@@ -26,7 +26,7 @@ $(ANDROID_SOURCE): $(TARBALLS_LOCATION)/$(ARCHIVE)
 
 $(TARBALLS_LOCATION)/$(ARCHIVE):
 	echo "Fetching Android system headers"
-	cd $(TARBALLS_LOCATION); $(RETRIEVE_TOOL) -Ls -f "http://www.semperpax.be/owncloud/public.php?service=files&t=62797c6fe0910eb3237cb2799a348ca9&download" -o $(TARBALLS_LOCATION)/$(ARCHIVE)
+	cd $(TARBALLS_LOCATION); $(RETRIEVE_TOOL) $(RETRIEVE_TOOL_FLAGS) $(BASE_URL)/$(ARCHIVE)
 
 install-sources: $(ANDROID_SOURCE)
 	mkdir -p $(PREFIX)/opt
@@ -43,7 +43,7 @@ $(PLATFORM): install-sources
 
 $(PLATFORM)/libstagefright.so:  $(PLATFORM) $(DEPS) libstagefright.cpp
 	$(CXX) -Wno-multichar -fno-exceptions -fno-rtti $(INCLUDES) -DHAVE_PTHREADS -shared -o $(PLATFORM)/libstagefright.so libstagefright.cpp
-	
+
 $(PLATFORM)/libutils.so:  $(PLATFORM) $(DEPS) libutils.cpp
 	$(CXX) -Wno-multichar -fno-exceptions -fno-rtti $(INCLUDES) -shared -o $(PLATFORM)/libutils.so libutils.cpp
 

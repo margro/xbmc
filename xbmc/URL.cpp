@@ -27,6 +27,7 @@
 #include "FileItem.h"
 #include "filesystem/StackDirectory.h"
 #include "addons/Addon.h"
+#include "utils/StringUtils.h"
 #ifndef TARGET_POSIX
 #include <sys\types.h>
 #include <sys\stat.h>
@@ -578,10 +579,17 @@ CStdString CURL::GetWithoutUserDetails() const
 
   if (m_strHostName != "")
   {
+    CStdString strHostName;
+
     if (URIUtils::ProtocolHasParentInHostname(m_strProtocol))
-      strURL += CURL(m_strHostName).GetWithoutUserDetails();
+      strHostName = CURL(m_strHostName).GetWithoutUserDetails();
     else
-      strURL += m_strHostName;
+      strHostName = m_strHostName;
+
+    if (URIUtils::ProtocolHasEncodedHostname(m_strProtocol))
+      strURL += URLEncodeInline(strHostName);
+    else
+      strURL += strHostName;
 
     if ( HasPort() )
     {
@@ -677,7 +685,7 @@ bool CURL::IsFullPath(const CStdString &url)
   if (url.size() && url[0] == '/') return true;     //   /foo/bar.ext
   if (url.Find("://") >= 0) return true;                 //   foo://bar.ext
   if (url.size() > 1 && url[1] == ':') return true; //   c:\\foo\\bar\\bar.ext
-  if (url.compare(0,2,"\\\\") == 0) return true;    //   \\UNC\path\to\file
+  if (StringUtils::StartsWith(url, "\\\\")) return true;    //   \\UNC\path\to\file
   return false;
 }
 
@@ -854,6 +862,6 @@ void CURL::SetProtocolOption(const CStdString &key, const CStdString &value)
 
 void CURL::RemoveProtocolOption(const CStdString &key)
 {
-  m_options.RemoveOption(key);
+  m_protocolOptions.RemoveOption(key);
   m_strProtocolOptions = m_protocolOptions.GetOptionsString(false);
 }

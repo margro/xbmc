@@ -111,7 +111,7 @@ void CAddonInstaller::OnJobProgress(unsigned int jobID, unsigned int progress, u
 bool CAddonInstaller::IsDownloading() const
 {
   CSingleLock lock(m_critSection);
-  return m_downloadJobs.size() > 0;
+  return !m_downloadJobs.empty();
 }
 
 void CAddonInstaller::GetInstallList(VECADDONS &addons) const
@@ -413,11 +413,11 @@ void CAddonInstaller::PrunePackageCache()
   for (std::map<CStdString,CFileItemList*>::const_iterator it  = packs.begin();
                                                           it != packs.end();++it)
   {
-    it->second->Sort(SORT_METHOD_LABEL,SortOrderDescending);
+    it->second->Sort(SortByLabel, SortOrderDescending);
     for (int j=2;j<it->second->Size();++j)
       items.Add(CFileItemPtr(new CFileItem(*it->second->Get(j))));
   }
-  items.Sort(SORT_METHOD_SIZE,SortOrderDescending);
+  items.Sort(SortBySize, SortOrderDescending);
   int i=0;
   while (size > limit && i < items.Size())
   {
@@ -435,7 +435,7 @@ void CAddonInstaller::PrunePackageCache()
       if (it->second->Size() > 1)
         items.Add(CFileItemPtr(new CFileItem(*it->second->Get(1))));
     }
-    items.Sort(SORT_METHOD_DATE,SortOrderAscending);
+    items.Sort(SortByDate, SortOrderAscending);
     i=0;
     while (size > limit && i < items.Size())
     {
@@ -578,10 +578,8 @@ bool CAddonInstallJob::OnPreInstall()
 
   if (m_addon->Type() == ADDON_SERVICE)
   {
-    CAddonDatabase database;
-    database.Open();
-    bool running = !database.IsAddonDisabled(m_addon->ID()); //grab a current state
-    database.DisableAddon(m_addon->ID(),false); // enable it so we can remove it??
+    bool running = !CAddonMgr::Get().IsAddonDisabled(m_addon->ID()); //grab a current state
+    CAddonMgr::Get().DisableAddon(m_addon->ID(),false); // enable it so we can remove it??
     // regrab from manager to have the correct path set
     AddonPtr addon;
     ADDON::CAddonMgr::Get().GetAddon(m_addon->ID(), addon);
@@ -698,22 +696,19 @@ void CAddonInstallJob::OnPostInstall(bool reloadAddon)
     if (reloadAddon || (!m_update && CGUIDialogYesNo::ShowAndGetInput(m_addon->Name(),
                                                         g_localizeStrings.Get(24099),"","")))
     {
-      CSettings::Get().SetString("lookandfeel.skin",m_addon->ID().c_str());
       CGUIDialogKaiToast *toast = (CGUIDialogKaiToast *)g_windowManager.GetWindow(WINDOW_DIALOG_KAI_TOAST);
       if (toast)
       {
         toast->ResetTimer();
         toast->Close(true);
       }
-      CApplicationMessenger::Get().ExecBuiltIn("ReloadSkin");
+      CSettings::Get().SetString("lookandfeel.skin",m_addon->ID().c_str());
     }
   }
 
   if (m_addon->Type() == ADDON_SERVICE)
   {
-    CAddonDatabase database;
-    database.Open();
-    database.DisableAddon(m_addon->ID(),!reloadAddon); //return it into state it was before OnPreInstall()
+    CAddonMgr::Get().DisableAddon(m_addon->ID(),!reloadAddon); //return it into state it was before OnPreInstall()
     if (reloadAddon) // reload/start it if it was running
     {
       // regrab from manager to have the correct path set

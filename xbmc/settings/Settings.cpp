@@ -82,6 +82,13 @@
 #include "utils/XBMCTinyXML.h"
 #include "view/ViewStateSettings.h"
 #include "windowing/WindowingFactory.h"
+#if defined(TARGET_ANDROID)
+#include "android/activity/AndroidFeatures.h"
+#endif
+
+#if defined(HAS_LIBAMCODEC)
+#include "utils/AMLUtils.h"
+#endif
 
 #define SETTINGS_XML_FOLDER "special://xbmc/system/settings/"
 #define SETTINGS_XML_ROOT   "settings"
@@ -317,9 +324,8 @@ bool CSettings::Load(const TiXmlElement *root, bool hide /* = false */)
   {
     for(std::map<std::string, CSetting*>::const_iterator setting = loadedSettings->begin(); setting != loadedSettings->end(); ++setting)
       setting->second->SetVisible(false);
-
-    delete loadedSettings;
   }
+  delete loadedSettings;
 
   return success;
 }
@@ -366,7 +372,7 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterSettingOptionsFiller("aequalitylevels");
   m_settingsManager->UnregisterSettingOptionsFiller("audiodevices");
   m_settingsManager->UnregisterSettingOptionsFiller("audiodevicespassthrough");
-  m_settingsManager->UnregisterSettingOptionsFiller("audiooutputmodes");
+  m_settingsManager->UnregisterSettingOptionsFiller("audiostreamsilence");
   m_settingsManager->UnregisterSettingOptionsFiller("charsets");
   m_settingsManager->UnregisterSettingOptionsFiller("epgguideviews");
   m_settingsManager->UnregisterSettingOptionsFiller("fontheights");
@@ -417,6 +423,9 @@ void CSettings::Uninitialize()
 #endif // defined(TARGET_LINUX)
   m_settingsManager->UnregisterCallback(&g_weatherManager);
   m_settingsManager->UnregisterCallback(&PERIPHERALS::CPeripherals::Get());
+#if defined(TARGET_DARWIN_OSX)
+  m_settingsManager->UnregisterCallback(&XBMCHelper::GetInstance());
+#endif
 
   // unregister ISubSettings implementations
   m_settingsManager->UnregisterSubSettings(&g_application);
@@ -474,6 +483,10 @@ CSettingSection* CSettings::GetSection(const std::string &section) const
 
 bool CSettings::GetBool(const std::string &id) const
 {
+  // Backward compatibility (skins use this setting)
+  if (StringUtils::EqualsNoCase(id, "lookandfeel.enablemouse"))
+    return GetBool("input.enablemouse");
+
   return m_settingsManager->GetBool(id);
 }
 
@@ -605,8 +618,8 @@ void CSettings::InitializeVisibility()
 
   if (!g_sysinfo.IsAppleTV2() || GetIOSVersion() >= 4.3)
   {
-    timezonecountry->SetVisible(false);
-    timezone->SetVisible(false);
+    timezonecountry->SetRequirementsMet(false);
+    timezone->SetRequirementsMet(false);
   }
 #endif
 }
@@ -674,7 +687,7 @@ void CSettings::InitializeOptionFillers()
   m_settingsManager->RegisterSettingOptionsFiller("aequalitylevels", CAEFactory::SettingOptionsAudioQualityLevelsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("audiodevices", CAEFactory::SettingOptionsAudioDevicesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("audiodevicespassthrough", CAEFactory::SettingOptionsAudioDevicesPassthroughFiller);
-  m_settingsManager->RegisterSettingOptionsFiller("audiooutputmodes", CAEFactory::SettingOptionsAudioOutputModesFiller);
+  m_settingsManager->RegisterSettingOptionsFiller("audiostreamsilence", CAEFactory::SettingOptionsAudioStreamsilenceFiller);
   m_settingsManager->RegisterSettingOptionsFiller("charsets", CCharsetConverter::SettingOptionsCharsetsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("epgguideviews", PVR::CGUIWindowPVRGuide::SettingOptionsEpgGuideViewFiller);
   m_settingsManager->RegisterSettingOptionsFiller("fonts", GUIFontManager::SettingOptionsFontsFiller);
@@ -711,6 +724,9 @@ void CSettings::InitializeConditions()
 #endif
 #ifdef HAS_EVENT_SERVER
   m_settingsManager->AddCondition("has_event_server");
+#endif
+#ifdef HAVE_X11
+  m_settingsManager->AddCondition("have_x11");
 #endif
 #ifdef HAS_GL
   m_settingsManager->AddCondition("has_gl");
@@ -753,10 +769,18 @@ void CSettings::InitializeConditions()
 #ifdef HAVE_LIBVDPAU
   m_settingsManager->AddCondition("have_libvdpau");
 #endif
+#ifdef TARGET_ANDROID
+  if (CAndroidFeatures::GetVersion() > 15)
+    m_settingsManager->AddCondition("has_mediacodec");
+#endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   m_settingsManager->AddCondition("have_videotoolboxdecoder");
   if (g_sysinfo.HasVideoToolBoxDecoder())
     m_settingsManager->AddCondition("hasvideotoolboxdecoder");
+#endif
+#ifdef HAS_LIBAMCODEC
+  if (aml_present())
+    m_settingsManager->AddCondition("have_amcodec");
 #endif
 #ifdef HAS_LIBSTAGEFRIGHT
   m_settingsManager->AddCondition("have_libstagefrightdecoder");
@@ -767,15 +791,11 @@ void CSettings::InitializeConditions()
 #endif
 #if defined(TARGET_WINDOWS) && defined(HAS_DX)
   m_settingsManager->AddCondition("has_dx");
-  if (g_sysinfo.IsWindowsVersionAtLeast(CSysInfo::WindowsVersionVista))
-    m_settingsManager->AddCondition("hasdxva2");
+  m_settingsManager->AddCondition("hasdxva2");
 #endif
 
   if (g_application.IsStandAlone())
     m_settingsManager->AddCondition("isstandalone");
-
-  if (CAEFactory::SupportsDrain())
-    m_settingsManager->AddCondition("audiosupportsdrain");
 
   if(CAEFactory::SupportsQualitySetting())
     m_settingsManager->AddCondition("has_ae_quality_levels");
@@ -801,21 +821,24 @@ void CSettings::InitializeConditions()
   m_settingsManager->AddCondition("profilehassettingslocked", ProfileHasSettingsLocked);
   m_settingsManager->AddCondition("profilehasvideoslocked", ProfileHasVideosLocked);
   m_settingsManager->AddCondition("profilelockmode", ProfileLockMode);
+  m_settingsManager->AddCondition("aesettingvisible", CAEFactory::IsSettingVisible);
 }
 
 void CSettings::InitializeISettingsHandlers()
 {
   // register ISettingsHandler implementations
-  m_settingsManager->RegisterSettingsHandler(&g_application);
-  m_settingsManager->RegisterSettingsHandler(&CProfilesManager::Get());
+  // The order of these matters! Handlers are processed in the order they were registered.
   m_settingsManager->RegisterSettingsHandler(&g_advancedSettings);
   m_settingsManager->RegisterSettingsHandler(&CMediaSourceSettings::Get());
   m_settingsManager->RegisterSettingsHandler(&CPlayerCoreFactory::Get());
-  m_settingsManager->RegisterSettingsHandler(&CRssManager::Get());
+  m_settingsManager->RegisterSettingsHandler(&CProfilesManager::Get());
 #ifdef HAS_UPNP
   m_settingsManager->RegisterSettingsHandler(&CUPnPSettings::Get());
 #endif
   m_settingsManager->RegisterSettingsHandler(&CWakeOnAccess::Get());
+  m_settingsManager->RegisterSettingsHandler(&CRssManager::Get());
+  m_settingsManager->RegisterSettingsHandler(&CWakeOnAccess::Get());
+  m_settingsManager->RegisterSettingsHandler(&g_application);
 }
 
 void CSettings::InitializeISubSettings()
@@ -864,17 +887,18 @@ void CSettings::InitializeISettingCallbacks()
   m_settingsManager->RegisterCallback(&CStereoscopicsManager::Get(), settingSet);
 
   settingSet.clear();
-  settingSet.insert("audiooutput.mode");
+  settingSet.insert("audiooutput.config");
+  settingSet.insert("audiooutput.samplerate");
+  settingSet.insert("audiooutput.passthrough");
   settingSet.insert("audiooutput.channels");
   settingSet.insert("audiooutput.processquality");
   settingSet.insert("audiooutput.guisoundmode");
   settingSet.insert("audiooutput.stereoupmix");
   settingSet.insert("audiooutput.ac3passthrough");
+  settingSet.insert("audiooutput.eac3passthrough");
   settingSet.insert("audiooutput.dtspassthrough");
-  settingSet.insert("audiooutput.passthroughaac");
   settingSet.insert("audiooutput.truehdpassthrough");
   settingSet.insert("audiooutput.dtshdpassthrough");
-  settingSet.insert("audiooutput.multichannellpcm");
   settingSet.insert("audiooutput.audiodevice");
   settingSet.insert("audiooutput.passthroughdevice");
   settingSet.insert("audiooutput.streamsilence");
@@ -894,6 +918,8 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert("screensaver.settings");
   settingSet.insert("videoscreen.guicalibration");
   settingSet.insert("videoscreen.testpattern");
+  settingSet.insert("videoplayer.useamcodec");
+  settingSet.insert("videoplayer.usemediacodec");
   m_settingsManager->RegisterCallback(&g_application, settingSet);
 
   settingSet.clear();
@@ -927,6 +953,12 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert("input.enablemouse");
   m_settingsManager->RegisterCallback(&g_Mouse, settingSet);
 
+#if defined(HAS_GL) && defined(HAVE_X11)
+  settingSet.clear();
+  settingSet.insert("input.enablesystemkeys");
+  m_settingsManager->RegisterCallback(&g_Windowing, settingSet);
+#endif
+
   settingSet.clear();
   settingSet.insert("services.webserver");
   settingSet.insert("services.webserverport");
@@ -934,6 +966,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert("services.webserverpassword");
   settingSet.insert("services.zeroconf");
   settingSet.insert("services.airplay");
+  settingSet.insert("services.airplayvolumecontrol");
   settingSet.insert("services.useairplaypassword");
   settingSet.insert("services.airplaypassword");
   settingSet.insert("services.upnpserver");

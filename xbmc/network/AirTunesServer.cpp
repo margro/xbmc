@@ -48,6 +48,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "utils/Variant.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/Settings.h"
 #include "utils/EndianSwap.h"
 #include "URL.h"
 #include "interfaces/AnnouncementManager.h"
@@ -210,7 +211,8 @@ void  CAirTunesServer::AudioOutputFunctions::audio_set_volume(void *cls, void *s
 #ifdef HAS_AIRPLAY
   CAirPlayServer::backupVolume();
 #endif
-  g_application.SetVolume(volPercent, false);//non-percent volume 0.0-1.0
+  if (CSettings::Get().GetBool("services.airplayvolumecontrol"))
+    g_application.SetVolume(volPercent, false);//non-percent volume 0.0-1.0
 }
 
 void  CAirTunesServer::AudioOutputFunctions::audio_process(void *cls, void *session, const void *buffer, int buflen)
@@ -313,7 +315,8 @@ void  CAirTunesServer::AudioOutputFunctions::ao_set_volume(float volume)
 #ifdef HAS_AIRPLAY
   CAirPlayServer::backupVolume();
 #endif
-  g_application.SetVolume(volPercent, false);//non-percent volume 0.0-1.0
+  if (CSettings::Get().GetBool("services.airplayvolumecontrol"))
+    g_application.SetVolume(volPercent, false);//non-percent volume 0.0-1.0
 }
 
 
@@ -322,7 +325,7 @@ int CAirTunesServer::AudioOutputFunctions::ao_play(ao_device *device, char *outp
   if (!device)
     return 0;
 
-  /*if (num_bytes && g_application.m_pPlayer)
+  /*if (num_bytes && g_application.m_pPlayer->HasPlayer())
     g_application.m_pPlayer->SetCaching(CACHESTATE_NONE);*///TODO
 
   ao_device_xbmc* device_xbmc = (ao_device_xbmc*) device;

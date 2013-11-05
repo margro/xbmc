@@ -136,7 +136,8 @@ static void AddResolution(vector<RESOLUTION_WHR> &resolutions, unsigned int addi
       // check if the refresh rate of this resolution is better suited than
       // the refresh rate of the resolution with the same width/height/interlaced
       // property and if so replace it
-      if (bestRefreshrate > 0.0 && refreshrate == bestRefreshrate)
+      // don't touch RES_DESKTOP
+      if (idx != 0 && bestRefreshrate > 0.0 && refreshrate == bestRefreshrate)
         resolutions[idx].ResInfo_Index = addindex;
 
       // no need to add the resolution again
@@ -149,9 +150,11 @@ static void AddResolution(vector<RESOLUTION_WHR> &resolutions, unsigned int addi
 
 static bool resSortPredicate(RESOLUTION_WHR i, RESOLUTION_WHR j)
 {
+  // note: this comparison must obey "strict weak ordering"
+  // a "!=" on the flags comparison resulted in memory corruption
   return (    i.width < j.width
           || (i.width == j.width && i.height < j.height)
-          || (i.width == j.width && i.height == j.height && i.flags != j.flags) );
+          || (i.width == j.width && i.height == j.height && i.flags < j.flags) );
 }
 
 vector<RESOLUTION_WHR> CWinSystemBase::ScreenResolutions(int screen, float refreshrate)
@@ -166,7 +169,8 @@ vector<RESOLUTION_WHR> CWinSystemBase::ScreenResolutions(int screen, float refre
   }
 
   // Can't assume a sort order
-  sort(resolutions.begin(), resolutions.end(), resSortPredicate);
+  // don't touch RES_DESKTOP which is index 0
+  sort(resolutions.begin()+1, resolutions.end(), resSortPredicate);
 
   return resolutions;
 }
@@ -234,4 +238,9 @@ bool CWinSystemBase::UseLimitedColor()
 #else
   return false;
 #endif
+}
+
+std::string CWinSystemBase::GetClipboardText(void)
+{
+  return "";
 }

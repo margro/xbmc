@@ -40,7 +40,11 @@
 #include "Video/DVDVideoCodecCrystalHD.h"
 #endif
 #if defined(HAS_LIBAMCODEC)
+#include "utils/AMLUtils.h"
 #include "Video/DVDVideoCodecAmlogic.h"
+#endif
+#if defined(TARGET_ANDROID)
+#include "Video/DVDVideoCodecAndroidMediaCodec.h"
 #endif
 #include "Audio/DVDAudioCodecFFmpeg.h"
 #include "Audio/DVDAudioCodecLibMad.h"
@@ -158,6 +162,11 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
 #else
   hwSupport += "AMCodec:no ";
 #endif
+#if defined(TARGET_ANDROID)
+  hwSupport += "MediaCodec:yes ";
+#else
+  hwSupport += "MediaCodec:no ";
+#endif
 #if defined(HAVE_LIBOPENMAX) && defined(TARGET_POSIX)
   hwSupport += "OpenMax:yes ";
 #elif defined(TARGET_POSIX)
@@ -185,13 +194,17 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
 #endif
 
   CLog::Log(LOGDEBUG, "CDVDFactoryCodec: compiled in hardware support: %s", hwSupport.c_str());
-#if !defined(HAS_LIBAMCODEC)
-  // dvd's have weird still-frames in it, which is not fully supported in ffmpeg
-  if(hint.stills && (hint.codec == AV_CODEC_ID_MPEG2VIDEO || hint.codec == AV_CODEC_ID_MPEG1VIDEO))
-  {
-    if( (pCodec = OpenCodec(new CDVDVideoCodecLibMpeg2(), hint, options)) ) return pCodec;
-  }
+#if defined(HAS_LIBAMCODEC)
+  // amcodec can handle dvd playback.
+  if (!CSettings::Get().GetBool("videoplayer.useamcodec"))
 #endif
+  {
+    // dvd's have weird still-frames in it, which is not fully supported in ffmpeg
+    if(hint.stills && (hint.codec == AV_CODEC_ID_MPEG2VIDEO || hint.codec == AV_CODEC_ID_MPEG1VIDEO))
+    {
+      if( (pCodec = OpenCodec(new CDVDVideoCodecLibMpeg2(), hint, options)) ) return pCodec;
+    }
+  }
 
 #if defined(TARGET_DARWIN_OSX)
   if (!hint.software && CSettings::Get().GetBool("videoplayer.usevda"))
@@ -247,10 +260,18 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
 #endif
 
 #if defined(HAS_LIBAMCODEC)
-  if (!hint.software)
+  if (!hint.software && CSettings::Get().GetBool("videoplayer.useamcodec"))
   {
     CLog::Log(LOGINFO, "Amlogic Video Decoder...");
     if ( (pCodec = OpenCodec(new CDVDVideoCodecAmlogic(), hint, options)) ) return pCodec;
+  }
+#endif
+
+#if defined(TARGET_ANDROID)
+  if (!hint.software && CSettings::Get().GetBool("videoplayer.usemediacodec"))
+  {
+    CLog::Log(LOGINFO, "MediaCodec Video Decoder...");
+    if ( (pCodec = OpenCodec(new CDVDVideoCodecAndroidMediaCodec(), hint, options)) ) return pCodec;
   }
 #endif
 
@@ -304,28 +325,26 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
   return NULL;
 }
 
-CDVDAudioCodec* CDVDFactoryCodec::CreateAudioCodec( CDVDStreamInfo &hint, bool passthrough /* = true */)
+CDVDAudioCodec* CDVDFactoryCodec::CreateAudioCodec( CDVDStreamInfo &hint)
 {
   CDVDAudioCodec* pCodec = NULL;
   CDVDCodecOptions options;
 
-  if (passthrough)
-  {
+  // try passthrough first
 #if defined(TARGET_DARWIN_OSX) || defined(TARGET_DARWIN_IOS)
-    switch(hint.codec)
-    {
-      case AV_CODEC_ID_AC3:
-      case AV_CODEC_ID_DTS:
-        pCodec = OpenCodec( new CDVDAudioCodecPassthroughFFmpeg(), hint, options );
-        if( pCodec ) return pCodec;
-        break;
-      default:
-        break;      
-    }
-#endif
-    pCodec = OpenCodec( new CDVDAudioCodecPassthrough(), hint, options );
-    if( pCodec ) return pCodec;
+  switch(hint.codec)
+  {
+    case AV_CODEC_ID_AC3:
+    case AV_CODEC_ID_DTS:
+      pCodec = OpenCodec( new CDVDAudioCodecPassthroughFFmpeg(), hint, options );
+      if( pCodec ) return pCodec;
+      break;
+    default:
+      break;
   }
+#endif
+  pCodec = OpenCodec( new CDVDAudioCodecPassthrough(), hint, options );
+  if( pCodec ) return pCodec;
 
   switch (hint.codec)
   {
@@ -389,12 +408,7 @@ CDVDOverlayCodec* CDVDFactoryCodec::CreateOverlayCodec( CDVDStreamInfo &hint )
   switch (hint.codec)
   {
     case AV_CODEC_ID_TEXT:
-#if defined(LIBAVCODEC_FROM_FFMPEG) && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,53,100)
-    // API changed in:
-    // ffmpeg: commit 2626cc4580bfd560c6983338d77b2c11c16af94f (11 Aug 2012)
-    //         release 1.0 (28 Sept 2012)
     case AV_CODEC_ID_SUBRIP:
-#endif
       pCodec = OpenCodec(new CDVDOverlayCodecText(), hint, options);
       if( pCodec ) return pCodec;
       break;

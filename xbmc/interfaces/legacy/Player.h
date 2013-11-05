@@ -30,6 +30,7 @@
 #include "AddonString.h"
 #include "InfoTagMusic.h"
 #include "AddonCallback.h"
+#include "Alternative.h"
 
 #include "swighelper.h"
 
@@ -39,21 +40,17 @@ namespace XBMCAddon
   {
     XBMCCOMMONS_STANDARD_EXCEPTION(PlayerException);
 
+    typedef Alternative<String, const PlayList* > PlayParameter;
+
+    // This class is a merge of what was previously in xbmcmodule/player.h
+    //  and xbmcmodule/PythonPlayer.h without the python references. The
+    //  queuing and handling of asynchronous callbacks is done internal to
+    //  this class.
+
     /**
      * Player class.
      * 
-     * Player([core]) -- Creates a new Player with as default the xbmc music playlist.
-     * 
-     * core     : (optional) Use a specified playcore instead of letting xbmc decide the playercore to use.
-     *          - xbmc.PLAYER_CORE_AUTO
-     *          - xbmc.PLAYER_CORE_DVDPLAYER
-     *          - xbmc.PLAYER_CORE_MPLAYER
-     *          - xbmc.PLAYER_CORE_PAPLAYER
-     *
-     * This class is a merge of what was previously in xbmcmodule/player.h
-     *  and xbmcmodule/PythonPlayer.h without the python references. The
-     *  queuing and handling of asynchronous callbacks is done internal to
-     *  this class.
+     * Player() -- Creates a new Player class.
      */
     class Player : public AddonCallback, public IPlayerCallback
     {
@@ -61,62 +58,42 @@ namespace XBMCAddon
       int iPlayList;
       EPLAYERCORES playerCore;
 
+      void playStream(const String& item = emptyString, const XBMCAddon::xbmcgui::ListItem* listitem = NULL, bool windowed = false);
+      void playPlaylist(const PlayList* playlist = NULL,
+                        bool windowed = false, int startpos=-1);
+      void playCurrent(bool windowed = false);
+
     public:
-      /**
-       * Construct a Player proxying the given generated binding. The 
-       *  construction of a Player needs to identify whether or not any 
-       *  callbacks will be executed asynchronously or not.
-       */
+#ifndef SWIG
+	  static PlayParameter defaultPlayParameter;
+#endif
+
+      // Construct a Player proxying the given generated binding. The 
+      //  construction of a Player needs to identify whether or not any 
+      //  callbacks will be executed asynchronously or not.
       Player(int playerCore = EPC_NONE);
       virtual ~Player(void);
 
       /**
-       * playStream([item, listitem, windowed]) -- Play this item.
-       * 
-       * item           : [opt] string - filename or url.
-       * listitem       : [opt] listitem - used with setInfo() to set different infolabels.
-       * windowed       : [opt] bool - true=play video windowed, false=play users preference.(default)
-       * 
-       * *Note, If item is not given then the Player will try to play the current item
-       *        in the current playlist.
-       * 
-       *        You can use the above as keywords for arguments and skip certain optional arguments.
-       *        Once you use a keyword, all following arguments require the keyword.
-       * 
-       * example:
-       *   - listitem = xbmcgui.ListItem('Ironman')
-       *   - listitem.setInfo('video', {'Title': 'Ironman', 'Genre': 'Science Fiction'})
-       *   - xbmc.Player( xbmc.PLAYER_CORE_MPLAYER ).play(url, listitem, windowed)\n
+       * play([item, listitem, windowed]) -- Play this item.\n
+       * \n
+       * item           : [opt] string - filename, url or playlist.\n
+       * listitem       : [opt] listitem - used with setInfo() to set different infolabels.\n
+       * windowed       : [opt] bool - true=play video windowed, false=play users preference.(default)\n
+       * \n
+       * *Note, If item is not given then the Player will try to play the current item\n
+       *        in the current playlist.\n
+       * \n
+       *        You can use the above as keywords for arguments and skip certain optional arguments.\n
+       *        Once you use a keyword, all following arguments require the keyword.\n
+       * \n
+       * example:\n
+       *   - listitem = xbmcgui.ListItem('Ironman')\n
+       *   - listitem.setInfo('video', {'Title': 'Ironman', 'Genre': 'Science Fiction'})\n
+       *   - xbmc.Player().play(url, listitem, windowed)\n
        */
-      void playStream(const String& item = emptyString, const XBMCAddon::xbmcgui::ListItem* listitem = NULL, bool windowed = false);
-
-      /**
-       * playPlaylist([playlist, windowed, startpos]) -- Play this item.
-       * 
-       * playlist       : [opt] playlist.
-       * windowed       : [opt] bool - true=play video windowed, false=play users preference.(default)
-       * startpos       : [opt] int - Playlist starting position (0 based). If not given, current position is used
-       * 
-       * *Note, If playlist is not given then the Player will try to play the current item
-       *        in the current playlist.
-       * 
-       *        You can use the above as keywords for arguments and skip certain optional arguments.
-       *        Once you use a keyword, all following arguments require the keyword.
-       * 
-       * example:
-       */
-      void playPlaylist(const PlayList* playlist = NULL,
-                        bool windowed = false, int startpos=-1);
-
-      /**
-       * play() -- try to play the current item in the current playlist.
-       *
-       * windowed       : [opt] bool - true=play video windowed, false=play users preference.(default)
-       * 
-       * example:
-       *   - xbmc.Player( xbmc.PLAYER_CORE_MPLAYER ).play()
-       */
-      void playCurrent(bool windowed = false);
+      void play(const PlayParameter& item = Player::defaultPlayParameter, 
+                const XBMCAddon::xbmcgui::ListItem* listitem = NULL, bool windowed = false, int startpos = -1);
 
       /**
        * stop() -- Stop playing.
@@ -205,7 +182,7 @@ namespace XBMCAddon
       /**
        * onPlayBackSeek(time, seekOffset) -- onPlayBackSeek method.
        * 
-       * time           : integer - time to seek to.
+       * time           : integer - time to seek to.\n
        * seekOffset     : integer - ?.
        * 
        * Will be called when user seeks to a time
@@ -266,7 +243,7 @@ namespace XBMCAddon
       void seekTime(double seekTime) throw(PlayerException);
 
       /**
-       * setSubtitles() -- set subtitle file and enable subtitles\n
+       * setSubtitles() -- set subtitle file and enable subtitlesn
        */
       // Player_SetSubtitles
       void setSubtitles(const char* subtitleFile);
@@ -276,6 +253,7 @@ namespace XBMCAddon
        * showSubtitles(visible) -- enable/disable subtitles
        * 
        * visible        : boolean - True for visible subtitles.
+       *
        * example:
        * - xbmc.Player().showSubtitles(True)
        */
@@ -288,7 +266,7 @@ namespace XBMCAddon
       String getSubtitles();
 
       /**
-       * DisableSubtitles() -- disable subtitles\n
+       * DisableSubtitles() -- disable subtitles
        */
       // Player_DisableSubtitles
       void disableSubtitles();
@@ -333,14 +311,19 @@ namespace XBMCAddon
        */
       double getTotalTime() throw (PlayerException);
 
+      // Player_getAvailableAudioStreams
+      /**
+       * getAvailableAudioStreams() -- get Audio stream names
+       */
       std::vector<String>* getAvailableAudioStreams();
 
       /**
-       * setAudioStream(stream) -- set Audio Stream 
-       *
+       * setAudioStream(stream) -- set Audio Stream.
+       * 
        * stream           : int
-       *
+       * 
        * example:
+       * 
        *    - setAudioStream(1)
        */
       void setAudioStream(int iStream);

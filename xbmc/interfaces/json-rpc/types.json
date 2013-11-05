@@ -147,7 +147,7 @@
   "Playlist.Item": {
     "type": [
       { "type": "object", "properties": { "file": { "type": "string", "description": "Path to a file (not a directory) to be added to the playlist", "required": true } }, "additionalProperties": false },
-      { "type": "object", "properties": { "directory": { "type": "string", "required": true }, "recursive": { "type": "boolean", "default": false }, "media": { "$ref": "Files.Media" } }, "additionalProperties": false },
+      { "type": "object", "properties": { "directory": { "type": "string", "required": true }, "recursive": { "type": "boolean", "default": false }, "media": { "$ref": "Files.Media", "default": "files" } }, "additionalProperties": false },
       { "type": "object", "properties": { "movieid": { "$ref": "Library.Id", "required": true } }, "additionalProperties": false },
       { "type": "object", "properties": { "episodeid": { "$ref": "Library.Id", "required": true } }, "additionalProperties": false },
       { "type": "object", "properties": { "musicvideoid": { "$ref": "Library.Id", "required": true } }, "additionalProperties": false },
@@ -780,6 +780,58 @@
       }
     }
   },
+  "PVR.Fields.Broadcast": {
+    "extends": "Item.Fields.Base",
+    "items": { "type": "string",
+      "enum": [ "title", "plot", "plotoutline", "starttime",
+                "endtime", "runtime", "progress", "progresspercentage",
+                "genre", "episodename", "episodenum", "episodepart",
+                "firstaired", "hastimer", "isactive", "parentalrating",
+                "wasactive", "thumbnail" ]
+    }
+  },
+  "PVR.Details.Broadcast": {"
+    "extends": "Item.Details.Base",
+    "properties": {"
+      "broadcastid": { "$ref": "Library.Id", "required": true },
+      "title": { "type": "string" },
+      "plot": { "type": "string" },
+      "plotoutline": { "type": "string" },
+      "starttime": { "type": "string" },
+      "endtime": { "type": "string" },
+      "runtime": { "type": "integer" },
+      "progress": { "type": "integer" },
+      "progresspercentage": { "type": "number" },
+      "genre": { "type": "string" },
+      "episodename": { "type": "string" },
+      "episodenum": { "type": "integer" },
+      "episodepart": { "type": "integer" },
+      "firstaired": { "type": "string" },
+      "hastimer": { "type": "boolean" },
+      "isactive": { "type": "boolean" },
+      "rating": { "type": "integer" },
+      "wasactive": { "type": "boolean" },
+      "thumbnail": { "type": "string" }
+    }
+  },
+  "Profiles.Password": {
+    "type": "object",
+    "properties": {
+      "value": { "type": "string", "required": true, "description": "Password" },
+      "encryption": { "type": "string", "description": "Password Encryption", "default": "md5", "enum": [ "none", "md5" ] }
+    }
+  },
+  "Profiles.Fields.Profile": {
+    "extends": "Item.Fields.Base",
+    "items": { "type": "string", "enum": [ "thumbnail", "lockmode" ] }
+  },
+  "Profiles.Details.Profile": {
+    "extends": "Item.Details.Base",
+    "properties": {
+      "thumbnail": { "type": "string" },
+      "lockmode": { "type": "integer" }
+    }
+  },
   "List.Filter.Rule": {
     "type": "object",
     "properties": {
@@ -1083,7 +1135,7 @@
     "properties": {
       "file": { "type": "string", "required": true },
       "filetype": { "type": "string", "enum": [ "file", "directory" ], "required": true },
-      "size": { "type": "integer", "description": "Size of the file in kB (1000 Byte)" },
+      "size": { "type": "integer", "description": "Size of the file in bytes" },
       "lastmodified": { "type": "string" },
       "mimetype": { "type": "string" }
     }
@@ -1157,7 +1209,7 @@
   },
   "GUI.Property.Name": {
     "type": "string",
-    "enum": [ "currentwindow", "currentcontrol", "skin", "fullscreen" ]
+    "enum": [ "currentwindow", "currentcontrol", "skin", "fullscreen", "stereoscopicmode" ]
   },
   "GUI.Property.Value": {
     "type": "object",
@@ -1179,7 +1231,15 @@
           "name": { "type": "string" }
         }
       },
-      "fullscreen": { "type": "boolean" }
+      "fullscreen": { "type": "boolean" },
+      "stereoscopicmode": { "$ref": "GUI.Stereoscopy.Mode" }
+    }
+  },
+  "GUI.Stereoscopy.Mode": {
+    "type": "object",
+    "properties": {
+      "mode": { "type": "string", "required": true, "enum": [ "off", "split_vertical", "split_horizontal", "row_interleaved", "hardware_based", "anaglyph_cyan_red", "anaglyph_green_magenta", "monoscopic" ] },
+      "label": { "type": "string", "required": true }
     }
   },
   "System.Property.Name": {
@@ -1226,17 +1286,15 @@
     "enum": [ "media", "window", "script", "unknown" ]
   },
   "Favourite.Details.Favourite": {
-    "type": "array",
-    "items": { "type": "object",
-      "properties": {
-        "title": { "type": "string", "required": true },
-        "type": { "$ref": "Favourite.Type", "required": true },
-        "path": { "type": "string" },
-        "window": { "type": "string" },
-        "windowparameter": { "type": "string" },
-        "thumbnail": { "type": "string" }
-      },
-      "additionalProperties": false
-    }
+    "type": "object",
+    "properties": {
+      "title": { "type": "string", "required": true },
+      "type": { "$ref": "Favourite.Type", "required": true },
+      "path": { "type": "string" },
+      "window": { "type": "string" },
+      "windowparameter": { "type": "string" },
+      "thumbnail": { "type": "string" }
+    },
+    "additionalProperties": false
   }
 }

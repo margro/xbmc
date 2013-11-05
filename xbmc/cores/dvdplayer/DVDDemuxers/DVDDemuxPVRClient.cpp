@@ -325,7 +325,7 @@ void CDVDDemuxPVRClient::RequestStreams()
   if (!g_PVRManager.IsStarted())
     return;
 
-  PVR_STREAM_PROPERTIES props;
+  PVR_STREAM_PROPERTIES props = {};
   m_pvrClient->GetStreamProperties(&props);
   unsigned int i;
 
@@ -383,6 +383,7 @@ void CDVDDemuxPVRClient::RequestStreams()
       st->iHeight         = props.stream[i].iHeight;
       st->iWidth          = props.stream[i].iWidth;
       st->fAspect         = props.stream[i].fAspect;
+      st->stereo_mode     = "mono";
       m_streams[i] = st;
       st->m_parser_split = true;
     }

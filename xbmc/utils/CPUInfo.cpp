@@ -26,8 +26,11 @@
 #if defined(TARGET_DARWIN)
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#ifdef TARGET_DARWIN_OSX
+#include "osx/smc.h"
 #ifdef __ppc__
 #include <mach-o/arch.h>
+#endif
 #endif
 #endif
 
@@ -85,6 +88,7 @@
 
 #include "log.h"
 #include "settings/AdvancedSettings.h"
+#include "utils/StringUtils.h"
 
 using namespace std;
 
@@ -107,7 +111,7 @@ static inline int _private_gettimeofday( struct timeval *tv, void *tz )
 
 CCPUInfo::CCPUInfo(void)
 {
-  m_fProcStat = m_fProcTemperature = m_fCPUInfo = NULL;
+  m_fProcStat = m_fProcTemperature = m_fCPUFreq = NULL;
   m_lastUsedPercentage = 0;
   m_cpuFeatures = 0;
 
@@ -235,15 +239,20 @@ CCPUInfo::CCPUInfo(void)
   // read from the new location of the temperature data on new kernels, 2.6.39, 3.0 etc
   if (m_fProcTemperature == NULL)   
     m_fProcTemperature = fopen("/sys/class/hwmon/hwmon0/temp1_input", "r");
-  
-  m_fCPUInfo = fopen("/proc/cpuinfo", "r");
+  if (m_fProcTemperature == NULL)   
+    m_fProcTemperature = fopen("/sys/class/thermal/thermal_zone0/temp", "r");  // On Raspberry PIs
+
+  m_fCPUFreq = fopen ("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
+
+
+  FILE* fCPUInfo = fopen("/proc/cpuinfo", "r");
   m_cpuCount = 0;
-  if (m_fCPUInfo)
+  if (fCPUInfo)
   {
     char buffer[512];
 
     int nCurrId = 0;
-    while (fgets(buffer, sizeof(buffer), m_fCPUInfo))
+    while (fgets(buffer, sizeof(buffer), fCPUInfo))
     {
       if (strncmp(buffer, "processor", strlen("processor"))==0)
       {
@@ -369,6 +378,7 @@ CCPUInfo::CCPUInfo(void)
         }
       }
     }
+    fclose(fCPUInfo);
   }
   else
   {
@@ -377,6 +387,8 @@ CCPUInfo::CCPUInfo(void)
   }
 
 #endif
+  StringUtils::RemoveDuplicatedSpacesAndTabs(m_cpuModel);
+
   /* Set some default for empty string variables */
   if (m_cpuBogoMips.empty())
     m_cpuBogoMips = "N/A";
@@ -409,8 +421,8 @@ CCPUInfo::~CCPUInfo()
   if (m_fProcTemperature != NULL)
     fclose(m_fProcTemperature);
 
-  if (m_fCPUInfo != NULL)
-    fclose(m_fCPUInfo);
+  if (m_fCPUFreq != NULL)
+    fclose(m_fCPUFreq);
 }
 
 int CCPUInfo::getUsedPercentage()
@@ -482,29 +494,27 @@ float CCPUInfo::getCPUFrequency()
     hz = 0;
   return (float)hz;
 #else
-  float mhz = 0.f;
-  char buf[256],
-       *needle = NULL;
-  if (!m_fCPUInfo)
-    return mhz;
-  rewind(m_fCPUInfo);
-  fflush(m_fCPUInfo);
-  while (fgets(buf, 256, m_fCPUInfo) != NULL) {
-    if (strncmp(buf, "cpu MHz", 7) == 0) {
-      needle = strchr(buf, ':');
-      sscanf(++needle, "%f", &mhz);
-      break;
-    }
+  int value = 0;
+  if (m_fCPUFreq)
+  {
+    rewind(m_fCPUFreq);
+    fflush(m_fCPUFreq);
+    fscanf(m_fCPUFreq, "%d", &value);
   }
-  return mhz;
+  return value / 1000.0;
 #endif
 }
 
 bool CCPUInfo::getTemperature(CTemperature& temperature)
 {
-  int         value = 0,
-              ret   = 0;
+  int         value = 0;
   char        scale = 0;
+  
+#if defined(TARGET_DARWIN_OSX)
+  value = SMCGetTemperature(SMC_KEY_CPU_TEMP);
+  scale = 'c';
+#else
+  int         ret   = 0;
   FILE        *p    = NULL;
   CStdString  cmd   = g_advancedSettings.m_cpuTempCmd;
 
@@ -544,6 +554,7 @@ bool CCPUInfo::getTemperature(CTemperature& temperature)
 
   if (ret != 2)
     return false; 
+#endif
 
   if (scale == 'C' || scale == 'c')
     temperature = CTemperature::CreateFromCelsius(value);

@@ -43,7 +43,6 @@
 #include "utils/StringUtils.h"
 #include "AddonDatabase.h"
 #include "settings/AdvancedSettings.h"
-#include "settings/MediaSourceSettings.h"
 #include "storage/MediaManager.h"
 #include "LangInfo.h"
 #include "guilib/Key.h"
@@ -157,7 +156,7 @@ void CGUIWindowAddonBrowser::GetContextButtons(int itemNumber,
   if (addon->Type() == ADDON_REPOSITORY && pItem->m_bIsFolder)
   {
     buttons.Add(CONTEXT_BUTTON_SCAN,24034);
-    buttons.Add(CONTEXT_BUTTON_UPDATE_LIBRARY,24035);
+    buttons.Add(CONTEXT_BUTTON_REFRESH,24035);
   }
 
   buttons.Add(CONTEXT_BUTTON_INFO,24003);
@@ -185,7 +184,7 @@ bool CGUIWindowAddonBrowser::OnContextButton(int itemNumber,
   if (button == CONTEXT_BUTTON_SETTINGS)
     return CGUIDialogAddonSettings::ShowAndGetInput(addon);
 
-  if (button == CONTEXT_BUTTON_UPDATE_LIBRARY)
+  if (button == CONTEXT_BUTTON_REFRESH)
   {
     CAddonDatabase database;
     database.Open();
@@ -448,7 +447,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const vector<ADDON::TYPE> &types, CStd
     item->SetSpecialSort(SortSpecialOnTop);
     items.Add(item);
   }
-  items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+  items.Sort(SortByLabel, SortOrderAscending);
 
   if (addonIDs.size() > 0)
   {
@@ -481,7 +480,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const vector<ADDON::TYPE> &types, CStd
 
 CStdString CGUIWindowAddonBrowser::GetStartFolder(const CStdString &dir)
 {
-  if (dir.Left(9).Equals("addons://"))
+  if (StringUtils::StartsWithNoCase(dir, "addons://"))
     return dir;
   return CGUIMediaWindow::GetStartFolder(dir);
 }

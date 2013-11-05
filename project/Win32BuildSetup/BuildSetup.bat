@@ -3,8 +3,8 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 rem ----Usage----
 rem BuildSetup [gl|dx] [clean|noclean]
 rem vs2010 for compiling with visual studio 2010
-rem gl for opengl build (default)
-rem dx for directx build
+rem gl for opengl build
+rem dx for directx build (default)
 rem clean to force a full rebuild
 rem noclean to force a build without clean
 rem noprompt to avoid all prompts
@@ -76,13 +76,9 @@ IF %comp%==vs2010 (
   set EXE= "..\VS2010Express\XBMC\%buildconfig%\XBMC.exe"
   set PDB= "..\VS2010Express\XBMC\%buildconfig%\XBMC.pdb"
   
-  :: when building with jenkins there's no branch. First git command gets the branch even there
-  :: but is empty in a normal build environment. Second git command gets the branch there.
-  for /f "tokens=3 delims=/" %%a in ('git branch -r --contains HEAD') do set BRANCH=%%a
-  IF %BRANCH%==na (
-    for /f "tokens=* delims= " %%a in ('git rev-parse --abbrev-ref HEAD') do set BRANCH=%%a
-  )
-	
+  :: sets the BRANCH env var
+  call getbranch.bat
+
   rem	CONFIG END
   rem -------------------------------------------------------------
 
@@ -138,7 +134,7 @@ IF %comp%==vs2010 (
   %NET% %CLEAN_EXE%
   ECHO Compiling XBMC branch %BRANCH%...
   %NET% %OPTS_EXE%
-  IF NOT EXIST %EXE% (
+  IF %errorlevel%==1 (
   	set DIETEXT="XBMC.EXE failed to build!  See %CD%\..\vs2010express\XBMC\%buildconfig%\objs\XBMC.log"
 	IF %promptlevel%==noprompt (
 		type "%CD%\..\vs2010express\XBMC\%buildconfig%\objs\XBMC.log"
@@ -155,7 +151,7 @@ IF %comp%==vs2010 (
   ECHO ------------------------------------------------------------
   ECHO Compiling XBMC branch %BRANCH%...
   %NET% %OPTS_EXE%
-  IF NOT EXIST %EXE% (
+  IF %errorlevel%==1 (
   	set DIETEXT="XBMC.EXE failed to build!  See %CD%\..\vs2010express\XBMC\%buildconfig%\objs\XBMC.log"
 	IF %promptlevel%==noprompt (
 		type "%CD%\..\vs2010express\XBMC\%buildconfig%\objs\XBMC.log"
@@ -188,26 +184,43 @@ IF %comp%==vs2010 (
   
   ECHO Copying files...
   IF EXIST BUILD_WIN32 rmdir BUILD_WIN32 /S /Q
-
-  Echo .svn>exclude.txt
-  Echo CVS>>exclude.txt
+  rem Add files to exclude.txt that should not be included in the installer
+  
   Echo Thumbs.db>>exclude.txt
   Echo Desktop.ini>>exclude.txt
   Echo dsstdfx.bin>>exclude.txt
   Echo exclude.txt>>exclude.txt
-  rem and exclude potential leftovers
-  Echo mediasources.xml>>exclude.txt
-  Echo advancedsettings.xml>>exclude.txt
-  Echo guisettings.xml>>exclude.txt
-  Echo profiles.xml>>exclude.txt
-  Echo sources.xml>>exclude.txt
+  Echo xbmc.log>>exclude.txt
+  Echo xbmc.old.log>>exclude.txt
+  rem Exclude userdata files
+  Echo userdata\advancedsettings.xml>>exclude.txt
+  Echo userdata\guisettings.xml>>exclude.txt
+  Echo userdata\mediasources.xml>>exclude.txt
+  Echo userdata\passwords.xml>>exclude.txt
+  Echo userdata\profiles.xml>>exclude.txt
+  Echo userdata\sources.xml>>exclude.txt
+  Echo userdata\upnpserver.xml>>exclude.txt
+  rem Exclude userdata folders
+  Echo userdata\addon_data\>>exclude.txt
   Echo userdata\cache\>>exclude.txt
   Echo userdata\database\>>exclude.txt
   Echo userdata\playlists\>>exclude.txt
-  Echo userdata\script_data\>>exclude.txt
   Echo userdata\thumbnails\>>exclude.txt
-  rem UserData\visualisations contains currently only xbox visualisationfiles
-  Echo userdata\visualisations\>>exclude.txt
+  rem Exclude non Windows addons
+  Echo addons\repository.pvr-android.xbmc.org\>>exclude.txt
+  Echo addons\repository.pvr-ios.xbmc.org\>>exclude.txt
+  Echo addons\repository.pvr-osx32.xbmc.org\>>exclude.txt
+  Echo addons\repository.pvr-osx64.xbmc.org\>>exclude.txt
+  Echo addons\screensaver.rsxs.euphoria\>>exclude.txt
+  Echo addons\screensaver.rsxs.plasma\>>exclude.txt
+  Echo addons\screensaver.rsxs.solarwinds\>>exclude.txt
+  Echo addons\visualization.fishbmc\>>exclude.txt
+  Echo addons\visualization.projectm\>>exclude.txt
+  Echo addons\visualization.glspectrum\>>exclude.txt
+  rem Exclude skins if not present
+  IF NOT EXIST  addons\skin.touched\addon.xml (
+    Echo addons\skin.touched\>>exclude.txt
+  )
   rem other platform stuff
   Echo lib-osx>>exclude.txt
   Echo players\mplayer>>exclude.txt
@@ -233,7 +246,6 @@ IF %comp%==vs2010 (
   copy ..\..\LICENSE.GPL BUILD_WIN32\Xbmc > NUL
   copy ..\..\known_issues.txt BUILD_WIN32\Xbmc > NUL
   xcopy dependencies\*.* BUILD_WIN32\Xbmc /Q /I /Y /EXCLUDE:exclude.txt  > NUL
-  copy sources.xml BUILD_WIN32\Xbmc\userdata > NUL
   
   xcopy ..\..\language BUILD_WIN32\Xbmc\language /E /Q /I /Y /EXCLUDE:exclude.txt  > NUL
   xcopy ..\..\addons BUILD_WIN32\Xbmc\addons /E /Q /I /Y /EXCLUDE:exclude.txt > NUL
@@ -251,6 +263,14 @@ IF %comp%==vs2010 (
   cd ..\..\addons\skin.confluence
   call build.bat > NUL
   cd %build_path%
+  
+  IF EXIST  ..\..\addons\skin.touched\build.bat (
+    ECHO Building Touched Skin...
+    cd ..\..\addons\skin.touched
+    call build.bat > NUL
+    cd %build_path%
+  )
+  
   rem restore color and title, some scripts mess these up
   COLOR 1B
   TITLE XBMC for Windows Build Script
@@ -337,6 +357,7 @@ IF %comp%==vs2010 (
   echo %DIETEXT%
   SET exitcode=1
   ECHO ------------------------------------------------------------
+  GOTO END
 
 :VIEWLOG_EXE
   SET log="%CD%\..\vs2010express\XBMC\%buildconfig%\objs\XBMC.log"

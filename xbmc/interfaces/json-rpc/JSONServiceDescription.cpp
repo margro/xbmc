@@ -36,6 +36,7 @@
 #include "XBMCOperations.h"
 #include "ApplicationOperations.h"
 #include "PVROperations.h"
+#include "ProfilesOperations.h"
 #include "FavouritesOperations.h"
 
 using namespace std;
@@ -153,6 +154,8 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "GUI.ActivateWindow",                           CGUIOperations::ActivateWindow },
   { "GUI.ShowNotification",                         CGUIOperations::ShowNotification },
   { "GUI.SetFullscreen",                            CGUIOperations::SetFullscreen },
+  { "GUI.SetStereoscopicMode",                      CGUIOperations::SetStereoscopicMode },
+  { "GUI.GetStereoscopicModes",                     CGUIOperations::GetStereoscopicModes },
 
 // PVR operations
   { "PVR.GetProperties",                            CPVROperations::GetProperties },
@@ -160,8 +163,15 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
   { "PVR.GetChannelGroupDetails",                   CPVROperations::GetChannelGroupDetails },
   { "PVR.GetChannels",                              CPVROperations::GetChannels },
   { "PVR.GetChannelDetails",                        CPVROperations::GetChannelDetails },
+  { "PVR.GetBroadcasts",                            CPVROperations::GetBroadcasts },
+  { "PVR.GetBroadcastDetails",                      CPVROperations::GetBroadcastDetails },
   { "PVR.Record",                                   CPVROperations::Record },
   { "PVR.Scan",                                     CPVROperations::Scan },
+
+// Profiles operations
+  { "Profiles.GetProfiles",                         CProfilesOperations::GetProfiles},
+  { "Profiles.GetCurrentProfile",                   CProfilesOperations::GetCurrentProfile},
+  { "Profiles.LoadProfile",                         CProfilesOperations::LoadProfile},
 
 // System operations
   { "System.GetProperties",                         CSystemOperations::GetProperties },

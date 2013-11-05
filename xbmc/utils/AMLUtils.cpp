@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2011-2012 Team XBMC
+ *      Copyright (C) 2011-2013 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -25,6 +25,8 @@
 #include <fcntl.h>
 #include <string>
 
+#include "utils/CPUInfo.h"
+#include "utils/log.h"
 #include "utils/StringUtils.h"
 
 int aml_set_sysfs_str(const char *path, const char *val)
@@ -70,7 +72,7 @@ int aml_set_sysfs_int(const char *path, const int val)
 
 int aml_get_sysfs_int(const char *path)
 {
-  int val = 0;
+  int val = -1;
   int fd = open(path, O_RDONLY);
   if (fd >= 0)
   {
@@ -87,10 +89,13 @@ bool aml_present()
   static int has_aml = -1;
   if (has_aml == -1)
   {
-    if (aml_get_sysfs_int("/sys/class/audiodsp/digital_raw") != -1)
+    int rtn = aml_get_sysfs_int("/sys/class/audiodsp/digital_raw");
+    if (rtn != -1)
       has_aml = 1;
     else
       has_aml = 0;
+    if (has_aml)
+      CLog::Log(LOGNOTICE, "aml_present, rtn(%d)", rtn);
   }
   return has_aml;
 }
@@ -100,34 +105,16 @@ int aml_get_cputype()
   static int aml_cputype = -1;
   if (aml_cputype == -1)
   {
-    // defualt to m1 SoC
-    aml_cputype = 1;
+    std::string cpu_hardware = g_cpuInfo.getCPUHardware();
 
-    FILE *cpuinfo_fd = fopen("/proc/cpuinfo", "r");
-    if (cpuinfo_fd)
-    {
-      char buffer[512];
-      while (fgets(buffer, sizeof(buffer), cpuinfo_fd))
-      {
-        std::string stdbuffer(buffer);
-        if (stdbuffer.find("MESON-M3") != std::string::npos)
-        {
-          aml_cputype = 3;
-          break;
-        }
-        else if (stdbuffer.find("MESON3") != std::string::npos)
-        {
-          aml_cputype = 3;
-          break;
-        }
-        else if (stdbuffer.find("Meson6") != std::string::npos)
-        {
-          aml_cputype = 6;
-          break;
-        }
-      }
-      fclose(cpuinfo_fd);
-    }
+    // default to AMLogic M1
+    aml_cputype = 1;
+    if (cpu_hardware.find("MESON-M3") != std::string::npos)
+      aml_cputype = 3;
+    else if (cpu_hardware.find("MESON3") != std::string::npos)
+      aml_cputype = 3;
+    else if (cpu_hardware.find("Meson6") != std::string::npos)
+      aml_cputype = 6;
   }
 
   return aml_cputype;

@@ -100,7 +100,7 @@ HANDLE FindFirstFile(LPCSTR szPath,LPWIN32_FIND_DATA lpFindData)
   strFiles.MakeLower();  // Do we really want this case insensitive?
   CRegExp re(true);
 
-  if (re.RegComp(strFiles.c_str()) == NULL)
+  if (!re.RegComp(strFiles.c_str()))
     return(INVALID_HANDLE_VALUE);
 
   struct dirent **namelist = NULL;
@@ -597,9 +597,9 @@ BOOL GetDiskFreeSpaceEx(
   )
 
 {
-#if defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID) || defined(TARGET_DARWIN)
   struct statfs fsInfo;
-  // is 64-bit on android
+  // is 64-bit on android and darwin (10.6SDK + any iOS)
   if (statfs(CSpecialProtocol::TranslatePath(lpDirectoryName), &fsInfo) != 0)
     return false;
 #else

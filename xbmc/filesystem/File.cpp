@@ -32,6 +32,7 @@
 #include "utils/BitstreamStats.h"
 #include "Util.h"
 #include "URL.h"
+#include "utils/StringUtils.h"
 
 #include "commons/Exception.h"
 
@@ -94,20 +95,19 @@ bool CFile::Cache(const CStdString& strFileName, const CStdString& strDest, XFIL
     CFile newFile;
     if (URIUtils::IsHD(strDest)) // create possible missing dirs
     {
-      vector<CStdString> tokens;
-      CStdString strDirectory;
-      URIUtils::GetDirectory(strDest,strDirectory);
+      vector<std::string> tokens;
+      CStdString strDirectory = URIUtils::GetDirectory(strDest);
       URIUtils::RemoveSlashAtEnd(strDirectory);  // for the test below
       if (!(strDirectory.size() == 2 && strDirectory[1] == ':'))
       {
         CURL url(strDirectory);
-        CStdString pathsep;
+        std::string pathsep;
 #ifndef TARGET_POSIX
         pathsep = "\\";
 #else
         pathsep = "/";
 #endif
-        CUtil::Tokenize(url.GetFileName(),tokens,pathsep.c_str());
+        StringUtils::Tokenize(url.GetFileName(),tokens,pathsep.c_str());
         CStdString strCurrPath;
         // Handle special
         if (!url.GetProtocol().IsEmpty()) {
@@ -116,7 +116,7 @@ bool CFile::Cache(const CStdString& strFileName, const CStdString& strDest, XFIL
         } // If the directory has a / at the beginning, don't forget it
         else if (strDirectory[0] == pathsep[0])
           strCurrPath += pathsep;
-        for (vector<CStdString>::iterator iter=tokens.begin();iter!=tokens.end();++iter)
+        for (vector<std::string>::iterator iter=tokens.begin();iter!=tokens.end();++iter)
         {
           strCurrPath += *iter+pathsep;
           CDirectory::Create(strCurrPath);
@@ -339,7 +339,7 @@ bool CFile::OpenForWrite(const CStdString& strFileName, bool bOverWrite)
 
 bool CFile::Exists(const CStdString& strFileName, bool bUseCache /* = true */)
 {
-  CURL url = URIUtils::SubstitutePath(strFileName);;
+  CURL url = URIUtils::SubstitutePath(strFileName);
   
   try
   {
@@ -349,7 +349,7 @@ bool CFile::Exists(const CStdString& strFileName, bool bUseCache /* = true */)
     if (bUseCache)
     {
       bool bPathInCache;
-      if (g_directoryCache.FileExists(url.Get(), bPathInCache) )
+      if (g_directoryCache.FileExists(url.Get(), bPathInCache))
         return true;
       if (bPathInCache)
         return false;
@@ -372,20 +372,23 @@ bool CFile::Exists(const CStdString& strFileName, bool bUseCache /* = true */)
       auto_ptr<IFile> pImp(pRedirectEx->m_pNewFileImp);
       auto_ptr<CURL> pNewUrl(pRedirectEx->m_pNewUrl);
       delete pRedirectEx;
-        
-      if (pNewUrl.get())
+
+      if (pImp.get())
       {
-        if (pImp.get() && !pImp->Exists(*pNewUrl))
+        if (pNewUrl.get())
         {
-          return false;
+          if (bUseCache)
+          {
+            bool bPathInCache;
+            if (g_directoryCache.FileExists(pNewUrl->Get(), bPathInCache))
+              return true;
+            if (bPathInCache)
+              return false;
+          }
+          return pImp->Exists(*pNewUrl);
         }
-      }
-      else     
-      {
-        if (pImp.get() && !pImp->Exists(url))
-        {
-          return false;
-        }
+        else
+          return pImp->Exists(url);
       }
     }
   }

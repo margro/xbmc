@@ -41,6 +41,7 @@ static const char* ShaderNames[SM_ESHADERCOUNT] =
      "guishader_frag_texture_noblend.glsl",
      "guishader_frag_multi_blendcolor.glsl",
      "guishader_frag_rgba.glsl",
+     "guishader_frag_rgba_oes.glsl",
      "guishader_frag_rgba_blendcolor.glsl"
     };
 
@@ -168,6 +169,15 @@ bool CRenderSystemGLES::DestroyRenderSystem()
     delete[] m_pGUIshader;
     m_pGUIshader = NULL;
   }
+
+  ResetScissors();
+  CDirtyRegionList dirtyRegions;
+  CDirtyRegion dirtyWindow(g_graphicsContext.GetViewWindow());
+  dirtyRegions.push_back(dirtyWindow);
+
+  ClearBuffers(0);
+  glFinish();
+  PresentRenderImpl(dirtyRegions);
 
   m_bRenderCreated = false;
 
@@ -432,7 +442,7 @@ bool CRenderSystemGLES::TestRender()
 
   EnableGUIShader(SM_DEFAULT);
 
-  GLfloat col[3][4];
+  GLfloat col[4] = {1.0f, 0.0f, 0.0f, 1.0f};
   GLfloat ver[3][2];
   GLint   posLoc = GUIShaderGetPos();
   GLint   colLoc = GUIShaderGetCol();
@@ -442,10 +452,6 @@ bool CRenderSystemGLES::TestRender()
 
   glEnableVertexAttribArray(posLoc);
   glEnableVertexAttribArray(colLoc);
-
-  // Setup Colour values
-  col[0][0] = col[0][3] = col[1][1] = col[1][3] = col[2][2] = col[2][3] = 1.0f;
-  col[0][1] = col[0][2] = col[1][0] = col[1][2] = col[2][0] = col[2][1] = 0.0f;
 
   // Setup vertex position values
   ver[0][0] =  0.0f;
@@ -552,6 +558,15 @@ void CRenderSystemGLES::InitialiseGUIShader()
     m_pGUIshader = new CGUIShader*[SM_ESHADERCOUNT];
     for (int i = 0; i < SM_ESHADERCOUNT; i++)
     {
+      if (i == SM_TEXTURE_RGBA_OES)
+      {
+        if (!g_Windowing.IsExtSupported("GL_OES_EGL_image_external"))
+        {
+          m_pGUIshader[i] = NULL;
+          continue;
+        }
+      }
+
       m_pGUIshader[i] = new CGUIShader( ShaderNames[i] );
 
       if (!m_pGUIshader[i]->CompileAndLink())
@@ -623,6 +638,22 @@ GLint CRenderSystemGLES::GUIShaderGetCoord1()
 {
   if (m_pGUIshader[m_method])
     return m_pGUIshader[m_method]->GetCord1Loc();
+
+  return -1;
+}
+
+GLint CRenderSystemGLES::GUIShaderGetUniCol()
+{
+  if (m_pGUIshader[m_method])
+    return m_pGUIshader[m_method]->GetUniColLoc();
+
+  return -1;
+}
+
+GLint CRenderSystemGLES::GUIShaderGetCoord0Matrix()
+{
+  if (m_pGUIshader[m_method])
+    return m_pGUIshader[m_method]->GetCoord0MatrixLoc();
 
   return -1;
 }

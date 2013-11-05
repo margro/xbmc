@@ -41,8 +41,10 @@ DVDPlayerCodec::DVDPlayerCodec()
   m_nAudioStream = -1;
   m_audioPos = 0;
   m_pPacket = NULL;
-  m_decoded = NULL;;
+  m_decoded = NULL;
   m_nDecodedLen = 0;
+  m_strFileName = "";
+  m_bInited = false;
 }
 
 DVDPlayerCodec::~DVDPlayerCodec()
@@ -57,7 +59,18 @@ void DVDPlayerCodec::SetContentType(const CStdString &strContent)
 
 bool DVDPlayerCodec::Init(const CStdString &strFile, unsigned int filecache)
 {
-  m_decoded = NULL;;
+  // take precaution if Init()ialized earlier
+  if (m_bInited)
+  {
+    // keep things as is if Init() was done with known strFile
+    if (m_strFileName == strFile)
+      return true;
+
+    // got differing filename, so cleanup before starting over
+    DeInit();
+  }
+
+  m_decoded = NULL;
   m_nDecodedLen = 0;
 
   CStdString strFileToOpen = strFile;
@@ -132,8 +145,7 @@ bool DVDPlayerCodec::Init(const CStdString &strFile, unsigned int filecache)
 
   CDVDStreamInfo hint(*pStream, true);
 
-  bool passthrough = AUDIO_IS_BITSTREAM(CSettings::Get().GetInt("audiooutput.mode"));
-  m_pAudioCodec = CDVDFactoryCodec::CreateAudioCodec(hint, passthrough);
+  m_pAudioCodec = CDVDFactoryCodec::CreateAudioCodec(hint);
   if (!m_pAudioCodec)
   {
     CLog::Log(LOGERROR, "%s: Could not create audio codec", __FUNCTION__);
@@ -180,6 +192,9 @@ bool DVDPlayerCodec::Init(const CStdString &strFile, unsigned int filecache)
   m_Bitrate = m_pAudioCodec->GetBitRate();
   m_pDemuxer->GetStreamCodecName(m_nAudioStream,m_CodecName);
 
+  m_strFileName = strFile;
+  m_bInited = true;
+
   return true;
 }
 
@@ -207,9 +222,21 @@ void DVDPlayerCodec::DeInit()
     m_pAudioCodec = NULL;
   }
 
+  // cleanup format information
+  m_TotalTime = 0;
+  m_SampleRate = 0;
+  m_EncodedSampleRate = 0;
+  m_BitsPerSample = 0;
+  m_DataFormat = AE_FMT_INVALID;
+  m_Channels = 0;
+  m_Bitrate = 0;
+
   m_audioPos = 0;
-  m_decoded = NULL;;
+  m_decoded = NULL;
   m_nDecodedLen = 0;
+
+  m_strFileName = "";
+  m_bInited = false;
 }
 
 int64_t DVDPlayerCodec::Seek(int64_t iSeekTime)
@@ -221,7 +248,7 @@ int64_t DVDPlayerCodec::Seek(int64_t iSeekTime)
   m_pDemuxer->SeekTime((int)iSeekTime, false);
   m_pAudioCodec->Reset();
 
-  m_decoded = NULL;;
+  m_decoded = NULL;
   m_nDecodedLen = 0;
 
   return iSeekTime;

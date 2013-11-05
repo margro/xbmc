@@ -83,7 +83,7 @@ using namespace MUSIC_INFO;
 CGUIWindowMusicBase::CGUIWindowMusicBase(int id, const CStdString &xmlFile)
     : CGUIMediaWindow(id, xmlFile)
 {
-
+  m_dlgProgress = NULL;
 }
 
 CGUIWindowMusicBase::~CGUIWindowMusicBase ()
@@ -218,11 +218,11 @@ bool CGUIWindowMusicBase::OnMessage(CGUIMessage& message)
         else if (iAction == ACTION_PLAYER_PLAY)
         {
           // if playback is paused or playback speed != 1, return
-          if (g_application.IsPlayingAudio())
+          if (g_application.m_pPlayer->IsPlayingAudio())
           {
-            if (g_application.m_pPlayer->IsPaused())
+            if (g_application.m_pPlayer->IsPausedPlayback())
               return false;
-            if (g_application.GetPlaySpeed() != 1)
+            if (g_application.m_pPlayer->GetPlaySpeed() != 1)
               return false;
           }
 
@@ -294,7 +294,7 @@ void CGUIWindowMusicBase::OnInfo(int iItem, bool bShowInfo)
 void CGUIWindowMusicBase::OnInfo(CFileItem *pItem, bool bShowInfo)
 {
   if ((pItem->IsMusicDb() && !pItem->HasMusicInfoTag()) || pItem->IsParentFolder() ||
-       URIUtils::IsSpecial(pItem->GetPath()) || pItem->GetPath().Left(14).Equals("musicsearch://"))
+       URIUtils::IsSpecial(pItem->GetPath()) || StringUtils::StartsWithNoCase(pItem->GetPath(), "musicsearch://"))
     return; // nothing to do
 
   if (!pItem->m_bIsFolder)
@@ -347,12 +347,10 @@ void CGUIWindowMusicBase::OnInfo(CFileItem *pItem, bool bShowInfo)
     if (pItem->HasMusicInfoTag() && pItem->GetMusicInfoTag()->Loaded() &&
        !pItem->GetMusicInfoTag()->GetAlbum().IsEmpty())
     {
-      bool result = ShowAlbumInfo(pItem.get());
-
       if (m_dlgProgress && bShowInfo)
         m_dlgProgress->Close();
 
-      if (!result) // Something went wrong, so bail for the rest
+      if (!ShowAlbumInfo(pItem.get())) // Something went wrong, so bail for the rest
         break;
     }
   }
@@ -399,6 +397,9 @@ void CGUIWindowMusicBase::ShowArtistInfo(const CFileItem *pItem, bool bShowInfo 
         break;
       }
     }
+
+    if (m_dlgProgress)
+      m_dlgProgress->Close();
 
     CGUIDialogMusicInfo *pDlgArtistInfo = (CGUIDialogMusicInfo*)g_windowManager.GetWindow(WINDOW_DIALOG_MUSIC_INFO);
     if (pDlgArtistInfo)
@@ -469,6 +470,9 @@ bool CGUIWindowMusicBase::ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo /
         return false;
       }
     }
+
+    if (m_dlgProgress)
+      m_dlgProgress->Close();
 
     CGUIDialogMusicInfo *pDlgAlbumInfo = (CGUIDialogMusicInfo*)g_windowManager.GetWindow(WINDOW_DIALOG_MUSIC_INFO);
     if (pDlgAlbumInfo)
@@ -566,7 +570,7 @@ void CGUIWindowMusicBase::OnQueueItem(int iItem)
   }
 
   g_playlistPlayer.Add(PLAYLIST_MUSIC, queuedItems);
-  if (g_playlistPlayer.GetPlaylist(PLAYLIST_MUSIC).size() && !g_application.IsPlayingAudio())
+  if (g_playlistPlayer.GetPlaylist(PLAYLIST_MUSIC).size() && !g_application.m_pPlayer->IsPlayingAudio())
   {
     if (m_guiState.get())
       m_guiState->SetPlaylistDirectory("playlistmusic://");
@@ -595,11 +599,13 @@ void CGUIWindowMusicBase::AddItemToPlayList(const CFileItemPtr &pItem, CFileItem
       // Genres will still require 2 lookups, and queuing the entire Genre folder
       // will require 3 lookups (genre, artist, album)
       CMusicDbUrl musicUrl;
-      musicUrl.FromString(pItem->GetPath());
-      musicUrl.AppendPath("-1/");
-      CFileItemPtr item(new CFileItem(musicUrl.ToString(), true));
-      item->SetCanQueue(true); // workaround for CanQueue() check above
-      AddItemToPlayList(item, queuedItems);
+      if (musicUrl.FromString(pItem->GetPath()))
+      {
+        musicUrl.AppendPath("-1/");
+        CFileItemPtr item(new CFileItem(musicUrl.ToString(), true));
+        item->SetCanQueue(true); // workaround for CanQueue() check above
+        AddItemToPlayList(item, queuedItems);
+      }
       return;
     }
   }
@@ -735,8 +741,6 @@ void CGUIWindowMusicBase::GetNonContextButtons(CContextButtons &buttons)
 {
   if (!m_vecItems->IsVirtualDirectoryRoot())
     buttons.Add(CONTEXT_BUTTON_GOTO_ROOT, 20128);
-  if (g_playlistPlayer.GetPlaylist(PLAYLIST_MUSIC).size() > 0)
-    buttons.Add(CONTEXT_BUTTON_NOW_PLAYING, 13350);
   buttons.Add(CONTEXT_BUTTON_SETTINGS, 5);
 }
 
@@ -802,10 +806,6 @@ bool CGUIWindowMusicBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
       g_application.StopMusicScan();
       return true;
     }
-
-  case CONTEXT_BUTTON_NOW_PLAYING:
-    g_windowManager.ActivateWindow(WINDOW_MUSIC_PLAYLIST);
-    return true;
 
   case CONTEXT_BUTTON_GOTO_ROOT:
     Update("");
@@ -1010,7 +1010,7 @@ void CGUIWindowMusicBase::UpdateThumb(const CAlbum &album, const CStdString &pat
   // Update currently playing song if it's from the same album.  This is necessary as when the album
   // first gets it's cover, the info manager's item doesn't have the updated information (so will be
   // sending a blank thumb to the skin.)
-  if (g_application.IsPlayingAudio())
+  if (g_application.m_pPlayer->IsPlayingAudio())
   {
     const CMusicInfoTag* tag=g_infoManager.GetCurrentSongTag();
     if (tag)
@@ -1154,7 +1154,7 @@ bool CGUIWindowMusicBase::CheckFilterAdvanced(CFileItemList &items) const
 
 bool CGUIWindowMusicBase::CanContainFilter(const CStdString &strDirectory) const
 {
-  return StringUtils::StartsWith(strDirectory, "musicdb://");
+  return StringUtils::StartsWithNoCase(strDirectory, "musicdb://");
 }
 
 void CGUIWindowMusicBase::OnInitWindow()

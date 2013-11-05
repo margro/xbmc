@@ -315,7 +315,7 @@ bool CGUIBaseContainer::OnAction(const CAction &action)
         m_lastHoldTime = CTimeUtils::GetFrameTime();
 
         if(m_scrollItemsPerFrame < 1.0f)//not enough hold time accumulated for one step
-          return false;
+          return true;
 
         while (m_scrollItemsPerFrame >= 1)
         {
@@ -807,7 +807,7 @@ void CGUIBaseContainer::UpdateLayout(bool updateAllItems)
 {
   if (updateAllItems)
   { // free memory of items
-    for (iItems it = m_items.begin(); it != m_items.end(); it++)
+    for (iItems it = m_items.begin(); it != m_items.end(); ++it)
       (*it)->FreeMemory();
   }
   // and recalculate the layout
@@ -1206,7 +1206,7 @@ int CGUIBaseContainer::GetCurrentPage() const
   return GetOffset() / m_itemsPerPage + 1;
 }
 
-void CGUIBaseContainer::GetCacheOffsets(int &cacheBefore, int &cacheAfter)
+void CGUIBaseContainer::GetCacheOffsets(int &cacheBefore, int &cacheAfter) const
 {
   if (m_scroller.IsScrollingDown())
   {

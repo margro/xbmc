@@ -25,27 +25,43 @@
 class CJNIWifiConfiguration : public CJNIBase
 {
 public:
-  CJNIWifiConfiguration(const jni::jhobject &object);
+  CJNIWifiConfiguration();
+  CJNIWifiConfiguration(const jni::jhobject &object) : CJNIBase(object) {};
   ~CJNIWifiConfiguration() {};
 
-  int         networkId;
-  int         status;
-  std::string SSID;
-  std::string BSSID;
-  std::string preSharedKey;
-//  std::string[] wepKeys;
-  int         wepTxKeyIndex;
-  int         priority;
-  bool        hiddenSSID;
-  CJNIBitSet  allowedKeyManagement;
-  CJNIBitSet  allowedProtocols;
-  CJNIBitSet  allowedAuthAlgorithms;
-  CJNIBitSet  allowedPairwiseCiphers;
-  CJNIBitSet  allowedGroupCiphers;
+  int         getnetworkId() const;
+  int         getstatus() const;
+  std::string getSSID() const;
+  std::string getBSSID() const;
+  std::string getpreSharedKey() const;
+  std::vector<std::string> getwepKeys() const;
+  int         getwepTxKeyIndex() const;
+  int         getpriority() const;
+  bool        gethiddenSSID() const;
+  CJNIBitSet  getallowedKeyManagement() const;
+  CJNIBitSet  getallowedProtocols() const;
+  CJNIBitSet  getallowedAuthAlgorithms() const;
+  CJNIBitSet  getallowedPairwiseCiphers() const;
+  CJNIBitSet  getallowedGroupCiphers() const;
+
+  void setnetworkId(int);
+  void setstatus(int);
+  void setSSID(const std::string &);
+  void setBSSID(const std::string &);
+  void setpreSharedKey(const std::string &);
+  void setwepKeys(const std::vector<std::string>&);
+  void setwepTxKeyIndex(int);
+  void setpriority(int);
+  void sethiddenSSID(bool);
+  void setallowedKeyManagement(const CJNIBitSet&);
+  void setallowedProtocols(const CJNIBitSet&);
+  void setallowedAuthAlgorithms(const CJNIBitSet&);
+  void setallowedPairwiseCiphers(const CJNIBitSet&);
+  void setallowedGroupCiphers(const CJNIBitSet&);
+
 
   std::string toString();
   int         describeContents();
 
 private:
-  CJNIWifiConfiguration();
 };

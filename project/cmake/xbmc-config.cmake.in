@@ -1,0 +1,5 @@
+SET(XBMC_INCLUDE_DIR @prefix@/include)
+LIST(APPEND CMAKE_MODULE_PATH @prefix@/lib/xbmc)
+ADD_DEFINITIONS(@ARCH_DEFINES@)
+
+include(xbmc-addon-helpers)

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2012 Team XBMC
+ *      Copyright (C) 2005-2013 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -57,8 +57,12 @@ bool CGUIControlBaseSetting::IsEnabled() const
 void CGUIControlBaseSetting::Update()
 {
   CGUIControl *control = GetControl();
-  if (control != NULL)
-    control->SetEnabled(IsEnabled());
+  if (control == NULL)
+    return;
+
+  control->SetEnabled(IsEnabled());
+  if (m_pSetting)
+    control->SetVisible(m_pSetting->IsVisible());
 }
 
 CGUIControlRadioButtonSetting::CGUIControlRadioButtonSetting(CGUIRadioButtonControl *pRadioButton, int id, CSetting *pSetting)
@@ -466,7 +470,8 @@ void CGUIControlButtonSetting::Update()
 
   CGUIControlBaseSetting::Update();
 
-  if (m_pSetting->GetType() == SettingTypeString)
+  if (m_pSetting->GetType() == SettingTypeString &&
+      !(m_pSetting->GetControl().GetAttributes() & SettingControlAttributeHideValue))
   {
     std::string strText = ((CSettingString *)m_pSetting)->GetValue();
     switch (m_pSetting->GetControl().GetFormat())
@@ -490,7 +495,7 @@ void CGUIControlButtonSetting::Update()
       }
 
       default:
-        return;
+        break;
     }
 
     m_pButton->SetLabel2(strText);
@@ -567,6 +572,10 @@ CGUIControlEditSetting::CGUIControlEditSetting(CGUIEditControl *pEdit, int id, C
   m_pEdit->SetInputType(inputType, heading);
 
   Update();
+
+  // this will automatically trigger validation so it must be executed after
+  // having set the value of the control based on the value of the setting
+  m_pEdit->SetInputValidation(InputValidation, this);
 }
 
 CGUIControlEditSetting::~CGUIControlEditSetting()
@@ -589,6 +598,18 @@ void CGUIControlEditSetting::Update()
   CGUIControlBaseSetting::Update();
 
   m_pEdit->SetLabel2(m_pSetting->ToString());
+}
+
+bool CGUIControlEditSetting::InputValidation(const std::string &input, void *data)
+{
+  if (data == NULL)
+    return true;
+
+  CGUIControlEditSetting *editControl = reinterpret_cast<CGUIControlEditSetting*>(data);
+  if (editControl == NULL || editControl->GetSetting() == NULL)
+    return true;
+
+  return editControl->GetSetting()->FromString(input);
 }
 
 CGUIControlSeparatorSetting::CGUIControlSeparatorSetting(CGUIImage *pImage, int id)

@@ -36,6 +36,7 @@
 #include "utils/TimeUtils.h"
 #include "threads/SingleLock.h"
 #include "log.h"
+#include "utils/FileUtils.h"
 
 #define RSS_COLOR_BODY      0
 #define RSS_COLOR_HEADLINE  1
@@ -148,11 +149,10 @@ void CRssReader::Process()
       strXML = "<rss><item><title>"+g_localizeStrings.Get(15301)+"</title></item></rss>";
     else
     {
-      unsigned int starttime = XbmcThreads::SystemClockMillis();
+      XbmcThreads::EndTime timeout(15000);
       while (!m_bStop && nRetries > 0)
       {
-        unsigned int currenttimer = XbmcThreads::SystemClockMillis() - starttime;
-        if (currenttimer > 15000)
+        if (timeout.IsTimePast())
         {
           CLog::Log(LOGERROR, "Timeout whilst retrieving %s", strUrl.c_str());
           http.Cancel();
@@ -162,14 +162,12 @@ void CRssReader::Process()
 
         if (url.GetProtocol() != "http" && url.GetProtocol() != "https")
         {
-          CFile file;
-          if (file.Open(strUrl))
+          void* bufferPtr;
+          const unsigned int fsize = CFileUtils::LoadFile(strUrl, bufferPtr);
+          if (fsize != 0)
           {
-            char *yo = new char[(int)file.GetLength() + 1];
-            file.Read(yo, file.GetLength());
-            yo[file.GetLength()] = '\0';
-            strXML = yo;
-            delete[] yo;
+            strXML.assign((const char*)bufferPtr, fsize);
+            free(bufferPtr);
             break;
           }
         }
@@ -317,7 +315,7 @@ void CRssReader::fromRSSToUTF16(const CStdStringA& strSource, CStdStringW& strDe
 {
   CStdString flippedStrSource, strSourceUtf8;
 
-  g_charsetConverter.stringCharsetToUtf8(m_encoding, strSource, strSourceUtf8);
+  g_charsetConverter.ToUtf8(m_encoding, strSource, strSourceUtf8);
   if (m_rtlText)
     g_charsetConverter.utf8logicalToVisualBiDi(strSourceUtf8, flippedStrSource);
   else
@@ -328,7 +326,7 @@ void CRssReader::fromRSSToUTF16(const CStdStringA& strSource, CStdStringW& strDe
 bool CRssReader::Parse(LPSTR szBuffer, int iFeed)
 {
   m_xml.Clear();
-  m_xml.Parse((LPCSTR)szBuffer, 0, TIXML_ENCODING_LEGACY);
+  m_xml.Parse((LPCSTR)szBuffer, TIXML_ENCODING_LEGACY);
 
   m_encoding = "UTF-8";
   if (m_xml.RootElement())

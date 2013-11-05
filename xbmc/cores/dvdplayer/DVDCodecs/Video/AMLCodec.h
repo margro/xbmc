@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2011 Team XBMC
+ *      Copyright (C) 2005-2013 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -39,7 +39,7 @@ public:
   void          CloseDecoder();
   void          Reset();
 
-  int           Decode(unsigned char *pData, size_t size, double dts, double pts);
+  int           Decode(uint8_t *pData, size_t size, double dts, double pts);
 
   bool          GetPicture(DVDVideoPicture* pDvdVideoPicture);
   void          SetSpeed(int speed);

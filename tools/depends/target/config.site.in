@@ -20,13 +20,13 @@ if test "@platform_os@" = "ios" ; then
   export CCAS="--tag CC @prefix@/@tool_dir@/bin/gas-preprocessor.pl @CC@ -arch @use_cpu@"
 fi
 
-CFLAGS="@platform_cflags@ @platform_includes@ -I@prefix@/@deps_dir@/include $CFLAGS"
+CFLAGS="@platform_cflags@ @platform_includes@ -isystem @prefix@/@deps_dir@/include $CFLAGS"
 LDFLAGS="-L@prefix@/@deps_dir@/lib @platform_ldflags@ $LDFLAGS"
-CXXFLAGS="@platform_cxxflags@ @platform_includes@ -I@prefix@/@deps_dir@/include $CXXFLAGS"
-CPPFLAGS="@platform_cflags@ @platform_includes@ -I@prefix@/@deps_dir@/include $CPPFLAGS"
+CXXFLAGS="@platform_cxxflags@ @platform_includes@ -isystem @prefix@/@deps_dir@/include $CXXFLAGS"
+CPPFLAGS="@platform_cflags@ @platform_includes@ -isystem @prefix@/@deps_dir@/include $CPPFLAGS"
 
 export PKG_CONFIG=@prefix@/@tool_dir@/bin/pkg-config
-export PKG_CONFIG_PATH=@prefix@/@deps_dir@/lib/pkgconfig
+export PKG_CONFIG_LIBDIR=@prefix@/@deps_dir@/lib/pkgconfig
 export YASM=@prefix@/@tool_dir@/bin/yasm
 export NASM=@prefix@/@tool_dir@/bin/yasm
 export MYSQL_CONFIG=@prefix@/@deps_dir@/bin/mysql_config
@@ -39,7 +39,7 @@ PYTHON_LDFLAGS="-L@prefix@/@deps_dir@/lib -lpython${PYTHON_VERSION} -lc -ldl -lm
 PYTHON_CPPFLAGS=-I@prefix@/@deps_dir@/include/python${PYTHON_VERSION}
 PYTHON_SITE_PKG=@prefix@/@deps_dir@/lib/python${PYTHON_VERSION}/site-packages
 PYTHON_NOVERSIONCHECK=no-check
-USE_TEXTUREPACKER_NATIVE_ROOT=@prefix@/@tool_dir@
+NATIVE_ROOT=@prefix@/@tool_dir@
 
 #afps-ng and libomxil-bellagio
 ac_cv_func_malloc_0_nonnull=yes
@@ -71,6 +71,10 @@ mac_cv_pkg_ldflags=-lz
 if test "@platform_os@" = "osx"; then
   ac_cv_func_strnlen_working=no
 fi
+
+#gnutls
+gl_cv_func_gettimeofday_clobber=no
+
 
 #samba
 SMB_BUILD_CC_NEGATIVE_ENUM_VALUES=yes
@@ -134,8 +138,16 @@ fi
 if test "@platform_os@" = "ios"; then
   # tweaks for libffi (ios must use llvm-gcc-4.2)
   if test "${PACKAGE_NAME}" = "libffi" ; then
-    export CC="@use_toolchain@/usr/bin/llvm-gcc-4.2"
-    export CPP="@use_toolchain@/usr/bin/llvm-gcc-4.2 -E"
+      case "@use_xcode@" in
+        5.* | 5.*.* )
+          export CC="@use_toolchain@/usr/bin/clang"
+          export CPP="@use_toolchain@/usr/bin/clang -E"
+          ;;
+        *)
+          export CC="@use_toolchain@/usr/bin/llvm-gcc-4.2"
+          export CPP="@use_toolchain@/usr/bin/llvm-gcc-4.2 -E"
+          ;;
+        esac
     unset AS
     unset CCAS
   fi

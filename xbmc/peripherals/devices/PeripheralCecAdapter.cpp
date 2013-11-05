@@ -173,7 +173,7 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
   else if (flag == GUI && !strcmp(sender, "xbmc") && !strcmp(message, "OnScreensaverActivated") && m_bIsReady)
   {
     // Don't put devices to standby if application is currently playing
-    if ((!g_application.IsPlaying() && !g_application.IsPaused()) && m_configuration.bPowerOffScreensaver == 1)
+    if ((!g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused()) && m_configuration.bPowerOffScreensaver == 1)
     {
       m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
       // only power off when we're the active source
@@ -466,7 +466,7 @@ void CPeripheralCecAdapter::ProcessVolumeChange(void)
         m_volumeChangeQueue.pop();
 
       /* send another keypress after VOLUME_REFRESH_TIMEOUT ms */
-      bool bRefresh(m_lastKeypress + VOLUME_REFRESH_TIMEOUT < XbmcThreads::SystemClockMillis());
+      bool bRefresh(XbmcThreads::SystemClockMillis() - m_lastKeypress > VOLUME_REFRESH_TIMEOUT);
 
       /* only send the keypress when it hasn't been sent yet */
       if (pendingVolumeChange != m_lastChange)
@@ -482,7 +482,7 @@ void CPeripheralCecAdapter::ProcessVolumeChange(void)
       else
         pendingVolumeChange = VOLUME_CHANGE_NONE;
     }
-    else if (m_lastKeypress > 0 && m_lastKeypress + VOLUME_CHANGE_TIMEOUT < XbmcThreads::SystemClockMillis())
+    else if (m_lastKeypress > 0 && XbmcThreads::SystemClockMillis() - m_lastKeypress > VOLUME_CHANGE_TIMEOUT)
     {
       /* send a key release */
       m_lastKeypress = 0;
@@ -1136,9 +1136,9 @@ void CPeripheralCecAdapter::CecSourceActivated(void *cbParam, const CEC::cec_log
     bool bShowingSlideshow = (g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW);
     CGUIWindowSlideShow *pSlideShow = bShowingSlideshow ? (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW) : NULL;
     bool bPlayingAndDeactivated = activated == 0 && (
-        (pSlideShow && pSlideShow->IsPlaying()) || g_application.IsPlaying());
+        (pSlideShow && pSlideShow->IsPlaying()) || g_application.m_pPlayer->IsPlaying());
     bool bPausedAndActivated = activated == 1 && adapter->m_bPlaybackPaused && (
-        (pSlideShow && pSlideShow->IsPaused()) || g_application.IsPaused());
+        (pSlideShow && pSlideShow->IsPaused()) || g_application.m_pPlayer->IsPausedPlayback());
     if (bPlayingAndDeactivated)
       adapter->m_bPlaybackPaused = true;
     else if (bPausedAndActivated)
@@ -1703,6 +1703,8 @@ bool CPeripheralCecAdapter::ToggleDeviceState(CecStateChange mode /*= STATE_SWIT
     ActivateSource();
     return true;
   }
+
+  return false;
 }
 
 #endif

@@ -547,7 +547,7 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
 
         // attempt to determine the parent of this item
         CStdString parent;
-        if (URIUtils::IsVideoDb((const char*)id) || URIUtils::IsMusicDb((const char*)id) || StringUtils::StartsWith((const char*)id, "library://video/")) {
+        if (URIUtils::IsVideoDb((const char*)id) || URIUtils::IsMusicDb((const char*)id) || StringUtils::StartsWithNoCase((const char*)id, "library://video/")) {
             if (!URIUtils::GetParentPath((const char*)id, parent)) {
                 parent = "0";
             }
@@ -560,11 +560,11 @@ CUPnPServer::OnBrowseMetadata(PLT_ActionReference&          action,
             // however this is quicker to implement and subsequently purge when a
             // better solution presents itself
             CStdString child_id((const char*)id);
-            if      (StringUtils::StartsWith(child_id, "special://musicplaylists/"))          parent = "musicdb://";
-            else if (StringUtils::StartsWith(child_id, "special://videoplaylists/"))          parent = "library://video/";
-            else if (StringUtils::StartsWith(child_id, "sources://video/"))                   parent = "library://video/";
-            else if (StringUtils::StartsWith(child_id, "special://profile/playlists/music/")) parent = "special://musicplaylists/";
-            else if (StringUtils::StartsWith(child_id, "special://profile/playlists/video/")) parent = "special://videoplaylists/";
+            if      (StringUtils::StartsWithNoCase(child_id, "special://musicplaylists/"))          parent = "musicdb://";
+            else if (StringUtils::StartsWithNoCase(child_id, "special://videoplaylists/"))          parent = "library://video/";
+            else if (StringUtils::StartsWithNoCase(child_id, "sources://video/"))                   parent = "library://video/";
+            else if (StringUtils::StartsWithNoCase(child_id, "special://profile/playlists/music/")) parent = "special://musicplaylists/";
+            else if (StringUtils::StartsWithNoCase(child_id, "special://profile/playlists/video/")) parent = "special://videoplaylists/";
             else parent = "sources://video/"; // this can only match video sources
         }
 
@@ -655,7 +655,7 @@ CUPnPServer::OnBrowseDirectChildren(PLT_ActionReference&          action,
             item->SetLabelPreformated(true);
             items.Add(item);
 
-            items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+            items.Sort(SortByLabel, SortOrderAscending);
         } else {
             // this is the only way to hide unplayable items in the 'files'
             // view as we cannot tell what context (eg music vs video) the
@@ -729,13 +729,13 @@ CUPnPServer::BuildResponse(PLT_ActionReference&          action,
     NPT_Reference<CThumbLoader> thumb_loader;
 
     if (URIUtils::IsVideoDb(items.GetPath()) ||
-        StringUtils::StartsWith(items.GetPath(), "library://video/") ||
-        StringUtils::StartsWith(items.GetPath(), "special://profile/playlists/video/")) {
+        StringUtils::StartsWithNoCase(items.GetPath(), "library://video/") ||
+        StringUtils::StartsWithNoCase(items.GetPath(), "special://profile/playlists/video/")) {
 
         thumb_loader = NPT_Reference<CThumbLoader>(new CVideoThumbLoader());
     }
     else if (URIUtils::IsMusicDb(items.GetPath()) ||
-        StringUtils::StartsWith(items.GetPath(), "special://profile/playlists/music/")) {
+        StringUtils::StartsWithNoCase(items.GetPath(), "special://profile/playlists/music/")) {
 
         thumb_loader = NPT_Reference<CThumbLoader>(new CMusicThumbLoader());
     }
@@ -1203,46 +1203,49 @@ CUPnPServer::SortItems(CFileItemList& items, const char* sort_criteria)
   bool sorted = false;
   CStdStringArray tokens = StringUtils::SplitString(criteria, ",");
   for (vector<CStdString>::reverse_iterator itr = tokens.rbegin(); itr != tokens.rend(); itr++) {
-    /* Platinum guarantees 1st char is - or + */
-    SortOrder order = itr->Left(1).Equals("+") ? SortOrderAscending : SortOrderDescending;
     CStdString method = itr->Mid(1);
 
-    SORT_METHOD scheme = SORT_METHOD_LABEL_IGNORE_THE;
+    SortDescription sorting;
+    /* Platinum guarantees 1st char is - or + */
+    sorting.sortOrder = StringUtils::StartsWith(*itr, "+") ? SortOrderAscending : SortOrderDescending;
 
     /* resource specific */
     if (method.Equals("res@duration"))
-      scheme = SORT_METHOD_DURATION;
+      sorting.sortBy = SortByTime;
     else if (method.Equals("res@size"))
-      scheme = SORT_METHOD_SIZE;
+      sorting.sortBy = SortBySize;
     else if (method.Equals("res@bitrate"))
-      scheme = SORT_METHOD_BITRATE;
+      sorting.sortBy = SortByBitrate;
 
     /* dc: */
     else if (method.Equals("dc:date"))
-      scheme = SORT_METHOD_DATE;
+      sorting.sortBy = SortByDate;
     else if (method.Equals("dc:title"))
-      scheme = SORT_METHOD_TITLE_IGNORE_THE;
+    {
+      sorting.sortBy = SortByTitle;
+      sorting.sortAttributes = SortAttributeIgnoreArticle;
+    }
 
     /* upnp: */
     else if (method.Equals("upnp:album"))
-      scheme = SORT_METHOD_ALBUM;
+      sorting.sortBy = SortByAlbum;
     else if (method.Equals("upnp:artist") || method.Equals("upnp:albumArtist"))
-      scheme = SORT_METHOD_ARTIST;
+      sorting.sortBy = SortByArtist;
     else if (method.Equals("upnp:episodeNumber"))
-      scheme = SORT_METHOD_EPISODE;
+      sorting.sortBy = SortByEpisodeNumber;
     else if (method.Equals("upnp:genre"))
-      scheme = SORT_METHOD_GENRE;
+      sorting.sortBy = SortByGenre;
     else if (method.Equals("upnp:originalTrackNumber"))
-      scheme = SORT_METHOD_TRACKNUM;
+      sorting.sortBy = SortByTrackNumber;
     else if(method.Equals("upnp:rating"))
-      scheme = SORT_METHOD_SONG_RATING;
+      sorting.sortBy = SortByRating;
     else {
       CLog::Log(LOGINFO, "UPnP: unsupported sort criteria '%s' passed", method.c_str());
       continue; // needed so unidentified sort methods don't re-sort by label
     }
 
-    CLog::Log(LOGINFO, "UPnP: Sorting by %d, %d", scheme, order);
-    items.Sort(scheme, order);
+    CLog::Log(LOGINFO, "UPnP: Sorting by method %d, order %d, attributes %d", sorting.sortBy, sorting.sortOrder, sorting.sortAttributes);
+    items.Sort(sorting);
     sorted = true;
   }
 
@@ -1255,7 +1258,8 @@ CUPnPServer::DefaultSortItems(CFileItemList& items)
   CGUIViewState* viewState = CGUIViewState::GetViewState(items.IsVideoDb() ? WINDOW_VIDEO_NAV : -1, items);
   if (viewState)
   {
-    items.Sort(viewState->GetSortMethod(), viewState->GetSortOrder());
+    SortDescription sorting = viewState->GetSortMethod();
+    items.Sort(sorting.sortBy, sorting.sortOrder, sorting.sortAttributes);
     delete viewState;
   }
 }

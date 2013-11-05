@@ -30,9 +30,7 @@ public:
   virtual ~URIUtils(void);
   static bool IsInPath(const CStdString &uri, const CStdString &baseURI);
 
-  static void GetDirectory(const CStdString& strFilePath,
-                           CStdString& strDirectoryPath);
-  static CStdString GetDirectory(const CStdString &filePath);
+  static CStdString GetDirectory(const CStdString &strFilePath);
   static const CStdString GetFileName(const CStdString& strFileNameAndPath);
 
   static CStdString GetExtension(const CStdString& strFileName);
@@ -97,6 +95,7 @@ public:
   static bool IsAfp(const CStdString& strFile);    
   static bool IsOnDVD(const CStdString& strFile);
   static bool IsOnLAN(const CStdString& strFile);
+  static bool IsHostOnLAN(const CStdString& hostName, bool offLineCheck = false);
   static bool IsPlugin(const CStdString& strFile);
   static bool IsScript(const CStdString& strFile);
   static bool IsRAR(const CStdString& strFile);
@@ -114,11 +113,13 @@ public:
   static bool IsArchive(const CStdString& strFile);
   static bool IsBluray(const CStdString& strFile);
   static bool IsAndroidApp(const CStdString& strFile);
+  static bool IsLibraryFolder(const CStdString& strFile);
 
-  static void AddSlashAtEnd(CStdString& strFolder);
-  static bool HasSlashAtEnd(const CStdString& strFile, bool checkURL = false);
-  static void RemoveSlashAtEnd(CStdString& strFolder);
+  static void AddSlashAtEnd(std::string& strFolder);
+  static bool HasSlashAtEnd(const std::string& strFile, bool checkURL = false);
+  static void RemoveSlashAtEnd(std::string& strFolder);
   static bool CompareWithoutSlashAtEnd(const CStdString& strPath1, const CStdString& strPath2);
+  static std::string FixSlashesAndDups(const std::string& path, const char slashCharacter = '/', const size_t startFrom = 0);
 
   static void CreateArchivePath(CStdString& strUrlPath,
                                 const CStdString& strType,

@@ -410,6 +410,7 @@ public:
   bool GetPlayCounts(const CStdString &path, CFileItemList &items);
 
   void UpdateMovieTitle(int idMovie, const CStdString& strNewMovieTitle, VIDEODB_CONTENT_TYPE iType=VIDEODB_CONTENT_MOVIES);
+  bool UpdateVideoSortTitle(int idDb, const CStdString& strNewSortTitle, VIDEODB_CONTENT_TYPE iType = VIDEODB_CONTENT_MOVIES);
 
   bool HasMovieInfo(const CStdString& strFilenameAndPath);
   bool HasTvShowInfo(const CStdString& strFilenameAndPath);
@@ -449,7 +450,11 @@ public:
   int SetDetailsForMusicVideo(const CStdString& strFilenameAndPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idMVideo = -1);
   void SetStreamDetailsForFile(const CStreamDetails& details, const CStdString &strFileNameAndPath);
   void SetStreamDetailsForFileId(const CStreamDetails& details, int idFile);
-  void SetDetail(const CStdString& strDetail, int id, int field, VIDEODB_CONTENT_TYPE type);
+
+  bool SetSingleValue(VIDEODB_CONTENT_TYPE type, int dbId, int dbField, const std::string &strValue);
+  bool SetSingleValue(VIDEODB_CONTENT_TYPE type, int dbId, Field dbField, const std::string &strValue);
+  bool SetSingleValue(const std::string &table, const std::string &fieldName, const std::string &strValue,
+                      const std::string &conditionName = "", int conditionValue = -1);
 
   void DeleteMovie(int idMovie, bool bKeepId = false);
   void DeleteMovie(const CStdString& strFilenameAndPath, bool bKeepId = false, int idMovie = -1);
@@ -734,9 +739,7 @@ protected:
   void AddToLinkTable(const char *table, const char *firstField, int firstID, const char *secondField, int secondID, const char *typeField = NULL, const char *type = NULL);
   void RemoveFromLinkTable(const char *table, const char *firstField, int firstID, const char *secondField, int secondID, const char *typeField = NULL, const char *type = NULL);
 
-  void AddActorToMovie(int idMovie, int idActor, const CStdString& strRole, int order);
-  void AddActorToTvShow(int idTvShow, int idActor, const CStdString& strRole, int order);
-  void AddActorToEpisode(int idEpisode, int idActor, const CStdString& strRole, int order);
+  void AddCast(int idMedia, const char *table, const char *field, const std::vector<SActorInfo> &cast);
   void AddArtistToMusicVideo(int lMVideo, int idArtist);
 
   void AddDirectorToMovie(int idMovie, int idDirector);

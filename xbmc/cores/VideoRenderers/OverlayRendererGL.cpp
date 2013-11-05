@@ -56,12 +56,18 @@ static void LoadTexture(GLenum target
                       , GLfloat* u, GLfloat* v
                       , GLenum internalFormat, GLenum externalFormat, const GLvoid* pixels)
 {
-  int width2  = NP2(width);
-  int height2 = NP2(height);
+  int width2  = width;
+  int height2 = height;
   char *pixelVector = NULL;
   const GLvoid *pixelData = pixels;
 
   int bytesPerPixel = glFormatElementByteCount(externalFormat);
+
+  if (!g_Windowing.SupportsNPOT(0))
+  {
+    width2  = NP2(width);
+    height2 = NP2(height);
+  }
 
 #ifdef HAS_GLES
   /** OpenGL ES does not support strided texture input. Make a copy without stride **/
@@ -538,7 +544,7 @@ void COverlayTextureGL::Render(SRenderState& state)
 #else
   g_Windowing.EnableGUIShader(SM_TEXTURE);
 
-  GLfloat col[4][4];
+  GLfloat col[4] = {1.0f, 1.0f, 1.0f, 1.0f};
   GLfloat ver[4][2];
   GLfloat tex[4][2];
   GLubyte idx[4] = {0, 1, 3, 2};        //determines order of triangle strip
@@ -546,6 +552,7 @@ void COverlayTextureGL::Render(SRenderState& state)
   GLint posLoc  = g_Windowing.GUIShaderGetPos();
   GLint colLoc  = g_Windowing.GUIShaderGetCol();
   GLint tex0Loc = g_Windowing.GUIShaderGetCoord0();
+  GLint uniColLoc= g_Windowing.GUIShaderGetUniCol();
 
   glVertexAttribPointer(posLoc,  2, GL_FLOAT, 0, 0, ver);
   glVertexAttribPointer(colLoc,  4, GL_FLOAT, 0, 0, col);
@@ -555,12 +562,7 @@ void COverlayTextureGL::Render(SRenderState& state)
   glEnableVertexAttribArray(colLoc);
   glEnableVertexAttribArray(tex0Loc);
 
-  for (int i=0; i<4; i++)
-  {
-    // Setup Colours
-    col[i][0] = col[i][1] = col[i][2] = col[i][3] = 1.0f;
-  }
-
+  glUniform4f(uniColLoc,(col[0]), (col[1]), (col[2]), (col[3]));
   // Setup vertex position values
   ver[0][0] = ver[3][0] = rd.left;
   ver[0][1] = ver[1][1] = rd.top;

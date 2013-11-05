@@ -447,14 +447,13 @@ static bool CheckCompatibility(AVCodecContext *avctx)
     return false;
   }
 
-  // DXVA has this as a max resolution
-  if(avctx->width  >= 1920
-  || avctx->height >= 1088)
-  {
-    CLog::Log(LOGDEBUG, "DXVA - frame size (%dx%d) too large - disallowing", avctx->width, avctx->height);
+  // there are many corrupt mpeg2 rips from dvd's which don't
+  // follow profile spec properly, they go corrupt on hw, so
+  // keep those running in software for the time being.
+  if (avctx->codec_id  == AV_CODEC_ID_MPEG2VIDEO
+  &&  avctx->height    <= 576
+  &&  avctx->width     <= 720)
     return false;
-  }
-
 
   // Check for hardware limited to H264 L4.1 (ie Bluray).
 
@@ -1392,12 +1391,11 @@ REFERENCE_TIME CProcessor::Add(DVDVideoPicture* picture)
         return 0;
 
       // Convert to NV12 - Chroma
-      uint8_t *s_u, *s_v, *d_uv;
       for (unsigned y = 0; y < picture->iHeight/2; y++)
       {
-        s_u = picture->data[1] + (y * picture->iLineSize[1]);
-        s_v = picture->data[2] + (y * picture->iLineSize[2]);
-        d_uv = ((uint8_t*)(rectangle.pBits)) + (desc.Height + y) * rectangle.Pitch;
+        uint8_t *s_u = picture->data[1] + (y * picture->iLineSize[1]);
+        uint8_t *s_v = picture->data[2] + (y * picture->iLineSize[2]);
+        uint8_t *d_uv = ((uint8_t*)(rectangle.pBits)) + (desc.Height + y) * rectangle.Pitch;
         for (unsigned x = 0; x < picture->iWidth/2; x++)
         {
           *d_uv++ = *s_u++;

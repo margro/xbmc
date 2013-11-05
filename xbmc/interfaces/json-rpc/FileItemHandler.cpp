@@ -40,6 +40,8 @@
 #include "music/MusicThumbLoader.h"
 #include "Util.h"
 #include "pvr/channels/PVRChannel.h"
+#include "epg/Epg.h"
+#include "epg/EpgContainer.h"
 
 using namespace MUSIC_INFO;
 using namespace JSONRPC;
@@ -50,12 +52,25 @@ bool CFileItemHandler::GetField(const std::string &field, const CVariant &info, 
   if (result.isMember(field) && !result[field].empty())
     return true;
 
+  // overwrite serialized values
+  if (item)
+  {
+    if (field == "mimetype" && item->GetMimeType().empty())
+    {
+      item->FillInMimeType(false);
+      result[field] = item->GetMimeType();
+      return true;
+    }
+  }
+
+  // check for serialized values
   if (info.isMember(field) && !info[field].isNull())
   {
     result[field] = info[field];
     return true;
   }
 
+  // check if the field requires special handling
   if (item)
   {
     if (item->IsAlbum())
@@ -265,7 +280,7 @@ void CFileItemHandler::HandleFileItem(const char *ID, bool allowFile, const char
       if (allowFile)
       {
         if (item->HasVideoInfoTag() && !item->GetVideoInfoTag()->GetPath().IsEmpty())
-            object["file"] = item->GetVideoInfoTag()->GetPath().c_str();
+          object["file"] = item->GetVideoInfoTag()->GetPath().c_str();
         if (item->HasMusicInfoTag() && !item->GetMusicInfoTag()->GetURL().IsEmpty())
           object["file"] = item->GetMusicInfoTag()->GetURL().c_str();
 
@@ -279,6 +294,8 @@ void CFileItemHandler::HandleFileItem(const char *ID, bool allowFile, const char
     {
       if (item->HasPVRChannelInfoTag() && item->GetPVRChannelInfoTag()->ChannelID() > 0)
          object[ID] = item->GetPVRChannelInfoTag()->ChannelID();
+      else if (item->HasEPGInfoTag() && item->GetEPGInfoTag()->UniqueBroadcastID() > 0)
+         object[ID] = item->GetEPGInfoTag()->UniqueBroadcastID();
       else if (item->HasMusicInfoTag() && item->GetMusicInfoTag()->GetDatabaseId() > 0)
         object[ID] = (int)item->GetMusicInfoTag()->GetDatabaseId();
       else if (item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_iDbId > 0)
@@ -335,6 +352,8 @@ void CFileItemHandler::HandleFileItem(const char *ID, bool allowFile, const char
 
     if (item->HasPVRChannelInfoTag())
       FillDetails(item->GetPVRChannelInfoTag(), item, fields, object, thumbLoader);
+    if (item->HasEPGInfoTag())
+      FillDetails(item->GetEPGInfoTag(), item, fields, object, thumbLoader);
     if (item->HasVideoInfoTag())
       FillDetails(item->GetVideoInfoTag(), item, fields, object, thumbLoader);
     if (item->HasMusicInfoTag())

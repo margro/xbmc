@@ -137,6 +137,10 @@ public:
   bool SeekTime(int iTimeInMsec); //seek within current pg(c)
 
   double GetTimeStampCorrection() { return (double)(m_iVobUnitCorrection * 1000) / 90; }
+
+  bool GetDVDTitleString(std::string& titleStr);
+  bool GetDVDSerialString(std::string& serialStr);
+
 protected:
 
   int ProcessBlock(uint8_t* buffer, int* read);
@@ -157,8 +161,8 @@ protected:
   int ConvertSubtitleStreamId_XBMCToExternal(int id);
   int ConvertSubtitleStreamId_ExternalToXBMC(int id);
 
-  static void SetAudioStreamName(DVDNavStreamInfo &info, const audio_attr_t audio_attributes);
-  static void SetSubtitleStreamName(DVDNavStreamInfo &info, const subp_attr_t subp_attributes);
+  static void SetAudioStreamName(DVDNavStreamInfo &info, const audio_attr_t &audio_attributes);
+  static void SetSubtitleStreamName(DVDNavStreamInfo &info, const subp_attr_t &subp_attributes);
 
   DllDvdNav m_dll;
   bool m_bCheckButtons;

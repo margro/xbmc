@@ -99,7 +99,7 @@ public:
     *buffer = NULL;
     int64_t time_us = -1;
     MediaSource::ReadOptions::SeekMode mode;
-    
+
     if (options && options->getSeekTo(&time_us, &mode))
     {
 #if defined(DEBUG_VERBOSE)
@@ -122,7 +122,7 @@ public:
       p->in_mutex.unlock();
       return VC_ERROR;
     }
-    
+
     std::map<int64_t,Frame*>::iterator it = p->in_queue.begin();
     frame = it->second;
     ret = frame->status;
@@ -157,21 +157,21 @@ public:
   : CThread("CStageFrightDecodeThread")
   , p(priv)
   {}
-  
+
   void OnStartup()
   {
   #if defined(DEBUG_VERBOSE)
     CLog::Log(LOGDEBUG, "%s: entering decode thread\n", CLASSNAME);
   #endif
   }
-  
+
   void OnExit()
   {
   #if defined(DEBUG_VERBOSE)
     CLog::Log(LOGDEBUG, "%s: exited decode thread\n", CLASSNAME);
   #endif
   }
-  
+
   void Process()
   {
     Frame* frame;
@@ -191,7 +191,7 @@ public:
       #endif
       p->cur_frame = NULL;
       frame = (Frame*)malloc(sizeof(Frame));
-      if (!frame) 
+      if (!frame)
       {
         decode_done   = 1;
         continue;
@@ -206,7 +206,7 @@ public:
       }
       frame->status = p->decoder->read(&frame->medbuf, &readopt);
       readopt.clearSeekTo();
-      
+
       if (frame->status == OK)
       {
         if (!frame->medbuf->graphicBuffer().get())  // hw buffers
@@ -298,10 +298,11 @@ public:
       else
       {
         CLog::Log(LOGERROR, "%s - decoding error (%d)\n", CLASSNAME,frame->status);
-        decode_done   = 1;
         if (frame->medbuf)
           frame->medbuf->release();
         frame->medbuf = NULL;
+        free(frame);
+        continue;
       }
 
       if (frame->format == RENDER_FMT_EGLIMG)
@@ -309,7 +310,7 @@ public:
         if (!p->eglInitialized)
         {
           p->InitializeEGL(frame->width, frame->height);
-        } 
+        }
         else if (p->texwidth != frame->width || p->texheight != frame->height)
         {
           p->UninitializeEGL();
@@ -319,11 +320,11 @@ public:
         if (p->free_queue.empty())
         {
           CLog::Log(LOGERROR, "%s::%s - Error: No free output buffers\n", CLASSNAME, __func__);
-          if (frame->medbuf) 
+          if (frame->medbuf)
             frame->medbuf->release();
           free(frame);
           continue;
-        }  
+        }
 
         ANativeWindowBuffer* graphicBuffer = frame->medbuf->graphicBuffer()->getNativeBuffer();
         native_window_set_buffers_timestamp(p->mVideoNativeWindow.get(), frame->pts * 1000);
@@ -361,7 +362,7 @@ public:
           glUniform1i(p->mTexSamplerHandle, 0);
 
           glBindTexture(GL_TEXTURE_EXTERNAL_OES, p->mVideoTextureId);
-          
+
           GLfloat texMatrix[16];
           // const GLfloat texMatrix[] = {
             // 1, 0, 0, 0,
@@ -399,10 +400,10 @@ public:
       p->out_mutex.unlock();
     }
     while (!decode_done && !m_bStop);
-    
+
     if (p->eglInitialized)
       p->UninitializeEGL();
-    
+
   }
 };
 
@@ -429,7 +430,7 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
 
   if (g_advancedSettings.m_stagefrightConfig.useSwRenderer)
     p->quirks |= QuirkSWRender;
-    
+
   sp<MetaData> outFormat;
   int32_t cropLeft, cropTop, cropRight, cropBottom;
   //Vector<String8> matchingCodecs;
@@ -501,13 +502,9 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
     goto fail;
   }
 
-  p->mVideoNativeWindow = NULL;
   if ((p->quirks & QuirkSWRender) == 0)
-  {
     p->InitStagefrightSurface();
-    native_window_api_connect(p->mVideoNativeWindow.get(), NATIVE_WINDOW_API_MEDIA);
-  }
-  
+
   p->decoder  = OMXCodec::Create(p->client->interface(), p->meta,
                                          false, p->source, NULL,
                                          OMXCodec::kHardwareCodecsOnly | (p->quirks & QuirkSWRender ? OMXCodec::kClientNeedsFramebuffer : 0),
@@ -530,27 +527,19 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
   if (outFormat->findCString(kKeyDecoderComponent, &component))
   {
     CLog::Log(LOGDEBUG, "%s::%s - component: %s\n", CLASSNAME, __func__, component);
-    
+
     //Blacklist
-    if (!strncmp(component, "OMX.Nvidia.mp4.decode", 21) && g_advancedSettings.m_stagefrightConfig.useMP4codec != 1)
+    if (!strncmp(component, "OMX.google", 10))
+    {
+      // On some platforms, software decoders are returned anyway
+      CLog::Log(LOGERROR, "%s::%s - %s\n", CLASSNAME, __func__,"Blacklisted component (software)");
+      goto fail;
+    }
+    else if (!strncmp(component, "OMX.Nvidia.mp4.decode", 21) && g_advancedSettings.m_stagefrightConfig.useMP4codec != 1)
     {
       // Has issues with some XVID encoded MP4. Only fails after actual decoding starts...
       CLog::Log(LOGERROR, "%s::%s - %s\n", CLASSNAME, __func__,"Blacklisted component (MP4)");
       goto fail;
-      
-    }
-    else if (!strncmp(component, "OMX.rk.", 7))
-    {
-      if (g_advancedSettings.m_stagefrightConfig.useAVCcodec != 1 && g_advancedSettings.m_stagefrightConfig.useMP4codec != 1) 
-      {
-        if (p->width % 32 != 0 || p->height % 16 != 0)
-        {
-          // Buggy. Hard crash on non MOD16 height videos and stride errors for non MOD32 width
-          CLog::Log(LOGERROR, "%s::%s - %s\n", CLASSNAME, __func__,"Blacklisted component (MOD16)");
-          goto fail;
-          
-        }
-      }
     }
   }
 
@@ -572,13 +561,13 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
     p->videoStride = p->width;
   if (!outFormat->findInt32(kKeySliceHeight, &p->videoSliceHeight))
     p->videoSliceHeight = p->height;
-  
+
   for (int i=0; i<INBUFCOUNT; ++i)
   {
     p->inbuf[i] = new MediaBuffer(300000);
     p->inbuf[i]->setObserver(p);
   }
-  
+
   p->decode_thread = new CStageFrightDecodeThread(p);
   p->decode_thread->Create(true /*autodelete*/);
 
@@ -614,6 +603,7 @@ int  CStageFrightVideo::Decode(uint8_t *pData, int iSize, double dts, double pts
   Frame *frame;
   int demuxer_bytes = iSize;
   uint8_t *demuxer_content = pData;
+  int ret = 0;
 
   if (demuxer_content)
   {
@@ -626,16 +616,25 @@ int  CStageFrightVideo::Decode(uint8_t *pData, int iSize, double dts, double pts
       frame->pts = (dts != DVD_NOPTS_VALUE) ? pts_dtoi(dts) : ((pts != DVD_NOPTS_VALUE) ? pts_dtoi(pts) : 0);
     else
       frame->pts = (pts != DVD_NOPTS_VALUE) ? pts_dtoi(pts) : ((dts != DVD_NOPTS_VALUE) ? pts_dtoi(dts) : 0);
+
+    // No valid pts? libstagefright asserts on this.
+    if (frame->pts < 0)
+    {
+      free(frame);
+      return ret;
+    }
+
     frame->medbuf = p->getBuffer(demuxer_bytes);
     if (!frame->medbuf)
     {
       free(frame);
       return VC_ERROR;
     }
+
     fast_memcpy(frame->medbuf->data(), demuxer_content, demuxer_bytes);
     frame->medbuf->meta_data()->clear();
     frame->medbuf->meta_data()->setInt64(kKeyTime, frame->pts);
-    
+
     p->in_mutex.lock();
     p->framecount++;
     p->in_queue.insert(std::pair<int64_t, Frame*>(p->framecount, frame));
@@ -643,7 +642,6 @@ int  CStageFrightVideo::Decode(uint8_t *pData, int iSize, double dts, double pts
     p->in_mutex.unlock();
   }
 
-  int ret = 0;
   if (p->inputBufferAvailable() && p->in_queue.size() < INBUFCOUNT)
     ret |= VC_BUFFER;
   else
@@ -732,9 +730,9 @@ bool CStageFrightVideo::GetPicture(DVDVideoPicture* pDvdVideoPicture)
   #if defined(DEBUG_VERBOSE)
     CLog::Log(LOGDEBUG, ">>> pic dts:%f, pts:%llu, img:%p, tm:%d\n", pDvdVideoPicture->dts, frame->pts, pDvdVideoPicture->eglimg, XbmcThreads::SystemClockMillis() - time);
   #endif
-  } 
+  }
   else if (pDvdVideoPicture->format == RENDER_FMT_YUV420P)
-  {    
+  {
     pDvdVideoPicture->color_range  = 0;
     pDvdVideoPicture->color_matrix = 4;
 
@@ -845,7 +843,7 @@ void CStageFrightVideo::Close()
       frame->medbuf->release();
     free(frame);
   }
-  
+
   if (p->decoder_component)
     free(&p->decoder_component);
 

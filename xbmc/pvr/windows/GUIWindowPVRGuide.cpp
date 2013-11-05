@@ -242,7 +242,11 @@ void CGUIWindowPVRGuide::UpdateViewTimeline(bool bUpdateSelectedFile)
   CDateTime gridStart = CDateTime::GetCurrentDateTime().GetAsUTCDateTime();
   CDateTime firstDate(g_EpgContainer.GetFirstEPGDate());
   CDateTime lastDate(g_EpgContainer.GetLastEPGDate());
-  m_parent->m_guideGrid->SetStartEnd(firstDate > gridStart ? firstDate : gridStart, lastDate);
+  if (!firstDate.IsValid() || firstDate < gridStart)
+    firstDate = gridStart;
+  if (!lastDate.IsValid() || lastDate < firstDate)
+    lastDate = firstDate;
+  m_parent->m_guideGrid->SetStartEnd(firstDate, lastDate);
 
   m_parent->SetLabel(m_iControlButton, g_localizeStrings.Get(19222) + ": " + g_localizeStrings.Get(19032));
   m_parent->SetLabel(CONTROL_LABELGROUP, g_localizeStrings.Get(19032));
@@ -427,15 +431,16 @@ bool CGUIWindowPVRGuide::PlayEpgItem(CFileItem *item)
     return false;
 
   CLog::Log(LOGDEBUG, "play channel '%s'", channel->ChannelName().c_str());
-  PlayBackRet ret = g_application.PlayFile(CFileItem(*channel));
-  if (ret == PLAYBACK_FAIL)
+  CFileItem channelItem = CFileItem(*channel);
+  bool bReturn = PlayFile(&channelItem);
+  if (!bReturn)
   {
     CStdString msg;
     msg.Format(g_localizeStrings.Get(19035).c_str(), channel->ChannelName().c_str()); // CHANNELNAME could not be played. Check the log for details.
     CGUIDialogOK::ShowAndGetInput(19033, 0, msg, 0);
   }
 
-  return ret == PLAYBACK_OK;
+  return bReturn;
 }
 
 bool CGUIWindowPVRGuide::OnContextButtonPlay(CFileItem *item, CONTEXT_BUTTON button)

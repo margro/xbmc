@@ -70,6 +70,62 @@ void CRBP::LogFirmwareVerison()
   CLog::Log(LOGNOTICE, "ARM mem: %dMB GPU mem: %dMB", m_arm_mem, m_gpu_mem);
 }
 
+void CRBP::GetDisplaySize(int &width, int &height)
+{
+  DISPMANX_DISPLAY_HANDLE_T display;
+  DISPMANX_MODEINFO_T info;
+
+  display = vc_dispmanx_display_open( 0 /*screen*/ );
+  if (vc_dispmanx_display_get_info(display, &info) == 0)
+  {
+    width = info.width;
+    height = info.height;
+  }
+  else
+  {
+    width = 0;
+    height = 0;
+  }
+  vc_dispmanx_display_close(display );
+}
+
+unsigned char *CRBP::CaptureDisplay(int width, int height, int *pstride, bool swap_red_blue, bool video_only)
+{
+  DISPMANX_DISPLAY_HANDLE_T display;
+  DISPMANX_RESOURCE_HANDLE_T resource;
+  VC_RECT_T rect;
+  unsigned char *image = NULL;
+  uint32_t vc_image_ptr;
+  int stride;
+  uint32_t flags = 0;
+
+  if (video_only)
+    flags |= DISPMANX_SNAPSHOT_NO_RGB|DISPMANX_SNAPSHOT_FILL;
+  if (swap_red_blue)
+    flags |= DISPMANX_SNAPSHOT_SWAP_RED_BLUE;
+  if (!pstride)
+    flags |= DISPMANX_SNAPSHOT_PACK;
+
+  display = vc_dispmanx_display_open( 0 /*screen*/ );
+  stride = ((width + 15) & ~15) * 4;
+  image = new unsigned char [height * stride];
+
+  if (image)
+  {
+    resource = vc_dispmanx_resource_create( VC_IMAGE_RGBA32, width, height, &vc_image_ptr );
+
+    vc_dispmanx_snapshot(display, resource, (DISPMANX_TRANSFORM_T)flags);
+
+    vc_dispmanx_rect_set(&rect, 0, 0, width, height);
+    vc_dispmanx_resource_read_data(resource, &rect, image, stride);
+    vc_dispmanx_resource_delete( resource );
+    vc_dispmanx_display_close(display );
+  }
+  if (pstride)
+    *pstride = stride;
+  return image;
+}
+
 void CRBP::Deinitialize()
 {
   if(m_omx_initialized)

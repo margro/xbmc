@@ -45,7 +45,7 @@ CDVDInputStreamPVRManager::CDVDInputStreamPVRManager(IDVDPlayer* pPlayer) : CDVD
   m_pLiveTV         = NULL;
   m_pOtherStream    = NULL;
   m_eof             = true;
-  m_iScanTimeout    = 0;
+  m_ScanTimeout.Set(0);
 }
 
 /************************************************************************
@@ -58,15 +58,13 @@ CDVDInputStreamPVRManager::~CDVDInputStreamPVRManager()
 
 void CDVDInputStreamPVRManager::ResetScanTimeout(unsigned int iTimeoutMs)
 {
-  m_iScanTimeout = iTimeoutMs > 0 ?
-      XbmcThreads::SystemClockMillis() + iTimeoutMs :
-      0;
+  m_ScanTimeout.Set(iTimeoutMs);
 }
 
 bool CDVDInputStreamPVRManager::IsEOF()
 {
   // don't mark as eof while within the scan timeout
-  if (m_iScanTimeout && XbmcThreads::SystemClockMillis() < m_iScanTimeout)
+  if (!m_ScanTimeout.IsTimePast())
     return false;
 
   if (m_pOtherStream)
@@ -85,7 +83,6 @@ bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& con
   m_pRecordable = ((CPVRFile*)m_pFile)->GetRecordable();
 
   CURL url(strFile);
-  if (!CDVDInputStream::Open(strFile, content)) return false;
   if (!m_pFile->Open(url))
   {
     delete m_pFile;
@@ -94,6 +91,9 @@ bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& con
     m_pRecordable = NULL;
     return false;
   }
+  CStdString pathFile = strFile;
+  CStdString streamUrl = CPVRFile::TranslatePVRFilename(pathFile);
+  if (!CDVDInputStream::Open(streamUrl.c_str(), content)) return false;
   m_eof = false;
 
   /*
@@ -178,7 +178,7 @@ int CDVDInputStreamPVRManager::Read(uint8_t* buf, int buf_size)
     unsigned int ret = m_pFile->Read(buf, buf_size);
 
     /* we currently don't support non completing reads */
-    if( ret <= 0 ) m_eof = true;
+    if( ret == 0 ) m_eof = true;
 
     return (int)(ret & 0xFFFFFFFF);
   }
@@ -189,15 +189,15 @@ int64_t CDVDInputStreamPVRManager::Seek(int64_t offset, int whence)
   if (!m_pFile)
     return -1;
 
-  if (whence == SEEK_POSSIBLE)
-    return m_pFile->IoControl(IOCTRL_SEEK_POSSIBLE, NULL);
-
   if (m_pOtherStream)
   {
     return m_pOtherStream->Seek(offset, whence);
   }
   else
   {
+    if (whence == SEEK_POSSIBLE)
+      return m_pFile->IoControl(IOCTRL_SEEK_POSSIBLE, NULL);
+
     int64_t ret = m_pFile->Seek(offset, whence);
 
     /* if we succeed, we are not eof anymore */

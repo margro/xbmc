@@ -21,13 +21,38 @@
 
 #include "JNIBase.h"
 
+class CJNISurfaceTexture;
+
+class CJNISurfaceTextureOnFrameAvailableListener : public CJNIBase
+{
+public:
+  CJNISurfaceTextureOnFrameAvailableListener(const jni::jhobject &object) : CJNIBase(object) {};
+  virtual ~CJNISurfaceTextureOnFrameAvailableListener() {};
+
+  static void _onFrameAvailable(JNIEnv *env, jobject context, jobject surface);
+
+protected:
+  CJNISurfaceTextureOnFrameAvailableListener();
+
+  virtual void OnFrameAvailable(CJNISurfaceTexture &surface)=0;
+
+private:
+  static CJNISurfaceTextureOnFrameAvailableListener *m_listenerInstance;
+};
+
 class CJNISurfaceTexture : public CJNIBase
 {
 public:
-  CJNISurfaceTexture(int texid);
-  ~CJNISurfaceTexture();
-  
-  void updateTexImage();
-  void release();
-  void getTransformMatrix(float* transformMatrix);
+  CJNISurfaceTexture(const jni::jhobject &object) : CJNIBase(object) {};
+  CJNISurfaceTexture(int texName);
+  ~CJNISurfaceTexture() {};
+
+  void    setOnFrameAvailableListener(const CJNISurfaceTextureOnFrameAvailableListener &listener);
+  void    setDefaultBufferSize(int width, int height);
+  void    updateTexImage();
+  void    detachFromGLContext();
+  void    attachToGLContext(int texName);
+  void    getTransformMatrix(float* mtx); // mtx MUST BE a preallocated 4x4 float array
+  int64_t getTimestamp();
+  void    release();
 };

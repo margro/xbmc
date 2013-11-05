@@ -50,12 +50,10 @@ protected:
   OMXClock                  *m_av_clock;
   COMXAudio                 m_omxAudio;
   std::string               m_codec_name;
-  bool                      m_use_passthrough;
   bool                      m_passthrough;
   bool                      m_use_hw_decode;
   bool                      m_hw_decode;
   AEAudioFormat             m_format;
-  CAEChannelInfo            m_channelLayout;
   COMXAudioCodecOMX         *m_pAudioCodec;
   int                       m_speed;
   bool                      m_silence;
@@ -71,7 +69,6 @@ protected:
   int                       m_nChannels;
   bool                      m_DecoderOpen;
 
-  DllBcmHost                m_DllBcmHost;
   bool                      m_bad_state;
 
   virtual void OnStartup();
@@ -106,9 +103,13 @@ public:
   double GetCurrentPts() { return m_audioClock; };
   void WaitCompletion();
   void SubmitEOS();
-  void  RegisterAudioCallback(IAudioCallback* pCallback);
-  void  UnRegisterAudioCallback();
-  bool SetCurrentVolume(float fVolume);
+
+  void  RegisterAudioCallback(IAudioCallback* pCallback) { m_omxAudio.RegisterAudioCallback(pCallback); }
+  void  UnRegisterAudioCallback()                        { m_omxAudio.UnRegisterAudioCallback(); }
+  void SetVolume(float fVolume)                          { m_omxAudio.SetVolume(fVolume); }
+  void SetMute(bool bOnOff)                              { m_omxAudio.SetMute(bOnOff); }
+  void SetDynamicRangeCompression(long drc)              { m_omxAudio.SetDynamicRangeCompression(drc); }
+  float GetDynamicRangeAmplification()                   { return m_omxAudio.GetDynamicRangeAmplification(); }
   void SetSpeed(int iSpeed);
   int  GetAudioBitrate();
   std::string GetPlayerInfo();

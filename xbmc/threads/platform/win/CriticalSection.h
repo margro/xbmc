@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,12 +27,8 @@
 namespace XbmcThreads
 {
 
-  namespace intern
-  {
-    // forward declare in preparation for the friend declaration
-    class ConditionVariableVista;
-    class ConditionVariableXp;
-  }
+  // forward declare in preparation for the friend declaration
+  class ConditionVariable;
 
   namespace windows
   {
@@ -41,8 +37,7 @@ namespace XbmcThreads
       CRITICAL_SECTION mutex;
 
       // needs acces to 'mutex'
-      friend class XbmcThreads::intern::ConditionVariableVista;
-      friend class XbmcThreads::intern::ConditionVariableXp;
+      friend class XbmcThreads::ConditionVariable;
     public:
       inline RecursiveMutex()
       {

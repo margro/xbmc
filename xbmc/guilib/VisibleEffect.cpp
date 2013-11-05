@@ -61,7 +61,7 @@ CAnimEffect::CAnimEffect(const CAnimEffect &src)
   *this = src;
 }
 
-const CAnimEffect &CAnimEffect::operator=(const CAnimEffect &src)
+CAnimEffect& CAnimEffect::operator=(const CAnimEffect &src)
 {
   if (&src == this) return *this;
 
@@ -248,12 +248,11 @@ void CRotateEffect::ApplyEffect(float offset, const CPoint &center)
     m_matrix.SetZRotation(((m_endAngle - m_startAngle)*offset + m_startAngle) * degree_to_radian, m_center.x, m_center.y, g_graphicsContext.GetScalingPixelRatio());
 }
 
-CZoomEffect::CZoomEffect(const TiXmlElement *node, const CRect &rect) : CAnimEffect(node, EFFECT_TYPE_ZOOM)
+CZoomEffect::CZoomEffect(const TiXmlElement *node, const CRect &rect) : CAnimEffect(node, EFFECT_TYPE_ZOOM), m_center(CPoint(0,0))
 {
   // effect defaults
   m_startX = m_startY = 100;
   m_endX = m_endY = 100;
-  m_center = CPoint(0,0);
   m_autoCenter = false;
 
   float startPosX = rect.x1;
@@ -385,7 +384,7 @@ CAnimation::~CAnimation()
   m_effects.clear();
 }
 
-const CAnimation &CAnimation::operator =(const CAnimation &src)
+CAnimation &CAnimation::operator =(const CAnimation &src)
 {
   if (this == &src) return *this; // same
   m_type = src.m_type;
@@ -629,7 +628,7 @@ void CAnimation::Create(const TiXmlElement *node, const CRect &rect, int context
   if (effect) // new layout
     type = node->Attribute("type");
 
-  if (type.Left(7).Equals("visible")) m_type = ANIM_TYPE_VISIBLE;
+  if (StringUtils::StartsWithNoCase(type, "visible")) m_type = ANIM_TYPE_VISIBLE;
   else if (type.Equals("hidden")) m_type = ANIM_TYPE_HIDDEN;
   else if (type.Equals("focus"))  m_type = ANIM_TYPE_FOCUS;
   else if (type.Equals("unfocus"))  m_type = ANIM_TYPE_UNFOCUS;
@@ -721,7 +720,7 @@ CScroller::CScroller(const CScroller& right)
   *this = right;
 }
 
-const CScroller &CScroller::operator=(const CScroller &right)
+CScroller& CScroller::operator=(const CScroller &right)
 {
   if (&right == this) return *this;
 

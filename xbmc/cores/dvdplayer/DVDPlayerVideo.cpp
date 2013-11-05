@@ -571,6 +571,9 @@ void CDVDPlayerVideo::Process()
         m_iDroppedFrames++;
         iDropped++;
       }
+      // reset the request, the following while loop may break before
+      // setting the flag to a new value
+      bRequestDrop = false;
 
       // loop while no error
       while (!m_bStop)
@@ -989,12 +992,14 @@ static std::string GetRenderFormatName(ERenderFormat format)
     case RENDER_FMT_UYVY422:   return "UYVY";
     case RENDER_FMT_YUYV422:   return "YUY2";
     case RENDER_FMT_VDPAU:     return "VDPAU";
+    case RENDER_FMT_VDPAU_420: return "VDPAU_420";
     case RENDER_FMT_DXVA:      return "DXVA";
     case RENDER_FMT_VAAPI:     return "VAAPI";
     case RENDER_FMT_OMXEGL:    return "OMXEGL";
     case RENDER_FMT_CVBREF:    return "BGRA";
     case RENDER_FMT_EGLIMG:    return "EGLIMG";
     case RENDER_FMT_BYPASS:    return "BYPASS";
+    case RENDER_FMT_MEDIACODEC:return "MEDIACODEC";
     case RENDER_FMT_NONE:      return "NONE";
   }
   return "UNKNOWN";

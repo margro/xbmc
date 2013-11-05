@@ -104,6 +104,7 @@ public:
   bool SetWidth(float width);
   bool SetHeight(float height);
   bool SetFileName(const CStdString &filename);
+  void SetUseCache(const bool useCache = true);
   bool SetAspectRatio(const CAspectRatio &aspect);
 
   const CStdString& GetFileName() const { return m_info.filename; };
@@ -127,7 +128,7 @@ protected:
   bool AllocateOnDemand();
   bool UpdateAnimFrame();
   void Render(float left, float top, float bottom, float right, float u1, float v1, float u2, float v2, float u3, float v3);
-  void OrientateTexture(CRect &rect, float width, float height, int orientation);
+  static void OrientateTexture(CRect &rect, float width, float height, int orientation);
 
   // functions that our implementation classes handle
   virtual void Allocate() {}; ///< called after our textures have been allocated
@@ -146,7 +147,7 @@ protected:
 
   CRect m_vertex;       // vertex coords to render
   bool m_invalid;       // if true, we need to recalculate
-
+  bool m_use_cache;
   unsigned char m_alpha;
 
   float m_frameWidth, m_frameHeight;          // size in pixels of the actual frame within the texture

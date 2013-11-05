@@ -46,9 +46,6 @@
     <Filter Include="cores\DllLoader\exports">
       <UniqueIdentifier>{aa32e9d0-5753-42d5-889b-3938ce6703a0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="cores\DllLoader\exports\emu_socket">
-      <UniqueIdentifier>{280834b5-e3ce-48ec-a304-ec6c315beffe}</UniqueIdentifier>
-    </Filter>
     <Filter Include="cores\DllLoader\exports\util">
       <UniqueIdentifier>{111c81df-dc5e-4b93-a21f-c2171434952b}</UniqueIdentifier>
     </Filter>
@@ -617,15 +614,6 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\DllLoader\exports\emu_msvcrt.cpp">
       <Filter>cores\DllLoader\exports</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\DllLoader\exports\emu_socket\inet_aton.c">
-      <Filter>cores\DllLoader\exports\emu_socket</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\DllLoader\exports\emu_socket\inet_ntop.c">
-      <Filter>cores\DllLoader\exports\emu_socket</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\DllLoader\exports\emu_socket\inet_pton.c">
-      <Filter>cores\DllLoader\exports\emu_socket</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\DllLoader\exports\util\EmuFileWrapper.cpp">
       <Filter>cores\DllLoader\exports\util</Filter>
@@ -2328,15 +2316,6 @@
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\AESinkFactory.cpp">
       <Filter>cores\AudioEngine</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\SoftAE\SoftAE.cpp">
-      <Filter>cores\AudioEngine\Engines</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\SoftAE\SoftAESound.cpp">
-      <Filter>cores\AudioEngine\Engines</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\SoftAE\SoftAEStream.cpp">
-      <Filter>cores\AudioEngine\Engines</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Sinks\AESinkDirectSound.cpp">
       <Filter>cores\AudioEngine\Sinks</Filter>
     </ClCompile>
@@ -3005,9 +2984,6 @@
     <ClCompile Include="..\..\xbmc\settings\SettingDependency.cpp">
       <Filter>settings</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\settings\SettingVisibility.cpp">
-      <Filter>settings</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\network\NetworkServices.cpp">
       <Filter>network</Filter>
     </ClCompile>
@@ -3053,6 +3029,9 @@
     <ClCompile Include="..\..\xbmc\addons\AddonCallbacksCodec.cpp">
       <Filter>addons</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\interfaces\json-rpc\ProfilesOperations.cpp">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\GitRevision.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\ActiveAE.cpp">
       <Filter>cores\AudioEngine\Engines\ActiveAE</Filter>
@@ -3074,6 +3053,19 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\utils\ActorProtocol.cpp">
       <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\ApplicationPlayer.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\SettingRequirement.cpp">
+      <Filter>settings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\interfaces\python\AddonPythonInvoker.cpp">
+      <Filter>interfaces\python</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\StringValidation.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\windowing\WinEvents.cpp">
+      <Filter>windowing</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -3511,9 +3503,6 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\DllLoader\exports\emu_msvcrt.h">
       <Filter>cores\DllLoader\exports</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\DllLoader\exports\emu_socket\emu_socket.h">
-      <Filter>cores\DllLoader\exports\emu_socket</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\DllLoader\exports\util\EmuFileWrapper.h">
       <Filter>cores\DllLoader\exports\util</Filter>
@@ -5379,15 +5368,6 @@
     <ClInclude Include="..\..\xbmc\cores\AudioEngine\AESinkFactory.h">
       <Filter>cores\AudioEngine</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\SoftAE\SoftAE.h">
-      <Filter>cores\AudioEngine\Engines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\SoftAE\SoftAESound.h">
-      <Filter>cores\AudioEngine\Engines</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\SoftAE\SoftAEStream.h">
-      <Filter>cores\AudioEngine\Engines</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\AudioEngine\Interfaces\AE.h">
       <Filter>cores\AudioEngine\Interfaces</Filter>
     </ClInclude>
@@ -5947,9 +5927,6 @@
     <ClInclude Include="..\..\xbmc\settings\SettingDependency.h">
       <Filter>settings</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\settings\SettingVisibility.h">
-      <Filter>settings</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\network\NetworkServices.h">
       <Filter>network</Filter>
     </ClInclude>
@@ -6007,6 +5984,9 @@
     <ClInclude Include="..\..\xbmc\addons\AddonCallbacksCodec.h">
       <Filter>addons</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\xbmc\interfaces\json-rpc\ProfilesOperations.h">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\xbmc\win32\PlatformInclude.h" />
     <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\ActiveAE.h">
       <Filter>cores\AudioEngine\Engines\ActiveAE</Filter>
@@ -6027,6 +6007,19 @@
       <Filter>cores\AudioEngine\Engines\ActiveAE</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\ActorProtocol.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\ApplicationPlayer.h" />
+    <ClInclude Include="..\..\xbmc\settings\SettingRequirement.h">
+      <Filter>settings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\interfaces\python\AddonPythonInvoker.h">
+      <Filter>interfaces\python</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\StringValidation.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\uXstrings.h">
       <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>

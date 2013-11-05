@@ -187,7 +187,6 @@ void AddonProps::Serialize(CVariant &variant) const
   variant["version"] = version.c_str();
   variant["minversion"] = minversion.c_str();
   variant["name"] = name;
-  variant["parent"] = parent;
   variant["license"] = license;
   variant["summary"] = summary;
   variant["description"] = description;
@@ -250,7 +249,6 @@ void AddonProps::BuildDependencies(const cp_plugin_info_t *plugin)
 
 CAddon::CAddon(const cp_extension_t *ext)
   : m_props(ext)
-  , m_parent(AddonPtr())
 {
   BuildLibName(ext);
   Props().libname = m_strLibName;
@@ -266,7 +264,6 @@ CAddon::CAddon(const cp_extension_t *ext)
 
 CAddon::CAddon(const cp_plugin_info_t *plugin)
   : m_props(plugin)
-  , m_parent(AddonPtr())
 {
   m_enabled = true;
   m_hasSettings = false;
@@ -278,7 +275,6 @@ CAddon::CAddon(const cp_plugin_info_t *plugin)
 
 CAddon::CAddon(const AddonProps &props)
   : m_props(props)
-  , m_parent(AddonPtr())
 {
   if (props.libname.IsEmpty()) BuildLibName();
   else m_strLibName = props.libname;
@@ -292,9 +288,8 @@ CAddon::CAddon(const AddonProps &props)
   m_userSettingsLoaded = false;
 }
 
-CAddon::CAddon(const CAddon &rhs, const AddonPtr &parent)
+CAddon::CAddon(const CAddon &rhs)
   : m_props(rhs.Props())
-  , m_parent(parent)
 {
   m_settings  = rhs.m_settings;
   m_addonXmlDoc = rhs.m_addonXmlDoc;
@@ -309,9 +304,9 @@ CAddon::CAddon(const CAddon &rhs, const AddonPtr &parent)
   m_checkedStrings  = false;
 }
 
-AddonPtr CAddon::Clone(const AddonPtr &parent) const
+AddonPtr CAddon::Clone() const
 {
-  return AddonPtr(new CAddon(*this, parent));
+  return AddonPtr(new CAddon(*this));
 }
 
 bool CAddon::MeetsVersion(const AddonVersion &version) const
@@ -319,7 +314,7 @@ bool CAddon::MeetsVersion(const AddonVersion &version) const
   // if the addon is one of xbmc's extension point definitions (addonid starts with "xbmc.")
   // and the minversion is "0.0.0" i.e. no <backwards-compatibility> tag has been specified
   // we need to assume that the current version is not backwards-compatible and therefore check against the actual version
-  if (StringUtils::StartsWith(m_props.id, "xbmc.") &&
+  if (StringUtils::StartsWithNoCase(m_props.id, "xbmc.") &&
      (strlen(m_props.minversion.c_str()) == 0 || StringUtils::EqualsNoCase(m_props.minversion.c_str(), "0.0.0")))
     return m_props.version == version;
 
@@ -499,10 +494,9 @@ void CAddon::SaveSettings(void)
     return; // no settings to save
 
   // break down the path into directories
-  CStdString strRoot, strAddon;
-  URIUtils::GetDirectory(m_userSettingsPath, strAddon);
+  CStdString strAddon = URIUtils::GetDirectory(m_userSettingsPath);
   URIUtils::RemoveSlashAtEnd(strAddon);
-  URIUtils::GetDirectory(strAddon, strRoot);
+  CStdString strRoot = URIUtils::GetDirectory(strAddon);
   URIUtils::RemoveSlashAtEnd(strRoot);
 
   // create the individual folders
@@ -624,6 +618,11 @@ CAddonLibrary::CAddonLibrary(const AddonProps& props)
   : CAddon(props)
   , m_addonType(SetAddonType())
 {
+}
+
+AddonPtr CAddonLibrary::Clone() const
+{
+  return AddonPtr(new CAddonLibrary(*this));
 }
 
 TYPE CAddonLibrary::SetAddonType()

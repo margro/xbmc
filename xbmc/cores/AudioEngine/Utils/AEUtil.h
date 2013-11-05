@@ -19,7 +19,7 @@
  *
  */
 
-#include "../AEAudioFormat.h"
+#include "AEAudioFormat.h"
 #include "utils/StdString.h"
 #include "PlatformDefs.h"
 #include <math.h>
@@ -49,15 +49,6 @@
   #define MEMALIGN(b, x) __declspec(align(b)) x
 #endif
 
-#define AUDIO_IS_BITSTREAM(x) ((x) == AUDIO_IEC958 || (x) == AUDIO_HDMI)
-
-enum AudioOutputs
-{
-  AUDIO_ANALOG  = 0,
-  AUDIO_IEC958,
-  AUDIO_HDMI
-};
-
 // AV sync options
 enum AVSync
 {
@@ -80,6 +71,7 @@ public:
   static CAEChannelInfo          GuessChLayout     (const unsigned int channels);
   static const char*             GetStdChLayoutName(const enum AEStdChLayout layout);
   static const unsigned int      DataFormatToBits  (const enum AEDataFormat dataFormat);
+  static const unsigned int      DataFormatToUsedBits (const enum AEDataFormat dataFormat);
   static const char*             DataFormatToStr   (const enum AEDataFormat dataFormat);
 
   /*! \brief convert a volume percentage (as a proportion) to a dB gain

@@ -25,6 +25,7 @@
 #include "DDSImage.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/File.h"
+#include "utils/FileUtils.h"
 #if defined(TARGET_DARWIN_IOS)
 #include <ImageIO/ImageIO.h>
 #include "filesystem/File.h"
@@ -222,66 +223,25 @@ bool CBaseTexture::LoadFromFileInternal(const CStdString& texturePath, unsigned 
   if (URIUtils::HasExtension(texturePath, ".jpg|.tbn")
       /*|| URIUtils::HasExtension(texturePath, ".png")*/)
   {
-    COMXImage omx_image;
-
-    if(omx_image.ReadFile(texturePath))
+    COMXImageFile *file = COMXImage::LoadJpeg(texturePath);
+    if (file)
     {
-      if(omx_image.Decode(maxWidth, maxHeight))
+      bool okay = false;
+      int orientation = file->GetOrientation();
+      // limit the sizes of jpegs (even if we fail to decode)
+      COMXImage::ClampLimits(maxWidth, maxHeight, file->GetWidth(), file->GetHeight(), orientation & 4);
+      Allocate(maxWidth, maxHeight, XB_FMT_A8R8G8B8);
+      if (m_pixels && COMXImage::DecodeJpeg(file, maxWidth, GetRows(), GetPitch(), (void *)m_pixels))
       {
-        Allocate(omx_image.GetDecodedWidth(), omx_image.GetDecodedHeight(), XB_FMT_A8R8G8B8);
-
-        if(!m_pixels)
-        {
-          CLog::Log(LOGERROR, "Texture manager (OMX) out of memory");
-          omx_image.Close();
-          return false;
-        }
-
-        m_originalWidth  = omx_image.GetOriginalWidth();
-        m_originalHeight = omx_image.GetOriginalHeight();
-
-        m_hasAlpha = omx_image.IsAlpha();
-
-        if (autoRotate && omx_image.GetOrientation())
-          m_orientation = omx_image.GetOrientation() - 1;
-
-        if(m_textureWidth != omx_image.GetDecodedWidth() || m_textureHeight != omx_image.GetDecodedHeight())
-        {
-          unsigned int imagePitch = GetPitch(m_imageWidth);
-          unsigned int imageRows = GetRows(m_imageHeight);
-          unsigned int texturePitch = GetPitch(m_textureWidth);
-
-          unsigned char *src = omx_image.GetDecodedData();
-          unsigned char *dst = m_pixels;
-          for (unsigned int y = 0; y < imageRows; y++)
-          {
-            memcpy(dst, src, imagePitch);
-            src += imagePitch;
-            dst += texturePitch;
-          }
-        }
-        else
-        {
-          if(omx_image.GetDecodedData())
-          {
-            int size = ( ( GetPitch() * GetRows() ) > omx_image.GetDecodedSize() ) ?
-                             omx_image.GetDecodedSize() : ( GetPitch() * GetRows() );
-
-            memcpy(m_pixels, (unsigned char *)omx_image.GetDecodedData(), size);
-          }
-        }
-
-        omx_image.Close();
-
+        m_hasAlpha = false;
+        if (autoRotate && orientation)
+          m_orientation = orientation - 1;
+        okay = true;
+      }
+      COMXImage::CloseJpeg(file);
+      if (okay)
         return true;
-      }
-      else
-      {
-        omx_image.Close();
-      }
     }
-    // this limits the sizes of jpegs we failed to decode
-    omx_image.ClampLimits(maxWidth, maxHeight);
   }
 #endif
   if (URIUtils::HasExtension(texturePath, ".dds"))
@@ -299,74 +259,19 @@ bool CBaseTexture::LoadFromFileInternal(const CStdString& texturePath, unsigned 
   unsigned int height = maxHeight ? std::min(maxHeight, g_Windowing.GetMaxTextureSize()) : g_Windowing.GetMaxTextureSize();
 
   // Read image into memory to use our vfs
-  unsigned char *inputBuff = NULL;
-  unsigned int inputBuffSize = 0;
+  void *inputBuff = NULL;
+  unsigned int inputBuffSize = CFileUtils::LoadFile(texturePath, inputBuff);
 
-  XFILE::CFile file;
-  if (file.Open(texturePath.c_str(), READ_TRUNCATED))
-  {
-    /*
-     GetLength() will typically return values that fall into three cases:
-       1. The real filesize. This is the typical case.
-       2. Zero. This is the case for some http:// streams for example.
-       3. Some value smaller than the real filesize. This is the case for an expanding file.
-
-     In order to handle all three cases, we read the file in chunks, relying on Read()
-     returning 0 at EOF.  To minimize (re)allocation of the buffer, the chunksize in
-     cases 1 and 3 is set to one byte larger** than the value returned by GetLength().
-     The chunksize in case 2 is set to the larger of 64k and GetChunkSize().
-
-     We fill the buffer entirely before reallocation.  Thus, reallocation never occurs in case 1
-     as the buffer is larger than the file, so we hit EOF before we hit the end of buffer.
-
-     To minimize reallocation, we double the chunksize each time up to a maxchunksize of 2MB.
-     */
-    unsigned int filesize = (unsigned int)file.GetLength();
-    unsigned int chunksize = filesize ? (filesize + 1) : std::max(65536U, (unsigned int)file.GetChunkSize());
-    unsigned int maxchunksize = 2048*1024U; /* max 2MB chunksize */
-    unsigned char *tempinputBuff = NULL;
-
-    unsigned int total_read = 0, free_space = 0;
-    while (true)
-    {
-      if (!free_space)
-      { // (re)alloc
-        inputBuffSize += chunksize;
-        tempinputBuff = (unsigned char *)realloc(inputBuff, inputBuffSize);
-        if (!tempinputBuff)
-        {
-          CLog::Log(LOGERROR, "%s unable to allocate buffer of size %u", __FUNCTION__, inputBuffSize);
-          free(inputBuff);
-          file.Close();
-          return false;
-        }
-        inputBuff = tempinputBuff;
-        free_space = chunksize;
-        chunksize = std::min(chunksize*2, maxchunksize);
-      }
-      unsigned int read = file.Read(inputBuff + total_read, free_space);
-      free_space -= read;
-      total_read += read;
-      if (!read)
-        break;
-    }
-    inputBuffSize = total_read;
-    file.Close();
-
-    if (inputBuffSize == 0)
-      return false;
-  }
-  else
+  if (inputBuffSize == 0)
     return false;
 
   CURL url(texturePath);
   IImage* pImage = ImageFactory::CreateLoader(url);
-  if(!LoadIImage(pImage, inputBuff, inputBuffSize, width, height, autoRotate))
+  if(!LoadIImage(pImage, (unsigned char *) inputBuff, inputBuffSize, width, height, autoRotate))
   {
     delete pImage;
-    pImage = NULL;
     pImage = ImageFactory::CreateFallbackLoader(texturePath);
-    if(!LoadIImage(pImage, inputBuff, inputBuffSize, width, height))
+    if(!LoadIImage(pImage, (unsigned char *) inputBuff, inputBuffSize, width, height))
     {
       CLog::Log(LOGDEBUG, "%s - Load of %s failed.", __FUNCTION__, texturePath.c_str());
       delete pImage;
@@ -392,7 +297,6 @@ bool CBaseTexture::LoadFromFileInMem(unsigned char* buffer, size_t size, const s
   if(!LoadIImage(pImage, buffer, size, width, height))
   {
     delete pImage;
-    pImage = NULL;
     pImage = ImageFactory::CreateFallbackLoader(mimeType);
     if(!LoadIImage(pImage, buffer, size, width, height))
     {

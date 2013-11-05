@@ -84,6 +84,10 @@ bool CGUIDialogSmartPlaylistRule::OnMessage(CGUIMessage& message)
       return true;
     }
     break;
+
+  case GUI_MSG_VALIDITY_CHANGED:
+    CONTROL_ENABLE_ON_CONDITION(CONTROL_OK, message.GetParam1());
+    break;
   }
   return CGUIDialog::OnMessage(message);
 }
@@ -103,7 +107,7 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   videodatabase.Open();
 
   std::string basePath;
-  if (m_type.Equals("songs") || m_type.Equals("albums") || m_type.Equals("artists") || m_type.Equals("mixed"))
+  if (CSmartPlaylist::IsMusicType(m_type))
     basePath = "musicdb://";
   else
     basePath = "videodb://";
@@ -153,7 +157,7 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   }
   else if (m_rule.m_field == FieldArtist || m_rule.m_field == FieldAlbumArtist)
   {
-    if (m_type.Equals("songs") || m_type.Equals("mixed") || m_type.Equals("albums") || m_type.Equals("artists"))
+    if (CSmartPlaylist::IsMusicType(m_type))
       database.GetArtistsNav("musicdb://artists/", items, m_rule.m_field == FieldAlbumArtist, -1);
     if (m_type.Equals("musicvideos") || m_type.Equals("mixed"))
     {
@@ -165,7 +169,7 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   }
   else if (m_rule.m_field == FieldAlbum)
   {
-    if (m_type.Equals("songs") || m_type.Equals("mixed") || m_type.Equals("albums"))
+    if (CSmartPlaylist::IsMusicType(m_type))
       database.GetAlbumsNav("musicdb://albums/", items);
     if (m_type.Equals("musicvideos") || m_type.Equals("mixed"))
     {
@@ -182,9 +186,9 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   }
   else if (m_rule.m_field == FieldYear)
   {
-    if (m_type.Equals("songs") || m_type.Equals("mixed") || m_type.Equals("albums"))
+    if (CSmartPlaylist::IsMusicType(m_type))
       database.GetYearsNav("musicdb://years/", items);
-    if (!m_type.Equals("songs") && !m_type.Equals("albums"))
+    if (!m_type.Equals("songs") && !m_type.Equals("albums") && !m_type.Equals("artists"))
     {
       CFileItemList items2;
       videodatabase.GetYearsNav(basePath + "years/", items2, type);
@@ -242,7 +246,7 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
     else
       assert(false);
   }
-  else if (m_rule.m_field == FieldPlaylist)
+  else if (m_rule.m_field == FieldPlaylist || m_rule.m_field == FieldVirtualFolder)
   {
     // use filebrowser to grab another smart playlist
 
@@ -257,7 +261,19 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
     {
       CFileItemPtr item = items[i];
       CSmartPlaylist playlist;
-      if (playlist.OpenAndReadName(item->GetPath()))
+      // don't list unloadable smartplaylists or any referencable smartplaylists
+      // which do not match the type of the current smartplaylist
+      if (!playlist.Load(item->GetPath()) ||
+         (m_rule.m_field == FieldPlaylist &&
+         (!CSmartPlaylist::CheckTypeCompatibility(m_type, playlist.GetType()) ||
+         (!playlist.GetGroup().empty() || playlist.IsGroupMixed()))))
+      {
+        items.Remove(i);
+        i -= 1;
+        continue;
+      }
+
+      if (!playlist.GetName().empty())
         item->SetLabel(playlist.GetName());
     }
     iLabel = 559;
@@ -308,7 +324,7 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   }
 
   // sort the items
-  items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+  items.Sort(SortByLabel, SortOrderAscending);
 
   CGUIDialogSelect* pDialog = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
   pDialog->Reset();
@@ -316,7 +332,7 @@ void CGUIDialogSmartPlaylistRule::OnBrowse()
   CStdString strHeading;
   strHeading.Format(g_localizeStrings.Get(13401),g_localizeStrings.Get(iLabel));
   pDialog->SetHeading(strHeading);
-  pDialog->SetMultiSelection(m_rule.m_field != FieldPlaylist);
+  pDialog->SetMultiSelection(m_rule.m_field != FieldPlaylist && m_rule.m_field != FieldVirtualFolder);
 
   if (!m_rule.m_parameter.empty())
     pDialog->SetSelected(m_rule.m_parameter);
@@ -484,6 +500,10 @@ void CGUIDialogSmartPlaylistRule::OnInitWindow()
     OnMessage(msg);
   }
   UpdateButtons();
+
+  CGUIEditControl *editControl = (CGUIEditControl*)GetControl(CONTROL_VALUE);
+  if (editControl != NULL)
+    editControl->SetInputValidation(CSmartPlaylistRule::Validate, &m_rule);
 }
 
 void CGUIDialogSmartPlaylistRule::OnDeinitWindow(int nextWindowID)

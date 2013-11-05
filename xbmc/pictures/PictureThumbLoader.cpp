@@ -35,7 +35,7 @@
 using namespace XFILE;
 using namespace std;
 
-CPictureThumbLoader::CPictureThumbLoader() : CThumbLoader(), CJobQueue(true)
+CPictureThumbLoader::CPictureThumbLoader() : CThumbLoader(), CJobQueue(true, 1, CJob::PRIORITY_LOW_PAUSABLE)
 {
   m_regenerateThumbs = false;
 }
@@ -222,7 +222,7 @@ void CPictureThumbLoader::ProcessFoldersAndArchives(CFileItem *pItem)
 
       if (items.Size() < 4 || pItem->IsCBR() || pItem->IsCBZ())
       { // less than 4 items, so just grab the first thumb
-        items.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+        items.Sort(SortByLabel, SortOrderAscending);
         CStdString thumb = CTextureCache::GetWrappedThumbURL(items[0]->GetPath());
         db.SetTextureForPath(pItem->GetPath(), "thumb", thumb);
         CTextureCache::Get().BackgroundCacheImage(thumb);

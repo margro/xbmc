@@ -59,6 +59,10 @@ public:
     CGUITexture *m_texture;  ///< texture to fade out
     unsigned int m_fadeTime; ///< time to fade out (ms)
     bool         m_fading;   ///< whether we're fading out
+
+  private:
+    CFadingTexture(const CFadingTexture&);
+    CFadingTexture& operator=(const CFadingTexture&);
   };
 
   CGUIImage(int parentID, int controlID, float posX, float posY, float width, float height, const CTextureInfo& texture);
@@ -80,7 +84,7 @@ public:
   virtual void UpdateInfo(const CGUIListItem *item = NULL);
 
   virtual void SetInfo(const CGUIInfoLabel &info);
-  virtual void SetFileName(const CStdString& strFileName, bool setConstant = false);
+  virtual void SetFileName(const CStdString& strFileName, bool setConstant = false, const bool useCache = true);
   virtual void SetAspectRatio(const CAspectRatio &aspect);
   virtual void SetWidth(float width);
   virtual void SetHeight(float height);

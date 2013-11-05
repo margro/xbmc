@@ -803,12 +803,16 @@ bool CGUIEPGGridContainer::OnMessage(CGUIMessage& message)
         m_programmeItems.push_back(items->Get(i));
 
       ClearGridIndex();
-      m_gridIndex = (struct GridItemsPtr **) calloc(1,m_channelItems.size()*sizeof(struct GridItemsPtr*));
-      if (m_gridIndex != NULL)
+
+      if (m_channelItems.size() > 0)
       {
-        for (unsigned int i = 0; i < m_channelItems.size(); i++)
+        m_gridIndex = (struct GridItemsPtr **) calloc(1,m_channelItems.size()*sizeof(struct GridItemsPtr*));
+        if (m_gridIndex != NULL)
         {
-          m_gridIndex[i] = (struct GridItemsPtr*) calloc(1,MAXBLOCKS*sizeof(struct GridItemsPtr));
+          for (unsigned int i = 0; i < m_channelItems.size(); i++)
+          {
+            m_gridIndex[i] = (struct GridItemsPtr*) calloc(1,MAXBLOCKS*sizeof(struct GridItemsPtr));
+          }
         }
       }
 
@@ -895,7 +899,10 @@ void CGUIEPGGridContainer::UpdateItems()
         CGUIListItemPtr item = m_programmeItems[progIdx];
         const CEpgInfoTag* tag = ((CFileItem *)item.get())->GetEPGInfoTag();
         if (tag == NULL)
+        {
           progIdx++;
+          continue;
+        }
 
         if (tag->EpgID() != iEpgId)
           break;
@@ -1313,8 +1320,14 @@ bool CGUIEPGGridContainer::SelectItemFromPoint(const CPoint &point, bool justGri
   if (block > m_blocksPerPage) block = m_blocksPerPage - 1;
   if (block < 0) block = 0;
 
+  int channelIndex = channel + m_channelOffset;
+  int blockIndex = block + m_blockOffset;
+
+  // bail if out of range
+  if (channelIndex >= m_channels || blockIndex > MAXBLOCKS)
+    return false;
   // bail if block isn't occupied
-  if (!m_gridIndex[channel + m_channelOffset][block + m_blockOffset].item)
+  if (!m_gridIndex[channelIndex][blockIndex].item)
     return false;
 
   SetChannel(channel);
@@ -1892,6 +1905,8 @@ void CGUIEPGGridContainer::CalculateLayout()
 
 void CGUIEPGGridContainer::UpdateScrollOffset(unsigned int currentTime)
 {
+  if (!m_programmeLayout)
+    return;
   m_channelScrollOffset += m_channelScrollSpeed * (currentTime - m_channelScrollLastTime);
   if ((m_channelScrollSpeed < 0 && m_channelScrollOffset < m_channelOffset * m_programmeLayout->Size(m_orientation)) ||
       (m_channelScrollSpeed > 0 && m_channelScrollOffset > m_channelOffset * m_programmeLayout->Size(m_orientation)))

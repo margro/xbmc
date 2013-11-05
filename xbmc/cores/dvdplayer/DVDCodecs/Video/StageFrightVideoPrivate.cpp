@@ -61,7 +61,7 @@ CStageFrightVideoPrivate::CStageFrightVideoPrivate()
     , texwidth(-1), texheight(-1)
     , client(NULL), decoder(NULL), decoder_component(NULL)
     , drop_state(false), resetting(false)
-    , mVideoNativeWindow(NULL) 
+    , mVideoNativeWindow(NULL)
 {
   if (!eglCreateImageKHR)
     eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC) CEGLWrapper::GetProcAddress("eglCreateImageKHR");
@@ -105,7 +105,7 @@ bool CStageFrightVideoPrivate::inputBufferAvailable()
   for (int i=0; i<INBUFCOUNT; ++i)
     if (inbuf[i]->refcount() == 0)
       return true;
-      
+
   return false;
 }
 
@@ -299,7 +299,7 @@ void CStageFrightVideoPrivate::UninitializeEGL()
   if (eglSurface != EGL_NO_SURFACE)
     eglDestroySurface(eglDisplay, eglSurface);
   eglSurface = EGL_NO_SURFACE;
-  
+
   eglInitialized = false;
 }
 
@@ -307,7 +307,7 @@ bool CStageFrightVideoPrivate::InitStagefrightSurface()
 {
    if (mVideoNativeWindow != NULL)
     return true;
-    
+
   JNIEnv* env = xbmc_jnienv();
 
   mVideoTextureId = -1;
@@ -319,11 +319,12 @@ bool CStageFrightVideoPrivate::InitStagefrightSurface()
   glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
-  
+
   mSurfTexture = new CJNISurfaceTexture(mVideoTextureId);
-  mSurface = new CJNISurface(mSurfTexture);
-  
+  mSurface = new CJNISurface(*mSurfTexture);
+
   mVideoNativeWindow = ANativeWindow_fromSurface(env, mSurface->get_raw());
+  native_window_api_connect(mVideoNativeWindow.get(), NATIVE_WINDOW_API_MEDIA);
 
   return true;
 }
@@ -333,6 +334,7 @@ void CStageFrightVideoPrivate::UninitStagefrightSurface()
   if (mVideoNativeWindow == NULL)
     return;
 
+  native_window_api_disconnect(mVideoNativeWindow.get(), NATIVE_WINDOW_API_MEDIA);
   ANativeWindow_release(mVideoNativeWindow.get());
   mVideoNativeWindow = NULL;
 

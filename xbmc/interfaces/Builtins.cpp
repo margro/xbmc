@@ -32,6 +32,7 @@
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/Key.h"
+#include "guilib/StereoscopicsManager.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogProgress.h"
@@ -45,10 +46,12 @@
 #include "addons/AddonManager.h"
 #include "addons/PluginSource.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
+#include "interfaces/AnnouncementManager.h"
 #include "network/NetworkServices.h"
 #include "utils/log.h"
 #include "storage/MediaManager.h"
 #include "utils/RssManager.h"
+#include "utils/JSONVariantParser.h"
 #include "PartyModeManager.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/DisplaySettings.h"
@@ -138,6 +141,7 @@ const BUILT_IN commands[] = {
 #endif
   { "RunPlugin",                  true,   "Run the specified plugin" },
   { "RunAddon",                   true,   "Run the specified plugin/script" },
+  { "NotifyAll",                  true,   "Notify all connected clients" },
   { "Extract",                    true,   "Extracts the specified archive" },
   { "PlayMedia",                  true,   "Play the specified media file (or playlist)" },
   { "SlideShow",                  true,   "Run a slideshow from the specified directory" },
@@ -223,6 +227,7 @@ const BUILT_IN commands[] = {
 #if defined(TARGET_ANDROID)
   { "StartAndroidActivity",       true,   "Launch an Android native app with the given package name.  Optional parms (in order): intent, dataType, dataURI." },
 #endif
+  { "SetStereoMode",              true,   "Changes the stereo mode of the GUI. Params can be: toggle, next, previous, select, tomono or any of the supported stereomodes (off, split_vertical, split_horizontal, row_interleaved, hardware_based, anaglyph_cyan_red, anaglyph_green_magenta, monoscopic)" }
 };
 
 bool CBuiltins::HasCommand(const CStdString& execString)
@@ -341,7 +346,35 @@ int CBuiltins::Execute(const CStdString& execString)
   }
   else if (execute.Equals("takescreenshot"))
   {
-    CScreenShot::TakeScreenshot();
+    if (params.size())
+    {
+      // get the parameters
+      CStdString strSaveToPath = params[0];
+      bool sync = false;
+      if (params.size() >= 2)
+        sync = params[1].Equals("sync");
+
+      if (!strSaveToPath.IsEmpty())
+      {
+        if (CDirectory::Exists(strSaveToPath))
+        {
+          CStdString file = CUtil::GetNextFilename(URIUtils::AddFileToFolder(strSaveToPath, "screenshot%03d.png"), 999);
+
+          if (!file.IsEmpty())
+          {
+            CScreenShot::TakeScreenshot(file, sync);
+          }
+          else
+          {
+            CLog::Log(LOGWARNING, "Too many screen shots or invalid folder %s", strSaveToPath.c_str());
+          }
+        }
+        else
+          CScreenShot::TakeScreenshot(strSaveToPath, sync);
+      }
+    }
+    else
+      CScreenShot::TakeScreenshot();
   }
   else if (execute.Equals("activatewindow") || execute.Equals("replacewindow"))
   {
@@ -488,10 +521,10 @@ int CBuiltins::Execute(const CStdString& execString)
   }
   else if (execute.Equals("extract") && params.size())
   {
-    // Detects if file is zip or zip then extracts
-    CStdString strDestDirect = "";
+    // Detects if file is zip or rar then extracts
+    CStdString strDestDirect;
     if (params.size() < 2)
-      URIUtils::GetDirectory(params[0],strDestDirect);
+      strDestDirect = URIUtils::GetDirectory(params[0]);
     else
       strDestDirect = params[1];
 
@@ -559,6 +592,19 @@ int CBuiltins::Execute(const CStdString& execString)
       CLog::Log(LOGERROR, "XBMC.RunAddon called with no arguments.");
     }
   }
+  else if (execute.Equals("notifyall"))
+  {
+    if (params.size() > 1)
+    {
+      CVariant data;
+      if (params.size() > 2)
+        data = CJSONVariantParser::Parse((const unsigned char *)params[2].c_str(), params[2].size());
+
+      ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::Other, params[0], params[1], data);
+    }
+    else
+      CLog::Log(LOGERROR, "XBMC.NotifyAll needs two parameters");
+  }
   else if (execute.Equals("playmedia"))
   {
     if (!params.size())
@@ -601,7 +647,7 @@ int CBuiltins::Execute(const CStdString& execString)
         // force the item to start at the beginning (m_lStartOffset is initialized to 0)
         askToResume = false;
       }
-      else if (params[i].Left(11).Equals("playoffset=")) {
+      else if (StringUtils::StartsWithNoCase(params[i], "playoffset=")) {
         playOffset = atoi(params[i].Mid(11)) - 1;
         item.SetProperty("playlist_starting_track", playOffset);
       }
@@ -701,7 +747,7 @@ int CBuiltins::Execute(const CStdString& execString)
           flags |= 4;
         else if (params[i].Equals("pause"))
           flags |= 8;
-        else if (params[i].Left(11).Equals("beginslide="))
+        else if (StringUtils::StartsWithNoCase(params[i], "beginslide="))
           beginSlidePath = params[i].Mid(11);
       }
     }
@@ -739,10 +785,10 @@ int CBuiltins::Execute(const CStdString& execString)
     if (parameter.Equals("play"))
     { // play/pause
       // either resume playing, or pause
-      if (g_application.IsPlaying())
+      if (g_application.m_pPlayer->IsPlaying())
       {
-        if (g_application.GetPlaySpeed() != 1)
-          g_application.SetPlaySpeed(1);
+        if (g_application.m_pPlayer->GetPlaySpeed() != 1)
+          g_application.m_pPlayer->SetPlaySpeed(1, g_application.IsMutedInternal());
         else
           g_application.m_pPlayer->Pause();
       }
@@ -753,9 +799,9 @@ int CBuiltins::Execute(const CStdString& execString)
     }
     else if (parameter.Equals("rewind") || parameter.Equals("forward"))
     {
-      if (g_application.IsPlaying() && !g_application.m_pPlayer->IsPaused())
+      if (g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused())
       {
-        int iPlaySpeed = g_application.GetPlaySpeed();
+        int iPlaySpeed = g_application.m_pPlayer->GetPlaySpeed();
         if (parameter.Equals("rewind") && iPlaySpeed == 1) // Enables Rewinding
           iPlaySpeed *= -2;
         else if (parameter.Equals("rewind") && iPlaySpeed > 1) //goes down a notch if you're FFing
@@ -771,7 +817,7 @@ int CBuiltins::Execute(const CStdString& execString)
         if (iPlaySpeed > 32 || iPlaySpeed < -32)
           iPlaySpeed = 1;
 
-        g_application.SetPlaySpeed(iPlaySpeed);
+        g_application.m_pPlayer->SetPlaySpeed(iPlaySpeed, g_application.IsMutedInternal());
       }
     }
     else if (parameter.Equals("next"))
@@ -784,25 +830,25 @@ int CBuiltins::Execute(const CStdString& execString)
     }
     else if (parameter.Equals("bigskipbackward"))
     {
-      if (g_application.IsPlaying())
+      if (g_application.m_pPlayer->IsPlaying())
         g_application.m_pPlayer->Seek(false, true);
     }
     else if (parameter.Equals("bigskipforward"))
     {
-      if (g_application.IsPlaying())
+      if (g_application.m_pPlayer->IsPlaying())
         g_application.m_pPlayer->Seek(true, true);
     }
     else if (parameter.Equals("smallskipbackward"))
     {
-      if (g_application.IsPlaying())
+      if (g_application.m_pPlayer->IsPlaying())
         g_application.m_pPlayer->Seek(false, false);
     }
     else if (parameter.Equals("smallskipforward"))
     {
-      if (g_application.IsPlaying())
+      if (g_application.m_pPlayer->IsPlaying())
         g_application.m_pPlayer->Seek(true, false);
     }
-    else if (parameter.Left(14).Equals("seekpercentage"))
+    else if (StringUtils::StartsWithNoCase(parameter, "seekpercentage"))
     {
       CStdString offset = "";
       if (parameter.size() == 14)
@@ -816,30 +862,30 @@ int CBuiltins::Execute(const CStdString& execString)
         float offsetpercent = (float) atof(offset.c_str());
         if (offsetpercent < 0 || offsetpercent > 100)
           CLog::Log(LOGERROR,"PlayerControl(seekpercentage(n)) argument, %f, must be 0-100", offsetpercent);
-        else if (g_application.IsPlaying())
+        else if (g_application.m_pPlayer->IsPlaying())
           g_application.SeekPercentage(offsetpercent);
       }
     }
     else if( parameter.Equals("showvideomenu") )
     {
-      if( g_application.IsPlaying() && g_application.m_pPlayer )
+      if( g_application.m_pPlayer->IsPlaying() )
         g_application.m_pPlayer->OnAction(CAction(ACTION_SHOW_VIDEOMENU));
     }
     else if( parameter.Equals("record") )
     {
-      if( g_application.IsPlaying() && g_application.m_pPlayer && g_application.m_pPlayer->CanRecord())
+      if( g_application.m_pPlayer->IsPlaying() && g_application.m_pPlayer->CanRecord())
         g_application.m_pPlayer->Record(!g_application.m_pPlayer->IsRecording());
     }
-    else if (parameter.Left(9).Equals("partymode"))
+    else if (StringUtils::StartsWithNoCase(parameter, "partymode"))
     {
       CStdString strXspPath = "";
       //empty param=music, "music"=music, "video"=video, else xsp path
       PartyModeContext context = PARTYMODECONTEXT_MUSIC;
       if (parameter.size() > 9)
       {
-        if (parameter.Mid(10).Equals("video)"))
+        if (parameter.size() == 16 && StringUtils::EndsWithNoCase(parameter, "video)"))
           context = PARTYMODECONTEXT_VIDEO;
-        else if (!parameter.Mid(10).Equals("music)"))
+        else if (parameter.size() != 16 || !StringUtils::EndsWithNoCase(parameter, "music)"))
         {
           strXspPath = parameter.Mid(10).TrimRight(")");
           context = PARTYMODECONTEXT_UNKNOWN;
@@ -883,7 +929,7 @@ int CBuiltins::Execute(const CStdString& execString)
       g_windowManager.SendThreadMessage(msg);
 
     }
-    else if (parameter.Left(6).Equals("repeat"))
+    else if (StringUtils::StartsWithNoCase(parameter, "repeat"))
     {
       // get current playlist
       int iPlaylist = g_playlistPlayer.GetCurrentPlaylist();
@@ -985,7 +1031,7 @@ int CBuiltins::Execute(const CStdString& execString)
     // play the desired offset
     int pos = atol(strPos.c_str());
     // playlist is already playing
-    if (g_application.IsPlaying())
+    if (g_application.m_pPlayer->IsPlaying())
       g_playlistPlayer.PlayNext(pos);
     // we start playing the 'other' playlist so we need to use play to initialize the player state
     else
@@ -1217,7 +1263,7 @@ int CBuiltins::Execute(const CStdString& execString)
         CStdString replace;
         if (CGUIDialogFileBrowser::ShowAndGetFile(url.Get(), strMask, TranslateType(type, true), replace, true, true, true))
         {
-          if (replace.Mid(0,9).Equals("addons://"))
+          if (StringUtils::StartsWithNoCase(replace, "addons://"))
             CSkinSettings::Get().SetString(string, URIUtils::GetFileName(replace));
           else
             CSkinSettings::Get().SetString(string, replace);
@@ -1686,6 +1732,17 @@ int CBuiltins::Execute(const CStdString& execString)
   else if (execute.Equals("StartAndroidActivity") && params.size() > 0)
   {
     CApplicationMessenger::Get().StartAndroidActivity(params);
+  }
+  else if (execute.Equals("SetStereoMode") && !parameter.IsEmpty())
+  {
+    CAction action = CStereoscopicsManager::Get().ConvertActionCommandToAction(execute, parameter);
+    if (action.GetID() != ACTION_NONE)
+      CApplicationMessenger::Get().SendAction(action);
+    else
+    {
+      CLog::Log(LOGERROR,"Builtin 'SetStereoMode' called with unknown parameter: %s", parameter.c_str());
+      return -2;
+    }
   }
   else
     return -1;

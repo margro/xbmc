@@ -306,7 +306,7 @@ void CWeatherJob::LoadLocalizedToken()
           if (strEncoding.IsEmpty()) // Is language file utf8?
             utf8Label=pChild->FirstChild()->Value();
           else
-            g_charsetConverter.stringCharsetToUtf8(strEncoding, pChild->FirstChild()->Value(), utf8Label);
+            g_charsetConverter.ToUtf8(strEncoding, pChild->FirstChild()->Value(), utf8Label);
 
           if (!utf8Label.IsEmpty())
             m_localizedTokens.insert(make_pair(utf8Label, id));
@@ -491,7 +491,12 @@ void CWeather::OnSettingChanged(const CSetting *setting)
 
   const std::string settingId = setting->GetId();
   if (settingId == "weather.addon")
+  {
+    // clear "WeatherProviderLogo" property that some weather addons set
+    CGUIWindow* window = g_windowManager.GetWindow(WINDOW_WEATHER);
+    window->SetProperty("WeatherProviderLogo", "");
     Refresh();
+  }
 }
 
 void CWeather::OnSettingAction(const CSetting *setting)

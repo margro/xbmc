@@ -309,7 +309,7 @@ void CGUIDialogMediaFilter::CreateSettings()
 
       case SettingInfo::RANGE:
       {
-        float min, interval, max;
+        float min = 0, interval = 0, max = 0;
         RANGEFORMATFUNCTION format;
         GetRange(filter, min, interval, max, format);
 
@@ -752,7 +752,7 @@ void CGUIDialogMediaFilter::OnBrowse(const Filter &filter, CFileItemList &items,
   }
 
   // sort the items
-  selectItems.Sort(SORT_METHOD_LABEL, SortOrderAscending);
+  selectItems.Sort(SortByLabel, SortOrderAscending);
 
   CGUIDialogSelect* pDialog = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
   pDialog->Reset();

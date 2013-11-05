@@ -34,6 +34,9 @@
 #include "windowing/WindowingFactory.h"
 #include "utils/CharsetConverter.h"
 
+#if defined(TARGET_DARWIN)
+#include "osx/CocoaInterface.h"
+#endif
 
 // Symbol mapping (based on MS virtual keyboard - may need improving)
 static char symbol_map[37] = ")!@#$%^&*([]{}-_=+;:\'\",.<>/?\\|`~    ";
@@ -144,6 +147,10 @@ bool CGUIDialogKeyboardGeneric::OnAction(const CAction &action)
   else if (action.GetID() >= REMOTE_0 && action.GetID() <= REMOTE_9)
   {
     OnRemoteNumberClick(action.GetID());
+  }
+  else if (action.GetID() == ACTION_PASTE)
+  {
+    OnPasteClipboard();
   }
   else if (action.GetID() >= KEY_VKEY && action.GetID() < KEY_ASCII)
   { // input from the keyboard (vkey, not ascii)
@@ -739,4 +746,29 @@ bool CGUIDialogKeyboardGeneric::ShowAndGetInput(char_callback_t pCallback, const
     return true;
   }
   else return false;
+}
+
+void CGUIDialogKeyboardGeneric::OnPasteClipboard(void)
+{
+  CStdStringW unicode_text;
+  CStdStringA utf8_text;
+
+// Get text from the clipboard
+  utf8_text = g_Windowing.GetClipboardText();
+
+  // Insert the pasted text at the current cursor position.
+  if (utf8_text.length() > 0)
+  {
+    g_charsetConverter.utf8ToW(utf8_text, unicode_text);
+
+    int i = GetCursorPos();
+    CStdStringW left_end = m_strEdit.Left(i);
+    CStdStringW right_end = m_strEdit.Right(m_strEdit.length() - i);
+
+    m_strEdit = left_end;
+    m_strEdit.append(unicode_text);
+    m_strEdit.append(right_end);
+    UpdateLabel();
+    MoveCursor(unicode_text.length());
+  }
 }

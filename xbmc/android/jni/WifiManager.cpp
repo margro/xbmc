@@ -35,6 +35,18 @@ CJNIList<CJNIWifiConfiguration> CJNIWifiManager::getConfiguredNetworks()
     "getConfiguredNetworks" , "()Ljava/util/List;");
 }
 
+int CJNIWifiManager::addNetwork(const CJNIWifiConfiguration &config)
+{
+    return call_method<int>(m_object,
+    "addNetwork" , "(Landroid/net/wifi/WifiConfiguration;)I", config.get_raw());
+}
+
+int CJNIWifiManager::updateNetwork(const CJNIWifiConfiguration &config)
+{
+    return call_method<int>(m_object,
+    "updateNetwork" , "(Landroid/net/wifi/WifiConfiguration;)I", config.get_raw());
+}
+
 CJNIList<CJNIScanResult> CJNIWifiManager::getScanResults()
 {
   return call_method<jhobject>(m_object,

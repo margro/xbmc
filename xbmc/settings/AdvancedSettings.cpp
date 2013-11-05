@@ -39,6 +39,9 @@
 #include "addons/IAddon.h"
 #include "addons/AddonManager.h"
 #include "addons/GUIDialogAddonSettings.h"
+#if defined(TARGET_DARWIN_IOS)
+#include "osx/DarwinUtils.h"
+#endif
 
 using namespace ADDON;
 using namespace XFILE;
@@ -112,13 +115,6 @@ void CAdvancedSettings::Initialize()
   m_ac3Gain = 12.0f;
   m_audioApplyDrc = true;
   m_dvdplayerIgnoreDTSinWAV = false;
-  m_audioResample = 0;
-  m_allowTranscode44100 = false;
-  m_audioForceDirectSound = false;
-  m_audioAudiophile = false;
-  m_allChannelStereo = false;
-  m_streamSilence = false;
-  m_audioSinkBufferDurationMsec = 50;
 
   //default hold time of 25 ms, this allows a 20 hertz sine to pass undistorted
   m_limiterHold = 0.025f;
@@ -161,7 +157,7 @@ void CAdvancedSettings::Initialize()
   m_videoIgnoreSecondsAtStart = 3*60;
   m_videoIgnorePercentAtEnd   = 8.0f;
   m_videoPlayCountMinimumPercent = 90.0f;
-  m_videoVDPAUScaling = false;
+  m_videoVDPAUScaling = -1;
   m_videoNonLinStretchRatio = 0.5f;
   m_videoEnableHighQualityHwScalers = false;
   m_videoAutoScaleMaxFps = 30.0f;
@@ -169,6 +165,8 @@ void CAdvancedSettings::Initialize()
   m_videoAllowMpeg4VAAPI = false;  
   m_videoDisableBackgroundDeinterlace = false;
   m_videoCaptureUseOcclusionQuery = -1; //-1 is auto detect
+  m_videoVDPAUtelecine = false;
+  m_videoVDPAUdeintSkipChromaHD = false;
   m_DXVACheckCompatibility = false;
   m_DXVACheckCompatibilityPresent = false;
   m_DXVAForceProcessorRenderer = true;
@@ -272,6 +270,7 @@ void CAdvancedSettings::Initialize()
   m_bMusicLibraryHideAllItems = false;
   m_bMusicLibraryAllItemsOnBottom = false;
   m_bMusicLibraryAlbumsSortByArtistThenYear = false;
+  m_bMusicLibraryCleanOnUpdate = false;
   m_iMusicLibraryRecentlyAddedItems = 25;
   m_strMusicLibraryAlbumFormat = "";
   m_strMusicLibraryAlbumFormatRight = "";
@@ -373,6 +372,9 @@ void CAdvancedSettings::Initialize()
 
   m_cacheMemBufferSize = 1024 * 1024 * 20;
   m_alwaysForceBuffer = false;
+  // the following setting determines the readRate of a player data
+  // as multiply of the default data read rate
+  m_readBufferFactor = 1.0f;
   m_addonPackageFolderSize = 200;
 
   m_jsonOutputCompact = true;
@@ -391,9 +393,10 @@ void CAdvancedSettings::Initialize()
   m_databaseMusic.Reset();
   m_databaseVideo.Reset();
 
-  m_pictureExtensions = ".png|.jpg|.jpeg|.bmp|.gif|.ico|.tif|.tiff|.tga|.pcx|.cbz|.zip|.cbr|.rar|.m3u|.dng|.nef|.cr2|.crw|.orf|.arw|.erf|.3fr|.dcr|.x3f|.mef|.raf|.mrw|.pef|.sr2|.rss";
+  m_pictureExtensions = ".png|.jpg|.jpeg|.bmp|.gif|.ico|.tif|.tiff|.tga|.pcx|.cbz|.zip|.cbr|.rar|.dng|.nef|.cr2|.crw|.orf|.arw|.erf|.3fr|.dcr|.x3f|.mef|.raf|.mrw|.pef|.sr2|.rss";
   m_musicExtensions = ".nsv|.m4a|.flac|.aac|.strm|.pls|.rm|.rma|.mpa|.wav|.wma|.ogg|.mp3|.mp2|.m3u|.mod|.amf|.669|.dmf|.dsm|.far|.gdm|.imf|.it|.m15|.med|.okt|.s3m|.stm|.sfx|.ult|.uni|.xm|.sid|.ac3|.dts|.cue|.aif|.aiff|.wpl|.ape|.mac|.mpc|.mp+|.mpp|.shn|.zip|.rar|.wv|.nsf|.spc|.gym|.adx|.dsp|.adp|.ymf|.ast|.afc|.hps|.xsp|.xwav|.waa|.wvs|.wam|.gcm|.idsp|.mpdsp|.mss|.spt|.rsd|.mid|.kar|.sap|.cmc|.cmr|.dmc|.mpt|.mpd|.rmt|.tmc|.tm8|.tm2|.oga|.url|.pxml|.tta|.rss|.cm3|.cms|.dlt|.brstm|.wtv|.mka";
   m_videoExtensions = ".m4v|.3g2|.3gp|.nsv|.tp|.ts|.ty|.strm|.pls|.rm|.rmvb|.m3u|.m3u8|.ifo|.mov|.qt|.divx|.xvid|.bivx|.vob|.nrg|.img|.iso|.pva|.wmv|.asf|.asx|.ogm|.m2v|.avi|.bin|.dat|.mpg|.mpeg|.mp4|.mkv|.avc|.vp3|.svq3|.nuv|.viv|.dv|.fli|.flv|.rar|.001|.wpl|.zip|.vdr|.dvr-ms|.xsp|.mts|.m2t|.m2ts|.evo|.ogv|.sdp|.avs|.rec|.url|.pxml|.vc1|.h264|.rcv|.rss|.mpls|.webm|.bdmv|.wtv";
+  m_subtitlesExtensions = ".utf|.utf8|.utf-8|.sub|.srt|.smi|.rt|.txt|.ssa|.text|.ssa|.aqt|.jss|.ass|.idx|.ifo|.rar|.zip";
   m_discStubExtensions = ".disc";
   // internal music extensions
   m_musicExtensions += "|.sidstream|.oggstream|.nsfstream|.asapstream|.cdda";
@@ -408,7 +411,11 @@ void CAdvancedSettings::Initialize()
 
   #if defined(TARGET_DARWIN)
     CStdString logDir = getenv("HOME");
+    #if defined(TARGET_DARWIN_OSX)
     logDir += "/Library/Logs/";
+    #else // ios/atv2
+    logDir += "/" + CStdString(DarwinGetXbmcRootFolder()) + "/";
+    #endif
     m_logFolder = logDir;
   #else
     m_logFolder = "special://home/";              // log file location
@@ -429,6 +436,11 @@ bool CAdvancedSettings::Load()
   for (unsigned int i = 0; i < m_settingsFiles.size(); i++)
     ParseSettingsFile(m_settingsFiles[i]);
   ParseSettingsFile(CProfilesManager::Get().GetUserDataItem("advancedsettings.xml"));
+
+  // Add the list of disc stub extensions (if any) to the list of video extensions
+  if (!m_discStubExtensions.IsEmpty())
+    m_videoExtensions += "|" + m_discStubExtensions;
+
   return true;
 }
 
@@ -483,15 +495,6 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetInt(pElement, "percentseekbackward", m_musicPercentSeekBackward, -100, 0);
     XMLUtils::GetInt(pElement, "percentseekforwardbig", m_musicPercentSeekForwardBig, 0, 100);
     XMLUtils::GetInt(pElement, "percentseekbackwardbig", m_musicPercentSeekBackwardBig, -100, 0);
-
-    XMLUtils::GetInt(pElement, "resample", m_audioResample, 0, 192000);
-    XMLUtils::GetBoolean(pElement, "allowtranscode44100", m_allowTranscode44100);
-    XMLUtils::GetBoolean(pElement, "forceDirectSound", m_audioForceDirectSound);
-    XMLUtils::GetBoolean(pElement, "audiophile", m_audioAudiophile);
-    XMLUtils::GetBoolean(pElement, "allchannelstereo", m_allChannelStereo);
-    XMLUtils::GetBoolean(pElement, "streamsilence", m_streamSilence);
-    XMLUtils::GetString(pElement, "transcodeto", m_audioTranscodeTo);
-    XMLUtils::GetInt(pElement, "audiosinkbufferdurationmsec", m_audioSinkBufferDurationMsec);
 
     TiXmlElement* pAudioExcludes = pElement->FirstChildElement("excludefromlisting");
     if (pAudioExcludes)
@@ -590,7 +593,7 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetString(pElement,"cleandatetime", m_videoCleanDateTimeRegExp);
     XMLUtils::GetString(pElement,"ppffmpegdeinterlacing",m_videoPPFFmpegDeint);
     XMLUtils::GetString(pElement,"ppffmpegpostprocessing",m_videoPPFFmpegPostProc);
-    XMLUtils::GetBoolean(pElement,"vdpauscaling",m_videoVDPAUScaling);
+    XMLUtils::GetInt(pElement,"vdpauscaling",m_videoVDPAUScaling);
     XMLUtils::GetFloat(pElement, "nonlinearstretchratio", m_videoNonLinStretchRatio, 0.01f, 1.0f);
     XMLUtils::GetBoolean(pElement,"enablehighqualityhwscalers", m_videoEnableHighQualityHwScalers);
     XMLUtils::GetFloat(pElement,"autoscalemaxfps",m_videoAutoScaleMaxFps, 0.0f, 1000.0f);
@@ -599,6 +602,8 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetBoolean(pElement,"allowmpeg4vaapi",m_videoAllowMpeg4VAAPI);    
     XMLUtils::GetBoolean(pElement, "disablebackgrounddeinterlace", m_videoDisableBackgroundDeinterlace);
     XMLUtils::GetInt(pElement, "useocclusionquery", m_videoCaptureUseOcclusionQuery, -1, 1);
+    XMLUtils::GetBoolean(pElement,"vdpauInvTelecine",m_videoVDPAUtelecine);
+    XMLUtils::GetBoolean(pElement,"vdpauHDdeintSkipChroma",m_videoVDPAUdeintSkipChromaHD);
 
     TiXmlElement* pStagefrightElem = pElement->FirstChildElement("stagefright");
     if (pStagefrightElem)
@@ -746,6 +751,7 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetBoolean(pElement, "prioritiseapetags", m_prioritiseAPEv2tags);
     XMLUtils::GetBoolean(pElement, "allitemsonbottom", m_bMusicLibraryAllItemsOnBottom);
     XMLUtils::GetBoolean(pElement, "albumssortbyartistthenyear", m_bMusicLibraryAlbumsSortByArtistThenYear);
+    XMLUtils::GetBoolean(pElement, "cleanonupdate", m_bMusicLibraryCleanOnUpdate);
     XMLUtils::GetString(pElement, "albumformat", m_strMusicLibraryAlbumFormat);
     XMLUtils::GetString(pElement, "albumformatright", m_strMusicLibraryAlbumFormatRight);
     XMLUtils::GetString(pElement, "itemseparator", m_musicItemSeparator);
@@ -795,6 +801,7 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetBoolean(pElement,"disableipv6", m_curlDisableIPV6);
     XMLUtils::GetUInt(pElement, "cachemembuffersize", m_cacheMemBufferSize);
     XMLUtils::GetBoolean(pElement, "alwaysforcebuffer", m_alwaysForceBuffer);
+    XMLUtils::GetFloat(pElement, "readbufferfactor", m_readBufferFactor);
   }
 
   pElement = pRootElement->FirstChildElement("jsonrpc");
@@ -945,10 +952,6 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
   pExts = pRootElement->FirstChildElement("discstubextensions");
   if (pExts)
     GetCustomExtensions(pExts, m_discStubExtensions);
-
-  // Add the list of disc stub extensions (if any) to the list of video extensions
-  if (!m_discStubExtensions.IsEmpty())
-    m_videoExtensions += "|" + m_discStubExtensions;
 
   m_vecTokens.clear();
   CLangInfo::LoadTokens(pRootElement->FirstChild("sorttokens"),m_vecTokens);
@@ -1108,6 +1111,11 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetString(pDatabase, "user", m_databaseVideo.user);
     XMLUtils::GetString(pDatabase, "pass", m_databaseVideo.pass);
     XMLUtils::GetString(pDatabase, "name", m_databaseVideo.name);
+    XMLUtils::GetString(pDatabase, "key", m_databaseVideo.key);
+    XMLUtils::GetString(pDatabase, "cert", m_databaseVideo.cert);
+    XMLUtils::GetString(pDatabase, "ca", m_databaseVideo.ca);
+    XMLUtils::GetString(pDatabase, "capath", m_databaseVideo.capath);
+    XMLUtils::GetString(pDatabase, "ciphers", m_databaseVideo.ciphers);
   }
 
   pDatabase = pRootElement->FirstChildElement("musicdatabase");
@@ -1119,6 +1127,11 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetString(pDatabase, "user", m_databaseMusic.user);
     XMLUtils::GetString(pDatabase, "pass", m_databaseMusic.pass);
     XMLUtils::GetString(pDatabase, "name", m_databaseMusic.name);
+    XMLUtils::GetString(pDatabase, "key", m_databaseMusic.key);
+    XMLUtils::GetString(pDatabase, "cert", m_databaseMusic.cert);
+    XMLUtils::GetString(pDatabase, "ca", m_databaseMusic.ca);
+    XMLUtils::GetString(pDatabase, "capath", m_databaseMusic.capath);
+    XMLUtils::GetString(pDatabase, "ciphers", m_databaseMusic.ciphers);
   }
 
   pDatabase = pRootElement->FirstChildElement("tvdatabase");
@@ -1130,6 +1143,11 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetString(pDatabase, "user", m_databaseTV.user);
     XMLUtils::GetString(pDatabase, "pass", m_databaseTV.pass);
     XMLUtils::GetString(pDatabase, "name", m_databaseTV.name);
+    XMLUtils::GetString(pDatabase, "key", m_databaseTV.key);
+    XMLUtils::GetString(pDatabase, "cert", m_databaseTV.cert);
+    XMLUtils::GetString(pDatabase, "ca", m_databaseTV.ca);
+    XMLUtils::GetString(pDatabase, "capath", m_databaseTV.capath);
+    XMLUtils::GetString(pDatabase, "ciphers", m_databaseTV.ciphers);
   }
 
   pDatabase = pRootElement->FirstChildElement("epgdatabase");
@@ -1141,6 +1159,11 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
     XMLUtils::GetString(pDatabase, "user", m_databaseEpg.user);
     XMLUtils::GetString(pDatabase, "pass", m_databaseEpg.pass);
     XMLUtils::GetString(pDatabase, "name", m_databaseEpg.name);
+    XMLUtils::GetString(pDatabase, "key", m_databaseEpg.key);
+    XMLUtils::GetString(pDatabase, "cert", m_databaseEpg.cert);
+    XMLUtils::GetString(pDatabase, "ca", m_databaseEpg.ca);
+    XMLUtils::GetString(pDatabase, "capath", m_databaseEpg.capath);
+    XMLUtils::GetString(pDatabase, "ciphers", m_databaseEpg.ciphers);
   }
 
   pElement = pRootElement->FirstChildElement("enablemultimediakeys");

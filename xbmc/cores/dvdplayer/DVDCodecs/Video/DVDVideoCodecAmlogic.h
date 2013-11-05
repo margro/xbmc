@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2012 Team XBMC
+ *      Copyright (C) 2005-2013 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -25,6 +25,8 @@
 class CAMLCodec;
 struct frame_queue;
 struct mpeg2_sequence;
+class CBitstreamParser;
+class CBitstreamConverter;
 
 class CDVDVideoCodecAmlogic : public CDVDVideoCodec
 {
@@ -63,4 +65,7 @@ protected:
   float           m_aspect_ratio;
   mpeg2_sequence *m_mpeg2_sequence;
   double          m_mpeg2_sequence_pts;
+
+  CBitstreamParser *m_bitparser;
+  CBitstreamConverter *m_bitstream;
 };

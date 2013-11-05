@@ -169,8 +169,7 @@ JSONRPC_STATUS CFileOperations::GetFileDetails(const CStdString &method, ITransp
   if (!CFileUtils::RemoteAccessAllowed(file))
     return InvalidParams;
 
-  CStdString path;
-  URIUtils::GetDirectory(file, path);
+  CStdString path = URIUtils::GetDirectory(file);
 
   CFileItemList items;
   if (path.empty() || !CDirectory::GetDirectory(path, items) || !items.Contains(file))
@@ -314,7 +313,7 @@ bool CFileOperations::FillFileItemList(const CVariant &parameterObject, CFileIte
       CDirectory directory;
       if (directory.GetDirectory(strPath, items, extensions))
       {
-        items.Sort(SORT_METHOD_FILE, SortOrderAscending);
+        items.Sort(SortByFile, SortOrderAscending);
         CFileItemList filteredDirectories;
         for (unsigned int i = 0; i < (unsigned int)items.Size(); i++)
         {

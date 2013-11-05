@@ -270,7 +270,7 @@ JSONRPC_STATUS CAudioLibrary::GetSongDetails(const CStdString &method, ITranspor
   if (ret != OK)
     return ret;
 
-  HandleFileItem("songid", false, "songdetails", items[0], parameterObject, parameterObject["properties"], result, false);
+  HandleFileItem("songid", true, "songdetails", items[0], parameterObject, parameterObject["properties"], result, false);
   return OK;
 }
 
@@ -638,14 +638,14 @@ bool CAudioLibrary::FillFileItemList(const CVariant &parameterObject, CFileItemL
     // If we retrieved the list of songs by "artistid"
     // we sort by album (and implicitly by track number)
     if (artistID != -1)
-      list.Sort(SORT_METHOD_ALBUM_IGNORE_THE, SortOrderAscending);
+      list.Sort(SortByAlbum, SortOrderAscending, SortAttributeIgnoreArticle);
     // If we retrieve the list of songs by "genreid"
     // we sort by artist (and implicitly by album and track number)
     else if (genreID != -1)
-      list.Sort(SORT_METHOD_ARTIST_IGNORE_THE, SortOrderAscending);
+      list.Sort(SortByArtist, SortOrderAscending, SortAttributeIgnoreArticle);
     // otherwise we sort by track number
     else
-      list.Sort(SORT_METHOD_TRACKNUM, SortOrderAscending);
+      list.Sort(SortByTrackNumber, SortOrderAscending);
 
   }
 

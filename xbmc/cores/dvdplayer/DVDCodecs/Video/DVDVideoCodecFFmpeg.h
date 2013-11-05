@@ -29,7 +29,6 @@
 #include "DllAvFilter.h"
 #include "DllPostProc.h"
 
-class CVDPAU;
 class CCriticalSection;
 
 class CDVDVideoCodecFFmpeg : public CDVDVideoCodec
@@ -99,7 +98,11 @@ protected:
   AVFilterGraph*   m_pFilterGraph;
   AVFilterContext* m_pFilterIn;
   AVFilterContext* m_pFilterOut;
+#if defined(LIBAVFILTER_AVFRAME_BASED)
+  AVFrame*         m_pFilterFrame;
+#else
   AVFilterBufferRef* m_pBufferRef;
+#endif
 
   int m_iPictureWidth;
   int m_iPictureHeight;
