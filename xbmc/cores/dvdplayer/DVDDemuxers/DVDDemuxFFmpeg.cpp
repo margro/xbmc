@@ -50,6 +50,8 @@
 #include "utils/TimeUtils.h"
 #include "URL.h"
 
+#define FF_MAX_EXTRADATA_SIZE ((1 << 28) - FF_INPUT_BUFFER_PADDING_SIZE)
+
 void CDemuxStreamAudioFFmpeg::GetStreamInfo(std::string& strInfo)
 {
   if(!m_stream) return;
@@ -218,6 +220,7 @@ CDVDDemuxFFmpeg::CDVDDemuxFFmpeg() : CDVDDemux()
   m_program = UINT_MAX;
   m_pkt.result = -1;
   memset(&m_pkt.pkt, 0, sizeof(AVPacket));
+  m_streaminfo = true; /* set to true if we want to look for streams before playback */
 }
 
 CDVDDemuxFFmpeg::~CDVDDemuxFFmpeg()
@@ -238,10 +241,11 @@ bool CDVDDemuxFFmpeg::Aborted()
   return false;
 }
 
-bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput)
+bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
 {
   AVInputFormat* iformat = NULL;
   std::string strFile;
+  m_streaminfo = streaminfo;
   m_iCurrentPts = DVD_NOPTS_VALUE;
   m_speed = DVD_PLAYSPEED_NORMAL;
   m_program = UINT_MAX;
@@ -259,8 +263,6 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput)
 
   m_pInput = pInput;
   strFile = m_pInput->GetFileName();
-
-  bool streaminfo = true; /* set to true if we want to look for streams before playback*/
 
   if( m_pInput->GetContent().length() > 0 )
   {
@@ -451,7 +453,7 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput)
   m_bMatroska = strncmp(m_pFormatContext->iformat->name, "matroska", 8) == 0;	// for "matroska.webm"
   m_bAVI = strcmp(m_pFormatContext->iformat->name, "avi") == 0;
 
-  if (streaminfo)
+  if (m_streaminfo)
   {
     /* too speed up dvd switches, only analyse very short */
     if(m_pInput->IsStreamType(DVDSTREAM_TYPE_DVD))
@@ -477,6 +479,9 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput)
     }
     CLog::Log(LOGDEBUG, "%s - av_find_stream_info finished", __FUNCTION__);
   }
+  else
+    m_program = 0;
+
   // reset any timeout
   m_timeout.SetInfinite();
 
@@ -531,7 +536,7 @@ void CDVDDemuxFFmpeg::Reset()
 {
   CDVDInputStream* pInputStream = m_pInput;
   Dispose();
-  Open(pInputStream);
+  Open(pInputStream, m_streaminfo);
 }
 
 void CDVDDemuxFFmpeg::Flush()
@@ -721,6 +726,83 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
     else
     {
       AVStream *stream = m_pFormatContext->streams[m_pkt.pkt.stream_index];
+
+      AVStream *st = m_pFormatContext->streams[m_pkt.pkt.stream_index];
+      // Fast udp/mpegts startup and channel switching.
+      // Set streaminfo false to skip avformat_find_stream_info (slow)
+      // But we do need a proper codec extradata so fill it in for ffmpeg.
+      // The idea is to detect an IDR: SPS + PPS + frame which can be decoded.
+      // This block is not entered if we already split extradata.
+      // This routine is based on avformat_find_stream_info and friends.
+      if(st->parser && st->parser->parser->split && !st->codec->extradata)
+      {
+        int i = st->parser->parser->split(st->codec, m_pkt.pkt.data, m_pkt.pkt.size);
+        if (i > 0 && i < FF_MAX_EXTRADATA_SIZE)
+        {
+          // Found extradata, fill it in. This will cause
+          // a new stream to be created and used.
+          st->codec->extradata_size = i;
+          st->codec->extradata = (uint8_t*)m_dllAvUtil.av_malloc(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
+          if (st->codec->extradata)
+          {
+            CLog::Log(LOGDEBUG, "CDVDDemuxFFmpeg::Read() fetching extradata, extradata_size(%d)", st->codec->extradata_size);
+            memcpy(st->codec->extradata, m_pkt.pkt.data, st->codec->extradata_size);
+            memset(st->codec->extradata + i, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+
+            if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+            {
+              const AVCodec* codec;
+              AVDictionary *thread_opt = NULL;
+              codec = st->codec->codec ? st->codec->codec : m_dllAvCodec.avcodec_find_decoder(st->codec->codec_id);
+              // Force thread count to 1 since the h264 decoder will not extract
+              // SPS and PPS to extradata during multi-threaded decoding
+              m_dllAvUtil.av_dict_set(&thread_opt, "threads", "1", 0);
+              m_dllAvCodec.avcodec_open2(st->codec, codec, &thread_opt);
+
+              // We don't need to actually decode here
+              st->codec->skip_idct = AVDISCARD_ALL;
+              st->codec->skip_frame = AVDISCARD_ALL;
+              st->codec->skip_loop_filter = AVDISCARD_ALL;
+
+              // This assumes that the current ffmpeg pkt contains a key_frame
+              AVFrame picture;
+              memset(&picture, 0, sizeof(AVFrame));
+              picture.pts = picture.pkt_dts = picture.pkt_pts = picture.best_effort_timestamp = AV_NOPTS_VALUE;
+              picture.pkt_pos = -1;
+              picture.key_frame = 1;
+              picture.format = -1;
+
+              int rtn, got_picture = 0;
+              rtn = m_dllAvCodec.avcodec_decode_video2(st->codec, &picture, &got_picture, &m_pkt.pkt);
+              if (rtn < 0)
+              {
+                CLog::Log(LOGDEBUG, "CDVDDemuxFFmpeg::Read() decode failed (return value=%d)", rtn);
+                // Clear the extradata to allow entering this extradata section again
+                m_dllAvUtil.av_free(st->codec->extradata);
+                st->codec->extradata = NULL;
+                st->codec->extradata_size = 0;
+              }
+
+              m_dllAvCodec.avcodec_close(st->codec);
+              m_dllAvUtil.av_dict_free(&thread_opt);
+
+              st->parser->flags = 0;
+              int has_codec_parameters = st->codec->width && st->codec->pix_fmt != PIX_FMT_NONE;
+              //CLog::Log(LOGDEBUG, "CDVDDemuxFFmpeg::Read() rtn(%d), got_picture(%d), has_codec_parameters(%d)", rtn, got_picture, has_codec_parameters);
+
+              if (!has_codec_parameters)
+              {
+                pPacket = CDVDDemuxUtils::AllocateDemuxPacket(0);
+                return pPacket;
+              }
+            }
+          }
+          else
+          {
+            st->codec->extradata_size = 0;
+          }
+        }
+      }
 
       if (m_program != UINT_MAX)
       {
