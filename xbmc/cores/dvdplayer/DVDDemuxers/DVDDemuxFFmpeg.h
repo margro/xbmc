@@ -127,6 +127,7 @@ protected:
   CDemuxStream* GetStreamInternal(int iStreamId);
   void CreateStreams(unsigned int program = UINT_MAX);
   void DisposeStreams();
+  void GetStreamInfo(AVPacket *pkt);
 
   AVDictionary *GetFFMpegOptionsFromURL(const CURL &url);
   double ConvertTimestamp(int64_t pts, int den, int num);
