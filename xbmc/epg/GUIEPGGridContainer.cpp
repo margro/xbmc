@@ -1346,7 +1346,7 @@ CGUIListItemLayout *CGUIEPGGridContainer::GetFocusedLayout() const
 bool CGUIEPGGridContainer::SelectItemFromPoint(const CPoint &point, bool justGrid /* = false */)
 {
   /* point has already had origin set to m_posX, m_posY */
-  if (!m_focusedProgrammeLayout || !m_programmeLayout || (justGrid && point.x < 0))
+  if (!m_focusedProgrammeLayout || !m_programmeLayout || (justGrid && point.x < 0) || m_gridIndex == NULL)
     return false;
 
   int channel = (int)(point.y / m_channelHeight);
@@ -1635,7 +1635,7 @@ GridItemsPtr *CGUIEPGGridContainer::GetPrevItem(const int &channel)
 
 GridItemsPtr *CGUIEPGGridContainer::GetItem(const int &channel)
 {
-  if ( (channel >= 0) && (channel < m_channels) )
+  if ((m_gridIndex !=NULL) && (channel >= 0) && (channel < m_channels) )
     return &m_gridIndex[channel + m_channelOffset][m_blockCursor + m_blockOffset];
   else
     return NULL;
