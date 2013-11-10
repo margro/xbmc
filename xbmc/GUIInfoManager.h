@@ -642,6 +642,8 @@ namespace INFO
 #define LISTITEM_PROGRESS           (LISTITEM_START + 137)
 #define LISTITEM_HAS_EPG            (LISTITEM_START + 138)
 #define LISTITEM_VOTES              (LISTITEM_START + 139)
+#define LISTITEM_STEREOSCOPIC_MODE  (LISTITEM_START + 140)
+#define LISTITEM_IS_STEREOSCOPIC    (LISTITEM_START + 141)
 
 #define LISTITEM_PROPERTY_START     (LISTITEM_START + 200)
 #define LISTITEM_PROPERTY_END       (LISTITEM_PROPERTY_START + 1000)
@@ -775,7 +777,7 @@ public:
   CStdString GetMusicLabel(int item);
   CStdString GetMusicTagLabel(int info, const CFileItem *item);
   CStdString GetVideoLabel(int item);
-  CStdString GetPlaylistLabel(int item) const;
+  CStdString GetPlaylistLabel(int item, int playlistid = -1 /* PLAYLIST_NONE */) const;
   CStdString GetMusicPartyModeLabel(int item);
   const CStdString GetMusicPlaylistInfo(const GUIInfo& info);
   CStdString GetPictureLabel(int item);

@@ -14,7 +14,11 @@ XBMCTEX_DIRS= \
 
 DVDPCODECS_DIRS= \
 	lib \
-	lib/libdvd
+	lib/libdvd 
+
+ifeq (@USE_LIBSTAGEFRIGHT@,1)
+DVDPCODECS_DIRS += xbmc/cores/dvdplayer/DVDCodecs/Video/libstagefrightICS
+endif
 
 DVDPLAYER_ARCHIVES=xbmc/cores/dvdplayer/DVDPlayer.a \
                    xbmc/cores/dvdplayer/DVDCodecs/DVDCodecs.a \
@@ -303,8 +307,10 @@ CHECK_LIBS = xbmc/filesystem/test/filesystemTest.a \
              xbmc/utils/test/utilsTest.a \
              xbmc/threads/test/threadTest.a \
              xbmc/interfaces/python/test/pythonSwigTest.a \
-             xbmc/windowing/tests/wayland/test_wayland.a \
              xbmc/test/xbmc-test.a
+
+ifeq (@USE_WAYLAND@,1)
+CHECK_LIBS += xbmc/windowing/tests/wayland/test_wayland.a
 
 ifeq (@USE_WAYLAND_TEST_EXTENSION@,1)
 WAYLAND_TEST_MODULE = xbmc/windowing/tests/wayland/xbmc-wayland-test-extension.so
@@ -312,6 +318,7 @@ $(WAYLAND_TEST_MODULE): force
 	$(MAKE) -C $(@D) $(@F)
 CHECK_EXTENSIONS = $(WAYLAND_TEST_MODULE)
 CHECK_LIBADD=@WAYLAND_TEST_LIBS@
+endif
 endif
 
 CHECK_PROGRAMS = xbmc-test
@@ -326,7 +333,7 @@ all : $(FINAL_TARGETS)
 include Makefile.include
 
 .PHONY : dllloader exports visualizations screensavers eventclients papcodecs \
-	dvdpcodecs imagelib codecs externals force skins libaddon check \
+	dvdpcodecs dvdpextcodecs imagelib codecs externals force skins libaddon check \
 	testframework testsuite
 
 # hack targets to keep build system up to date
@@ -399,6 +406,14 @@ libaddon: exports
 dvdpcodecs: dllloader
 	$(MAKE) -C lib
 	$(MAKE) -C lib/libdvd
+
+ifeq (@USE_LIBSTAGEFRIGHT@,1)
+dvdpextcodecs: libxbmc.so 
+	$(MAKE) -C xbmc/cores/dvdplayer/DVDCodecs/Video/libstagefrightICS
+else
+dvdpextcodecs:
+endif
+
 eventclients:
 ifeq ($(findstring osx,@ARCH@), osx)
 ifneq ($(findstring arm,@ARCH@), arm)
@@ -439,7 +454,7 @@ ifeq (@USE_PVR_ADDONS@,1)
 	$(MAKE) -C pvr-addons
 endif
 
-codecs: papcodecs dvdpcodecs
+codecs: papcodecs dvdpcodecs dvdpextcodecs
 
 libs: libhdhomerun imagelib libexif system/libcpluff-@ARCH@.so $(CMYTH)
 
@@ -507,10 +522,10 @@ else
 	$(SILENT_LD) $(CXX) $(CXXFLAGS) $(LDFLAGS) -shared -o $@ $(MAINOBJS) -Wl,--start-group $(DYNOBJSXBMC) $(OBJSXBMC) -Wl,--end-group -Wl,--no-undefined $(NWAOBJSXBMC) $(LIBS)
 endif
 
-xbmc/main/main.a:
+xbmc/main/main.a: force
 	$(MAKE) -C xbmc/main
 
-xbmc.bin: $(OBJSXBMC) $(DYNOBJSXBMC) $(NWAOBJSXBMC) $(MAINOBJS) xbmc/main/main.a
+xbmc.bin: $(OBJSXBMC) $(DYNOBJSXBMC) $(NWAOBJSXBMC) $(MAINOBJS)
 
 ifeq ($(findstring osx,@ARCH@), osx)
 	$(SILENT_LD) $(CXX) $(LDFLAGS) -o xbmc.bin -Wl,-all_load,-ObjC $(DYNOBJSXBMC) $(NWAOBJSXBMC) $(OBJSXBMC) $(LIBS) -rdynamic

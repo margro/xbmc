@@ -69,6 +69,7 @@
 #if defined(TARGET_ANDROID)
 #include "xbmc/android/activity/XBMCApp.h"
 #endif
+#include "FileItemListModification.h"
 
 #define CONTROL_BTNVIEWASICONS       2
 #define CONTROL_BTNSORTBY            3
@@ -652,8 +653,9 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
 
   CStdString strParentPath = m_history.GetParentPath();
 
-  CLog::Log(LOGDEBUG,"CGUIMediaWindow::GetDirectory (%s)", strDirectory.c_str());
-  CLog::Log(LOGDEBUG,"  ParentPath = [%s]", strParentPath.c_str());
+  CLog::Log(LOGDEBUG,"CGUIMediaWindow::GetDirectory (%s)",
+            CURL::GetRedacted(strDirectory).c_str());
+  CLog::Log(LOGDEBUG,"  ParentPath = [%s]", CURL::GetRedacted(strParentPath).c_str());
 
   // see if we can load a previously cached folder
   CFileItemList cachedItems(strDirectory);
@@ -749,15 +751,12 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
   CStdString filter;
   CURL url(directory);
   if (canfilter && url.HasOption("filter"))
-  {
-    filter = url.GetOption("filter");
     directory = RemoveParameterFromPath(directory, "filter");
-  }
 
   CFileItemList items;
   if (!GetDirectory(directory, items))
   {
-    CLog::Log(LOGERROR,"CGUIMediaWindow::GetDirectory(%s) failed", strDirectory.c_str());
+    CLog::Log(LOGERROR,"CGUIMediaWindow::GetDirectory(%s) failed", url.GetRedacted().c_str());
     // Try to return to the previous directory, if not the same
     // else fallback to root
     if (strDirectory.Equals(strCurrentDirectory) || !Update(m_history.RemoveParentPath()))
@@ -774,44 +773,8 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
   ClearFileItems();
   m_vecItems->Copy(items);
 
-  // only set the filter path if it hasn't been marked
-  // as preset or if it's empty
-  if (updateFilterPath || m_strFilterPath.empty())
-  {
-    if (items.HasProperty(PROPERTY_PATH_DB))
-      m_strFilterPath = items.GetProperty(PROPERTY_PATH_DB).asString();
-    else
-      m_strFilterPath = items.GetPath();
-  }
-  
-  // maybe the filter path can contain a filter
-  if (!canfilter && CanContainFilter(m_strFilterPath))
-    canfilter = true;
-
-  // check if the filter path contains a filter
-  CURL filterPathUrl(m_strFilterPath);
-  if (canfilter && filter.empty())
-  {
-    if (filterPathUrl.HasOption("filter"))
-      filter = filterPathUrl.GetOption("filter");
-  }
-
-  // check if there is a filter and re-apply it
-  if (canfilter && !filter.empty())
-  {
-    if (!m_filter.LoadFromJson(filter))
-    {
-      CLog::Log(LOGWARNING, "CGUIMediaWindow::Update: unable to load existing filter (%s)", filter.c_str());
-      m_filter.Reset();
-      m_strFilterPath = m_vecItems->GetPath();
-    }
-    else
-    {
-      // add the filter to the filter path
-      filterPathUrl.SetOption("filter", filter);
-      m_strFilterPath = filterPathUrl.Get();
-    }
-  }
+  // check the given path for filter data
+  UpdateFilterPath(strDirectory, items, updateFilterPath);
     
   // if we're getting the root source listing
   // make sure the path history is clean
@@ -934,7 +897,7 @@ bool CGUIMediaWindow::Refresh(bool clearCache /* = false */)
 // It's used to load tag info for music.
 void CGUIMediaWindow::OnPrepareFileItems(CFileItemList &items)
 {
-
+  CFileItemListModification::Get().Modify(items);
 }
 
 // \brief This function will be called by Update() before
@@ -1344,7 +1307,7 @@ bool CGUIMediaWindow::OnPlayMedia(int iItem)
   g_playlistPlayer.SetCurrentPlaylist(PLAYLIST_NONE);
   CFileItemPtr pItem=m_vecItems->Get(iItem);
 
-  CLog::Log(LOGDEBUG, "%s %s", __FUNCTION__, pItem->GetPath().c_str());
+  CLog::Log(LOGDEBUG, "%s %s", __FUNCTION__, CURL::GetRedacted(pItem->GetPath()).c_str());
 
   bool bResult = false;
   if (pItem->IsInternetStream() || pItem->IsPlayList())
@@ -1674,6 +1637,55 @@ bool CGUIMediaWindow::WaitForNetwork() const
   }
   progress->Close();
   return true;
+}
+
+void CGUIMediaWindow::UpdateFilterPath(const CStdString &strDirectory, const CFileItemList &items, bool updateFilterPath)
+{
+  bool canfilter = CanContainFilter(strDirectory);
+
+  CStdString filter;
+  CURL url(strDirectory);
+  if (canfilter && url.HasOption("filter"))
+    filter = url.GetOption("filter");
+
+  // only set the filter path if it hasn't been marked
+  // as preset or if it's empty
+  if (updateFilterPath || m_strFilterPath.empty())
+  {
+    if (items.HasProperty(PROPERTY_PATH_DB))
+      m_strFilterPath = items.GetProperty(PROPERTY_PATH_DB).asString();
+    else
+      m_strFilterPath = items.GetPath();
+  }
+  
+  // maybe the filter path can contain a filter
+  if (!canfilter && CanContainFilter(m_strFilterPath))
+    canfilter = true;
+
+  // check if the filter path contains a filter
+  CURL filterPathUrl(m_strFilterPath);
+  if (canfilter && filter.empty())
+  {
+    if (filterPathUrl.HasOption("filter"))
+      filter = filterPathUrl.GetOption("filter");
+  }
+
+  // check if there is a filter and re-apply it
+  if (canfilter && !filter.empty())
+  {
+    if (!m_filter.LoadFromJson(filter))
+    {
+      CLog::Log(LOGWARNING, "CGUIMediaWindow::UpdateFilterPath(): unable to load existing filter (%s)", filter.c_str());
+      m_filter.Reset();
+      m_strFilterPath = m_vecItems->GetPath();
+    }
+    else
+    {
+      // add the filter to the filter path
+      filterPathUrl.SetOption("filter", filter);
+      m_strFilterPath = filterPathUrl.Get();
+    }
+  }
 }
 
 void CGUIMediaWindow::OnFilterItems(const CStdString &filter)

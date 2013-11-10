@@ -69,6 +69,7 @@
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/SettingAddon.h"
+#include "settings/SettingControl.h"
 #include "settings/SettingsManager.h"
 #include "settings/SettingPath.h"
 #include "settings/SkinSettings.h"
@@ -252,6 +253,22 @@ CSetting* CSettings::CreateSetting(const std::string &settingType, const std::st
   return NULL;
 }
 
+ISettingControl* CSettings::CreateControl(const std::string &controlType) const
+{
+  if (StringUtils::EqualsNoCase(controlType, "toggle"))
+    return new CSettingControlCheckmark();
+  else if (StringUtils::EqualsNoCase(controlType, "spinner"))
+    return new CSettingControlSpinner();
+  else if (StringUtils::EqualsNoCase(controlType, "edit"))
+    return new CSettingControlEdit();
+  else if (StringUtils::EqualsNoCase(controlType, "button"))
+    return new CSettingControlButton();
+  else if (StringUtils::EqualsNoCase(controlType, "list"))
+    return new CSettingControlList();
+
+  return NULL;
+}
+
 bool CSettings::Initialize()
 {
   CSingleLock lock(m_critical);
@@ -260,6 +277,8 @@ bool CSettings::Initialize()
 
   // register custom setting types
   InitializeSettingTypes();
+  // register custom setting controls
+  InitializeControls();
 
   // option fillers and conditions need to be
   // initialized before the setting definitions
@@ -427,6 +446,9 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterCallback(&XBMCHelper::GetInstance());
 #endif
 
+  // cleanup the settings manager
+  m_settingsManager->Clear();
+
   // unregister ISubSettings implementations
   m_settingsManager->UnregisterSubSettings(&g_application);
   m_settingsManager->UnregisterSubSettings(&CDisplaySettings::Get());
@@ -436,19 +458,16 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterSubSettings(&CViewStateSettings::Get());
 
   // unregister ISettingsHandler implementations
-  m_settingsManager->UnregisterSettingsHandler(&CWakeOnAccess::Get());
   m_settingsManager->UnregisterSettingsHandler(&g_advancedSettings);
   m_settingsManager->UnregisterSettingsHandler(&CMediaSourceSettings::Get());
   m_settingsManager->UnregisterSettingsHandler(&CPlayerCoreFactory::Get());
-  m_settingsManager->UnregisterSettingsHandler(&CRssManager::Get());
+  m_settingsManager->UnregisterSettingsHandler(&CProfilesManager::Get());
 #ifdef HAS_UPNP
   m_settingsManager->UnregisterSettingsHandler(&CUPnPSettings::Get());
 #endif
-  m_settingsManager->UnregisterSettingsHandler(&CProfilesManager::Get());
+  m_settingsManager->UnregisterSettingsHandler(&CWakeOnAccess::Get());
+  m_settingsManager->UnregisterSettingsHandler(&CRssManager::Get());
   m_settingsManager->UnregisterSettingsHandler(&g_application);
-
-  // cleanup the settings manager
-  m_settingsManager->Clear();
 
   m_initialized = false;
 }
@@ -530,6 +549,103 @@ bool CSettings::SetString(const std::string &id, const std::string &value)
   return m_settingsManager->SetString(id, value);
 }
 
+std::vector<CVariant> CSettings::GetList(const std::string &id) const
+{
+  std::vector<CVariant> realValues;
+
+  CSetting *setting = m_settingsManager->GetSetting(id);
+  if (setting == NULL)
+    return realValues;
+
+  CSettingList *listSetting = static_cast<CSettingList*>(setting);
+  const SettingPtrList &values = listSetting->GetValue();
+  for (SettingPtrList::const_iterator it = values.begin(); it != values.end(); ++it)
+  {
+    switch (listSetting->GetElementType())
+    {
+      case SettingTypeBool:
+        realValues.push_back(static_cast<const CSettingBool*>(it->get())->GetValue());
+        break;
+
+      case SettingTypeInteger:
+        realValues.push_back(static_cast<const CSettingInt*>(it->get())->GetValue());
+        break;
+
+      case SettingTypeNumber:
+        realValues.push_back(static_cast<const CSettingNumber*>(it->get())->GetValue());
+        break;
+
+      case SettingTypeString:
+        realValues.push_back(static_cast<const CSettingString*>(it->get())->GetValue());
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  return realValues;
+}
+
+bool CSettings::SetList(const std::string &id, const std::vector<CVariant> &value)
+{
+  CSetting *setting = m_settingsManager->GetSetting(id);
+  if (setting == NULL)
+    return false;
+
+  CSettingList *listSetting = static_cast<CSettingList*>(setting);
+  SettingPtrList newValues;
+  bool ret = true;
+  int index = 0;
+  for (std::vector<CVariant>::const_iterator itValue = value.begin(); itValue != value.end(); ++itValue)
+  {
+    CSetting *settingValue = listSetting->GetDefinition()->Clone(StringUtils::Format("%s.%d", listSetting->GetId().c_str(), index++));
+    if (settingValue == NULL)
+      return false;
+
+    switch (listSetting->GetElementType())
+    {
+      case SettingTypeBool:
+        if (!itValue->isBoolean())
+          return false;
+        ret = static_cast<CSettingBool*>(settingValue)->SetValue(itValue->asBoolean());
+        break;
+
+      case SettingTypeInteger:
+        if (!itValue->isInteger())
+          return false;
+        ret = static_cast<CSettingInt*>(settingValue)->SetValue(itValue->asInteger());
+        break;
+
+      case SettingTypeNumber:
+        if (!itValue->isDouble())
+          return false;
+        ret = static_cast<CSettingNumber*>(settingValue)->SetValue(itValue->asDouble());
+        break;
+
+      case SettingTypeString:
+        if (!itValue->isString())
+          return false;
+        ret = static_cast<CSettingString*>(settingValue)->SetValue(itValue->asString());
+        break;
+
+      default:
+        ret = false;
+        break;
+    }
+
+    if (!ret)
+    {
+      delete settingValue;
+      return false;
+    }
+
+    newValues.push_back(SettingPtr(settingValue));
+  }
+
+  return listSetting->SetValue(newValues);
+}
+
 bool CSettings::LoadSetting(const TiXmlNode *node, const std::string &settingId)
 {
   return m_settingsManager->LoadSetting(node, settingId);
@@ -607,6 +723,15 @@ void CSettings::InitializeSettingTypes()
   // register "addon" and "path" setting types implemented by CSettingAddon
   m_settingsManager->RegisterSettingType("addon", this);
   m_settingsManager->RegisterSettingType("path", this);
+}
+
+void CSettings::InitializeControls()
+{
+  m_settingsManager->RegisterSettingControl("toggle", this);
+  m_settingsManager->RegisterSettingControl("spinner", this);
+  m_settingsManager->RegisterSettingControl("edit", this);
+  m_settingsManager->RegisterSettingControl("button", this);
+  m_settingsManager->RegisterSettingControl("list", this);
 }
 
 void CSettings::InitializeVisibility()
@@ -783,7 +908,8 @@ void CSettings::InitializeConditions()
     m_settingsManager->AddCondition("have_amcodec");
 #endif
 #ifdef HAS_LIBSTAGEFRIGHT
-  m_settingsManager->AddCondition("have_libstagefrightdecoder");
+  if (CAndroidFeatures::GetVersion() < 19)
+    m_settingsManager->AddCondition("have_libstagefrightdecoder");
 #endif
 #ifdef TARGET_DARWIN_IOS_ATV2
   if (g_sysinfo.IsAppleTV2())
@@ -837,7 +963,6 @@ void CSettings::InitializeISettingsHandlers()
 #endif
   m_settingsManager->RegisterSettingsHandler(&CWakeOnAccess::Get());
   m_settingsManager->RegisterSettingsHandler(&CRssManager::Get());
-  m_settingsManager->RegisterSettingsHandler(&CWakeOnAccess::Get());
   m_settingsManager->RegisterSettingsHandler(&g_application);
 }
 
@@ -902,6 +1027,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert("audiooutput.audiodevice");
   settingSet.insert("audiooutput.passthroughdevice");
   settingSet.insert("audiooutput.streamsilence");
+  settingSet.insert("audiooutput.normalizelevels");
   settingSet.insert("lookandfeel.skin");
   settingSet.insert("lookandfeel.skinsettings");
   settingSet.insert("lookandfeel.font");

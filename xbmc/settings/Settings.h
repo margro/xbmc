@@ -23,8 +23,10 @@
 #include <string>
 
 #include "settings/ISettingCallback.h"
+#include "settings/ISettingControlCreator.h"
 #include "settings/ISettingCreator.h"
 #include "threads/CriticalSection.h"
+#include "utils/Variant.h"
 
 class CSetting;
 class CSettingSection;
@@ -38,7 +40,7 @@ class TiXmlNode;
  setting types.
  \sa CSettingsManager
  */
-class CSettings : public ISettingCreator
+class CSettings : public ISettingCreator, public ISettingControlCreator
 {
 public:
   /*!
@@ -59,6 +61,9 @@ public:
 
   // implementation of ISettingCreator
   virtual CSetting* CreateSetting(const std::string &settingType, const std::string &settingId, CSettingsManager *settingsManager = NULL) const;
+
+  // implementation of ISettingControlCreator
+  virtual ISettingControl* CreateControl(const std::string &controlType) const;
 
   /*!
    \brief Initializes the setting system with the generic
@@ -181,6 +186,13 @@ public:
    \return String value of the setting with the given identifier
    */
   std::string GetString(const std::string &id) const;
+  /*!
+   \brief Gets the values of the list setting with the given identifier.
+
+   \param id Setting identifier
+   \return List of values of the setting with the given identifier
+   */
+  std::vector<CVariant> GetList(const std::string &id) const;
 
   /*!
    \brief Sets the boolean value of the setting with the given identifier.
@@ -221,6 +233,14 @@ public:
    \return True if setting the value was successful, false otherwise
    */
   bool SetString(const std::string &id, const std::string &value);
+  /*!
+   \brief Sets the values of the list setting with the given identifier.
+
+   \param id Setting identifier
+   \param value Values to set
+   \return True if setting the values was successful, false otherwise
+   */
+  bool SetList(const std::string &id, const std::vector<CVariant> &value);
 
   /*!
    \brief Loads the setting being represented by the given XML node with the
@@ -239,6 +259,7 @@ private:
   bool Initialize(const std::string &file);
   bool InitializeDefinitions();
   void InitializeSettingTypes();
+  void InitializeControls();
   void InitializeVisibility();
   void InitializeDefaults();
   void InitializeOptionFillers();

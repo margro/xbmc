@@ -26,8 +26,11 @@
 #include "filesystem/DirectoryCache.h"
 #include "FileItem.h"
 #include "settings/Settings.h"
+#include "settings/VideoSettings.h"
 #include "GUIUserMessages.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/StereoscopicsManager.h"
+#include "rendering/RenderSystem.h"
 #include "TextureCache.h"
 #include "utils/log.h"
 #include "video/VideoInfoTag.h"
@@ -36,6 +39,7 @@
 #include "video/VideoInfoScanner.h"
 #include "music/MusicDatabase.h"
 #include "utils/StringUtils.h"
+#include "settings/AdvancedSettings.h"
 
 using namespace XFILE;
 using namespace std;
@@ -93,7 +97,7 @@ bool CThumbExtractor::DoWork()
   bool result=false;
   if (m_thumb)
   {
-    CLog::Log(LOGDEBUG,"%s - trying to extract thumb from video file %s", __FUNCTION__, m_item.GetPath().c_str());
+    CLog::Log(LOGDEBUG,"%s - trying to extract thumb from video file %s", __FUNCTION__, CURL::GetRedacted(m_item.GetPath()).c_str());
     // construct the thumb cache file
     CTextureDetails details;
     details.file = CTextureCache::GetCacheFile(m_target) + ".jpg";
@@ -120,7 +124,7 @@ bool CThumbExtractor::DoWork()
   else if (!m_item.HasVideoInfoTag() || !m_item.GetVideoInfoTag()->HasStreamDetails())
   {
     // No tag or no details set, so extract them
-    CLog::Log(LOGDEBUG,"%s - trying to extract filestream details from video file %s", __FUNCTION__, m_item.GetPath().c_str());
+    CLog::Log(LOGDEBUG,"%s - trying to extract filestream details from video file %s", __FUNCTION__, CURL::GetRedacted(m_item.GetPath()).c_str());
     result = CDVDFileInfo::GetFileStreamDetails(&m_item);
   }
 
@@ -300,6 +304,8 @@ bool CVideoThumbLoader::LoadItemLookup(CFileItem* pItem)
       pItem->GetVideoInfoTag()->m_type != "musicvideo")
     return false; // Nothing to do here
 
+  DetectAndAddMissingItemData(*pItem);
+
   m_videoDatabase->Open();
 
   map<string, string> artwork = pItem->GetArt();
@@ -466,7 +472,7 @@ std::string CVideoThumbLoader::GetLocalArt(const CFileItem &item, const std::str
      thumbloader thread accesses the streamed filesystem at the same time as the
      App thread and the latter has to wait for it.
    */
-  if (item.m_bIsFolder && item.IsInternetStream(true))
+  if (item.m_bIsFolder && (item.IsInternetStream(true) || g_advancedSettings.m_networkBufferMode == 1))
   {
     CFileItemList items; // Dummy list
     CDirectory::GetDirectory(item.GetPath(), items, "", DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);
@@ -500,7 +506,7 @@ CStdString CVideoThumbLoader::GetEmbeddedThumbURL(const CFileItem &item)
   if (URIUtils::IsStack(path))
     path = CStackDirectory::GetFirstStackedFile(path);
 
-  return CTextureCache::GetWrappedImageURL(path, "video");
+  return CTextureUtils::GetWrappedImageURL(path, "video");
 }
 
 void CVideoThumbLoader::OnJobComplete(unsigned int jobID, bool success, CJob* job)
@@ -517,4 +523,34 @@ void CVideoThumbLoader::OnJobComplete(unsigned int jobID, bool success, CJob* jo
     g_windowManager.SendThreadMessage(msg);
   }
   CJobQueue::OnJobComplete(jobID, success, job);
+}
+
+void CVideoThumbLoader::DetectAndAddMissingItemData(CFileItem &item)
+{
+  if (item.m_bIsFolder) return;
+
+  std::string stereoMode;
+  // detect stereomode for videos
+  if (item.HasVideoInfoTag())
+    stereoMode = item.GetVideoInfoTag()->m_streamDetails.GetStereoMode();
+  if (stereoMode.empty())
+  {
+    std::string path = item.GetPath();
+    if (item.IsVideoDb() && item.HasVideoInfoTag())
+      path = item.GetVideoInfoTag()->GetPath();
+
+    // check for custom stereomode setting in video settings
+    CVideoSettings itemVideoSettings;
+    m_videoDatabase->Open();
+    if (m_videoDatabase->GetVideoSettings(path, itemVideoSettings) && itemVideoSettings.m_StereoMode != RENDER_STEREO_MODE_OFF)
+      stereoMode = CStereoscopicsManager::Get().ConvertGuiStereoModeToString( (RENDER_STEREO_MODE) itemVideoSettings.m_StereoMode );
+    m_videoDatabase->Close();
+
+    // still empty, try grabbing from filename
+    // TODO: in case of too many false positives due to using the full path, extract the filename only using string utils
+    if (stereoMode.empty())
+      stereoMode = CStereoscopicsManager::Get().DetectStereoModeByString( path );
+  }
+  if (!stereoMode.empty())
+    item.SetProperty("stereomode", CStereoscopicsManager::Get().NormalizeStereoMode(stereoMode));
 }

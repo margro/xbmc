@@ -195,6 +195,15 @@ const CStdString URIUtils::GetFileName(const CStdString& strFileNameAndPath)
 void URIUtils::Split(const CStdString& strFileNameAndPath,
                      CStdString& strPath, CStdString& strFileName)
 {
+  std::string strPathT, strFileNameT;
+  Split(strFileNameAndPath, strPathT, strFileNameT);
+  strPath = strPathT;
+  strFileName = strFileNameT;
+}
+
+void URIUtils::Split(const std::string& strFileNameAndPath,
+                     std::string& strPath, std::string& strFileName)
+{
   //Splits a full filename in path and file.
   //ex. smb://computer/share/directory/filename.ext -> strPath:smb://computer/share/directory/ and strFileName:filename.ext
   //Trailing slash will be preserved
@@ -211,8 +220,10 @@ void URIUtils::Split(const CStdString& strFileNameAndPath,
   if (i == 0)
     i--;
 
-  strPath = strFileNameAndPath.Left(i + 1);
-  strFileName = strFileNameAndPath.Right(strFileNameAndPath.size() - i - 1);
+  // take left including the directory separator
+  strPath = strFileNameAndPath.substr(0, i+1);
+  // everything to the right of the directory separator
+  strFileName = strFileNameAndPath.substr(i+1);
 }
 
 CStdStringArray URIUtils::SplitPath(const CStdString& strPath)
@@ -394,17 +405,30 @@ bool URIUtils::GetParentPath(const CStdString& strPath, CStdString& strParent)
   return true;
 }
 
-CStdString URIUtils::SubstitutePath(const CStdString& strPath)
+CStdString URIUtils::SubstitutePath(const CStdString& strPath, bool reverse /* = false */)
 {
   for (CAdvancedSettings::StringMapping::iterator i = g_advancedSettings.m_pathSubstitutions.begin();
       i != g_advancedSettings.m_pathSubstitutions.end(); i++)
   {
-    if (strncmp(strPath.c_str(), i->first.c_str(), HasSlashAtEnd(i->first.c_str()) ? i->first.size()-1 : i->first.size()) == 0)
+    if (!reverse)
     {
-      if (strPath.size() > i->first.size())
-        return URIUtils::AddFileToFolder(i->second, strPath.Mid(i->first.size()));
-      else
-        return i->second;
+      if (strncmp(strPath.c_str(), i->first.c_str(), HasSlashAtEnd(i->first.c_str()) ? i->first.size()-1 : i->first.size()) == 0)
+      {
+        if (strPath.size() > i->first.size())
+          return URIUtils::AddFileToFolder(i->second, strPath.Mid(i->first.size()));
+        else
+          return i->second;
+      }
+    }
+    else
+    {
+      if (strncmp(strPath.c_str(), i->second.c_str(), HasSlashAtEnd(i->second.c_str()) ? i->second.size()-1 : i->second.size()) == 0)
+      {
+        if (strPath.size() > i->second.size())
+          return URIUtils::AddFileToFolder(i->first, strPath.Mid(i->second.size()));
+        else
+          return i->first;
+      }
     }
   }
   return strPath;

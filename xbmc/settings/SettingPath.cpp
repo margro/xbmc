@@ -31,16 +31,17 @@
 CSettingPath::CSettingPath(const std::string &id, CSettingsManager *settingsManager /* = NULL */)
   : CSettingString(id, settingsManager),
     m_writable(true)
-{
-  m_control.SetType(SettingControlTypeButton);
-  m_control.SetFormat(SettingControlFormatPath);
-  m_control.SetAttributes(SettingControlAttributeNone);
-}
+{ }
   
 CSettingPath::CSettingPath(const std::string &id, const CSettingPath &setting)
   : CSettingString(id, setting)
 {
   copy(setting);
+}
+
+CSetting* CSettingPath::Clone(const std::string &id) const
+{
+  return new CSettingPath(id, *this);
 }
 
 bool CSettingPath::Deserialize(const TiXmlNode *node, bool update /* = false */)
@@ -50,9 +51,8 @@ bool CSettingPath::Deserialize(const TiXmlNode *node, bool update /* = false */)
   if (!CSettingString::Deserialize(node, update))
     return false;
     
-  if (m_control.GetType() != SettingControlTypeButton ||
-      m_control.GetFormat() != SettingControlFormatPath ||
-      m_control.GetAttributes() != SettingControlAttributeNone)
+  if (m_control != NULL &&
+     (m_control->GetType() != "button" || m_control->GetFormat() != "path"))
   {
     CLog::Log(LOGERROR, "CSettingPath: invalid <control> of \"%s\"", m_id.c_str());
     return false;

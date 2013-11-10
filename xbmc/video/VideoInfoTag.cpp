@@ -25,7 +25,7 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
-#include "TextureCache.h"
+#include "TextureDatabase.h"
 #include "filesystem/File.h"
 
 #include <sstream>
@@ -197,6 +197,7 @@ bool CVideoInfoTag::Save(TiXmlNode *node, const CStdString &tag, bool savePathIn
       XMLUtils::SetInt(&stream, "width", m_streamDetails.GetVideoWidth(iStream));
       XMLUtils::SetInt(&stream, "height", m_streamDetails.GetVideoHeight(iStream));
       XMLUtils::SetInt(&stream, "durationinseconds", m_streamDetails.GetVideoDuration(iStream));
+      XMLUtils::SetString(&stream, "stereomode", m_streamDetails.GetStereoMode(iStream));
       streamdetails.InsertEndChild(stream);
     }
     for (int iStream=1; iStream<=m_streamDetails.GetAudioStreamCount(); iStream++)
@@ -432,7 +433,7 @@ void CVideoInfoTag::Serialize(CVariant& value) const
     actor["role"] = m_cast[i].strRole;
     actor["order"] = m_cast[i].order;
     if (!m_cast[i].thumb.IsEmpty())
-      actor["thumbnail"] = CTextureCache::GetWrappedImageURL(m_cast[i].thumb);
+      actor["thumbnail"] = CTextureUtils::GetWrappedImageURL(m_cast[i].thumb);
     value["cast"].push_back(actor);
   }
   value["set"] = m_strSet;
@@ -521,6 +522,7 @@ void CVideoInfoTag::ToSortable(SortItem& sortable, Field field) const
   case FieldVideoResolution:          sortable[FieldVideoResolution] = m_streamDetails.GetVideoHeight(); break;
   case FieldVideoAspectRatio:         sortable[FieldVideoAspectRatio] = m_streamDetails.GetVideoAspect(); break;
   case FieldVideoCodec:               sortable[FieldVideoCodec] = m_streamDetails.GetVideoCodec(); break;
+  case FieldStereoMode:               sortable[FieldStereoMode] = m_streamDetails.GetStereoMode(); break;
 
   case FieldAudioChannels:            sortable[FieldAudioChannels] = m_streamDetails.GetAudioChannels(); break;
   case FieldAudioCodec:               sortable[FieldAudioCodec] = m_streamDetails.GetAudioCodec(); break;
@@ -712,7 +714,9 @@ void CVideoInfoTag::ParseNative(const TiXmlElement* movie, bool prioritise)
         XMLUtils::GetInt(nodeDetail, "width", p->m_iWidth);
         XMLUtils::GetInt(nodeDetail, "height", p->m_iHeight);
         XMLUtils::GetInt(nodeDetail, "durationinseconds", p->m_iDuration);
+        XMLUtils::GetString(nodeDetail, "stereomode", p->m_strStereoMode);
         p->m_strCodec.MakeLower();
+        StringUtils::ToLower(p->m_strStereoMode);
         m_streamDetails.AddStream(p);
       }
       nodeDetail = NULL;

@@ -20,6 +20,7 @@
 
 #include "ApplicationPlayer.h"
 #include "cores/IPlayer.h"
+#include "Application.h"
 
 #define VOLUME_MINIMUM 0.0f        // -60dB
 #define VOLUME_MAXIMUM 1.0f        // 0dB
@@ -618,12 +619,6 @@ void CApplicationPlayer::GetGeneralInfo( CStdString& strVideoInfo)
     player->GetGeneralInfo(strVideoInfo);
 }
 
-bool CApplicationPlayer::GetCurrentSubtitle(CStdString& strSubtitle)
-{
-  boost::shared_ptr<IPlayer> player = GetInternal();
-  return (player && player->GetCurrentSubtitle(strSubtitle));
-}
-
 int  CApplicationPlayer::SeekChapter(int iChapter)
 {
   boost::shared_ptr<IPlayer> player = GetInternal();
@@ -693,7 +688,7 @@ void CApplicationPlayer::SetPlaySpeed(int iSpeed, bool bApplicationMuted)
   {
     if (m_iPlaySpeed == 1)
     { // restore volume
-      player->SetVolume(VOLUME_MAXIMUM);
+      player->SetVolume(g_application.GetVolume(false));
     }
     else
     { // mute volume

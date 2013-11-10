@@ -19,14 +19,12 @@
  */
 
 #include "SettingsManager.h"
+#include "SettingDefinitions.h"
 #include "SettingSection.h"
 #include "Setting.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/XBMCTinyXML.h"
-
-#define XML_ROOT        "settings"
-#define XML_SECTION     "section"
 
 
 CSettingsManager::CSettingsManager()
@@ -40,6 +38,7 @@ CSettingsManager::~CSettingsManager()
   m_settingsHandlers.clear();
   m_subSettings.clear();
   m_settingCreators.clear();
+  m_settingControlCreators.clear();
 
   Clear();
 }
@@ -51,13 +50,13 @@ bool CSettingsManager::Initialize(const TiXmlElement *root)
   if (m_initialized || root == NULL)
     return false;
 
-  if (!StringUtils::EqualsNoCase(root->ValueStr(), XML_ROOT))
+  if (!StringUtils::EqualsNoCase(root->ValueStr(), SETTING_XML_ROOT))
   {
     CLog::Log(LOGERROR, "CSettingsManager: error reading settings definition: doesn't contain <settings> tag");
     return false;
   }
 
-  const TiXmlNode *sectionNode = root->FirstChild(XML_SECTION);
+  const TiXmlNode *sectionNode = root->FirstChild(SETTING_XML_ELM_SECTION);
   while (sectionNode != NULL)
   {
     std::string sectionId;
@@ -114,7 +113,7 @@ bool CSettingsManager::Initialize(const TiXmlElement *root)
       }
     }
       
-    sectionNode = sectionNode->NextSibling(XML_SECTION);
+    sectionNode = sectionNode->NextSibling(SETTING_XML_ELM_SECTION);
   }
 
   for (SettingMap::iterator itSettingDep = m_settings.begin(); itSettingDep != m_settings.end(); ++itSettingDep)
@@ -154,7 +153,7 @@ bool CSettingsManager::Initialize(const TiXmlElement *root)
 
 bool CSettingsManager::Load(const TiXmlElement *root, bool &updated, bool triggerEvents /* = true */, std::map<std::string, CSetting*> *loadedSettings /* = NULL */)
 {
-  CExclusiveLock lock(m_critical);
+  CSharedLock lock(m_critical);
   CExclusiveLock settingsLock(m_settingsCritical);
   if (m_loaded || root == NULL)
     return false;
@@ -312,13 +311,24 @@ void CSettingsManager::RegisterSettingType(const std::string &settingType, ISett
     m_settingCreators.insert(make_pair(settingType, settingCreator));
 }
 
+void CSettingsManager::RegisterSettingControl(const std::string &controlType, ISettingControlCreator *settingControlCreator)
+{
+  if (controlType.empty() || settingControlCreator == NULL)
+    return;
+
+  CExclusiveLock lock(m_critical);
+  SettingControlCreatorMap::const_iterator creatorIt = m_settingControlCreators.find(controlType);
+  if (creatorIt == m_settingControlCreators.end())
+    m_settingControlCreators.insert(make_pair(controlType, settingControlCreator));
+}
+
 void CSettingsManager::RegisterSettingsHandler(ISettingsHandler *settingsHandler)
 {
   if (settingsHandler == NULL)
     return;
 
   CExclusiveLock lock(m_critical);
-  if (find(m_settingsHandlers.begin(), m_settingsHandlers.end(), settingsHandler) >= m_settingsHandlers.end())
+  if (find(m_settingsHandlers.begin(), m_settingsHandlers.end(), settingsHandler) == m_settingsHandlers.end())
     m_settingsHandlers.push_back(settingsHandler);
 }
 
@@ -328,7 +338,9 @@ void CSettingsManager::UnregisterSettingsHandler(ISettingsHandler *settingsHandl
     return;
 
   CExclusiveLock lock(m_critical);
-  m_settingsHandlers.erase(find(m_settingsHandlers.begin(), m_settingsHandlers.end(), settingsHandler));
+  SettingsHandlers::iterator it = find(m_settingsHandlers.begin(), m_settingsHandlers.end(), settingsHandler);
+  if (it != m_settingsHandlers.end())
+    m_settingsHandlers.erase(it);
 }
 
 void CSettingsManager::RegisterSubSettings(ISubSettings *subSettings)
@@ -563,6 +575,26 @@ bool CSettingsManager::SetString(const std::string &id, const std::string &value
   return ((CSettingString*)setting)->SetValue(value);
 }
 
+std::vector< boost::shared_ptr<CSetting> > CSettingsManager::GetList(const std::string &id) const
+{
+  CSharedLock lock(m_settingsCritical);
+  CSetting *setting = GetSetting(id);
+  if (setting == NULL || setting->GetType() != SettingTypeList)
+    return std::vector< boost::shared_ptr<CSetting> >();
+
+  return ((CSettingList*)setting)->GetValue();
+}
+
+bool CSettingsManager::SetList(const std::string &id, const std::vector< boost::shared_ptr<CSetting> > &value)
+{
+  CSharedLock lock(m_settingsCritical);
+  CSetting *setting = GetSetting(id);
+  if (setting == NULL || setting->GetType() != SettingTypeList)
+    return false;
+
+  return ((CSettingList*)setting)->SetValue(value);
+}
+
 void CSettingsManager::AddCondition(const std::string &condition)
 {
   CExclusiveLock lock(m_critical);
@@ -766,20 +798,42 @@ void CSettingsManager::OnSettingPropertyChanged(const CSetting *setting, const c
 CSetting* CSettingsManager::CreateSetting(const std::string &settingType, const std::string &settingId, CSettingsManager *settingsManager /* = NULL */) const
 {
   if (StringUtils::EqualsNoCase(settingType, "boolean"))
-    return new CSettingBool(settingId, (CSettingsManager*)this);
+    return new CSettingBool(settingId, const_cast<CSettingsManager*>(this));
   else if (StringUtils::EqualsNoCase(settingType, "integer"))
-    return new CSettingInt(settingId, (CSettingsManager*)this);
+    return new CSettingInt(settingId, const_cast<CSettingsManager*>(this));
   else if (StringUtils::EqualsNoCase(settingType, "number"))
-    return new CSettingNumber(settingId, (CSettingsManager*)this);
+    return new CSettingNumber(settingId, const_cast<CSettingsManager*>(this));
   else if (StringUtils::EqualsNoCase(settingType, "string"))
-    return new CSettingString(settingId, (CSettingsManager*)this);
+    return new CSettingString(settingId, const_cast<CSettingsManager*>(this));
   else if (StringUtils::EqualsNoCase(settingType, "action"))
-    return new CSettingAction(settingId, (CSettingsManager*)this);
+    return new CSettingAction(settingId, const_cast<CSettingsManager*>(this));
+  else if (settingType.size() > 6 &&
+           StringUtils::StartsWith(settingType, "list[") &&
+           StringUtils::EndsWith(settingType, "]"))
+  {
+    std::string elementType = StringUtils::Mid(settingType, 5, settingType.size() - 6);
+    CSetting *elementSetting = CreateSetting(elementType, settingId + ".definition", const_cast<CSettingsManager*>(this));
+    if (elementSetting != NULL)
+      return new CSettingList(settingId, elementSetting, const_cast<CSettingsManager*>(this));
+  }
 
   CSharedLock lock(m_critical);
   SettingCreatorMap::const_iterator creator = m_settingCreators.find(settingType);
   if (creator != m_settingCreators.end())
     return creator->second->CreateSetting(settingType, settingId, (CSettingsManager*)this);
+
+  return NULL;
+}
+
+ISettingControl* CSettingsManager::CreateControl(const std::string &controlType) const
+{
+  if (controlType.empty())
+    return NULL;
+
+  CSharedLock lock(m_critical);
+  SettingControlCreatorMap::const_iterator creator = m_settingControlCreators.find(controlType);
+  if (creator != m_settingControlCreators.end() && creator->second != NULL)
+    return creator->second->CreateControl(controlType);
 
   return NULL;
 }

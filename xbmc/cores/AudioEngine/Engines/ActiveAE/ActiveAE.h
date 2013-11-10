@@ -55,6 +55,7 @@ struct AudioSettings
   bool truehdpassthrough;
   bool dtshdpassthrough;
   bool stereoupmix;
+  bool normalizelevels;
   bool passthrough;
   int config;
   unsigned int samplerate;
@@ -307,6 +308,7 @@ protected:
   // buffers
   CActiveAEBufferPoolResample *m_sinkBuffers;
   CActiveAEBufferPoolResample *m_vizBuffers;
+  CActiveAEBufferPool *m_vizBuffersInput;
   CActiveAEBufferPool *m_silenceBuffers;  // needed to drive gui sounds if we have no streams
   CActiveAEBufferPool *m_encoderBuffers;
 

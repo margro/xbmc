@@ -61,12 +61,14 @@ public:
                                      const CStdString& strNewExtension);
   static void Split(const CStdString& strFileNameAndPath, 
                     CStdString& strPath, CStdString& strFileName);
+  static void Split(const std::string& strFileNameAndPath, 
+                    std::string& strPath, std::string& strFileName);
   static CStdStringArray SplitPath(const CStdString& strPath);
 
   static void GetCommonPath(CStdString& strPath, const CStdString& strPath2);
   static CStdString GetParentPath(const CStdString& strPath);
   static bool GetParentPath(const CStdString& strPath, CStdString& strParent);
-  static CStdString SubstitutePath(const CStdString& strPath);
+  static CStdString SubstitutePath(const CStdString& strPath, bool reverse = false);
 
   static bool IsAddonsPath(const CStdString& strFile);
   static bool IsSourcesPath(const CStdString& strFile);

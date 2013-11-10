@@ -1219,6 +1219,9 @@
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\XBMCOperations.cpp">
       <Filter>interfaces\json-rpc</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\interfaces\json-rpc\TextureOperations.cpp">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\music\dialogs\GUIDialogMusicInfo.cpp">
       <Filter>music\dialogs</Filter>
     </ClCompile>
@@ -2450,6 +2453,9 @@
     <ClCompile Include="..\..\xbmc\dbwrappers\Database.cpp">
       <Filter>dbwrappers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\dbwrappers\DatabaseQuery.cpp">
+      <Filter>dbwrappers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\dbwrappers\dataset.cpp">
       <Filter>dbwrappers</Filter>
     </ClCompile>
@@ -3066,6 +3072,19 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\windowing\WinEvents.cpp">
       <Filter>windowing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\playlists\SmartPlaylistFileItemListModifier.cpp">
+      <Filter>playlists</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\FileItemListModification.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\ISettingControl.cpp">
+      <Filter>settings</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\CharsetDetection.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\cores\VideoRenderers\OverlayRendererGUI.cpp">
+      <Filter>cores\VideoRenderers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -4182,6 +4201,9 @@
       <Filter>interfaces\json-rpc</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\XBMCOperations.h">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\interfaces\json-rpc\TextureOperations.h">
       <Filter>interfaces\json-rpc</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\music\dialogs\GUIDialogMusicInfo.h">
@@ -5520,6 +5542,9 @@
     <ClInclude Include="..\..\xbmc\dbwrappers\Database.h">
       <Filter>dbwrappers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\xbmc\dbwrappers\DatabaseQuery.h">
+      <Filter>dbwrappers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\xbmc\dbwrappers\dataset.h">
       <Filter>dbwrappers</Filter>
     </ClInclude>
@@ -6021,6 +6046,26 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\uXstrings.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\IFileItemListModifier.h" />
+    <ClInclude Include="..\..\xbmc\playlists\SmartPlaylistFileItemListModifier.h">
+      <Filter>playlists</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\FileItemListModification.h" />
+    <ClInclude Include="..\..\xbmc\settings\ISettingControl.h">
+      <Filter>settings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\settings\ISettingControlCreator.h">
+      <Filter>settings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\settings\SettingDefinitions.h">
+      <Filter>settings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\CharsetDetection.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\cores\VideoRenderers\OverlayRendererGUI.h">
+      <Filter>cores\VideoRenderers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

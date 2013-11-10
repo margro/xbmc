@@ -24,9 +24,11 @@
 #include <string>
 #include <vector>
 
+#include <boost/shared_ptr.hpp>
+
 #include "ISetting.h"
 #include "ISettingCallback.h"
-#include "SettingControl.h"
+#include "ISettingControl.h"
 #include "SettingDependency.h"
 #include "SettingUpdate.h"
 #include "threads/SharedSection.h"
@@ -41,7 +43,8 @@ typedef enum {
   SettingTypeInteger,
   SettingTypeNumber,
   SettingTypeString,
-  SettingTypeAction
+  SettingTypeAction,
+  SettingTypeList
 } SettingType;
 
 /*!
@@ -80,7 +83,9 @@ class CSetting : public ISetting,
 public:
   CSetting(const std::string &id, CSettingsManager *settingsManager = NULL);
   CSetting(const std::string &id, const CSetting &setting);
-  virtual ~CSetting() { }
+  virtual ~CSetting();
+
+  virtual CSetting* Clone(const std::string &id) const = 0;
 
   virtual bool Deserialize(const TiXmlNode *node, bool update = false);
 
@@ -98,7 +103,8 @@ public:
   bool IsEnabled() const;
   const std::string& GetParent() const { return m_parentSetting; }
   SettingLevel GetLevel() const { return m_level; }
-  const CSettingControl& GetControl() const { return m_control; }
+  const ISettingControl* GetControl() const { return m_control; }
+  void SetControl(ISettingControl* control) { m_control = control; }
   const SettingDependencies& GetDependencies() const { return m_dependencies; }
   const std::set<CSettingUpdate>& GetUpdates() const { return m_updates; }
 
@@ -121,14 +127,65 @@ protected:
   int m_help;
   std::string m_parentSetting;
   SettingLevel m_level;
-  CSettingControl m_control;
+  ISettingControl *m_control;
   SettingDependencies m_dependencies;
   std::set<CSettingUpdate> m_updates;
   bool m_changed;
   CSharedSection m_critical;
 };
 
+typedef boost::shared_ptr<CSetting> SettingPtr;
+
 typedef std::vector<CSetting *> SettingList;
+typedef std::vector<SettingPtr> SettingPtrList;
+
+/*!
+ \ingroup settings
+ \brief List setting implementation
+ \sa CSetting
+ */
+class CSettingList : public CSetting
+{
+public:
+  CSettingList(const std::string &id, CSetting *settingDefinition, CSettingsManager *settingsManager = NULL);
+  CSettingList(const std::string &id, const CSettingList &setting);
+  virtual ~CSettingList();
+
+  virtual CSetting* Clone(const std::string &id) const;
+
+  virtual bool Deserialize(const TiXmlNode *node, bool update = false);
+
+  virtual int GetType() const { return SettingTypeList; }
+  virtual bool FromString(const std::string &value);
+  virtual std::string ToString() const;
+  virtual bool Equals(const std::string &value) const;
+  virtual bool CheckValidity(const std::string &value) const;
+  virtual void Reset();
+  
+  int GetElementType() const;
+  const CSetting* GetDefinition() const { return m_definition; }
+  
+  bool FromString(const std::vector<std::string> &value);
+
+  const SettingPtrList& GetValue() const { return m_values; }
+  bool SetValue(const SettingPtrList &values);
+  const SettingPtrList& GetDefault() const { return m_defaults; }
+  void SetDefault(const SettingPtrList &values);
+
+protected:
+  void copy(const CSettingList &setting);
+  static void copy(const SettingPtrList &srcValues, SettingPtrList &dstValues);
+  bool fromString(const std::string &strValue, SettingPtrList &values) const;
+  bool fromValues(const std::vector<std::string> &strValues, SettingPtrList &values) const;
+  std::string toString(const SettingPtrList &values) const;
+
+  SettingPtrList m_values;
+  SettingPtrList m_defaults;
+  CSetting *m_definition;
+  std::string m_delimiter;
+  int m_minimum;
+  int m_maximum;
+};
 
 /*!
  \ingroup settings
@@ -142,6 +199,8 @@ public:
   CSettingBool(const std::string &id, const CSettingBool &setting);
   CSettingBool(const std::string &id, int label, bool value, CSettingsManager *settingsManager = NULL);
   virtual ~CSettingBool() { }
+
+  virtual CSetting* Clone(const std::string &id) const;
 
   virtual bool Deserialize(const TiXmlNode *node, bool update = false);
 
@@ -175,10 +234,11 @@ class CSettingInt : public CSetting
 public:
   CSettingInt(const std::string &id, CSettingsManager *settingsManager = NULL);
   CSettingInt(const std::string &id, const CSettingInt &setting);
-  CSettingInt(const std::string &id, int label, int value, int minimum, int step, int maximum, int format, int minimumLabel, CSettingsManager *settingsManager = NULL);
-  CSettingInt(const std::string &id, int label, int value, int minimum, int step, int maximum, const std::string &format, CSettingsManager *settingsManager = NULL);
+  CSettingInt(const std::string &id, int label, int value, int minimum, int step, int maximum, CSettingsManager *settingsManager = NULL);
   CSettingInt(const std::string &id, int label, int value, const StaticIntegerSettingOptions &options, CSettingsManager *settingsManager = NULL);
   virtual ~CSettingInt() { }
+
+  virtual CSetting* Clone(const std::string &id) const;
 
   virtual bool Deserialize(const TiXmlNode *node, bool update = false);
 
@@ -199,9 +259,6 @@ public:
   int GetStep() const { return m_step; }
   int GetMaximum() const { return m_max; }
 
-  int GetFormat() const { return m_format; }
-  int GetMinimumLabel() const { return m_labelMin; }
-  const std::string& GetFormatString() const { return m_strFormat; }
   SettingOptionsType GetOptionsType() const;
   const StaticIntegerSettingOptions& GetOptions() const { return m_options; }
   const std::string& GetOptionsFiller() const { return m_optionsFiller; }
@@ -216,9 +273,6 @@ private:
   int m_min;
   int m_step;
   int m_max;
-  int m_format;
-  int m_labelMin;
-  std::string m_strFormat;
   StaticIntegerSettingOptions m_options;
   std::string m_optionsFiller;
   DynamicIntegerSettingOptions m_dynamicOptions;
@@ -236,6 +290,8 @@ public:
   CSettingNumber(const std::string &id, const CSettingNumber &setting);
   CSettingNumber(const std::string &id, int label, float value, float minimum, float step, float maximum, CSettingsManager *settingsManager = NULL);
   virtual ~CSettingNumber() { }
+
+  virtual CSetting* Clone(const std::string &id) const;
 
   virtual bool Deserialize(const TiXmlNode *node, bool update = false);
 
@@ -280,6 +336,8 @@ public:
   CSettingString(const std::string &id, int label, const std::string &value, CSettingsManager *settingsManager = NULL);
   virtual ~CSettingString() { }
 
+  virtual CSetting* Clone(const std::string &id) const;
+
   virtual bool Deserialize(const TiXmlNode *node, bool update = false);
 
   virtual int GetType() const { return SettingTypeString; }
@@ -295,7 +353,6 @@ public:
   virtual void SetDefault(const std::string &value);
 
   virtual bool AllowEmpty() const { return m_allowEmpty; }
-  virtual int GetHeading() const { return m_heading; }
 
   SettingOptionsType GetOptionsType() const;
   const std::string& GetOptionsFiller() const { return m_optionsFiller; }
@@ -307,7 +364,6 @@ protected:
   std::string m_value;
   std::string m_default;
   bool m_allowEmpty;
-  int m_heading;
   std::string m_optionsFiller;
   DynamicStringSettingOptions m_dynamicOptions;
 };
@@ -327,6 +383,8 @@ public:
   CSettingAction(const std::string &id, CSettingsManager *settingsManager = NULL);
   CSettingAction(const std::string &id, const CSettingAction &setting);
   virtual ~CSettingAction() { }
+
+  virtual CSetting* Clone(const std::string &id) const;
 
   virtual bool Deserialize(const TiXmlNode *node, bool update = false);
 

@@ -1601,6 +1601,9 @@ void CApplication::OnSettingChanged(const CSetting *setting)
     g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_WINDOW_RESIZE);
   else if (StringUtils::StartsWithNoCase(settingId, "audiooutput."))
   {
+    // AE is master of audio settings and needs to be informed first
+    CAEFactory::OnSettingsChange(settingId);
+
     if (settingId == "audiooutput.guisoundmode")
     {
       CAEFactory::SetSoundMode(((CSettingInt*)setting)->GetValue());
@@ -1610,10 +1613,7 @@ void CApplication::OnSettingChanged(const CSetting *setting)
     else if (settingId == "audiooutput.passthrough")
     {
       CApplicationMessenger::Get().MediaRestart(false);
-      return;
     }
-
-    CAEFactory::OnSettingsChange(settingId);
   }
   else if (StringUtils::EqualsNoCase(settingId, "musicplayer.replaygaintype"))
     m_replayGainSettings.iType = ((CSettingInt*)setting)->GetValue();
@@ -1711,6 +1711,14 @@ bool CApplication::OnSettingUpdate(CSetting* &setting, const char *oldSettingId,
     {
       CSettingBool *usemediacodec = (CSettingBool*)setting;
       usemediacodec->SetValue(false);
+    }
+  }
+  else if (settingId == "videoplayer.usestagefright")
+  {
+    if (CAndroidFeatures::GetVersion() >= 19)
+    {
+      CSettingBool *usestagefright = (CSettingBool*)setting;
+      usestagefright->SetValue(false);
     }
   }
 #endif
@@ -4482,17 +4490,14 @@ bool CApplication::WakeUpScreenSaver(bool bPowerOffKeyPressed /* = false */)
     m_iScreenSaveLock = 0;
     ResetScreenSaverTimer();
 
-    if (m_screenSaver->ID() == "visualization")
-    {
-      // we can just continue as usual from vis mode
-      return false;
-    }
-    else if (m_screenSaver->ID() == "screensaver.xbmc.builtin.dim" || m_screenSaver->ID() == "screensaver.xbmc.builtin.black" || m_screenSaver->ID().empty())
+    if (m_screenSaver->ID() == "screensaver.xbmc.builtin.dim" || m_screenSaver->ID() == "screensaver.xbmc.builtin.black" || m_screenSaver->ID().empty())
       return true;
     else if (!m_screenSaver->ID().IsEmpty())
     { // we're in screensaver window
-      if (g_windowManager.GetActiveWindow() == WINDOW_SCREENSAVER)
+      if (g_windowManager.GetActiveWindow() == WINDOW_SCREENSAVER
+          || g_windowManager.GetActiveWindow() == WINDOW_VISUALISATION)
         g_windowManager.PreviousWindow();  // show the previous window
+
       if (g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW)
         CApplicationMessenger::Get().SendAction(CAction(ACTION_STOP), WINDOW_SLIDESHOW);
     }
@@ -4586,7 +4591,9 @@ void CApplication::ActivateScreenSaver(bool forceType /*= false */)
     else if (m_pPlayer->IsPlayingAudio() && CSettings::Get().GetBool("screensaver.usemusicvisinstead") && !CSettings::Get().GetString("musicplayer.visualisation").empty())
     { // activate the visualisation
       m_screenSaver.reset(new CScreenSaver("visualization"));
-      g_windowManager.ActivateWindow(WINDOW_VISUALISATION);
+      // prevent music info popup if vis is already running
+      if (g_windowManager.GetActiveWindow() != WINDOW_VISUALISATION)
+        g_windowManager.ActivateWindow(WINDOW_VISUALISATION);
       return;
     }
   }
@@ -4894,10 +4901,13 @@ bool CApplication::OnMessage(CGUIMessage& message)
 bool CApplication::ExecuteXBMCAction(std::string actionStr)
 {
   // see if it is a user set string
-  CLog::Log(LOGDEBUG,"%s : Translating %s", __FUNCTION__, actionStr.c_str());
+
+  //We don't know if there is unsecure information in this yet, so we
+  //postpone any logging
+  const std::string in_actionStr(actionStr);
+  CLog::Log(LOGDEBUG,"%s : Translating action string", __FUNCTION__);
   CGUIInfoLabel info(actionStr, "");
   actionStr = info.GetLabel(0);
-  CLog::Log(LOGDEBUG,"%s : To %s", __FUNCTION__, actionStr.c_str());
 
   // user has asked for something to be executed
   if (CBuiltins::HasCommand(actionStr))
@@ -4924,7 +4934,12 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr)
       PlayFile(item);
     }
     else
+    {
+      //At this point we have given up to translate, so even though
+      //there may be insecure information, we log it.
+      CLog::Log(LOGDEBUG,"%s : Tried translating, but failed to understand %s", __FUNCTION__, in_actionStr.c_str());
       return false;
+    }
   }
   return true;
 }
