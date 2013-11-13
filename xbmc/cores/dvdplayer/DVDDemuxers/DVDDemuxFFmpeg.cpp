@@ -455,10 +455,7 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
 
   if (m_streaminfo)
   {
-    /* too speed up dvd switches, only analyse very short */
-    if(m_pInput->IsStreamType(DVDSTREAM_TYPE_DVD))
-      m_pFormatContext->max_analyze_duration = 500000;
-
+    m_pFormatContext->max_analyze_duration = 500000;
 
     CLog::Log(LOGDEBUG, "%s - avformat_find_stream_info starting", __FUNCTION__);
     int iErr = m_dllAvFormat.avformat_find_stream_info(m_pFormatContext, NULL);
@@ -725,30 +722,32 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
     }
     else
     {
-      if (!m_streaminfo)
-      {
-        GetStreamInfo(&m_pkt.pkt);
-      }
+      ParsePacket(&m_pkt.pkt);
 
       AVStream *stream = m_pFormatContext->streams[m_pkt.pkt.stream_index];
 
-      if (m_program != UINT_MAX)
+      if (IsVideoReady())
       {
-        /* check so packet belongs to selected program */
-        for (unsigned int i = 0; i < m_pFormatContext->programs[m_program]->nb_stream_indexes; i++)
+        if (m_program != UINT_MAX)
         {
-          if(m_pkt.pkt.stream_index == (int)m_pFormatContext->programs[m_program]->stream_index[i])
+          /* check so packet belongs to selected program */
+          for (unsigned int i = 0; i < m_pFormatContext->programs[m_program]->nb_stream_indexes; i++)
           {
-            pPacket = CDVDDemuxUtils::AllocateDemuxPacket(m_pkt.pkt.size);
-            break;
+            if(m_pkt.pkt.stream_index == (int)m_pFormatContext->programs[m_program]->stream_index[i])
+            {
+              pPacket = CDVDDemuxUtils::AllocateDemuxPacket(m_pkt.pkt.size);
+              break;
+            }
           }
-        }
 
-        if (!pPacket)
-          bReturnEmpty = true;
+          if (!pPacket)
+            bReturnEmpty = true;
+        }
+        else
+          pPacket = CDVDDemuxUtils::AllocateDemuxPacket(m_pkt.pkt.size);
       }
       else
-        pPacket = CDVDDemuxUtils::AllocateDemuxPacket(m_pkt.pkt.size);
+        bReturnEmpty = true;
 
       if (pPacket)
       {
@@ -1500,7 +1499,7 @@ bool CDVDDemuxFFmpeg::IsProgramChange()
   return false;
 }
 
-void CDVDDemuxFFmpeg::GetStreamInfo(AVPacket *pkt)
+void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
 {
   AVStream *st = m_pFormatContext->streams[pkt->stream_index];
   CDemuxStream *stream = GetStreamInternal(pkt->stream_index);
@@ -1511,7 +1510,7 @@ void CDVDDemuxFFmpeg::GetStreamInfo(AVPacket *pkt)
     st->need_parsing = AVSTREAM_PARSE_FULL;
   }
 
-  // split extradata and decode some info for video streams
+  // split extradata
   if(st->parser && st->parser->parser->split && !st->codec->extradata)
   {
     int i = st->parser->parser->split(st->codec, pkt->data, pkt->size);
@@ -1526,46 +1525,6 @@ void CDVDDemuxFFmpeg::GetStreamInfo(AVPacket *pkt)
         CLog::Log(LOGDEBUG, "CDVDDemuxFFmpeg::Read() fetching extradata, extradata_size(%d)", st->codec->extradata_size);
         memcpy(st->codec->extradata, pkt->data, st->codec->extradata_size);
         memset(st->codec->extradata + i, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-
-        if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-        {
-          const AVCodec* codec;
-          AVDictionary *thread_opt = NULL;
-          codec = st->codec->codec ? st->codec->codec : m_dllAvCodec.avcodec_find_decoder(st->codec->codec_id);
-          // Force thread count to 1 since the h264 decoder will not extract
-          // SPS and PPS to extradata during multi-threaded decoding
-          m_dllAvUtil.av_dict_set(&thread_opt, "threads", "1", 0);
-          m_dllAvCodec.avcodec_open2(st->codec, codec, &thread_opt);
-
-          // We don't need to actually decode here
-          st->codec->skip_idct = AVDISCARD_ALL;
-          st->codec->skip_frame = AVDISCARD_ALL;
-          st->codec->skip_loop_filter = AVDISCARD_ALL;
-
-          // We are looking for an IDR frame
-          AVFrame picture;
-          memset(&picture, 0, sizeof(AVFrame));
-          picture.pts = picture.pkt_dts = picture.pkt_pts = picture.best_effort_timestamp = AV_NOPTS_VALUE;
-          picture.pkt_pos = -1;
-          picture.key_frame = 1;
-          picture.format = -1;
-
-          int rtn, got_picture = 0;
-          rtn = m_dllAvCodec.avcodec_decode_video2(st->codec, &picture, &got_picture, pkt);
-          if (rtn < 0 || !st->codec->width || st->codec->pix_fmt == PIX_FMT_NONE)
-          {
-            CLog::Log(LOGDEBUG, "CDVDDemuxFFmpeg::Read() decode failed (return value=%d)", rtn);
-            // Clear the extradata to allow entering this extradata section again
-            m_dllAvUtil.av_free(st->codec->extradata);
-            st->codec->extradata = NULL;
-            st->codec->extradata_size = 0;
-          }
-
-          m_dllAvCodec.avcodec_close(st->codec);
-          m_dllAvUtil.av_dict_free(&thread_opt);
-
-          st->parser->flags = 0;
-        }
       }
       else
       {
@@ -1574,4 +1533,66 @@ void CDVDDemuxFFmpeg::GetStreamInfo(AVPacket *pkt)
     }
   }
 
+  // for video we need a decoder to get desired information into codec context
+  if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO &&
+      (!st->codec->width || st->codec->pix_fmt == PIX_FMT_NONE))
+  {
+    // open a decoder, it will be cleared down by ffmpeg on closing the stream
+    if (!st->codec->codec)
+    {
+      const AVCodec* codec;
+      AVDictionary *thread_opt = NULL;
+      codec = m_dllAvCodec.avcodec_find_decoder(st->codec->codec_id);
+      // Force thread count to 1 since the h264 decoder will not extract
+      // SPS and PPS to extradata during multi-threaded decoding
+      m_dllAvUtil.av_dict_set(&thread_opt, "threads", "1", 0);
+      m_dllAvCodec.avcodec_open2(st->codec, codec, &thread_opt);
+
+      m_dllAvUtil.av_dict_free(&thread_opt);
+    }
+
+    // We don't need to actually decode here
+    // we just want to transport SPS data into codec context
+    st->codec->skip_idct = AVDISCARD_ALL;
+    st->codec->skip_frame = AVDISCARD_ALL;
+    st->codec->skip_loop_filter = AVDISCARD_ALL;
+
+    // We are looking for an IDR frame
+    AVFrame picture;
+    memset(&picture, 0, sizeof(AVFrame));
+    picture.pts = picture.pkt_dts = picture.pkt_pts = picture.best_effort_timestamp = AV_NOPTS_VALUE;
+    picture.pkt_pos = -1;
+    picture.key_frame = 1;
+    picture.format = -1;
+
+    int got_picture = 0;
+    m_dllAvCodec.avcodec_decode_video2(st->codec, &picture, &got_picture, pkt);
+  }
+}
+
+bool CDVDDemuxFFmpeg::IsVideoReady()
+{
+  AVStream *st;
+  if(m_program != UINT_MAX)
+  {
+    for (unsigned int i = 0; i < m_pFormatContext->programs[m_program]->nb_stream_indexes; i++)
+    {
+      int idx = m_pFormatContext->programs[m_program]->stream_index[i];
+      st = m_pFormatContext->streams[idx];
+      if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO &&
+          (!st->codec->width || st->codec->pix_fmt == PIX_FMT_NONE))
+        return false;
+    }
+  }
+  else
+  {
+    for (unsigned int i = 0; i < m_pFormatContext->nb_streams; i++)
+    {
+      st = m_pFormatContext->streams[i];
+      if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO &&
+          (!st->codec->width || st->codec->pix_fmt == PIX_FMT_NONE))
+        return false;
+    }
+  }
+  return true;
 }
