@@ -475,6 +475,9 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
       }
     }
     CLog::Log(LOGDEBUG, "%s - av_find_stream_info finished", __FUNCTION__);
+
+    // make sure we start video with an i-frame
+    ResetVideoStreams();
   }
   else
     m_program = 0;
@@ -1534,7 +1537,7 @@ void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
   }
 
   // for video we need a decoder to get desired information into codec context
-  if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO &&
+  if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO && st->codec->extradata &&
       (!st->codec->width || st->codec->pix_fmt == PIX_FMT_NONE))
   {
     // open a decoder, it will be cleared down by ffmpeg on closing the stream
@@ -1595,4 +1598,20 @@ bool CDVDDemuxFFmpeg::IsVideoReady()
     }
   }
   return true;
+}
+
+void CDVDDemuxFFmpeg::ResetVideoStreams()
+{
+  AVStream *st;
+  for (unsigned int i = 0; i < m_pFormatContext->nb_streams; i++)
+  {
+    st = m_pFormatContext->streams[i];
+    if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+    {
+      if (st->codec->extradata)
+        m_dllAvUtil.av_free(st->codec->extradata);
+      st->codec->extradata = NULL;
+      st->codec->width = 0;
+    }
+  }
 }
