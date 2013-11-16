@@ -495,31 +495,6 @@ CStdString CWIN32Util::SmbToUnc(const CStdString &strPath)
   return strRetPath;
 }
 
-CStdString CWIN32Util::NormalToExtendedLengthPath(const CStdString &strPath)
-{
-  CStdString strRetPath(strPath);
-  // support local and UNC paths with more than MAX_PATH characters by
-  // adding the correct \\?\ prefix
-  strRetPath.Replace("/", "\\");
-  if(strRetPath.Left(2).Equals("\\\\"))
-  {
-    strRetPath.Insert(2, "?\\UNC\\");
-  }
-  else
-  {
-    strRetPath.Insert(0, "\\\\?\\");
-  }
-  return strRetPath;
-}
-
-CStdString CWIN32Util::ExtendedToNormalLengthPath(const CStdString &strPath)
-{
-  CStdString strRetPath(strPath);
-  strRetPath.Replace("\\\\?\\", "");
-  strRetPath.Replace("UNC\\", "\\\\");
-  return strRetPath;
-}
-
 bool CWIN32Util::AddExtraLongPathPrefix(std::wstring& path)
 {
   const wchar_t* const str = path.c_str();
