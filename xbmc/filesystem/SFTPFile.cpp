@@ -50,8 +50,10 @@ using namespace std;
 
 static CStdString CorrectPath(const CStdString path)
 {
-  if(path == "~" || path.Left(2) == "~/")
-    return "./" + path.Mid(2);
+  if (path == "~")
+    return "./";
+  else if (path.substr(0, 2) == "~/")
+    return "./" + path.substr(2);
   else
     return "/" + path;
 }
@@ -271,6 +273,11 @@ int CSFTPSession::Stat(const char *path, struct __stat64* buffer)
       buffer->st_size = attributes->size;
       buffer->st_mtime = attributes->mtime;
       buffer->st_atime = attributes->atime;
+
+      if S_ISDIR(attributes->permissions)
+        buffer->st_mode = _S_IFDIR;
+      else if S_ISREG(attributes->permissions)
+        buffer->st_mode = _S_IFREG;
 
       sftp_attributes_free(attributes);
       return 0;

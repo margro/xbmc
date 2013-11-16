@@ -655,6 +655,7 @@
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\PlaylistOperations.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\ProfilesOperations.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\PVROperations.cpp" />
+    <ClCompile Include="..\..\xbmc\interfaces\json-rpc\SettingsOperations.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\SystemOperations.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\VideoLibrary.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\XBMCOperations.cpp" />
@@ -705,6 +706,9 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\interfaces\python\XBPython.cpp" />
     <ClCompile Include="..\..\xbmc\LangInfo.cpp" />
+    <ClCompile Include="..\..\xbmc\listproviders\IListProvider.cpp" />
+    <ClCompile Include="..\..\xbmc\listproviders\DirectoryProvider.cpp" />
+    <ClCompile Include="..\..\xbmc\listproviders\StaticProvider.cpp" />
     <ClCompile Include="..\..\xbmc\MediaSource.cpp" />
     <ClCompile Include="..\..\xbmc\music\Album.cpp" />
     <ClCompile Include="..\..\xbmc\music\Artist.cpp" />
@@ -888,22 +892,22 @@
     <ClCompile Include="..\..\xbmc\settings\dialogs\GUIDialogContentSettings.cpp" />
     <ClCompile Include="..\..\xbmc\settings\dialogs\GUIDialogSettings.cpp" />
     <ClCompile Include="..\..\xbmc\settings\DisplaySettings.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\ISetting.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\ISettingControl.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\ISetting.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\ISettingControl.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\Setting.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\SettingCategoryAccess.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\SettingConditions.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\SettingDependency.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\SettingRequirement.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\SettingSection.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\SettingsManager.cpp" />
+    <ClCompile Include="..\..\xbmc\settings\lib\SettingUpdate.cpp" />
     <ClCompile Include="..\..\xbmc\settings\MediaSettings.cpp" />
     <ClCompile Include="..\..\xbmc\settings\MediaSourceSettings.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\Setting.cpp" />
     <ClCompile Include="..\..\xbmc\settings\SettingAddon.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\SettingCategoryAccess.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\SettingConditions.cpp" />
     <ClCompile Include="..\..\xbmc\settings\SettingControl.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\SettingDependency.cpp" />
     <ClCompile Include="..\..\xbmc\settings\SettingPath.cpp" />
     <ClCompile Include="..\..\xbmc\settings\Settings.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\SettingSection.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\SettingsManager.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\SettingUpdate.cpp" />
-    <ClCompile Include="..\..\xbmc\settings\SettingRequirement.cpp" />
     <ClCompile Include="..\..\xbmc\settings\SkinSettings.cpp" />
     <ClCompile Include="..\..\xbmc\settings\VideoSettings.cpp" />
     <ClCompile Include="..\..\xbmc\settings\windows\GUIControlSettings.cpp" />
@@ -930,7 +934,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release (DirectX)|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release (OpenGL)|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\test\TestTextureCache.cpp">
+    <ClCompile Include="..\..\xbmc\test\TestTextureUtils.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug (DirectX)|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug (OpenGL)|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release (DirectX)|Win32'">true</ExcludedFromBuild>
@@ -1034,6 +1038,7 @@
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\FavouritesOperations.h" />
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\ProfilesOperations.h" />
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\PVROperations.h" />
+    <ClInclude Include="..\..\xbmc\interfaces\json-rpc\SettingsOperations.h" />
     <ClInclude Include="..\..\xbmc\interfaces\legacy\Addon.h" />
     <ClInclude Include="..\..\xbmc\interfaces\legacy\AddonCallback.h" />
     <ClInclude Include="..\..\xbmc\interfaces\legacy\AddonClass.h" />
@@ -1090,27 +1095,27 @@
     <ClInclude Include="..\..\xbmc\settings\dialogs\GUIDialogContentSettings.h" />
     <ClInclude Include="..\..\xbmc\settings\dialogs\GUIDialogSettings.h" />
     <ClInclude Include="..\..\xbmc\settings\DisplaySettings.h" />
-    <ClInclude Include="..\..\xbmc\settings\ISetting.h" />
-    <ClInclude Include="..\..\xbmc\settings\ISettingCallback.h" />
-    <ClInclude Include="..\..\xbmc\settings\ISettingControl.h" />
-    <ClInclude Include="..\..\xbmc\settings\ISettingControlCreator.h" />
-    <ClInclude Include="..\..\xbmc\settings\ISettingCreator.h" />
-    <ClInclude Include="..\..\xbmc\settings\ISettingsHandler.h" />
-    <ClInclude Include="..\..\xbmc\settings\ISubSettings.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\ISetting.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\ISettingCallback.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\ISettingControl.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\ISettingControlCreator.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\ISettingCreator.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\ISettingsHandler.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\ISubSettings.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\Setting.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\SettingCategoryAccess.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\SettingConditions.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\SettingDefinitions.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\SettingDependency.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\SettingRequirement.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\SettingSection.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\SettingsManager.h" />
+    <ClInclude Include="..\..\xbmc\settings\lib\SettingUpdate.h" />
     <ClInclude Include="..\..\xbmc\settings\MediaSettings.h" />
     <ClInclude Include="..\..\xbmc\settings\MediaSourceSettings.h" />
-    <ClInclude Include="..\..\xbmc\settings\Setting.h" />
     <ClInclude Include="..\..\xbmc\settings\SettingAddon.h" />
-    <ClInclude Include="..\..\xbmc\settings\SettingCategoryAccess.h" />
-    <ClInclude Include="..\..\xbmc\settings\SettingConditions.h" />
     <ClInclude Include="..\..\xbmc\settings\SettingControl.h" />
-    <ClInclude Include="..\..\xbmc\settings\SettingDefinitions.h" />
-    <ClInclude Include="..\..\xbmc\settings\SettingDependency.h" />
     <ClInclude Include="..\..\xbmc\settings\SettingPath.h" />
-    <ClInclude Include="..\..\xbmc\settings\SettingSection.h" />
-    <ClInclude Include="..\..\xbmc\settings\SettingsManager.h" />
-    <ClInclude Include="..\..\xbmc\settings\SettingUpdate.h" />
-    <ClInclude Include="..\..\xbmc\settings\SettingRequirement.h" />
     <ClInclude Include="..\..\xbmc\settings\SkinSettings.h" />
     <ClInclude Include="..\..\xbmc\settings\windows\GUIControlSettings.h" />
     <ClInclude Include="..\..\xbmc\settings\windows\GUIWindowSettings.h" />
@@ -1663,6 +1668,7 @@
     <ClCompile Include="..\..\xbmc\video\dialogs\GUIDialogAudioSubtitleSettings.cpp" />
     <ClCompile Include="..\..\xbmc\video\dialogs\GUIDialogFileStacking.cpp" />
     <ClCompile Include="..\..\xbmc\video\dialogs\GUIDialogFullScreenInfo.cpp" />
+    <ClCompile Include="..\..\xbmc\video\dialogs\GUIDialogSubtitles.cpp" />
     <ClCompile Include="..\..\xbmc\video\dialogs\GUIDialogTeletext.cpp" />
     <ClCompile Include="..\..\xbmc\video\dialogs\GUIDialogVideoBookmarks.cpp" />
     <ClCompile Include="..\..\xbmc\video\dialogs\GUIDialogVideoInfo.cpp" />
@@ -1714,7 +1720,6 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDMessageTracker.cpp" />
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDOverlayContainer.cpp" />
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDOverlayRenderer.cpp" />
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDPerformanceCounter.cpp" />
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDPlayer.cpp" />
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDPlayerAudio.cpp" />
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDPlayerSubtitle.cpp" />
@@ -2176,6 +2181,9 @@
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\TextureOperations.h" />
     <ClInclude Include="..\..\xbmc\IProgressCallback.h" />
     <ClInclude Include="..\..\xbmc\LangInfo.h" />
+    <ClInclude Include="..\..\xbmc\listproviders\IListProvider.h" />
+    <ClInclude Include="..\..\xbmc\listproviders\DirectoryProvider.h" />
+    <ClInclude Include="..\..\xbmc\listproviders\StaticProvider.h" />
     <ClInclude Include="..\..\xbmc\MediaSource.h" />
     <ClInclude Include="..\..\xbmc\music\Album.h" />
     <ClInclude Include="..\..\xbmc\music\Artist.h" />
@@ -2449,6 +2457,7 @@
     <ClInclude Include="..\..\xbmc\video\dialogs\GUIDialogAudioSubtitleSettings.h" />
     <ClInclude Include="..\..\xbmc\video\dialogs\GUIDialogFileStacking.h" />
     <ClInclude Include="..\..\xbmc\video\dialogs\GUIDialogFullScreenInfo.h" />
+    <ClInclude Include="..\..\xbmc\video\dialogs\GUIDialogSubtitles.h" />
     <ClInclude Include="..\..\xbmc\video\dialogs\GUIDialogTeletext.h" />
     <ClInclude Include="..\..\xbmc\video\dialogs\GUIDialogVideoBookmarks.h" />
     <ClInclude Include="..\..\xbmc\video\dialogs\GUIDialogVideoInfo.h" />
@@ -2496,7 +2505,6 @@
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDMessageTracker.h" />
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDOverlayContainer.h" />
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDOverlayRenderer.h" />
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDPerformanceCounter.h" />
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDPlayer.h" />
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDPlayerAudio.h" />
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDPlayerSubtitle.h" />

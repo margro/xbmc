@@ -19,7 +19,7 @@
  *
  */
 
-#include "ISettingControl.h"
+#include "settings/lib/ISettingControl.h"
 
 #define SETTING_XML_ELM_CONTROL_FORMATLABEL  "formatlabel"
 #define SETTING_XML_ELM_CONTROL_HIDDEN       "hidden"
@@ -126,7 +126,8 @@ class CSettingControlList : public ISettingControl
 {
 public:
   CSettingControlList()
-    : m_heading(-1)
+    : m_heading(-1),
+      m_multiselect(false)
   { }
   virtual ~CSettingControlList() { }
 
