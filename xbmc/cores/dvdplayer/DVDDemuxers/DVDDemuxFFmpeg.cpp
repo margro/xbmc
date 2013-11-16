@@ -449,6 +449,13 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
   if (iformat && (strcmp(iformat->name, "mjpeg") == 0) && m_ioContext->seekable == 0)
     m_pFormatContext->max_analyze_duration = 500000;
 
+  bool short_analyze = false;
+  if (iformat && (strcmp(iformat->name, "mpegts") == 0))
+  {
+    m_pFormatContext->max_analyze_duration = 500000;
+    short_analyze = true;
+  }
+
   // we need to know if this is matroska or avi later
   m_bMatroska = strncmp(m_pFormatContext->iformat->name, "matroska", 8) == 0;	// for "matroska.webm"
   m_bAVI = strcmp(m_pFormatContext->iformat->name, "avi") == 0;
@@ -476,8 +483,11 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
     }
     CLog::Log(LOGDEBUG, "%s - av_find_stream_info finished", __FUNCTION__);
 
-    // make sure we start video with an i-frame
-    ResetVideoStreams();
+    if (short_analyze)
+    {
+      // make sure we start video with an i-frame
+      ResetVideoStreams();
+    }
   }
   else
     m_program = 0;
