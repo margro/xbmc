@@ -1997,7 +1997,7 @@ void CActiveAE::LoadSettings()
   m_settings.channels = (m_sink.GetDeviceType(m_settings.device) == AE_DEVTYPE_IEC958) ? AE_CH_LAYOUT_2_0 : CSettings::Get().GetInt("audiooutput.channels");
   m_settings.samplerate = CSettings::Get().GetInt("audiooutput.samplerate");
 
-  m_settings.stereoupmix = (m_settings.channels > AE_CH_LAYOUT_2_0) ? CSettings::Get().GetBool("audiooutput.stereoupmix") : false;
+  m_settings.stereoupmix = (m_settings.channels > AE_CH_LAYOUT_2_0 || (m_sink.GetDeviceType(m_settings.device) == AE_DEVTYPE_IEC958)) ? CSettings::Get().GetBool("audiooutput.stereoupmix") : false;
   m_settings.normalizelevels = CSettings::Get().GetBool("audiooutput.normalizelevels");
 
   m_settings.passthrough = m_settings.config == AE_CONFIG_FIXED ? false : CSettings::Get().GetBool("audiooutput.passthrough");
