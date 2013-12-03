@@ -1722,11 +1722,8 @@ bool CApplication::OnSettingUpdate(CSetting* &setting, const char *oldSettingId,
   }
   else if (settingId == "videoplayer.usestagefright")
   {
-    if (CAndroidFeatures::GetVersion() >= 19)
-    {
-      CSettingBool *usestagefright = (CSettingBool*)setting;
-      usestagefright->SetValue(false);
-    }
+    CSettingBool *usestagefright = (CSettingBool*)setting;
+    usestagefright->SetValue(false);
   }
 #endif
 
@@ -3184,8 +3181,8 @@ bool CApplication::ProcessEventServer(float frameTime)
       newEvent.motion.yrel = 0;
       newEvent.motion.state = 0;
       newEvent.motion.which = 0x10;  // just a different value to distinguish between mouse and event client device.
-      newEvent.motion.x = pos.x;
-      newEvent.motion.y = pos.y;
+      newEvent.motion.x = (uint16_t)pos.x;
+      newEvent.motion.y = (uint16_t)pos.y;
       OnEvent(newEvent);  // had to call this to update g_Mouse position
       return OnAction(CAction(ACTION_MOUSE_MOVE, pos.x, pos.y));
     }
