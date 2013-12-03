@@ -1,0 +1,42 @@
+From b009267910df10c004b5f340a090d45da29089a0 Mon Sep 17 00:00:00 2001
+From: Michael Niedermayer <michaelni@gmx.at>
+Date: Fri, 5 Jul 2013 03:27:07 +0200
+Subject: [PATCH] mpegts: only reopen pmt_cb filter if its different from the
+ previous.
+
+Fixes Ticket2632
+
+Signed-off-by: Michael Niedermayer <michaelni@gmx.at>
+---
+ libavformat/mpegts.c |   12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/libavformat/mpegts.c b/libavformat/mpegts.c
+index 99f9a72..0fc16d1 100644
+--- a/libavformat/mpegts.c
++++ b/libavformat/mpegts.c
+@@ -1625,12 +1625,18 @@ static void pat_cb(MpegTSFilter *filter, const uint8_t *section, int section_len
+         if (sid == 0x0000) {
+             /* NIT info */
+         } else {
++            MpegTSFilter *fil = ts->pids[pmt_pid];
+             program = av_new_program(ts->stream, sid);
+             program->program_num = sid;
+             program->pmt_pid = pmt_pid;
+-            if (ts->pids[pmt_pid])
+-                mpegts_close_filter(ts, ts->pids[pmt_pid]);
+-            mpegts_open_section_filter(ts, pmt_pid, pmt_cb, ts, 1);
++            if (fil)
++                if (   fil->type != MPEGTS_SECTION
++                    || fil->pid != pmt_pid
++                    || fil->u.section_filter.section_cb != pmt_cb)
++                    mpegts_close_filter(ts, ts->pids[pmt_pid]);
++
++            if (!ts->pids[pmt_pid])
++                mpegts_open_section_filter(ts, pmt_pid, pmt_cb, ts, 1);
+             add_pat_entry(ts, sid);
+             add_pid_to_pmt(ts, sid, 0); //add pat pid to program
+             add_pid_to_pmt(ts, sid, pmt_pid);
+-- 
+1.7.10.4
+
