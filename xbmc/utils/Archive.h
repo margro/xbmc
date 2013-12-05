@@ -22,7 +22,7 @@
 
 #include <string>
 #include <vector>
-#include "system.h" // for SYSTEMTIME
+#include "PlatformDefs.h" // for SYSTEMTIME
 
 namespace XFILE
 {
@@ -105,6 +105,8 @@ public:
   enum Mode {load = 0, store};
 
 protected:
+  CArchive& streamout(const void* dataPtr, size_t size);
+  CArchive& streamin(void* dataPtr, const size_t size);
   void FlushBuffer();
   XFILE::CFile* m_pFile;
   int m_iMode;
