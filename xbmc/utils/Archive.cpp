@@ -90,9 +90,9 @@ CArchive& CArchive::operator<<(int i)
   return streamout(&i, sizeof(i));
 }
 
-CArchive& CArchive::operator<<(unsigned int i)
+CArchive& CArchive::operator<<(unsigned int ui)
 {
-  return streamout(&i, sizeof(i));
+  return streamout(&ui, sizeof(ui));
 }
 
 CArchive& CArchive::operator<<(long int l)
@@ -262,9 +262,9 @@ CArchive& CArchive::operator>>(int& i)
   return streamin(&i, sizeof(i));
 }
 
-CArchive& CArchive::operator>>(unsigned int& i)
+CArchive& CArchive::operator>>(unsigned int& ui)
 {
-  return streamin(&i, sizeof(i));
+  return streamin(&ui, sizeof(ui));
 }
 
 CArchive& CArchive::operator>>(long int& l)
@@ -337,7 +337,7 @@ CArchive& CArchive::operator>>(IArchivable& obj)
 
 CArchive& CArchive::operator>>(CVariant& variant)
 {
-  size_t type;
+  int type;
   *this >> type;
   variant = CVariant((CVariant::VariantType)type);
 
@@ -455,7 +455,7 @@ inline CArchive& CArchive::streamin(void* dataPtr, const size_t size)
   size_t read = m_pFile->Read(dataPtr, size);
   if (read < size)
   {
-    CLog::Log(LOGERROR, "%s: can't stream out: requested %lu bytes, was read %lu bytes", (unsigned long)size, (unsigned long)read);
+    CLog::Log(LOGERROR, "%s: can't stream out: requested %lu bytes, was read %lu bytes", __FUNCTION__, (unsigned long)size, (unsigned long)read);
     memset(dataPtr, 0, size);
   }
 

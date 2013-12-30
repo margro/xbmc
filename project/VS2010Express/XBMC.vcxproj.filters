@@ -426,6 +426,9 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DXVA.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DXVAHD.cpp">
+      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Overlay\DVDOverlayCodec.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Overlay</Filter>
     </ClCompile>
@@ -1903,7 +1906,7 @@
     <ClCompile Include="..\..\xbmc\input\InertialScrollingHandler.cpp">
       <Filter>input</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\interfaces\info\InfoBool.cpp">
+    <ClCompile Include="..\..\xbmc\interfaces\info\InfoExpression.cpp">
       <Filter>interfaces\info</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\guilib\GUIAction.cpp">
@@ -3107,6 +3110,9 @@
     <ClCompile Include="..\..\xbmc\utils\Utf8Utils.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\XSLTUtils.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\xbmc\win32\pch.h">
@@ -3239,6 +3245,9 @@
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DXVA.h">
+      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DXVAHD.h">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Overlay\DVDOverlay.h">
@@ -4969,6 +4978,9 @@
     <ClInclude Include="..\..\xbmc\interfaces\info\InfoBool.h">
       <Filter>interfaces\info</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\xbmc\interfaces\info\InfoExpression.h">
+      <Filter>interfaces\info</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\xbmc\guilib\GUIAction.h">
       <Filter>guilib</Filter>
     </ClInclude>
@@ -6101,6 +6113,9 @@
       <Filter>listproviders</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\Utf8Utils.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\XSLTUtils.h">
       <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>

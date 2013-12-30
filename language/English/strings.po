@@ -6603,7 +6603,7 @@ msgstr ""
 
 #: xbmc/video/VideoDatabase.cpp
 msgctxt "#15013"
-msgid "What would you like to do with media items from"
+msgid "What would you like to do with media items from %s"
 msgstr ""
 
 #: xbmc/video/VideoDatabase.cpp
@@ -7145,7 +7145,12 @@ msgctxt "#16325"
 msgid "VDPAU - Bob"
 msgstr ""
 
-#empty strings from id 16326 to 16399
+#: xbmc/cores/VideoRenderers/BaseRenderer.cpp
+msgctxt "#16326"
+msgid "DXVA-HD"
+msgstr ""
+
+#empty strings from id 16327 to 16399
 
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#16400"
@@ -7466,7 +7471,9 @@ msgctxt "#19069"
 msgid "EPG"
 msgstr ""
 
-#empty string with id 19070
+msgctxt "#19070"
+msgid "Go to now"
+msgstr ""
 
 msgctxt "#19071"
 msgid "EPG update interval"
@@ -9628,8 +9635,20 @@ msgctxt "#20199"
 msgid "Downloading artist info failed"
 msgstr ""
 
-#empty strings from id 20200 to 20239
 #string id's 20200 thru 20211 are reserved for speedstrings (LocalizeStrings.cpp)
+#empty strings from id 20212 to 20219
+
+#: system/settings/settings.xml
+msgctxt "#20220"
+msgid "Override song tags with online information"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#20221"
+msgid "With this enabled, any information that is downloaded for albums and artists will override anything you have set in your song tags, such as genres, year, song artists etc. Useful if you have MusicBrainz identifiers in your song tags."
+msgstr ""
+
+#empty strings from id 20222 to 20239
 
 #: xbmc/dialogs/GUIDialogMediaSource.cpp
 msgctxt "#20240"
@@ -14684,7 +14703,32 @@ msgctxt "#36423"
 msgid "Use ffmpeg frame multiple thread decoding when hardware decoding not working or disabled. (less reliable than default single thread mode)"
 msgstr ""
 
-#empty strings from id 36424 to 36499
+#: system/settings/settings.xml
+msgctxt "#36424"
+msgid "Select what will happen when an EPG item is selected: [Show context menu] will trigger the contextual menu from where you can choose further actions; [Switch to channel] will instantly tune to the related channel; [Show information] will display a detailed information with plot and further options; [Record] will create a recording timer for the selected item."
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36425"
+msgid "Show context menu"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36426"
+msgid "Switch to channel"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36427"
+msgid "Show information"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36428"
+msgid "Record"
+msgstr ""
+
+#empty strings from id 36429 to 36499
 #end reservation
 
 #: system/settings/settings.xml
@@ -14866,7 +14910,17 @@ msgctxt "#36544"
 msgid "Enable hardware decoding of video files."
 msgstr ""
 
-#empty strings from id 36545 to 36999
+#: system/settings/settings.xml
+msgctxt "#36545"
+msgid "Subtitle stereoscopic depth"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36546"
+msgid "Sets the visual depth of subtitles for stereoscopic videos. The higher the value, the closer the subtitles will appear to the viewer."
+msgstr ""
+
+#empty strings from id 36547 to 36999
 #reserved strings 365XX
 
 #: xbmc/cores/dvdplayer/DVDInputStreams/DVDInputStreamNavigator.cpp

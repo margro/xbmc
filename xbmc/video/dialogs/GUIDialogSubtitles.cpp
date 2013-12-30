@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://www.xbmc.org
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -177,7 +177,7 @@ void CGUIDialogSubtitles::Process(unsigned int currentTime, CDirtyRegionList &di
     std::string status;
     CFileItemList subs;
     {
-      CSingleLock lock(m_section);
+      CSingleLock lock(m_critsection);
       status = m_status;
       subs.Assign(*m_subtitles);
     }
@@ -322,7 +322,7 @@ void CGUIDialogSubtitles::OnJobComplete(unsigned int jobID, bool success, CJob *
 
 void CGUIDialogSubtitles::OnSearchComplete(const CFileItemList *items)
 {
-  CSingleLock lock(m_section);
+  CSingleLock lock(m_critsection);
   m_subtitles->Assign(*items);
   UpdateStatus(SEARCH_COMPLETE);
   m_updateSubsList = true;
@@ -331,7 +331,7 @@ void CGUIDialogSubtitles::OnSearchComplete(const CFileItemList *items)
 
 void CGUIDialogSubtitles::UpdateStatus(STATUS status)
 {
-  CSingleLock lock(m_section);
+  CSingleLock lock(m_critsection);
   std::string label;
   switch (status)
   {
@@ -429,6 +429,19 @@ void CGUIDialogSubtitles::OnDownloadComplete(const CFileItemList *items, const s
 
   // and copy the file across
   CFile::Cache(strUrl, strSubPath);
+
+  // for ".sub" subtitles we check if ".idx" counterpart exists and copy that as well
+  if (strSubExt.Equals(".sub"))
+  {
+    strUrl = URIUtils::ReplaceExtension(strUrl, ".idx");
+    if(CFile::Exists(strUrl))
+    {
+      CStdString strSubNameIdx = StringUtils::Format("%s.%s.idx", strFileName.c_str(), strSubLang.c_str());
+      strSubPath = URIUtils::AddFileToFolder(strDestPath, strSubNameIdx);
+      CFile::Cache(strUrl, strSubPath);
+    }
+  }
+
   SetSubtitles(strSubPath);
   // Close the window
   Close();
@@ -438,7 +451,7 @@ void CGUIDialogSubtitles::ClearSubtitles()
 {
   CGUIMessage msg(GUI_MSG_LABEL_RESET, GetID(), CONTROL_SUBLIST);
   OnMessage(msg);
-  CSingleLock lock(m_section);
+  CSingleLock lock(m_critsection);
   m_subtitles->Clear();
 }
 

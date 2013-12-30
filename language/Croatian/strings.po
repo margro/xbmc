@@ -5477,6 +5477,18 @@ msgctxt "#14100"
 msgid "Stop ripping CD"
 msgstr "Zaustavi ripanje CD-a"
 
+msgctxt "#15012"
+msgid "Unavailable source"
+msgstr "Nedostupan izvor"
+
+msgctxt "#15013"
+msgid "What would you like to do with media items from"
+msgstr "Što želite učiniti s medijskim stavkama iz"
+
+msgctxt "#15014"
+msgid "Keep"
+msgstr "Zadržati"
+
 msgctxt "#15015"
 msgid "Remove"
 msgstr "Ukloni"
@@ -6887,7 +6899,7 @@ msgstr "Ažuriraj EPG informacije"
 
 msgctxt "#19252"
 msgid "Schedule EPG update for this channel?"
-msgstr "Zakaži EPG ažuriranje za ovaj program?"
+msgstr "Zadaj EPG ažuriranje za ovaj program?"
 
 msgctxt "#19253"
 msgid "EPG update scheduled for channel"
@@ -7895,7 +7907,7 @@ msgstr "Isključivanje za 120 minuta"
 
 msgctxt "#20150"
 msgid "Custom shutdown timer"
-msgstr "Zakaži vrijeme isključivanja"
+msgstr "Zadaj vrijeme isključivanja"
 
 msgctxt "#20151"
 msgid "Cancel shutdown timer"
@@ -9887,7 +9899,7 @@ msgstr "PVR klijenti"
 
 msgctxt "#24020"
 msgid "Configure"
-msgstr "Podesi"
+msgstr "Prilagodi"
 
 msgctxt "#24021"
 msgid "Disable"
@@ -9915,7 +9927,7 @@ msgstr "Usluga vremenske prognoze"
 
 msgctxt "#24030"
 msgid "This Add-on can not be configured"
-msgstr "Ovaj dodatak se ne može podesiti"
+msgstr "Ovaj dodatak se ne može prilagoditi"
 
 msgctxt "#24031"
 msgid "Error loading settings"
@@ -10189,6 +10201,22 @@ msgctxt "#24115"
 msgid "Save subtitles to movie folder"
 msgstr "Spremi podnaslov u mapu filma"
 
+msgctxt "#24116"
+msgid "Default TV Service"
+msgstr "Zadana usluga za TV serije"
+
+msgctxt "#24117"
+msgid "Select service that will be used as default to search for TV Show subtitles"
+msgstr "Odaberite uslugu koja će se koristiti kao zadana za podnaslove tv serija"
+
+msgctxt "#24118"
+msgid "Default Movie Service"
+msgstr "Zadana usluga za filmove"
+
+msgctxt "#24119"
+msgid "Select service that will be used as default to search for Movie subtitles"
+msgstr "Odaberite uslugu koja će se koristiti kao zadana za podnaslove filmova"
+
 msgctxt "#25000"
 msgid "Notifications"
 msgstr "Obavijesti"
@@ -10399,7 +10427,7 @@ msgstr "Provjeri"
 
 msgctxt "#33053"
 msgid "Configure the"
-msgstr "Podesi"
+msgstr "Prilagodi"
 
 msgctxt "#33054"
 msgid "Seasons"
@@ -10423,7 +10451,7 @@ msgstr "Pregledajte svoje"
 
 msgctxt "#33059"
 msgid "Configure the"
-msgstr "Podesi"
+msgstr "Prilagodi"
 
 msgctxt "#33060"
 msgid "Power"
@@ -11163,7 +11191,7 @@ msgstr "Omogući automatsku reprodukciju slijedeće datoteke u popisu odabranih 
 
 msgctxt "#36153"
 msgid "Adjust the method used to process and display video."
-msgstr "Podesite način korištenja obrade i prikaza videa."
+msgstr "Prilagodite način korištenja obrade i prikaza videa."
 
 msgctxt "#36154"
 msgid "No info available yet."
@@ -11635,7 +11663,7 @@ msgstr "Smanji glasnoću zvuka zapisa ako isjecanje najvjerojatnije nastane."
 
 msgctxt "#36271"
 msgid "Smoothly fade from one audio track to the next. You can set the amount of overlap from 1-15 seconds."
-msgstr "Glatko utišaj prijelaz s jedne pjesme na drugu. Možete podesiti trajanje preklapanja zapisa od 1-15 sekundi."
+msgstr "Glatko utišaj prijelaz s jedne pjesme na drugu. Možete prilagoditi trajanje preklapanja zapisa od 1-15 sekundi."
 
 msgctxt "#36272"
 msgid "Allow crassfading to occur when both tracks are from the same album."
@@ -12043,7 +12071,7 @@ msgstr "Odaberite uređaj koji će se koristiti za reprodukciju enkôdiranih for
 
 msgctxt "#36373"
 msgid "Configure how interface sounds are handled, such as menu navigation and important notifications."
-msgstr "Podesite rukovanje zvukovima sučelja, poput navigacije izbornikom i važnim obavijestima."
+msgstr "Prilagodite rukovanje zvukovima sučelja, poput navigacije izbornikom i važnim obavijestima."
 
 msgctxt "#36374"
 msgid "No info available yet."
@@ -12071,27 +12099,27 @@ msgstr "Informacije još nisu dostupne."
 
 msgctxt "#36380"
 msgid "If your internet connection uses a proxy, configure it here."
-msgstr "Ako vaša Internet veza koristi proxy, podesite ga ovdje."
+msgstr "Ako vaša Internet veza koristi proxy, prilagodite ga ovdje."
 
 msgctxt "#36381"
 msgid "Configure which proxy type is used."
-msgstr "Podesite koju vrstu proxya koristite."
+msgstr "Prilagodite koju vrstu proxya koristite."
 
 msgctxt "#36382"
 msgid "Configure the proxy server address."
-msgstr "Podesite adresu proxy poslužitelja."
+msgstr "Prilagodite adresu proxy poslužitelja."
 
 msgctxt "#36383"
 msgid "Configure the proxy server port."
-msgstr "Podesite ulaz proxy poslužitelja."
+msgstr "Prilagodite ulaz proxy poslužitelja."
 
 msgctxt "#36384"
 msgid "Configure the proxy server username."
-msgstr "Podesite korisničko ime proxy poslužitelja."
+msgstr "Prilagodite korisničko ime proxy poslužitelja."
 
 msgctxt "#36385"
 msgid "Configure the proxy server password."
-msgstr "Podesite lozinku proxy poslužitelja."
+msgstr "Prilagodite lozinku proxy poslužitelja."
 
 msgctxt "#36386"
 msgid "If you have limited bandwidth available, XBMC will try to keep within these limits."
@@ -12131,7 +12159,7 @@ msgstr "Odredite dodatne zbirke koje će biti uključene u zapis otklanjanja gre
 
 msgctxt "#36395"
 msgid "Open the Master Lock dialogue, where you can configure your Master Lock options."
-msgstr "Otvori dijalog glavnog ključa, gdje možete podesiti mogućnosti glavnog ključa."
+msgstr "Otvori dijalog glavnog ključa, gdje možete prilagoditi mogućnosti glavnog ključa."
 
 msgctxt "#36396"
 msgid "Define the PIN code used for the master lock."

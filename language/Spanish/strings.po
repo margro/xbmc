@@ -1233,6 +1233,10 @@ msgctxt "#347"
 msgid "DTS-HD capable receiver"
 msgstr "Receptor compatible con DTS-HD"
 
+msgctxt "#348"
+msgid "Enable passthrough"
+msgstr "Habilitar passthrough"
+
 msgctxt "#349"
 msgid "TrueHD capable receiver"
 msgstr "Receptor compatible con True-HD"
@@ -1512,6 +1516,10 @@ msgstr "Alto"
 msgctxt "#420"
 msgid "Best Match"
 msgstr "Mejor coincidencia"
+
+msgctxt "#421"
+msgid "Keep audio device alive"
+msgstr "Mantener dispositivo de sonido activado"
 
 msgctxt "#422"
 msgid "Delete album info"
@@ -3533,6 +3541,10 @@ msgctxt "#10040"
 msgid "Add-on browser"
 msgstr "Buscador de addons"
 
+msgctxt "#10041"
+msgid "Reset above settings to default"
+msgstr "Restablecer ajustes anteriores a los ajustes por defecto"
+
 msgctxt "#10042"
 msgid "Are you sure you want to reset the settings in this category?"
 msgstr "¿Está seguro de que desea restablecer los ajustes de esta categoría?"
@@ -3552,6 +3564,10 @@ msgstr "Reiniciar los ajustes visibles a sus valores por defecto"
 msgctxt "#10046"
 msgid "No categories available"
 msgstr "No hay categorías disponibles"
+
+msgctxt "#10047"
+msgid "Try changing the setting level to see additional categories and settings."
+msgstr "Intente cambiar el nivel de ajuste para ver categorías y ajustes adicionales."
 
 msgctxt "#10100"
 msgid "Yes/No dialogue"
@@ -5457,6 +5473,18 @@ msgctxt "#14100"
 msgid "Stop ripping CD"
 msgstr "Detener el ripeo del CD"
 
+msgctxt "#15012"
+msgid "Unavailable source"
+msgstr "Origen no disponible"
+
+msgctxt "#15013"
+msgid "What would you like to do with media items from"
+msgstr "Qué le gustaría hacer con los elementos de"
+
+msgctxt "#15014"
+msgid "Keep"
+msgstr "Mantener"
+
 msgctxt "#15015"
 msgid "Remove"
 msgstr "Eliminar"
@@ -6292,6 +6320,10 @@ msgstr "Advertencia"
 msgctxt "#19099"
 msgid "Service"
 msgstr "Servicio"
+
+msgctxt "#19100"
+msgid "Mux"
+msgstr "Multiplex"
 
 msgctxt "#19101"
 msgid "Provider"
@@ -10157,9 +10189,29 @@ msgctxt "#24113"
 msgid "Failed to download subtitle"
 msgstr "Fallo al descargar el subtítulo"
 
+msgctxt "#24114"
+msgid "No subtitle services installed"
+msgstr "No hay instalados servicios de subtitulos"
+
 msgctxt "#24115"
 msgid "Save subtitles to movie folder"
 msgstr "Guardar subtítulos al directorio de la película"
+
+msgctxt "#24116"
+msgid "Default TV Service"
+msgstr "Servicio de TV por defecto"
+
+msgctxt "#24117"
+msgid "Select service that will be used as default to search for TV Show subtitles"
+msgstr "Seleccionar el servicio que se usará por defecto para buscar subtítulos para programas de televisión"
+
+msgctxt "#24118"
+msgid "Default Movie Service"
+msgstr "Servicio de películas por defecto"
+
+msgctxt "#24119"
+msgid "Select service that will be used as default to search for Movie subtitles"
+msgstr "Seleccionar el servicio que se usará por defecto para buscar subtítulos para películas"
 
 msgctxt "#25000"
 msgid "Notifications"
@@ -11957,6 +12009,10 @@ msgctxt "#36360"
 msgid "No info available yet."
 msgstr "No hay información disponible."
 
+msgctxt "#36362"
+msgid "Select the maximum number of audio channels/speakers available for audio decoded."
+msgstr "Seleccionar el número máximo de canales de audio/altavoces disponibles para la decodificación de audio."
+
 msgctxt "#36363"
 msgid "Boost AC3 streams that have been downmixed to 2 channels."
 msgstr "Amplificar streams AC3 que han sido reducidos a 2 canales."
@@ -11984,6 +12040,10 @@ msgstr "Selecciona esta opción si tu receptor puede decodificar streams TrueHD.
 msgctxt "#36370"
 msgid "Select this option if your receiver is capable of decoding DTS-HD streams."
 msgstr "Selecciona esta opción si tu receptor puede decodificar streams DTS-HD."
+
+msgctxt "#36371"
+msgid "Select the device to be used for playback of audio that has been decoded such as mp3"
+msgstr "Selecciona el dispositivo que será usado para reproducir el audio que ha sido decodificado como mp3."
 
 msgctxt "#36373"
 msgid "Configure how interface sounds are handled, such as menu navigation and important notifications."

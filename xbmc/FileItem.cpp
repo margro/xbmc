@@ -1477,12 +1477,18 @@ void CFileItem::UpdateInfo(const CFileItem &item, bool replaceLabels /*=true*/)
     if (HasPVRRecordingInfoTag())
       GetPVRRecordingInfoTag()->CopyClientInfo(GetVideoInfoTag());
     SetOverlayImage(ICON_OVERLAY_UNWATCHED, GetVideoInfoTag()->m_playCount > 0);
+    SetInvalid();
   }
   if (item.HasMusicInfoTag())
+  {
     *GetMusicInfoTag() = *item.GetMusicInfoTag();
+    SetInvalid();
+  }
   if (item.HasPictureInfoTag())
+  {
     *GetPictureInfoTag() = *item.GetPictureInfoTag();
-
+    SetInvalid();
+  }
   if (replaceLabels && !item.GetLabel().empty())
     SetLabel(item.GetLabel());
   if (replaceLabels && !item.GetLabel2().empty())
@@ -2324,7 +2330,7 @@ void CFileItemList::StackFolders()
 {
   // Precompile our REs
   VECCREGEXP folderRegExps;
-  CRegExp folderRegExp(true, true);
+  CRegExp folderRegExp(true, CRegExp::autoUtf8);
   const CStdStringArray& strFolderRegExps = g_advancedSettings.m_folderStackRegExps;
 
   CStdStringArray::const_iterator strExpression = strFolderRegExps.begin();
@@ -2416,7 +2422,7 @@ void CFileItemList::StackFiles()
 {
   // Precompile our REs
   VECCREGEXP stackRegExps;
-  CRegExp tmpRegExp(true, true);
+  CRegExp tmpRegExp(true, CRegExp::autoUtf8);
   const CStdStringArray& strStackRegExps = g_advancedSettings.m_videoStackRegExps;
   CStdStringArray::const_iterator strRegExp = strStackRegExps.begin();
   while (strRegExp != strStackRegExps.end())
@@ -3242,7 +3248,7 @@ CStdString CFileItem::FindTrailer() const
 
   // Precompile our REs
   VECCREGEXP matchRegExps;
-  CRegExp tmpRegExp(true, true);
+  CRegExp tmpRegExp(true, CRegExp::autoUtf8);
   const CStdStringArray& strMatchRegExps = g_advancedSettings.m_trailerMatchRegExps;
 
   CStdStringArray::const_iterator strRegExp = strMatchRegExps.begin();

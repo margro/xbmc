@@ -73,6 +73,7 @@ config.log
 /Makefile.include
 /aclocal.m4
 /autom4te.cache/
+/build-aux/compile
 /build-aux/config.guess
 /build-aux/config.sub
 /build-aux/install-sh
@@ -324,6 +325,9 @@ lib/cmyth/Makefile
 /project/obj
 /project/output
 
+# /project/cmake
+/project/cmake/xbmc-config.cmake
+
 # /project/Win32BuildSetup/
 /project/Win32BuildSetup/XBMC.log
 /project/Win32BuildSetup/XBMCSetup*.exe
@@ -393,6 +397,8 @@ lib/cmyth/Makefile
 /system/libnfs.dll
 /system/dnssd.dll
 /system/libcec.dll
+/system/pthreadVC2.dll
+/system/libxslt.dll
 
 # /system/cdrip
 /system/cdrip/lame_enc.dll

@@ -26,7 +26,9 @@
 #include "cores/playercorefactory/PlayerCoreFactory.h"
 
 #include "AddonClass.h"
+#include "Tuple.h"
 #include "Dictionary.h"
+#include "Alternative.h"
 #include "CallbackHandler.h"
 #include "ListItem.h"
 #include "music/tags/MusicInfoTag.h"
@@ -41,6 +43,17 @@ namespace XBMCAddon
   namespace xbmcgui
   {
     XBMCCOMMONS_STANDARD_EXCEPTION(ListItemException);
+
+    // This is a type that represents either a String or a String Tuple
+    typedef Alternative<StringOrInt,Tuple<String, StringOrInt> > InfoLabelStringOrTuple;
+
+    // This type is either a String or a list of InfoLabelStringOrTuple types
+    typedef Alternative<StringOrInt, std::vector<InfoLabelStringOrTuple> > InfoLabelValue;
+
+    // The type contains the dictionary values for the ListItem::setInfo call. 
+    // The values in the dictionary can be either a String, or a list of items.
+    // If it's a list of items then the items can be either a String or a Tuple.
+    typedef Dictionary<InfoLabelValue> InfoLabelDict;
 
     class ListItem : public AddonClass
     {
@@ -123,6 +136,25 @@ namespace XBMCAddon
        *   - self.list.getSelectedItem().setThumbnailImage('emailread.png')
        */
       void setThumbnailImage(const String& thumbFilename);
+
+      /**
+       * setArt(values) -- Sets the listitem's art
+       * \n
+       * values              : dictionary - pairs of { label: value }.\n
+       *
+       * - Some default art values (any string possible):
+       *     - thumb         : string - image filename
+       *     - poster        : string - image filename
+       *     - banner        : string - image filename
+       *     - fanart        : string - image filename
+       *     - clearart      : string - image filename
+       *     - clearlogo     : string - image filename
+       *     - landscape     : string - image filename
+       *
+       * example:
+       *   - self.list.getSelectedItem().setArt({ 'poster': 'poster.png', 'banner' : 'banner.png' })
+       */
+      void setArt(const Properties& dictionary);
 
       /**
        * select(selected) -- Sets the listitem's selected status.\n
@@ -215,7 +247,7 @@ namespace XBMCAddon
        * example:\n
        *   - self.list.getSelectedItem().setInfo('video', { 'Genre': 'Comedy' })n\n
        */
-      void setInfo(const char* type, const Dictionary& infoLabels);
+      void setInfo(const char* type, const InfoLabelDict& infoLabels) throw (WrongTypeException);
 
       /**
        * addStreamInfo(type, values) -- Add a stream with details.\n
@@ -239,7 +271,7 @@ namespace XBMCAddon
        * example:
        *   - self.list.getSelectedItem().addStreamInfo('video', { 'Codec': 'h264', 'Width' : 1280 })
        */
-      void addStreamInfo(const char* cType, const Dictionary& dictionary);
+      void addStreamInfo(const char* cType, const Properties& dictionary);
 
       /**
        * addContextMenuItems([(label, action,)*], replaceItems) -- Adds item(s) to the context menu for media lists.\n

@@ -304,7 +304,7 @@ void CAdvancedSettings::Initialize()
 
   m_iMythMovieLength = 0; // 0 == Off
 
-  m_iEpgLingerTime = 60;           /* keep 1 hour by default */
+  m_iEpgLingerTime = 60 * 24;           /* keep 24 hours by default */
   m_iEpgUpdateCheckInterval = 300; /* check if tables need to be updated every 5 minutes */
   m_iEpgCleanupInterval = 900;     /* remove old entries from the EPG every 15 minutes */
   m_iEpgActiveTagCheckInterval = 60; /* check for updated active tags every minute */
@@ -361,7 +361,6 @@ void CAdvancedSettings::Initialize()
 
   m_iPVRTimeCorrection             = 0;
   m_iPVRInfoToggleInterval         = 3000;
-  m_bPVRShowEpgInfoOnEpgItemSelect = false;
   m_iPVRMinVideoCacheLevel         = 5;
   m_iPVRMinAudioCacheLevel         = 10;
   m_bPVRCacheInDvdPlayer           = true;
@@ -1096,7 +1095,6 @@ void CAdvancedSettings::ParseSettingsFile(const CStdString &file)
   {
     XMLUtils::GetInt(pPVR, "timecorrection", m_iPVRTimeCorrection, 0, 1440);
     XMLUtils::GetInt(pPVR, "infotoggleinterval", m_iPVRInfoToggleInterval, 0, 30000);
-    XMLUtils::GetBoolean(pPVR, "showepginfoonselect", m_bPVRShowEpgInfoOnEpgItemSelect);
     XMLUtils::GetInt(pPVR, "minvideocachelevel", m_iPVRMinVideoCacheLevel, 0, 100);
     XMLUtils::GetInt(pPVR, "minaudiocachelevel", m_iPVRMinAudioCacheLevel, 0, 100);
     XMLUtils::GetBoolean(pPVR, "cacheindvdplayer", m_bPVRCacheInDvdPlayer);

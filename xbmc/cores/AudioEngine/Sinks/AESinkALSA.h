@@ -41,18 +41,16 @@ public:
 
   virtual bool Initialize  (AEAudioFormat &format, std::string &device);
   virtual void Deinitialize();
-  virtual bool IsCompatible(const AEAudioFormat &format, const std::string &device);
 
   virtual void         Stop            ();
   virtual double       GetDelay        ();
-  virtual double       GetCacheTime    ();
   virtual double       GetCacheTotal   ();
   virtual unsigned int AddPackets      (uint8_t *data, unsigned int frames, bool hasAudio, bool blocking = false);
   virtual void         Drain           ();
 
   static void EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
 private:
-  CAEChannelInfo GetChannelLayout(AEAudioFormat format);
+  CAEChannelInfo GetChannelLayout(AEAudioFormat format, unsigned int minChannels, unsigned int maxChannels);
   void           GetAESParams(const AEAudioFormat format, std::string& params);
   void           HandleError(const char* name, int err);
 
@@ -66,10 +64,19 @@ private:
   snd_pcm_t        *m_pcm;
   int               m_timeout;
 
+  struct ALSAConfig
+  {
+    unsigned int sampleRate;
+    unsigned int periodSize;
+    unsigned int frameSize;
+    unsigned int channels;
+    AEDataFormat format;
+  };
+
   static snd_pcm_format_t AEFormatToALSAFormat(const enum AEDataFormat format);
 
-  bool InitializeHW(AEAudioFormat &format);
-  bool InitializeSW(AEAudioFormat &format);
+  bool InitializeHW(const ALSAConfig &inconfig, ALSAConfig &outconfig);
+  bool InitializeSW(const ALSAConfig &inconfig);
 
   static void AppendParams(std::string &device, const std::string &params);
   static bool TryDevice(const std::string &name, snd_pcm_t **pcmp, snd_config_t *lconf);
