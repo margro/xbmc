@@ -336,11 +336,15 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
     case AV_CODEC_ID_H264:
       m_mime = "video/avc";
       m_formatname = "amc-h264";
-      m_bitstream = new CBitstreamConverter;
-      if (!m_bitstream->Open(m_hints.codec, (uint8_t*)m_hints.extradata, m_hints.extrasize, true))
+      // check for h264-avcC and convert to h264-annex-b
+      if (m_hints.extradata && *(uint8_t*)m_hints.extradata == 1)
       {
-        SAFE_DELETE(m_bitstream);
-        return false;
+        m_bitstream = new CBitstreamConverter;
+        if (!m_bitstream->Open(m_hints.codec, (uint8_t*)m_hints.extradata, m_hints.extrasize, true))
+        {
+          SAFE_DELETE(m_bitstream);
+          return false;
+        }
       }
       break;
     case AV_CODEC_ID_VC1:
@@ -422,7 +426,12 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
     }
   }
 
-  ConfigureMediaCodec();
+  if (!ConfigureMediaCodec())
+  {
+    m_codec.reset();
+    SAFE_DELETE(m_bitstream);
+    return false;
+  }
 
   // setup a YUV420P DVDVideoPicture buffer.
   // first make sure all properties are reset.
@@ -687,7 +696,7 @@ void CDVDVideoCodecAndroidMediaCodec::FlushInternal()
   }
 }
 
-void CDVDVideoCodecAndroidMediaCodec::ConfigureMediaCodec(void)
+bool CDVDVideoCodecAndroidMediaCodec::ConfigureMediaCodec(void)
 {
   // setup a MediaFormat to match the video content,
   // used by codec during configure
@@ -736,12 +745,23 @@ void CDVDVideoCodecAndroidMediaCodec::ConfigureMediaCodec(void)
   {
     m_codec->configure(mediaformat, *m_surface, crypto, flags);
   }
-
-  m_codec->start();
-
   // always, check/clear jni exceptions.
   if (xbmc_jnienv()->ExceptionOccurred())
+  {
     xbmc_jnienv()->ExceptionClear();
+    return false;
+  }
+
+
+  m_codec->start();
+  // always, check/clear jni exceptions.
+  if (xbmc_jnienv()->ExceptionOccurred())
+  {
+    xbmc_jnienv()->ExceptionClear();
+    return false;
+  }
+
+  return true;
 }
 
 int CDVDVideoCodecAndroidMediaCodec::GetOutputPicture(void)
