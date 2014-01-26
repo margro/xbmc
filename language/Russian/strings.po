@@ -5482,8 +5482,8 @@ msgid "Unavailable source"
 msgstr "Источник недоступен"
 
 msgctxt "#15013"
-msgid "What would you like to do with media items from"
-msgstr "Операция с медиафайлами из"
+msgid "What would you like to do with media items from %s"
+msgstr "Что делать с медиафайлами из %s?"
 
 msgctxt "#15014"
 msgid "Keep"
@@ -5913,6 +5913,10 @@ msgctxt "#16325"
 msgid "VDPAU - Bob"
 msgstr "VDPAU  Bob"
 
+msgctxt "#16326"
+msgid "DXVA-HD"
+msgstr "DXVA-HD"
+
 msgctxt "#16400"
 msgid "Post-processing"
 msgstr "Постобработка"
@@ -6208,6 +6212,10 @@ msgstr "Не удалось удалить запись. См. журнал."
 msgctxt "#19069"
 msgid "EPG"
 msgstr "EPG"
+
+msgctxt "#19070"
+msgid "Go to now"
+msgstr "К текущему моменту"
 
 msgctxt "#19071"
 msgid "EPG update interval"
@@ -8104,6 +8112,14 @@ msgstr "Исполнитель не найден."
 msgctxt "#20199"
 msgid "Downloading artist info failed"
 msgstr "Не удалось загрузить сведения об исполнителе"
+
+msgctxt "#20220"
+msgid "Override song tags with online information"
+msgstr "Заменить сведения из тэгов композиций сведениями из Интернета"
+
+msgctxt "#20221"
+msgid "With this enabled, any information that is downloaded for albums and artists will override anything you have set in your song tags, such as genres, year, song artists etc. Useful if you have MusicBrainz identifiers in your song tags."
+msgstr "При включении этой настройки сведения об альбомах и исполнителях, загруженные из Интернета, заменят все сведения из тэгов композиций, такие как жанры, год, исполнители и т. п. Полезно при наличии идентификаторов MusicBrainz в тэгах композиций."
 
 msgctxt "#20240"
 msgid "Android music"
@@ -11457,10 +11473,6 @@ msgctxt "#36219"
 msgid "Default EPG window to show. Defaults to Timeline."
 msgstr "Показываемое по умолчанию окно EPG. По умолчанию — расписание."
 
-msgctxt "#36220"
-msgid "Number of days of EPG data to import from backends. Defaults to 2 days."
-msgstr "Импортировать EPG с ТВ-серверов на указанное число дней. По умолчанию — 2 дня."
-
 msgctxt "#36221"
 msgid "Time between EPG data imports from backends. Defaults to 120 minutes."
 msgstr "Интервал времени между импортом данных EPG с ТВ-серверов. По умолчанию — 120 минут."
@@ -12273,6 +12285,26 @@ msgctxt "#36423"
 msgid "Use ffmpeg frame multiple thread decoding when hardware decoding not working or disabled. (less reliable than default single thread mode)"
 msgstr "Использовать многопоточное декодирование ffmpeg, если аппаратное декодирование не работает или отключено. (Менее надежно, чем однопоточный режим, используемый по умолчанию.)"
 
+msgctxt "#36424"
+msgid "Select what will happen when an EPG item is selected: [Show context menu] will trigger the contextual menu from where you can choose further actions; [Switch to channel] will instantly tune to the related channel; [Show information] will display a detailed information with plot and further options; [Record] will create a recording timer for the selected item."
+msgstr "Действие при выборе элемента EPG. [Показать контекстное меню] — вывод контекстного меню для выбора дальнейших действий; [Переключиться на канал] — мгновенное переключение на соответствующий канал; [Показать сведения] — подробные сведения о сюжете и другие параметры; [Запись] — создание таймера записи для выбранного элемента."
+
+msgctxt "#36425"
+msgid "Show context menu"
+msgstr "Показать контекстное меню"
+
+msgctxt "#36426"
+msgid "Switch to channel"
+msgstr "Переключиться на канал"
+
+msgctxt "#36427"
+msgid "Show information"
+msgstr "Показать сведения"
+
+msgctxt "#36428"
+msgid "Record"
+msgstr "Запись"
+
 msgctxt "#36500"
 msgid "Stereoscopic mode (current)"
 msgstr "Стереоскопический режим (текущий)"
@@ -12408,6 +12440,14 @@ msgstr "Увеличение громкости речи по сравнению
 msgctxt "#36544"
 msgid "Enable hardware decoding of video files."
 msgstr "Включение аппаратного декодирования видеофайлов."
+
+msgctxt "#36545"
+msgid "Subtitle stereoscopic depth"
+msgstr "Глубина стереосубтитров"
+
+msgctxt "#36546"
+msgid "Sets the visual depth of subtitles for stereoscopic videos. The higher the value, the closer the subtitles will appear to the viewer."
+msgstr "Настройка визуальной глубины субтитров для стереоскопического видео. Чем выше значение, тем ближе субтитры к зрителю."
 
 msgctxt "#37000"
 msgid "(Visually Impaired)"

@@ -23,8 +23,8 @@
 #include "utils/log.h"
 #include "utils/MathUtils.h"
 
-#include "AEFactory.h"
-#include "Utils/AEUtil.h"
+#include "cores/AudioEngine/AEFactory.h"
+#include "cores/AudioEngine/Utils/AEUtil.h"
 
 #include "ActiveAE.h"
 #include "ActiveAEStream.h"
@@ -353,7 +353,6 @@ void CActiveAEStream::Drain(bool wait)
         MsgStreamSample msgData;
         msgData.stream = this;
         msgData.buffer = *((CSampleBuffer**)msg->data);
-        RemapBuffer();
         msg->Reply(CActiveAEDataProtocol::STREAMSAMPLE, &msgData, sizeof(MsgStreamSample));
         DecFreeBuffers();
         continue;

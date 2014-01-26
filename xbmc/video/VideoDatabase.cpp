@@ -799,12 +799,6 @@ bool CVideoDatabase::SetPathHash(const CStdString &path, const CStdString &hash)
     if (NULL == m_pDB.get()) return false;
     if (NULL == m_pDS.get()) return false;
 
-    if (hash.empty())
-    { // this is an empty folder - we need only add it to the path table
-      // if the path actually exists
-      if (!CDirectory::Exists(path))
-        return false;
-    }
     int idPath = AddPath(path);
     if (idPath < 0) return false;
 
@@ -2895,15 +2889,16 @@ void CVideoDatabase::DeleteMovie(const CStdString& strFilenameAndPath, bool bKee
 
       strSQL=PrepareSQL("delete from movielinktvshow where idMovie=%i", idMovie);
       m_pDS->exec(strSQL.c_str());
+
+      CStdString strPath, strFileName;
+      SplitPath(strFilenameAndPath,strPath,strFileName);
+      InvalidatePathHash(strPath);
     }
 
     //TODO: move this below CommitTransaction() once UPnP doesn't rely on this anymore
     if (!bKeepId)
       AnnounceRemove("movie", idMovie);
 
-    CStdString strPath, strFileName;
-    SplitPath(strFilenameAndPath,strPath,strFileName);
-    InvalidatePathHash(strPath);
     CommitTransaction();
 
   }
@@ -2968,13 +2963,13 @@ void CVideoDatabase::DeleteTvShow(const CStdString& strPath, bool bKeepId /* = f
 
       strSQL=PrepareSQL("delete from movielinktvshow where idShow=%i", idTvShow);
       m_pDS->exec(strSQL.c_str());
-    }
+
+      InvalidatePathHash(strPath);
+   }
 
     //TODO: move this below CommitTransaction() once UPnP doesn't rely on this anymore
     if (!bKeepId)
       AnnounceRemove("tvshow", idTvShow);
-
-    InvalidatePathHash(strPath);
 
     CommitTransaction();
 
@@ -3094,15 +3089,16 @@ void CVideoDatabase::DeleteMusicVideo(const CStdString& strFilenameAndPath, bool
 
       strSQL=PrepareSQL("delete from musicvideo where idMVideo=%i", idMVideo);
       m_pDS->exec(strSQL.c_str());
+
+      CStdString strPath, strFileName;
+      SplitPath(strFilenameAndPath,strPath,strFileName);
+      InvalidatePathHash(strPath);
     }
 
     //TODO: move this below CommitTransaction() once UPnP doesn't rely on this anymore
     if (!bKeepId)
       AnnounceRemove("musicvideo", idMVideo);
 
-    CStdString strPath, strFileName;
-    SplitPath(strFilenameAndPath,strPath,strFileName);
-    InvalidatePathHash(strPath);
     CommitTransaction();
 
   }
@@ -8064,8 +8060,12 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
 
       if (handle == NULL && progress != NULL)
       {
-        progress->SetPercentage(current * 100 / total);
-        progress->Progress();
+        int percentage = current * 100 / total;
+        if (percentage > progress->GetPercentage())
+        {
+          progress->SetPercentage(percentage);
+          progress->Progress();
+        }
         if (progress->IsCanceled())
         {
           progress->Close();
@@ -8214,7 +8214,7 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
     {
       std::map<int, bool>::const_iterator pathsDeleteDecision = pathsDeleteDecisions.find(m_pDS->fv(0).get_asInt());
       if ((pathsDeleteDecision != pathsDeleteDecisions.end() && pathsDeleteDecision->second) ||
-          (pathsDeleteDecision == pathsDeleteDecisions.end() && !CDirectory::Exists(m_pDS->fv(1).get_asString())))
+          (pathsDeleteDecision == pathsDeleteDecisions.end() && !CDirectory::Exists(m_pDS->fv(1).get_asString(), false)))
         strIds += m_pDS->fv(0).get_asString() + ",";
 
       m_pDS->next();
@@ -8311,7 +8311,7 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
     sql = StringUtils::Format("DELETE FROM path "
                                 "WHERE (strContent IS NULL OR strContent = '') "
                                   "AND (strSettings IS NULL OR strSettings = '') "
-                                  "and (strHash IS NULL OR strHash = '') "
+                                  "AND (strHash IS NULL OR strHash = '') "
                                   "AND (exclude IS NULL OR exclude != 1) "
                                   "AND NOT EXISTS (SELECT 1 FROM files WHERE files.idPath = path.idPath) "
                                   "AND NOT EXISTS (SELECT 1 FROM tvshowlinkpath WHERE tvshowlinkpath.idPath = path.idPath) "
@@ -8424,7 +8424,7 @@ std::vector<int> CVideoDatabase::CleanMediaType(const std::string &mediaType, co
     return cleanedIDs;
 
   // now grab them media items
-  std::string sql = PrepareSQL("SELECT %s.%s, %s.idFile, %s, path.idPath, parentPath.strPath FROM %s "
+  std::string sql = PrepareSQL("SELECT %s.%s, %s.idFile, %s, path.idPath, parentPath.strPath, parentPath.useFolderNames FROM %s "
                                  "JOIN files ON files.idFile = %s.idFile "
                                  "JOIN path ON path.idPath = files.idPath ",
                                table.c_str(), idField.c_str(), table.c_str(), parentPathIdField.c_str(), table.c_str(),
@@ -8438,16 +8438,21 @@ std::vector<int> CVideoDatabase::CleanMediaType(const std::string &mediaType, co
                     parentPathIdField.c_str(),
                     table.c_str(), cleanableFileIDs.c_str());
 
+  // map of parent path ID to boolean pair (if not exists and user choice)
+  std::map<int, std::pair<bool, bool> > parentPathsDeleteDecisions;
   m_pDS->query(sql.c_str());
   while (!m_pDS->eof())
   {
     int parentPathID = m_pDS->fv(2).get_asInt();
-    std::map<int, bool>::const_iterator pathsDeleteDecision = pathsDeleteDecisions.find(parentPathID);
+    std::map<int, std::pair<bool, bool> >::const_iterator parentPathsDeleteDecision = parentPathsDeleteDecisions.find(parentPathID);
     bool del = true;
-    if (pathsDeleteDecision == pathsDeleteDecisions.end())
+    if (parentPathsDeleteDecision == parentPathsDeleteDecisions.end())
     {
       std::string parentPath = m_pDS->fv(4).get_asString();
-      if (!CDirectory::Exists(parentPath, false))
+      bool parentPathNotExists = !CDirectory::Exists(parentPath, false);
+      // if the parent path exists, the file will be deleted without asking
+      // if the parent path doesn't exist, ask the user whether to remove all items it contained
+      if (parentPathNotExists)
       {
         // in silent mode assume that the files are just temporarily missing
         if (silent)
@@ -8472,12 +8477,16 @@ std::vector<int> CVideoDatabase::CleanMediaType(const std::string &mediaType, co
         }
       }
 
-      pathsDeleteDecisions.insert(make_pair(parentPathID, del));
+      parentPathsDeleteDecisions.insert(make_pair(parentPathID, make_pair(parentPathNotExists, del)));
     }
-    else
-      del = pathsDeleteDecision->second;
+    // the only reason not to delete the file is if the parent path doesn't
+    // exist and the user decided to delete all the items it contained
+    else if (parentPathsDeleteDecision->second.first &&
+             !parentPathsDeleteDecision->second.second)
+      del = false;
 
-    pathsDeleteDecisions.insert(make_pair(m_pDS->fv(3).get_asInt(), del));
+    if (m_pDS->fv(5).get_asBool())
+      pathsDeleteDecisions.insert(make_pair(m_pDS->fv(3).get_asInt(), del));
 
     if (del)
     {
@@ -9132,7 +9141,6 @@ void CVideoDatabase::ImportFromXML(const CStdString &path)
     XMLUtils::GetInt(root, "version", iVersion);
 
     CLog::Log(LOGDEBUG, "%s: Starting import (export version = %i)", __FUNCTION__, iVersion);
-    BeginTransaction();
 
     TiXmlElement *movie = root->FirstChildElement();
     int current = 0;
@@ -9265,18 +9273,14 @@ void CVideoDatabase::ImportFromXML(const CStdString &path)
         if (progress->IsCanceled())
         {
           progress->Close();
-          RollbackTransaction();
           return;
         }
       }
     }
-
-    CommitTransaction();
   }
   catch (...)
   {
     CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
-    RollbackTransaction();
   }
   if (progress)
     progress->Close();

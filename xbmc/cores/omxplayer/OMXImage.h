@@ -125,7 +125,7 @@ public:
   unsigned int GetDecodedHeight() { return (unsigned int)m_decoded_format.format.image.nFrameHeight; };
   unsigned int GetDecodedStride() { return (unsigned int)m_decoded_format.format.image.nStride; };
 protected:
-  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height);
+  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, unsigned int resize_stride);
   // Components
   COMXCoreComponent             m_omx_decoder;
   COMXCoreComponent             m_omx_resize;
@@ -163,7 +163,7 @@ public:
   void Close();
   bool ReEncode(COMXImageFile &srcFile, unsigned int width, unsigned int height, void * &pDestBuffer, unsigned int &nDestSize);
 protected:
-  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, bool port_settings_changed);
+  bool HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, int orientation, bool port_settings_changed);
   // Components
   COMXCoreComponent             m_omx_decoder;
   COMXCoreComponent             m_omx_resize;

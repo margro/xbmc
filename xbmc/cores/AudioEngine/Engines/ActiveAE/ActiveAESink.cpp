@@ -21,7 +21,7 @@
 #include <sstream>
 
 #include "ActiveAESink.h"
-#include "Utils/AEUtil.h"
+#include "cores/AudioEngine/Utils/AEUtil.h"
 #include "utils/EndianSwap.h"
 #include "ActiveAE.h"
 
@@ -74,13 +74,6 @@ void CActiveAESink::Dispose()
     _aligned_free(m_convertBuffer);
     m_convertBuffer = NULL;
   }
-}
-
-bool CActiveAESink::HasVolume()
-{
-  if (!m_sink)
-    return false;
-  return m_sink->HasVolume();
 }
 
 AEDeviceType CActiveAESink::GetDeviceType(const std::string &device)
@@ -162,11 +155,14 @@ void CActiveAESink::StateMachine(int signal, Protocol *port, Message *msg)
 
           if (!m_extError)
           {
-            m_stats->SetSinkCacheTotal(m_sink->GetCacheTotal());
-            m_stats->SetSinkLatency(m_sink->GetLatency());
+            SinkReply reply;
+            reply.format = m_sinkFormat;
+            reply.cacheTotal = m_sink->GetCacheTotal();
+            reply.latency = m_sink->GetLatency();
+            reply.hasVolume = m_sink->HasVolume();
             m_state = S_TOP_CONFIGURED_IDLE;
             m_extTimeout = 10000;
-            msg->Reply(CSinkControlProtocol::ACC, &m_sinkFormat, sizeof(AEAudioFormat));
+            msg->Reply(CSinkControlProtocol::ACC, &reply, sizeof(SinkReply));
           }
           else
           {
@@ -660,6 +656,29 @@ void CActiveAESink::OpenSink()
   m_sinkFormat = m_requestedFormat;
   CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - trying to open device %s", device.c_str());
   m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
+
+  // try first device in out list
+  if (!m_sink && !m_sinkInfoList.empty())
+  {
+    driver = m_sinkInfoList.front().m_sinkName;
+    device = m_sinkInfoList.front().m_deviceInfoList.front().m_deviceName;
+    GetDeviceFriendlyName(device);
+    if (!driver.empty())
+      device = driver + ":" + device;
+    m_sinkFormat = m_requestedFormat;
+    CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - trying to open device %s", device.c_str());
+    m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
+  }
+
+  // open NULL sink
+  // TODO: should not be required by ActiveAE
+  if (!m_sink)
+  {
+    device = "NULL:NULL";
+    m_sinkFormat = m_requestedFormat;
+    CLog::Log(LOGDEBUG, "CActiveAESink::OpenSink - open NULL sink");
+    m_sink = CAESinkFactory::Create(device, m_sinkFormat, passthrough);
+  }
 
   if (!m_sink)
   {

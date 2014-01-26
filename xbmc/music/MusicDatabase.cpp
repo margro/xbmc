@@ -176,7 +176,7 @@ bool CMusicDatabase::CreateTables()
                 "strKaralyrics text, strKaraLyrFileCRC text )\n");
 
     CLog::Log(LOGINFO, "create album index");
-    m_pDS->exec("CREATE INDEX idxAlbum ON album(strAlbum)");
+    m_pDS->exec("CREATE INDEX idxAlbum ON album(strAlbum(255))");
     CLog::Log(LOGINFO, "create album compilation index");
     m_pDS->exec("CREATE INDEX idxAlbum_1 ON album(bCompilation)");
     CLog::Log(LOGINFO, "create unique album name index");
@@ -192,17 +192,17 @@ bool CMusicDatabase::CreateTables()
     m_pDS->exec("CREATE UNIQUE INDEX idxAlbumGenre_2 ON album_genre ( idGenre, idAlbum )\n");
 
     CLog::Log(LOGINFO, "create genre index");
-    m_pDS->exec("CREATE INDEX idxGenre ON genre(strGenre)");
+    m_pDS->exec("CREATE INDEX idxGenre ON genre(strGenre(255))");
 
     CLog::Log(LOGINFO, "create artist indexes");
-    m_pDS->exec("CREATE INDEX idxArtist ON artist(strArtist)");
+    m_pDS->exec("CREATE INDEX idxArtist ON artist(strArtist(255))");
     m_pDS->exec("CREATE UNIQUE INDEX idxArtist1 ON artist(strMusicBrainzArtistID(36))");
 
     CLog::Log(LOGINFO, "create path index");
-    m_pDS->exec("CREATE INDEX idxPath ON path(strPath)");
+    m_pDS->exec("CREATE INDEX idxPath ON path(strPath(255))");
 
     CLog::Log(LOGINFO, "create song index");
-    m_pDS->exec("CREATE INDEX idxSong ON song(strTitle)");
+    m_pDS->exec("CREATE INDEX idxSong ON song(strTitle(255))");
     CLog::Log(LOGINFO, "create song index1");
     m_pDS->exec("CREATE INDEX idxSong1 ON song(iTimesPlayed)");
     CLog::Log(LOGINFO, "create song index2");
@@ -759,7 +759,7 @@ int CMusicDatabase::AddAlbum(const CStdString& strAlbum, const CStdString& strMu
       strSQL = PrepareSQL("SELECT * FROM album WHERE strMusicBrainzAlbumID = '%s'",
                         strMusicBrainzAlbumID.c_str());
     else
-      strSQL = PrepareSQL("SELECT * FROM album WHERE strArtists = '%s' AND strAlbum like '%s' and strMusicBrainzAlbumID IS NULL",
+      strSQL = PrepareSQL("SELECT * FROM album WHERE strArtists LIKE '%s' AND strAlbum LIKE '%s' AND strMusicBrainzAlbumID IS NULL",
                           strArtist.c_str(),
                           strAlbum.c_str());
     m_pDS->query(strSQL.c_str());
@@ -886,7 +886,7 @@ bool CMusicDatabase::GetAlbum(int idAlbum, CAlbum& album, bool getSongs /* = tru
                        "  JOIN songartistview ON songview.idSong = songartistview.idSong "
                        "  LEFT JOIN albuminfosong ON albumview.idAlbum = albuminfosong.idAlbumInfo "
                        "  WHERE albumview.idAlbum = %ld "
-                       "  ORDER BY iOrder, iTrack", idAlbum);
+                       "  ORDER BY albumartistview.iOrder, songview.iTrack, songartistview.iOrder", idAlbum);
     }
     else
     {
@@ -894,7 +894,7 @@ bool CMusicDatabase::GetAlbum(int idAlbum, CAlbum& album, bool getSongs /* = tru
                        "  FROM albumview "
                        "  JOIN albumartistview ON albumview.idAlbum = albumartistview.idAlbum "
                        "  WHERE albumview.idAlbum = %ld "
-                       "  ORDER BY iOrder", idAlbum);
+                       "  ORDER BY albumartistview.iOrder", idAlbum);
     }
 
     CLog::Log(LOGDEBUG, "%s", sql.c_str());
@@ -1083,7 +1083,7 @@ int CMusicDatabase::AddArtist(const CStdString& strArtist, const CStdString& str
 
       // 1.b) No match on MusicBrainz ID. Look for a previously added artist with no MusicBrainz ID
       //     and update that if it exists.
-      strSQL = PrepareSQL("SELECT * FROM artist WHERE strArtist = '%s' AND strMusicBrainzArtistID IS NULL", strArtist.c_str());
+      strSQL = PrepareSQL("SELECT * FROM artist WHERE strArtist LIKE '%s' AND strMusicBrainzArtistID IS NULL", strArtist.c_str());
       m_pDS->query(strSQL.c_str());
       if (m_pDS->num_rows() > 0)
       {
@@ -1104,7 +1104,7 @@ int CMusicDatabase::AddArtist(const CStdString& strArtist, const CStdString& str
     }
     else
     {
-      strSQL = PrepareSQL("SELECT * FROM artist WHERE strArtist = '%s'",
+      strSQL = PrepareSQL("SELECT * FROM artist WHERE strArtist LIKE '%s'",
                           strArtist.c_str());
 
       m_pDS->query(strSQL.c_str());
@@ -4137,6 +4137,22 @@ bool CMusicDatabase::UpdateOldVersion(int version)
                 "  DELETE FROM art WHERE media_id=old.idSong AND media_type='song';"
                 " END");
   }
+  if (version < 44)
+  {
+    m_pDS->exec("CREATE INDEX idxAlbum ON album(strAlbum(255))");
+    m_pDS->exec("CREATE INDEX idxAlbum_1 ON album(bCompilation)");
+    m_pDS->exec("CREATE UNIQUE INDEX idxAlbum_2 ON album(strMusicBrainzAlbumID(36))");
+
+    m_pDS->exec("CREATE INDEX idxArtist ON artist(strArtist(255))");
+    m_pDS->exec("CREATE UNIQUE INDEX idxArtist1 ON artist(strMusicBrainzArtistID(36))");
+
+    m_pDS->exec("DROP INDEX idxGenre ON genre");
+    m_pDS->exec("CREATE INDEX idxGenre ON genre(strGenre(255))");
+    m_pDS->exec("DROP INDEX idxPath ON path");
+    m_pDS->exec("CREATE INDEX idxPath ON path(strPath(255))");
+    m_pDS->exec("DROP INDEX idxSong ON song");
+    m_pDS->exec("CREATE INDEX idxSong ON song(strTitle(255))");
+  }
   // always recreate the views after any table change
   CreateViews();
 
@@ -4145,7 +4161,7 @@ bool CMusicDatabase::UpdateOldVersion(int version)
 
 int CMusicDatabase::GetMinVersion() const
 {
-  return 43;
+  return 44;
 }
 
 unsigned int CMusicDatabase::GetSongIDs(const Filter &filter, vector<pair<int,int> > &songIDs)
@@ -4915,7 +4931,7 @@ void CMusicDatabase::ExportToXML(const CStdString &xmlFile, bool singleFiles, bo
 
     // find all albums
     vector<int> albumIds;
-    CStdString sql = "select idAlbum FROM album WHERE lastScraped NOT NULL";
+    CStdString sql = "select idAlbum FROM album WHERE lastScraped IS NOT NULL";
     m_pDS->query(sql.c_str());
 
     int total = m_pDS->num_rows();
@@ -5002,7 +5018,7 @@ void CMusicDatabase::ExportToXML(const CStdString &xmlFile, bool singleFiles, bo
 
     // find all artists
     vector<int> artistIds;
-    CStdString artistSQL = "SELECT idArtist FROM artist where lastScraped NOT NULL";
+    CStdString artistSQL = "SELECT idArtist FROM artist where lastScraped IS NOT NULL";
     m_pDS->query(artistSQL.c_str());
     total = m_pDS->num_rows();
     current = 0;

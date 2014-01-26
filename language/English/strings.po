@@ -1046,7 +1046,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#252"
-msgid "Output stereo to all speakers"
+msgid "Stereo upmix"
 msgstr ""
 
 msgctxt "#253"
@@ -1990,11 +1990,7 @@ msgctxt "#470"
 msgid "Credits"
 msgstr ""
 
-msgctxt "#471"
-msgid "Modchip"
-msgstr ""
-
-#empty strings from id 472 to 473
+#empty strings from id 471 to 473
 
 msgctxt "#474"
 msgid "Off"
@@ -2797,7 +2793,12 @@ msgctxt "#666"
 msgid "Verbose logging..."
 msgstr ""
 
-#empty strings from id 667 to 699
+#: system/settings/settings.xml
+msgctxt "#667"
+msgid "Enable Dolby Digital transcoding"
+msgstr ""
+
+#empty strings from id 668 to 699
 
 msgctxt "#700"
 msgid "Cleaning up library"
@@ -5996,7 +5997,7 @@ msgid "Allow hardware acceleration (MediaCodec)"
 msgstr ""
 
 msgctxt "#13440"
-msgid "Frame Multi Threaded Decoding (less reliable)"
+msgid "Allow frame-multi-threaded decoding"
 msgstr ""
 
 #empty strings from id 13441 to 13499
@@ -7257,9 +7258,10 @@ msgctxt "#19017"
 msgid "TV recordings"
 msgstr ""
 
+#. Name of a setting, asking to enter the path to a folder that contains icons for TV channels
 #: system/settings/settings.xml
 msgctxt "#19018"
-msgid "Default folder for PVR thumbnails"
+msgid "Folder with channel icons"
 msgstr ""
 
 #: xbmc/windows/GUIWindowSystemInfo.cpp
@@ -7456,7 +7458,12 @@ msgctxt "#19065"
 msgid "Default EPG window"
 msgstr ""
 
-#empty string with id 19066
+#. Name of a shortcut to a custom folder for channel icons
+#: xbmc/pvr/windows/GUIWindowPVRChannels.cpp
+#: xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp
+msgctxt "#19066"
+msgid "Channel icons"
+msgstr ""
 
 msgctxt "#19067"
 msgid "This event is already being recorded."
@@ -8356,7 +8363,35 @@ msgctxt "#19281"
 msgid "Confirm channel switches by pressing OK"
 msgstr ""
 
-#empty strings from id 19282 to 19498
+#. Label for a select option or list item, representing an icon graphic (like a TV channel icon)
+#: xbmc/pvr/windows/GUIWindowPVRChannels.cpp
+#: xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp
+msgctxt "#19282"
+msgid "Current icon"
+msgstr ""
+
+#. Label for a select option or list item, representing an icon graphic (like a TV channel icon)
+#: xbmc/pvr/windows/GUIWindowPVRChannels.cpp
+#: xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp
+msgctxt "#19283"
+msgid "No icon"
+msgstr ""
+
+#. Label for a select/menu option to select an icon graphic
+#: xbmc/pvr/windows/GUIWindowPVRChannels.cpp
+#: xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp
+msgctxt "#19284"
+msgid "Choose icon"
+msgstr ""
+
+#. Label for a select/menu option to select an icon graphic
+#: xbmc/pvr/windows/GUIWindowPVRChannels.cpp
+#: xbmc/pvr/dialogs/GUIDialogPVRChannelManager.cpp
+msgctxt "#19285"
+msgid "Browse for icon"
+msgstr ""
+
+#empty strings from id 19286 to 19498
 
 #: xbmc/epg/Epg.cpp
 msgctxt "#19499"
@@ -9635,8 +9670,8 @@ msgctxt "#20199"
 msgid "Downloading artist info failed"
 msgstr ""
 
+#empty strings from id 20200 to 20219
 #string id's 20200 thru 20211 are reserved for speedstrings (LocalizeStrings.cpp)
-#empty strings from id 20212 to 20219
 
 #: system/settings/settings.xml
 msgctxt "#20220"
@@ -12101,7 +12136,17 @@ msgctxt "#24119"
 msgid "Select service that will be used as default to search for Movie subtitles"
 msgstr ""
 
-#empty strings from id 24120 to 24999
+#: xbmc/dialogs/GUIDialogSubtitles.cpp
+msgctxt "#24120"
+msgid "Manual search string"
+msgstr ""
+
+#: xbmc/dialogs/GUIDialogSubtitles.cpp
+msgctxt "#24121"
+msgid "Enter search string"
+msgstr ""
+
+#empty strings from id 24122 to 24999
 
 msgctxt "#25000"
 msgid "Notifications"
@@ -12136,7 +12181,12 @@ msgctxt "#25006"
 msgid "Select playback item"
 msgstr ""
 
-#empty strings from id 25007 to 29799
+#: xbmc/filesystem/BlurayDirectory.cpp
+msgctxt "#25007"
+msgid "Chapters: %u - duration: %s"
+msgstr ""
+
+#empty strings from id 25008 to 29799
 #strings 29800 thru 29998 reserved strings used only in the default Project Mayhem III skin and not c++ code
 
 #: skin.confluence
@@ -12572,7 +12622,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#34100"
-msgid "Speaker Configuration"
+msgid "Number of channels"
 msgstr ""
 
 #: system/settings/settings.xml
@@ -13685,7 +13735,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36220"
-msgid "Number of days of EPG data to import from backends. Defaults to 2 days."
+msgid "Number of days of EPG data to import from backends. Defaults to 3 days."
 msgstr ""
 
 #: system/settings/settings.xml
@@ -14395,7 +14445,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36362"
-msgid "Select the maximum number of audio channels/speakers available for audio decoded."
+msgid "Select the number of channels supported by the audio connection, or the number of speakers if connected by analog connections. This setting does not apply to passthrough audio. Note - SPDIF supports 2.0 channels only but can still output multichannel audio using a format supported by passthrough."
 msgstr ""
 
 #: system/settings/settings.xml
@@ -14405,7 +14455,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36364"
-msgid "Select to enable upmixing of 2 channel stereo sources to the number of audio channels specified by the speaker configuration."
+msgid "Select to enable upmixing of 2 channel audio to the number of audio channels specified by the speaker configuration."
 msgstr ""
 
 #: system/settings/settings.xml
@@ -14700,7 +14750,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36423"
-msgid "Use ffmpeg frame multiple thread decoding when hardware decoding not working or disabled. (less reliable than default single thread mode)"
+msgid "Use frame-multi-threaded decoding instead of hardware accelerated decoding (less reliable than default single thread mode)."
 msgstr ""
 
 #: system/settings/settings.xml
@@ -14728,7 +14778,12 @@ msgctxt "#36428"
 msgid "Record"
 msgstr ""
 
-#empty strings from id 36429 to 36499
+#: system/settings/settings.xml
+msgctxt "#36429"
+msgid "Select this if the audio out connection only supports multichannel audio as Dolby Digital 5.1, this allows multichannel audio such as AAC5.1 or FLAC5.1 to be listened to in 5.1 surround sound. Note - transcoding can lead to a reduction in sound quality"
+msgstr ""
+
+#empty strings from id 36430 to 36499
 #end reservation
 
 #: system/settings/settings.xml
@@ -14920,7 +14975,17 @@ msgctxt "#36546"
 msgid "Sets the visual depth of subtitles for stereoscopic videos. The higher the value, the closer the subtitles will appear to the viewer."
 msgstr ""
 
-#empty strings from id 36547 to 36999
+#: system/settings/rbp.xml
+msgctxt "#36547"
+msgid "Use higher quality textures for covers and fanart (uses more memory)"
+msgstr ""
+
+#: system/settings/rbp.xml
+msgctxt "#36548"
+msgid "Limits resolution of GUI to save memory. Does not affect video playback. Use 1080 for unlimited. Requires restart."
+msgstr ""
+
+#empty strings from id 36549 to 36999
 #reserved strings 365XX
 
 #: xbmc/cores/dvdplayer/DVDInputStreams/DVDInputStreamNavigator.cpp
@@ -14983,4 +15048,24 @@ msgstr ""
 #: system/settings/settings.xml
 msgctxt "#37019"
 msgid "Enables system keys like printscreen, alt-tab and volume keys when in fullscreen"
+msgstr ""
+
+#: system/settings/rbp.xml
+msgctxt "#37020"
+msgid "Enable higher colour depth artwork"
+msgstr ""
+
+#: system/settings/rbp.xml
+msgctxt "#37021"
+msgid "Set GUI resolution limit"
+msgstr ""
+
+#: xbmc/network/upnp/UPnPPlayer.cpp
+msgctxt "#37022"
+msgid "UPnP Player"
+msgstr ""
+
+#: xbmc/network/upnp/UPnPPlayer.cpp
+msgctxt "#37023"
+msgid "Do you wish to stop playback on the remote device?"
 msgstr ""

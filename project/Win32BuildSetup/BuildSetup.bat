@@ -217,10 +217,9 @@ IF %comp%==vs2010 (
   Echo addons\visualization.fishbmc\>>exclude.txt
   Echo addons\visualization.projectm\>>exclude.txt
   Echo addons\visualization.glspectrum\>>exclude.txt
-  rem Exclude skins if not present
-  IF NOT EXIST  addons\skin.touched\addon.xml (
-    Echo addons\skin.touched\>>exclude.txt
-  )
+  rem Exclude skins as they're copied by their own script
+  Echo addons\skin.touched\>>exclude.txt
+  Echo addons\skin.confluence\>>exclude.txt
   rem other platform stuff
   Echo lib-osx>>exclude.txt
   Echo players\mplayer>>exclude.txt
@@ -255,6 +254,10 @@ IF %comp%==vs2010 (
   
   ECHO ------------------------------------------------------------
   call buildpvraddons.bat %NET%
+  IF %errorlevel%==1 (
+    set DIETEXT="failed to build pvr addons"
+    goto DIE
+  )
     
   IF EXIST error.log del error.log > NUL
   SET build_path=%CD%

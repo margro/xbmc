@@ -857,6 +857,10 @@ msgctxt "#249"
 msgid "Music"
 msgstr "מוסיקה"
 
+msgctxt "#250"
+msgid "Visualisation"
+msgstr "חיזוי"
+
 msgctxt "#251"
 msgid "Select destination directory"
 msgstr "בחר ספרית יעד"
@@ -1181,9 +1185,17 @@ msgctxt "#336"
 msgid "Framerate conversion"
 msgstr "המרת קצב פריימים"
 
+msgctxt "#337"
+msgid "Output configuration"
+msgstr "הגדרות פלט"
+
 msgctxt "#338"
 msgid "Fixed"
 msgstr "מקובע"
+
+msgctxt "#339"
+msgid "Optimized"
+msgstr "מיטבי"
 
 msgctxt "#340"
 msgid "Various artists"
@@ -1489,6 +1501,14 @@ msgctxt "#419"
 msgid "High"
 msgstr "גבוה"
 
+msgctxt "#420"
+msgid "Best Match"
+msgstr "המתאים ביותר"
+
+msgctxt "#421"
+msgid "Keep audio device alive"
+msgstr "השאר התקן אודיו פעיל"
+
 msgctxt "#422"
 msgid "Delete album info"
 msgstr "מחק פרטי אלבום"
@@ -1624,6 +1644,10 @@ msgstr "מצב"
 msgctxt "#457"
 msgid "Switch view"
 msgstr "החלף תצוגה"
+
+msgctxt "#458"
+msgid "Limit sampling rate (kHz)"
+msgstr "הגבל קצב דגימה (kHz)"
 
 msgctxt "#459"
 msgid "Subs"
@@ -3441,9 +3465,21 @@ msgctxt "#10035"
 msgid "Reset"
 msgstr "איפוס"
 
+msgctxt "#10036"
+msgid "Basic"
+msgstr "בסיסי"
+
 msgctxt "#10037"
 msgid "Standard"
 msgstr "סטנדרטי"
+
+msgctxt "#10038"
+msgid "Advanced"
+msgstr "מתקדם"
+
+msgctxt "#10039"
+msgid "Expert"
+msgstr "מומחה"
 
 msgctxt "#10042"
 msgid "Are you sure you want to reset the settings in this category?"
@@ -3456,6 +3492,10 @@ msgstr "עזרה"
 msgctxt "#10044"
 msgid "No help available"
 msgstr "אין עזרה זמינה"
+
+msgctxt "#10046"
+msgid "No categories available"
+msgstr "אין קטגוריות זמינות"
 
 msgctxt "#10126"
 msgid "File browser"
@@ -3612,6 +3652,10 @@ msgstr "סקרפטים/פרטים"
 msgctxt "#12005"
 msgid "Fullscreen video"
 msgstr "וידאו במסך מלא"
+
+msgctxt "#12006"
+msgid "Audio visualisation"
+msgstr "חיזוי אודיו"
 
 msgctxt "#12009"
 msgid "Rebuild index..."
@@ -3945,6 +3989,10 @@ msgctxt "#13013"
 msgid "Reboot"
 msgstr "הפעלה מחדש"
 
+msgctxt "#13014"
+msgid "Minimise"
+msgstr "מזער"
+
 msgctxt "#13015"
 msgid "Power button action"
 msgstr "פעולת כפתור הכיבוי"
@@ -4104,6 +4152,10 @@ msgstr "VDPAU"
 msgctxt "#13121"
 msgid "VDPAU HQ Upscaling level"
 msgstr "VDPAU HQ Upscaling level"
+
+msgctxt "#13123"
+msgid "Keep skin?"
+msgstr "להישאר עם המעטפת ?"
 
 msgctxt "#13130"
 msgid "Blank other displays"
@@ -4788,6 +4840,14 @@ msgstr "נגן רק את זה"
 msgctxt "#13436"
 msgid "Allow hardware acceleration (libstagefright)"
 msgstr "אפשר תאוצת חומרה (libstagefright)"
+
+msgctxt "#13438"
+msgid "Allow hardware acceleration (amcodec)"
+msgstr "אפשר האצת חומרה (amcodec)"
+
+msgctxt "#13439"
+msgid "Allow hardware acceleration (MediaCodec)"
+msgstr "אפשר האצת חומרה (MediaCodec)"
 
 msgctxt "#13500"
 msgid "A/V sync method"
@@ -5541,6 +5601,10 @@ msgctxt "#16105"
 msgid "Edit title"
 msgstr "ערוך כותרת"
 
+msgctxt "#16106"
+msgid "Manage..."
+msgstr "נהל..."
+
 msgctxt "#16107"
 msgid "Edit sort title"
 msgstr "ערוך כותרת מיון"
@@ -5664,6 +5728,10 @@ msgstr "Spline36"
 msgctxt "#16324"
 msgid "Software Blend"
 msgstr "Software Blend"
+
+msgctxt "#16326"
+msgid "DXVA-HD"
+msgstr "DXVA-HD"
 
 msgctxt "#16400"
 msgid "Post-processing"
@@ -6073,6 +6141,10 @@ msgctxt "#19098"
 msgid "Warning"
 msgstr "אזהרה"
 
+msgctxt "#19099"
+msgid "Service"
+msgstr "שירות"
+
 msgctxt "#19102"
 msgid "Please switch to another channel."
 msgstr "אנא החלף לערוץ אחר."
@@ -6385,6 +6457,10 @@ msgctxt "#19189"
 msgid "Continue last channel on startup"
 msgstr "בהפעלה מחדש התחל בערוץ אחרון שנצפה"
 
+msgctxt "#19190"
+msgid "Minimised"
+msgstr "ממוזער"
+
 msgctxt "#19191"
 msgid "PVR service"
 msgstr "שירות PVR"
@@ -6684,6 +6760,10 @@ msgstr "אל תציג אזהרות 'חיבור אבד'"
 msgctxt "#19270"
 msgid "* All recordings"
 msgstr "* כל ההקלטות"
+
+msgctxt "#19271"
+msgid "No PVR Add-ons could be found"
+msgstr "לא נמצאו הרחבות PVR"
 
 msgctxt "#19272"
 msgid "You need a tuner, backend software, and an"
@@ -9529,6 +9609,10 @@ msgctxt "#24009"
 msgid "Script"
 msgstr "סקריפט"
 
+msgctxt "#24010"
+msgid "Visualisation"
+msgstr "חיזוי"
+
 msgctxt "#24011"
 msgid "Add-on repository"
 msgstr "מאגר הרחבות"
@@ -9563,7 +9647,7 @@ msgstr "שירותים"
 
 msgctxt "#24019"
 msgid "PVR clients"
-msgstr "קליינט PVR"
+msgstr "לקוחות PVR"
 
 msgctxt "#24020"
 msgid "Configure"
@@ -9796,6 +9880,18 @@ msgstr "לא ניתן לטעון את המעטפת"
 msgctxt "#24103"
 msgid "Skin is missing some files"
 msgstr "חסרים קבצים במעטפת"
+
+msgctxt "#24108"
+msgid "%d subtitles found"
+msgstr "%d כתוביות נמצאו"
+
+msgctxt "#24109"
+msgid "No subtitles found"
+msgstr "לא נמצאו כתוביות"
+
+msgctxt "#24110"
+msgid "Downloading subtitles ..."
+msgstr "מוריד כתוביות ..."
 
 msgctxt "#25000"
 msgid "Notifications"
@@ -10237,6 +10333,26 @@ msgctxt "#34123"
 msgid "Never"
 msgstr "אף פעם"
 
+msgctxt "#34124"
+msgid "44.1"
+msgstr "44.1"
+
+msgctxt "#34125"
+msgid "48.0"
+msgstr "48.0"
+
+msgctxt "#34126"
+msgid "88.2"
+msgstr "88.2"
+
+msgctxt "#34127"
+msgid "96.0"
+msgstr "96.0"
+
+msgctxt "#34128"
+msgid "192.0"
+msgstr "192.0"
+
 msgctxt "#34201"
 msgid "Can't find a next item to play"
 msgstr "לא נמצא פריט הבא לניגון"
@@ -10272,6 +10388,10 @@ msgstr "עיבוד וידאו"
 msgctxt "#34401"
 msgid "Failed to init video filters/scalers, falling back to bilinear scaling"
 msgstr "Failed to init video filters/scalers, falling back to bilinear scaling"
+
+msgctxt "#34402"
+msgid "Failed to initialise audio device"
+msgstr "נכשל באתחול התקן אודיו"
 
 msgctxt "#34403"
 msgid "Check your audiosettings"
@@ -10492,6 +10612,10 @@ msgstr "גרסת ממשק libCEC . %x נמוכה מהגרסה ש XBMC (%x) תו�
 msgctxt "#36041"
 msgid "* Item folder"
 msgstr "* תיקיית פריט"
+
+msgctxt "#36042"
+msgid "Use limited colour range (16-235)"
+msgstr "שימוש בטווח צבעים מוגבל (16-235)"
 
 msgctxt "#36101"
 msgid "Change the look and feel of the User Interface."
@@ -11257,6 +11381,30 @@ msgctxt "#36420"
 msgid "No info available yet."
 msgstr "אין מידע זמין כעת."
 
+msgctxt "#36426"
+msgid "Switch to channel"
+msgstr "החלף לערוץ"
+
+msgctxt "#36428"
+msgid "Record"
+msgstr "הקלט"
+
+msgctxt "#36500"
+msgid "Stereoscopic mode (current)"
+msgstr "מצב סטריאוסקופי (נוכחי)"
+
+msgctxt "#36501"
+msgid "Stereoscopic mode"
+msgstr "מצב סטריאוסקופי"
+
+msgctxt "#36502"
+msgid "None"
+msgstr "ללא"
+
+msgctxt "#36507"
+msgid "Interlaced"
+msgstr "שזור"
+
 msgctxt "#36508"
 msgid "Hardware Based"
 msgstr "מבוסס חומרה"
@@ -11273,6 +11421,10 @@ msgctxt "#36524"
 msgid "Preferred mode"
 msgstr "מצב מועדף"
 
+msgctxt "#36528"
+msgid "Select stereoscopic mode"
+msgstr "בחר מצב סטריאוסקופי"
+
 msgctxt "#36529"
 msgid "Mono (2D)"
 msgstr "מונו (2D)"
@@ -11280,6 +11432,18 @@ msgstr "מונו (2D)"
 msgctxt "#36530"
 msgid "Preferred mode"
 msgstr "מצב מועדף"
+
+msgctxt "#36531"
+msgid "Select alternate mode..."
+msgstr "בחר מצב חלופי..."
+
+msgctxt "#36535"
+msgid "Stereoscopic mode of video"
+msgstr "מצב סטריאוסקופי של וידאו"
+
+msgctxt "#36536"
+msgid "Stereoscopic mode inverted"
+msgstr "מצב סטיראוסקופי הפוך"
 
 msgctxt "#36537"
 msgid "No info available yet."
@@ -11300,6 +11464,10 @@ msgstr "אין מידע זמין כעת."
 msgctxt "#36544"
 msgid "Enable hardware decoding of video files."
 msgstr "אפשר פענוח חומרה של קבצי וידאו."
+
+msgctxt "#36545"
+msgid "Subtitle stereoscopic depth"
+msgstr "עומק כתוביות סטיראוסקופי"
 
 msgctxt "#37000"
 msgid "(Visually Impaired)"
@@ -11332,3 +11500,7 @@ msgstr "הפרופיל האחרון שהיה בשימוש"
 msgctxt "#37015"
 msgid "Browse Into"
 msgstr "לעיין בתוך"
+
+msgctxt "#37017"
+msgid "Dual audio output"
+msgstr "פלט אודיו כפול"

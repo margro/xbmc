@@ -284,6 +284,8 @@ void CPVRManager::Cleanup(void)
     delete m_pendingUpdates.at(iJobPtr);
   m_pendingUpdates.clear();
 
+  HideProgressDialog();
+
   SetState(ManagerStateStopped);
 }
 

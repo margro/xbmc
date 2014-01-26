@@ -756,7 +756,7 @@ int COMXVideo::Decode(uint8_t *pData, int iSize, double pts)
         CLog::Log(LOGDEBUG, "OMXVideo::Decode VDec : setStartTime %f\n", (pts == DVD_NOPTS_VALUE ? 0.0 : pts) / DVD_TIME_BASE);
         m_setStartTime = false;
       }
-      else if(pts == DVD_NOPTS_VALUE)
+      if(pts == DVD_NOPTS_VALUE)
         omx_buffer->nFlags |= OMX_BUFFERFLAG_TIME_UNKNOWN;
 
       omx_buffer->nTimeStamp = ToOMXTime((uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts);
@@ -851,6 +851,8 @@ void COMXVideo::SetVideoRect(const CRect& SrcRect, const CRect& DestRect)
   configDisplay.src_rect.y_offset   = (int)(SrcRect.y1+0.5f);
   configDisplay.src_rect.width      = (int)(SrcRect.Width()+0.5f);
   configDisplay.src_rect.height     = (int)(SrcRect.Height()+0.5f);
+
+  configDisplay.fullscreen          = configDisplay.dest_rect.width == 0 || configDisplay.dest_rect.width == 0 ? OMX_TRUE : OMX_FALSE;
 
   m_omx_render.SetConfig(OMX_IndexConfigDisplayRegion, &configDisplay);
 

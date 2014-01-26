@@ -22,6 +22,8 @@
 #include "StreamDetails.h"
 #include "StreamUtils.h"
 #include "Variant.h"
+#include "LangInfo.h"
+#include "utils/LangCodeExpander.h"
 
 const float VIDEOASPECT_EPSILON = 0.025f;
 
@@ -152,15 +154,13 @@ bool CStreamDetailSubtitle::IsWorseThan(CStreamDetail *that)
   if (that->m_eType != CStreamDetail::SUBTITLE)
     return true;
 
-  // the preferred subtitle should be the one in the user's language
-  if (m_pParent)
-  {
-    if (m_pParent->m_strLanguage == m_strLanguage)
-      return false;  // already the best
-    else
-      return (m_pParent->m_strLanguage == ((CStreamDetailSubtitle *)that)->m_strLanguage);
-  }
-  return false;
+  if (g_LangCodeExpander.CompareLangCodes(m_strLanguage, ((CStreamDetailSubtitle *)that)->m_strLanguage))
+    return false;
+
+  // the best subtitle should be the one in the user's preferred language
+  // If preferred language is set to "original" this is "eng"
+  return m_strLanguage.empty() ||
+    g_LangCodeExpander.CompareLangCodes(((CStreamDetailSubtitle *)that)->m_strLanguage, g_langInfo.GetSubtitleLanguage());
 }
 
 CStreamDetailSubtitle& CStreamDetailSubtitle::operator=(const CStreamDetailSubtitle &that)
@@ -560,8 +560,10 @@ CStdString CStreamDetails::VideoDimsToResolutionDescription(int iWidth, int iHei
   else if (iWidth <= 1920 && iHeight <= 1080)
     return "1080";
   // 4K
-  else
+  else if (iWidth * iHeight >= 6000000)
     return "4K";
+  else
+    return "";
 }
 
 CStdString CStreamDetails::VideoAspectToAspectDescription(float fAspect)

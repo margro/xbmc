@@ -19,8 +19,8 @@
  */
 
 #include "AESinkAUDIOTRACK.h"
-#include "Utils/AEUtil.h"
-#include "Utils/AERingBuffer.h"
+#include "cores/AudioEngine/Utils/AEUtil.h"
+#include "cores/AudioEngine/Utils/AERingBuffer.h"
 #include "android/activity/XBMCApp.h"
 #include "settings/Settings.h"
 #if defined(HAS_LIBAMCODEC)
@@ -179,6 +179,15 @@ double CAESinkAUDIOTRACK::GetDelay()
   double delay = (double)(m_frames_written - head_pos) / m_format.m_sampleRate;
 
   return delay;
+}
+
+double CAESinkAUDIOTRACK::GetLatency()
+{
+#if defined(HAS_LIBAMCODEC)
+  if (aml_present())
+    return 0.250;
+#endif
+  return 0.0;
 }
 
 double CAESinkAUDIOTRACK::GetCacheTotal()

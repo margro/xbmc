@@ -22,11 +22,11 @@
 #include "threads/Event.h"
 #include "threads/Thread.h"
 #include "utils/ActorProtocol.h"
-#include "Interfaces/AE.h"
-#include "Interfaces/AESink.h"
-#include "AESinkFactory.h"
-#include "ActiveAEResample.h"
-#include "Utils/AEConvert.h"
+#include "cores/AudioEngine/Interfaces/AE.h"
+#include "cores/AudioEngine/Interfaces/AESink.h"
+#include "cores/AudioEngine/AESinkFactory.h"
+#include "cores/AudioEngine/Engines/ActiveAE/ActiveAEResample.h"
+#include "cores/AudioEngine/Utils/AEConvert.h"
 
 namespace ActiveAE
 {
@@ -39,6 +39,14 @@ struct SinkConfig
   AEAudioFormat format;
   CEngineStats *stats;
   const std::string *device;
+};
+
+struct SinkReply
+{
+  AEAudioFormat format;
+  float cacheTotal;
+  float latency;
+  bool hasVolume;
 };
 
 class CSinkControlProtocol : public Protocol
@@ -87,7 +95,6 @@ public:
   std::string GetDefaultDevice(bool passthrough);
   void Start();
   void Dispose();
-  bool HasVolume();
   AEDeviceType GetDeviceType(const std::string &device);
   bool HasPassthroughDevice();
   CSinkControlProtocol m_controlPort;

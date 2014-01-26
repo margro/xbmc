@@ -29,14 +29,6 @@
   #include "Engines/ActiveAE/ActiveAE.h"
 #endif
 
-#if defined(HAS_PULSEAUDIO)
-  #include "Engines/PulseAE/PulseAE.h"
-#endif
-
-#if defined(TARGET_RASPBERRY_PI)
-  #include "Engines/PiAudio/PiAudioAE.h"
-#endif
-
 #include "guilib/LocalizeStrings.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
@@ -53,38 +45,11 @@ IAE *CAEFactory::GetEngine()
 
 bool CAEFactory::LoadEngine()
 {
-  bool loaded = false;
-
-#if defined(TARGET_RASPBERRY_PI)
-  return CAEFactory::LoadEngine(AE_ENGINE_PIAUDIO);
-#elif defined(TARGET_DARWIN)
+#if defined(TARGET_DARWIN)
   return CAEFactory::LoadEngine(AE_ENGINE_COREAUDIO);
+#else
+  return CAEFactory::LoadEngine(AE_ENGINE_ACTIVE);
 #endif
-
-  std::string engine;
-  if (getenv("AE_ENGINE"))
-  {
-    engine = (std::string)getenv("AE_ENGINE");
-    std::transform(engine.begin(), engine.end(), engine.begin(), ::toupper);
-
-    #if defined(HAS_PULSEAUDIO)
-    if (!loaded && engine == "PULSE")
-      loaded = CAEFactory::LoadEngine(AE_ENGINE_PULSE);
-    #endif
-    
-    if (!loaded && engine == "ACTIVE")
-      loaded = CAEFactory::LoadEngine(AE_ENGINE_ACTIVE);
-  }
-
-#if defined(HAS_PULSEAUDIO)
-  if (!loaded)
-    loaded = CAEFactory::LoadEngine(AE_ENGINE_PULSE);
-#endif
-
-  if (!loaded)
-    loaded = CAEFactory::LoadEngine(AE_ENGINE_ACTIVE);
-
-  return loaded;
 }
 
 bool CAEFactory::LoadEngine(enum AEEngine engine)
@@ -100,12 +65,6 @@ bool CAEFactory::LoadEngine(enum AEEngine engine)
     case AE_ENGINE_COREAUDIO: AE = new CCoreAudioAE(); break;
 #else
     case AE_ENGINE_ACTIVE   : AE = new ActiveAE::CActiveAE(); break;
-#endif
-#if defined(HAS_PULSEAUDIO)
-    case AE_ENGINE_PULSE    : AE = new CPulseAE(); break;
-#endif
-#if defined(TARGET_RASPBERRY_PI)
-    case AE_ENGINE_PIAUDIO  : AE = new PiAudioAE::CPiAudioAE(); break;
 #endif
     default:
       return false;

@@ -495,6 +495,9 @@ void COMXSelectionStreams::Update(CDVDInputStream* input, CDVDDemux* demuxer)
     for(int i=0;i<count;i++)
     {
       CDemuxStream* stream = demuxer->GetStream(i);
+      /* skip streams with no type */
+      if (stream->type == STREAM_NONE)
+        continue;
       /* make sure stream is marked with right source */
       stream->source = source;
 
@@ -666,7 +669,7 @@ bool COMXPlayer::CloseFile(bool reopen)
   m_HasVideo = false;
   m_HasAudio = false;
 
-  CLog::Log(LOGNOTICE, "DVDPlayer: finished waiting");
+  CLog::Log(LOGNOTICE, "COMXPlayer: finished waiting");
 #if defined(HAS_VIDEO_PLAYBACK)
   g_renderManager.UnInit();
 #endif
@@ -3303,17 +3306,7 @@ bool COMXPlayer::OpenVideoStream(int iStream, int source, bool reset)
   if(m_CurrentVideo.id    < 0
   || m_CurrentVideo.hint != hint)
   {
-    // for music file, don't open artwork as video
-    bool disabled = false;
-    CStdString extension = URIUtils::GetExtension(m_filename);
-    StringUtils::ToLower(extension);
-    if (!extension.empty() && g_advancedSettings.m_musicExtensions.find(extension) != std::string::npos)
-    {
-      CLog::Log(LOGWARNING, "%s - Ignoring video in audio filetype:%s", __FUNCTION__, m_filename.c_str());
-      disabled = true;
-    }
-
-    if (disabled || !m_omxPlayerVideo.OpenStream(hint))
+    if (!m_omxPlayerVideo.OpenStream(hint))
     {
       /* mark stream as disabled, to disallaw further attempts */
       CLog::Log(LOGWARNING, "%s - Unsupported stream %d. Stream disabled.", __FUNCTION__, iStream);

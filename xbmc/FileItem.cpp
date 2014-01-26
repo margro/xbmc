@@ -685,6 +685,7 @@ void CFileItem::Serialize(CVariant& value) const
 
   value["strPath"] = m_strPath;
   value["dateTime"] = (m_dateTime.IsValid()) ? m_dateTime.GetAsRFC1123DateTime() : "";
+  value["lastmodified"] = m_dateTime.IsValid() ? m_dateTime.GetAsDBDateTime() : "";
   value["size"] = m_dwSize;
   value["DVDLabel"] = m_strDVDLabel;
   value["title"] = m_strTitle;
@@ -1377,6 +1378,7 @@ bool CFileItem::IsParentFolder() const
 
 void CFileItem::FillInMimeType(bool lookup /*= true*/)
 {
+  // TODO: adapt this to use CMime::GetMimeType()
   if (m_mimetype.empty())
   {
     if( m_bIsFolder )
@@ -2465,7 +2467,7 @@ void CFileItemList::StackFiles()
 
     URIUtils::Split(item1->GetPath(), filePath, file1);
     if (URIUtils::ProtocolHasEncodedFilename(CURL(filePath).GetProtocol() ) )
-      CURL::Decode(file1);
+      file1 = CURL::Decode(file1);
 
     int j;
     while (expr != stackRegExps.end())
@@ -2498,7 +2500,7 @@ void CFileItemList::StackFiles()
           CStdString file2, filePath2;
           URIUtils::Split(item2->GetPath(), filePath2, file2);
           if (URIUtils::ProtocolHasEncodedFilename(CURL(filePath2).GetProtocol() ) )
-            CURL::Decode(file2);
+            file2 = CURL::Decode(file2);
 
           if (expr->RegFind(file2, offset) != -1)
           {
@@ -2898,10 +2900,8 @@ CStdString CFileItem::GetMovieName(bool bUseFolderNames /* = false */) const
     strMovieName = CStackDirectory::GetStackedTitlePath(strMovieName);
 
   URIUtils::RemoveSlashAtEnd(strMovieName);
-  strMovieName = URIUtils::GetFileName(strMovieName);
-  CURL::Decode(strMovieName);
 
-  return strMovieName;
+  return CURL::Decode(URIUtils::GetFileName(strMovieName));
 }
 
 CStdString CFileItem::GetBaseMoviePath(bool bUseFolderNames) const
@@ -3241,7 +3241,7 @@ CStdString CFileItem::FindTrailer() const
 
   CStdString strDir = URIUtils::GetDirectory(strFile);
   CFileItemList items;
-  CDirectory::GetDirectory(strDir, items, g_advancedSettings.m_videoExtensions, DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);
+  CDirectory::GetDirectory(strDir, items, g_advancedSettings.m_videoExtensions, DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO | DIR_FLAG_NO_FILE_DIRS);
   URIUtils::RemoveExtension(strFile);
   strFile += "-trailer";
   CStdString strFile3 = URIUtils::AddFileToFolder(strDir, "movie-trailer");

@@ -169,9 +169,6 @@ bool COMXImage::ClampLimits(unsigned int &width, unsigned int &height, unsigned 
     height = max_height;
     clamped = true;
   }
-  // Texture.cpp wants even width/height
-  width  = (width  + 15) & ~15;
-  height = (height + 15) & ~15;
 
   return clamped;
 }
@@ -206,7 +203,8 @@ void COMXImage::AllocTextureInternal(struct textureinfo *tex)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex->width, tex->height, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, 0);
+  GLenum type = CSettings::Get().GetBool("videoscreen.textures32") ? GL_UNSIGNED_BYTE:GL_UNSIGNED_SHORT_5_6_5;
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tex->width, tex->height, 0, GL_RGB, type, 0);
   tex->egl_image = eglCreateImageKHR(m_egl_display, m_egl_context, EGL_GL_TEXTURE_2D_KHR, (EGLClientBuffer)tex->texture, NULL);
   tex->sync.Set();
   GLint m_result;
@@ -922,7 +920,7 @@ void COMXImageDec::Close()
     m_omx_resize.Deinitialize();
 }
 
-bool COMXImageDec::HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height)
+bool COMXImageDec::HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, unsigned int resize_stride)
 {
   OMX_ERRORTYPE omx_err = OMX_ErrorNone;
   // on the first port settings changed event, we create the tunnel and alloc the buffer
@@ -962,7 +960,7 @@ bool COMXImageDec::HandlePortSettingChange(unsigned int resize_width, unsigned i
     port_def.format.image.eColorFormat = OMX_COLOR_Format32bitARGB8888;
     port_def.format.image.nFrameWidth = resize_width;
     port_def.format.image.nFrameHeight = resize_height;
-    port_def.format.image.nStride = resize_width*4;
+    port_def.format.image.nStride = resize_stride;
     port_def.format.image.nSliceHeight = 0;
     port_def.format.image.bFlagErrorConcealment = OMX_FALSE;
 
@@ -1135,7 +1133,7 @@ bool COMXImageDec::Decode(const uint8_t *demuxer_content, unsigned demuxer_bytes
     omx_err = m_omx_decoder.WaitForEvent(OMX_EventPortSettingsChanged, timeout);
     if(omx_err == OMX_ErrorNone)
     {
-      if (!HandlePortSettingChange(width, height))
+      if (!HandlePortSettingChange(width, height, stride))
       {
         CLog::Log(LOGERROR, "%s::%s HandlePortSettingChange() failed\n", CLASSNAME, __func__);
         return false;
@@ -1163,8 +1161,7 @@ bool COMXImageDec::Decode(const uint8_t *demuxer_content, unsigned demuxer_bytes
   if(m_omx_decoder.BadState())
     return false;
 
-  assert(m_decoded_buffer->nFilledLen <= stride * height);
-  memcpy( (char*)pixels, m_decoded_buffer->pBuffer, m_decoded_buffer->nFilledLen);
+  memcpy( (char*)pixels, m_decoded_buffer->pBuffer, stride * height);
 
   Close();
   return true;
@@ -1444,7 +1441,7 @@ void COMXImageReEnc::Close()
 
 
 
-bool COMXImageReEnc::HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, bool port_settings_changed)
+bool COMXImageReEnc::HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, int orientation, bool port_settings_changed)
 {
   OMX_ERRORTYPE omx_err = OMX_ErrorNone;
   // on the first port settings changed event, we create the tunnel and alloc the buffer
@@ -1567,6 +1564,37 @@ bool COMXImageReEnc::HandlePortSettingChange(unsigned int resize_width, unsigned
       return false;
     }
 
+    if (orientation)
+    {
+      struct {
+        // metadata, these two fields need to be together
+        OMX_CONFIG_METADATAITEMTYPE metadata;
+        char metadata_space[64];
+      } item;
+      OMX_INIT_STRUCTURE(item.metadata);
+
+      item.metadata.nSize = sizeof(item);
+      item.metadata.eScopeMode = OMX_MetadataScopePortLevel;
+      item.metadata.nScopeSpecifier = m_omx_encoder.GetOutputPort();
+      item.metadata.nMetadataItemIndex = 0;
+      item.metadata.eSearchMode = OMX_MetadataSearchValueSizeByIndex;
+      item.metadata.eKeyCharset = OMX_MetadataCharsetASCII;
+      strcpy((char *)item.metadata.nKey, "IFD0.Orientation");
+      item.metadata.nKeySizeUsed = strlen((char *)item.metadata.nKey);
+
+      item.metadata.eValueCharset = OMX_MetadataCharsetASCII;
+      item.metadata.sLanguageCountry = 0;
+      item.metadata.nValueMaxSize = sizeof(item.metadata_space);
+      sprintf((char *)item.metadata.nValue, "%d", orientation);
+      item.metadata.nValueSizeUsed = strlen((char *)item.metadata.nValue);
+
+      omx_err = m_omx_encoder.SetParameter(OMX_IndexConfigMetadataItem, &item);
+      if (omx_err != OMX_ErrorNone)
+      {
+        CLog::Log(LOGERROR, "%s::%s m_omx_encoder.SetParameter:OMX_IndexConfigMetadataItem omx_err(0x%08x)\n", CLASSNAME, __func__, omx_err);
+        return false;
+      }
+    }
     omx_err = m_omx_encoder.AllocOutputBuffers();
     if(omx_err != OMX_ErrorNone)
     {
@@ -1733,7 +1761,7 @@ bool COMXImageReEnc::ReEncode(COMXImageFile &srcFile, unsigned int maxWidth, uns
     omx_err = m_omx_decoder.WaitForEvent(OMX_EventPortSettingsChanged, timeout);
     if(omx_err == OMX_ErrorNone)
     {
-      if (!HandlePortSettingChange(maxWidth, maxHeight, port_settings_changed))
+      if (!HandlePortSettingChange(maxWidth, maxHeight, srcFile.GetOrientation(), port_settings_changed))
       {
         CLog::Log(LOGERROR, "%s::%s %s HandlePortSettingChange() failed\n", srcFile.GetFilename(), CLASSNAME, __func__);
         return false;

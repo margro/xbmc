@@ -371,9 +371,9 @@ AC_ARG_ENABLE([alsa],
 
 AC_ARG_ENABLE([pulse],
   [AS_HELP_STRING([--enable-pulse],
-  [enable PulseAudio support (default is no)])],
+  [enable PulseAudio support (default is auto)])],
   [use_pulse=$enableval],
-  [use_pulse=no])
+  [use_pulse=auto])
 
 AC_ARG_ENABLE([ssh],
   [AS_HELP_STRING([--disable-ssh],
@@ -629,14 +629,14 @@ case $host in
      use_x11=no
      build_shared_lib=yes    
     ;;
-  i*86*-linux-gnu*)
+  i*86*-linux-gnu*|i*86*-*-linux-uclibc*)
      ARCH="i486-linux"
      if test "$use_cpu" = "no" -a "$cross_compiling" = "yes";  then
         use_arch="x86"
         use_cpu="i686"
      fi
      ;;
-  x86_64-*-linux-gnu*)
+  x86_64-*-linux-gnu*|x86_64-*-linux-uclibc*)
      ARCH="x86_64-linux"
      if test "$use_cpu" = "no" -a "$cross_compiling" = "yes";  then
         use_arch="x86_64"
@@ -681,10 +681,10 @@ case $host in
      ARCH="powerpc-osx"
      use_arch="ppc"
      ;;
-  powerpc-*-linux-gnu*)
+  powerpc-*-linux-gnu*|powerpc-*-linux-uclibc*)
      ARCH="powerpc-linux"
      ;;
-  powerpc64-*-linux-gnu*)
+  powerpc64-*-linux-gnu*|powerpc64-*-linux-uclibc*)
      ARCH="powerpc64-linux"
      ;;
   arm*-*-linux-gnu*)
@@ -1250,7 +1250,12 @@ XB_FIND_SONAME([VORBIS],      [vorbis])
 XB_FIND_SONAME([VORBISFILE],  [vorbisfile])
 XB_FIND_SONAME([MODPLUG],     [modplug])
 XB_FIND_SONAME([ASS],         [ass])
-XB_FIND_SONAME([MPEG2],       [mpeg2])
+
+#link statically against mpeg2 on ios  because of ios7
+#crash & burn if dyloaded
+if test "$ARCH" != "arm-osx" ; then
+  XB_FIND_SONAME([MPEG2],       [mpeg2])
+fi
 
 # Audio encoders
 if test "x$use_libmp3lame" != "xno"; then
@@ -1612,19 +1617,13 @@ fi
 # libshairplay for AirTunes (prefered lib)
 USE_AIRTUNES=0
 if test "x$use_airtunes" != "xno"; then
-  AC_CHECK_HEADERS([shairplay/raop.h],,
-   [if test "x$use_airtunes" = "xyes"; then
-      AC_MSG_ERROR($libshairplay_not_found)
-    elif test "x$use_airtunes" != "xno"; then
-      AC_MSG_NOTICE($libshairplay_not_found)
-      use_airtunes="no"
-    fi
+  AC_CHECK_HEADERS([shairplay/raop.h],USE_AIRTUNES=1,
+   [AC_MSG_NOTICE($libshairplay_not_found)
    ])
 
-  if test "x$use_airtunes" != "xno"; then
-    XB_FIND_SONAME([SHAIRPLAY], [shairplay], [use_airtunes])
-    USE_AIRTUNES=1
-    USE_LIBSHAIRPORT=1
+  if test "x$USE_AIRTUNES" != "x0"; then
+    XB_FIND_SONAME([SHAIRPLAY], [shairplay], [USE_AIRTUNES])
+    USE_LIBSHAIRPLAY=1
     AC_CHECK_MEMBERS([struct raop_callbacks_s.cls],,,
                      [[#include <shairplay/raop.h>]])
     AC_DEFINE([HAVE_LIBSHAIRPLAY],[1],["Define to 1 if you have libshairplay."])
@@ -1632,22 +1631,23 @@ if test "x$use_airtunes" != "xno"; then
 
   #libshairport - as a fallback for AirTunes
   if test "x$USE_AIRTUNES" == "x0"; then
-    AC_CHECK_HEADERS([shairport/shairport.h],,
-     [if test "x$use_airtunes" = "xyes"; then
-        AC_MSG_ERROR($libshairport_not_found)
-      elif test "x$use_airtunes" != "xno"; then
-        AC_MSG_NOTICE($libshairport_not_found)
-        use_airtunes="no"
-      fi
+    AC_CHECK_HEADERS([shairport/shairport.h],USE_AIRTUNES=1,
+     [AC_MSG_NOTICE($libshairport_not_found)
      ])
 
-    if test "x$use_airtunes" != "xno"; then
-      XB_FIND_SONAME([SHAIRPORT], [shairport], [use_airtunes])
-      USE_AIRTUNES=1
+    if test "x$USE_AIRTUNES" != "x0"; then
+      XB_FIND_SONAME([SHAIRPORT], [shairport], [USE_AIRTUNES])
       AC_CHECK_MEMBERS([struct AudioOutput.ao_set_metadata],,,
                        [[#include <shairport/shairport.h>]])
       AC_DEFINE([HAVE_LIBSHAIRPORT],[1],["Define to 1 if you have libshairport."])
     fi
+  fi
+
+  if test "x$USE_AIRTUNES" == "x0"; then
+    if test "x$use_airtunes" == "xyes"; then
+      AC_MSG_ERROR("No airtunes library could be found. (libshairport/libshairplay)")
+    fi
+    use_airtunes="no"
   fi
 fi
 
@@ -2387,7 +2387,7 @@ else
 fi
 
 if test "x$use_airtunes" != "xno"; then
-  if test "x$USE_LIBSHAIRPORT" == "x1"; then
+  if test "x$USE_LIBSHAIRPLAY" == "x1"; then
     final_message="$final_message\n  AirTunes support (libshairplay):\tYes"  
   else
     final_message="$final_message\n  AirTunes support (libshairport):\tYes"

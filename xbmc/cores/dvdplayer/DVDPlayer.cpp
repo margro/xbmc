@@ -455,6 +455,9 @@ void CSelectionStreams::Update(CDVDInputStream* input, CDVDDemux* demuxer)
     for(int i=0;i<count;i++)
     {
       CDemuxStream* stream = demuxer->GetStream(i);
+      /* skip streams with no type */
+      if (stream->type == STREAM_NONE)
+        continue;
       /* make sure stream is marked with right source */
       stream->source = source;
 
@@ -4068,6 +4071,11 @@ void CDVDPlayer::UpdatePlayState(double timeout)
     state.dts = m_CurrentVideo.dts;
   else if(m_CurrentAudio.dts != DVD_NOPTS_VALUE)
     state.dts = m_CurrentAudio.dts;
+  else if(m_CurrentVideo.startpts != DVD_NOPTS_VALUE)
+    state.dts = m_CurrentVideo.startpts;
+  else if(m_CurrentAudio.startpts != DVD_NOPTS_VALUE)
+    state.dts = m_CurrentAudio.startpts;
+
 
   if(m_pDemuxer)
   {

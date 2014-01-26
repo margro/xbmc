@@ -3543,11 +3543,11 @@ msgstr "Kiegészítő böngésző"
 
 msgctxt "#10041"
 msgid "Reset above settings to default"
-msgstr "Fenti beállítások nullázása"
+msgstr "Alapértelmezett beállítások visszaállítása"
 
 msgctxt "#10042"
 msgid "Are you sure you want to reset the settings in this category?"
-msgstr "Biztosan nullázni akarja a kategória beállításait?"
+msgstr "Biztosan visszaállítja a kategória beállításait?"
 
 msgctxt "#10043"
 msgid "Help"
@@ -3559,7 +3559,7 @@ msgstr "Nem áll rendelkezésre súgó"
 
 msgctxt "#10045"
 msgid "Resets all the visible settings to their default values."
-msgstr "Az összes látható beállítás alapértelmezettre visszaállítása."
+msgstr "Az összes látható beállítás visszaállítása alapértelmezettre."
 
 msgctxt "#10046"
 msgid "No categories available"
@@ -5482,8 +5482,8 @@ msgid "Unavailable source"
 msgstr "Nem elérhető forrás"
 
 msgctxt "#15013"
-msgid "What would you like to do with media items from"
-msgstr "Mit tegyünk az ebből a forrásból származó médiával"
+msgid "What would you like to do with media items from %s"
+msgstr "Mit tegyünk a(z) \"%s\" forrásból szármázó médiával?"
 
 msgctxt "#15014"
 msgid "Keep"
@@ -11465,10 +11465,6 @@ msgctxt "#36219"
 msgid "Default EPG window to show. Defaults to Timeline."
 msgstr "Alapértelmezeten mutatott EPG ablak. Alapértelmezett az Idővonal."
 
-msgctxt "#36220"
-msgid "Number of days of EPG data to import from backends. Defaults to 2 days."
-msgstr "Hány nap EPG adat kerüljön beimportálásra a háttérszolgáltatásból. Alapértelmezett érték 2 nap."
-
 msgctxt "#36221"
 msgid "Time between EPG data imports from backends. Defaults to 120 minutes."
 msgstr "Az EPG adat importálás időintervalluma a háttérszolgáltatásból. Alapértelmezett a 120 perc."
@@ -11879,7 +11875,7 @@ msgstr "Nincs még információ"
 
 msgctxt "#36323"
 msgid "Enable the UPnP server. This will allow you to stream media to any UPnP client."
-msgstr "UPnP szerver engedélyezése. Ez lehetővé teszi az anyagok sugárzását bármely UPnP kliens részére."
+msgstr "UPnP szerver engedélyezése. Ez lehetővé teszi műsorok sugárzását bármely UPnP kliens részére."
 
 msgctxt "#36324"
 msgid "When a manual or automatical library update occurs, notify UPnP clients."
@@ -11891,7 +11887,7 @@ msgstr "Nincs még információ"
 
 msgctxt "#36326"
 msgid "Enable the UPnP client. This will allow you to stream media from any UPnP server with a control point and control playback from that server."
-msgstr "UPnP kliens engedélyezése. Ez lehetővé teszi bármely UPnP szerverről a lejátszást, és a lejátszás vezérlését a kiválasztott szerverről."
+msgstr "UPnP kliens engedélyezése. Ez lehetővé teszi bármely UPnP kiszolgálóról a lejátszást, és a lejátszás vezérlését."
 
 msgctxt "#36327"
 msgid "No info available yet."
@@ -12280,6 +12276,22 @@ msgstr "Engedélyezi az AMLogic hardvergyorsítást"
 msgctxt "#36423"
 msgid "Use ffmpeg frame multiple thread decoding when hardware decoding not working or disabled. (less reliable than default single thread mode)"
 msgstr "FFmpeg többszálas dekódolás használata nem működő vagy letiltott hardveres dekódolás esetén. (kevésbé megbízható mint az alap egyszálú üzemmód)"
+
+msgctxt "#36425"
+msgid "Show context menu"
+msgstr "Helyi menü mutatása"
+
+msgctxt "#36426"
+msgid "Switch to channel"
+msgstr "Csatornára váltás"
+
+msgctxt "#36427"
+msgid "Show information"
+msgstr "Információ mutatása"
+
+msgctxt "#36428"
+msgid "Record"
+msgstr "Felvétel"
 
 msgctxt "#36500"
 msgid "Stereoscopic mode (current)"

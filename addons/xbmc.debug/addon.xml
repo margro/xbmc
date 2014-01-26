@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="xbmc.debug" version="0.1.8" provider-name="Team XBMC" name="Log">
+<addon id="xbmc.debug" version="0.1.10" provider-name="Team XBMC" name="Log">
   <backwards-compatibility abi="0.1"/>
   <requires>
     <c-pluff version="0.1"/>
@@ -18,6 +18,7 @@
     <summary lang="es_MX">Complemento para mejorar la personalizacion del registro</summary>
     <summary lang="et">Lisa, mis võimaldab logimise kohandamist</summary>
     <summary lang="fr">Extension pour améliorer la personnalisation de la journalisation</summary>
+    <summary lang="fr_CA">Extension pour améliorer la personnalisation de la journalisation</summary>
     <summary lang="gl">Complemento para mellorar a personalización do rexistro</summary>
     <summary lang="hr">Dodatak za poboljšanje prilagodljivosti zapisivanja</summary>
     <summary lang="hu">Kiegészítő a naplózás testre szabásához</summary>
@@ -35,6 +36,7 @@
     <summary lang="pt_BR">Complemento para melhorar customização de registro</summary>
     <summary lang="ru">Дополнение расширенных настроек ведения журнала</summary>
     <summary lang="sk">Doplnok pre lepšie nastavenie denníka na ladenie chýb</summary>
+    <summary lang="sl">Dodatek, ki izboljša prilagajanje zapisovanja delovanja programa</summary>
     <summary lang="sv">Tillägg för att förbättra loggningen av anpassningsmöjligheterna</summary>
     <summary lang="ta_IN">தனிப்பயனாக்கு பதிவை மேம்படுத்துவதற்கான துணை-பயன்</summary>
     <summary lang="tg">Барномаи иловагӣ барои такмили танзимоти воридшавӣ</summary>

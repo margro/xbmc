@@ -19,8 +19,8 @@
  *
  */
 
-#include "Interfaces/AESink.h"
-#include "Utils/AEDeviceInfo.h"
+#include "cores/AudioEngine/Interfaces/AESink.h"
+#include "cores/AudioEngine/Utils/AEDeviceInfo.h"
 #include "threads/CriticalSection.h"
 
 class AERingBuffer;
@@ -41,6 +41,7 @@ public:
   virtual void Deinitialize();
 
   virtual double       GetDelay        ();
+  virtual double       GetLatency      ();
   virtual double       GetCacheTotal   ();
   virtual unsigned int AddPackets      (uint8_t *data, unsigned int frames, bool hasAudio, bool blocking = false);
   virtual void         Drain           ();

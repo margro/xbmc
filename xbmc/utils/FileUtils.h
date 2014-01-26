@@ -18,6 +18,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+#include <string>
 #include "FileItem.h"
 
 class CFileUtils
