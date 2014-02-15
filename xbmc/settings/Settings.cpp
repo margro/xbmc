@@ -29,6 +29,7 @@
 #include "addons/AddonManager.h"
 #include "addons/Skin.h"
 #include "cores/AudioEngine/AEFactory.h"
+#include "cores/dvdplayer/DVDCodecs/Video/DVDVideoCodec.h"
 #if defined(HAVE_LIBCRYSTALHD)
 #include "cores/dvdplayer/DVDCodecs/Video/CrystalHD.h"
 #endif // defined(HAVE_LIBCRYSTALHD)
@@ -468,6 +469,9 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterSettingsHandler(&CWakeOnAccess::Get());
   m_settingsManager->UnregisterSettingsHandler(&CRssManager::Get());
   m_settingsManager->UnregisterSettingsHandler(&g_application);
+#if defined(TARGET_LINUX)
+  m_settingsManager->UnregisterSettingsHandler(&g_timezone);
+#endif
 
   m_initialized = false;
 }
@@ -960,6 +964,7 @@ void CSettings::InitializeConditions()
   m_settingsManager->AddCondition("profilehasvideoslocked", ProfileHasVideosLocked);
   m_settingsManager->AddCondition("profilelockmode", ProfileLockMode);
   m_settingsManager->AddCondition("aesettingvisible", CAEFactory::IsSettingVisible);
+  m_settingsManager->AddCondition("codecoptionvisible", CDVDVideoCodec::IsSettingVisible);
 }
 
 void CSettings::InitializeISettingsHandlers()
@@ -976,6 +981,9 @@ void CSettings::InitializeISettingsHandlers()
   m_settingsManager->RegisterSettingsHandler(&CWakeOnAccess::Get());
   m_settingsManager->RegisterSettingsHandler(&CRssManager::Get());
   m_settingsManager->RegisterSettingsHandler(&g_application);
+#if defined(TARGET_LINUX)
+  m_settingsManager->RegisterSettingsHandler(&g_timezone);
+#endif
 }
 
 void CSettings::InitializeISubSettings()

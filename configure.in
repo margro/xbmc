@@ -18,6 +18,9 @@ tolower(){
   echo "$@" | tr ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz
 }
 
+# workaround for autotools that don't set this
+abs_top_srcdir=${abs_top_srcdir=$(cd $srcdir; pwd)}
+
 # check for enabling additional players
 AC_DEFUN([XB_ADD_PLAYER],
 [
@@ -137,7 +140,7 @@ wayland_disabled="== Wayland disabled. =="
 x11_enabled="== X11 enabled. =="
 x11_disabled="== X11 disabled. =="
 pulse_not_found="== Could not find libpulse. PulseAudio support disabled. =="
-pulse_disabled="== PulseAudio support manually disabled. =="
+pulse_disabled="== PulseAudio support disabled. =="
 dvdcss_enabled="== DVDCSS support enabled. =="
 dvdcss_disabled="== DVDCSS support disabled. =="
 hal_not_found="== Could not find hal. HAL support disabled. =="
@@ -757,7 +760,7 @@ AC_CHECK_PROG(HAVE_GIT,git,"yes","no",)
 if test "$GIT_REV" = ""; then
   if test -f VERSION ; then
     GIT_REV=$(awk 'END{print substr($1,1,16)}' VERSION)
-  elif test "$HAVE_GIT" = "yes"; then
+  elif test "$HAVE_GIT" = "yes" -a -d ${abs_top_srcdir}/.git; then
     GIT_REV=$(git --no-pager log --abbrev=7 -n 1 --pretty=format:"%h %ci" HEAD | awk '{gsub("-", "");print $2"-"$1}')
   else
     GIT_REV="Unknown"
@@ -1257,12 +1260,7 @@ XB_FIND_SONAME([VORBIS],      [vorbis])
 XB_FIND_SONAME([VORBISFILE],  [vorbisfile])
 XB_FIND_SONAME([MODPLUG],     [modplug])
 XB_FIND_SONAME([ASS],         [ass])
-
-#link statically against mpeg2 on ios  because of ios7
-#crash & burn if dyloaded
-if test "$ARCH" != "arm-osx" ; then
-  XB_FIND_SONAME([MPEG2],       [mpeg2])
-fi
+XB_FIND_SONAME([MPEG2],       [mpeg2])
 
 # Audio encoders
 if test "x$use_libmp3lame" != "xno"; then
@@ -1327,17 +1325,17 @@ if test "x$use_pulse" != "xno"; then
     fi
     USE_PULSE=0
   else
-    AC_CHECK_LIB([pulse],[main],,pulse_found="no")
-    AC_CHECK_LIB([pulse-simple],[main],,pulse_found="no")
+    PKG_CHECK_MODULES([PULSE], [libpulse >= 1.0],
+      [INCLUDES="$INCLUDES $PULSE_CFLAGS"; LIBS="$LIBS $PULSE_LIBS"; USE_PULSE=1;
+        HAVE_LIBPULSE=1; AC_DEFINE([HAVE_LIBPULSE],[1],[Pulse audio enabled])],
+      [pulse_found="no"; USE_PULSE=0; HAVE_LIBPULSE=0])
 
-    if test "x$pulse_found" != "xno"; then
-      USE_PULSE=1
-    elif test "x$use_pulse" = "xyes"; then
-      AC_MSG_ERROR($pulse_not_found)
-    else
-      use_pulse=no
-      USE_PULSE=0
-      AC_MSG_RESULT($pulse_not_found)
+    if test "$pulse_found" = "no"; then
+      if test "x$use_pulse" = "xyes"; then
+        AC_MSG_ERROR($pulse_not_found)
+      else
+        AC_MSG_RESULT($pulse_disabled)
+      fi
     fi
   fi
 else
@@ -2643,6 +2641,7 @@ AC_SUBST(USE_LIBAFPCLIENT)
 AC_SUBST(USE_AIRPLAY)
 AC_SUBST(USE_OPENMAX)
 AC_SUBST(USE_PULSE)
+AC_SUBST(HAVE_LIBPULSE)
 AC_SUBST(USE_XRANDR)
 AC_SUBST(USE_ALSA)
 AC_SUBST(USE_TEXTUREPACKER)
@@ -2867,7 +2866,6 @@ XB_CONFIG_MODULE([lib/libdvd/libdvdread], [
     --disable-strip \
     --disable-opts \
     --cc="$CC" &&
-  $MAKE dvdread-config &&
   mkdir -p `pwd`/../includes/dvdread
   cp `pwd`/../libdvdread/src/*.h `pwd`/../includes/dvdread
   cp `pwd`/../libdvdread/src/dvdread/*.h `pwd`/../includes/dvdread
@@ -2877,7 +2875,7 @@ XB_CONFIG_MODULE([lib/libdvd/libdvdnav], [
   ./configure2 \
     --extra-cflags="$CFLAGS $DVDREAD_CFLAGS -I`pwd`/../includes $DROID_DVDLIB_SEEK64" \
     --extra-ldflags="-L`pwd`/../libdvdread/obj" \
-    --with-dvdread-config="`pwd`/../libdvdread/obj/dvdread-config" \
+    --with-dvdread-config="`pwd`/../dvdread-config" \
     --prefix="${prefix}" --includedir="${includedir}" --libdir="${libdir}" --datadir="${datadir}" \
     --host=$host_alias \
     --build=$build_alias \
