@@ -189,6 +189,34 @@ static void StreamLatencyUpdateCallback(pa_stream *s, void *userdata)
   pa_threaded_mainloop *m = (pa_threaded_mainloop *)userdata;
   pa_threaded_mainloop_signal(m, 0);
 }
+
+static void SinkChangedCallback(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
+{
+  CAESinkPULSE* p = (CAESinkPULSE*) userdata;
+  if(!p)
+    return;
+
+  CSingleLock lock(p->m_sec);
+  if (p->IsInitialized())
+  {
+    if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW)
+    {
+       CLog::Log(LOGDEBUG, "Sink appeared");
+       CAEFactory::DeviceChange();
+    }
+    else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_REMOVE)
+    {
+      CLog::Log(LOGDEBUG, "Sink removed");
+      CAEFactory::DeviceChange();
+    }
+    else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_CHANGE)
+    {
+      CLog::Log(LOGDEBUG, "Sink changed");
+      //CAEFactory::DeviceChange();
+    }    
+  }
+}
+
 struct SinkInfoStruct
 {
   AEDeviceInfoList *list;
@@ -390,6 +418,7 @@ static void SinkInfoRequestCallback(pa_context *c, const pa_sink_info *i, int eo
 CAESinkPULSE::CAESinkPULSE()
 {
   m_IsAllocated = false;
+  m_passthrough = false;
   m_MainLoop = NULL;
   m_BytesPerSecond = 0;
   m_BufferSize = 0;
@@ -405,7 +434,11 @@ CAESinkPULSE::~CAESinkPULSE()
 
 bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
 {
-  m_IsAllocated = false;
+  {
+    CSingleLock lock(m_sec);
+    m_IsAllocated = false;
+  }
+  m_passthrough = false;
   m_BytesPerSecond = 0;
   m_BufferSize = 0;
   m_Channels = 0;
@@ -421,12 +454,22 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
 
   pa_threaded_mainloop_lock(m_MainLoop);
 
+  {
+    // Register Callback for Sink changes
+    CSingleLock lock(m_sec);
+    pa_context_set_subscribe_callback(m_Context, SinkChangedCallback, this);
+    const pa_subscription_mask_t mask = PA_SUBSCRIPTION_MASK_SINK;
+    pa_operation *op = pa_context_subscribe(m_Context, mask, NULL, this);
+    if (op != NULL)
+      pa_operation_unref(op);
+  }
+
   struct pa_channel_map map;
   pa_channel_map_init(&map);
 
-  bool passthrough = AE_IS_RAW(format.m_dataFormat);
+  m_passthrough = AE_IS_RAW(format.m_dataFormat);
 
-  if(passthrough)
+  if(m_passthrough)
   {
     map.channels = 2;
     format.m_channelLayout = AE_CH_LAYOUT_2_0;
@@ -445,7 +488,7 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
   pa_format_info *info[1];
   info[0] = pa_format_info_new();
   info[0]->encoding = AEFormatToPulseEncoding(format.m_dataFormat);
-  if(!passthrough)
+  if(!m_passthrough)
   {
     pa_format_info_set_sample_format(info[0], AEFormatToPulseFormat(format.m_dataFormat));
     pa_format_info_set_channel_map(info[0], &map);
@@ -454,7 +497,7 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
 
   // PA requires m_encodedRate in order to do EAC3
   unsigned int samplerate;
-  if (passthrough)
+  if (m_passthrough)
   {
     if (format.m_encodedRate == 0)
     {
@@ -551,7 +594,7 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
     buffer_attr.fragsize = (uint32_t) latency;
   }
 
-  if (pa_stream_connect_playback(m_Stream, isDefaultDevice ? NULL : device.c_str(), sinkStruct.isHWDevice ? &buffer_attr : NULL, ((pa_stream_flags)(PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_ADJUST_LATENCY)), &m_Volume, NULL) < 0)
+  if (pa_stream_connect_playback(m_Stream, isDefaultDevice ? NULL : device.c_str(), sinkStruct.isHWDevice ? &buffer_attr : NULL, ((pa_stream_flags)(PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_AUTO_TIMING_UPDATE | PA_STREAM_ADJUST_LATENCY)), m_passthrough ? NULL : &m_Volume, NULL) < 0)
   {
     CLog::Log(LOGERROR, "PulseAudio: Failed to connect stream to output");
     pa_threaded_mainloop_unlock(m_MainLoop);
@@ -593,21 +636,26 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
   }
 
   pa_threaded_mainloop_unlock(m_MainLoop);
-
-  m_IsAllocated = true;
+  
   format.m_frameSize = frameSize;
   format.m_frameSamples = format.m_frames * format.m_channelLayout.Count();
   m_format = format;
-  format.m_dataFormat = passthrough ? AE_FMT_S16NE : format.m_dataFormat;
+  format.m_dataFormat = m_passthrough ? AE_FMT_S16NE : format.m_dataFormat;
 
   Pause(false);
+  {
+    CSingleLock lock(m_sec);
+    m_IsAllocated = true;
+  }
 
   return true;
 }
 
 void CAESinkPULSE::Deinitialize()
 {
+  CSingleLock lock(m_sec);
   m_IsAllocated = false;
+  m_passthrough = false;
 
   if (m_Stream)
     Drain();
@@ -706,7 +754,7 @@ void CAESinkPULSE::Drain()
 
 void CAESinkPULSE::SetVolume(float volume)
 {
-  if (m_IsAllocated)
+  if (m_IsAllocated && !m_passthrough)
   {
     pa_threaded_mainloop_lock(m_MainLoop);
     pa_volume_t pavolume = pa_sw_volume_from_linear(volume);
@@ -759,6 +807,12 @@ void CAESinkPULSE::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
     pa_threaded_mainloop_free(mainloop);
     mainloop = NULL;
   }
+}
+
+bool CAESinkPULSE::IsInitialized()
+{
+ CSingleLock lock(m_sec);
+ return m_IsAllocated; 
 }
 
 bool CAESinkPULSE::Pause(bool pause)

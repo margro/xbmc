@@ -55,7 +55,6 @@
 #include "network/WakeOnAccess.h"
 #if defined(TARGET_DARWIN_OSX)
 #include "osx/XBMCHelper.h"
-#include "cores/AudioEngine/Engines/CoreAudio/CoreAudioHardware.h"
 #endif // defined(TARGET_DARWIN_OSX)
 #if defined(TARGET_DARWIN)
 #include "osx/DarwinUtils.h"
@@ -469,7 +468,7 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterSettingsHandler(&CWakeOnAccess::Get());
   m_settingsManager->UnregisterSettingsHandler(&CRssManager::Get());
   m_settingsManager->UnregisterSettingsHandler(&g_application);
-#if defined(TARGET_LINUX)
+#if defined(TARGET_LINUX) && !defined(TARGET_ANDROID)
   m_settingsManager->UnregisterSettingsHandler(&g_timezone);
 #endif
 
@@ -798,14 +797,7 @@ void CSettings::InitializeDefaults()
   #endif
 #endif
 
-#if defined(TARGET_DARWIN)
-  #if !defined(TARGET_DARWIN_IOS)
-  CStdString defaultAudioDeviceName;
-  CCoreAudioHardware::GetOutputDeviceName(defaultAudioDeviceName);
-  ((CSettingString*)m_settingsManager->GetSetting("audiooutput.audiodevice"))->SetDefault(defaultAudioDeviceName);
-  ((CSettingString*)m_settingsManager->GetSetting("audiooutput.passthroughdevice"))->SetDefault(defaultAudioDeviceName);
-  #endif
-#elif !defined(TARGET_WINDOWS)
+#if !defined(TARGET_WINDOWS)
   ((CSettingString*)m_settingsManager->GetSetting("audiooutput.audiodevice"))->SetDefault(CAEFactory::GetDefaultDevice(false));
   ((CSettingString*)m_settingsManager->GetSetting("audiooutput.passthroughdevice"))->SetDefault(CAEFactory::GetDefaultDevice(true));
 #endif
@@ -981,7 +973,7 @@ void CSettings::InitializeISettingsHandlers()
   m_settingsManager->RegisterSettingsHandler(&CWakeOnAccess::Get());
   m_settingsManager->RegisterSettingsHandler(&CRssManager::Get());
   m_settingsManager->RegisterSettingsHandler(&g_application);
-#if defined(TARGET_LINUX)
+#if defined(TARGET_LINUX) && !defined(TARGET_ANDROID)
   m_settingsManager->RegisterSettingsHandler(&g_timezone);
 #endif
 }
