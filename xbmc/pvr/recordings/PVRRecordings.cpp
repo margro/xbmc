@@ -39,7 +39,8 @@
 using namespace PVR;
 
 CPVRRecordings::CPVRRecordings(void) :
-    m_bIsUpdating(false)
+    m_bIsUpdating(false),
+    m_iLastId(0)
 {
 
 }
@@ -221,16 +222,6 @@ void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList 
       if(pItem->m_dateTime < results->Get(i)->m_dateTime)
         pItem->m_dateTime = results->Get(i)->m_dateTime;
     }
-    results->AddFront(pItem, 0);
-  }
-
-  // Add parent directory item
-  if (!strUseBase.empty() && (subDirectories > 0 || files.Size() > 0) && CSettings::Get().GetBool("filelists.showparentdiritems"))
-  {
-    CStdString strLabel("..");
-    CFileItemPtr pItem(new CFileItem(strLabel));
-    pItem->SetPath("pvr://recordings");
-    pItem->m_bIsShareOrDrive = false;
     results->AddFront(pItem, 0);
   }
 }
@@ -456,6 +447,19 @@ void CPVRRecordings::GetAll(CFileItemList &items)
   }
 }
 
+CFileItemPtr CPVRRecordings::GetById(unsigned int iId) const
+{
+  CFileItemPtr item;
+  CSingleLock lock(m_critSection);
+  for (std::vector<CPVRRecording *>::const_iterator it = m_recordings.begin(); !item && it != m_recordings.end(); ++it)
+  {
+    if (iId == (*it)->m_iRecordingId)
+      item = CFileItemPtr(new CFileItem(**it));
+  }
+
+  return item;
+}
+
 CFileItemPtr CPVRRecordings::GetByPath(const CStdString &path)
 {
   CURL url(path);
@@ -510,6 +514,7 @@ void CPVRRecordings::UpdateEntry(const CPVRRecording &tag)
   {
     CPVRRecording *newTag = new CPVRRecording();
     newTag->Update(tag);
+    newTag->m_iRecordingId = ++m_iLastId;
     m_recordings.push_back(newTag);
   }
 }

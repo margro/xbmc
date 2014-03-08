@@ -32,6 +32,7 @@ using namespace ActiveAE;
 
 #define MAX_CACHE_LEVEL 0.5   // total cache time of stream in seconds
 #define MAX_WATER_LEVEL 0.25  // buffered time after stream stages in seconds
+#define MAX_BUFFER_TIME 0.1   // max time of a buffer in seconds
 
 void CEngineStats::Reset(unsigned int sampleRate)
 {
@@ -235,6 +236,9 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           return;
         case CActiveAEControlProtocol::DISPLAYRESET:
           return;
+        case CActiveAEControlProtocol::APPFOCUSED:
+          m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::APPFOCUSED, msg->data, sizeof(bool));
+          return;
         default:
           break;
         }
@@ -392,13 +396,14 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
     case AE_TOP_CONFIGURED:
       if (port == &m_controlPort)
       {
+        bool streaming;
         switch (signal)
         {
         case CActiveAEControlProtocol::RECONFIGURE:
           if (m_streams.empty())
           {
-            bool silence = false;
-            m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::SILENCEMODE, &silence, sizeof(bool));
+            streaming = false;
+            m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::STREAMING, &streaming, sizeof(bool));
           }
           LoadSettings();
           ChangeResamplers();
@@ -459,12 +464,18 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           CActiveAEStream *stream;
           stream = *(CActiveAEStream**)msg->data;
           if (stream->m_paused != true && m_streams.size() == 1)
+          {
             FlushEngine();
+            streaming = false;
+            m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::STREAMING, &streaming, sizeof(bool));
+          }
           stream->m_paused = true;
           return;
         case CActiveAEControlProtocol::RESUMESTREAM:
           stream = *(CActiveAEStream**)msg->data;
           stream->m_paused = false;
+          streaming = true;
+          m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::STREAMING, &streaming, sizeof(bool));
           m_extTimeout = 0;
           return;
         case CActiveAEControlProtocol::FLUSHSTREAM:
@@ -942,11 +953,11 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
     m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::VOLUME, &m_volume, sizeof(float));
 
     // limit buffer size in case of sink returns large buffer
-    unsigned int buffertime = (m_sinkFormat.m_frames*1000) / m_sinkFormat.m_sampleRate;
-    if (buffertime > 80)
+    unsigned int buffertime = m_sinkFormat.m_frames / m_sinkFormat.m_sampleRate;
+    if (buffertime > MAX_BUFFER_TIME)
     {
-      CLog::Log(LOGWARNING, "ActiveAE::%s - sink returned large buffer of %d ms, reducing to 80 ms", __FUNCTION__, buffertime);
-      m_sinkFormat.m_frames = 80 * m_sinkFormat.m_sampleRate / 1000;
+      CLog::Log(LOGWARNING, "ActiveAE::%s - sink returned large buffer of %d ms, reducing to %d ms", __FUNCTION__, buffertime, (int)(MAX_BUFFER_TIME*1000));
+      m_sinkFormat.m_frames = MAX_BUFFER_TIME * m_sinkFormat.m_sampleRate;
     }
   }
 
@@ -973,8 +984,8 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
     sinkInputFormat = inputFormat;
     m_internalFormat = inputFormat;
 
-    bool silence = false;
-    m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::SILENCEMODE, &silence, sizeof(bool));
+    bool streaming = false;
+    m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::STREAMING, &streaming, sizeof(bool));
 
     delete m_encoder;
     m_encoder = NULL;
@@ -998,8 +1009,8 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
   // resample buffers for streams
   else
   {
-    bool silence = true;
-    m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::SILENCEMODE, &silence, sizeof(bool));
+    bool streaming = true;
+    m_sink.m_controlPort.SendOutMessage(CSinkControlProtocol::STREAMING, &streaming, sizeof(bool));
 
     AEAudioFormat outputFormat;
     if (m_mode == MODE_RAW)
@@ -2055,16 +2066,17 @@ void CActiveAE::Deamplify(CSoundPacket &dstSample)
   {
     float *buffer;
     int nb_floats = dstSample.nb_samples * dstSample.config.channels / dstSample.planes;
+    float volume = m_muted ? 0.0f : m_volume;
 
     for(int j=0; j<dstSample.planes; j++)
     {
       buffer = (float*)dstSample.data[j];
 #ifdef __SSE__
-      CAEUtil::SSEMulArray(buffer, m_muted ? 0.0 : m_volume, nb_floats);
+      CAEUtil::SSEMulArray(buffer, volume, nb_floats);
 #else
       float *fbuffer = buffer;
       for (int i = 0; i < nb_floats; i++)
-        *fbuffer++ *= m_volume;
+        *fbuffer++ *= volume;
 #endif
     }
   }
@@ -2350,6 +2362,11 @@ void CActiveAE::OnLostDevice()
 void CActiveAE::OnResetDevice()
 {
   m_controlPort.SendOutMessage(CActiveAEControlProtocol::DISPLAYRESET);
+}
+
+void CActiveAE::OnAppFocusChange(bool focus)
+{
+  m_controlPort.SendOutMessage(CActiveAEControlProtocol::APPFOCUSED, &focus, sizeof(focus));
 }
 
 //-----------------------------------------------------------------------------

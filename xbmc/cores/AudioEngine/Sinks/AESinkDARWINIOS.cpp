@@ -237,10 +237,16 @@ unsigned int CAAudioUnitSink::write(uint8_t *data, unsigned int frames)
   if (m_buffer->GetWriteSize() < frames * m_frameSize)
   { // no space to write - wait for a bit
     CSingleLock lock(mutex);
+    unsigned int timeout = 900 * frames / m_sampleRate;
     if (!m_started)
-      condVar.wait(lock);
-    else
-      condVar.wait(lock, 900 * frames / m_sampleRate);
+      timeout = 500;
+
+    // we are using a timer here for beeing sure for timeouts
+    // condvar can be woken spuriously as signaled
+    XbmcThreads::EndTime timer(timeout);
+    condVar.wait(lock, timeout);
+    if (!m_started && timer.IsTimePast())
+      return INT_MAX;
   }
 
   unsigned int write_frames = std::min(frames, m_buffer->GetWriteSize() / m_frameSize);
@@ -252,7 +258,6 @@ unsigned int CAAudioUnitSink::write(uint8_t *data, unsigned int frames)
 
 void CAAudioUnitSink::drain()
 {
-  CCriticalSection mutex;
   unsigned int bytes = m_buffer->GetReadSize();
   while (bytes)
   {
@@ -529,6 +534,8 @@ OSStatus CAAudioUnitSink::renderCallback(void *inRefCon, AudioUnitRenderActionFl
     sink->m_buffer->Read((unsigned char*)ioData->mBuffers[i].mData, bytes);
     if (bytes != wanted)
       CLog::Log(LOGERROR, "%s: %sFLOW (%i vs %i) bytes", __FUNCTION__, bytes > wanted ? "OVER" : "UNDER", bytes, wanted);
+    if (bytes == 0)
+      *ioActionFlags |= kAudioUnitRenderAction_OutputIsSilence;
   }
   // tell the sink we're good for more data
   condVar.notifyAll();
