@@ -199,6 +199,18 @@ static void EnumerateDevices(CADeviceList &list)
             }
 
             // add sample rate info
+            // quirk devices which don't report a valid samplerate
+            // add 44.1khz and 48khz in that case - user can use
+            // the "fixed" audio config to force one of them
+            if (desc.mSampleRate == 0)
+            {
+              CLog::Log(LOGWARNING, "%s no valid samplerate - adding 44.1khz and 48khz quirk", __FUNCTION__);
+              desc.mSampleRate = 44100;
+              if (!HasSampleRate(device.m_sampleRates, desc.mSampleRate))
+                device.m_sampleRates.push_back(desc.mSampleRate);
+              desc.mSampleRate = 48000;
+            }
+
             if (!HasSampleRate(device.m_sampleRates, desc.mSampleRate))
               device.m_sampleRates.push_back(desc.mSampleRate);
           }
@@ -414,18 +426,21 @@ bool CAESinkDARWINOSX::Initialize(AEAudioFormat &format, std::string &device)
   if (StringUtils::EqualsNoCase(device, "default"))
   {
     CCoreAudioHardware::GetOutputDeviceName(device);
+    deviceID = CCoreAudioHardware::GetDefaultOutputDevice();
     CLog::Log(LOGNOTICE, "%s: Opening default device %s", __PRETTY_FUNCTION__, device.c_str());
   }
-      
-  for (size_t i = 0; i < devices.size(); i++)
+  else
   {
-    if (device.find(devices[i].second.m_deviceName) != std::string::npos)
+    for (size_t i = 0; i < devices.size(); i++)
     {
-      m_info = devices[i].second;
-      deviceID = devices[i].first;
-      break;
+      if (device.find(devices[i].second.m_deviceName) != std::string::npos)
+      {
+        deviceID = devices[i].first;
+        break;
+      }
     }
   }
+
   if (!deviceID)
   {
     CLog::Log(LOGERROR, "%s: Unable to find device %s", __FUNCTION__, device.c_str());
@@ -460,7 +475,14 @@ bool CAESinkDARWINOSX::Initialize(AEAudioFormat &format, std::string &device)
     CCoreAudioStream::GetAvailablePhysicalFormats(*i, &formats);
     for (StreamFormatList::const_iterator j = formats.begin(); j != formats.end(); ++j)
     {
-      const AudioStreamBasicDescription &desc = j->mFormat;
+      AudioStreamBasicDescription desc = j->mFormat;
+
+      // quirk devices with invalid sample rate
+      // assume that the user uses a fixed config
+      // and knows what he is doing - so we use
+      // the requested samplerate here
+      if (desc.mSampleRate == 0)
+        desc.mSampleRate = format.m_sampleRate;
 
       float score = ScoreStream(desc, format);
 
@@ -627,14 +649,17 @@ unsigned int CAESinkDARWINOSX::AddPackets(uint8_t *data, unsigned int frames, bo
     CSingleLock lock(mutex);
     unsigned int timeout = 900 * frames / m_format.m_sampleRate;
     if (!m_started)
-      timeout = 500;
+      timeout = 4500;
 
     // we are using a timer here for beeing sure for timeouts
     // condvar can be woken spuriously as signaled
     XbmcThreads::EndTime timer(timeout);
-    condVar.wait(lock, timeout);
+    condVar.wait(mutex, timeout);
     if (!m_started && timer.IsTimePast())
+    {
+      CLog::Log(LOGERROR, "%s engine didn't start in %d ms!", __FUNCTION__, timeout);
       return INT_MAX;    
+    }
   }
 
   unsigned int write_frames = std::min(frames, m_buffer->GetWriteSize() / m_format.m_frameSize);
@@ -647,11 +672,21 @@ unsigned int CAESinkDARWINOSX::AddPackets(uint8_t *data, unsigned int frames, bo
 void CAESinkDARWINOSX::Drain()
 {
   int bytes = m_buffer->GetReadSize();
-  while (bytes)
+  int totalBytes = bytes;
+  int maxNumTimeouts = 3;
+  unsigned int timeout = 900 * bytes / (m_format.m_sampleRate * m_format.m_frameSize);
+  while (bytes && maxNumTimeouts > 0)
   {
     CSingleLock lock(mutex);
-    condVar.wait(mutex, 900 * bytes / (m_format.m_sampleRate * m_format.m_frameSize));
+    XbmcThreads::EndTime timer(timeout);
+    condVar.wait(mutex, timeout);
+
     bytes = m_buffer->GetReadSize();
+    // if we timeout and don't
+    // consum bytes - decrease maxNumTimeouts
+    if (timer.IsTimePast() && bytes == totalBytes)
+      maxNumTimeouts--;
+    totalBytes = bytes;
   }
 }
 
@@ -661,6 +696,21 @@ void CAESinkDARWINOSX::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
   list.clear();
   for (CADeviceList::const_iterator i = s_devices.begin(); i != s_devices.end(); ++i)
     list.push_back(i->second);
+}
+
+inline void LogLevel(unsigned int got, unsigned int wanted)
+{
+  static unsigned int lastReported = INT_MAX;
+  if (got != wanted)
+  {
+    if (got != lastReported)
+    {
+      CLog::Log(LOGWARNING, "DARWINOSX: %sflow (%u vs %u bytes)", got > wanted ? "over" : "under", got, wanted);
+      lastReported = got;
+    }    
+  }
+  else
+    lastReported = INT_MAX; // indicate we were good at least once
 }
 
 OSStatus CAESinkDARWINOSX::renderCallback(AudioDeviceID inDevice, const AudioTimeStamp* inNow, const AudioBufferList* inInputData, const AudioTimeStamp* inInputTime, AudioBufferList* outOutputData, const AudioTimeStamp* inOutputTime, void* inClientData)
@@ -692,8 +742,7 @@ OSStatus CAESinkDARWINOSX::renderCallback(AudioDeviceID inDevice, const AudioTim
       unsigned int wanted = outOutputData->mBuffers[i].mDataByteSize;
       unsigned int bytes = std::min(sink->m_buffer->GetReadSize(), wanted);
       sink->m_buffer->Read((unsigned char*)outOutputData->mBuffers[i].mData, bytes);
-      if (bytes != wanted)
-        CLog::Log(LOGERROR, "%s: %sFLOW (%i vs %i) bytes", __FUNCTION__, bytes > wanted ? "OVER" : "UNDER", bytes, wanted);
+      LogLevel(bytes, wanted);
     }
 
     // tell the sink we're good for more data
