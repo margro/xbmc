@@ -493,8 +493,10 @@
   </NumericInput>
   <FullscreenLiveTV>
     <keyboard>
-      <left>PreviousChannelGroup</left>
-      <right>NextChannelGroup</right>
+      <comma>BigStepBack</comma>
+      <period>BigStepForward</period>
+      <left>StepBack</left>
+      <right>StepForward</right>
       <up>ChannelUp</up>
       <down>ChannelDown</down>
     </keyboard>
