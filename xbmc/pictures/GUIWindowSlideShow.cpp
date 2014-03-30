@@ -841,6 +841,8 @@ bool CGUIWindowSlideShow::OnAction(const CAction &action)
       m_bPause = true;
       AnnouncePlayerPause(m_slides->Get(m_iCurrentSlide));
     }
+    else if (m_iZoomFactor > 1)
+      Zoom(1); //Back to normal zoom and continue slideshow
     break;
 
   case ACTION_ZOOM_OUT:
