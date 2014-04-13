@@ -163,5 +163,6 @@ protected:
   }m_pkt;
 
   bool m_streaminfo;
+  bool m_checkvideo;
 };
 
