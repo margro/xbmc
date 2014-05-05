@@ -199,10 +199,19 @@ CUPnPServer::SetupIcons()
 {
     NPT_String file_root = CSpecialProtocol::TranslatePath("special://xbmc/media/").c_str();
     AddIcon(
-        PLT_DeviceIcon("image/png", 256, 256, 24, "/icon-flat-256x256.png"),
+        PLT_DeviceIcon("image/png", 256, 256, 8, "/icon256x256.png"),
         file_root);
     AddIcon(
-        PLT_DeviceIcon("image/png", 120, 120, 24, "/icon-flat-120x120.png"),
+        PLT_DeviceIcon("image/png", 120, 120, 8, "/icon120x120.png"),
+        file_root);
+    AddIcon(
+        PLT_DeviceIcon("image/png", 48, 48, 8, "/icon48x48.png"),
+        file_root);
+    AddIcon(
+        PLT_DeviceIcon("image/png", 32, 32, 8, "/icon32x32.png"),
+        file_root);
+    AddIcon(
+        PLT_DeviceIcon("image/png", 16, 16, 8, "/icon16x16.png"),
         file_root);
     return NPT_SUCCESS;
 }
@@ -339,7 +348,7 @@ CUPnPServer::Build(CFileItemPtr                  item,
                         db.GetTvShowInfo((const char*)path, *item->GetVideoInfoTag(), params.GetTvShowId());
                 }
 
-                if (item->GetVideoInfoTag()->m_type == "tvshow" || item->GetVideoInfoTag()->m_type == "season") {
+                if (item->GetVideoInfoTag()->m_type == MediaTypeTvShow || item->GetVideoInfoTag()->m_type == MediaTypeSeason) {
                     // for tvshows and seasons, iEpisode and playCount are
                     // invalid
                     item->GetVideoInfoTag()->m_iEpisode = (int)item->GetProperty("totalepisodes").asInteger();
@@ -428,7 +437,7 @@ CUPnPServer::Announce(AnnouncementFlag flag, const char *sender, const char *mes
         // we always update 'recently added' nodes along with the specific container,
         // as we don't differentiate 'updates' from 'adds' in RPC interface
         if (flag == VideoLibrary) {
-            if(item_type == "episode") {
+            if(item_type == MediaTypeEpisode) {
                 CVideoDatabase db;
                 if (!db.Open()) return;
                 int show_id = db.GetTvShowForEpisode(item_id);
@@ -437,20 +446,20 @@ CUPnPServer::Announce(AnnouncementFlag flag, const char *sender, const char *mes
                 UpdateContainer(StringUtils::Format("videodb://tvshows/titles/%d/%d/?tvshowid=%d", show_id, season_id, show_id));
                 UpdateContainer("videodb://recentlyaddedepisodes/");
             }
-            else if(item_type == "tvshow") {
+            else if(item_type == MediaTypeTvShow) {
                 UpdateContainer("library://video/tvshows/titles.xml/");
                 UpdateContainer("videodb://recentlyaddedepisodes/");
             }
-            else if(item_type == "movie") {
+            else if(item_type == MediaTypeMovie) {
                 UpdateContainer("library://video/movies/titles.xml/");
                 UpdateContainer("videodb://recentlyaddedmovies/");
             }
-            else if(item_type == "musicvideo") {
+            else if(item_type == MediaTypeMusicVideo) {
                 UpdateContainer("library://video/musicvideos/titles.xml/");
                 UpdateContainer("videodb://recentlyaddedmusicvideos/");
             }
         }
-        else if (flag == AudioLibrary && item_type == "song") {
+        else if (flag == AudioLibrary && item_type == MediaTypeSong) {
             // we also update the 'songs' container is maybe a performance drop too
             // high? would need to check if slow clients even cache at all anyway
             CMusicDatabase db;
@@ -1233,7 +1242,7 @@ CUPnPServer::SortItems(CFileItemList& items, const char* sort_criteria)
     else if (method.Equals("upnp:originalTrackNumber"))
       sorting.sortBy = SortByTrackNumber;
     else if(method.Equals("upnp:rating"))
-      sorting.sortBy = SortByRating;
+      sorting.sortBy = SortByMPAA;
     else {
       CLog::Log(LOGINFO, "UPnP: unsupported sort criteria '%s' passed", method.c_str());
       continue; // needed so unidentified sort methods don't re-sort by label

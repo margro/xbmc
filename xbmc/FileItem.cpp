@@ -22,6 +22,7 @@
 #include "guilib/LocalizeStrings.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
+#include "utils/Archive.h"
 #include "Util.h"
 #include "playlists/PlayListFactory.h"
 #include "utils/Crc32.h"
@@ -727,7 +728,7 @@ void CFileItem::ToSortable(SortItem &sortable, Field field) const
   {
     GetVideoInfoTag()->ToSortable(sortable, field);
 
-    if (GetVideoInfoTag()->m_type == "tvshow")
+    if (GetVideoInfoTag()->m_type == MediaTypeTvShow)
     {
       if (field == FieldNumberOfEpisodes && HasProperty("totalepisodes"))
         sortable[FieldNumberOfEpisodes] = GetProperty("totalepisodes");

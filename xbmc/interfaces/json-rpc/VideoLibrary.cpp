@@ -206,11 +206,13 @@ JSONRPC_STATUS CVideoLibrary::GetTVShowDetails(const CStdString &method, ITransp
 
   int id = (int)parameterObject["tvshowid"].asInteger();
 
+  CFileItemPtr fileItem(new CFileItem());
   CVideoInfoTag infos;
-  if (!videodatabase.GetTvShowInfo("", infos, id) || infos.m_iDbId <= 0)
+  if (!videodatabase.GetTvShowInfo("", infos, id, fileItem.get()) || infos.m_iDbId <= 0)
     return InvalidParams;
 
-  HandleFileItem("tvshowid", true, "tvshowdetails", CFileItemPtr(new CFileItem(infos)), parameterObject, parameterObject["properties"], result, false);
+  fileItem->SetFromVideoInfoTag(infos);
+  HandleFileItem("tvshowid", true, "tvshowdetails", fileItem, parameterObject, parameterObject["properties"], result, false);
   return OK;
 }
 
@@ -437,17 +439,17 @@ JSONRPC_STATUS CVideoLibrary::GetGenres(const CStdString &method, ITransportLaye
 
   CStdString strPath = "videodb://";
   /* select which video content to get genres from*/
-  if (media.Equals("movie"))
+  if (media.Equals(MediaTypeMovie))
   {
     idContent = VIDEODB_CONTENT_MOVIES;
     strPath += "movies";
   }
-  else if (media.Equals("tvshow"))
+  else if (media.Equals(MediaTypeTvShow))
   {
     idContent = VIDEODB_CONTENT_TVSHOWS;
     strPath += "tvshows";
   }
-  else if (media.Equals("musicvideo"))
+  else if (media.Equals(MediaTypeMusicVideo))
   {
     idContent = VIDEODB_CONTENT_MUSICVIDEOS;
     strPath += "musicvideos";
@@ -494,12 +496,12 @@ JSONRPC_STATUS CVideoLibrary::SetMovieDetails(const CStdString &method, ITranspo
 
   // we need to manually remove tags/taglinks for now because they aren't replaced
   // due to scrapers not supporting them
-  videodatabase.RemoveTagsFromItem(id, "movie");
+  videodatabase.RemoveTagsFromItem(id, MediaTypeMovie);
 
   if (videodatabase.SetDetailsForMovie(infos.m_strFileNameAndPath, infos, artwork, id) <= 0)
     return InternalError;
 
-  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, "movie", removedArtwork))
+  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, MediaTypeMovie, removedArtwork))
     return InternalError;
 
   if (playcount != infos.m_playCount || lastPlayed != infos.m_lastPlayed)
@@ -573,12 +575,12 @@ JSONRPC_STATUS CVideoLibrary::SetTVShowDetails(const CStdString &method, ITransp
 
   // we need to manually remove tags/taglinks for now because they aren't replaced
   // due to scrapers not supporting them
-  videodatabase.RemoveTagsFromItem(id, "tvshow");
+  videodatabase.RemoveTagsFromItem(id, MediaTypeTvShow);
 
   if (videodatabase.SetDetailsForTvShow(infos.m_strFileNameAndPath, infos, artwork, seasonArt, id) <= 0)
     return InternalError;
 
-  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, "tvshow", removedArtwork))
+  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, MediaTypeTvShow, removedArtwork))
     return InternalError;
 
   CJSONRPCUtils::NotifyItemUpdated();
@@ -611,7 +613,7 @@ JSONRPC_STATUS CVideoLibrary::SetSeasonDetails(const CStdString &method, ITransp
   if (videodatabase.SetDetailsForSeason(infos, artwork, infos.m_iIdShow, id) <= 0)
     return InternalError;
 
-  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, "season", removedArtwork))
+  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, MediaTypeSeason, removedArtwork))
     return InternalError;
 
   CJSONRPCUtils::NotifyItemUpdated();
@@ -654,7 +656,7 @@ JSONRPC_STATUS CVideoLibrary::SetEpisodeDetails(const CStdString &method, ITrans
   if (videodatabase.SetDetailsForEpisode(infos.m_strFileNameAndPath, infos, artwork, tvshowid, id) <= 0)
     return InternalError;
 
-  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, "episode", removedArtwork))
+  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, MediaTypeEpisode, removedArtwork))
     return InternalError;
 
   if (playcount != infos.m_playCount || lastPlayed != infos.m_lastPlayed)
@@ -699,12 +701,12 @@ JSONRPC_STATUS CVideoLibrary::SetMusicVideoDetails(const CStdString &method, ITr
 
   // we need to manually remove tags/taglinks for now because they aren't replaced
   // due to scrapers not supporting them
-  videodatabase.RemoveTagsFromItem(id, "musicvideo");
+  videodatabase.RemoveTagsFromItem(id, MediaTypeMusicVideo);
 
   if (videodatabase.SetDetailsForMusicVideo(infos.m_strFileNameAndPath, infos, artwork, id) <= 0)
     return InternalError;
 
-  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, "musicvideo", removedArtwork))
+  if (!videodatabase.RemoveArtForItem(infos.m_iDbId, MediaTypeMusicVideo, removedArtwork))
     return InternalError;
 
   if (playcount != infos.m_playCount || lastPlayed != infos.m_lastPlayed)
