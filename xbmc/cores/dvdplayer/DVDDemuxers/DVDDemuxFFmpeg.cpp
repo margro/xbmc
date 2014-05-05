@@ -1474,7 +1474,7 @@ void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
       // Found extradata, fill it in. This will cause
       // a new stream to be created and used.
       st->codec->extradata_size = i;
-      st->codec->extradata = (uint8_t*)m_dllAvUtil.av_malloc(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
+      st->codec->extradata = (uint8_t*)av_malloc(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
       if (st->codec->extradata)
       {
         CLog::Log(LOGDEBUG, "CDVDDemuxFFmpeg::Read() fetching extradata, extradata_size(%d)", st->codec->extradata_size);
@@ -1497,13 +1497,13 @@ void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
     {
       const AVCodec* codec;
       AVDictionary *thread_opt = NULL;
-      codec = m_dllAvCodec.avcodec_find_decoder(st->codec->codec_id);
+      codec = avcodec_find_decoder(st->codec->codec_id);
       // Force thread count to 1 since the h264 decoder will not extract
       // SPS and PPS to extradata during multi-threaded decoding
-      m_dllAvUtil.av_dict_set(&thread_opt, "threads", "1", 0);
-      m_dllAvCodec.avcodec_open2(st->codec, codec, &thread_opt);
+      av_dict_set(&thread_opt, "threads", "1", 0);
+      avcodec_open2(st->codec, codec, &thread_opt);
 
-      m_dllAvUtil.av_dict_free(&thread_opt);
+      av_dict_free(&thread_opt);
     }
 
     // We don't need to actually decode here
@@ -1521,7 +1521,7 @@ void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
     picture.format = -1;
 
     int got_picture = 0;
-    m_dllAvCodec.avcodec_decode_video2(st->codec, &picture, &got_picture, pkt);
+    avcodec_decode_video2(st->codec, &picture, &got_picture, pkt);
   }
 }
 
@@ -1572,7 +1572,7 @@ void CDVDDemuxFFmpeg::ResetVideoStreams()
     if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO)
     {
       if (st->codec->extradata)
-        m_dllAvUtil.av_free(st->codec->extradata);
+        av_free(st->codec->extradata);
       st->codec->extradata = NULL;
       st->codec->width = 0;
     }
