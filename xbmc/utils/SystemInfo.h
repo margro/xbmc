@@ -109,10 +109,14 @@ public:
 #ifdef TARGET_POSIX
   CStdString GetUnameVersion();
 #endif
-#if defined(TARGET_WINDOWS)
-  CStdString GetUAWindowsVersion();
+#ifdef TARGET_ANDROID
+  std::string GetAndroidVersionString(void);
+  std::string GetAndroidDeviceName(void);
 #endif
-  CStdString GetUserAgent();
+#if defined(TARGET_WINDOWS)
+  std::string GetUAWindowsVersion();
+#endif
+  std::string GetUserAgent();
   bool HasInternet();
   bool IsAppleTV2();
   bool HasVideoToolBoxDecoder();
@@ -123,6 +127,7 @@ public:
   static WindowsVersion GetWindowsVersion();
   static int GetKernelBitness(void);
   static int GetXbmcBitness(void);
+  static std::string GetKernelCpuFamily(void);
   static CStdString GetKernelVersion();
   CStdString GetCPUModel();
   CStdString GetCPUBogoMips();

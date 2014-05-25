@@ -2803,7 +2803,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#666"
-msgid "Verbose logging..."
+msgid "Enable component-specific logging"
 msgstr ""
 
 #: system/settings/settings.xml
@@ -2811,7 +2811,67 @@ msgctxt "#667"
 msgid "Enable Dolby Digital transcoding"
 msgstr ""
 
-#empty strings from id 668 to 699
+#: system/settings/settings.xml
+msgctxt "#668"
+msgid "Specify component-specific logging..."
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#669"
+msgid "Verbose logging for SMB library"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#670"
+msgid "Verbose logging for CURL library (http, dav)"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#671"
+msgid "Verbose logging for CMYTH library"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#672"
+msgid "Verbose logging for FFMPEG libraries"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#673"
+msgid "Verbose logging for RTMP library"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#674"
+msgid "Verbose logging for DBUS calls"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#675"
+msgid "Verbose logging for JSON-RPC requests"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#676"
+msgid "Verbose logging for AUDIO component"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#677"
+msgid "Verbose logging for AirTunes library"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#678"
+msgid "Verbose logging for UPnP components"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#679"
+msgid "Verbose logging for CEC library"
+msgstr ""
+
+#empty strings from id 680 to 699
 
 msgctxt "#700"
 msgid "Cleaning up library"
@@ -5279,6 +5339,7 @@ msgstr ""
 #: skin.confluence
 #: skin.touched
 #: xbmc\profiles\ProfilesManager.cpp
+#: xbmc/profiles/dialogs/GUIDialogProfileSettings.cpp
 msgctxt "#13200"
 msgid "Profiles"
 msgstr ""
@@ -6463,6 +6524,7 @@ msgid "%i ms"
 msgstr ""
 
 #: system/settings/settings.xml
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#14047"
 msgid "%i %%"
 msgstr ""
@@ -6494,7 +6556,10 @@ msgctxt "#14053"
 msgid "GUI filters"
 msgstr ""
 
-#empty string with id 14054
+#: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
+msgctxt "#14054"
+msgid "%2.1f dB"
+msgstr ""
 
 msgctxt "#14055"
 msgid "Use background scanning"
@@ -7726,7 +7791,11 @@ msgctxt "#19102"
 msgid "Please switch to another channel."
 msgstr ""
 
-#empty string with id 19103
+#. Title of numeric dialog for choosing a channel by entering a number
+#: xbmc/pvr/windows/GUIWindowPVRCommon.cpp
+msgctxt "#19103"
+msgid "Go to channel"
+msgstr ""
 
 msgctxt "#19104"
 msgid "Enter the name of the folder for the recording"
@@ -8502,7 +8571,13 @@ msgctxt "#19285"
 msgid "Browse for icon"
 msgstr ""
 
-#empty strings from id 19286 to 19498
+#. Notification message if process starts searching for missing channel icons
+#: xbmc/pvr/PVRManager.cpp
+msgctxt "#19286"
+msgid "Searching for channel icons"
+msgstr ""
+
+#empty strings from id 19287 to 19498
 
 #: xbmc/epg/Epg.cpp
 msgctxt "#19499"
@@ -11165,11 +11240,18 @@ msgstr ""
 
 #. Filter (media data) from string value to string value
 #: xbmc/dialogs/GUIDialogMediaFilter.cpp
+#: xbmc/settings/SettingControl.cpp
 msgctxt "#21469"
 msgid "%s to %s"
 msgstr ""
 
-#empty strings from id 21470 to 21601
+#. Field (e.g. "Genre") [count]
+#: xbmc/dialogs/GUIDialogMediaFilter.cpp
+msgctxt "#21470"
+msgid "%s [%d]"
+msgstr ""
+
+#empty strings from id 21471 to 21601
 
 #: xbmc/Util.cpp
 msgctxt "#21602"
@@ -12292,7 +12374,18 @@ msgctxt "#24125"
 msgid "Custom location"
 msgstr ""
 
-#empty strings from id 24126 to 24999
+#: system/settings/settings.xml
+msgctxt "#24126"
+msgid "Auto download first subtitle"
+msgstr ""
+
+#. Description of setting "Videos -> Subtitles -> Auto download first subtitle" with label #24126
+#: system/settings/settings.xml
+msgctxt "#24127"
+msgid "Automatically download first subtitle from the search result list"
+msgstr ""
+
+#empty strings from id 24128 to 24999
 
 msgctxt "#25000"
 msgid "Notifications"
@@ -14973,10 +15066,10 @@ msgctxt "#36393"
 msgid "Folder used to save screenshots taken within XBMC."
 msgstr ""
 
-#. Description of setting "System -> Debugging -> Verbose logging..." with label #666
+#. Description of setting "System -> Debugging -> Enable component-specific logging" with label #666
 #: system/settings/settings.xml
 msgctxt "#36394"
-msgid "Specify additional libraries to be included in the debug log."
+msgid "Enables log messages from additional libraries to be included in the log."
 msgstr ""
 
 #. Description of settings category "System -> Master lock" with label #12360
@@ -15241,7 +15334,13 @@ msgctxt "#36509"
 msgid "Monoscopic - 2D"
 msgstr ""
 
-#empty strings from id 36510 to 36519
+#. Description of setting "System -> Debugging -> Component-specific logging..." with label #668
+#: system/settings/settings.xml
+msgctxt "#36510"
+msgid "Specify additional libraries whose log messages are to be included in the log."
+msgstr ""
+
+#empty strings from id 36511 to 36519
 #reserved strings for 3d modes 36509 - 36520
 
 #: system/settings/settings.xml

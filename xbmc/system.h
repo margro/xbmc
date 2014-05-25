@@ -25,9 +25,6 @@
 #define DECLARE_UNUSED(a,b) a __attribute__((unused)) b;
 #endif
 
-#define PRE_SKIN_VERSION_9_10_COMPATIBILITY 1
-#define PRE_SKIN_VERSION_11_COMPATIBILITY 1
-
 /*****************
  * All platforms
  *****************/
@@ -77,7 +74,7 @@
   #define HAS_AIRPLAY
 #endif
 
-#if defined(HAVE_LIBSHAIRPORT) || defined(HAVE_LIBSHAIRPLAY)
+#if defined(HAVE_LIBSHAIRPLAY)
   #define HAS_AIRTUNES
 #endif
 

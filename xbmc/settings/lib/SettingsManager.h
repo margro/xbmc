@@ -29,7 +29,9 @@
 #include "ISettingCreator.h"
 #include "ISettingsHandler.h"
 #include "ISubSettings.h"
+#include "Setting.h"
 #include "SettingConditions.h"
+#include "SettingDefinitions.h"
 #include "SettingDependency.h"
 #include "threads/SharedSection.h"
 
@@ -38,9 +40,6 @@ class CSettingUpdate;
 
 class TiXmlElement;
 class TiXmlNode;
-
-typedef void (*IntegerSettingOptionsFiller)(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current);
-typedef void (*StringSettingOptionsFiller)(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current);
 
 /*!
  \ingroup settings
@@ -129,6 +128,8 @@ public:
    being executed.
    */
   void SetLoaded() { m_loaded = true; }
+
+  void AddSection(CSettingSection *section);
 
   /*!
    \brief Registers the given ISettingCallback implementation to be triggered
@@ -408,6 +409,7 @@ private:
   bool UpdateSettings(const TiXmlNode *root);
   bool UpdateSetting(const TiXmlNode *node, CSetting *setting, const CSettingUpdate& update);
   void UpdateSettingByDependency(const std::string &settingId, const CSettingDependency &dependency);
+  void UpdateSettingByDependency(const std::string &settingId, SettingDependencyType dependencyType);
 
   typedef enum {
     SettingOptionsFillerTypeNone = 0,
@@ -421,6 +423,7 @@ private:
   typedef struct {
     CSetting *setting;
     SettingDependencyMap dependencies;
+    std::set<std::string> children;
     CallbackSet callbacks;
   } Setting;
 

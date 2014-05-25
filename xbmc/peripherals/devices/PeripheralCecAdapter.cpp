@@ -33,6 +33,7 @@
 #include "peripherals/Peripherals.h"
 #include "peripherals/bus/PeripheralBus.h"
 #include "pictures/GUIWindowSlideShow.h"
+#include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
@@ -95,7 +96,7 @@ CPeripheralCecAdapter::~CPeripheralCecAdapter(void)
 {
   {
     CSingleLock lock(m_critSection);
-    CAnnouncementManager::RemoveAnnouncer(this);
+    CAnnouncementManager::Get().RemoveAnnouncer(this);
     m_bStop = true;
   }
 
@@ -149,7 +150,7 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
   {
     CSingleLock lock(m_critSection);
     m_iExitCode = (int)data.asInteger(0);
-    CAnnouncementManager::RemoveAnnouncer(this);
+    CAnnouncementManager::Get().RemoveAnnouncer(this);
     StopThread(false);
   }
   else if (flag == GUI && !strcmp(sender, "xbmc") && !strcmp(message, "OnScreensaverDeactivated") && m_bIsReady)
@@ -367,7 +368,7 @@ void CPeripheralCecAdapter::Process(void)
     m_bActiveSourceBeforeStandby = false;
   }
 
-  CAnnouncementManager::AddAnnouncer(this);
+  CAnnouncementManager::Get().AddAnnouncer(this);
 
   m_queryThread = new CPeripheralCecAdapterUpdateThread(this, &m_configuration);
   m_queryThread->Create(false);
@@ -1181,7 +1182,7 @@ int CPeripheralCecAdapter::CecLogMessage(void *cbParam, const cec_log_message me
     break;
   }
 
-  if (iLevel >= 0)
+  if (iLevel >= CEC_LOG_NOTICE || (iLevel >= 0 && g_advancedSettings.CanLogComponent(LOGCEC)))
     CLog::Log(iLevel, "%s - %s", __FUNCTION__, message.message);
 
   return 1;
@@ -1630,7 +1631,7 @@ bool CPeripheralCecAdapter::ReopenConnection(void)
   {
     CSingleLock lock(m_critSection);
     m_iExitCode = EXITCODE_RESTARTAPP;
-    CAnnouncementManager::RemoveAnnouncer(this);
+    CAnnouncementManager::Get().RemoveAnnouncer(this);
     StopThread(false);
   }
   StopThread();

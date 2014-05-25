@@ -480,12 +480,6 @@ void CGUIDialogSmartPlaylistRule::AddOperatorLabel(CDatabaseQueryRule::SEARCH_OP
   OnMessage(select);
 }
 
-void CGUIDialogSmartPlaylistRule::OnWindowLoaded()
-{
-  CGUIWindow::OnWindowLoaded();
-  ChangeButtonToEdit(CONTROL_VALUE, true); // true for single label
-}
-
 void CGUIDialogSmartPlaylistRule::OnInitWindow()
 {
   CGUIDialog::OnInitWindow();
@@ -501,7 +495,7 @@ void CGUIDialogSmartPlaylistRule::OnInitWindow()
   }
   UpdateButtons();
 
-  CGUIEditControl *editControl = (CGUIEditControl*)GetControl(CONTROL_VALUE);
+  CGUIEditControl *editControl = dynamic_cast<CGUIEditControl*>(GetControl(CONTROL_VALUE));
   if (editControl != NULL)
     editControl->SetInputValidation(CSmartPlaylistRule::Validate, &m_rule);
 }

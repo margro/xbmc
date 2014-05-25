@@ -40,7 +40,7 @@ public:
 
   virtual double       GetDelay        ();
   virtual double       GetCacheTotal   ();
-  virtual unsigned int AddPackets      (uint8_t *data, unsigned int frames, bool hasAudio, bool blocking = false);
+  virtual unsigned int AddPackets      (uint8_t **data, unsigned int frames, unsigned int offset);
   virtual void         Drain           ();
   static void          EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
 
@@ -59,6 +59,8 @@ private:
 
   bool               m_outputBitstream;   ///< true if we're bistreaming into a LinearPCM stream rather than AC3 stream.
   int16_t           *m_outputBuffer;      ///< buffer for bitstreaming
+  bool               m_planar;
+  float             *m_planarBuffer;      ///< buffer for planar conversion
 
   AERingBuffer      *m_buffer;
   volatile bool      m_started;     // set once we get a callback from CoreAudio, which can take a little while.

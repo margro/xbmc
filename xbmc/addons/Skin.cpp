@@ -37,20 +37,18 @@
 using namespace std;
 using namespace XFILE;
 
-#define SKIN_MIN_VERSION 2.1f
-
 boost::shared_ptr<ADDON::CSkinInfo> g_SkinInfo;
 
 namespace ADDON
 {
 
 CSkinInfo::CSkinInfo(const AddonProps &props, const RESOLUTION_INFO &resolution)
-  : CAddon(props), m_defaultRes(resolution)
+  : CAddon(props), m_defaultRes(resolution), m_version("")
 {
 }
 
 CSkinInfo::CSkinInfo(const cp_extension_t *ext)
-  : CAddon(ext)
+  : CAddon(ext), m_version("")
 {
   ELEMENTS elements;
   if (CAddonMgr::Get().GetExtElements(ext->configuration, "res", elements))
@@ -95,7 +93,9 @@ CSkinInfo::CSkinInfo(const cp_extension_t *ext)
   m_debugging = !strcmp(str.c_str(), "true");
 
   LoadStartupWindows(ext);
-  m_Version = 2.11;
+
+  // figure out the version
+  m_version = GetDependencyVersion("xbmc.gui");
 }
 
 CSkinInfo::~CSkinInfo()
@@ -180,11 +180,6 @@ CStdString CSkinInfo::GetSkinPath(const CStdString& strFile, RESOLUTION_INFO *re
 bool CSkinInfo::HasSkinFile(const CStdString &strFile) const
 {
   return CFile::Exists(GetSkinPath(strFile));
-}
-
-double CSkinInfo::GetMinVersion()
-{
-  return SKIN_MIN_VERSION;
 }
 
 void CSkinInfo::LoadIncludes()
@@ -279,7 +274,7 @@ const INFO::CSkinVariableString* CSkinInfo::CreateSkinVariable(const CStdString&
   return m_includes.CreateSkinVariable(name, context);
 }
 
-void CSkinInfo::SettingOptionsSkinColorsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current)
+void CSkinInfo::SettingOptionsSkinColorsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   CStdString settingValue = ((const CSettingString*)setting)->GetValue();
   // Remove the .xml extension from the Themes
@@ -320,7 +315,7 @@ void CSkinInfo::SettingOptionsSkinColorsFiller(const CSetting *setting, std::vec
   }
 }
 
-void CSkinInfo::SettingOptionsSkinFontsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current)
+void CSkinInfo::SettingOptionsSkinFontsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   CStdString settingValue = ((const CSettingString*)setting)->GetValue();
   bool currentValueSet = false;
@@ -388,7 +383,7 @@ void CSkinInfo::SettingOptionsSkinFontsFiller(const CSetting *setting, std::vect
     current = list[0].second;
 }
 
-void CSkinInfo::SettingOptionsSkinSoundFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current)
+void CSkinInfo::SettingOptionsSkinSoundFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   CStdString settingValue = ((const CSettingString*)setting)->GetValue();
   current = "SKINDEFAULT";
@@ -428,7 +423,7 @@ void CSkinInfo::SettingOptionsSkinSoundFiller(const CSetting *setting, std::vect
   }
 }
 
-void CSkinInfo::SettingOptionsSkinThemesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current)
+void CSkinInfo::SettingOptionsSkinThemesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
   // get the choosen theme and remove the extension from the current theme (backward compat)
   CStdString settingValue = ((const CSettingString*)setting)->GetValue();
@@ -457,7 +452,7 @@ void CSkinInfo::SettingOptionsSkinThemesFiller(const CSetting *setting, std::vec
   }
 }
 
-void CSkinInfo::SettingOptionsStartupWindowsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current)
+void CSkinInfo::SettingOptionsStartupWindowsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
 {
   int settingValue = ((const CSettingInt *)setting)->GetValue();
   current = -1;

@@ -68,7 +68,7 @@ public:
    */
   CStdString GetSkinPath(const CStdString& file, RESOLUTION_INFO *res = NULL, const CStdString& baseDir = "") const;
 
-  double GetVersion() const { return m_Version; };
+  AddonVersion APIVersion() const { return m_version; };
 
   /*! \brief Return whether skin debugging is enabled
    \return true if skin debugging (set via <debugging>true</debugging> in skin.xml) is enabled.
@@ -110,16 +110,14 @@ public:
 
   const CStdString& GetCurrentAspect() const { return m_currentAspect; }
 
-//  static bool Check(const CStdString& strSkinDir); // checks if everything is present and accounted for without loading the skin
-  static double GetMinVersion();
   void LoadIncludes();
   const INFO::CSkinVariableString* CreateSkinVariable(const CStdString& name, int context);
 
-  static void SettingOptionsSkinColorsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current);
-  static void SettingOptionsSkinFontsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current);
-  static void SettingOptionsSkinSoundFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current);
-  static void SettingOptionsSkinThemesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current);
-  static void SettingOptionsStartupWindowsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current);
+  static void SettingOptionsSkinColorsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+  static void SettingOptionsSkinFontsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+  static void SettingOptionsSkinSoundFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+  static void SettingOptionsSkinThemesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+  static void SettingOptionsStartupWindowsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
 
 protected:
   /*! \brief Given a resolution, retrieve the corresponding directory name
@@ -141,7 +139,7 @@ protected:
   RESOLUTION_INFO m_defaultRes;
   std::vector<RESOLUTION_INFO> m_resolutions;
 
-  double m_Version;
+  AddonVersion m_version;
 
   float m_effectsSlowDown;
   CGUIIncludes m_includes;

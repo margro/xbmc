@@ -53,11 +53,6 @@
 using namespace std;
 
 #define BACKGROUND_IMAGE       999
-#if PRE_SKIN_VERSION_11_COMPATIBILITY
-#define BACKGROUND_BOTTOM      998
-#define BACKGROUND_TOP         997
-#define SPACE_BETWEEN_BUTTONS    2
-#endif
 #define GROUP_LIST             996
 #define BUTTON_TEMPLATE       1000
 #define BUTTON_START          1001
@@ -122,18 +117,14 @@ void CGUIDialogContextMenu::SetupButtons()
     return;
 
   // disable the template button control
-  CGUIButtonControl *pButtonTemplate = (CGUIButtonControl *)GetFirstFocusableControl(BUTTON_TEMPLATE);
-  if (!pButtonTemplate) pButtonTemplate = (CGUIButtonControl *)GetControl(BUTTON_TEMPLATE);
+  CGUIButtonControl *pButtonTemplate = dynamic_cast<CGUIButtonControl *>(GetFirstFocusableControl(BUTTON_TEMPLATE));
+  if (!pButtonTemplate)
+    pButtonTemplate = dynamic_cast<CGUIButtonControl *>(GetControl(BUTTON_TEMPLATE));
   if (!pButtonTemplate)
     return;
   pButtonTemplate->SetVisible(false);
 
-  CGUIControlGroupList* pGroupList = NULL;
-  {
-    const CGUIControl* pControl = GetControl(GROUP_LIST);
-    if (pControl && pControl->GetControlType() == GUICONTROL_GROUPLIST)
-      pGroupList = (CGUIControlGroupList*)pControl;
-  }
+  CGUIControlGroupList* pGroupList = dynamic_cast<CGUIControlGroupList *>(GetControl(GROUP_LIST));
 
   // add our buttons
   for (unsigned int i = 0; i < m_buttons.size(); i++)
@@ -154,36 +145,11 @@ void CGUIDialogContextMenu::SetupButtons()
         if (!pGroupList->InsertControl(pButton, pButtonTemplate))
           pGroupList->AddControl(pButton);
       }
-#if PRE_SKIN_VERSION_11_COMPATIBILITY
-      else
-      {
-        pButton->SetPosition(pButtonTemplate->GetXPosition(), i*(pButtonTemplate->GetHeight() + SPACE_BETWEEN_BUTTONS));
-        pButton->SetNavigationAction(ACTION_MOVE_UP, id - 1 );
-        pButton->SetNavigationAction(ACTION_MOVE_DOWN, id + 1);
-        pButton->SetNavigationAction(ACTION_MOVE_LEFT, id);
-        pButton->SetNavigationAction(ACTION_MOVE_RIGHT, id);
-        AddControl(pButton);
-      }
-#endif
     }
   }
 
-  CGUIControl *pControl = NULL;
-#if PRE_SKIN_VERSION_11_COMPATIBILITY
-  if (!pGroupList)
-  {
-    // if we don't have grouplist update the navigation of the first and last buttons
-    pControl = (CGUIControl *)GetControl(BUTTON_START);
-    if (pControl)
-      pControl->SetNavigationAction(ACTION_MOVE_UP, BUTTON_END);
-    pControl = (CGUIControl *)GetControl(BUTTON_END);
-    if (pControl)
-      pControl->SetNavigationAction(ACTION_MOVE_DOWN, BUTTON_START);
-  }
-#endif
-
   // fix up background images placement and size
-  pControl = (CGUIControl *)GetControl(BACKGROUND_IMAGE);
+  CGUIControl *pControl = (CGUIControl *)GetControl(BACKGROUND_IMAGE);
   if (pControl)
   {
     // first set size of background image
@@ -200,43 +166,11 @@ void CGUIDialogContextMenu::SetupButtons()
         pControl->SetWidth(m_backgroundImageSize - pGroupList->Size() + pGroupList->GetWidth());
       }
     }
-#if PRE_SKIN_VERSION_11_COMPATIBILITY
-    else
-      pControl->SetHeight(m_buttons.size() * (pButtonTemplate->GetHeight() + SPACE_BETWEEN_BUTTONS));
-
-    if (pGroupList && pGroupList->GetOrientation() == HORIZONTAL)
-    {
-      // if there is grouplist control with horizontal orientation - adjust width of top and bottom background
-      CGUIControl* pControl2 = (CGUIControl *)GetControl(BACKGROUND_TOP);
-      if (pControl2)
-        pControl2->SetWidth(pControl->GetWidth());
-
-      pControl2 = (CGUIControl *)GetControl(BACKGROUND_BOTTOM);
-      if (pControl2)
-        pControl2->SetWidth(pControl->GetWidth());
-    }
-    else
-    {
-      // adjust position of bottom background
-      CGUIControl* pControl2 = (CGUIControl *)GetControl(BACKGROUND_BOTTOM);
-      if (pControl2)
-        pControl2->SetPosition(pControl2->GetXPosition(), pControl->GetYPosition() + pControl->GetHeight());
-    }
-#endif
   }
 
   // update our default control
   if (pGroupList)
     m_defaultControl = pGroupList->GetID();
-#if PRE_SKIN_VERSION_11_COMPATIBILITY
-  else
-  {
-    if (m_defaultControl < BUTTON_START || m_defaultControl > BUTTON_END)
-      m_defaultControl = BUTTON_START;
-    while (m_defaultControl <= BUTTON_END && !(GetControl(m_defaultControl)->CanFocus()))
-      m_defaultControl++;
-  }
-#endif
 }
 
 void CGUIDialogContextMenu::SetPosition(float posX, float posY)
@@ -247,14 +181,6 @@ void CGUIDialogContextMenu::SetPosition(float posX, float posY)
   if (posX + GetWidth() > m_coordsRes.iWidth)
     posX = m_coordsRes.iWidth - GetWidth();
   if (posX < 0) posX = 0;
-#if PRE_SKIN_VERSION_11_COMPATIBILITY
-  // we currently hack the positioning of the buttons from y position 0, which
-  // forces skinners to place the top image at a negative y value.  Thus, we offset
-  // the y coordinate by the height of the top image.
-  const CGUIControl *top = GetControl(BACKGROUND_TOP);
-  if (top)
-    posY += top->GetHeight();
-#endif
   CGUIDialog::SetPosition(posX, posY);
 }
 
@@ -262,27 +188,14 @@ float CGUIDialogContextMenu::GetHeight() const
 {
   const CGUIControl *backMain = GetControl(BACKGROUND_IMAGE);
   if (backMain)
-#if PRE_SKIN_VERSION_11_COMPATIBILITY
-  {
-    float height = backMain->GetHeight();
-    const CGUIControl *backBottom = GetControl(BACKGROUND_BOTTOM);
-    if (backBottom)
-      height += backBottom->GetHeight();
-    const CGUIControl *backTop = GetControl(BACKGROUND_TOP);
-    if (backTop)
-      height += backTop->GetHeight();
-    return height;
-  }
-#else
-  return backMain->GetHeight();
-#endif
+    return backMain->GetHeight();
   else
     return CGUIDialog::GetHeight();
 }
 
 float CGUIDialogContextMenu::GetWidth() const
 {
-  CGUIControl *pControl = (CGUIControl *)GetControl(BACKGROUND_IMAGE);
+  const CGUIControl *pControl = GetControl(BACKGROUND_IMAGE);
   if (pControl)
     return pControl->GetWidth();
   else
@@ -563,7 +476,7 @@ bool CGUIDialogContextMenu::OnContextButton(const CStdString &type, const CFileI
       if (!g_passwordManager.IsMasterLockUnlocked(true))
         return false;
 
-      CStdString strNewPassword = "";
+      std::string strNewPassword = "";
       if (!CGUIDialogLockSettings::ShowAndGetLock(share->m_iLockMode,strNewPassword))
         return false;
       // password entry and re-entry succeeded, write out the lock data
@@ -625,7 +538,7 @@ bool CGUIDialogContextMenu::OnContextButton(const CStdString &type, const CFileI
       if (!g_passwordManager.IsMasterLockUnlocked(true))
         return false;
 
-      CStdString strNewPW;
+      std::string strNewPW;
       CStdString strNewLockMode;
       if (CGUIDialogLockSettings::ShowAndGetLock(share->m_iLockMode,strNewPW))
         strNewLockMode = StringUtils::Format("%i",share->m_iLockMode);
@@ -678,12 +591,8 @@ void CGUIDialogContextMenu::OnWindowLoaded()
   m_coordX = m_posX;
   m_coordY = m_posY;
   
-  const CGUIControlGroupList* pGroupList = NULL;
-  const CGUIControl* pControl = GetControl(GROUP_LIST);
-  if (pControl && pControl->GetControlType() == GUICONTROL_GROUPLIST)
-    pGroupList = (CGUIControlGroupList*)pControl;
-
-  pControl = (CGUIControl *)GetControl(BACKGROUND_IMAGE);
+  const CGUIControlGroupList* pGroupList = dynamic_cast<const CGUIControlGroupList *>(GetControl(GROUP_LIST));
+  const CGUIControl *pControl = GetControl(BACKGROUND_IMAGE);
   if (pControl && pGroupList)
   {
     if (pGroupList->GetOrientation() == VERTICAL)

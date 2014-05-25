@@ -48,7 +48,7 @@ namespace XBMCAddon
      * \n
      * Text is written to the log for the following conditions.\n
      *           XBMC loglevel == -1 (NONE, nothing at all is logged)\n
-     *           XBMC loglevel == 0 (NORMAL, shows LOGNOTICE, LOGERROR, LOGSEVERE and LOGFATAL)     
+     *           XBMC loglevel == 0 (NORMAL, shows LOGNOTICE, LOGERROR, LOGSEVERE and LOGFATAL)\n
      *           XBMC loglevel == 1 (DEBUG, shows all)\n
      *           See pydocs for valid values for level.\n
      *           
@@ -93,11 +93,6 @@ namespace XBMCAddon
      *   - xbmc.executebuiltin('XBMC.RunXBE(c:\\avalaunch.xbe)')
      */
     void executebuiltin(const char* function, bool wait = false);
-
-    /**
-     * executehttpapi(httpcommand) -- Not implemented anymore.
-     */
-    String executehttpapi(const char* httpcommand);
 
     /**
      * executeJSONRPC(jsonrpccommand) -- Execute an JSONRPC command.
@@ -223,7 +218,7 @@ namespace XBMCAddon
     /**
      * playSFX(filename,[useCached]) -- Plays a wav file by filename
      * 
-     * filename       : string - filename of the wav file to play.
+     * filename       : string - filename of the wav file to play.\n
      * useCached      : [opt] bool - False = Dump any previously cached wav associated with filename
      * 
      * example:
@@ -292,7 +287,7 @@ namespace XBMCAddon
      * *Note, If fatX is true you should pass a full path. If fatX is false only pass
      *        the basename of the path.
      * 
-     *        You can use the above as keywords for arguments and skip certain optional arguments.
+     *        You can use the above as keywords for arguments and skip certain optional arguments.\n
      *        Once you use a keyword, all following arguments require the keyword.
      * 
      * example:

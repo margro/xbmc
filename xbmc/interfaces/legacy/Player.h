@@ -219,9 +219,10 @@ namespace XBMCAddon
       bool isPlayingVideo();
 
       /**
-       * getPlayingFile() -- returns the current playing file as a string.
-       * 
-       * Throws: Exception, if player is not playing a file.
+       * getPlayingFile() -- returns the current playing file as a string.\n
+       * Note: For LiveTV, returns a pvr:// url which is not translatable to an OS specific file or external url\n
+       * \n
+       * Throws: Exception, if player is not playing a file.\n
        */
       // Player_GetPlayingFile
       String getPlayingFile() throw (PlayerException);
@@ -306,10 +307,10 @@ namespace XBMCAddon
       InfoTagMusic* getMusicInfoTag() throw (PlayerException);
 
       /**
-       *getTotalTime() -- Returns the total time of the current playing media in
-       *                  seconds.  This is only accurate to the full second.
+       * getTotalTime() -- Returns the total time of the current playing media in
+       *                   seconds.  This is only accurate to the full second.
        *
-       *Throws: Exception, if player is not playing a file.
+       * Throws: Exception, if player is not playing a file.
        */
       double getTotalTime() throw (PlayerException);
 
