@@ -26,8 +26,8 @@ IF NOT EXIST "!OLDNET!" (
 
 IF EXIST "!OLDNET!" (
     set msbuildemitsolution=1
-    set OPTS_EXE="..\VS2010Express\XBMC for Windows.sln" /t:Build /p:Configuration="%buildconfig%"
-    set CLEAN_EXE="..\VS2010Express\XBMC for Windows.sln" /t:Clean /p:Configuration="%buildconfig%"
+    set OPTS_EXE="..\VS2013Express\XBMC for Windows.sln" /t:Build /p:Configuration="%buildconfig%"
+    set CLEAN_EXE="..\VS2013Express\XBMC for Windows.sln" /t:Clean /p:Configuration="%buildconfig%"
 ) ELSE (
     IF EXIST "%VS100COMNTOOLS%\..\IDE\devenv.com" (
         set OLDNET="%VS100COMNTOOLS%\..\IDE\devenv.com"
@@ -44,9 +44,9 @@ rem *************************************************************************
 REM check if MSBuild.exe is used because it requires different command line switches
 IF "%msbuildemitsolution%" == "1" (
   rem set OPTS_EXE=%SOURCE_DIR%\project\VS2010Express\xbmc-pvr-addons.sln /t:Build /p:Configuration="Release" /property:VCTargetsPath="%MSBUILDROOT%Microsoft.Cpp\v4.0\V120"
-  set OPTS_EXE=%SOURCE_DIR%\project\VS2010Express\xbmc-pvr-addons.sln /t:Build /p:Configuration="Release"
+  set OPTS_EXE=%SOURCE_DIR%\project\VS2013Express\xbmc-pvr-addons.sln /t:Build /p:Configuration="Release"
 ) ELSE (
-  set OPTS_EXE=%SOURCE_DIR%\project\VS2010Express\xbmc-pvr-addons.sln /build Release
+  set OPTS_EXE=%SOURCE_DIR%\project\VS2013Express\xbmc-pvr-addons.sln /build Release
 )
 
 REM Try wrapped msysgit - must be in the path
