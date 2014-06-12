@@ -210,6 +210,7 @@ void CAdvancedSettings::Initialize()
   m_moviesExcludeFromScanRegExps.clear();
   m_moviesExcludeFromScanRegExps.push_back("-trailer");
   m_moviesExcludeFromScanRegExps.push_back("[!-._ \\\\/]sample[-._ \\\\/]");
+  m_moviesExcludeFromScanRegExps.push_back("[\\/](proof|subs)[\\/]");
   m_tvshowExcludeFromScanRegExps.push_back("[!-._ \\\\/]sample[-._ \\\\/]");
 
   m_folderStackRegExps.clear();
@@ -1263,7 +1264,7 @@ void CAdvancedSettings::GetCustomTVRegexps(TiXmlElement *pRootElement, SETTINGS_
   }
 }
 
-void CAdvancedSettings::GetCustomRegexps(TiXmlElement *pRootElement, CStdStringArray& settings)
+void CAdvancedSettings::GetCustomRegexps(TiXmlElement *pRootElement, std::vector<std::string>& settings)
 {
   TiXmlElement *pElement = pRootElement;
   while (pElement)
@@ -1311,14 +1312,12 @@ void CAdvancedSettings::GetCustomExtensions(TiXmlElement *pRootElement, CStdStri
     extensions += "|" + extraExtensions;
   if (XMLUtils::GetString(pRootElement, "remove", extraExtensions) && !extraExtensions.empty())
   {
-    CStdStringArray exts;
-    StringUtils::SplitString(extraExtensions,"|",exts);
-    for (unsigned int i=0;i<exts.size();++i)
+    vector<string> exts = StringUtils::Split(extraExtensions,"|");
+    for (vector<string>::const_iterator i = exts.begin(); i != exts.end(); ++i)
     {
-      size_t iPos = extensions.find(exts[i]);
-      if (iPos == std::string::npos)
-        continue;
-      extensions.erase(iPos,exts[i].size()+1);
+      size_t iPos = extensions.find(*i);
+      if (iPos != std::string::npos)
+        extensions.erase(iPos,i->size()+1);
     }
   }
 }

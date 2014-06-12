@@ -368,7 +368,7 @@ namespace INFO
 #define SYSTEM_CPUFREQUENCY         656
 #define SYSTEM_SCREEN_RESOLUTION    659
 #define SYSTEM_VIDEO_ENCODER_INFO   660
-#define SYSTEM_KERNEL_VERSION       667
+#define SYSTEM_OS_VERSION_INFO      667
 #define SYSTEM_FREE_SPACE           679
 #define SYSTEM_USED_SPACE           680
 #define SYSTEM_TOTAL_SPACE          681
@@ -861,12 +861,12 @@ protected:
   public:
     Property(const CStdString &property, const CStdString &parameters);
 
-    const CStdString &param(unsigned int n = 0) const;
+    const std::string &param(unsigned int n = 0) const;
     unsigned int num_params() const;
 
     CStdString name;
   private:
-    std::vector<CStdString> params;
+    std::vector<std::string> params;
   };
 
   bool GetMultiInfoBool(const GUIInfo &info, int contextWindow = 0, const CGUIListItem *item = NULL);
@@ -903,7 +903,7 @@ protected:
   bool GetEpgInfoTag(EPG::CEpgInfoTag& tag) const;
 
   // Conditional string parameters are stored here
-  CStdStringArray m_stringParameters;
+  std::vector<std::string> m_stringParameters;
 
   // Array of multiple information mapped to a single integer lookup
   std::vector<GUIInfo> m_multiInfo;

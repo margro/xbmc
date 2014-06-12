@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2013 Team XBMC
+ *      Copyright (C) 2014 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,19 +19,19 @@
  *
  */
 
-#include "IDirectory.h"
+#include "filesystem/IDirectory.h"
 
 namespace XFILE
 {
 
-class CHDDirectory : public IDirectory
+class CPosixDirectory : public IDirectory
 {
 public:
-  CHDDirectory(void);
-  virtual ~CHDDirectory(void);
-  virtual bool GetDirectory(const CStdString& strPath, CFileItemList &items);
-  virtual bool Create(const char* strPath);
-  virtual bool Exists(const char* strPath);
-  virtual bool Remove(const char* strPath);
+  CPosixDirectory(void);
+  virtual ~CPosixDirectory(void);
+  virtual bool GetDirectory(const CURL& url, CFileItemList &items);
+  virtual bool Create(const CURL& url);
+  virtual bool Exists(const CURL& url);
+  virtual bool Remove(const CURL& url);
 };
 }

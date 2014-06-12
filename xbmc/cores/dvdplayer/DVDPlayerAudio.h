@@ -27,6 +27,7 @@
 #include "DVDDemuxers/DVDDemuxUtils.h"
 #include "DVDStreamInfo.h"
 #include "utils/BitstreamStats.h"
+#include "IDVDPlayer.h"
 
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
 
@@ -101,7 +102,7 @@ public:
   XbmcThreads::EndTime m_timer;
 };
 
-class CDVDPlayerAudio : public CThread
+class CDVDPlayerAudio : public CThread, public IDVDStreamPlayer
 {
 public:
   CDVDPlayerAudio(CDVDClock* pClock, CDVDMessageQueue& parent);
@@ -142,9 +143,9 @@ public:
   CPTSOutputQueue m_ptsOutput;
   CPTSInputQueue  m_ptsInput;
 
-  double GetCurrentPts()                            { return m_dvdAudio.GetPlayingPts(); }
+  double GetCurrentPts()                            { CSingleLock lock(m_info_section); return m_info.pts; }
 
-  bool IsStalled()                                  { return m_stalled;  }
+  bool IsStalled() const                            { return m_stalled;  }
   bool IsPassthrough() const;
 protected:
 
@@ -230,8 +231,19 @@ protected:
   double m_maxspeedadjust;
   double m_resampleratio; //resample ratio when using SYNC_RESAMPLE, used for the codec info
 
+  struct SInfo
+  {
+    SInfo()
+    : pts(DVD_NOPTS_VALUE)
+    , passthrough(false)
+    {}
+
+    std::string      info;
+    double           pts;
+    bool             passthrough;
+  };
 
   CCriticalSection m_info_section;
-  std::string      m_info;
+  SInfo            m_info;
 };
 
