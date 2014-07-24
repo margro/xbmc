@@ -2471,7 +2471,7 @@ msgstr "שרת FTP"
 
 msgctxt "#730"
 msgid "Port"
-msgstr "פתחה"
+msgstr "פורט"
 
 msgctxt "#732"
 msgid "Save & apply"
@@ -11021,6 +11021,10 @@ msgctxt "#36122"
 msgid "Display the (..) item in lists for visiting the parent folder."
 msgstr "הצג את הסימן (..) ברשימות כדי לעבור לספריית האב"
 
+msgctxt "#36123"
+msgid "Show file extensions on media files. For example, 'You Enjoy Myself.mp3' would be simply be shown as 'You Enjoy Myself'."
+msgstr "מציג סיומות קבצים של קבצי מדיה. למשל, \"You enjoy Myself.mp3\" פשוט יוצג כ-\"You enjoy Myself\""
+
 msgctxt "#36127"
 msgid "Show hidden files and directories when listing files."
 msgstr "הצגת קבצים ותיקיות מוסתרים ברשימות הקבצים."
@@ -11288,6 +11292,10 @@ msgstr "בררת המחדל היא 89dB לפי התקן. ניתן לשנות א�
 msgctxt "#36283"
 msgid "Autorun CDs when inserted in drive."
 msgstr "נגן דיסקים באופן אוטומטי בעת הכנסתם למחשב"
+
+msgctxt "#36284"
+msgid "Read the information belonging to an audio CD from an internet database."
+msgstr "קרא את המידע השייך לתקליטור שמע ממסד נתונים באינטרנט."
 
 msgctxt "#36285"
 msgid "Select the location on your hard drive where ripped tracks will be saved to."

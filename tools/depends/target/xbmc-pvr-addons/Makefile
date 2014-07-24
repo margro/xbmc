@@ -2,7 +2,7 @@ include ../../Makefile.include
 #DEPS= ../../Makefile.include Makefile
 
 LIBNAME=xbmc-pvr-addons
-# VERSION=2955e1dd62f4047b2782cb927f7671ae209f20d8
+# VERSION=be12a8da2072e9c3ddad54892df2f85b759d4e9a
 VERSION=Gotham
 GIT_DIR=$(TARBALLS_LOCATION)/$(LIBNAME).git
 BASE_URL=git://github.com/margro/$(LIBNAME).git

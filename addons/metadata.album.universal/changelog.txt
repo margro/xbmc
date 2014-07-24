@@ -1,3 +1,23 @@
+[B]2.2.5[/B]
+Fixed: allow multiple secondary-type's (thanks and credits to elrodro83)
+Fixed: won't get details for an album when a release of another type (single or compilation) with the same name exists (thanks and credits to elrodro83)
+
+[B]2.2.4[/B]
+Fix album releases with the "Packaging" field populated on MB (thanks and credits to elrodro83)
+
+[B]2.2.3[/B]
+Updated language files from Transifex
+
+[B]2.2.2[/B]
+Fixed: Re-prioritize Official albums in search results
+
+[B]2.2.1[/B]
+Fixed: Include albums of any status in search results
+
+[B]2.2.0[/B]
+Added: 2 new languages
+Removed: last.fm completely
+
 [B]2.1.0[/B]
 Added: option to fetch album Rating from TheAudioDB.com
 

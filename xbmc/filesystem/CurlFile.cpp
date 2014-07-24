@@ -394,7 +394,7 @@ CCurlFile::CCurlFile()
   m_username = "";
   m_password = "";
   m_httpauth = "";
-  m_cipherlist = "DEFAULT";
+  m_cipherlist = "";
   m_proxytype = PROXY_HTTP;
   m_state = new CReadState();
   m_oldState = NULL;
@@ -608,7 +608,8 @@ void CCurlFile::SetCommonOptions(CReadState* state)
     g_curlInterface.easy_setopt(h, CURLOPT_IGNORE_CONTENT_LENGTH, 1);
 
   // Setup allowed TLS/SSL ciphers. New versions of cURL may deprecate things that are still in use.
-  g_curlInterface.easy_setopt(h, CURLOPT_SSL_CIPHER_LIST, m_cipherlist.c_str());
+  if (!m_cipherlist.empty())
+    g_curlInterface.easy_setopt(h, CURLOPT_SSL_CIPHER_LIST, m_cipherlist.c_str());
 }
 
 void CCurlFile::SetRequestHeaders(CReadState* state)
@@ -744,8 +745,6 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
     url2.GetProtocolOptions(options);
     if (options.size() > 0)
     {
-      // clear protocol options
-      url2.SetProtocolOptions("");
       // set xbmc headers
       for(std::map<CStdString, CStdString>::const_iterator it = options.begin(); it != options.end(); ++it)
       {
@@ -781,6 +780,9 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
       }
     }
   }
+  
+  // Unset the protocol options to have an url without protocol options
+  url2.SetProtocolOptions("");
 
   if (m_username.length() > 0 && m_password.length() > 0)
     m_url = url2.GetWithoutUserDetails();

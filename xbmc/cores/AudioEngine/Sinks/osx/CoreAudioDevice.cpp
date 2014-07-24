@@ -547,6 +547,31 @@ bool CCoreAudioDevice::GetPreferredChannelLayout(CCoreAudioChannelLayout& layout
   return (ret == noErr);
 }
 
+bool CCoreAudioDevice::GetPreferredChannelLayoutForStereo(CCoreAudioChannelLayout &layout)
+{
+  if (!m_DeviceId)
+    return false;
+  
+  AudioObjectPropertyAddress  propertyAddress;
+  propertyAddress.mScope    = kAudioDevicePropertyScopeOutput;
+  propertyAddress.mElement  = 0;
+  propertyAddress.mSelector = kAudioDevicePropertyPreferredChannelsForStereo;
+
+  UInt32 channels[2];// this will receive the channel labels
+  UInt32 propertySize = sizeof(channels);
+
+  OSStatus ret = AudioObjectGetPropertyData(m_DeviceId, &propertyAddress, 0, NULL, &propertySize, &channels);
+  if (ret != noErr)
+    CLog::Log(LOGERROR, "CCoreAudioDevice::GetPreferredChannelLayoutForStereo: "
+              "Unable to retrieve preferred channel layout. Error = %s", GetError(ret).c_str());
+  else
+  {
+    // Copy/generate a layout into the result into the caller's instance
+    layout.CopyLayoutForStereo(channels);
+  }
+  return (ret == noErr);
+}
+
 bool CCoreAudioDevice::GetDataSources(CoreAudioDataSourceList* pList)
 {
   if (!pList || !m_DeviceId)
@@ -698,4 +723,70 @@ bool CCoreAudioDevice::SetBufferSize(UInt32 size)
     CLog::Log(LOGERROR, "CCoreAudioDevice::SetBufferSize: Buffer size change not applied.");
 
   return (ret == noErr);
+}
+
+XbmcThreads::EndTime CCoreAudioDevice::m_callbackSuppressTimer;
+AudioObjectPropertyListenerProc CCoreAudioDevice::m_defaultOutputDeviceChangedCB = NULL;
+
+
+OSStatus CCoreAudioDevice::defaultOutputDeviceChanged(AudioObjectID                       inObjectID,
+                                                      UInt32                              inNumberAddresses,
+                                                      const AudioObjectPropertyAddress    inAddresses[],
+                                                      void*                               inClientData)
+{
+  if (m_callbackSuppressTimer.IsTimePast() && m_defaultOutputDeviceChangedCB != NULL)
+    return m_defaultOutputDeviceChangedCB(inObjectID, inNumberAddresses, inAddresses, inClientData);
+  return 0;
+}
+
+void CCoreAudioDevice::RegisterDeviceChangedCB(bool bRegister, AudioObjectPropertyListenerProc callback, void *ref)
+{
+  OSStatus ret = noErr;
+  AudioObjectPropertyAddress inAdr =
+  {
+    kAudioHardwarePropertyDevices,
+    kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyElementMaster
+  };
+  
+  if (bRegister)
+    ret = AudioObjectAddPropertyListener(kAudioObjectSystemObject, &inAdr, callback, ref);
+  else
+    ret = AudioObjectRemovePropertyListener(kAudioObjectSystemObject, &inAdr, callback, ref);
+  
+  if (ret != noErr)
+    CLog::Log(LOGERROR, "CCoreAudioAE::Deinitialize - error %s a listener callback for device changes!", bRegister?"attaching":"removing");
+}
+
+void CCoreAudioDevice::RegisterDefaultOutputDeviceChangedCB(bool bRegister, AudioObjectPropertyListenerProc callback, void *ref)
+{
+  OSStatus ret = noErr;
+  static int registered = -1;
+  
+  //only allow registration once
+  if (bRegister == (registered == 1))
+    return;
+  
+  AudioObjectPropertyAddress inAdr =
+  {
+    kAudioHardwarePropertyDefaultOutputDevice,
+    kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyElementMaster
+  };
+  
+  if (bRegister)
+  {
+    ret = AudioObjectAddPropertyListener(kAudioObjectSystemObject, &inAdr, defaultOutputDeviceChanged, ref);
+    m_defaultOutputDeviceChangedCB = callback;
+  }
+  else
+  {
+    ret = AudioObjectRemovePropertyListener(kAudioObjectSystemObject, &inAdr, defaultOutputDeviceChanged, ref);
+    m_defaultOutputDeviceChangedCB = NULL;
+  }
+  
+  if (ret != noErr)
+    CLog::Log(LOGERROR, "CCoreAudioAE::Deinitialize - error %s a listener callback for default output device changes!", bRegister?"attaching":"removing");
+  else
+    registered = bRegister ? 1 : 0;
 }

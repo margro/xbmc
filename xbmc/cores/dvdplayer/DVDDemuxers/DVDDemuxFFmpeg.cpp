@@ -277,6 +277,8 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
       iformat = m_dllAvFormat.av_find_input_format("mpegts");
     else if( content.compare("multipart/x-mixed-replace") == 0 )
       iformat = m_dllAvFormat.av_find_input_format("mjpeg");
+    else if( content.compare("audio/flac") == 0 )
+      iformat = m_dllAvFormat.av_find_input_format("flac");
   }
 
   // open the demuxer
@@ -1107,6 +1109,8 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
         st->iBlockAlign = pStream->codec->block_align;
         st->iBitRate = pStream->codec->bit_rate;
         st->iBitsPerSample = pStream->codec->bits_per_raw_sample;
+        if (st->iBitsPerSample == 0)
+          st->iBitsPerSample = pStream->codec->bits_per_coded_sample;
 	
         if(m_dllAvUtil.av_dict_get(pStream->metadata, "title", NULL, 0))
           st->m_description = m_dllAvUtil.av_dict_get(pStream->metadata, "title", NULL, 0)->value;

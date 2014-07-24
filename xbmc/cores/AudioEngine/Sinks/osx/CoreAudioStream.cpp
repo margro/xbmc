@@ -19,6 +19,7 @@
  */
 
 #include "CoreAudioStream.h"
+#include "CoreAudioDevice.h"
 
 #include "CoreAudioHelpers.h"
 #include "utils/log.h"
@@ -212,6 +213,13 @@ bool CCoreAudioStream::SetVirtualFormat(AudioStreamBasicDescription* pDesc)
 
   std::string formatString;
 
+  // suppress callbacks for the default output device change
+  // for the next 2 seconds because setting format
+  // might trigger a change (when setting/unsetting an encoded
+  // passthrough format)
+  CCoreAudioDevice::SuppressDefaultOutputDeviceCB(2000);
+
+
   if (!m_OriginalVirtualFormat.mFormatID)
   {
     // Store the original format (as we found it) so that it can be restored later
@@ -292,6 +300,12 @@ bool CCoreAudioStream::SetPhysicalFormat(AudioStreamBasicDescription* pDesc)
 
   std::string formatString;
 
+  // suppress callbacks for the default output device change
+  // for the next 2 seconds because setting format
+  // might trigger a change (when setting/unsetting an encoded
+  // passthrough format)
+  CCoreAudioDevice::SuppressDefaultOutputDeviceCB(2000);
+
   if (!m_OriginalPhysicalFormat.mFormatID)
   {
     // Store the original format (as we found it) so that it can be restored later
@@ -334,7 +348,8 @@ bool CCoreAudioStream::SetPhysicalFormat(AudioStreamBasicDescription* pDesc)
     }
     if (checkPhysicalFormat.mSampleRate == pDesc->mSampleRate &&
         checkPhysicalFormat.mFormatID   == pDesc->mFormatID   &&
-        checkPhysicalFormat.mFramesPerPacket == pDesc->mFramesPerPacket)
+        checkPhysicalFormat.mFramesPerPacket == pDesc->mFramesPerPacket &&
+        checkPhysicalFormat.mChannelsPerFrame == pDesc->mChannelsPerFrame)
     {
       // The right format is now active.
       CLog::Log(LOGDEBUG, "CCoreAudioStream::SetPhysicalFormat: "
