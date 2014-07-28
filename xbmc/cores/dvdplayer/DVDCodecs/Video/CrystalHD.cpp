@@ -169,7 +169,7 @@ public:
 };
 
 void PrintFormat(BCM::BC_PIC_INFO_BLOCK &pib);
-void BcmDebugLog( BCM::BC_STATUS lResult, CStdString strFuncName="");
+void BcmDebugLog( BCM::BC_STATUS lResult, std::string strFuncName="");
 
 const char* g_DtsStatusText[] = {
 	"BC_STS_SUCCESS",
@@ -967,7 +967,7 @@ bool CMPCOutputThread::GetDecoderOutput(void)
         else
         {
           if (m_PictureNumber != procOut.PicInfo.picture_number)
-            CLog::Log(LOGDEBUG, "%s: No timestamp detected: %"PRIu64, __MODULE_NAME__, procOut.PicInfo.timeStamp);
+            CLog::Log(LOGDEBUG, "%s: No timestamp detected: %" PRIu64, __MODULE_NAME__, procOut.PicInfo.timeStamp);
           m_PictureNumber = procOut.PicInfo.picture_number;
         }
       }
@@ -1115,7 +1115,7 @@ CCrystalHD::CCrystalHD() :
 
   m_dll = new DllLibCrystalHD;
 #ifdef TARGET_WINDOWS
-  CStdString  strDll;
+  std::string  strDll;
   if(CWIN32Util::GetCrystalHDLibraryPath(strDll) && m_dll->SetFile(strDll) && m_dll->Load() && m_dll->IsLoaded() )
 #else
   if (m_dll->Load() && m_dll->IsLoaded() )
@@ -1990,7 +1990,7 @@ void CCrystalHD::bitstream_alloc_and_copy(
 void PrintFormat(BCM::BC_PIC_INFO_BLOCK &pib)
 {
   CLog::Log(LOGDEBUG, "----------------------------------\n%s","");
-  CLog::Log(LOGDEBUG, "\tTimeStamp: %"PRIu64"\n", pib.timeStamp);
+  CLog::Log(LOGDEBUG, "\tTimeStamp: %" PRIu64"\n", pib.timeStamp);
   CLog::Log(LOGDEBUG, "\tPicture Number: %d\n", pib.picture_number);
   CLog::Log(LOGDEBUG, "\tWidth: %d\n", pib.width);
   CLog::Log(LOGDEBUG, "\tHeight: %d\n", pib.height);

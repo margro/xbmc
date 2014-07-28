@@ -158,7 +158,7 @@ void CPVRChannel::Serialize(CVariant& value) const
   value["icon"] = m_strIconPath;
   value["channel"]  = m_strChannelName;
   CDateTime lastPlayed(m_iLastWatched);
-  value["lastplayed"] = lastPlayed.IsValid() ? lastPlayed.GetAsDBDate() : StringUtils::EmptyString;
+  value["lastplayed"] = lastPlayed.IsValid() ? lastPlayed.GetAsDBDate() : StringUtils::Empty;
   value["channelnumber"] = m_iCachedChannelNumber;
   
   CEpgInfoTag epg;
@@ -720,11 +720,11 @@ void CPVRChannel::SetCachedChannelNumber(unsigned int iChannelNumber)
 
 void CPVRChannel::ToSortable(SortItem& sortable, Field field) const
 {
+  CSingleLock lock(m_critSection);
   if (field == FieldChannelName)
-  {
-    CSingleLock lock(m_critSection);
     sortable[FieldChannelName] = m_strChannelName;
-  }
+  else if (field == FieldChannelNumber)
+    sortable[FieldChannelNumber] = m_iCachedChannelNumber;
 }
 
 int CPVRChannel::ChannelID(void) const
@@ -766,7 +766,7 @@ bool CPVRChannel::IsUserSetIcon(void) const
 
 bool CPVRChannel::IsIconExists() const
 {
-  return  CFile::Exists(IconPath());
+  return XFILE::CFile::Exists(IconPath());
 }
 
 bool CPVRChannel::IsUserSetName() const

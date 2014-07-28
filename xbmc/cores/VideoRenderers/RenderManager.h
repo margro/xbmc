@@ -137,7 +137,7 @@ public:
   static double GetPresentTime();
   void  WaitPresentTime(double presenttime);
 
-  CStdString GetVSyncState();
+  std::string GetVSyncState();
 
   void UpdateResolution();
 
@@ -242,6 +242,7 @@ protected:
   XbmcThreads::ConditionVariable  m_presentevent;
   CCriticalSection m_presentlock;
   CEvent     m_flushEvent;
+  double     m_clock_framefinish;
 
 
   OVERLAY::CRenderer m_overlays;

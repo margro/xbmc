@@ -23,7 +23,6 @@
 #include <limits.h>
 
 #include "cores/AudioEngine/Utils/AEUtil.h"
-#include "utils/StdString.h"
 #include "utils/log.h"
 #include "threads/SingleLock.h"
 #include <sstream>
@@ -372,16 +371,22 @@ void CAESinkOSS::Stop()
 #endif
 }
 
-double CAESinkOSS::GetDelay()
+void CAESinkOSS::GetDelay(AEDelayStatus& status)
 {
   if (m_fd == -1)
-    return 0.0;
+  {
+    status.SetDelay(0);
+    return;
+  }
   
   int delay;
   if (ioctl(m_fd, SNDCTL_DSP_GETODELAY, &delay) == -1)
-    return 0.0;
+  {
+    status.SetDelay(0);
+    return;
+  }
 
-  return (double)delay / (m_format.m_frameSize * m_format.m_sampleRate);
+  status.SetDelay((double)delay / (m_format.m_frameSize * m_format.m_sampleRate));
 }
 
 unsigned int CAESinkOSS::AddPackets(uint8_t **data, unsigned int frames, unsigned int offset)

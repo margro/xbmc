@@ -257,7 +257,7 @@ const CSysData &CSysInfoJob::GetData() const
   return m_info;
 }
 
-CStdString CSysInfoJob::GetCPUFreqInfo()
+std::string CSysInfoJob::GetCPUFreqInfo()
 {
   double CPUFreq = GetCPUFrequency();
   return StringUtils::Format("%4.2fMHz", CPUFreq);;
@@ -272,7 +272,7 @@ CSysData::INTERNET_STATE CSysInfoJob::GetInternetState()
   return CSysData::DISCONNECTED;
 }
 
-CStdString CSysInfoJob::GetMACAddress()
+std::string CSysInfoJob::GetMACAddress()
 {
 #if defined(HAS_LINUX_NETWORK) || defined(HAS_WIN32_NETWORK)
   CNetworkInterface* iface = g_application.getNetwork().GetFirstConnectedInterface();
@@ -282,12 +282,12 @@ CStdString CSysInfoJob::GetMACAddress()
   return "";
 }
 
-CStdString CSysInfoJob::GetVideoEncoder()
+std::string CSysInfoJob::GetVideoEncoder()
 {
   return "GPU: " + g_Windowing.GetRenderRenderer();
 }
 
-CStdString CSysInfoJob::GetBatteryLevel()
+std::string CSysInfoJob::GetBatteryLevel()
 {
   return StringUtils::Format("%d%%", g_powerManager.BatteryLevel());
 }
@@ -318,9 +318,9 @@ bool CSysInfoJob::SystemUpTime(int iInputMinutes, int &iMinutes, int &iHours, in
   return true;
 }
 
-CStdString CSysInfoJob::GetSystemUpTime(bool bTotalUptime)
+std::string CSysInfoJob::GetSystemUpTime(bool bTotalUptime)
 {
-  CStdString strSystemUptime;
+  std::string strSystemUptime;
   int iInputMinutes, iMinutes,iHours,iDays;
 
   if(bTotalUptime)
@@ -356,7 +356,7 @@ CStdString CSysInfoJob::GetSystemUpTime(bool bTotalUptime)
   return strSystemUptime;
 }
 
-CStdString CSysInfo::TranslateInfo(int info) const
+std::string CSysInfo::TranslateInfo(int info) const
 {
   switch(info)
   {
@@ -429,18 +429,18 @@ bool CSysInfo::Save(TiXmlNode *settings) const
   return true;
 }
 
-bool CSysInfo::GetDiskSpace(const CStdString& drive,int& iTotal, int& iTotalFree, int& iTotalUsed, int& iPercentFree, int& iPercentUsed)
+bool CSysInfo::GetDiskSpace(const std::string& drive,int& iTotal, int& iTotalFree, int& iTotalUsed, int& iPercentFree, int& iPercentUsed)
 {
   bool bRet= false;
   ULARGE_INTEGER ULTotal= { { 0 } };
   ULARGE_INTEGER ULTotalFree= { { 0 } };
 
-  if( !drive.empty() && !drive.Equals("*") )
+  if( !drive.empty() && drive != "*" )
   {
 #ifdef TARGET_WINDOWS
-    UINT uidriveType = GetDriveType(( drive + ":\\" ));
+    UINT uidriveType = GetDriveType(( drive + ":\\" ).c_str());
     if(uidriveType != DRIVE_UNKNOWN && uidriveType != DRIVE_NO_ROOT_DIR)
-      bRet= ( 0 != GetDiskFreeSpaceEx( ( drive + ":\\" ), NULL, &ULTotal, &ULTotalFree) );
+      bRet= ( 0 != GetDiskFreeSpaceEx( ( drive + ":\\" ).c_str(), NULL, &ULTotal, &ULTotalFree) );
 #elif defined(TARGET_POSIX)
     bRet = (0 != GetDiskFreeSpaceEx(drive.c_str(), NULL, &ULTotal, &ULTotalFree));
 #endif
@@ -503,27 +503,27 @@ bool CSysInfo::GetDiskSpace(const CStdString& drive,int& iTotal, int& iTotalFree
   return bRet;
 }
 
-CStdString CSysInfo::GetCPUModel()
+std::string CSysInfo::GetCPUModel()
 {
   return "CPU: " + g_cpuInfo.getCPUModel();
 }
 
-CStdString CSysInfo::GetCPUBogoMips()
+std::string CSysInfo::GetCPUBogoMips()
 {
   return "BogoMips: " + g_cpuInfo.getCPUBogoMips();
 }
 
-CStdString CSysInfo::GetCPUHardware()
+std::string CSysInfo::GetCPUHardware()
 {
   return "Hardware: " + g_cpuInfo.getCPUHardware();
 }
 
-CStdString CSysInfo::GetCPURevision()
+std::string CSysInfo::GetCPURevision()
 {
   return "Revision: " + g_cpuInfo.getCPURevision();
 }
 
-CStdString CSysInfo::GetCPUSerial()
+std::string CSysInfo::GetCPUSerial()
 {
   return "Serial: " + g_cpuInfo.getCPUSerial();
 }
@@ -943,6 +943,11 @@ std::string CSysInfo::GetKernelCpuFamily(void)
       return "x86";
     if (machine.compare(0, 3, "ppc", 3) == 0 || machine.compare(0, 5, "power", 5) == 0)
       return "PowerPC";
+// ios saves the dev id like AppleTV2,1 in the machine
+// field - all ios devices are ARM - force this here...
+#if defined(TARGET_DARWIN_IOS)
+    return "ARM";
+#endif
   }
 #endif
   return "unknown CPU family";
@@ -969,16 +974,16 @@ bool CSysInfo::HasInternet()
   return (m_info.internetState = CSysInfoJob::GetInternetState()) == CSysData::CONNECTED;
 }
 
-CStdString CSysInfo::GetHddSpaceInfo(int drive, bool shortText)
+std::string CSysInfo::GetHddSpaceInfo(int drive, bool shortText)
 {
  int percent;
  return GetHddSpaceInfo( percent, drive, shortText);
 }
 
-CStdString CSysInfo::GetHddSpaceInfo(int& percent, int drive, bool shortText)
+std::string CSysInfo::GetHddSpaceInfo(int& percent, int drive, bool shortText)
 {
   int total, totalFree, totalUsed, percentFree, percentused;
-  CStdString strRet;
+  std::string strRet;
   percent = 0;
   if (g_sysinfo.GetDiskSpace("", total, totalFree, totalUsed, percentFree, percentused))
   {
@@ -1225,7 +1230,19 @@ std::string CSysInfo::GetBuildTargetPlatformVersion(void)
 std::string CSysInfo::GetBuildTargetPlatformVersionDecoded(void)
 {
 #if defined(TARGET_DARWIN_OSX)
-  return StringUtils::Format("version %d.%d", (__MAC_OS_X_VERSION_MIN_REQUIRED / 100) % 100, __MAC_OS_X_VERSION_MIN_REQUIRED % 100);
+#if defined(MAC_OS_X_VERSION_10_10) && __MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
+  if (__MAC_OS_X_VERSION_MIN_REQUIRED % 10)
+    return StringUtils::Format("version %d.%d", (__MAC_OS_X_VERSION_MIN_REQUIRED / 1000) % 100, (__MAC_OS_X_VERSION_MIN_REQUIRED / 10) % 100);
+  else
+    return StringUtils::Format("version %d.%d.%d", (__MAC_OS_X_VERSION_MIN_REQUIRED / 1000) % 100,
+    (__MAC_OS_X_VERSION_MIN_REQUIRED / 10) % 100, __MAC_OS_X_VERSION_MIN_REQUIRED % 10);
+#else  // defined(MAC_OS_X_VERSION_10_10) && __MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
+  if (__MAC_OS_X_VERSION_MIN_REQUIRED % 10)
+    return StringUtils::Format("version %d.%d", (__MAC_OS_X_VERSION_MIN_REQUIRED / 100) % 100, (__MAC_OS_X_VERSION_MIN_REQUIRED / 10) % 10);
+  else
+    return StringUtils::Format("version %d.%d.%d", (__MAC_OS_X_VERSION_MIN_REQUIRED / 100) % 100, 
+      (__MAC_OS_X_VERSION_MIN_REQUIRED / 10) % 10, __MAC_OS_X_VERSION_MIN_REQUIRED % 10);
+#endif // defined(MAC_OS_X_VERSION_10_10) && __MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
 #elif defined(TARGET_DARWIN_IOS)
   return StringUtils::Format("version %d.%d.%d", (__IPHONE_OS_VERSION_MIN_REQUIRED / 10000) % 100, 
                              (__IPHONE_OS_VERSION_MIN_REQUIRED / 100) % 100, __IPHONE_OS_VERSION_MIN_REQUIRED % 100);
@@ -1281,7 +1298,7 @@ std::string CSysInfo::GetUsedCompilerNameAndVer(void)
 {
 #if defined(__clang__)
 #ifdef __clang_version__
-  return "Clang " XSTR_MACRO(__clang_version__);
+  return "Clang " __clang_version__;
 #else // ! __clang_version__
   return "Clang " XSTR_MACRO(__clang_major__) "." XSTR_MACRO(__clang_minor__) "." XSTR_MACRO(__clang_patchlevel__);
 #endif //! __clang_version__

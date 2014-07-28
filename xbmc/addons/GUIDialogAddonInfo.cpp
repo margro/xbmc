@@ -150,7 +150,7 @@ void CGUIDialogAddonInfo::OnInitWindow()
 
 void CGUIDialogAddonInfo::UpdateControls()
 {
-  CStdString xbmcPath = CSpecialProtocol::TranslatePath("special://xbmc/addons");
+  std::string xbmcPath = CSpecialProtocol::TranslatePath("special://xbmc/addons");
   bool isInstalled = NULL != m_localAddon.get();
   bool isSystem = isInstalled && StringUtils::StartsWith(m_localAddon->Path(), xbmcPath);
   bool isEnabled = isInstalled && m_item->GetProperty("Addon.Enabled").asBoolean();
@@ -180,7 +180,7 @@ void CGUIDialogAddonInfo::UpdateControls()
 
 void CGUIDialogAddonInfo::OnUpdate()
 {
-  CStdString referer = StringUtils::Format("Referer=%s-%s.zip",m_localAddon->ID().c_str(),m_localAddon->Version().asString().c_str());
+  std::string referer = StringUtils::Format("Referer=%s-%s.zip",m_localAddon->ID().c_str(),m_localAddon->Version().asString().c_str());
   CAddonInstaller::Get().Install(m_addon->ID(), true, referer); // force install
   Close();
 }
@@ -193,7 +193,10 @@ void CGUIDialogAddonInfo::OnInstall()
 
 void CGUIDialogAddonInfo::OnLaunch()
 {
-  CBuiltins::Execute("RunAddon(" + m_addon->ID() + ")");
+  if (!m_localAddon)
+    return;
+
+  CBuiltins::Execute("RunAddon(" + m_localAddon->ID() + ")");
   Close();
 }
 
@@ -215,7 +218,7 @@ bool CGUIDialogAddonInfo::PromptIfDependency(int heading, int line2)
 
   if (!deps.empty())
   {
-    string line0 = StringUtils::Format(g_localizeStrings.Get(24046), m_localAddon->Name().c_str());
+    string line0 = StringUtils::Format(g_localizeStrings.Get(24046).c_str(), m_localAddon->Name().c_str());
     string line1 = StringUtils::Join(deps, ", ");
     CGUIDialogOK::ShowAndGetInput(heading, line0, line1, line2);
     return true;
@@ -226,6 +229,9 @@ bool CGUIDialogAddonInfo::PromptIfDependency(int heading, int line2)
 void CGUIDialogAddonInfo::OnUninstall()
 {
   if (!m_localAddon.get())
+    return;
+
+  if (!g_passwordManager.CheckMenuLock(WINDOW_ADDON_BROWSER))
     return;
 
   // ensure the addon is not a dependency of other installed addons
@@ -250,6 +256,9 @@ void CGUIDialogAddonInfo::OnEnable(bool enable)
   if (!m_localAddon.get())
     return;
 
+  if (!g_passwordManager.CheckMenuLock(WINDOW_ADDON_BROWSER))
+    return;
+
   if (!enable && PromptIfDependency(24075, 24091))
     return;
 
@@ -267,7 +276,7 @@ void CGUIDialogAddonInfo::OnSettings()
 void CGUIDialogAddonInfo::OnChangeLog()
 {
   CGUIDialogTextViewer* pDlgInfo = (CGUIDialogTextViewer*)g_windowManager.GetWindow(WINDOW_DIALOG_TEXT_VIEWER);
-  CStdString name;
+  std::string name;
   if (m_addon)
     name = m_addon->Name();
   else if (m_localAddon)
@@ -299,6 +308,9 @@ void CGUIDialogAddonInfo::OnChangeLog()
 
 void CGUIDialogAddonInfo::OnRollback()
 {
+  if (!g_passwordManager.CheckMenuLock(WINDOW_ADDON_BROWSER))
+    return;
+
   CGUIDialogContextMenu* dlg = (CGUIDialogContextMenu*)g_windowManager.GetWindow(WINDOW_DIALOG_CONTEXT_MENU);
   CAddonDatabase database;
   database.Open();
@@ -306,7 +318,7 @@ void CGUIDialogAddonInfo::OnRollback()
   CContextButtons buttons;
   for (unsigned int i=0;i<m_rollbackVersions.size();++i)
   {
-    CStdString label(m_rollbackVersions[i]);
+    std::string label(m_rollbackVersions[i]);
     if (m_rollbackVersions[i] == m_localAddon->Version().asString())
      label += " "+g_localizeStrings.Get(24094);
    if (database.IsAddonBlacklisted(m_localAddon->ID(),label))
@@ -320,7 +332,7 @@ void CGUIDialogAddonInfo::OnRollback()
     // blacklist everything newer
     for (unsigned int j=choice+1;j<m_rollbackVersions.size();++j)
       database.BlacklistAddon(m_localAddon->ID(),m_rollbackVersions[j]);
-    CStdString path = "special://home/addons/packages/";
+    std::string path = "special://home/addons/packages/";
     path += m_localAddon->ID()+"-"+m_rollbackVersions[choice]+".zip";
     // needed as cpluff won't downgrade
     if (!m_localAddon->IsType(ADDON_SERVICE))
@@ -352,11 +364,11 @@ bool CGUIDialogAddonInfo::SetItem(const CFileItemPtr& item)
   // grab the local addon, if it's available
   m_localAddon.reset();
   m_addon.reset();
-  if (CAddonMgr::Get().GetAddon(item->GetProperty("Addon.ID").asString(), m_localAddon)) // sets m_addon if installed regardless of enabled state
+  if (CAddonMgr::Get().GetAddon(item->GetProperty("Addon.ID").asString(), m_localAddon)) // sets m_localAddon if installed regardless of enabled state
     m_item->SetProperty("Addon.Enabled", "true");
   else
     m_item->SetProperty("Addon.Enabled", "false");
-  m_item->SetProperty("Addon.Installed", m_addon ? "true" : "false");
+  m_item->SetProperty("Addon.Installed", m_localAddon ? "true" : "false");
 
   CAddonDatabase database;
   database.Open();
@@ -380,7 +392,7 @@ bool CGUIDialogAddonInfo::SetItem(const CFileItemPtr& item)
         if (addons[j]->Type() == (TYPE)i)
           ++num;
       }
-      m_item->SetProperty(CStdString("Repo.") + TranslateType((TYPE)i), num);
+      m_item->SetProperty("Repo." + TranslateType((TYPE)i), num);
       tot += num;
     }
     m_item->SetProperty("Repo.Addons", tot);
@@ -404,15 +416,13 @@ void CGUIDialogAddonInfo::OnJobComplete(unsigned int jobID, bool success,
   else
   {
     CFile file;
-    if (file.Open("special://temp/"+
-      URIUtils::GetFileName(((CFileOperationJob*)job)->GetItems()[0]->GetPath())))
+    XFILE::auto_buffer buf;
+    if (file.LoadFile("special://temp/" +
+      URIUtils::GetFileName(((CFileOperationJob*)job)->GetItems()[0]->GetPath()), buf) > 0)
     {
-      char* temp = new char[(size_t)file.GetLength()+1];
-      file.Read(temp,file.GetLength());
-      temp[file.GetLength()] = '\0';
-      m_item->SetProperty("Addon.Changelog",temp);
-      pDlgInfo->SetText(temp);
-      delete[] temp;
+      std::string str(buf.get(), buf.length());
+      m_item->SetProperty("Addon.Changelog", str);
+      pDlgInfo->SetText(str);
     }
   }
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, WINDOW_DIALOG_TEXT_VIEWER, 0, GUI_MSG_UPDATE);
@@ -430,14 +440,14 @@ void CGUIDialogAddonInfo::GrabRollbackVersions()
   {
     if (items[i]->m_bIsFolder)
       continue;
-    CStdString ID, version;
+    std::string ID, version;
     AddonVersion::SplitFileName(ID,version,items[i]->GetLabel());
-    if (ID.Equals(m_localAddon->ID()))
+    if (ID == m_localAddon->ID())
     {
-      CStdString hash, path(items[i]->GetPath());
+      std::string hash, path(items[i]->GetPath());
       if (db.GetPackageHash(m_localAddon->ID(), path, hash))
       {
-        CStdString md5 = CUtil::GetFileMD5(path);
+        std::string md5 = CUtil::GetFileMD5(path);
         if (md5 == hash)
           m_rollbackVersions.push_back(version);
         else /* The package has been corrupted */

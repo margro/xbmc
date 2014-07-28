@@ -51,8 +51,10 @@ public:
   
   AudioDeviceID GetId() {return m_DeviceId;}
   std::string   GetName();
-  bool          IsDigital(UInt32 &transportType);
-  UInt32        GetTotalOutputChannels();
+  bool          IsDigital() const;
+  UInt32        GetTransportType() const;
+  UInt32        GetTotalOutputChannels() const;
+  UInt32        GetNumChannelsOfStream(UInt32 streamIdx);
   bool          GetStreams(AudioStreamIdList *pList);
   bool          IsRunning();
   bool          SetHogStatus(bool hog);
@@ -60,14 +62,19 @@ public:
   bool          SetMixingSupport(UInt32 mix);
   bool          GetMixingSupport();
   bool          SetCurrentVolume(Float32 vol);
-  bool          GetPreferredChannelLayout(CCoreAudioChannelLayout &layout);
-  bool          GetPreferredChannelLayoutForStereo(CCoreAudioChannelLayout &layout);
+  bool          GetPreferredChannelLayout(CCoreAudioChannelLayout &layout) const;
+  bool          GetPreferredChannelLayoutForStereo(CCoreAudioChannelLayout &layout) const;
   bool          GetDataSources(CoreAudioDataSourceList *pList);
   Float64       GetNominalSampleRate();
   bool          SetNominalSampleRate(Float64 sampleRate);
   UInt32        GetNumLatencyFrames();
   UInt32        GetBufferSize();
   bool          SetBufferSize(UInt32 size);
+    
+  static void   RegisterDeviceChangedCB(bool bRegister, AudioObjectPropertyListenerProc callback,  void *ref);
+  static void   RegisterDefaultOutputDeviceChangedCB(bool bRegister, AudioObjectPropertyListenerProc callback, void *ref);
+  // suppresses the default output device changed callback for given time in ms
+  static void   SuppressDefaultOutputDeviceCB(unsigned int suppressTimeMs){ m_callbackSuppressTimer.Set(suppressTimeMs); }
 
   bool          AddIOProc(AudioDeviceIOProc ioProc, void* pCallbackData);
   bool          RemoveIOProc();
@@ -84,6 +91,14 @@ protected:
   unsigned int      m_frameSize;
   unsigned int      m_OutputBufferIndex;
   unsigned int      m_BufferSizeRestore;
+
+  static XbmcThreads::EndTime m_callbackSuppressTimer;
+  static AudioObjectPropertyListenerProc m_defaultOutputDeviceChangedCB;
+  static OSStatus defaultOutputDeviceChanged(AudioObjectID                       inObjectID,
+                                             UInt32                              inNumberAddresses,
+                                             const AudioObjectPropertyAddress    inAddresses[],
+                                             void*                               inClientData);
+
 };
 
 #endif

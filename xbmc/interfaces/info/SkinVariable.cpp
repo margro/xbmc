@@ -39,10 +39,11 @@ const CSkinVariableString* CSkinVariable::CreateFromXML(const TiXmlElement& node
       if (valuenode->FirstChild())
       {
         CSkinVariableString::ConditionLabelPair pair;
-        if (valuenode->Attribute("condition"))
-          pair.m_condition = g_infoManager.Register(valuenode->Attribute("condition"), context);
+        const char *condition = valuenode->Attribute("condition");
+        if (condition)
+          pair.m_condition = g_infoManager.Register(condition, context);
 
-        pair.m_label = CGUIInfoLabel(valuenode->FirstChild()->Value());
+        pair.m_label = CGUIInfoLabel(valuenode->FirstChild()->ValueStr());
         tmp->m_conditionLabelPairs.push_back(pair);
         if (!pair.m_condition)
           break; // once we reach default value (without condition) break iterating
@@ -65,12 +66,12 @@ int CSkinVariableString::GetContext() const
   return m_context;
 }
 
-const CStdString& CSkinVariableString::GetName() const
+const std::string& CSkinVariableString::GetName() const
 {
   return m_name;
 }
 
-CStdString CSkinVariableString::GetValue(bool preferImage /* = false*/, const CGUIListItem *item /* = NULL */)
+std::string CSkinVariableString::GetValue(bool preferImage /* = false*/, const CGUIListItem *item /* = NULL */)
 {
   for (VECCONDITIONLABELPAIR::const_iterator it = m_conditionLabelPairs.begin() ; it != m_conditionLabelPairs.end(); ++it)
   {

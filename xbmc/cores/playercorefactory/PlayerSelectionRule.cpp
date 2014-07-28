@@ -26,6 +26,7 @@
 #include "utils/log.h"
 #include "utils/RegExp.h"
 #include "utils/XBMCTinyXML.h"
+#include "utils/XMLUtils.h"
 
 CPlayerSelectionRule::CPlayerSelectionRule(TiXmlElement* pRule)
 {
@@ -37,8 +38,8 @@ CPlayerSelectionRule::~CPlayerSelectionRule()
 
 void CPlayerSelectionRule::Initialize(TiXmlElement* pRule)
 {
-  m_name = pRule->Attribute("name");
-  if (!m_name || m_name.empty())
+  m_name = XMLUtils::GetAttribute(pRule, "name");
+  if (m_name.empty())
     m_name = "un-named";
 
   CLog::Log(LOGDEBUG, "CPlayerSelectionRule::Initialize: creating rule: %s", m_name.c_str());
@@ -53,16 +54,16 @@ void CPlayerSelectionRule::Initialize(TiXmlElement* pRule)
   m_tDVDFile = GetTristate(pRule->Attribute("dvdfile"));
   m_tDVDImage = GetTristate(pRule->Attribute("dvdimage"));
 
-  m_protocols = pRule->Attribute("protocols");
-  m_fileTypes = pRule->Attribute("filetypes");
-  m_mimeTypes = pRule->Attribute("mimetypes");
-  m_fileName = pRule->Attribute("filename");
+  m_protocols = XMLUtils::GetAttribute(pRule, "protocols");
+  m_fileTypes = XMLUtils::GetAttribute(pRule, "filetypes");
+  m_mimeTypes = XMLUtils::GetAttribute(pRule, "mimetypes");
+  m_fileName = XMLUtils::GetAttribute(pRule, "filename");
 
-  m_audioCodec = pRule->Attribute("audiocodec");
-  m_audioChannels = pRule->Attribute("audiochannels");
-  m_videoCodec = pRule->Attribute("videocodec");
-  m_videoResolution = pRule->Attribute("videoresolution");
-  m_videoAspect = pRule->Attribute("videoaspect");
+  m_audioCodec = XMLUtils::GetAttribute(pRule, "audiocodec");
+  m_audioChannels = XMLUtils::GetAttribute(pRule, "audiochannels");
+  m_videoCodec = XMLUtils::GetAttribute(pRule, "videocodec");
+  m_videoResolution = XMLUtils::GetAttribute(pRule, "videoresolution");
+  m_videoAspect = XMLUtils::GetAttribute(pRule, "videoaspect");
 
   m_bStreamDetails = m_audioCodec.length() > 0 || m_audioChannels.length() > 0 ||
     m_videoCodec.length() > 0 || m_videoResolution.length() > 0 || m_videoAspect.length() > 0;
@@ -72,7 +73,7 @@ void CPlayerSelectionRule::Initialize(TiXmlElement* pRule)
       CLog::Log(LOGWARNING, "CPlayerSelectionRule::Initialize: rule: %s needs media flagging, which is disabled", m_name.c_str());
   }
 
-  m_playerName = pRule->Attribute("player");
+  m_playerName = XMLUtils::GetAttribute(pRule, "player");
   m_playerCoreId = 0;
 
   TiXmlElement* pSubRule = pRule->FirstChildElement("rule");
@@ -93,12 +94,12 @@ int CPlayerSelectionRule::GetTristate(const char* szValue)
   return -1;
 }
 
-bool CPlayerSelectionRule::CompileRegExp(const CStdString& str, CRegExp& regExp)
+bool CPlayerSelectionRule::CompileRegExp(const std::string& str, CRegExp& regExp)
 {
-  return str.length() > 0 && regExp.RegComp(str.c_str());
+  return !str.empty() > 0 && regExp.RegComp(str.c_str());
 }
 
-bool CPlayerSelectionRule::MatchesRegExp(const CStdString& str, CRegExp& regExp)
+bool CPlayerSelectionRule::MatchesRegExp(const std::string& str, CRegExp& regExp)
 {
   return regExp.RegFind(str, 0) == 0;
 }
@@ -134,7 +135,7 @@ void CPlayerSelectionRule::GetPlayers(const CFileItem& item, VECPLAYERCORES &vec
     
     std::stringstream itoa;
     itoa << streamDetails.GetAudioChannels();
-    CStdString audioChannelsstr = itoa.str();
+    std::string audioChannelsstr = itoa.str();
 
     if (CompileRegExp(m_audioChannels, regExp) && !MatchesRegExp(audioChannelsstr, regExp)) return;
 

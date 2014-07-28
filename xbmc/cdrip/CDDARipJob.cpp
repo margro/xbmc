@@ -19,16 +19,8 @@
  */
 
 #include "CDDARipJob.h"
-#include "system.h"
-#ifdef HAVE_LIBMP3LAME
-#include "EncoderLame.h"
-#endif
-#ifdef HAVE_LIBVORBISENC
-#include "EncoderVorbis.h"
-#endif
-#include "EncoderWav.h"
+#include "Encoder.h"
 #include "EncoderFFmpeg.h"
-#include "EncoderFlac.h"
 #include "FileItem.h"
 #include "utils/log.h"
 #include "Util.h"
@@ -37,15 +29,19 @@
 #include "filesystem/SpecialProtocol.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
+#include "settings/Settings.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/StringUtils.h"
 #include "storage/MediaManager.h"
+#include "addons/AddonManager.h"
+#include "addons/AudioEncoder.h"
 
+using namespace ADDON;
 using namespace MUSIC_INFO;
 using namespace XFILE;
 
-CCDDARipJob::CCDDARipJob(const CStdString& input,
-                         const CStdString& output,
+CCDDARipJob::CCDDARipJob(const std::string& input,
+                         const std::string& output,
                          const CMusicInfoTag& tag, 
                          int encoder,
                          bool eject,
@@ -92,7 +88,7 @@ bool CCDDARipJob::DoWork()
   CGUIDialogProgressBarHandle* handle = pDlgProgress->GetHandle(g_localizeStrings.Get(605));
 
   int iTrack = atoi(m_input.substr(13, m_input.size() - 13 - 5).c_str());
-  CStdString strLine0 = StringUtils::Format("%02i. %s - %s", iTrack,
+  std::string strLine0 = StringUtils::Format("%02i. %s - %s", iTrack,
                                             StringUtils::Join(m_tag.GetArtist(), g_advancedSettings.m_musicItemSeparator).c_str(),
                                             m_tag.GetTitle().c_str());
   handle->SetText(strLine0);
@@ -113,7 +109,7 @@ bool CCDDARipJob::DoWork()
   }
 
   // close encoder ripper
-  encoder->Close();
+  encoder->CloseEncode();
   delete encoder;
   reader.Close();
 
@@ -182,37 +178,30 @@ int CCDDARipJob::RipChunk(CFile& reader, CEncoder* encoder, int& percent)
 
 CEncoder* CCDDARipJob::SetupEncoder(CFile& reader)
 {
-  CEncoder* encoder;
-  switch (m_encoder)
+  CEncoder* encoder = NULL;
+  if (CSettings::Get().GetString("audiocds.encoder") == "audioencoder.xbmc.builtin.aac" ||
+           CSettings::Get().GetString("audiocds.encoder") == "audioencoder.xbmc.builtin.wma")
   {
-#ifdef HAVE_LIBVORBISENC
-  case CDDARIP_ENCODER_VORBIS:
-    encoder = new CEncoderVorbis();
-    break;
-#endif
-#ifdef HAVE_LIBMP3LAME
-  case CDDARIP_ENCODER_LAME:
-    encoder = new CEncoderLame();
-    break;
-#endif
-  case CDDARIP_ENCODER_FLAC:
-    encoder = new CEncoderFlac();
-    break;
-  case CDDARIP_ENCODER_FFMPEG_M4A:
-  case CDDARIP_ENCODER_FFMPEG_WMA:
-    encoder = new CEncoderFFmpeg();
-    break;
-  case CDDARIP_ENCODER_WAV:
-  default:
-    encoder = new CEncoderWav();
-    break;
+    boost::shared_ptr<IEncoder> enc(new CEncoderFFmpeg());
+    encoder = new CEncoder(enc);
   }
-
+  else
+  {
+    AddonPtr addon;
+    CAddonMgr::Get().GetAddon(CSettings::Get().GetString("audiocds.encoder"), addon);
+    if (addon)
+    {
+      boost::shared_ptr<CAudioEncoder> aud =  boost::static_pointer_cast<CAudioEncoder>(addon);
+      aud->Create();
+      boost::shared_ptr<IEncoder> enc =  boost::static_pointer_cast<IEncoder>(aud);
+      encoder = new CEncoder(enc);
+    }
+  }
   if (!encoder)
     return NULL;
 
   // we have to set the tags before we init the Encoder
-  CStdString strTrack = StringUtils::Format("%i", strtol(m_input.substr(13, m_input.size() - 13 - 5).c_str(),NULL,10));
+  std::string strTrack = StringUtils::Format("%i", strtol(m_input.substr(13, m_input.size() - 13 - 5).c_str(),NULL,10));
 
   encoder->SetComment("Ripped with XBMC");
   encoder->SetArtist(StringUtils::Join(m_tag.GetArtist(),
@@ -234,11 +223,11 @@ CEncoder* CCDDARipJob::SetupEncoder(CFile& reader)
   return encoder;
 }
 
-CStdString CCDDARipJob::SetupTempFile()
+std::string CCDDARipJob::SetupTempFile()
 {
   char tmp[MAX_PATH];
 #ifndef TARGET_POSIX
-  GetTempFileName(CSpecialProtocol::TranslatePath("special://temp/"), "riptrack", 0, tmp);
+  GetTempFileName(CSpecialProtocol::TranslatePath("special://temp/").c_str(), "riptrack", 0, tmp);
 #else
   int fd;
   strncpy(tmp, CSpecialProtocol::TranslatePath("special://temp/riptrackXXXXXX").c_str(), MAX_PATH);

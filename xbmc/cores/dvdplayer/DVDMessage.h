@@ -31,7 +31,6 @@
 // include as less is possible to prevent dependencies
 #include "system.h"
 #include "DVDDemuxers/DVDDemux.h"
-#include "DVDMessageTracker.h"
 #include "DVDResource.h"
 
 #include <assert.h>
@@ -97,17 +96,10 @@ public:
   CDVDMsg(Message msg)
   {
     m_message = msg;
-
-#ifdef DVDDEBUG_MESSAGE_TRACKER
-    g_dvdMessageTracker.Register(this);
-#endif
   }
 
   virtual ~CDVDMsg()
   {
-#ifdef DVDDEBUG_MESSAGE_TRACKER
-    g_dvdMessageTracker.UnRegister(this);
-#endif
   }
 
   /**
@@ -211,7 +203,7 @@ private:
 class CDVDMsgPlayerSetState : public CDVDMsg
 {
 public:
-  CDVDMsgPlayerSetState(std::string& state) : CDVDMsg(PLAYER_SET_STATE), m_state(state) {}
+  CDVDMsgPlayerSetState(const std::string& state) : CDVDMsg(PLAYER_SET_STATE), m_state(state) {}
   std::string GetState()                { return m_state; }
 private:
   std::string m_state;

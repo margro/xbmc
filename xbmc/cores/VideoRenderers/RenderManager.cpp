@@ -159,7 +159,7 @@ static double wrap(double x, double minimum, double maximum)
 void CXBMCRenderManager::WaitPresentTime(double presenttime)
 {
   double frametime;
-  int fps = g_VideoReferenceClock.GetRefreshRate(&frametime);
+  double fps = g_VideoReferenceClock.GetRefreshRate(&frametime);
   if(fps <= 0)
   {
     /* smooth video not enabled */
@@ -205,14 +205,14 @@ void CXBMCRenderManager::WaitPresentTime(double presenttime)
   //printf("%f %f % 2.0f%% % f % f\n", presenttime, clock, m_presentcorr * 100, error, error_org);
 }
 
-CStdString CXBMCRenderManager::GetVSyncState()
+std::string CXBMCRenderManager::GetVSyncState()
 {
   double avgerror = 0.0;
   for (int i = 0; i < ERRORBUFFSIZE; i++)
     avgerror += m_errorbuff[i];
   avgerror /= ERRORBUFFSIZE;
 
-  CStdString state = StringUtils::Format("sync:%+3d%% avg:%3d%% error:%2d%%"
+  std::string state = StringUtils::Format("sync:%+3d%% avg:%3d%% error:%2d%%"
                                          ,     MathUtils::round_int(m_presentcorr * 100)
                                          ,     MathUtils::round_int(avgerror      * 100)
                                          , abs(MathUtils::round_int(m_presenterr  * 100)));
@@ -377,6 +377,8 @@ void CXBMCRenderManager::FrameFinish()
 
   if(g_graphicsContext.IsFullScreenVideo())
     WaitPresentTime(m.timestamp);
+
+  m_clock_framefinish = GetPresentTime();
 
   { CSingleLock lock(m_presentlock);
 
@@ -1029,6 +1031,12 @@ void CXBMCRenderManager::PrepareNextRender()
 
   double clocktime = GetPresentTime();
   double frametime = 1.0 / GetMaximumFPS();
+  double correction = 0.0;
+  int fps = g_VideoReferenceClock.GetRefreshRate();
+  if((fps > 0) && g_graphicsContext.IsFullScreenVideo() && (clocktime != m_clock_framefinish))
+  {
+    correction = frametime;
+  }
 
   /* see if any future queued frames are already due */
   std::deque<int>::reverse_iterator curr, prev;
@@ -1037,8 +1045,8 @@ void CXBMCRenderManager::PrepareNextRender()
   ++prev;
   while (prev != m_queued.rend())
   {
-    if(clocktime > m_Queue[*prev].timestamp                 /* previous frame is late */
-    && clocktime > m_Queue[*curr].timestamp - frametime)    /* selected frame is close to it's display time */
+    if(clocktime > m_Queue[*prev].timestamp + correction                 /* previous frame is late */
+    && clocktime > m_Queue[*curr].timestamp - frametime + correction)    /* selected frame is close to it's display time */
       break;
     ++curr;
     ++prev;

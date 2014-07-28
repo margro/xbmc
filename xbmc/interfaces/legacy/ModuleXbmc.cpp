@@ -178,7 +178,7 @@ namespace XBMCAddon
     String getLanguage(int format /* = CLangCodeExpander::ENGLISH_NAME */, bool region /*= false*/)
     {
       XBMC_TRACE;
-      CStdString lang = CSettings::Get().GetString("locale.language");
+      std::string lang = CSettings::Get().GetString("locale.language");
 
       switch (format)
       {
@@ -186,19 +186,19 @@ namespace XBMCAddon
         {
           if (region)
           {
-            CStdString region = "-" + g_langInfo.GetCurrentRegion();
+            std::string region = "-" + g_langInfo.GetCurrentRegion();
             return (lang += region);
           }
           return lang;
         }
       case CLangCodeExpander::ISO_639_1:
         {
-          CStdString langCode;
+          std::string langCode;
           g_LangCodeExpander.ConvertToTwoCharCode(langCode, lang);
           if (region)
           {
-            CStdString region = g_langInfo.GetRegionLocale();
-            CStdString region2Code;
+            std::string region = g_langInfo.GetRegionLocale();
+            std::string region2Code;
             g_LangCodeExpander.ConvertToTwoCharCode(region2Code, region);
             region2Code = "-" + region2Code;
             return (langCode += region2Code);
@@ -207,12 +207,12 @@ namespace XBMCAddon
         }
       case CLangCodeExpander::ISO_639_2:
         {
-          CStdString langCode;
+          std::string langCode;
           g_LangCodeExpander.ConvertToThreeCharCode(langCode, lang);
           if (region)
           {
-            CStdString region = g_langInfo.GetRegionLocale();
-            CStdString region3Code;
+            std::string region = g_langInfo.GetRegionLocale();
+            std::string region3Code;
             g_LangCodeExpander.ConvertToThreeCharCode(region3Code, region);
             region3Code = "-" + region3Code;
             return (langCode += region3Code);
@@ -298,10 +298,7 @@ namespace XBMCAddon
       //doesn't seem to be a single InfoTag?
       //try full blown GuiInfoLabel then
       if (ret == 0)
-      {
-        CGUIInfoLabel label(cLine);
-        return label.GetLabel(0);
-      }
+        return CGUIInfoLabel::GetLabel(cLine);
       else
         return g_infoManager.GetLabel(ret);
     }
@@ -392,11 +389,11 @@ namespace XBMCAddon
     {
       XBMC_TRACE;
       CFileItem item(path, false);
-      CStdString strName = item.GetMovieName(usefoldername);
+      std::string strName = item.GetMovieName(usefoldername);
 
-      CStdString strTitleAndYear;
-      CStdString strTitle;
-      CStdString strYear;
+      std::string strTitleAndYear;
+      std::string strTitle;
+      std::string strYear;
       CUtil::CleanString(strName, strTitle, strTitleAndYear, strYear, usefoldername);
       return Tuple<String,String>(strTitle,strYear);
     }
@@ -410,7 +407,7 @@ namespace XBMCAddon
     String getRegion(const char* id)
     {
       XBMC_TRACE;
-      CStdString result;
+      std::string result;
 
       if (strcmpi(id, "datelong") == 0)
         {
@@ -493,7 +490,7 @@ namespace XBMCAddon
 
     String convertLanguage(const char* language, int format)
     {
-      CStdString convertedLanguage;
+      std::string convertedLanguage;
       switch (format)
       {
       case CLangCodeExpander::ENGLISH_NAME:

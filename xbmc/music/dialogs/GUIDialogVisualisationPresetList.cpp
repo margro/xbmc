@@ -21,7 +21,6 @@
 #include "GUIDialogVisualisationPresetList.h"
 #include "addons/Visualisation.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/GUIListContainer.h"
 #include "GUIUserMessages.h"
 #include "FileItem.h"
 #include "guilib/Key.h"
@@ -58,10 +57,10 @@ bool CGUIDialogVisualisationPresetList::OnMessage(CGUIMessage &message)
                                                     message.GetParam1() == ACTION_MOUSE_LEFT_CLICK))
       {
         //clicked - ask for the preset to be changed to the new one
-        CGUIListContainer *pList = (CGUIListContainer *)GetControl(CONTROL_LIST);
-        if (pList)
+        CGUIMessage msg(GUI_MSG_ITEM_SELECTED, GetID(), CONTROL_LIST);
+        if (OnMessage(msg))
         {
-          int iItem = pList->GetSelectedItem();
+          int iItem = (int)msg.GetParam1();
           if (m_viz)
             m_viz->OnAction(VIS_ACTION_LOAD_PRESET, (void *)&iItem);
         }
@@ -133,7 +132,7 @@ void CGUIDialogVisualisationPresetList::Update()
     //clear filelist
     CGUIMessage msg(GUI_MSG_LABEL_RESET, GetID(), CONTROL_LIST);
     OnMessage(msg);
-    std::vector<CStdString> presets;
+    std::vector<std::string> presets;
     if (m_viz->GetPresetList(presets))
     {
       m_currentPreset = m_viz->GetPreset();

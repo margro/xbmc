@@ -32,6 +32,7 @@
 #include "settings/Settings.h"
 #include "GUIInfoManager.h"
 #include "cores/IPlayer.h"
+#include "utils/StringUtils.h"
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
@@ -216,7 +217,11 @@ void CGUIDialogPVRChannelsOSD::Clear()
 void CGUIDialogPVRChannelsOSD::CloseOrSelect(unsigned int iItem)
 {
   if (CSettings::Get().GetBool("pvrmenu.closechannelosdonswitch"))
+  {
+    if (CSettings::Get().GetInt("pvrmenu.displaychannelinfo") > 0)
+      g_PVRManager.ShowPlayerInfo(CSettings::Get().GetInt("pvrmenu.displaychannelinfo"));
     Close();
+  }
   else
     m_viewControl.SetSelectedItem(iItem);
 }

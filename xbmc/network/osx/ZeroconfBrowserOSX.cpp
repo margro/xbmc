@@ -64,7 +64,7 @@ namespace
               recordMap.insert(
                 std::make_pair(
                   key,
-                  CStdString((const char *)CFDataGetBytePtr(values[idx]))
+                  std::string((const char *)CFDataGetBytePtr(values[idx]))
                 )
               );
             }
@@ -78,7 +78,7 @@ namespace
 
   //helper to get (first) IP and port from a resolved service
   //returns true on success, false on if none was found
-  bool CopyFirstIPv4Address(CFNetServiceRef serviceRef, CStdString &fr_address, int &fr_port)
+  bool CopyFirstIPv4Address(CFNetServiceRef serviceRef, std::string &fr_address, int &fr_port)
   {
     CFIndex idx;
     struct sockaddr_in address;
@@ -180,7 +180,7 @@ void CZeroconfBrowserOSX::BrowserCallback(CFNetServiceBrowserRef browser, CFOpti
   } else
   {
     CLog::Log(LOGERROR, "CZeroconfBrowserOSX::BrowserCallback returned"
-      "(domain = %d, error = %"PRId64")", (int)error->domain, (int64_t)error->error);
+      "(domain = %d, error = %" PRId64")", (int)error->domain, (int64_t)error->error);
   }
 }
 
@@ -238,7 +238,7 @@ removeDiscoveredService(CFNetServiceBrowserRef browser, CFOptionFlags flags, CZe
 }
 
 
-bool CZeroconfBrowserOSX::doAddServiceType(const CStdString& fcr_service_type)
+bool CZeroconfBrowserOSX::doAddServiceType(const std::string& fcr_service_type)
 {
   CFNetServiceClientContext clientContext = { 0, this, NULL, NULL, NULL };
   CFStringRef domain = CFSTR("");
@@ -261,7 +261,7 @@ bool CZeroconfBrowserOSX::doAddServiceType(const CStdString& fcr_service_type)
     CFRelease(p_browser);
     p_browser = NULL;
     CLog::Log(LOGERROR, "CFNetServiceBrowserSearchForServices returned"
-      "(domain = %d, error = %"PRId64")", (int)error.domain, (int64_t)error.error);
+      "(domain = %d, error = %" PRId64")", (int)error.domain, (int64_t)error.error);
   }
   else
   {
@@ -273,7 +273,7 @@ bool CZeroconfBrowserOSX::doAddServiceType(const CStdString& fcr_service_type)
   return result;
 }
 
-bool CZeroconfBrowserOSX::doRemoveServiceType(const CStdString &fcr_service_type)
+bool CZeroconfBrowserOSX::doRemoveServiceType(const std::string &fcr_service_type)
 {
   //search for this browser and remove it from the map
   CFNetServiceBrowserRef browser = 0;
@@ -334,7 +334,7 @@ bool CZeroconfBrowserOSX::doResolveService(CZeroconfBrowser::ZeroconfService &fr
   CFNetServiceRef service = CFNetServiceCreate (NULL, domain, type, name, 0);
   if (CFNetServiceResolveWithTimeout(service, f_timeout, NULL) )
   {
-    CStdString ip; 
+    std::string ip;
     int port = 0;
     ret = CopyFirstIPv4Address(service, ip, port);
     fr_service.SetIP(ip);

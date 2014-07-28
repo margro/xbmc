@@ -44,6 +44,7 @@ void CEngineStats::Reset(unsigned int sampleRate)
   m_bufferedSamples = 0;
   m_suspended = false;
   m_playingPTS = 0;
+  m_clockId = 0;
 }
 
 void CEngineStats::UpdateSinkDelay(const AEDelayStatus& status, int samples, int64_t pts, int clockId)
@@ -1155,7 +1156,7 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
         m_discardBufferPools.push_back(m_vizBuffersInput);
         m_vizBuffersInput = NULL;
       }
-      if (!m_vizBuffers)
+      if (!m_vizBuffers && m_audioCallback)
       {
         AEAudioFormat vizFormat = m_internalFormat;
         vizFormat.m_channelLayout = AE_CH_LAYOUT_2_0;
@@ -1242,7 +1243,10 @@ CActiveAEStream* CActiveAE::CreateStream(MsgStreamNew *streamMsg)
   stream->m_clockId = m_stats.Discontinuity(true);
 
   if (streamMsg->options & AESTREAM_PAUSED)
+  {
     stream->m_paused = true;
+    stream->m_streamIsBuffering = true;
+  }
 
   if (streamMsg->options & AESTREAM_FORCE_RESAMPLE)
     stream->m_forceResampler = true;
@@ -1369,6 +1373,7 @@ void CActiveAE::DiscardSound(CActiveAESound *sound)
     if ((*it) == sound)
     {
       m_sounds.erase(it);
+      delete sound;
       return;
     }
   }
@@ -1466,7 +1471,19 @@ void CActiveAE::ApplySettingsToFormat(AEAudioFormat &format, AudioSettings &sett
       else if (m_extKeepConfig && (settings.config == AE_CONFIG_AUTO) && (oldMode != MODE_RAW))
         format.m_channelLayout = m_internalFormat.m_channelLayout;
       else
+      {
+        if (stdLayout == AE_CH_LAYOUT_5_0 || stdLayout == AE_CH_LAYOUT_5_1)
+        {
+          std::vector<CAEChannelInfo> alts;
+          alts.push_back(stdLayout);
+          stdLayout.ReplaceChannel(AE_CH_BL, AE_CH_SL);
+          stdLayout.ReplaceChannel(AE_CH_BR, AE_CH_SR);
+          alts.push_back(stdLayout);
+          int bestMatch = format.m_channelLayout.BestMatch(alts);
+          stdLayout = alts[bestMatch];
+        }
         format.m_channelLayout.ResolveChannels(stdLayout);
+      }
     }
     // don't change from multi to stereo in AUTO mode
     else if ((settings.config == AE_CONFIG_AUTO) &&
@@ -1915,10 +1932,11 @@ bool CActiveAE::RunStages()
         // viz
         {
           CSingleLock lock(m_vizLock);
-          if (m_audioCallback && m_vizBuffers && !m_streams.empty())
+          if (m_audioCallback && !m_streams.empty())
           {
-            if (!m_vizInitialized)
+            if (!m_vizInitialized || !m_vizBuffers)
             {
+              Configure();
               m_audioCallback->OnInitialize(2, m_vizBuffers->m_format.m_sampleRate, 32);
               m_vizInitialized = true;
             }
@@ -2228,6 +2246,23 @@ bool CActiveAE::SupportsSilenceTimeout()
   return true;
 }
 
+bool CActiveAE::HasStereoAudioChannelCount()
+{
+  std::string device = CSettings::Get().GetString("audiooutput.audiodevice");
+  int numChannels = (m_sink.GetDeviceType(device) == AE_DEVTYPE_IEC958) ? AE_CH_LAYOUT_2_0 : CSettings::Get().GetInt("audiooutput.channels");
+  bool passthrough = CSettings::Get().GetInt("audiooutput.config") == AE_CONFIG_FIXED ? false : CSettings::Get().GetBool("audiooutput.passthrough");
+  return numChannels == AE_CH_LAYOUT_2_0 && ! (passthrough &&
+    CSettings::Get().GetBool("audiooutput.ac3passthrough") &&
+    CSettings::Get().GetBool("audiooutput.ac3transcode"));
+}
+
+bool CActiveAE::HasHDAudioChannelCount()
+{
+  std::string device = CSettings::Get().GetString("audiooutput.audiodevice");
+  int numChannels = (m_sink.GetDeviceType(device) == AE_DEVTYPE_IEC958) ? AE_CH_LAYOUT_2_0 : CSettings::Get().GetInt("audiooutput.channels");
+  return numChannels > AE_CH_LAYOUT_5_1;
+}
+
 bool CActiveAE::SupportsQualityLevel(enum AEQuality level)
 {
   if (level == AE_QUALITY_LOW || level == AE_QUALITY_MID || level == AE_QUALITY_HIGH)
@@ -2478,6 +2513,11 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
   if (!io_fmt)
   {
     avformat_close_input(&fmt_ctx);
+    if (io_ctx)
+    {
+      av_freep(&io_ctx->buffer);
+      av_freep(&io_ctx);
+    }
     delete sound;
     return NULL;
   }
@@ -2498,6 +2538,11 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
   if (dec == NULL)
   {
     avformat_close_input(&fmt_ctx);
+    if (io_ctx)
+    {
+      av_freep(&io_ctx->buffer);
+      av_freep(&io_ctx);
+    }
     delete sound;
     return NULL;
   }
@@ -2530,6 +2575,11 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
         av_free(dec_ctx);
         av_free(&decoded_frame);
         avformat_close_input(&fmt_ctx);
+        if (io_ctx)
+        {
+          av_freep(&io_ctx->buffer);
+          av_freep(&io_ctx);
+        }
         delete sound;
         return NULL;
       }
@@ -2553,6 +2603,11 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
   av_free(dec_ctx);
   av_free(decoded_frame);
   avformat_close_input(&fmt_ctx);
+  if (io_ctx)
+  {
+    av_freep(&io_ctx->buffer);
+    av_freep(&io_ctx);
+  }
 
   sound->Finish();
 

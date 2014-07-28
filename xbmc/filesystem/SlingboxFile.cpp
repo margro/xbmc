@@ -51,7 +51,7 @@ bool CSlingboxFile::Open(const CURL& url)
     uiPort = (unsigned int)url.GetPort();
   else
     uiPort = 5001;
-  m_pSlingbox->SetAddress(url.GetHostName(), uiPort);
+  m_pSlingbox->SetAddress(url.GetHostName().c_str(), uiPort);
 
   // Prepare to connect to the Slingbox
   bool bAdmin;
@@ -67,7 +67,7 @@ bool CSlingboxFile::Open(const CURL& url)
   }
 
   // Connect to the Slingbox
-  if (m_pSlingbox->Connect(bAdmin, url.GetPassWord()))
+  if (m_pSlingbox->Connect(bAdmin, url.GetPassWord().c_str()))
   {
     CLog::Log(LOGDEBUG, "%s - Successfully connected to Slingbox: %s",
       __FUNCTION__, url.GetHostName().c_str());
@@ -95,12 +95,12 @@ bool CSlingboxFile::Open(const CURL& url)
   // Set correct input
   if (url.GetFileNameWithoutPath() != "")
   {
-    if (m_pSlingbox->SetInput(atoi(url.GetFileNameWithoutPath())))
+    if (m_pSlingbox->SetInput(atoi(url.GetFileNameWithoutPath().c_str())))
       CLog::Log(LOGDEBUG, "%s - Successfully requested change to input %i on Slingbox: %s",
-        __FUNCTION__, atoi(url.GetFileNameWithoutPath()), url.GetHostName().c_str());
+        __FUNCTION__, atoi(url.GetFileNameWithoutPath().c_str()), url.GetHostName().c_str());
     else
       CLog::Log(LOGERROR, "%s - Error requesting change to input %i on Slingbox: %s",
-        __FUNCTION__, atoi(url.GetFileNameWithoutPath()), url.GetHostName().c_str());
+        __FUNCTION__, atoi(url.GetFileNameWithoutPath().c_str()), url.GetHostName().c_str());
   }
 
   // Load the video settings
@@ -142,15 +142,16 @@ bool CSlingboxFile::Open(const CURL& url)
   // Check for correct input
   if (url.GetFileNameWithoutPath() != "")
   {
+    int input = atoi(url.GetFileNameWithoutPath().c_str());
     if (m_pSlingbox->GetInput() == -1)
       CLog::Log(LOGDEBUG, "%s - Unable to confirm change to input %i on Slingbox: %s",
-        __FUNCTION__, atoi(url.GetFileNameWithoutPath()), url.GetHostName().c_str());
-    else if (m_pSlingbox->GetInput() == atoi(url.GetFileNameWithoutPath()))
+        __FUNCTION__, input, url.GetHostName().c_str());
+    else if (m_pSlingbox->GetInput() == input)
       CLog::Log(LOGDEBUG, "%s - Comfirmed change to input %i on Slingbox: %s",
-        __FUNCTION__, atoi(url.GetFileNameWithoutPath()), url.GetHostName().c_str());
+        __FUNCTION__, input, url.GetHostName().c_str());
     else
       CLog::Log(LOGERROR, "%s - Error changing to input %i on Slingbox: %s",
-        __FUNCTION__, atoi(url.GetFileNameWithoutPath()), url.GetHostName().c_str());
+        __FUNCTION__, input, url.GetHostName().c_str());
   }
 
   return true;
@@ -430,7 +431,7 @@ bool CSlingboxFile::SelectChannel(unsigned int uiChannel)
   else if (uiButtonsWithCode == 10)
   {
     // Prepare variables
-    CStdString strDigits = StringUtils::Format("%u", uiChannel);
+    std::string strDigits = StringUtils::Format("%u", uiChannel);
     size_t uiNumberOfDigits = strDigits.size();
 
     // Change the channel using IR commands
@@ -475,7 +476,7 @@ bool CSlingboxFile::SelectChannel(unsigned int uiChannel)
   return bSuccess;
 }
 
-void CSlingboxFile::LoadSettings(const CStdString& strHostname)
+void CSlingboxFile::LoadSettings(const std::string& strHostname)
 {
   // Load default settings
   m_sSlingboxSettings.strHostname = strHostname;
@@ -493,7 +494,7 @@ void CSlingboxFile::LoadSettings(const CStdString& strHostname)
     m_sSlingboxSettings.uiCodeNumber[i] = 0;
 
   // Check if a SlingboxSettings.xml file exists
-  CStdString slingboxXMLFile = CProfilesManager::Get().GetUserDataItem("SlingboxSettings.xml");
+  std::string slingboxXMLFile = CProfilesManager::Get().GetUserDataItem("SlingboxSettings.xml");
   if (!CFile::Exists(slingboxXMLFile))
   {
     CLog::Log(LOGNOTICE, "No SlingboxSettings.xml file (%s) found - using default settings",
@@ -527,8 +528,8 @@ void CSlingboxFile::LoadSettings(const CStdString& strHostname)
   for (pElement = pRootElement->FirstChildElement("slingbox"); pElement;
     pElement = pElement->NextSiblingElement("slingbox"))
   {
-    if (pElement->Attribute("hostname") == NULL ||      
-      StringUtils::EqualsNoCase(m_sSlingboxSettings.strHostname, pElement->Attribute("hostname")))
+    const char *hostname = pElement->Attribute("hostname");
+    if (!hostname || StringUtils::EqualsNoCase(m_sSlingboxSettings.strHostname, hostname))
     {
       // Load setting values
       XMLUtils::GetInt(pElement, "width", m_sSlingboxSettings.iVideoWidth, 0, 640);

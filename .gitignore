@@ -119,7 +119,9 @@ config.log
 /addons/visualization.itunes/iTunes.mvis
 /addons/visualization.fishbmc/fishbmc.vis
 /addons/script.module.pil/
+/addons/audioencoder.*
 /addons/pvr.*
+/addons/xbmc.addon/addon.xml
 /addons/xbmc.json/addon.xml
 
 # /lib/
@@ -340,12 +342,17 @@ lib/cpluff/stamp-h1
 
 # /project/cmake
 /project/cmake/xbmc-config.cmake
+/project/cmake/*.error
+/project/cmake/addons/build
+/project/cmake/addons/depends/win32/build
+/project/cmake/addons/output
 
 # /project/Win32BuildSetup/
 /project/Win32BuildSetup/XBMC.log
 /project/Win32BuildSetup/XBMCSetup*.exe
 /project/Win32BuildSetup/languages.nsi
 /project/Win32BuildSetup/skins.nsi
+/project/Win32BuildSetup/xbmc-audioencoder-addons.nsi
 /project/Win32BuildSetup/xbmc-pvr-addons.nsi
 /project/Win32BuildSetup/bgprocess
 /project/Win32BuildSetup/makeclean
@@ -557,6 +564,7 @@ lib/cpluff/stamp-h1
 /xbmc/config.h
 /xbmc/config.h.in
 /xbmc/config.h.in~
+/xbmc/CompileInfo.cpp
 /xbmc/DllPaths_generated.h
 /xbmc/DllPaths_generated_android.h
 /xbmc/Makefile
@@ -744,6 +752,7 @@ lib/cpluff/stamp-h1
 /xbmc/visualizations/fishBMC/Makefile
 
 #/xbmc/win32/
+/xbmc/win32/XBMC_PC.rc
 # no longer used
 /xbmc/win32/git_rev.h
 

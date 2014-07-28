@@ -19,7 +19,9 @@
  */
 
 #include "AEChannelInfo.h"
+#include <limits>
 #include <string.h>
+#include <assert.h>
 
 CAEChannelInfo::CAEChannelInfo()
 {
@@ -161,14 +163,14 @@ CAEChannelInfo& CAEChannelInfo::operator=(const enum AEChannel* rhs)
   }
 
   /* the last entry should be NULL, if not we were passed a non null terminated list */
-  ASSERT(rhs[m_channelCount] == AE_CH_NULL);
+  assert(rhs[m_channelCount] == AE_CH_NULL);
 
   return *this;
 }
 
 CAEChannelInfo& CAEChannelInfo::operator=(const enum AEStdChLayout rhs)
 {
-  ASSERT(rhs > AE_CH_LAYOUT_INVALID && rhs < AE_CH_LAYOUT_MAX);
+  assert(rhs > AE_CH_LAYOUT_INVALID && rhs < AE_CH_LAYOUT_MAX);
 
   static enum AEChannel layouts[AE_CH_LAYOUT_MAX][9] = {
     {AE_CH_FC, AE_CH_NULL},
@@ -209,8 +211,8 @@ bool CAEChannelInfo::operator!=(const CAEChannelInfo& rhs)
 
 CAEChannelInfo& CAEChannelInfo::operator+=(const enum AEChannel& rhs)
 {
-  ASSERT(m_channelCount < AE_CH_MAX);
-  ASSERT(rhs > AE_CH_NULL && rhs < AE_CH_MAX);
+  assert(m_channelCount < AE_CH_MAX);
+  assert(rhs > AE_CH_NULL && rhs < AE_CH_MAX);
 
   m_channels[m_channelCount++] = rhs;
   return *this;
@@ -218,7 +220,7 @@ CAEChannelInfo& CAEChannelInfo::operator+=(const enum AEChannel& rhs)
 
 CAEChannelInfo& CAEChannelInfo::operator-=(const enum AEChannel& rhs)
 {
-  ASSERT(rhs > AE_CH_NULL && rhs < AE_CH_MAX);
+  assert(rhs > AE_CH_NULL && rhs < AE_CH_MAX);
 
   unsigned int i = 0;
   while(i < m_channelCount && m_channels[i] != rhs)
@@ -236,7 +238,7 @@ CAEChannelInfo& CAEChannelInfo::operator-=(const enum AEChannel& rhs)
 
 const enum AEChannel CAEChannelInfo::operator[](unsigned int i) const
 {
-  ASSERT(i < m_channelCount);
+  assert(i < m_channelCount);
   return m_channels[i];
 }
 
@@ -258,7 +260,7 @@ CAEChannelInfo::operator std::string() const
 
 const char* CAEChannelInfo::GetChName(const enum AEChannel ch)
 {
-  ASSERT(ch >= 0 && ch < AE_CH_MAX);
+  assert(ch >= 0 && ch < AE_CH_MAX);
 
   static const char* channels[AE_CH_MAX] =
   {
@@ -289,7 +291,7 @@ bool CAEChannelInfo::HasChannel(const enum AEChannel ch) const
   return false;
 }
 
-bool CAEChannelInfo::ContainsChannels(CAEChannelInfo& rhs) const
+bool CAEChannelInfo::ContainsChannels(const CAEChannelInfo& rhs) const
 {
   for (unsigned int i = 0; i < rhs.m_channelCount; ++i)
   {
@@ -297,4 +299,69 @@ bool CAEChannelInfo::ContainsChannels(CAEChannelInfo& rhs) const
       return false;
   }
   return true;
+}
+
+void CAEChannelInfo::ReplaceChannel(const enum AEChannel from, const enum AEChannel to)
+{
+  for (unsigned int i = 0; i < m_channelCount; ++i)
+  {
+    if (m_channels[i] == from)
+    {
+      m_channels[i] = to;
+      break;
+    }
+  }
+}
+
+int CAEChannelInfo::BestMatch(const std::vector<CAEChannelInfo>& dsts, int* score) const
+{
+  CAEChannelInfo availableDstChannels;
+  for (unsigned int i = 0; i < dsts.size(); i++)
+    availableDstChannels.AddMissingChannels(dsts[i]);
+
+  /* if we have channels not existing in any destination layout but that
+   * are remappable (e.g. RC => RL+RR), do those remaps */
+  CAEChannelInfo src(*this);
+  src.ResolveChannels(availableDstChannels);
+
+  bool remapped = (src != *this);
+  /* good enough approximation (does not account for added channels) */
+  int dropped = std::max((int)src.Count() - (int)Count(), 0);
+
+  int bestScore = std::numeric_limits<int>::min();
+  int bestMatch = -1;
+
+  for (unsigned int i = 0; i < dsts.size(); i++)
+  {
+    const CAEChannelInfo& dst = dsts[i];
+    int okChannels = 0;
+
+    for (unsigned int j = 0; j < src.Count(); j++)
+      okChannels += dst.HasChannel(src[j]);
+
+    int missingChannels = src.Count() - okChannels;
+    int extraChannels = dst.Count() - okChannels;
+
+    int curScore = 0 - (missingChannels + dropped) * 1000 - extraChannels * 10 - remapped;
+
+    if (curScore > bestScore)
+    {
+      bestScore = curScore;
+      bestMatch = i;
+      if (curScore == 0)
+        break;
+    }
+  }
+
+  if (score)
+    *score = bestScore;
+
+  return bestMatch;
+}
+
+void CAEChannelInfo::AddMissingChannels(const CAEChannelInfo& rhs)
+{
+  for (unsigned int i = 0; i < rhs.Count(); i++)
+    if (!HasChannel(rhs[i]))
+      *this += rhs[i];
 }

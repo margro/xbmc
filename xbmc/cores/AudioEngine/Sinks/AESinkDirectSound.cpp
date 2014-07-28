@@ -90,7 +90,7 @@ static const winEndpointsToAEDeviceType winEndpoints[EndpointFormFactor_enum_cou
 };
 
 // implemented in AESinkWASAPI.cpp
-extern CStdStringA localWideToUtf(LPCWSTR wstr);
+extern std::string localWideToUtf(LPCWSTR wstr);
 
 static BOOL CALLBACK DSEnumCallback(LPGUID lpGuid, LPCTSTR lpcstrDescription, LPCTSTR lpcstrModule, LPVOID lpContext)
 {
@@ -98,12 +98,14 @@ static BOOL CALLBACK DSEnumCallback(LPGUID lpGuid, LPCTSTR lpcstrDescription, LP
   std::list<DSDevice> &enumerator = *static_cast<std::list<DSDevice>*>(lpContext);
 
   int bufSize = MultiByteToWideChar(CP_ACP, 0, lpcstrDescription, -1, NULL, 0);
-  CStdStringW strW (L"", bufSize);
-  if ( bufSize == 0 || MultiByteToWideChar(CP_ACP, 0, lpcstrDescription, -1, strW.GetBuf(bufSize), bufSize) != bufSize )
-    strW.clear();
-  strW.RelBuf();
+  wchar_t *strW = new wchar_t[bufSize+1];
+  if ( bufSize == 0 || MultiByteToWideChar(CP_ACP, 0, lpcstrDescription, -1, strW, bufSize) != bufSize )
+    strW[0] = 0;
+  else
+    strW[bufSize] = 0;
 
   dev.name = localWideToUtf(strW);
+  delete[] strW;
 
   dev.lpGuid = lpGuid;
 
@@ -424,18 +426,20 @@ void CAESinkDirectSound::Drain()
   UpdateCacheStatus();
 }
 
-double CAESinkDirectSound::GetDelay()
+void CAESinkDirectSound::GetDelay(AEDelayStatus& status)
 {
   if (!m_initialized)
-    return 0.0;
+  {
+    status.SetDelay(0);
+    return;
+  }
 
   /* Make sure we know how much data is in the cache */
   if (!UpdateCacheStatus())
     m_isDirtyDS = true;
 
   /** returns current cached data duration in seconds */
-  double delay = (double)m_CacheLen / (double)m_AvgBytesPerSec;
-  return delay;
+  status.SetDelay((double)m_CacheLen / (double)m_AvgBytesPerSec);
 }
 
 double CAESinkDirectSound::GetCacheTotal()

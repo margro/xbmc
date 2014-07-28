@@ -19,7 +19,6 @@
  */
 
 #include "GUIDialogNetworkSetup.h"
-#include "guilib/GUISpinControlEx.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIEditControl.h"
@@ -96,7 +95,7 @@ bool CGUIDialogNetworkSetup::OnMessage(CGUIMessage& message)
 
 // \brief Show CGUIDialogNetworkSetup dialog and prompt for a new network address.
 // \return True if the network address is valid, false otherwise.
-bool CGUIDialogNetworkSetup::ShowAndGetNetworkAddress(CStdString &path)
+bool CGUIDialogNetworkSetup::ShowAndGetNetworkAddress(std::string &path)
 {
   CGUIDialogNetworkSetup *dialog = (CGUIDialogNetworkSetup *)g_windowManager.GetWindow(WINDOW_DIALOG_NETWORK_SETUP);
   if (!dialog) return false;
@@ -113,49 +112,45 @@ void CGUIDialogNetworkSetup::OnInitWindow()
   m_confirmed = false;
 
   CGUIDialog::OnInitWindow();
-  // Add our protocols
-  CGUISpinControlEx *pSpin = (CGUISpinControlEx *)GetControl(CONTROL_PROTOCOL);
-  if (!pSpin)
-    return;
 
-  pSpin->Clear();
+  // Add our protocols
+  std::vector< std::pair<std::string, int> > labels;
 #ifdef HAS_FILESYSTEM_SMB
-  pSpin->AddLabel(g_localizeStrings.Get(20171), NET_PROTOCOL_SMB);
+  labels.push_back(make_pair(g_localizeStrings.Get(20171), NET_PROTOCOL_SMB));
 #endif
-  pSpin->AddLabel(g_localizeStrings.Get(20256), NET_PROTOCOL_HTSP);
-  pSpin->AddLabel(g_localizeStrings.Get(20257), NET_PROTOCOL_VTP);
+  labels.push_back(make_pair(g_localizeStrings.Get(20256), NET_PROTOCOL_HTSP));
+  labels.push_back(make_pair(g_localizeStrings.Get(20257), NET_PROTOCOL_VTP));
 #ifdef HAS_MYSQL
-  pSpin->AddLabel(g_localizeStrings.Get(20258), NET_PROTOCOL_MYTH);
+  labels.push_back(make_pair(g_localizeStrings.Get(20258), NET_PROTOCOL_MYTH));
 #endif
-  pSpin->AddLabel(g_localizeStrings.Get(21331), NET_PROTOCOL_TUXBOX);
-  pSpin->AddLabel(g_localizeStrings.Get(20301), NET_PROTOCOL_HTTPS);
-  pSpin->AddLabel(g_localizeStrings.Get(20300), NET_PROTOCOL_HTTP);
-  pSpin->AddLabel(g_localizeStrings.Get(20254), NET_PROTOCOL_DAVS);
-  pSpin->AddLabel(g_localizeStrings.Get(20253), NET_PROTOCOL_DAV);
-  pSpin->AddLabel(g_localizeStrings.Get(20173), NET_PROTOCOL_FTP);
-  pSpin->AddLabel(g_localizeStrings.Get(20174), NET_PROTOCOL_DAAP);
-  pSpin->AddLabel(g_localizeStrings.Get(20175), NET_PROTOCOL_UPNP);
-  pSpin->AddLabel(g_localizeStrings.Get(20304), NET_PROTOCOL_RSS);
+  labels.push_back(make_pair(g_localizeStrings.Get(21331), NET_PROTOCOL_TUXBOX));
+  labels.push_back(make_pair(g_localizeStrings.Get(20301), NET_PROTOCOL_HTTPS));
+  labels.push_back(make_pair(g_localizeStrings.Get(20300), NET_PROTOCOL_HTTP));
+  labels.push_back(make_pair(g_localizeStrings.Get(20254), NET_PROTOCOL_DAVS));
+  labels.push_back(make_pair(g_localizeStrings.Get(20253), NET_PROTOCOL_DAV));
+  labels.push_back(make_pair(g_localizeStrings.Get(20173), NET_PROTOCOL_FTP));
+  labels.push_back(make_pair(g_localizeStrings.Get(20174), NET_PROTOCOL_DAAP));
+  labels.push_back(make_pair(g_localizeStrings.Get(20175), NET_PROTOCOL_UPNP));
+  labels.push_back(make_pair(g_localizeStrings.Get(20304), NET_PROTOCOL_RSS));
 #ifdef HAS_FILESYSTEM_NFS
-  pSpin->AddLabel(g_localizeStrings.Get(20259), NET_PROTOCOL_NFS);
+  labels.push_back(make_pair(g_localizeStrings.Get(20259), NET_PROTOCOL_NFS));
 #endif
 #ifdef HAS_FILESYSTEM_SFTP
-  pSpin->AddLabel(g_localizeStrings.Get(20260), NET_PROTOCOL_SFTP);
+  labels.push_back(make_pair(g_localizeStrings.Get(20260), NET_PROTOCOL_SFTP));
 #endif
 #ifdef HAS_FILESYSTEM_AFP
-  pSpin->AddLabel(g_localizeStrings.Get(20261), NET_PROTOCOL_AFP);
+  labels.push_back(make_pair(g_localizeStrings.Get(20261), NET_PROTOCOL_AFP));
 #endif
 
-  pSpin->SetValue(m_protocol);
+  SET_CONTROL_LABELS(CONTROL_PROTOCOL, m_protocol, &labels);
   OnProtocolChange();
 }
 
 void CGUIDialogNetworkSetup::OnDeinitWindow(int nextWindowID)
 {
   // clear protocol spinner
-  CGUISpinControlEx *pSpin = (CGUISpinControlEx *)GetControl(CONTROL_PROTOCOL);
-  if (pSpin)
-    pSpin->Clear();
+  CGUIMessage msg(GUI_MSG_LABEL_RESET, GetID(), CONTROL_PROTOCOL);
+  OnMessage(msg);
 
   CGUIDialog::OnDeinitWindow(nextWindowID);
 }
@@ -164,11 +159,11 @@ void CGUIDialogNetworkSetup::OnServerBrowse()
 {
   // open a filebrowser dialog with the current address
   VECSOURCES shares;
-  CStdString path = ConstructPath();
+  std::string path = ConstructPath();
   // get the share as the base path
   CMediaSource share;
-  CStdString basePath = path;
-  CStdString tempPath;
+  std::string basePath = path;
+  std::string tempPath;
   while (URIUtils::GetParentPath(basePath, tempPath))
     basePath = tempPath;
   share.strPath = basePath;
@@ -197,10 +192,10 @@ void CGUIDialogNetworkSetup::OnCancel()
 
 void CGUIDialogNetworkSetup::OnProtocolChange()
 {
-  CGUISpinControlEx *pSpin = (CGUISpinControlEx *)GetControl(CONTROL_PROTOCOL);
-  if (!pSpin)
+  CGUIMessage msg(GUI_MSG_ITEM_SELECTED, GetID(), CONTROL_PROTOCOL);
+  if (!OnMessage(msg))
     return;
-  m_protocol = (NET_PROTOCOL)pSpin->GetValue();
+  m_protocol = (NET_PROTOCOL)msg.GetParam1();
   // set defaults for the port
   if (m_protocol == NET_PROTOCOL_FTP)
     m_port = "21";
@@ -320,7 +315,7 @@ void CGUIDialogNetworkSetup::UpdateButtons()
                                                                               m_protocol == NET_PROTOCOL_AFP));
 }
 
-CStdString CGUIDialogNetworkSetup::ConstructPath() const
+std::string CGUIDialogNetworkSetup::ConstructPath() const
 {
   CURL url;
   if (m_protocol == NET_PROTOCOL_SMB)
@@ -379,48 +374,47 @@ CStdString CGUIDialogNetworkSetup::ConstructPath() const
        (m_protocol == NET_PROTOCOL_NFS))
       && !m_port.empty() && atoi(m_port.c_str()) > 0)
   {
-    url.SetPort(atoi(m_port));
+    url.SetPort(atoi(m_port.c_str()));
   }
   if (!m_path.empty())
     url.SetFileName(m_path);
   return url.Get();
 }
 
-void CGUIDialogNetworkSetup::SetPath(const CStdString &path)
+void CGUIDialogNetworkSetup::SetPath(const std::string &path)
 {
   CURL url(path);
-  const CStdString &protocol = url.GetProtocol();
-  if (protocol == "smb")
+  if (url.IsProtocol("smb"))
     m_protocol = NET_PROTOCOL_SMB;
-  else if (protocol == "ftp")
+  else if (url.IsProtocol("ftp"))
     m_protocol = NET_PROTOCOL_FTP;
-  else if (protocol == "http")
+  else if (url.IsProtocol("http"))
     m_protocol = NET_PROTOCOL_HTTP;
-  else if (protocol == "https")
+  else if (url.IsProtocol("https"))
     m_protocol = NET_PROTOCOL_HTTPS;
-  else if (protocol == "dav")
+  else if (url.IsProtocol("dav"))
     m_protocol = NET_PROTOCOL_DAV;
-  else if (protocol == "davs")
+  else if (url.IsProtocol("davs"))
     m_protocol = NET_PROTOCOL_DAVS;
-  else if (protocol == "daap")
+  else if (url.IsProtocol("daap"))
     m_protocol = NET_PROTOCOL_DAAP;
-  else if (protocol == "upnp")
+  else if (url.IsProtocol("upnp"))
     m_protocol = NET_PROTOCOL_UPNP;
-  else if (protocol == "tuxbox")
+  else if (url.IsProtocol("tuxbox"))
     m_protocol = NET_PROTOCOL_TUXBOX;
-  else if (protocol == "htsp")
+  else if (url.IsProtocol("htsp"))
     m_protocol = NET_PROTOCOL_HTSP;
-  else if (protocol == "vtp")
+  else if (url.IsProtocol("vtp"))
     m_protocol = NET_PROTOCOL_VTP;
-  else if (protocol == "myth")
+  else if (url.IsProtocol("myth"))
     m_protocol = NET_PROTOCOL_MYTH;
-  else if (protocol == "rss")
+  else if (url.IsProtocol("rss"))
     m_protocol = NET_PROTOCOL_RSS;
-  else if (protocol == "nfs")
+  else if (url.IsProtocol("nfs"))
     m_protocol = NET_PROTOCOL_NFS;
-  else if (protocol == "sftp" || protocol == "ssh")
+  else if (url.IsProtocol("sftp") || url.IsProtocol("ssh"))
     m_protocol = NET_PROTOCOL_SFTP;
-  else if (protocol == "afp")
+  else if (url.IsProtocol("afp"))
     m_protocol = NET_PROTOCOL_AFP;
   else
     m_protocol = NET_PROTOCOL_SMB;  // default to smb

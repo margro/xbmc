@@ -105,7 +105,6 @@
 #include "utils/StreamDetails.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannel.h"
-#include "pvr/windows/GUIWindowPVR.h"
 #include "pvr/addons/PVRClients.h"
 #include "filesystem/PVRFile.h"
 #include "video/dialogs/GUIDialogFullScreenInfo.h"
@@ -235,7 +234,7 @@ static bool PredicateAudioPriority(const OMXSelectionStream& lh, const OMXSelect
 
   if(!StringUtils::EqualsNoCase(CSettings::Get().GetString("locale.audiolanguage"), "original"))
   {
-    CStdString audio_language = g_langInfo.GetAudioLanguage();
+    std::string audio_language = g_langInfo.GetAudioLanguage();
     PREDICATE_RETURN(g_LangCodeExpander.CompareLangCodes(audio_language, lh.language)
                    , g_LangCodeExpander.CompareLangCodes(audio_language, rh.language));
   }
@@ -307,7 +306,7 @@ public:
                      , rh.flags & CDemuxStream::FLAG_FORCED);
     }
 
-    CStdString subtitle_language = g_langInfo.GetSubtitleLanguage();
+    std::string subtitle_language = g_langInfo.GetSubtitleLanguage();
     if(!original)
     {
       PREDICATE_RETURN((STREAM_SOURCE_MASK(lh.source) == STREAM_SOURCE_DEMUX_SUB || STREAM_SOURCE_MASK(lh.source) == STREAM_SOURCE_TEXT) && g_LangCodeExpander.CompareLangCodes(subtitle_language, lh.language)
@@ -507,7 +506,7 @@ void COMXSelectionStreams::Update(CDVDInputStream* input, CDVDDemux* demuxer)
       s.flags    = stream->flags;
       s.filename = demuxer->GetFileName();
       stream->GetStreamName(s.name);
-      CStdString codec;
+      std::string codec;
       demuxer->GetStreamCodecName(stream->iId, codec);
       s.codec    = codec;
       s.channels = 0; // Default to 0. Overwrite if STREAM_AUDIO below.
@@ -566,19 +565,11 @@ COMXPlayer::COMXPlayer(IPlayerCallback &callback)
   m_stamp             = 0.0;
 
   memset(&m_SpeedState, 0, sizeof(m_SpeedState));
-
-#ifdef DVDDEBUG_MESSAGE_TRACKER
-  g_dvdMessageTracker.Init();
-#endif
 }
 
 COMXPlayer::~COMXPlayer()
 {
   CloseFile();
-
-#ifdef DVDDEBUG_MESSAGE_TRACKER
-  g_dvdMessageTracker.DeInit();
-#endif
 }
 
 bool COMXPlayer::OpenFile(const CFileItem &file, const CPlayerOptions &options)
@@ -691,8 +682,8 @@ bool COMXPlayer::OpenInputStream()
   CLog::Log(LOGNOTICE, "Creating InputStream");
 
   // correct the filename if needed
-  CStdString filename(m_filename);
-  if (StringUtils::StartsWith(filename, "dvd://")
+  std::string filename(m_filename);
+  if (URIUtils::IsProtocol(filename, "dvd")
   ||  StringUtils::EqualsNoCase(filename, "iso9660://video_ts/video_ts.ifo"))
   {
     m_filename = g_mediaManager.TranslateDevicePath("");
@@ -726,11 +717,11 @@ bool COMXPlayer::OpenInputStream()
   &&  !m_pInputStream->IsStreamType(DVDSTREAM_TYPE_HTSP))
   {
     // find any available external subtitles
-    std::vector<CStdString> filenames;
+    std::vector<std::string> filenames;
     CUtil::ScanForExternalSubtitles( m_filename, filenames );
 
     // find any upnp subtitles
-    CStdString key("upnp:subtitle:1");
+    std::string key("upnp:subtitle:1");
     for(unsigned s = 1; m_item.HasProperty(key); key = StringUtils::Format("upnp:subtitle:%u", ++s))
       filenames.push_back(m_item.GetProperty(key).asString());
 
@@ -739,7 +730,7 @@ bool COMXPlayer::OpenInputStream()
       // if vobsub subtitle:
       if (URIUtils::HasExtension(filenames[i], ".idx"))
       {
-        CStdString strSubFile;
+        std::string strSubFile;
         if ( CUtil::FindVobSubPair( filenames, filenames[i], strSubFile ) )
           AddSubtitleFile(filenames[i], strSubFile);
       }
@@ -1822,10 +1813,6 @@ void COMXPlayer::HandlePlaySpeed()
           bGotAudio, m_omxPlayerAudio.GetLevel(),
           bGotVideo, m_omxPlayerVideo.GetLevel());
 
-      CFileItem currentItem(g_application.CurrentFileItem());
-      if (currentItem.HasPVRChannelInfoTag())
-        g_PVRManager.LoadCurrentChannelSettings();
-
       caching = CACHESTATE_DONE;
     }
     else
@@ -2251,25 +2238,14 @@ void COMXPlayer::OnExit()
     // close each stream
     if (!m_bAbortRequest) CLog::Log(LOGNOTICE, "OMXPlayer: eof, waiting for queues to empty");
     if (m_CurrentAudio.id >= 0)
-    {
-      CLog::Log(LOGNOTICE, "OMXPlayer: closing audio stream");
       CloseAudioStream(!m_bAbortRequest);
-    }
     if (m_CurrentVideo.id >= 0)
-    {
-      CLog::Log(LOGNOTICE, "OMXPlayer: closing video stream");
       CloseVideoStream(!m_bAbortRequest);
-    }
     if (m_CurrentSubtitle.id >= 0)
-    {
-      CLog::Log(LOGNOTICE, "OMXPlayer: closing subtitle stream");
       CloseSubtitleStream(!m_bAbortRequest);
-    }
     if (m_CurrentTeletext.id >= 0)
-    {
-      CLog::Log(LOGNOTICE, "OMXPlayer: closing teletext stream");
       CloseTeletextStream(!m_bAbortRequest);
-    }
+    
     // destroy the demuxer
     if (m_pDemuxer)
     {
@@ -2743,7 +2719,7 @@ void COMXPlayer::Pause()
     return;
   lock.Leave();
 
-  if(m_playSpeed != DVD_PLAYSPEED_PAUSE && (m_caching == CACHESTATE_FULL || m_caching == CACHESTATE_PVR))
+  if(m_playSpeed != DVD_PLAYSPEED_PAUSE && IsCaching())
   {
     SetCaching(CACHESTATE_DONE);
     return;
@@ -2764,7 +2740,7 @@ void COMXPlayer::Pause()
 
 bool COMXPlayer::IsPaused() const
 {
-  return m_playSpeed == DVD_PLAYSPEED_PAUSE || m_caching == CACHESTATE_FULL || m_caching == CACHESTATE_PVR;
+  return m_playSpeed == DVD_PLAYSPEED_PAUSE || IsCaching();
 }
 
 bool COMXPlayer::HasVideo() const
@@ -2924,7 +2900,7 @@ bool COMXPlayer::SeekScene(bool bPlus)
   return false;
 }
 
-void COMXPlayer::GetAudioInfo(CStdString &strAudioInfo)
+void COMXPlayer::GetAudioInfo(std::string &strAudioInfo)
 {
   { CSingleLock lock(m_StateSection);
     strAudioInfo = StringUtils::Format("D(%s)", m_StateInput.demux_audio.c_str());
@@ -2932,7 +2908,7 @@ void COMXPlayer::GetAudioInfo(CStdString &strAudioInfo)
   strAudioInfo += StringUtils::Format("\nP(%s)", m_omxPlayerAudio.GetPlayerInfo().c_str());
 }
 
-void COMXPlayer::GetVideoInfo(CStdString &strVideoInfo)
+void COMXPlayer::GetVideoInfo(std::string &strVideoInfo)
 {
   { CSingleLock lock(m_StateSection);
     strVideoInfo = StringUtils::Format("D(%s)", m_StateInput.demux_video.c_str());
@@ -2940,7 +2916,7 @@ void COMXPlayer::GetVideoInfo(CStdString &strVideoInfo)
   strVideoInfo += StringUtils::Format("\nP(%s)", m_omxPlayerVideo.GetPlayerInfo().c_str());
 }
 
-void COMXPlayer::GetGeneralInfo(CStdString& strGeneralInfo)
+void COMXPlayer::GetGeneralInfo(std::string& strGeneralInfo)
 {
   if (!m_bStop)
   {
@@ -2951,9 +2927,9 @@ void COMXPlayer::GetGeneralInfo(CStdString& strGeneralInfo)
     if( apts != DVD_NOPTS_VALUE && vpts != DVD_NOPTS_VALUE )
       dDiff = (apts - vpts) / DVD_TIME_BASE;
 
-    CStdString strEDL = StringUtils::Format(", edl:%s", m_Edl.GetInfo().c_str());
+    std::string strEDL = StringUtils::Format(", edl:%s", m_Edl.GetInfo().c_str());
 
-    CStdString strBuf;
+    std::string strBuf;
     CSingleLock lock(m_StateSection);
     if(m_StateInput.cache_bytes >= 0)
     {
@@ -3845,10 +3821,9 @@ bool COMXPlayer::ShowPVRChannelInfo(void)
 {
   bool bReturn(false);
 
-  if (CSettings::Get().GetBool("pvrmenu.infoswitch"))
+  if (CSettings::Get().GetInt("pvrmenu.displaychannelinfo") > 0)
   {
-    int iTimeout = CSettings::Get().GetBool("pvrmenu.infotimeout") ? CSettings::Get().GetInt("pvrmenu.infotime") : 0;
-    g_PVRManager.ShowPlayerInfo(iTimeout);
+    g_PVRManager.ShowPlayerInfo(CSettings::Get().GetInt("pvrmenu.displaychannelinfo"));
 
     bReturn = true;
   }
@@ -4130,13 +4105,13 @@ bool COMXPlayer::HasMenu()
     return false;
 }
 
-CStdString COMXPlayer::GetPlayerState()
+std::string COMXPlayer::GetPlayerState()
 {
   CSingleLock lock(m_StateSection);
   return m_State.player_state;
 }
 
-bool COMXPlayer::SetPlayerState(CStdString state)
+bool COMXPlayer::SetPlayerState(std::string state)
 {
   m_messenger.Put(new CDVDMsgPlayerSetState(state));
   return true;
@@ -4154,7 +4129,7 @@ int COMXPlayer::GetChapter()
   return m_State.chapter;
 }
 
-void COMXPlayer::GetChapterName(CStdString& strChapterName)
+void COMXPlayer::GetChapterName(std::string& strChapterName)
 {
   CSingleLock lock(m_StateSection);
   strChapterName = m_State.chapter_name;
@@ -4177,7 +4152,7 @@ int COMXPlayer::SeekChapter(int iChapter)
   return 0;
 }
 
-int COMXPlayer::AddSubtitle(const CStdString& strSubPath)
+int COMXPlayer::AddSubtitle(const std::string& strSubPath)
 {
   return AddSubtitleFile(strSubPath);
 }
@@ -4199,7 +4174,7 @@ void COMXPlayer::GetVideoStreamInfo(SPlayerVideoStreamInfo &info)
 {
   info.bitrate = m_omxPlayerVideo.GetVideoBitrate();
 
-  CStdString retVal;
+  std::string retVal;
   if (m_pDemuxer && (m_CurrentVideo.id != -1))
   {
     m_pDemuxer->GetStreamCodecName(m_CurrentVideo.id, retVal);
@@ -4256,7 +4231,7 @@ void COMXPlayer::GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info)
     if (stream)
     {
       info.channels = stream->iChannels;
-      CStdString codecName;
+      std::string codecName;
       m_pDemuxer->GetStreamCodecName(stream->iId, codecName);
       info.audioCodecName = codecName;
     }
@@ -4269,8 +4244,12 @@ int COMXPlayer::AddSubtitleFile(const std::string& filename, const std::string& 
   std::string vobsubfile = subfilename;
   if(ext == ".idx")
   {
-    if (vobsubfile.empty())
-      vobsubfile = URIUtils::ReplaceExtension(filename, ".sub");
+    if (vobsubfile.empty()) {
+      // find corresponding .sub (e.g. in case of manually selected .idx sub)
+      vobsubfile = CUtil::GetVobSubSubFromIdx(filename);
+      if (vobsubfile.empty())
+        return -1;
+    }
 
     CDVDDemuxVobsub v;
     if(!v.Open(filename, vobsubfile))
@@ -4294,9 +4273,10 @@ int COMXPlayer::AddSubtitleFile(const std::string& filename, const std::string& 
   }
   if(ext == ".sub")
   {
-    CStdString strReplace(URIUtils::ReplaceExtension(filename,".idx"));
-    if (XFILE::CFile::Exists(strReplace))
-      return -1;
+    // if this looks like vobsub file (i.e. .idx found), add it as such
+    std::string vobsubidx = CUtil::GetVobSubIdxFromSub(filename);
+    if (!vobsubidx.empty())
+      return AddSubtitleFile(vobsubidx, filename, flags);
   }
   OMXSelectionStream s;
   s.source   = m_SelectionStreams.Source(STREAM_SOURCE_TEXT, filename);
@@ -4531,7 +4511,7 @@ bool COMXPlayer::GetStreamDetails(CStreamDetails &details)
     return false;
 }
 
-CStdString COMXPlayer::GetPlayingTitle()
+std::string COMXPlayer::GetPlayingTitle()
 {
   /* Currently we support only Title Name from Teletext line 30 */
   TextCacheStruct_t* ttcache = m_dvdPlayerTeletext.GetTeletextCache();
@@ -4552,11 +4532,6 @@ bool COMXPlayer::SwitchChannel(const CPVRChannel &channel)
 
   UpdateApplication(0);
   UpdatePlayState(0);
-
-  /* make sure the pvr window is updated */
-  CGUIWindowPVR *pWindow = (CGUIWindowPVR *) g_windowManager.GetWindow(WINDOW_PVR);
-  if (pWindow)
-    pWindow->SetInvalid();
 
   /* select the new channel */
   m_messenger.Put(new CDVDMsgType<CPVRChannel>(CDVDMsg::PLAYER_CHANNEL_SELECT, channel));

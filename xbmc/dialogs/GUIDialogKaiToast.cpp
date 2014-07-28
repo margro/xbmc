@@ -19,7 +19,6 @@
  */
 
 #include "GUIDialogKaiToast.h"
-#include "guilib/GUIImage.h"
 #include "guilib/GUIAudioManager.h"
 #include "guilib/GUIWindowManager.h"
 #include "threads/SingleLock.h"
@@ -72,27 +71,26 @@ bool CGUIDialogKaiToast::OnMessage(CGUIMessage& message)
 void CGUIDialogKaiToast::OnWindowLoaded()
 {
   CGUIDialog::OnWindowLoaded();
-  CGUIImage *image = (CGUIImage *)GetControl(POPUP_ICON);
-  if (image)
-    m_defaultIcon = image->GetFileName();
+  CGUIMessage msg(GUI_MSG_GET_FILENAME, GetID(), POPUP_ICON);
+  m_defaultIcon = msg.GetLabel();
 }
 
-void CGUIDialogKaiToast::QueueNotification(eMessageType eType, const CStdString& aCaption, const CStdString& aDescription, unsigned int displayTime /*= TOAST_DISPLAY_TIME*/, bool withSound /*= true*/, unsigned int messageTime /*= TOAST_MESSAGE_TIME*/)
+void CGUIDialogKaiToast::QueueNotification(eMessageType eType, const std::string& aCaption, const std::string& aDescription, unsigned int displayTime /*= TOAST_DISPLAY_TIME*/, bool withSound /*= true*/, unsigned int messageTime /*= TOAST_MESSAGE_TIME*/)
 {
   AddToQueue("", eType, aCaption, aDescription, displayTime, withSound, messageTime);
 }
 
-void CGUIDialogKaiToast::QueueNotification(const CStdString& aCaption, const CStdString& aDescription)
+void CGUIDialogKaiToast::QueueNotification(const std::string& aCaption, const std::string& aDescription)
 {
   QueueNotification("", aCaption, aDescription);
 }
 
-void CGUIDialogKaiToast::QueueNotification(const CStdString& aImageFile, const CStdString& aCaption, const CStdString& aDescription, unsigned int displayTime /*= TOAST_DISPLAY_TIME*/, bool withSound /*= true*/, unsigned int messageTime /*= TOAST_MESSAGE_TIME*/)
+void CGUIDialogKaiToast::QueueNotification(const std::string& aImageFile, const std::string& aCaption, const std::string& aDescription, unsigned int displayTime /*= TOAST_DISPLAY_TIME*/, bool withSound /*= true*/, unsigned int messageTime /*= TOAST_MESSAGE_TIME*/)
 {
   AddToQueue(aImageFile, Default, aCaption, aDescription, displayTime, withSound, messageTime);
 }
 
-void CGUIDialogKaiToast::AddToQueue(const CStdString& aImageFile, const eMessageType eType, const CStdString& aCaption, const CStdString& aDescription, unsigned int displayTime /*= TOAST_DISPLAY_TIME*/, bool withSound /*= true*/, unsigned int messageTime /*= TOAST_MESSAGE_TIME*/)
+void CGUIDialogKaiToast::AddToQueue(const std::string& aImageFile, const eMessageType eType, const std::string& aCaption, const std::string& aDescription, unsigned int displayTime /*= TOAST_DISPLAY_TIME*/, bool withSound /*= true*/, unsigned int messageTime /*= TOAST_MESSAGE_TIME*/)
 {
   CSingleLock lock(m_critical);
 
@@ -131,31 +129,29 @@ bool CGUIDialogKaiToast::DoWork()
 
     SET_CONTROL_LABEL(POPUP_NOTIFICATION_BUTTON, toast.description);
 
-    CGUIImage *image = (CGUIImage *)GetControl(POPUP_ICON);
-    if (image)
+    // set the appropriate icon
     {
-      CStdString strTypeImage = toast.imagefile;
+      std::string strTypeImage = toast.imagefile;
 
       if (strTypeImage.empty())
       {
-        CGUIImage *typeImage = NULL;
+        int imageControl = POPUP_ICON;
 
         if (toast.eType == Info)
-          typeImage = (CGUIImage *)GetControl(POPUP_ICON_INFO);
+          imageControl = POPUP_ICON_INFO;
         else if (toast.eType == Warning)
-          typeImage = (CGUIImage *)GetControl(POPUP_ICON_WARNING);
+          imageControl = POPUP_ICON_WARNING;
         else if (toast.eType == Error)
-          typeImage = (CGUIImage *)GetControl(POPUP_ICON_ERROR);
-        else
-          typeImage = image;
+          imageControl = POPUP_ICON_ERROR;
 
-        if (typeImage)
-          strTypeImage = typeImage->GetFileName();
+        CGUIMessage msg(GUI_MSG_GET_FILENAME, GetID(), imageControl);
+        if (OnMessage(msg))
+          strTypeImage = msg.GetLabel();
         else
           strTypeImage = m_defaultIcon;
       }
 
-      image->SetFileName(strTypeImage);
+      SET_CONTROL_FILENAME(POPUP_ICON, strTypeImage);
     }
 
     //  Play the window specific init sound for each notification queued

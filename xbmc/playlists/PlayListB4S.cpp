@@ -26,6 +26,7 @@
 #include "filesystem/File.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
+#include "utils/XMLUtils.h"
 
 using namespace XFILE;
 using namespace PLAYLIST;
@@ -71,14 +72,14 @@ bool CPlayListB4S::LoadData(istream& stream)
 
   TiXmlElement* pPlayListElement = pRootElement->FirstChildElement("playlist");
   if (!pPlayListElement ) return false;
-  m_strPlayListName = pPlayListElement->Attribute("label");
+  m_strPlayListName = XMLUtils::GetAttribute(pPlayListElement, "label");
 
   TiXmlElement* pEntryElement = pPlayListElement->FirstChildElement("entry");
 
   if (!pEntryElement) return false;
   while (pEntryElement)
   {
-    CStdString strFileName = pEntryElement->Attribute("Playstring");
+    std::string strFileName = XMLUtils::GetAttribute(pEntryElement, "Playstring");
     size_t iColon = strFileName.find(":");
     if (iColon != std::string::npos)
     {
@@ -96,7 +97,7 @@ bool CPlayListB4S::LoadData(istream& stream)
       }
       if (pNodeInfo)
       {
-        CStdString strInfo = pNodeInfo->FirstChild()->Value();
+        std::string strInfo = pNodeInfo->FirstChild()->Value();
         strFileName = URIUtils::SubstitutePath(strFileName);
         CUtil::GetQualifiedFilename(m_strBasePath, strFileName);
         CFileItemPtr newItem(new CFileItem(strInfo));
@@ -110,10 +111,10 @@ bool CPlayListB4S::LoadData(istream& stream)
   return true;
 }
 
-void CPlayListB4S::Save(const CStdString& strFileName) const
+void CPlayListB4S::Save(const std::string& strFileName) const
 {
   if (!m_vecItems.size()) return ;
-  CStdString strPlaylist = strFileName;
+  std::string strPlaylist = strFileName;
   strPlaylist = CUtil::MakeLegalPath(strPlaylist);
   CFile file;
   if (!file.OpenForWrite(strPlaylist, true))
@@ -121,7 +122,7 @@ void CPlayListB4S::Save(const CStdString& strFileName) const
     CLog::Log(LOGERROR, "Could not save B4S playlist: [%s]", strPlaylist.c_str());
     return ;
   }
-  CStdString write;
+  std::string write;
   write += StringUtils::Format("<?xml version=%c1.0%c encoding='UTF-8' standalone=%cyes%c?>\n", 34, 34, 34, 34);
   write += StringUtils::Format("<WinampXML>\n");
   write += StringUtils::Format("  <playlist num_entries=%c%i%c label=%c%s%c>\n", 34, m_vecItems.size(), 34, 34, m_strPlayListName.c_str(), 34);

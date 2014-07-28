@@ -136,7 +136,7 @@ int DllLibbluray::dir_read(BD_DIR_H *dir, BD_DIRENT *entry)
     if(state->curr >= state->list.Size())
       return 1;
 
-    strncpy(entry->d_name, state->list[state->curr]->GetLabel(), sizeof(entry->d_name));
+    strncpy(entry->d_name, state->list[state->curr]->GetLabel().c_str(), sizeof(entry->d_name));
     entry->d_name[sizeof(entry->d_name)-1] = 0;
     state->curr++;
 
@@ -148,7 +148,7 @@ BD_DIR_H *DllLibbluray::dir_open(const char* dirname)
     CLog::Log(LOGDEBUG, "CDVDInputStreamBluray - Opening dir %s\n", dirname);
     SDirState *st = new SDirState();
 
-    CStdString strDirname(dirname);
+    std::string strDirname(dirname);
 
     if(!CDirectory::GetDirectory(strDirname, st->list))
     {
@@ -255,11 +255,11 @@ bool CDVDInputStreamBluray::Open(const char* strFile, const std::string& content
   if(m_player == NULL)
     return false;
 
-  CStdString strPath(strFile);
-  CStdString filename;
-  CStdString root;
+  std::string strPath(strFile);
+  std::string filename;
+  std::string root;
 
-  if(StringUtils::StartsWithNoCase(strPath, "bluray:"))
+  if(URIUtils::IsProtocol(strPath, "bluray"))
   {
     CURL url(strPath);
     root     = url.GetHostName();
@@ -351,7 +351,7 @@ bool CDVDInputStreamBluray::Open(const char* strFile, const std::string& content
     return false;
   }
 
-  if(filename.Equals("index.bdmv"))
+  if(StringUtils::EqualsNoCase(filename, "index.bdmv"))
   {
     m_navmode = false;
     m_title = GetTitleLongest();
@@ -361,7 +361,7 @@ bool CDVDInputStreamBluray::Open(const char* strFile, const std::string& content
     m_navmode = false;
     m_title = GetTitleFile(filename);
   }
-  else if(filename.Equals("MovieObject.bdmv"))
+  else if(StringUtils::EqualsNoCase(filename, "MovieObject.bdmv"))
   {
     m_navmode = true;
     if (m_navmode && !disc_info->first_play_supported) {
@@ -945,12 +945,12 @@ int64_t CDVDInputStreamBluray::Seek(int64_t offset, int whence)
   int64_t pos = m_dll->bd_seek(m_bd, offset);
   if(pos < 0)
   {
-    CLog::Log(LOGERROR, "CDVDInputStreamBluray::Seek - seek to %"PRId64", failed with %"PRId64, offset, pos);
+    CLog::Log(LOGERROR, "CDVDInputStreamBluray::Seek - seek to %" PRId64", failed with %" PRId64, offset, pos);
     return -1;
   }
 
   if(pos != offset)
-    CLog::Log(LOGWARNING, "CDVDInputStreamBluray::Seek - seek to %"PRId64", ended at %"PRId64, offset, pos);
+    CLog::Log(LOGWARNING, "CDVDInputStreamBluray::Seek - seek to %" PRId64", ended at %" PRId64, offset, pos);
 
   return offset;
 #else

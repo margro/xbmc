@@ -24,6 +24,7 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/LocalizeStrings.h"
+#include "utils/StringUtils.h"
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
@@ -169,8 +170,19 @@ bool CGUIDialogPVRGuideInfo::OnClickButtonSwitch(CGUIMessage &message)
   {
     Close();
     PlayBackRet ret = PLAYBACK_CANCELED;
-    if (!m_progItem->GetEPGInfoTag()->HasPVRChannel() ||
-        (ret = g_application.PlayFile(CFileItem(*m_progItem->GetEPGInfoTag()->ChannelTag()))) == PLAYBACK_FAIL)
+    CEpgInfoTag *epgTag = m_progItem->GetEPGInfoTag();
+
+    if (epgTag)
+    {
+      if (epgTag->HasRecording())
+        ret = g_application.PlayFile(CFileItem(*epgTag->Recording()));
+      else if (epgTag->HasPVRChannel())
+        ret = g_application.PlayFile(CFileItem(*epgTag->ChannelTag()));
+    }
+    else
+      ret = PLAYBACK_FAIL;
+
+    if (ret == PLAYBACK_FAIL)
     {
       CStdString msg = StringUtils::Format(g_localizeStrings.Get(19035).c_str(), g_localizeStrings.Get(19029).c_str()); // Channel could not be played. Check the log for details.
       CGUIDialogOK::ShowAndGetInput(19033, 0, msg, 0);

@@ -77,13 +77,13 @@ namespace XBMCAddon
 
     protected:
       // CGUIWindow
-      virtual bool LoadXML(const CStdString &strPath, const CStdString &strPathLower)
+      virtual bool LoadXML(const std::string &strPath, const std::string &strPathLower)
       { XBMC_TRACE; return up() ? CGUIMediaWindow::LoadXML(strPath,strPathLower) : xwin->LoadXML(strPath,strPathLower); }
 
       // CGUIMediaWindow
       virtual void GetContextButtons(int itemNumber, CContextButtons &buttons)
       { XBMC_TRACE; if (up()) CGUIMediaWindow::GetContextButtons(itemNumber,buttons); else xwin->GetContextButtons(itemNumber,buttons); }
-      virtual bool Update(const CStdString &strPath)
+      virtual bool Update(const std::string &strPath)
       { XBMC_TRACE; return up() ? CGUIMediaWindow::Update(strPath) : xwin->Update(strPath); }
       virtual void SetupShares() { XBMC_TRACE; if(up()) CGUIMediaWindow::SetupShares(); else checkedv(SetupShares()); }
 
@@ -102,18 +102,18 @@ namespace XBMCAddon
     {
       XBMC_TRACE;
       RESOLUTION_INFO res;
-      CStdString strSkinPath = g_SkinInfo->GetSkinPath(xmlFilename, &res);
+      std::string strSkinPath = g_SkinInfo->GetSkinPath(xmlFilename, &res);
 
       if (!XFILE::CFile::Exists(strSkinPath))
       {
-        CStdString str("none");
+        std::string str("none");
         ADDON::AddonProps props(str, ADDON::ADDON_SKIN, "", "");
         ADDON::CSkinInfo::TranslateResolution(defaultRes, res);
 
         // Check for the matching folder for the skin in the fallback skins folder
-        CStdString fallbackPath = URIUtils::AddFileToFolder(scriptPath, "resources");
+        std::string fallbackPath = URIUtils::AddFileToFolder(scriptPath, "resources");
         fallbackPath = URIUtils::AddFileToFolder(fallbackPath, "skins");
-        CStdString basePath = URIUtils::AddFileToFolder(fallbackPath, g_SkinInfo->ID());
+        std::string basePath = URIUtils::AddFileToFolder(fallbackPath, g_SkinInfo->ID());
 
         strSkinPath = g_SkinInfo->GetSkinPath(xmlFilename, &res, basePath);
 
@@ -382,8 +382,8 @@ namespace XBMCAddon
     void WindowXML::AllocResources(bool forceLoad /*= FALSE */)
     {
       XBMC_TRACE;
-      CStdString tmpDir = URIUtils::GetDirectory(ref(window)->GetProperty("xmlfile").asString());
-      CStdString fallbackMediaPath;
+      std::string tmpDir = URIUtils::GetDirectory(ref(window)->GetProperty("xmlfile").asString());
+      std::string fallbackMediaPath;
       URIUtils::GetParentPath(tmpDir, fallbackMediaPath);
       URIUtils::RemoveSlashAtEnd(fallbackMediaPath);
       m_mediaDir = fallbackMediaPath;
@@ -434,33 +434,16 @@ namespace XBMCAddon
     {
       XBMC_TRACE;
       // load our window
-      XFILE::CFile file;
+      CXBMCTinyXML xmlDoc;
+
       std::string strPathLower = strPath;
       StringUtils::ToLower(strPathLower);
-      if (!file.Open(strPath) && !file.Open(strPathLower) && !file.Open(strLowerPath))
+      if (!xmlDoc.LoadFile(strPath) && !xmlDoc.LoadFile(strPathLower) && !xmlDoc.LoadFile(strLowerPath))
       {
         // fail - can't load the file
         CLog::Log(LOGERROR, "%s: Unable to load skin file %s", __FUNCTION__, strPath.c_str());
         return false;
       }
-
-      CStdString xml;
-      char *buffer = new char[(unsigned int)file.GetLength()+1];
-      if(buffer == NULL)
-        return false;
-      int size = file.Read(buffer, file.GetLength());
-      if (size > 0)
-      {
-        buffer[size] = 0;
-        xml = buffer;
-      }
-      delete[] buffer;
-
-      CXBMCTinyXML xmlDoc;
-      xmlDoc.Parse(xml);
-
-      if (xmlDoc.Error())
-        return false;
 
       return interceptor->Load(xmlDoc.RootElement());
     }

@@ -64,12 +64,12 @@ bool CVTPFile::Open(const CURL& url2)
   if(url.GetPort() == 0)
     url.SetPort(2004);
 
-  CStdString path(url.GetFileName());
+  std::string path(url.GetFileName());
 
   if (StringUtils::StartsWith(path, "channels/"))
   {
 
-    CStdString channel = path.substr(9);
+    std::string channel = path.substr(9);
     if(!URIUtils::HasExtension(channel, ".ts"))
     {
       CLog::Log(LOGERROR, "%s - invalid channel url %s", __FUNCTION__, channel.c_str());
@@ -137,7 +137,7 @@ unsigned int CVTPFile::Read(void* buffer, int64_t size)
 
 int64_t CVTPFile::Seek(int64_t pos, int whence)
 {
-  CLog::Log(LOGDEBUG, "CVTPFile::Seek - seek to pos %"PRId64", whence %d", pos, whence);
+  CLog::Log(LOGDEBUG, "CVTPFile::Seek - seek to pos %" PRId64", whence %d", pos, whence);
   return -1;
 }
 

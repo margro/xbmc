@@ -54,6 +54,9 @@
 #endif
 #define CLASSNAME "COMXImage"
 
+using namespace std;
+using namespace XFILE;
+
 COMXImage::COMXImage()
 : CThread("CRBPWorker")
 {
@@ -83,7 +86,7 @@ void COMXImage::Deinitialize()
 }
 
 bool COMXImage::CreateThumbnailFromSurface(unsigned char* buffer, unsigned int width, unsigned int height,
-      unsigned int format, unsigned int pitch, const CStdString& destFile)
+      unsigned int format, unsigned int pitch, const std::string& destFile)
 {
   COMXImageEnc omxImageEnc;
   bool ret = omxImageEnc.CreateThumbnailFromSurface(buffer, width, height, format, pitch, destFile);
@@ -92,7 +95,7 @@ bool COMXImage::CreateThumbnailFromSurface(unsigned char* buffer, unsigned int w
   return ret;
 }
 
-COMXImageFile *COMXImage::LoadJpeg(const CStdString& texturePath)
+COMXImageFile *COMXImage::LoadJpeg(const std::string& texturePath)
 {
   COMXImageFile *file = new COMXImageFile();
   if (!file->ReadFile(texturePath))
@@ -174,7 +177,7 @@ bool COMXImage::ClampLimits(unsigned int &width, unsigned int &height, unsigned 
   return clamped;
 }
 
-bool COMXImage::CreateThumb(const CStdString& srcFile, unsigned int maxHeight, unsigned int maxWidth, std::string &additional_info, const CStdString& destFile)
+bool COMXImage::CreateThumb(const std::string& srcFile, unsigned int maxHeight, unsigned int maxWidth, std::string &additional_info, const std::string& destFile)
 {
   bool okay = false;
   COMXImageFile file;
@@ -210,13 +213,11 @@ bool COMXImage::SendMessage(bool (*callback)(EGLDisplay egl_display, EGLContext 
   mess.sync.Reset();
   {
     CSingleLock lock(m_texqueue_lock);
-    CLog::Log(LOGDEBUG, "%s: texture job: %p:%p", __func__, &mess, mess.callback);
     m_texqueue.push(&mess);
     m_texqueue_cond.notifyAll();
   }
   // wait for function to have finished (in texture thread)
   mess.sync.Wait();
-  CLog::Log(LOGDEBUG, "%s: texture job done: %p:%p = %d", __func__, &mess, mess.callback, mess.result);
   // need to ensure texture thread has returned from mess.sync.Set() before we exit and free tex
   CSingleLock lock(m_texqueue_lock);
   return mess.result;
@@ -429,15 +430,12 @@ void COMXImage::Process()
       struct callbackinfo *mess = m_texqueue.front();
       m_texqueue.pop();
       lock.Leave();
-      CLog::Log(LOGDEBUG, "%s: texture job: %p:%p:%p", __func__, mess, mess->callback, mess->cookie);
 
       mess->result = mess->callback(g_Windowing.GetEGLDisplay(), GetEGLContext(), mess->cookie);
-      CLog::Log(LOGDEBUG, "%s: texture job about to Set: %p:%p:%p", __func__, mess, mess->callback, mess->cookie);
       {
         CSingleLock lock(m_texqueue_lock);
         mess->sync.Set();
       }
-      CLog::Log(LOGDEBUG, "%s: texture job: %p done", __func__, mess);
     }
   }
 }
@@ -851,7 +849,7 @@ OMX_IMAGE_CODINGTYPE COMXImageFile::GetCodingType(unsigned int &width, unsigned 
 }
 
 
-bool COMXImageFile::ReadFile(const CStdString& inputFile)
+bool COMXImageFile::ReadFile(const std::string& inputFile)
 {
   XFILE::CFile      m_pFile;
   m_filename = inputFile.c_str();
@@ -1384,7 +1382,7 @@ bool COMXImageEnc::Encode(unsigned char *buffer, int size, unsigned width, unsig
 }
 
 bool COMXImageEnc::CreateThumbnailFromSurface(unsigned char* buffer, unsigned int width, unsigned int height,
-    unsigned int format, unsigned int pitch, const CStdString& destFile)
+    unsigned int format, unsigned int pitch, const std::string& destFile)
 {
   if(format != XB_FMT_A8R8G8B8 || !buffer)
   {

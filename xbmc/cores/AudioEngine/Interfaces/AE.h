@@ -21,6 +21,7 @@
 
 #include <list>
 #include <map>
+#include <vector>
 
 #include "system.h"
 #include "threads/CriticalSection.h"
@@ -210,6 +211,18 @@ public:
    * @returns true if the AudioEngine is capable of drain mode
    */
   virtual bool SupportsSilenceTimeout() { return false; }
+
+  /**
+   * Returns true if the AudioEngine is currently configured for stereo audio
+   * @returns true if the AudioEngine is currently configured for stereo audio
+   */
+  virtual bool HasStereoAudioChannelCount() { return false; }
+
+  /**
+   * Returns true if the AudioEngine is currently configured for HD audio (more than 5.1)
+   * @returns true if the AudioEngine is currently configured for HD audio (more than 5.1)
+   */
+  virtual bool HasHDAudioChannelCount() { return true; }
 
   virtual void RegisterAudioCallback(IAudioCallback* pCallback) {}
 

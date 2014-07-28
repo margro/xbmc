@@ -460,7 +460,7 @@ msgstr ""
 
 #: xbmc/windows/GUIWindowFileManager.cpp
 msgctxt "#122"
-msgid "Confirm file delete?"
+msgid "Confirm delete"
 msgstr ""
 
 #: xbmc/windows/GUIWindowFileManager.cpp
@@ -823,7 +823,11 @@ msgctxt "#199"
 msgid "Web interface"
 msgstr ""
 
-#empty strings from id 200 to 201
+msgctxt "#200"
+msgid "Audio encoders"
+msgstr ""
+
+#empty string with id 201
 
 #: xbmc/playlists/SmartPlaylist.cpp
 msgctxt "#202"
@@ -2298,7 +2302,11 @@ msgctxt "#548"
 msgid "Downmix multichannel audio to stereo"
 msgstr ""
 
-#empty string with id 549
+#: /xbmc/xbmc/pvr/windows/GUIViewStatePVR.cpp
+#: /xbmc/xbmc/utils/SortUtils.cpp
+msgctxt "#549"
+msgid "Number"
+msgstr ""
 
 #: xbmc/windows/GUIMediaWindow.cpp
 msgctxt "#550"
@@ -7448,7 +7456,7 @@ msgstr ""
 
 #: xbmc/dialogs/GUIDialogMediaSource.cpp
 msgctxt "#19017"
-msgid "TV recordings"
+msgid "Recordings"
 msgstr ""
 
 #. Name of a setting, asking to enter the path to a folder that contains icons for TV channels
@@ -7458,6 +7466,7 @@ msgid "Folder with channel icons"
 msgstr ""
 
 #: xbmc/windows/GUIWindowSystemInfo.cpp
+#: skin.confluence
 msgctxt "#19019"
 msgid "Channels"
 msgstr ""
@@ -7647,10 +7656,7 @@ msgctxt "#19064"
 msgid "Go to end"
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#19065"
-msgid "Default EPG window"
-msgstr ""
+#empty string with id 19065
 
 #. Name of a shortcut to a custom folder for channel icons
 #: xbmc/pvr/windows/GUIWindowPVRChannels.cpp
@@ -7819,7 +7825,8 @@ msgctxt "#19104"
 msgid "Enter the name of the folder for the recording"
 msgstr ""
 
-#empty string with id 19105
+msgctxt "#19105"
+msgid "Please select a channel"
 
 msgctxt "#19106"
 msgid "Next timer on"
@@ -7843,7 +7850,13 @@ msgctxt "#19111"
 msgid "PVR backend error. Check the log for details."
 msgstr ""
 
-#empty strings from id 19112 to 19113
+msgctxt "#19112"
+msgid "Delete this recording?"
+msgstr ""
+
+msgctxt "#19113"
+msgid "Delete all recordings in this folder?"
+msgstr ""
 
 #: xbmc/windows/GUIWindowSystemInfo.cpp
 msgctxt "#19114"
@@ -8116,10 +8129,7 @@ msgctxt "#19178"
 msgid "Show channel information when switching channels"
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#19179"
-msgid "Automatically hide channel information"
-msgstr ""
+#empty string with id 19179
 
 #: system/settings/settings.xml
 msgctxt "#19180"
@@ -8136,12 +8146,12 @@ msgctxt "#19182"
 msgid "Days to display in the EPG"
 msgstr ""
 
-#empty string with id 19183
-
 #: system/settings/settings.xml
-msgctxt "#19184"
-msgid "Channel information duration"
+msgctxt "#19183"
+msgid "Radio"
 msgstr ""
+
+#empty string with id 19184
 
 #: system/settings/settings.xml
 msgctxt "#19185"
@@ -8166,8 +8176,9 @@ msgctxt "#19189"
 msgid "Continue last channel on startup"
 msgstr ""
 
+#: system/settings/settings.xml
 msgctxt "#19190"
-msgid "Minimised"
+msgid "Background"
 msgstr ""
 
 msgctxt "#19191"
@@ -8593,9 +8604,19 @@ msgstr ""
 #: xbmc/pvr/PVRManager.cpp
 msgctxt "#19286"
 msgid "Searching for channel icons"
+
+#. Label for the default pvr channel group
+#: xbmc/pvr/windows/GUIWindowPVRCommon.cpp
+msgctxt "#19287"
+msgid "All channels"
 msgstr ""
 
-#empty strings from id 19287 to 19498
+#: system/settings/settings.xml
+msgctxt "#19288"
+msgid "Foreground"
+msgstr ""
+
+#empty strings from id 19289 to 19498
 
 #: xbmc/epg/Epg.cpp
 msgctxt "#19499"
@@ -11696,6 +11717,9 @@ msgctxt "#22019"
 msgid "Recordings by title"
 msgstr ""
 
+#. Electronic program guide, used as label in the menu of the PVR section and the MythDirectory
+#: addons/skin/confluence
+#: xbmc/filesystem/MythDirectory.cpp
 msgctxt "#22020"
 msgid "Guide"
 msgstr ""
@@ -12743,6 +12767,7 @@ msgid "Play the"
 msgstr ""
 
 #: addons/skin/touched/
+#: addons/skin/confluence
 msgctxt "#33063"
 msgid "Options"
 msgstr ""
@@ -14084,20 +14109,14 @@ msgctxt "#36212"
 msgid "Display programming information when changing channels, such as the current TV show."
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#36213"
-msgid "Hide the programming information automatically after a few seconds, defined below."
-msgstr ""
+#empty string with id 36213
 
 #: system/settings/settings.xml
 msgctxt "#36214"
 msgid "Close the on screen display controls after switching channels."
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#36215"
-msgid "How long the programming information is displayed when the 'automatically hide' setting is turned on."
-msgstr ""
+#empty string with id 36215
 
 #: system/settings/settings.xml
 msgctxt "#36216"
@@ -14114,10 +14133,7 @@ msgctxt "#36218"
 msgid "Category for electronic programming guide settings."
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#36219"
-msgid "Default electronic programming guide window to show."
-msgstr ""
+#empty string with id 36219
 
 #: system/settings/settings.xml
 msgctxt "#36220"
@@ -15771,4 +15787,9 @@ msgstr ""
 #: system/settings/rbp.xml
 msgctxt "#37024"
 msgid "Select this if the audio out connection only supports multichannel audio as Dolby Digital 5.1, this allows multichannel audio such as AAC5.1 or FLAC5.1 to be listened to in 5.1 surround sound. Note - Not recommended on Pi as this requires a lot of CPU."
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#37025"
+msgid "Configure audio encoder settings such as quality and compression level"
 msgstr ""

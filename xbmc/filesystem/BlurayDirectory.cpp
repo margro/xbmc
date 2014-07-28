@@ -56,10 +56,10 @@ void CBlurayDirectory::Dispose()
   m_dll = NULL;
 }
 
-CFileItemPtr CBlurayDirectory::GetTitle(const BLURAY_TITLE_INFO* title, const CStdString& label)
+CFileItemPtr CBlurayDirectory::GetTitle(const BLURAY_TITLE_INFO* title, const std::string& label)
 {
-  CStdString buf;
-  CStdString chap;
+  std::string buf;
+  std::string chap;
   CFileItemPtr item(new CFileItem("", false));
   CURL path(m_url);
   buf = StringUtils::Format("BDMV/PLAYLIST/%05d.mpls", title->playlist);
@@ -71,7 +71,7 @@ CFileItemPtr CBlurayDirectory::GetTitle(const BLURAY_TITLE_INFO* title, const CS
   buf = StringUtils::Format(label.c_str(), title->playlist);
   item->m_strTitle = buf;
   item->SetLabel(buf);
-  chap = StringUtils::Format(g_localizeStrings.Get(25007), title->chapter_count, StringUtils::SecondsToTimeString(duration).c_str());
+  chap = StringUtils::Format(g_localizeStrings.Get(25007).c_str(), title->chapter_count, StringUtils::SecondsToTimeString(duration).c_str());
   item->SetProperty("Addon.Summary", chap);
   item->m_dwSize = 0;
   item->SetIconImage("DefaultVideo.png");
@@ -84,7 +84,7 @@ CFileItemPtr CBlurayDirectory::GetTitle(const BLURAY_TITLE_INFO* title, const CS
 void CBlurayDirectory::GetTitles(bool main, CFileItemList &items)
 {
   unsigned titles = m_dll->bd_get_titles(m_bd, TITLES_RELEVANT, 0);
-  CStdString buf;
+  std::string buf;
 
   std::vector<BLURAY_TITLE_INFO*> buffer;
 
@@ -149,8 +149,8 @@ bool CBlurayDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 {
   Dispose();
   m_url = url;
-  CStdString root = m_url.GetHostName();
-  CStdString file = m_url.GetFileName();
+  std::string root = m_url.GetHostName();
+  std::string file = m_url.GetFileName();
   URIUtils::RemoveSlashAtEnd(file);
   URIUtils::RemoveSlashAtEnd(root);
 

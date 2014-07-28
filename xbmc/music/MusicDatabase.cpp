@@ -78,6 +78,7 @@ using ADDON::AddonPtr;
 
 #ifdef HAS_DVD_DRIVE
 using namespace CDDB;
+using namespace MEDIA_DETECT;
 #endif
 
 static void AnnounceRemove(const std::string& content, int id)
@@ -1700,7 +1701,7 @@ bool CMusicDatabase::GetSongByFileName(const CStdString& strFileNameAndPath, CSo
   song.Clear();
   CURL url(strFileNameAndPath);
 
-  if (url.GetProtocol()=="musicdb")
+  if (url.IsProtocol("musicdb"))
   {
     CStdString strFile = URIUtils::GetFileName(strFileNameAndPath);
     URIUtils::RemoveExtension(strFile);
@@ -2875,7 +2876,7 @@ bool CMusicDatabase::GetGenresNav(const CStdString& strBaseDir, CFileItemList& i
       extFilter.order.clear();
     }
 
-    CStdString strSQLExtra;
+    std::string strSQLExtra;
     if (!BuildSQL(strSQLExtra, extFilter, strSQLExtra))
       return false;
 
@@ -3176,7 +3177,7 @@ bool CMusicDatabase::GetArtistsByWhere(const CStdString& strBaseDir, const Filte
       extFilter.order.clear();
     }
 
-    CStdString strSQLExtra;
+    std::string strSQLExtra;
     if (!BuildSQL(strSQLExtra, extFilter, strSQLExtra))
       return false;
 
@@ -3335,7 +3336,7 @@ bool CMusicDatabase::GetAlbumsByWhere(const CStdString &baseDir, const Filter &f
       extFilter.AppendGroup("albumview.idAlbum");
     }
 
-    CStdString strSQLExtra;
+    std::string strSQLExtra;
     if (!BuildSQL(strSQLExtra, extFilter, strSQLExtra))
       return false;
 
@@ -3448,7 +3449,7 @@ bool CMusicDatabase::GetSongsByWhere(const CStdString &baseDir, const Filter &fi
       extFilter.AppendGroup("songview.idSong");
     }
 
-    CStdString strSQLExtra;
+    std::string strSQLExtra;
     if (!BuildSQL(strSQLExtra, extFilter, strSQLExtra))
       return false;
 
@@ -3992,7 +3993,7 @@ int CMusicDatabase::GetSongsCount(const Filter &filter)
   return 0;
 }
 
-bool CMusicDatabase::GetAlbumPath(int idAlbum, CStdString& path)
+bool CMusicDatabase::GetAlbumPath(int idAlbum, std::string& path)
 {
   try
   {
@@ -4001,7 +4002,7 @@ bool CMusicDatabase::GetAlbumPath(int idAlbum, CStdString& path)
 
     path.clear();
 
-    CStdString strSQL=PrepareSQL("select strPath from song join path on song.idPath = path.idPath where song.idAlbum=%ld", idAlbum);
+    std::string strSQL=PrepareSQL("select strPath from song join path on song.idPath = path.idPath where song.idAlbum=%ld", idAlbum);
     if (!m_pDS2->query(strSQL.c_str())) return false;
     int iRowsFound = m_pDS2->num_rows();
     if (iRowsFound == 0)
@@ -4039,7 +4040,7 @@ bool CMusicDatabase::SaveAlbumThumb(int idAlbum, const CStdString& strThumb)
   return true;
 }
 
-bool CMusicDatabase::GetArtistPath(int idArtist, CStdString &basePath)
+bool CMusicDatabase::GetArtistPath(int idArtist, std::string &basePath)
 {
   try
   {
@@ -4047,7 +4048,7 @@ bool CMusicDatabase::GetArtistPath(int idArtist, CStdString &basePath)
     if (NULL == m_pDS2.get()) return false;
 
     // find all albums from this artist, and all the paths to the songs from those albums
-    CStdString strSQL=PrepareSQL("SELECT strPath"
+    std::string strSQL=PrepareSQL("SELECT strPath"
                                  "  FROM album_artist"
                                  "  JOIN song "
                                  "    ON album_artist.idAlbum = song.idAlbum"
@@ -4077,7 +4078,7 @@ bool CMusicDatabase::GetArtistPath(int idArtist, CStdString &basePath)
     basePath.clear();
     while (!m_pDS2->eof())
     {
-      CStdString path = m_pDS2->fv("strPath").get_asString();
+      std::string path = m_pDS2->fv("strPath").get_asString();
       if (basePath.empty())
         basePath = path;
       else
@@ -4267,7 +4268,7 @@ bool CMusicDatabase::GetCompilationSongs(const CStdString& strBaseDir, CFileItem
 
 int CMusicDatabase::GetCompilationAlbumsCount()
 {
-  return strtol(GetSingleValue("album", "count(idAlbum)", "bCompilation = 1"), NULL, 10);
+  return strtol(GetSingleValue("album", "count(idAlbum)", "bCompilation = 1").c_str(), NULL, 10);
 }
 
 bool CMusicDatabase::SetPathHash(const CStdString &path, const CStdString &hash)
@@ -4457,7 +4458,7 @@ int CMusicDatabase::GetSongIDFromPath(const CStdString &filePath)
 {
   // grab the where string to identify the song id
   CURL url(filePath);
-  if (url.GetProtocol()=="musicdb")
+  if (url.IsProtocol("musicdb"))
   {
     CStdString strFile=URIUtils::GetFileName(filePath);
     URIUtils::RemoveExtension(strFile);
@@ -4603,7 +4604,7 @@ bool CMusicDatabase::GetScraperForPath(const CStdString& strPath, ADDON::Scraper
       if(ADDON::CAddonMgr::Get().GetDefault(type, addon))
       {
         info = boost::dynamic_pointer_cast<ADDON::CScraper>(addon);
-        return (info);
+        return info != NULL;
       }
       else
         return false;
@@ -5078,9 +5079,9 @@ void CMusicDatabase::ExportKaraokeInfo(const CStdString & outFile, bool asHTML)
       CStdString songnum = StringUtils::Format("%06d", song.iKaraokeNumber);
 
       if ( asHTML )
-        outdoc = "<tr><td>" + songnum + "</td><td>" + StringUtils::Join(song.artist, g_advancedSettings.m_musicItemSeparator) + "</td><td>" + song.strTitle + "</td></tr>\r\n";
+        outdoc = "<tr><td>" + songnum + "</td><td>" + (CStdString)StringUtils::Join(song.artist, g_advancedSettings.m_musicItemSeparator) + "</td><td>" + song.strTitle + "</td></tr>\r\n";
       else
-        outdoc = songnum + "\t" + StringUtils::Join(song.artist, g_advancedSettings.m_musicItemSeparator) + "\t" + song.strTitle + "\t" + song.strFileName + "\r\n";
+        outdoc = songnum + '\t' + (CStdString)StringUtils::Join(song.artist, g_advancedSettings.m_musicItemSeparator) + '\t' + song.strTitle + '\t' + song.strFileName + "\r\n";
 
       file.Write( outdoc, outdoc.size() );
 
@@ -5127,32 +5128,19 @@ void CMusicDatabase::ImportKaraokeInfo(const CStdString & inputFile)
     if (NULL == m_pDB.get()) return;
 
     XFILE::CFile file;
+    XFILE::auto_buffer buf;
 
-    if ( !file.Open( inputFile ) )
+    if (file.LoadFile(inputFile, buf) <= 0)
     {
-      CLog::Log( LOGERROR, "Cannot open karaoke import file %s", inputFile.c_str() );
+      CLog::Log(LOGERROR, "%s: Cannot read karaoke import file \"%s\"", __FUNCTION__, inputFile.c_str());
       return;
     }
 
-    unsigned int size = (unsigned int) file.GetLength();
-
-    if ( !size )
-      return;
-
-    // Read the file into memory array
-    std::vector<char> data( size + 1 );
-
-    file.Seek( 0, SEEK_SET );
-
-    // Read the whole file
-    if ( file.Read( &data[0], size) != size )
-    {
-      CLog::Log( LOGERROR, "Cannot read karaoke import file %s", inputFile.c_str() );
-      return;
-    }
+    // Null-terminate content
+    buf.resize(buf.size() + 1);
+    buf.get()[buf.size() - 1] = 0;
 
     file.Close();
-    data[ size ] = '\0';
 
     if (progress)
     {
@@ -5171,10 +5159,10 @@ void CMusicDatabase::ImportKaraokeInfo(const CStdString & inputFile)
     //
     // A simple state machine to parse the file
     //
-    char * linestart = &data[0];
+    char * linestart = buf.get();
     unsigned int offset = 0, lastpercentage = 0;
 
-    for ( char * p = &data[0]; *p; p++, offset++ )
+    for (char * p = buf.get(); *p; p++, offset++)
     {
       // Skip \r
       if ( *p == 0x0D )
@@ -5246,9 +5234,9 @@ void CMusicDatabase::ImportKaraokeInfo(const CStdString & inputFile)
         strSQL = PrepareSQL("UPDATE karaokedata SET iKaraNumber=%i WHERE idSong=%i", num, lResult );
         m_pDS->exec(strSQL.c_str());
 
-        if ( progress && (offset * 100 / size) != lastpercentage )
+        if ( progress && (offset * 100 / buf.size()) != lastpercentage )
         {
-          lastpercentage = offset * 100 / size;
+          lastpercentage = offset * 100 / buf.size();
           progress->SetPercentage( lastpercentage);
           progress->Progress();
           if ( progress->IsCanceled() )
@@ -5668,7 +5656,7 @@ bool CMusicDatabase::GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription
     if (xsp.GetType()  == type ||
        (xsp.GetGroup() == type && !xsp.IsGroupMixed()))
     {
-      std::set<CStdString> playlists;
+      std::set<std::string> playlists;
       filter.AppendWhere(xsp.GetWhereClause(*this, playlists));
 
       if (xsp.GetLimit() > 0)
@@ -5691,7 +5679,7 @@ bool CMusicDatabase::GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription
     // check if the filter playlist matches the item type
     if (xspFilter.GetType() == type)
     {
-      std::set<CStdString> playlists;
+      std::set<std::string> playlists;
       filter.AppendWhere(xspFilter.GetWhereClause(*this, playlists));
     }
     // remove the filter if it doesn't match the item type

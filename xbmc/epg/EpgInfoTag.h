@@ -23,11 +23,12 @@
 #include "addons/include/xbmc_pvr_types.h"
 #include "XBDateTime.h"
 #include "utils/ISerializable.h"
-#include "utils/StringUtils.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
+#include "pvr/recordings/PVRRecording.h"
 
 #include <boost/shared_ptr.hpp>
+#include <string>
 
 #define EPG_DEBUGGING 0
 
@@ -51,7 +52,7 @@ namespace EPG
     /*!
      * @brief Create a new empty event without a unique ID.
      */
-    CEpgInfoTag(CEpg *epg, PVR::CPVRChannelPtr pvrChannel, const CStdString &strTableName = StringUtils::EmptyString, const CStdString &strIconPath = StringUtils::EmptyString);
+    CEpgInfoTag(CEpg *epg, PVR::CPVRChannelPtr pvrChannel, const std::string &strTableName = "", const std::string &strIconPath = "");
 
     /*!
      * @brief Create a new EPG infotag with 'data' as content.
@@ -186,40 +187,40 @@ namespace EPG
      * @brief Change the title of this event.
      * @param strTitle The new title.
      */
-    void SetTitle(const CStdString &strTitle);
+    void SetTitle(const std::string &strTitle);
 
     /*!
      * @brief Get the title of this event.
      * @param bOverrideParental True to override parental control, false check it.
      * @return The title.
      */
-    CStdString Title(bool bOverrideParental = false) const;
+    std::string Title(bool bOverrideParental = false) const;
 
     /*!
      * @brief Change the plot outline of this event.
      * @param strPlotOutline The new plot outline.
      */
-    void SetPlotOutline(const CStdString &strPlotOutline);
+    void SetPlotOutline(const std::string &strPlotOutline);
 
     /*!
      * @brief Get the plot outline of this event.
      * @param bOverrideParental True to override parental control, false check it.
      * @return The plot outline.
      */
-    CStdString PlotOutline(bool bOverrideParental = false) const;
+    std::string PlotOutline(bool bOverrideParental = false) const;
 
     /*!
      * @brief Change the plot of this event.
      * @param strPlot The new plot.
      */
-    void SetPlot(const CStdString &strPlot);
+    void SetPlot(const std::string &strPlot);
 
     /*!
      * @brief Get the plot of this event.
      * @param bOverrideParental True to override parental control, false check it.
      * @return The plot.
      */
-    CStdString Plot(bool bOverrideParental = false) const;
+    std::string Plot(bool bOverrideParental = false) const;
 
     /*!
      * @brief Change the genre of this event.
@@ -336,37 +337,55 @@ namespace EPG
      * @brief Change the episode name of this event.
      * @param strEpisodeName The new episode name.
      */
-    void SetEpisodeName(const CStdString &strEpisodeName);
+    void SetEpisodeName(const std::string &strEpisodeName);
 
     /*!
      * @brief The episode name of this event.
      * @return The episode name.
      */
-    CStdString EpisodeName(void) const;
+    std::string EpisodeName(void) const;
 
     /*!
      * @brief Change the path to the icon for this event.
      * @param strIconPath The new path.
      */
-    void SetIcon(const CStdString &strIconPath);
+    void SetIcon(const std::string &strIconPath);
 
     /*!
      * @brief Get the path to the icon for this event.
      * @return The path to the icon
      */
-    CStdString Icon(void) const;
+    std::string Icon(void) const;
 
     /*!
      * @brief Change the path to this event.
      * @param strFileNameAndPath The new path.
      */
-    void SetPath(const CStdString &strFileNameAndPath);
+    void SetPath(const std::string &strFileNameAndPath);
 
     /*!
      * @brief The path to this event.
      * @return The path.
      */
-    CStdString Path(void) const;
+    std::string Path(void) const;
+
+    /*!
+     * @brief Change the recording ID to this event.
+     * @param strRecordingId The new recording ID.
+     */
+    void SetRecordingId(const std::string &strRecordingId);
+
+    /*!
+     * @brief The recording ID to this event.
+     * @return The recording ID.
+     */
+    const std::string& RecordingId(void) const;
+
+    /*!
+     * @brief Check whether this event has a recording ID.
+     * @return True if it has a recording ID, false if not.
+     */
+    bool HasRecordingId(void) const;
 
     /*!
      * @brief Set a timer for this event or NULL to clear it.
@@ -388,6 +407,29 @@ namespace EPG
     PVR::CPVRTimerInfoTagPtr Timer(void) const;
 
     /*!
+     * @brief Set a recording for this event or NULL to clear it.
+     * @param recording The recording value.
+     */
+    void SetRecording(PVR::CPVRRecordingPtr recording);
+
+    /*!
+     * @brief Clear a recording for this event.
+     */
+    void ClearRecording(void);
+
+    /*!
+     * @brief Check whether this event has a recording tag.
+     * @return True if it has a recording tag, false if not.
+     */
+    bool HasRecording(void) const;
+
+    /*!
+     * @brief Get a pointer to the recording for event or NULL if there is none.
+     * @return A pointer to the recording for event or NULL if there is none.
+     */
+    PVR::CPVRRecordingPtr Recording(void) const;
+
+    /*!
      * @brief Change the channel tag of this epg tag
      * @param channel The new channel
      */
@@ -400,7 +442,7 @@ namespace EPG
 
     int PVRChannelNumber(void) const;
 
-    CStdString PVRChannelName(void) const;
+    std::string PVRChannelName(void) const;
 
     /*!
      * @brief Get the channel that plays this event.
@@ -414,12 +456,6 @@ namespace EPG
      * @return True if the tag was persisted correctly, false otherwise.
      */
     bool Persist(bool bSingleUpdate = true);
-
-    /*!
-     * @brief Update the information in this tag with the info in the given tag.
-     * @param tag The new info.
-     */
-    void Update(const EPG_TAG &tag);
 
     /*!
      * @brief Update the information in this tag with the info in the given tag.
@@ -446,18 +482,21 @@ namespace EPG
     int                      m_iEpisodeNumber;     /*!< episode number */
     int                      m_iEpisodePart;       /*!< episode part number */
     int                      m_iUniqueBroadcastID; /*!< unique broadcast ID */
-    CStdString               m_strTitle;           /*!< title */
-    CStdString               m_strPlotOutline;     /*!< plot outline */
-    CStdString               m_strPlot;            /*!< plot */
-    std::vector<std::string> m_genre;            /*!< genre */
-    CStdString               m_strEpisodeName;     /*!< episode name */
-    CStdString               m_strIconPath;        /*!< the path to the icon */
-    CStdString               m_strFileNameAndPath; /*!< the filename and path */
+    std::string              m_strTitle;           /*!< title */
+    std::string              m_strPlotOutline;     /*!< plot outline */
+    std::string              m_strPlot;            /*!< plot */
+    std::vector<std::string> m_genre;              /*!< genre */
+    std::string              m_strEpisodeName;     /*!< episode name */
+    std::string              m_strIconPath;        /*!< the path to the icon */
+    std::string              m_strFileNameAndPath; /*!< the filename and path */
     CDateTime                m_startTime;          /*!< event start time */
     CDateTime                m_endTime;            /*!< event end time */
     CDateTime                m_firstAired;         /*!< first airdate */
+    std::string              m_strRecordingId;     /*!< linked recording ID */
 
     PVR::CPVRTimerInfoTagPtr m_timer;
+    PVR::CPVRRecordingPtr    m_recording;
+
     CEpg *                   m_epg;                /*!< the schedule that this event belongs to */
 
     PVR::CPVRChannelPtr    m_pvrChannel;

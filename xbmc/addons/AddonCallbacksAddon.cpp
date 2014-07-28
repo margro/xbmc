@@ -31,6 +31,7 @@
 #include "network/Network.h"
 #include "utils/CharsetConverter.h"
 #include "utils/StringUtils.h"
+#include "utils/XMLUtils.h"
 #include "cores/dvdplayer/DVDCodecs/DVDCodecs.h"
 
 using namespace XFILE;
@@ -112,7 +113,7 @@ void CAddonCallbacksAddon::AddOnLog(void *addonData, const addon_log_t addonLogL
         break;
     }
 
-    CStdString strXbmcMessage = StringUtils::Format("AddOnLog: %s: %s", addonHelper->m_addon->Name().c_str(), strMessage);
+    std::string strXbmcMessage = StringUtils::Format("AddOnLog: %s: %s", addonHelper->m_addon->Name().c_str(), strMessage);
     CLog::Log(xbmcLogLevel, "%s", strXbmcMessage.c_str());
   }
   catch (std::exception &e)
@@ -196,42 +197,42 @@ bool CAddonCallbacksAddon::GetAddonSetting(void *addonData, const char *strSetti
       const TiXmlElement *setting = category->FirstChildElement("setting");
       while (setting)
       {
-        const char *id = setting->Attribute("id");
-        const char *type = setting->Attribute("type");
+        const std::string   id = XMLUtils::GetAttribute(setting, "id");
+        const std::string type = XMLUtils::GetAttribute(setting, "type");
 
-        if (strcmpi(id, strSettingName) == 0 && type)
+        if (id == strSettingName && !type.empty())
         {
-          if (strcmpi(type, "text")   == 0 || strcmpi(type, "ipaddress") == 0 ||
-              strcmpi(type, "folder") == 0 || strcmpi(type, "action")    == 0 ||
-              strcmpi(type, "music")  == 0 || strcmpi(type, "pictures")  == 0 ||
-              strcmpi(type, "folder") == 0 || strcmpi(type, "programs")  == 0 ||
-              strcmpi(type, "file")  == 0 || strcmpi(type, "fileenum")  == 0)
+          if (type == "text"     || type == "ipaddress" ||
+              type == "folder"   || type == "action"    ||
+              type == "music"    || type == "pictures"  ||
+              type == "programs" || type == "fileenum"  ||
+              type == "file")
           {
             strcpy((char*) settingValue, addonHelper->m_addon->GetSetting(id).c_str());
             return true;
           }
-          else if (strcmpi(type, "number") == 0 || strcmpi(type, "enum") == 0 ||
-                   strcmpi(type, "labelenum") == 0)
+          else if (type == "number" || type == "enum" ||
+                   type == "labelenum")
           {
-            *(int*) settingValue = (int) atoi(addonHelper->m_addon->GetSetting(id));
+            *(int*) settingValue = (int) atoi(addonHelper->m_addon->GetSetting(id).c_str());
             return true;
           }
-          else if (strcmpi(type, "bool") == 0)
+          else if (type == "bool")
           {
             *(bool*) settingValue = (bool) (addonHelper->m_addon->GetSetting(id) == "true" ? true : false);
             return true;
           }
-          else if (strcmpi(type, "slider") == 0)
+          else if (type == "slider")
           {
             const char *option = setting->Attribute("option");
             if (option && strcmpi(option, "int") == 0)
             {
-              *(int*) settingValue = (int) atoi(addonHelper->m_addon->GetSetting(id));
+              *(int*) settingValue = (int) atoi(addonHelper->m_addon->GetSetting(id).c_str());
               return true;
             }
             else
             {
-              *(float*) settingValue = (float) atof(addonHelper->m_addon->GetSetting(id));
+              *(float*) settingValue = (float) atof(addonHelper->m_addon->GetSetting(id).c_str());
               return true;
             }
           }
@@ -253,7 +254,7 @@ bool CAddonCallbacksAddon::GetAddonSetting(void *addonData, const char *strSetti
 
 char* CAddonCallbacksAddon::UnknownToUTF8(const char *strSource)
 {
-  CStdString string;
+  std::string string;
   if (strSource != NULL)
     g_charsetConverter.unknownToUTF8(strSource, string);
   else
@@ -270,7 +271,7 @@ char* CAddonCallbacksAddon::GetLocalizedString(const void* addonData, long dwCod
 
   CAddonCallbacksAddon* addonHelper = helper->GetHelperAddon();
 
-  CStdString string;
+  std::string string;
   if (dwCode >= 30000 && dwCode <= 30999)
     string = addonHelper->m_addon->GetString(dwCode).c_str();
   else if (dwCode >= 32000 && dwCode <= 32999)
@@ -288,7 +289,7 @@ char* CAddonCallbacksAddon::GetDVDMenuLanguage(const void* addonData)
   if (!helper)
     return NULL;
 
-  CStdString string = g_langInfo.GetDVDMenuLanguage();
+  std::string string = g_langInfo.GetDVDMenuLanguage();
 
   char* buffer = strdup(string.c_str());
   return buffer;
