@@ -125,11 +125,11 @@ void
 CUPnPServer::OnScanCompleted(int type)
 {
     if (type == AudioLibrary) {
-        for (size_t i = 0; i < sizeof(audio_containers)/sizeof(audio_containers[0]); i++)
+        for (size_t i = 0; i < ARRAY_SIZE(audio_containers); i++)
             UpdateContainer(audio_containers[i]);
     }
     else if (type == VideoLibrary) {
-        for (size_t i = 0; i < sizeof(video_containers)/sizeof(video_containers[0]); i++)
+        for (size_t i = 0; i < ARRAY_SIZE(video_containers); i++)
             UpdateContainer(video_containers[i]);
     }
     else
@@ -977,6 +977,13 @@ CUPnPServer::OnSearchContainer(PLT_ActionReference&          action,
       items.Clear();
 
       if (!database.GetEpisodesByWhere("videodb://tvshows/titles/", "", items)) {
+        action->SetError(800, "Internal Error");
+        return NPT_SUCCESS;
+      }
+      itemsall.Append(items);
+      items.Clear();
+
+      if (!database.GetMusicVideosByWhere("videodb://musicvideos/titles/", "", items)) {
         action->SetError(800, "Internal Error");
         return NPT_SUCCESS;
       }

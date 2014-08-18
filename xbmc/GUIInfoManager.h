@@ -666,7 +666,6 @@ namespace INFO
 #define COMBINED_VALUES_START        100000
 
 // forward
-class CInfoLabel;
 class CGUIWindow;
 namespace EPG { class CEpgInfoTag; }
 
@@ -786,6 +785,7 @@ public:
   int GetTotalPlayTime() const;
   CStdString GetCurrentPlayTimeRemaining(TIME_FORMAT format) const;
   std::string GetVersionShort(void);
+  CStdString GetAppName();
   CStdString GetVersion();
   CStdString GetBuild();
 

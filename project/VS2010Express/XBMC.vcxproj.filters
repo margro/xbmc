@@ -402,9 +402,6 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DVDAudioCodecFFmpeg.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodecCrystalHD.cpp">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodecFFmpeg.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClCompile>
@@ -774,9 +771,6 @@
     <ClCompile Include="..\..\xbmc\addons\PluginSource.cpp">
       <Filter>addons</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\CrystalHD.cpp">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\VideoRenderers\VideoShaders\WinVideoFilter.cpp">
       <Filter>cores\VideoRenderers\Shaders</Filter>
     </ClCompile>
@@ -1136,6 +1130,9 @@
       <Filter>guilib</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\input\ButtonTranslator.cpp">
+      <Filter>input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\input\KeyboardLayout.cpp">
       <Filter>input</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\input\KeyboardLayoutConfiguration.cpp">
@@ -3163,9 +3160,6 @@
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodec.h">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodecCrystalHD.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodecFFmpeg.h">
       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
     </ClInclude>
@@ -3652,9 +3646,6 @@
     <ClInclude Include="..\..\xbmc\addons\PluginSource.h">
       <Filter>addons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\CrystalHD.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\VideoRenderers\VideoShaders\WinVideoFilter.h">
       <Filter>cores\VideoRenderers\Shaders</Filter>
     </ClInclude>
@@ -4039,6 +4030,9 @@
       <Filter>guilib</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\input\ButtonTranslator.h">
+      <Filter>input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\input\KeyboardLayout.h">
       <Filter>input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\input\KeyboardLayoutConfiguration.h">
@@ -5988,6 +5982,9 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\filesystem\win32\Win32SMBDirectory.h">
       <Filter>filesystem\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\params_check_macros.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

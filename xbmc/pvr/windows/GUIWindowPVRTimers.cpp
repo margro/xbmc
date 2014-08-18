@@ -66,7 +66,7 @@ void CGUIWindowPVRTimers::GetContextButtons(int itemNumber, CContextButtons &but
 
   /* Check for a empty file item list, means only a
      file item with the name "Add timer..." is present */
-  if (pItem->GetPath() == "pvr://timers/add.timer")
+  if (URIUtils::PathEquals(pItem->GetPath(), "pvr://timers/addtimer/"))
   {
     buttons.Add(CONTEXT_BUTTON_ADD, 19056);             /* new timer */
   }
@@ -111,7 +111,7 @@ bool CGUIWindowPVRTimers::OnMessage(CGUIMessage &message)
       if (message.GetSenderId() == m_viewControl.GetCurrentControl())
       {
         int iItem = m_viewControl.GetSelectedItem();
-        if (iItem > 0 || iItem < m_vecItems->Size())
+        if (iItem >= 0 && iItem < m_vecItems->Size())
         {
           bReturn = true;
           switch (message.GetParam1())
@@ -254,7 +254,7 @@ bool CGUIWindowPVRTimers::OnContextButtonRename(CFileItem *item, CONTEXT_BUTTON 
       return bReturn;
     CPVRTimerInfoTag *timer = item->GetPVRTimerInfoTag();
 
-    CStdString strNewName(timer->m_strTitle);
+    std::string strNewName(timer->m_strTitle);
     if (CGUIKeyboardFactory::ShowAndGetInput(strNewName, g_localizeStrings.Get(19042), false))
       g_PVRTimers->RenameTimer(*item, strNewName);
   }
@@ -294,7 +294,7 @@ bool CGUIWindowPVRTimers::ActionShowTimer(CFileItem *item)
   /* Check if "Add timer..." entry is pressed by OK, if yes
      create a new timer and open settings dialog, otherwise
      open settings for selected timer entry */
-  if (item->GetPath() == "pvr://timers/add.timer")
+  if (URIUtils::PathEquals(item->GetPath(), "pvr://timers/addtimer/"))
   {
     bReturn = ShowNewTimerDialog();
   }

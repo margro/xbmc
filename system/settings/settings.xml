@@ -142,6 +142,19 @@
           </dependencies>
           <control type="list" format="string" />
         </setting>
+        <setting id="locale.keyboardlayouts" type="list[string]" label="310" help="36432">
+          <level>1</level>
+          <default>QWERTY</default>
+          <constraints>
+            <options>keyboardlayouts</options>
+            <delimiter>|</delimiter>
+            <minimumItems>1</minimumItems>
+            <maximumItems>3</maximumItems>
+          </constraints>
+          <control type="list" format="string">
+            <multiselect>true</multiselect>
+          </control>
+        </setting>
       </group>
       <group id="2">
         <setting id="locale.timezonecountry" type="string" label="14079" help="36117">
@@ -717,15 +730,6 @@
         </setting>
         <setting id="videoplayer.usedxva2" type="boolean" label="13427" help="36158">
           <requirement>HasDXVA2</requirement>
-          <dependencies>
-            <dependency type="enable" setting="videoplayer.decodingmethod" operator="is">1</dependency>
-          </dependencies>
-          <level>2</level>
-          <default>true</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="videoplayer.usechd" type="boolean" label="13428" help="36159">
-          <requirement>HasCrystalHDDevice</requirement>
           <dependencies>
             <dependency type="enable" setting="videoplayer.decodingmethod" operator="is">1</dependency>
           </dependencies>
@@ -2551,11 +2555,6 @@
         </setting>
       </group>
       <group id="2">
-        <setting id="input.remoteaskeyboard" type="boolean" label="21449" help="36376">
-          <level>1</level>
-          <default>false</default>
-          <control type="toggle" />
-        </setting>
         <setting id="input.enablemouse" type="boolean" label="21369" help="36377">
           <level>0</level>
           <control type="toggle" />
@@ -2712,7 +2711,7 @@
           <default>false</default>
           <control type="toggle" />
         </setting>
-        <setting id="debug.setextraloglevel" type="list[integer]" parent="debug.extralogging" label="668" help="36510">
+        <setting id="debug.setextraloglevel" type="list[integer]" parent="debug.extralogging" label="668" help="36534">
           <level>1</level>
           <default></default>
           <constraints>

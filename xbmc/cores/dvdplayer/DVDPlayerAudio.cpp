@@ -552,13 +552,15 @@ void CDVDPlayerAudio::Process()
 
       if(!m_dvdAudio.Create(audioframe, m_streaminfo.codec, m_setsynctype == SYNC_RESAMPLE))
         CLog::Log(LOGERROR, "%s - failed to create audio renderer", __FUNCTION__);
+
+      m_streaminfo.channels = audioframe.channel_count;
     }
 
     // Zero out the frame data if we are supposed to silence the audio
     if (m_silence)
     {
       int size = audioframe.nb_frames * audioframe.framesize * audioframe.channel_count / audioframe.planes;
-      for (int i=0; i<audioframe.planes; i++)
+      for (unsigned int i=0; i<audioframe.planes; i++)
         memset(audioframe.data[i], 0, size);
     }
 
@@ -796,6 +798,11 @@ string CDVDPlayerAudio::GetPlayerInfo()
 int CDVDPlayerAudio::GetAudioBitrate()
 {
   return (int)m_audioStats.GetBitrate();
+}
+
+int CDVDPlayerAudio::GetAudioChannels()
+{
+  return m_streaminfo.channels;
 }
 
 bool CDVDPlayerAudio::IsPassthrough() const

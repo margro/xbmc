@@ -24,6 +24,9 @@
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 
 #define CONTROL_BTNVIEWASICONS            2
+#define CONTROL_BTNSORTBY                 3
+#define CONTROL_BTNSORTASC                4
+#define CONTROL_BTNGROUPITEMS             5
 #define CONTROL_BTNCHANNELGROUPS          28
 
 #define CONTROL_LABEL_HEADER1             29
@@ -52,6 +55,8 @@ namespace PVR
   public:
     virtual void OnInitWindow(void);
     virtual bool OnMessage(CGUIMessage& message);
+    virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
+    virtual bool OnContextButton(const CFileItem &item, CONTEXT_BUTTON button) { return false; };
     virtual bool Update(const std::string &strDirectory, bool updateFilterPath = true);
     virtual void UpdateButtons(void);
     virtual bool OnAction(const CAction &action);

@@ -40,6 +40,7 @@
 #include "settings/Settings.h"
 #include "guilib/LocalizeStrings.h"
 #include "cores/AudioEngine/AEFactory.h"
+#include "Util.h"
 
 extern "C" {
 #include "libavutil/crc.h"
@@ -1067,7 +1068,7 @@ bool COMXAudio::ApplyVolume(void)
   OMX_INIT_STRUCTURE(mix);
   OMX_ERRORTYPE omx_err;
 
-  assert(sizeof(mix.coeff)/sizeof(mix.coeff[0]) == 64);
+  assert(ARRAY_SIZE(mix.coeff) == 64);
 
   if (m_amplification != 1.0)
   {
@@ -1411,7 +1412,7 @@ void COMXAudio::UnRegisterAudioCallback()
   m_pCallback = NULL;
 }
 
-unsigned int COMXAudio::GetAudioRenderingLatency()
+unsigned int COMXAudio::GetAudioRenderingLatency() const
 {
   CSingleLock lock (m_critSection);
 
