@@ -9,7 +9,7 @@ SET DEPS_DIR=..\BuildDependencies
 SET TMP_DIR=%DEPS_DIR%\tmp
 
 SET LIBNAME=xbmc-pvr-addons
-REM SET VERSION=1832e602ce6d6ce43e2abbb497879beb944ab225
+REM SET VERSION=3949502043d520e4707bc3109abf3c6edb23cf67
 SET VERSION=development
 SET SOURCE=%LIBNAME%
 SET GIT_URL=git://github.com/margro/%LIBNAME%.git
@@ -18,8 +18,8 @@ SET BUILT_ADDONS_DIR=%SOURCE_DIR%\addons
 
 REM check if MSBuild.exe is used because it requires different command line switches
 IF "%msbuildemitsolution%" == "1" (
-  rem set OPTS_EXE=%SOURCE_DIR%\project\VS2010Express\xbmc-pvr-addons.sln /t:Build /p:Configuration="Release" /property:VCTargetsPath="%MSBUILDROOT%Microsoft.Cpp\v4.0\V120\\"
-  set OPTS_EXE=%SOURCE_DIR%\project\VS2013Express\xbmc-pvr-addons.sln /t:Build /p:Configuration="Release" /property:VCTargetsPath="%MSBUILDROOT%Microsoft.Cpp\v4.0\V120\\"
+  REM set OPTS_EXE=%SOURCE_DIR%\project\VS2010Express\xbmc-pvr-addons.sln /t:Build /p:Configuration="Release" /property:VCTargetsPath="%MSBUILDROOT%Microsoft.Cpp\v4.0\V120\\" /m
+  set OPTS_EXE=%SOURCE_DIR%\project\VS2013Express\xbmc-pvr-addons.sln /t:Build /p:Configuration="Release" /property:VCTargetsPath="%MSBUILDROOT%Microsoft.Cpp\v4.0\V120\\" /m
 ) ELSE (
   set OPTS_EXE=%SOURCE_DIR%\project\VS2013Express\xbmc-pvr-addons.sln /build Release
 )

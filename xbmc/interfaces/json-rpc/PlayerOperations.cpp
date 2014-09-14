@@ -42,6 +42,7 @@
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/recordings/PVRRecordings.h"
 #include "cores/IPlayer.h"
 #include "cores/playercorefactory/PlayerCoreConfig.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
@@ -593,7 +594,28 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
     if (channel == NULL)
       return InvalidParams;
 
-    CApplicationMessenger::Get().MediaPlay(CFileItem(*channel.get()));
+    if ((g_PVRManager.IsPlayingRadio() && channel.get()->IsRadio()) ||
+        (g_PVRManager.IsPlayingTV() && !channel.get()->IsRadio()))
+      g_PVRManager.PerformChannelSwitch(*channel.get(), false);
+    else
+      CApplicationMessenger::Get().MediaPlay(CFileItem(*channel.get()));
+
+    return ACK;
+  }
+  else if (parameterObject["item"].isObject() && parameterObject["item"].isMember("recordingid"))
+  {
+    if (!g_PVRManager.IsStarted())
+      return FailedToExecute;
+
+    CPVRRecordings *recordingsContainer = g_PVRRecordings;
+    if (recordingsContainer == NULL)
+      return FailedToExecute;
+
+    CFileItemPtr fileItem = recordingsContainer->GetById((int)parameterObject["item"]["recordingid"].asInteger());
+    if (fileItem == NULL)
+      return InvalidParams;
+
+    CApplicationMessenger::Get().MediaPlay(*fileItem);
     return ACK;
   }
   else

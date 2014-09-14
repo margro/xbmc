@@ -872,7 +872,8 @@ bool URIUtils::IsInternetStream(const CURL& url, bool bStrictCheck /* = false */
 
   // Special case these
   if (url.IsProtocol("ftp") || url.IsProtocol("ftps")  ||
-      url.IsProtocol("dav") || url.IsProtocol("davs"))
+      url.IsProtocol("dav") || url.IsProtocol("davs")  ||
+      url.IsProtocol("sftp"))
     return bStrictCheck;
 
   std::string protocol = url.GetTranslatedProtocol();

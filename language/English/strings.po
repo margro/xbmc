@@ -1,7 +1,7 @@
 # Kodi Media Center language file
 msgid ""
 msgstr ""
-"Project-Id-Version: Kodi Main\n"
+"Project-Id-Version: XBMC Main\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -6190,7 +6190,24 @@ msgctxt "#13456"
 msgid "Hardware accelerated"
 msgstr ""
 
-#empty strings from id 13457 to 13499
+#. Option for video related setting #13454: sw filter
+#: system/settings/settings.xml
+msgctxt "#13457"
+msgid "Prefer VAAPI render method"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#13458"
+msgid "Allow hardware acceleration (OMXPlayer)"
+msgstr ""
+
+#. Description of setting "Videos -> Playback -> Allow hardware acceleration (OMXPlayer)" with label #13457
+#: system/settings/settings.xml
+msgctxt "#13459"
+msgid "Use OMXPlayer for decoding of video files."
+msgstr ""
+
+#empty strings from id 13460 to 13499
 
 #: system/settings/settings.xml
 msgctxt "#13500"
@@ -7356,7 +7373,22 @@ msgctxt "#16326"
 msgid "DXVA-HD"
 msgstr ""
 
-#empty strings from id 16327 to 16399
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+msgctxt "#16327"
+msgid "VAAPI Bob"
+msgstr ""
+
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+msgctxt "#16328"
+msgid "VAAPI Motion Adaptive"
+msgstr ""
+
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+msgctxt "#16329"
+msgid "VAAPI Motion Compensated"
+msgstr ""
+
+#empty strings from id 16330 to 16399
 
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#16400"
@@ -7400,7 +7432,7 @@ msgctxt "#19002"
 msgid "or use phrases to find an exact match, like \"The wizard of Oz\"."
 msgstr ""
 
-#. Label of the button / context menu entry to find similar programs in the PVR EPG data 
+#. Label of the button / context menu entry to find similar programs in the PVR EPG data
 #: skin.confluence
 #: xbmc/pvr/windows/GUIWindowPVRChannels.cpp
 #: xbmc/pvr/windows/GUIWindowPVRGuide.cpp
@@ -7837,6 +7869,7 @@ msgstr ""
 
 msgctxt "#19105"
 msgid "Please select a channel"
+msgstr ""
 
 msgctxt "#19106"
 msgid "Next timer on"
@@ -8619,6 +8652,7 @@ msgstr ""
 #: xbmc/pvr/PVRManager.cpp
 msgctxt "#19286"
 msgid "Searching for channel icons"
+msgstr ""
 
 #. Label for the default pvr channel group
 #: xbmc/pvr/windows/GUIWindowPVRCommon.cpp
@@ -15362,6 +15396,7 @@ msgstr ""
 #: system/settings/settings.xml
 msgctxt "#36431"
 msgid "Defines whether video decoding should be performed in software (requires more CPU) or with hardware acceleration where possible."
+msgstr ""
 
 #. Description for international setting #310: Keyboard layouts
 #: system/settings/settings.xml
@@ -15369,7 +15404,13 @@ msgctxt "#36432"
 msgid "Select virtual keyboard layouts."
 msgstr ""
 
-#empty strings from id 36433 to 36499
+#. Description for video related setting #13457: vaapi sw filter
+#: system/settings/settings.xml
+msgctxt "#36433"
+msgid "If enabled VAAPI render method is prefered. This puts less load on the CPU but driver may hang!"
+msgstr ""
+
+#empty strings from id 36434 to 36499
 #end reservation
 
 #: system/settings/settings.xml
@@ -15424,6 +15465,7 @@ msgctxt "#36509"
 msgid "Monoscopic - 2D"
 msgstr ""
 
+#empty strings from id 36510 to 36519
 #reserved strings for 3d modes 36509 - 36520
 
 #: system/settings/settings.xml
@@ -15721,6 +15763,8 @@ msgctxt "#36921"
 msgid "songs"
 msgstr ""
 
+#empty strings from id 36922 to 36999
+
 #: xbmc/cores/dvdplayer/DVDInputStreams/DVDInputStreamNavigator.cpp
 msgctxt "#37000"
 msgid "(Visually Impaired)"
@@ -15779,7 +15823,7 @@ msgctxt "#37018"
 msgid "Boost centre channel when downmixing"
 msgstr ""
 
-#empty strings from id 37019 to 37019
+#empty string with id 37019
 
 #: system/settings/rbp.xml
 msgctxt "#37020"

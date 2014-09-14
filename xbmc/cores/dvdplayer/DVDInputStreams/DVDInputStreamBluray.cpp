@@ -47,8 +47,6 @@ void DllLibbluray::file_close(BD_FILE_H *file)
 {
   if (file)
   {
-    CLog::Log(LOGDEBUG, "CDVDInputStreamBluray - Closed file (%p)\n", file);
-    
     delete static_cast<CFile*>(file->internal);
     delete file;
   }
@@ -487,9 +485,13 @@ void CDVDInputStreamBluray::ProcessEvent() {
     CLog::Log(LOGDEBUG, "CDVDInputStreamBluray - BD_EVENT_ANGLE %d",
         m_event.param);
     m_angle = m_event.param;
-    if (m_title)
-      m_dll->bd_free_title_info(m_title);
-    m_title = m_dll->bd_get_playlist_info(m_bd, m_playlist, m_angle);
+
+    if (m_playlist <= MAX_PLAYLIST_ID)
+    {
+      if(m_title)
+        m_dll->bd_free_title_info(m_title);
+      m_title = m_dll->bd_get_playlist_info(m_bd, m_playlist, m_angle);
+    }
     break;
 
   case BD_EVENT_END_OF_TITLE:
@@ -1029,6 +1031,38 @@ void CDVDInputStreamBluray::UserInput(bd_vk_key_e vk)
   if(m_bd == NULL || !m_navmode)
     return;
   m_dll->bd_user_input(m_bd, -1, vk);
+}
+
+bool CDVDInputStreamBluray::MouseMove(const CPoint &point)
+{
+  if (m_bd == NULL || !m_navmode)
+    return false;
+
+  if (m_dll->bd_mouse_select(m_bd, -1, point.x, point.y) < 0)
+  {
+    CLog::Log(LOGDEBUG, "CDVDInputStreamBluray::MouseMove - mouse select failed");
+    return false;
+  }
+
+  return true;
+}
+
+bool CDVDInputStreamBluray::MouseClick(const CPoint &point)
+{
+  if (m_bd == NULL || !m_navmode)
+    return false;
+
+  if (m_dll->bd_mouse_select(m_bd, -1, point.x, point.y) < 0)
+  {
+    CLog::Log(LOGDEBUG, "CDVDInputStreamBluray::MouseClick - mouse select failed");
+    return false;
+  }
+
+  if (m_dll->bd_user_input(m_bd, -1, BD_VK_MOUSE_ACTIVATE) >= 0)
+    return true;
+
+  CLog::Log(LOGDEBUG, "CDVDInputStreamBluray::MouseClick - mouse click (user input) failed");
+  return false;
 }
 
 void CDVDInputStreamBluray::OnMenu()
