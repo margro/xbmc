@@ -163,7 +163,10 @@ void CPVRChannel::Serialize(CVariant& value) const
   
   CEpgInfoTag epg;
   if (GetEPGNow(epg))
-    epg.Serialize(value);
+    epg.Serialize(value["broadcastnow"]);
+
+  if (GetEPGNext(epg))
+    epg.Serialize(value["broadcastnext"]);
 }
 
 /********** XBMC related channel methods **********/
@@ -575,6 +578,8 @@ void CPVRChannel::UpdateEncryptionName(void)
     strName = "Z-Crypt";
   else if (m_iClientEncryptionSystem == 0x5501)
     strName = "Griffin";
+  else if (m_iClientEncryptionSystem == 0x5601)
+    strName = "Verimatrix";
 
   if (m_iClientEncryptionSystem >= 0)
     strName += StringUtils::Format(" (%04X)", m_iClientEncryptionSystem);

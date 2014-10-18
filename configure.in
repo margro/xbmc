@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([xbmc], [13.9.704], [http://issues.xbmc.org])
+AC_INIT([xbmc], [13.9.705], [http://issues.xbmc.org])
 AC_CONFIG_HEADERS([xbmc/config.h])
 AH_TOP([#pragma once])
 m4_include([m4/ax_prog_cc_for_build.m4])
@@ -63,10 +63,10 @@ AC_DEFUN([XB_FIND_SONAME],
     fi
   elif [[ "$host_vendor" != "apple" ]]; then
     AC_MSG_CHECKING([for lib$2 soname])
-    $1_FILENAME=$($CC -nostdlib -o /dev/null $LDFLAGS -l$2 -Wl,-M 2>/dev/null | grep "^LOAD.*$2" | awk '{V=2; print $V}')
+    $1_FILENAME=$($CC -nostdlib -o /dev/null $LDFLAGS $4 -l$2 -Wl,-M 2>/dev/null | grep "^LOAD.*$2" | awk '{V=2; print $V}')
     if [[ -z $$1_FILENAME ]]; then
       #try gold linker syntax
-      $1_FILENAME=$($CC -nostdlib -o /dev/null $LDFLAGS -l$2 -Wl,-t 3>&1 1>&2 2>&3 | grep "lib$2")
+      $1_FILENAME=$($CC -nostdlib -o /dev/null $LDFLAGS $4 -l$2 -Wl,-t 3>&1 1>&2 2>&3 | grep "lib$2")
     fi
     if [[ ! -z $$1_FILENAME ]]; then
       $1_SONAME=$($OBJDUMP -p $$1_FILENAME | grep "SONAME.*$2" | awk '{V=2; print $V}')
@@ -190,7 +190,7 @@ vaapi_disabled="== VAAPI support manually disabled. =="
 vtbdecoder_enabled="== VTBDecoder support enabled. =="
 vtbdecoder_disabled="== VTBDecoder support manually disabled. =="
 openmax_disabled="== OpenMax support manually disabled. =="
-openmax_not_found="== Could not find libnvomx. OpenMax support disabled. =="
+openmax_not_found="== Could not find OpenMax headers. OpenMax support disabled. =="
 ssh_not_found="== Could not find libssh. =="
 ssh_disabled="== SSH SFTP disabled. =="
 librtmp_not_found="== Could not find libRTMP. RTMP support disabled. =="
@@ -721,6 +721,7 @@ case $use_platform in
      ARCH="arm"
      AC_DEFINE(HAS_EGLGLES, [1], [Define if supporting EGL based GLES Framebuffer])
      USE_OMXLIB=1; AC_DEFINE([HAVE_OMXLIB],[1],["Define to 1 if OMX libs is enabled"])
+     USE_MMAL=1; AC_DEFINE([HAS_MMAL],[1],["Define to 1 if MMAL libs is enabled"])
      CFLAGS="$CFLAGS"
      CXXFLAGS="$CXXFLAGS"
      ;;
@@ -1010,7 +1011,7 @@ if test "$use_gles" = "yes"; then
       AC_DEFINE([HAVE_LIBEGL],[1],["Define to 1 if you have the `EGL' library (-lEGL)."])
       AC_DEFINE([HAVE_LIBGLESV2],[1],["Define to 1 if you have the `GLESv2' library (-lGLESv2)."])
       AC_MSG_RESULT(== WARNING: OpenGLES support is assumed.)
-      LIBS="$LIBS -lEGL -lGLESv2 -lbcm_host -lvcos -lvchiq_arm"
+      LIBS="$LIBS -lEGL -lGLESv2 -lbcm_host -lvcos -lvchiq_arm -lmmal -lmmal_core -lmmal_util"
     else
       AC_CHECK_LIB([EGL],   [main],, AC_MSG_ERROR($missing_library))
       AC_CHECK_LIB([GLESv2],[main],, AC_MSG_ERROR($missing_library))
@@ -1173,7 +1174,8 @@ AS_CASE([x$use_libbluray],
 AS_CASE([x$use_libbluray],
   [xyes],[
     INCLUDES="$INCLUDES $LIBBLURAY_CFLAGS";
-    XB_FIND_SONAME([BLURAY], [bluray], [use_libbluray])
+    LIBBLURAY_LIB_BASENAME=`$PKG_CONFIG --libs-only-L "libbluray >= 0.2.1"`;
+    XB_FIND_SONAME([BLURAY], [bluray], [use_libbluray], [$LIBBLURAY_LIB_BASENAME])
     AC_DEFINE([HAVE_LIBBLURAY], 1, [System has libbluray library])
     AC_SUBST([HAVE_LIBBLURAY], 1)
     AC_CHECK_LIB([bluray], [bd_register_argb_overlay_proc],
@@ -1419,14 +1421,14 @@ else
   DISABLE_PROJECTM=0
 fi
 
-# skin touched
-use_skin_touched=no
-if [[ -f "addons/skin.touched/addon.xml" ]]; then 
-  use_skin_touched=yes
-  USE_SKIN_TOUCHED=1
-  AC_DEFINE([HAS_SKIN_TOUCHED], [1], [Whether to build skin touched.])
+# touch skin
+use_touch_skin=no
+if [[ -f "addons/skin.re-touched/addon.xml" ]]; then 
+  use_touch_skin=yes
+  USE_TOUCH_SKIN=1
+  AC_DEFINE([HAS_TOUCH_SKIN], [1], [Whether to build the touch skin.])
 else
-  USE_SKIN_TOUCHED=0
+  USE_TOUCH_SKIN=0
 fi
 
 # libssh
@@ -1659,13 +1661,13 @@ else
 fi
 
 # FFmpeg
-FFMPEG_LIBNAMES="libavcodec >= 55.69.100
-                 libavfilter >= 4.11.100
-                 libavformat >= 55.48.100
-                 libavutil >= 52.92.100
-                 libpostproc >= 52.3.100
-                 libswscale >= 2.6.100
-                 libswresample >= 0.19.100"
+FFMPEG_LIBNAMES="libavcodec >= 56.1.100
+                 libavfilter >= 5.1.100
+                 libavformat >= 56.4.101
+                 libavutil >= 54.7.100
+                 libpostproc >= 53.0.100
+                 libswscale >= 3.0.100
+                 libswresample >= 1.1.100"
 
 ffmpeg_build="${abs_top_srcdir}/tools/depends/target/ffmpeg"
 FFMPEG_VER_SHA=$(grep "VERSION=" ${ffmpeg_build}/FFMPEG-VERSION | sed 's/VERSION=//g')
@@ -1881,12 +1883,13 @@ elif test "$target_platform" = "target_raspberry_pi"; then
   AC_MSG_NOTICE($openmax_disabled)
 else
   if test "$use_gles" = "yes" && test "$use_openmax" = "auto"; then
-    PKG_CHECK_MODULES([OPENMAX], [libomxil-bellagio],
-                      USE_OPENMAX=1;[INCLUDES="$INCLUDES $OPENMAX_CFLAGS"; LIBS="$LIBS $OPENMAX_LIBS"],
+
+    AC_CHECK_HEADERS([OMX_Core.h],
+                      USE_OPENMAX=1;[INCLUDES="$INCLUDES $OPENMAX_CFLAGS"; LIBS="$LIBS $OPENMAX_LIBS";AC_DEFINE([HAVE_LIBOPENMAX], [1], [Define to 1 if you have the OpenMax library.])],
                       use_openmax=no;USE_OPENMAX=0;AC_MSG_RESULT($openmax_not_found))
   elif test "$use_gles" = "yes" && test "$use_openmax" = "yes"; then
-    PKG_CHECK_MODULES([OPENMAX], [libomxil-bellagio],
-                      USE_OPENMAX=1;[INCLUDES="$INCLUDES $OPENMAX_CFLAGS"; LIBS="$LIBS $OPENMAX_LIBS"],
+    AC_CHECK_HEADERS([OMX_Core.h],
+                      USE_OPENMAX=1;[INCLUDES="$INCLUDES $OPENMAX_CFLAGS"; LIBS="$LIBS $OPENMAX_LIBS";AC_DEFINE([HAVE_LIBOPENMAX], [1], [Define to 1 if you have the OpenMax library.])],
                       AC_MSG_ERROR($openmax_not_found))
   else
     AC_MSG_NOTICE($openmax_disabled)
@@ -2129,15 +2132,17 @@ else
   final_message="$final_message\n  ProjectM:\tNo"
 fi
 
-if test "$use_skin_touched" = "yes"; then
-  final_message="$final_message\n  Skin Touched:\tYes"
+if test "$use_touch_skin" = "yes"; then
+  final_message="$final_message\n  Touch skin:\tYes"
 else
-  final_message="$final_message\n  Skin Touched:\tNo"
+  final_message="$final_message\n  Touch skin:\tNo"
 fi
 
 if test "$use_x11" = "yes"; then
+  USE_X11=1
   final_message="$final_message\n  X11:\t\tYes"
 else
+  USE_X11=0
   final_message="$final_message\n  X11:\t\tNo"
 fi
 
@@ -2471,6 +2476,8 @@ OUTPUT_FILES="Makefile \
     xbmc/visualizations/EGLHelpers/Makefile \
     tools/Linux/xbmc.sh \
     tools/Linux/xbmc-standalone.sh \
+    tools/Linux/FEH.py \
+    tools/Linux/FEH-ARM.py \
     tools/TexturePacker/Makefile \
     tools/EventClients/Clients/OSXRemote/Makefile \
     xbmc/peripherals/bus/Makefile \
@@ -2494,8 +2501,8 @@ if test "$use_wayland" = "yes"; then
 OUTPUT_FILES="$OUTPUT_FILES xbmc/windowing/tests/wayland/Makefile"
 fi
 
-if test "$use_skin_touched" = "yes"; then
-OUTPUT_FILES="$OUTPUT_FILES addons/skin.touched/media/Makefile"
+if test "$use_touch_skin" = "yes"; then
+OUTPUT_FILES="$OUTPUT_FILES addons/skin.re-touched/media/Makefile"
 fi
 
 if test "$use_codec_libstagefright" = "yes"; then
@@ -2538,7 +2545,7 @@ AC_SUBST(FFMPEG_LIBDIR)
 AC_SUBST(USE_STATIC_FFMPEG)
 AC_SUBST(GNUTLS_ALL_LIBS)
 AC_SUBST(VORBISENC_ALL_LIBS)
-AC_SUBST(USE_SKIN_TOUCHED)
+AC_SUBST(USE_TOUCH_SKIN)
 AC_SUBST(USE_LIBAV_HACKS)
 AC_SUBST(PYTHON_VERSION)
 AC_SUBST(OUTPUT_FILES)
@@ -2583,6 +2590,8 @@ AC_SUBST(USE_DOXYGEN)
 AC_SUBST(USE_PVR_ADDONS)
 AC_SUBST(UPNP_DEFINES)
 AC_SUBST(USE_SSE4)
+AC_SUBST(USE_MMAL)
+AC_SUBST(USE_X11)
 
 # pushd and popd are not available in other shells besides bash, so implement
 # our own pushd/popd functions

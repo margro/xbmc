@@ -105,7 +105,7 @@ public:
   const int        player;
   // stuff to handle starting after seek
   double   startpts;
-  double   correction;
+  double   originaldts;
 
   CCurrentStream(StreamType t, int i)
     : type(t)
@@ -127,7 +127,7 @@ public:
     inited = false;
     started = false;
     startpts  = DVD_NOPTS_VALUE;
-    correction = 0.0;
+    originaldts = DVD_NOPTS_VALUE;
   }
 
   double dts_end()
@@ -188,7 +188,7 @@ public:
   int              Source  (StreamSource source, std::string filename);
 
   void             Update  (SelectionStream& s);
-  void             Update  (CDVDInputStream* input, CDVDDemux* demuxer);
+  void             Update  (CDVDInputStream* input, CDVDDemux* demuxer, std::string filename2 = "");
 };
 
 
@@ -269,7 +269,7 @@ public:
 
   virtual std::string GetPlayingTitle();
 
-  virtual bool SwitchChannel(const PVR::CPVRChannel &channel);
+  virtual bool SwitchChannel(PVR::CPVRChannel &channel);
   virtual bool CachePVRStream(void) const;
 
   enum ECacheState
@@ -285,12 +285,6 @@ public:
   virtual int GetCacheLevel() const ;
 
   virtual int OnDVDNavResult(void* pData, int iMessage);
-
-  // Note: the following "OMX" methods are deprecated and will be removed in the future
-  // They should be handled by the video renderer, not the player
-  virtual void OMXGetRenderFeatures(std::vector<int> &renderFeatures);
-  virtual void OMXGetDeinterlaceMethods(std::vector<int> &deinterlaceMethods);
-  virtual void OMXGetDeinterlaceModes(std::vector<int> &deinterlaceModes);
 
   virtual bool ControlsVolume() {return m_omxplayer_mode;}
 

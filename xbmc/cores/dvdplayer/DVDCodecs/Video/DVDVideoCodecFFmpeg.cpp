@@ -101,6 +101,7 @@ enum PixelFormat CDVDVideoCodecFFmpeg::GetFormat( struct AVCodecContext * avctx
 #ifdef HAS_DX
   if(DXVA::CDecoder::Supports(*cur) && CSettings::Get().GetBool("videoplayer.usedxva2"))
   {
+    CLog::Log(LOGNOTICE, "CDVDVideoCodecFFmpeg::GetFormat - Creating DXVA(%ix%i)", avctx->width, avctx->height);
     DXVA::CDecoder* dec = new DXVA::CDecoder();
     if(dec->Open(avctx, *cur, ctx->m_uSurfacesCount))
     {
@@ -162,7 +163,12 @@ CDVDVideoCodecFFmpeg::CDVDVideoCodecFFmpeg() : CDVDVideoCodec()
   m_iScreenHeight = 0;
   m_iOrientation = 0;
   m_bSoftware = false;
+#if defined(TARGET_ANDROID) || defined(TARGET_DARWIN_IOS)
+  // If we get here on Android or iOS, it's always software
+  m_isSWCodec = true;
+#else
   m_isSWCodec = false;
+#endif
   m_pHardware = NULL;
   m_iLastKeyframe = 0;
   m_dts = DVD_NOPTS_VALUE;
@@ -237,18 +243,10 @@ bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
   /* Only allow slice threading, since frame threading is more
    * sensitive to changes in frame sizes, and it causes crashes
    * during HW accell - so we unset it in this case.
-   *
-   * When we detect a pure SW codec and user did not disable SWmultithreading
-   * via advancedsettings.xml we keep the ffmpeg default thread type.
    * */
-  if(m_isSWCodec && !g_advancedSettings.m_videoDisableSWMultithreading)
+  if ((EDECODEMETHOD) CSettings::Get().GetInt("videoplayer.decodingmethod") == VS_DECODEMETHOD_SOFTWARE || m_isSWCodec)
   {
-    CLog::Log(LOGDEBUG,"CDVDVideoCodecFFmpeg::Open() Keep default threading for swcodec: %d",
-                        m_pCodecContext->thread_type);
-  }
-  else if ((EDECODEMETHOD) CSettings::Get().GetInt("videoplayer.decodingmethod") == VS_DECODEMETHOD_SOFTWARE && CSettings::Get().GetBool("videoplayer.useframemtdec"))
-  {
-    CLog::Log(LOGDEBUG,"CDVDVideoCodecFFmpeg::Open() Keep default threading %d by videoplayer.useframemtdec",
+    CLog::Log(LOGDEBUG,"CDVDVideoCodecFFmpeg::Open() Keeping default threading %d",
                         m_pCodecContext->thread_type);
   }
   else

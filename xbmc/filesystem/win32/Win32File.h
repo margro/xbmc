@@ -36,8 +36,8 @@ namespace XFILE
     virtual bool OpenForWrite(const CURL& url, bool bOverWrite = false);
     virtual void Close();
 
-    virtual unsigned int Read(void* lpBuf, int64_t uiBufSize);
-    virtual int Write(const void* lpBuf, int64_t uiBufSize);
+    virtual ssize_t Read(void* lpBuf, size_t uiBufSize);
+    virtual ssize_t Write(const void* lpBuf, size_t uiBufSize);
     virtual int64_t Seek(int64_t iFilePosition, int iWhence = SEEK_SET);
     virtual int Truncate(int64_t toSize);
     virtual int64_t GetPosition();
@@ -52,11 +52,14 @@ namespace XFILE
     virtual int Stat(struct __stat64* statData);
 
   protected:
+    CWin32File(bool asSmbFile);
     HANDLE  m_hFile;
     int64_t m_filePos;
     bool    m_allowWrite;
     // file path and name in win32 long form "\\?\D:\path\to\file.ext"
     std::wstring m_filepathnameW;
+    const bool m_smbFile; // true for SMB file, false for local file
+    unsigned long m_lastSMBFileErr; // used for SMB file operations
   };
 
 }

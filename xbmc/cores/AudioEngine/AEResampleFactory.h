@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2013 Team XBMC
+ *      Copyright (C) 2010-2013 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,29 +19,17 @@
  *
  */
 
+#include "cores/AudioEngine/Interfaces/AEResample.h"
 
-#include "filesystem/IDirectory.h"
-#include "URL.h"
+class IAEResample;
 
-namespace XFILE
+namespace ActiveAE
 {
 
-class CWINSMBDirectory : public IDirectory
+class CAEResampleFactory
 {
 public:
-  CWINSMBDirectory(void);
-  virtual ~CWINSMBDirectory(void);
-  virtual bool GetDirectory(const CURL& url, CFileItemList &items);
-  virtual DIR_CACHE_TYPE GetCacheType(const CURL& url) const { return DIR_CACHE_ONCE; };
-  virtual bool Create(const CURL& url);
-  virtual bool Exists(const CURL& url);
-  virtual bool Remove(const CURL& url);
-
-  bool ConnectToShare(const CURL& url);
-private:
-  bool m_bHost;
-  bool EnumerateFunc(LPNETRESOURCEW lpnr, CFileItemList &items);
-  std::string GetLocal(const CURL &url);
-  std::string URLEncode(const CURL &url);
+  static IAEResample *Create();
 };
+
 }

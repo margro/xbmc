@@ -368,7 +368,7 @@ VASurfaceID CVideoSurfaces::GetFree(VASurfaceID surf)
 
 VASurfaceID CVideoSurfaces::GetAtIndex(int idx)
 {
-  if (idx >= m_state.size())
+  if ((size_t) idx >= m_state.size())
     return VA_INVALID_SURFACE;
 
   std::map<VASurfaceID, int>::iterator it = m_state.begin();
@@ -417,6 +417,17 @@ bool CVideoSurfaces::HasFree()
   return !m_freeSurfaces.empty();
 }
 
+bool CVideoSurfaces::HasRefs()
+{
+  CSingleLock lock(m_section);
+  for (std::map<VASurfaceID, int>::iterator it = m_state.begin(); it != m_state.end(); ++it)
+  {
+    if (it->second & SURFACE_USED_FOR_REFERENCE)
+    return true;
+  }
+  return false;
+}
+
 //-----------------------------------------------------------------------------
 // VAAPI
 //-----------------------------------------------------------------------------
@@ -440,6 +451,7 @@ CDecoder::CDecoder() : m_vaapiOutput(&m_inMsgEvent)
   m_vaapiConfig.context = 0;
   m_vaapiConfig.contextId = VA_INVALID_ID;
   m_vaapiConfig.configId = VA_INVALID_ID;
+  m_avctx = NULL;
 }
 
 CDecoder::~CDecoder()
@@ -480,10 +492,9 @@ bool CDecoder::Open(AVCodecContext* avctx, const enum PixelFormat fmt, unsigned 
   m_vaapiConfig.vidHeight = avctx->height;
   m_vaapiConfig.outWidth = avctx->width;
   m_vaapiConfig.outHeight = avctx->height;
-  m_vaapiConfig.surfaceWidth = avctx->width;
-  m_vaapiConfig.surfaceHeight = avctx->height;
+  m_vaapiConfig.surfaceWidth = avctx->coded_width;
+  m_vaapiConfig.surfaceHeight = avctx->coded_height;
   m_vaapiConfig.aspect = avctx->sample_aspect_ratio;
-  m_vaapiConfig.numRenderBuffers = surfaces;
   m_decoderThread = CThread::GetCurrentThreadId();
   m_DisplayState = VAAPI_OPEN;
   m_vaapiConfigured = false;
@@ -568,6 +579,8 @@ bool CDecoder::Open(AVCodecContext* avctx, const enum PixelFormat fmt, unsigned 
   avctx->hwaccel_context = &m_hwContext;
   avctx->get_buffer2 = CDecoder::FFGetBuffer;
   avctx->slice_flags = SLICE_FLAG_CODED_ORDER|SLICE_FLAG_ALLOW_FIELD;
+
+  m_avctx = avctx;
   return true;
 }
 
@@ -586,6 +599,12 @@ void CDecoder::Close()
 
 long CDecoder::Release()
 {
+  // if ffmpeg holds any references, flush buffers
+  if (m_avctx && m_videoSurfaces.HasRefs())
+  {
+    avcodec_flush_buffers(m_avctx);
+  }
+
   // check if we should do some pre-cleanup here
   // a second decoder might need resources
   if (m_vaapiConfigured == true)
@@ -674,7 +693,6 @@ int CDecoder::FFGetBuffer(AVCodecContext *avctx, AVFrame *pic, int flags)
 void CDecoder::FFReleaseBuffer(uint8_t *data)
 {
   VASurfaceID surf;
-  unsigned int i;
 
   CSingleLock lock(m_DecoderSection);
 
@@ -734,7 +752,6 @@ int CDecoder::Decode(AVCodecContext* avctx, AVFrame* pFrame)
 
   m_bufferStats.Get(decoded, processed, render, vpp);
 
-  bool hasfree = m_videoSurfaces.HasFree();
   while (!retval)
   {
     // first fill the buffers to keep vaapi busy
@@ -917,7 +934,7 @@ bool CDecoder::Supports(EINTERLACEMETHOD method)
   if(method == VS_INTERLACEMETHOD_AUTO)
     return true;
 
-  for (int i=0; i<m_diMethods.size(); i++)
+  for (size_t i = 0; i < m_diMethods.size(); i++)
   {
     if (m_diMethods[i] == method)
       return true;
@@ -1042,8 +1059,6 @@ void CDecoder::FiniVAAPIOutput()
   // uninit output
   m_vaapiOutput.Dispose();
   m_vaapiConfigured = false;
-
-  VAStatus status;
 
   // destroy decoder context
   if (m_vaapiConfig.contextId != VA_INVALID_ID)
@@ -1813,18 +1828,21 @@ CVaapiRenderPicture* COutput::ProcessPicture(CVaapiProcessedPicture &pic)
     if (!CheckSuccess(vaSyncSurface(m_config.dpy, pic.videoSurface)))
       return NULL;
 
+    XLockDisplay(m_Display);
     if (!CheckSuccess(vaPutSurface(m_config.dpy,
                                    pic.videoSurface,
                                    retPic->pixmap,
                                    0,0,
-                                   m_config.surfaceWidth, m_config.surfaceHeight,
+                                   m_config.vidWidth, m_config.vidHeight,
                                    0,0,
-                                   m_config.surfaceWidth, m_config.surfaceHeight,
+                                   m_config.outWidth, m_config.outHeight,
                                    NULL,0,
                                    VA_FRAME_PICTURE | colorStandard)))
     {
       return NULL;
     }
+    XUnlockDisplay(m_Display);
+
     XSync(m_config.x11dsp, false);
     glEnable(m_textureTarget);
     glBindTexture(m_textureTarget, retPic->texture);
@@ -2049,8 +2067,8 @@ bool COutput::EnsureBufferPool()
 
     pic->pixmap = XCreatePixmap(m_Display,
                                 m_Window,
-                                m_config.surfaceWidth,
-                                m_config.surfaceHeight,
+                                m_config.outWidth,
+                                m_config.outHeight,
                                 wndattribs.depth);
     if (!pic->pixmap)
     {
@@ -2079,7 +2097,6 @@ bool COutput::EnsureBufferPool()
 
 void COutput::ReleaseBufferPool(bool precleanup)
 {
-  VAStatus status;
   CVaapiRenderPicture *pic;
 
   CSingleLock lock(m_bufferPool.renderPicSec);
@@ -2246,6 +2263,7 @@ bool COutput::DestroyGlxContext()
 {
   if (m_glContext)
   {
+    glFinish();
     glXMakeCurrent(m_Display, None, NULL);
     glXDestroyContext(m_Display, m_glContext);
   }
@@ -2404,11 +2422,11 @@ bool CVppPostproc::PreInit(CVaapiConfig &config, SDiMethods *methods)
 
   if (methods)
   {
-    for (int i=0; i<numFilters; i++)
+    for (unsigned int i = 0; i < numFilters; i++)
     {
       if (filters[i] == VAProcFilterDeinterlacing)
       {
-        for (int j=0; j<numDeinterlacingCaps; j++)
+        for (unsigned int j = 0; j < numDeinterlacingCaps; j++)
         {
           if (deinterlacingCaps[j].type == VAProcDeinterlacingBob)
           {
@@ -2644,7 +2662,9 @@ bool CVppPostproc::Filter(CVaapiProcessedPicture &outPic)
   pipelineParams->num_filters = 1;
 
   // references
-  double pts, ptsLast = DVD_NOPTS_VALUE;
+  double ptsLast = DVD_NOPTS_VALUE;
+  double pts = DVD_NOPTS_VALUE;
+
   pipelineParams->surface = VA_INVALID_SURFACE;
   for (it=m_decodedPics.begin(); it!=m_decodedPics.end(); ++it)
   {
@@ -2942,7 +2962,6 @@ bool CFFmpegPostproc::Init(EINTERLACEMETHOD method)
 bool CFFmpegPostproc::AddPicture(CVaapiDecodedPicture &inPic)
 {
   VASurfaceID surf = inPic.videoSurface;
-  VASurfaceStatus surf_status;
   VAImage image;
   uint8_t *buf;
   if (m_DVDPic.pts != DVD_NOPTS_VALUE && inPic.DVDPic.pts != DVD_NOPTS_VALUE)
@@ -2979,7 +2998,7 @@ bool CFFmpegPostproc::AddPicture(CVaapiDecodedPicture &inPic)
   uint8_t *src, *dst;
   src = buf + image.offsets[0];
   dst = m_pFilterFrameIn->data[0];
-  m_dllSSE4.copy_frame(src, dst, m_cache, image.width, image.height, image.pitches[0]);
+  m_dllSSE4.copy_frame(src, dst, m_cache, m_config.vidWidth, m_config.vidHeight, image.pitches[0]);
 
   src = buf + image.offsets[1];
   dst = m_pFilterFrameIn->data[1];

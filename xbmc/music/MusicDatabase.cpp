@@ -1577,7 +1577,7 @@ void CMusicDatabase::GetFileItemFromDataset(const dbiplus::sql_record* const rec
   // and the rest...
   item->GetMusicInfoTag()->SetAlbum(record->at(song_strAlbum).get_asString());
   item->GetMusicInfoTag()->SetAlbumId(record->at(song_idAlbum).get_asInt());
-  item->GetMusicInfoTag()->SetTrackAndDiskNumber(record->at(song_iTrack).get_asInt());
+  item->GetMusicInfoTag()->SetTrackAndDiscNumber(record->at(song_iTrack).get_asInt());
   item->GetMusicInfoTag()->SetDuration(record->at(song_iDuration).get_asInt());
   item->GetMusicInfoTag()->SetDatabaseId(record->at(song_idSong).get_asInt(), MediaTypeSong);
   SYSTEMTIME stTime;
@@ -1606,7 +1606,7 @@ void CMusicDatabase::GetFileItemFromDataset(const dbiplus::sql_record* const rec
     CMusicDbUrl itemUrl = baseUrl;
     CStdString strFileName = record->at(song_strFileName).get_asString();
     CStdString strExt = URIUtils::GetExtension(strFileName);
-    CStdString path = StringUtils::Format("%ld%s", record->at(song_idSong).get_asInt(), strExt.c_str());
+    CStdString path = StringUtils::Format("%i%s", record->at(song_idSong).get_asInt(), strExt.c_str());
     itemUrl.AppendPath(path);
     item->SetPath(itemUrl.ToString());
   }
@@ -1804,7 +1804,7 @@ bool CMusicDatabase::SearchArtists(const CStdString& search, CFileItemList &arti
     CStdString artistLabel(g_localizeStrings.Get(557)); // Artist
     while (!m_pDS->eof())
     {
-      CStdString path = StringUtils::Format("musicdb://artists/%ld/", m_pDS->fv(0).get_asInt());
+      CStdString path = StringUtils::Format("musicdb://artists/%i/", m_pDS->fv(0).get_asInt());
       CFileItemPtr pItem(new CFileItem(path, true));
       CStdString label = StringUtils::Format("[%s] %s", artistLabel.c_str(), m_pDS->fv(1).get_asString().c_str());
       pItem->SetLabel(label);
@@ -2514,26 +2514,31 @@ bool CMusicDatabase::CleanupOrphanedItems()
   return true;
 }
 
-int CMusicDatabase::Cleanup(CGUIDialogProgress *pDlgProgress)
+int CMusicDatabase::Cleanup(bool bShowProgress /* = true */)
 {
   if (NULL == m_pDB.get()) return ERROR_DATABASE;
   if (NULL == m_pDS.get()) return ERROR_DATABASE;
 
   int ret = ERROR_OK;
+  CGUIDialogProgress* pDlgProgress = NULL;
   unsigned int time = XbmcThreads::SystemClockMillis();
   CLog::Log(LOGNOTICE, "%s: Starting musicdatabase cleanup ..", __FUNCTION__);
   ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnCleanStarted");
 
   // first cleanup any songs with invalid paths
-  if (pDlgProgress)
+  if (bShowProgress)
   {
-    pDlgProgress->SetHeading(700);
-    pDlgProgress->SetLine(0, "");
-    pDlgProgress->SetLine(1, 318);
-    pDlgProgress->SetLine(2, 330);
-    pDlgProgress->SetPercentage(0);
-    pDlgProgress->StartModal();
-    pDlgProgress->ShowProgressBar(true);
+    pDlgProgress = (CGUIDialogProgress*)g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS);
+    if (pDlgProgress)
+    {
+      pDlgProgress->SetHeading(700);
+      pDlgProgress->SetLine(0, "");
+      pDlgProgress->SetLine(1, 318);
+      pDlgProgress->SetLine(2, 330);
+      pDlgProgress->SetPercentage(0);
+      pDlgProgress->StartModal();
+      pDlgProgress->ShowProgressBar(true);
+    }
   }
   if (!CleanupSongs())
   {
@@ -2605,6 +2610,7 @@ int CMusicDatabase::Cleanup(CGUIDialogProgress *pDlgProgress)
     pDlgProgress->SetLine(1, 331);
     pDlgProgress->SetPercentage(100);
     pDlgProgress->Progress();
+    pDlgProgress->Close();
   }
   time = XbmcThreads::SystemClockMillis() - time;
   CLog::Log(LOGNOTICE, "%s: Cleaning musicdatabase done. Operation took %s", __FUNCTION__, StringUtils::SecondsToTimeString(time / 1000).c_str());
@@ -2795,7 +2801,7 @@ void CMusicDatabase::DeleteCDDBInfo()
     {
       if (it->second == strSelectedAlbum)
       {
-        CStdString strFile = StringUtils::Format("%x.cddb", it->first);
+        CStdString strFile = StringUtils::Format("%x.cddb", (unsigned int) it->first);
         CFile::Delete(URIUtils::AddFileToFolder(CProfilesManager::Get().GetCDDBFolder(), strFile));
         break;
       }
@@ -2817,21 +2823,16 @@ void CMusicDatabase::Clean()
 
   if (CGUIDialogYesNo::ShowAndGetInput(313, 333, 0, 0))
   {
-    CGUIDialogProgress* dlgProgress = (CGUIDialogProgress*)g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS);
-    if (dlgProgress)
+    CMusicDatabase musicdatabase;
+    if (musicdatabase.Open())
     {
-      CMusicDatabase musicdatabase;
-      if (musicdatabase.Open())
-      {
-        int iReturnString = musicdatabase.Cleanup(dlgProgress);
-        musicdatabase.Close();
+      int iReturnString = musicdatabase.Cleanup();
+      musicdatabase.Close();
 
-        if (iReturnString != ERROR_OK)
-        {
-          CGUIDialogOK::ShowAndGetInput(313, iReturnString, 0, 0);
-        }
+      if (iReturnString != ERROR_OK)
+      {
+        CGUIDialogOK::ShowAndGetInput(313, iReturnString, 0, 0);
       }
-      dlgProgress->Close();
     }
   }
 }
@@ -2911,7 +2912,7 @@ bool CMusicDatabase::GetGenresNav(const CStdString& strBaseDir, CFileItemList& i
       pItem->GetMusicInfoTag()->SetDatabaseId(m_pDS->fv("genre.idGenre").get_asInt(), "genre");
 
       CMusicDbUrl itemUrl = musicUrl;
-      CStdString strDir = StringUtils::Format("%ld/", m_pDS->fv("genre.idGenre").get_asInt());
+      CStdString strDir = StringUtils::Format("%i/", m_pDS->fv("genre.idGenre").get_asInt());
       itemUrl.AppendPath(strDir);
       pItem->SetPath(itemUrl.ToString());
 
@@ -2973,7 +2974,7 @@ bool CMusicDatabase::GetYearsNav(const CStdString& strBaseDir, CFileItemList& it
       pItem->GetMusicInfoTag()->SetReleaseDate(stTime);
 
       CMusicDbUrl itemUrl = musicUrl;
-      CStdString strDir = StringUtils::Format("%ld/", m_pDS->fv(0).get_asInt());
+      CStdString strDir = StringUtils::Format("%i/", m_pDS->fv(0).get_asInt());
       itemUrl.AppendPath(strDir);
       pItem->SetPath(itemUrl.ToString());
 
@@ -3397,7 +3398,7 @@ bool CMusicDatabase::GetAlbumsByWhere(const CStdString &baseDir, const Filter &f
       try
       {
         CMusicDbUrl itemUrl = musicUrl;
-        CStdString path = StringUtils::Format("%ld/", record->at(album_idAlbum).get_asInt());
+        CStdString path = StringUtils::Format("%i/", record->at(album_idAlbum).get_asInt());
         itemUrl.AppendPath(path);
 
         CFileItemPtr pItem(new CFileItem(itemUrl.ToString(), GetAlbumFromDataset(record)));
@@ -5069,20 +5070,22 @@ void CMusicDatabase::ExportKaraokeInfo(const CStdString & outFile, bool asHTML)
       outdoc = "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"></meta></head>\n"
           "<body>\n<table>\n";
 
-      file.Write( outdoc, outdoc.size() );
+      if (file.Write(outdoc, outdoc.size()) != outdoc.size())
+        return; // error
     }
 
     while (!m_pDS->eof())
     {
       CSong song = GetSongFromDataset();
-      CStdString songnum = StringUtils::Format("%06d", song.iKaraokeNumber);
+      CStdString songnum = StringUtils::Format("%06ld", song.iKaraokeNumber);
 
       if ( asHTML )
         outdoc = "<tr><td>" + songnum + "</td><td>" + (CStdString)StringUtils::Join(song.artist, g_advancedSettings.m_musicItemSeparator) + "</td><td>" + song.strTitle + "</td></tr>\r\n";
       else
         outdoc = songnum + '\t' + (CStdString)StringUtils::Join(song.artist, g_advancedSettings.m_musicItemSeparator) + '\t' + song.strTitle + '\t' + song.strFileName + "\r\n";
 
-      file.Write( outdoc, outdoc.size() );
+      if (file.Write(outdoc, outdoc.size()) != outdoc.size())
+        return; // error
 
       if ((current % 50) == 0 && progress)
       {
@@ -5104,7 +5107,8 @@ void CMusicDatabase::ExportKaraokeInfo(const CStdString & outFile, bool asHTML)
     if ( asHTML )
     {
       outdoc = "</table>\n</body>\n</html>\n";
-      file.Write( outdoc, outdoc.size() );
+      if (file.Write(outdoc, outdoc.size()) != outdoc.size())
+        return; // error
     }
 
     file.Close();

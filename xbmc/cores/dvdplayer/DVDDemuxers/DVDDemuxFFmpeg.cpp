@@ -75,6 +75,8 @@ static const struct StereoModeConversionMap WmvToInternalStereoModeMap[] =
   {}
 };
 
+#define FF_MAX_EXTRADATA_SIZE ((1 << 28) - FF_INPUT_BUFFER_PADDING_SIZE)
+
 void CDemuxStreamAudioFFmpeg::GetStreamInfo(std::string& strInfo)
 {
   if(!m_stream) return;
@@ -198,7 +200,7 @@ bool CDVDDemuxFFmpeg::Aborted()
   return false;
 }
 
-bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
+bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo, bool fileinfo)
 {
   AVInputFormat* iformat = NULL;
   std::string strFile;
@@ -407,10 +409,12 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
   if (iformat && (strcmp(iformat->name, "mjpeg") == 0) && m_ioContext->seekable == 0)
     av_opt_set_int(m_pFormatContext, "analyzeduration", 500000, 0);
 
-  if (iformat && (strcmp(iformat->name, "mpegts") == 0))
+  bool isMpegts = false;
+  if (iformat && (strcmp(iformat->name, "mpegts") == 0) && !fileinfo)
   {
-    m_pFormatContext->max_analyze_duration = 500000;
+    av_opt_set_int(m_pFormatContext, "analyzeduration", 500000, 0);
     m_checkvideo = true;
+    isMpegts = true;
   }
 
   // we need to know if this is matroska or avi later
@@ -465,7 +469,13 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo)
 
   UpdateCurrentPTS();
 
-  CreateStreams();
+  // in case of mpegts and we have not seen pat/pmt, defer creation of streams
+  if (!isMpegts || m_pFormatContext->nb_programs > 0)
+    CreateStreams();
+
+  // allow IsProgramChange to return true
+  if (isMpegts && GetNrOfStreams() == 0)
+    m_program = 0;
 
   return true;
 }
@@ -1205,8 +1215,12 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
             XFILE::CFile file;
             if(pStream->codec->extradata && file.OpenForWrite(fileName))
             {
-              file.Write(pStream->codec->extradata, pStream->codec->extradata_size);
-              file.Close();
+              if (file.Write(pStream->codec->extradata, pStream->codec->extradata_size) != pStream->codec->extradata_size)
+              {
+                file.Close();
+                XFILE::CFile::Delete(fileName);
+                CLog::Log(LOGDEBUG, "%s: Error saving font file \"%s\"", __FUNCTION__, fileName.c_str());
+              }
             }
           }
         }
@@ -1461,6 +1475,9 @@ bool CDVDDemuxFFmpeg::IsProgramChange()
   if (m_program == UINT_MAX)
     return false;
 
+  if (m_program == 0 && !m_pFormatContext->nb_programs)
+    return false;
+
   if(m_pFormatContext->programs[m_program]->nb_stream_indexes != m_streams.size())
     return true;
 
@@ -1571,7 +1588,8 @@ void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
     // We don't need to actually decode here
     // we just want to transport SPS data into codec context
     st->codec->skip_idct = AVDISCARD_ALL;
-    st->codec->skip_frame = AVDISCARD_ALL;
+    // extradata is not decoded if skip_frame >= AVDISCARD_NONREF
+//    st->codec->skip_frame = AVDISCARD_ALL;
     st->codec->skip_loop_filter = AVDISCARD_ALL;
 
     // We are looking for an IDR frame
@@ -1594,6 +1612,9 @@ bool CDVDDemuxFFmpeg::IsVideoReady()
 
   if(!m_checkvideo)
     return true;
+
+  if (m_program == 0 && !m_pFormatContext->nb_programs)
+    return false;
 
   if(m_program != UINT_MAX)
   {

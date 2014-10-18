@@ -42,7 +42,8 @@ bool URIUtils::IsInPath(const CStdString &uri, const CStdString &baseURI)
 {
   CStdString uriPath = CSpecialProtocol::TranslatePath(uri);
   CStdString basePath = CSpecialProtocol::TranslatePath(baseURI);
-  return StringUtils::StartsWith(uriPath, basePath);
+
+  return !basePath.empty() && StringUtils::StartsWith(uriPath, basePath);
 }
 
 /* returns filename extension including period of filename */
@@ -821,7 +822,7 @@ bool URIUtils::IsUDP(const CStdString& strFile)
   if (IsStack(strFile))
     strFile2 = CStackDirectory::GetFirstStackedFile(strFile);
 
-  return StringUtils::StartsWithNoCase(strFile2, "udp:");
+  return IsProtocol(strFile2, "udp");
 }
 
 bool URIUtils::IsTCP(const CStdString& strFile)
@@ -831,7 +832,7 @@ bool URIUtils::IsTCP(const CStdString& strFile)
   if (IsStack(strFile))
     strFile2 = CStackDirectory::GetFirstStackedFile(strFile);
 
-  return StringUtils::StartsWithNoCase(strFile2, "tcp:");
+  return IsProtocol(strFile2, "tcp");
 }
 
 bool URIUtils::IsPVRChannel(const CStdString& strFile)

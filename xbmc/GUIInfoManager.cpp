@@ -347,6 +347,8 @@ const infomap musicplayer[] =    {{ "title",            MUSICPLAYER_TITLE },
                                   { "lastplayed",       MUSICPLAYER_LASTPLAYED },
                                   { "channelname",      MUSICPLAYER_CHANNEL_NAME },
                                   { "channelnumber",    MUSICPLAYER_CHANNEL_NUMBER },
+                                  { "subchannelnumber", MUSICPLAYER_SUB_CHANNEL_NUMBER },
+                                  { "channelnumberlabel", MUSICPLAYER_CHANNEL_NUMBER_LBL },
                                   { "channelgroup",     MUSICPLAYER_CHANNEL_GROUP }
 };
 
@@ -404,6 +406,8 @@ const infomap videoplayer[] =    {{ "title",            VIDEOPLAYER_TITLE },
                                   { "nextduration",     VIDEOPLAYER_NEXT_DURATION },
                                   { "channelname",      VIDEOPLAYER_CHANNEL_NAME },
                                   { "channelnumber",    VIDEOPLAYER_CHANNEL_NUMBER },
+                                  { "subchannelnumber", VIDEOPLAYER_SUB_CHANNEL_NUMBER },
+                                  { "channelnumberlabel", VIDEOPLAYER_CHANNEL_NUMBER_LBL },
                                   { "channelgroup",     VIDEOPLAYER_CHANNEL_GROUP },
                                   { "hasepg",           VIDEOPLAYER_HAS_EPG },
                                   { "parentalrating",   VIDEOPLAYER_PARENTAL_RATING },
@@ -648,6 +652,7 @@ const infomap pvr[] =            {{ "isrecording",              PVR_IS_RECORDING
                                   { "backendversion",           PVR_BACKEND_VERSION },
                                   { "backendhost",              PVR_BACKEND_HOST },
                                   { "backenddiskspace",         PVR_BACKEND_DISKSPACE },
+                                  { "backenddiskspaceprogr",    PVR_BACKEND_DISKSPACE_PROGR },
                                   { "backendchannels",          PVR_BACKEND_CHANNELS },
                                   { "backendtimers",            PVR_BACKEND_TIMERS },
                                   { "backendrecordings",        PVR_BACKEND_RECORDINGS },
@@ -1571,6 +1576,8 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *f
   case MUSICPLAYER_LYRICS:
   case MUSICPLAYER_CHANNEL_NAME:
   case MUSICPLAYER_CHANNEL_NUMBER:
+  case MUSICPLAYER_SUB_CHANNEL_NUMBER:
+  case MUSICPLAYER_CHANNEL_NUMBER_LBL:
   case MUSICPLAYER_CHANNEL_GROUP:
   case MUSICPLAYER_PLAYCOUNT:
   case MUSICPLAYER_LASTPLAYED:
@@ -1613,6 +1620,8 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *f
   case VIDEOPLAYER_NEXT_DURATION:
   case VIDEOPLAYER_CHANNEL_NAME:
   case VIDEOPLAYER_CHANNEL_NUMBER:
+  case VIDEOPLAYER_SUB_CHANNEL_NUMBER:
+  case VIDEOPLAYER_CHANNEL_NUMBER_LBL:
   case VIDEOPLAYER_CHANNEL_GROUP:
   case VIDEOPLAYER_PARENTAL_RATING:
   case VIDEOPLAYER_PLAYCOUNT:
@@ -1896,7 +1905,7 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *f
     strLabel = CProfilesManager::Get().GetCurrentProfile().getName();
     break;
   case SYSTEM_PROFILECOUNT:
-    strLabel = StringUtils::Format("%i", CProfilesManager::Get().GetNumberOfProfiles());
+    strLabel = StringUtils::Format("%" PRIuS, CProfilesManager::Get().GetNumberOfProfiles());
     break;
   case SYSTEM_PROFILEAUTOLOGIN:
     {
@@ -2150,6 +2159,7 @@ bool CGUIInfoManager::GetInt(int &value, int info, int contextWindow, const CGUI
     case PVR_PLAYING_PROGRESS:
     case PVR_ACTUAL_STREAM_SIG_PROGR:
     case PVR_ACTUAL_STREAM_SNR_PROGR:
+    case PVR_BACKEND_DISKSPACE_PROGR:
       value = g_PVRManager.TranslateIntInfo(info);
       return true;
     case SYSTEM_BATTERY_LEVEL:
@@ -3727,6 +3737,19 @@ CStdString CGUIInfoManager::GetMusicTagLabel(int info, const CFileItem *item)
       }
     }
     break;
+  case MUSICPLAYER_SUB_CHANNEL_NUMBER:
+    {
+      CPVRChannel* channel = m_currentFile->GetPVRChannelInfoTag();
+      if (channel)
+        return StringUtils::Format("%i", channel->SubChannelNumber());
+    }
+    break;
+  case MUSICPLAYER_CHANNEL_NUMBER_LBL:
+    {
+      CPVRChannel* channel = m_currentFile->GetPVRChannelInfoTag();
+      return channel ? channel->FormattedChannelNumber() : "";
+    }
+    break;
   case MUSICPLAYER_CHANNEL_GROUP:
     {
       CPVRChannel* channeltag = m_currentFile->GetPVRChannelInfoTag();
@@ -3824,10 +3847,16 @@ CStdString CGUIInfoManager::GetVideoLabel(int item)
     /* General channel infos */
     case VIDEOPLAYER_CHANNEL_NAME:
       return tag->ChannelName();
+
     case VIDEOPLAYER_CHANNEL_NUMBER:
-      {
-        return StringUtils::Format("%i", tag->ChannelNumber());;
-      }
+      return StringUtils::Format("%i", tag->ChannelNumber());
+
+    case VIDEOPLAYER_SUB_CHANNEL_NUMBER:
+      return StringUtils::Format("%i", tag->SubChannelNumber());
+
+    case VIDEOPLAYER_CHANNEL_NUMBER_LBL:
+      return tag->FormattedChannelNumber();
+
     case VIDEOPLAYER_CHANNEL_GROUP:
       {
         if (tag && !tag->IsRadio())
@@ -5134,7 +5163,7 @@ CStdString CGUIInfoManager::GetItemImage(const CFileItem *item, int info, std::s
       CStdString rating;
       if (item->HasVideoInfoTag())
       { // rating for videos is assumed 0..10, so convert to 0..5
-        rating = StringUtils::Format("rating%d.png", (long)((item->GetVideoInfoTag()->m_fRating * 0.5f) + 0.5f));
+        rating = StringUtils::Format("rating%ld.png", (long)((item->GetVideoInfoTag()->m_fRating * 0.5f) + 0.5f));
       }
       else if (item->HasMusicInfoTag())
       { // song rating.
