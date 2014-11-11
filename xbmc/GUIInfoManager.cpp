@@ -60,6 +60,7 @@
 #include "URL.h"
 #include "addons/Skin.h"
 #include "boost/make_shared.hpp"
+#include "cores/DataCacheCore.h"
 
 // stuff for current song
 #include "music/MusicInfoLoader.h"
@@ -124,7 +125,6 @@ CGUIInfoManager::CGUIInfoManager(void) :
   m_playerShowCodec = false;
   m_playerShowInfo = false;
   m_fps = 0.0f;
-  m_AVInfoValid = false;
   ResetLibraryBools();
 }
 
@@ -1631,35 +1631,30 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *f
   case VIDEOPLAYER_VIDEO_CODEC:
     if(g_application.m_pPlayer->IsPlaying())
     {
-      UpdateAVInfo();
       strLabel = m_videoInfo.videoCodecName;
     }
     break;
   case VIDEOPLAYER_VIDEO_RESOLUTION:
     if(g_application.m_pPlayer->IsPlaying())
     {
-      UpdateAVInfo();
       return CStreamDetails::VideoDimsToResolutionDescription(m_videoInfo.width, m_videoInfo.height);
     }
     break;
   case VIDEOPLAYER_AUDIO_CODEC:
     if(g_application.m_pPlayer->IsPlaying())
     {
-      UpdateAVInfo();
       strLabel = m_audioInfo.audioCodecName;
     }
     break;
   case VIDEOPLAYER_VIDEO_ASPECT:
     if (g_application.m_pPlayer->IsPlaying())
     {
-      UpdateAVInfo();
       strLabel = CStreamDetails::VideoAspectToAspectDescription(m_videoInfo.videoAspectRatio);
     }
     break;
   case VIDEOPLAYER_AUDIO_CHANNELS:
     if(g_application.m_pPlayer->IsPlaying())
     {
-      UpdateAVInfo();
       strLabel = StringUtils::Format("%i", m_audioInfo.channels);
     }
     break;
@@ -1674,7 +1669,6 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *f
   case VIDEOPLAYER_STEREOSCOPIC_MODE:
     if(g_application.m_pPlayer->IsPlaying())
     {
-      UpdateAVInfo();
       strLabel = m_videoInfo.stereoMode;
     }
     break;
@@ -1930,7 +1924,7 @@ CStdString CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *f
   case SYSTEM_FRIENDLY_NAME:
     {
       CStdString friendlyName = CSettings::Get().GetString("services.devicename");
-      if (friendlyName.Equals("XBMC"))
+      if (friendlyName.Equals(CCompileInfo::GetAppName()))
         strLabel = StringUtils::Format("%s (%s)", friendlyName.c_str(), g_application.getNetwork().GetHostName().c_str());
       else
         strLabel = friendlyName;
@@ -2652,7 +2646,6 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
     case VIDEOPLAYER_IS_STEREOSCOPIC:
       if(g_application.m_pPlayer->IsPlaying())
       {
-        UpdateAVInfo();
         bReturn = !m_videoInfo.stereoMode.empty();
       }
       break;
@@ -3617,7 +3610,6 @@ CStdString CGUIInfoManager::GetMusicLabel(int item)
 {
   if (!g_application.m_pPlayer->IsPlaying() || !m_currentFile->HasMusicInfoTag()) return "";
 
-  UpdateAVInfo();
   switch (item)
   {
   case MUSICPLAYER_PLAYLISTLEN:
@@ -3723,37 +3715,31 @@ CStdString CGUIInfoManager::GetMusicTagLabel(int info, const CFileItem *item)
     return GetItemLabel(item, LISTITEM_DURATION);
   case MUSICPLAYER_CHANNEL_NAME:
     {
-      CPVRChannel* channeltag = m_currentFile->GetPVRChannelInfoTag();
-      if (channeltag)
-        return channeltag->ChannelName();
+      if (m_currentFile->HasPVRChannelInfoTag())
+        return m_currentFile->GetPVRChannelInfoTag()->ChannelName();
     }
     break;
   case MUSICPLAYER_CHANNEL_NUMBER:
     {
-      CPVRChannel* channeltag = m_currentFile->GetPVRChannelInfoTag();
-      if (channeltag)
-      {
-        return StringUtils::Format("%i", channeltag->ChannelNumber());
-      }
+      if (m_currentFile->HasPVRChannelInfoTag())
+        return StringUtils::Format("%i", m_currentFile->GetPVRChannelInfoTag()->ChannelNumber());
     }
     break;
   case MUSICPLAYER_SUB_CHANNEL_NUMBER:
     {
-      CPVRChannel* channel = m_currentFile->GetPVRChannelInfoTag();
-      if (channel)
-        return StringUtils::Format("%i", channel->SubChannelNumber());
+      if (m_currentFile->HasPVRChannelInfoTag())
+        return StringUtils::Format("%i", m_currentFile->GetPVRChannelInfoTag()->SubChannelNumber());
     }
     break;
   case MUSICPLAYER_CHANNEL_NUMBER_LBL:
     {
-      CPVRChannel* channel = m_currentFile->GetPVRChannelInfoTag();
-      return channel ? channel->FormattedChannelNumber() : "";
+      if (m_currentFile->HasPVRChannelInfoTag())
+        return m_currentFile->GetPVRChannelInfoTag()->FormattedChannelNumber();
     }
     break;
   case MUSICPLAYER_CHANNEL_GROUP:
     {
-      CPVRChannel* channeltag = m_currentFile->GetPVRChannelInfoTag();
-      if (channeltag && channeltag->IsRadio())
+      if (m_currentFile->HasPVRChannelInfoTag() && m_currentFile->GetPVRChannelInfoTag()->IsRadio())
         return g_PVRManager.GetPlayingGroup(true)->GroupName();
     }
     break;
@@ -4327,7 +4313,7 @@ void CGUIInfoManager::UpdateAVInfo()
 {
   if(g_application.m_pPlayer->IsPlaying())
   {
-    if (!m_AVInfoValid)
+    if (g_dataCacheCore.HasAVInfoChanges())
     {
       SPlayerVideoStreamInfo video;
       SPlayerAudioStreamInfo audio;
@@ -4337,7 +4323,6 @@ void CGUIInfoManager::UpdateAVInfo()
 
       m_videoInfo = video;
       m_audioInfo = audio;
-      m_AVInfoValid = true;
     }
   }
 }

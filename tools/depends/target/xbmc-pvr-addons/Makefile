@@ -2,7 +2,7 @@ include ../../Makefile.include
 #DEPS= ../../Makefile.include Makefile
 
 LIBNAME=xbmc-pvr-addons
-# VERSION=79ca634891d09b5bb6cf4256389dc681a1041903
+# VERSION=067befe6b8da81e29abca8cd394d08c84233677b
 VERSION=development
 GIT_DIR=$(TARBALLS_LOCATION)/$(LIBNAME).git
 # BASE_URL=git://github.com/opdenkamp/$(LIBNAME).git
@@ -18,7 +18,9 @@ export GIT_WORK_TREE=$(PLATFORM)
 export MYSQL_CONFIG=$(PREFIX)/bin/mysql_config
 
 # configuration settings
-CONFIGURE=./configure --prefix=$(PREFIX) --enable-addons-with-dependencies
+VERSION.TXT := $(XBMCROOT)/version.txt
+APP_NAME=$(shell awk '/APP_NAME/ {print tolower($$2)}' $(VERSION.TXT))
+CONFIGURE=./configure --prefix=$(PREFIX) --libdir=$(PREFIX)/lib/$(APP_NAME)/addons --datadir=$(PREFIX)/share/$(APP_NAME)/addons --enable-addons-with-dependencies
 
 all: .installed-$(PLATFORM)
 

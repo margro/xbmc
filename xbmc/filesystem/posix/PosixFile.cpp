@@ -54,8 +54,6 @@ CPosixFile::~CPosixFile()
 // local helper
 static std::string getFilename(const CURL& url)
 {
-  assert(url.GetProtocol().empty()); // function suitable only for local files
-  
   std::string filename(url.GetFileName());
   if (IsAliasShortcut(filename))
     TranslateAliasShortcut(filename);
@@ -113,10 +111,13 @@ void CPosixFile::Close()
 
 ssize_t CPosixFile::Read(void* lpBuf, size_t uiBufSize)
 {
-  assert(lpBuf != NULL);
-  if (m_fd < 0 || !lpBuf)
+  if (m_fd < 0)
     return -1;
   
+  assert(lpBuf != NULL || uiBufSize == 0);
+  if (lpBuf == NULL && uiBufSize != 0)
+    return -1;
+
   if (uiBufSize > SSIZE_MAX)
     uiBufSize = SSIZE_MAX;
   
@@ -152,8 +153,11 @@ ssize_t CPosixFile::Read(void* lpBuf, size_t uiBufSize)
 
 ssize_t CPosixFile::Write(const void* lpBuf, size_t uiBufSize)
 {
-  assert(lpBuf != NULL);
-  if (m_fd < 0 || !m_allowWrite || !lpBuf)
+  if (m_fd < 0)
+    return -1;
+
+  assert(lpBuf != NULL || uiBufSize == 0);
+  if ((lpBuf == NULL && uiBufSize != 0) || !m_allowWrite)
     return -1;
 
   if (uiBufSize > SSIZE_MAX)
@@ -169,7 +173,7 @@ ssize_t CPosixFile::Write(const void* lpBuf, size_t uiBufSize)
   if (m_filePos >= 0)
     m_filePos += res; // if m_filePos was known - update it
   
-  return (int)res;
+  return res;
 }
 
 int64_t CPosixFile::Seek(int64_t iFilePosition, int iWhence /* = SEEK_SET*/)

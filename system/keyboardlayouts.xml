@@ -104,6 +104,26 @@ Default font lacks support for all characters
       <row>`~</row>
     </keyboard>
   </layout>
+  <layout name="German QWERTZ">
+    <keyboard>
+      <row>1234567890</row>
+      <row>qwertzuiopü</row>
+      <row>asdfghjklöä</row>
+      <row>yxcvbnm</row>
+    </keyboard>
+    <keyboard modifiers="shift">
+      <row>1234567890</row>
+      <row>QWERTZUIOPÜ</row>
+      <row>ASDFGHJKLÖÄ</row>
+      <row>YXCVBNM</row>
+    </keyboard>
+    <keyboard modifiers="symbol,shift+symbol">
+      <row>)!@#$%^&amp;*(</row>
+      <row>[]{}-_=+;:</row>
+      <row>'",.&lt;&gt;/?\|</row>
+      <row>`~</row>
+    </keyboard>
+  </layout>
   <layout name="Russian ЙЦУКЕН">
     <keyboard>
       <row>ё1234567890</row>
@@ -236,6 +256,26 @@ Default font lacks support for all characters
       <row>QWERTYUIOPÅ</row>
       <row>ASDFGHJKLÖÄ</row>
       <row>ZXCVBNM</row>
+    </keyboard>
+    <keyboard modifiers="symbol,shift+symbol">
+      <row>)!@#$%^&amp;*(</row>
+      <row>[]{}-_=+;:</row>
+      <row>'",.&lt;&gt;/?\|</row>
+      <row>`~</row>
+    </keyboard>
+  </layout>
+  <layout name="Turkish QWERTY">
+    <keyboard>
+      <row>1234567890</row>
+      <row>qwertyuıopğü</row>
+      <row>asdfghjklşi</row>
+      <row>zxcvbnmöç</row>
+    </keyboard>
+    <keyboard modifiers="shift">
+      <row>1234567890</row>
+      <row>QWERTYUIOPĞÜ</row>
+      <row>ASDFGHJKLŞİ</row>
+      <row>ZXCVBNMÖÇ</row>
     </keyboard>
     <keyboard modifiers="symbol,shift+symbol">
       <row>)!@#$%^&amp;*(</row>

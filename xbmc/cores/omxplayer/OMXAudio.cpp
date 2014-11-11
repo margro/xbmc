@@ -124,17 +124,17 @@ bool COMXAudio::PortSettingsChanged()
     if(!m_omx_mixer.Initialize("OMX.broadcom.audio_mixer", OMX_IndexParamAudioInit))
       return false;
   }
-  if(CSettings::Get().GetBool("audiooutput.dualaudio"))
+  if(CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Both")
   {
     if(!m_omx_splitter.Initialize("OMX.broadcom.audio_splitter", OMX_IndexParamAudioInit))
       return false;
   }
-  if (CSettings::Get().GetBool("audiooutput.dualaudio") || CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Analogue")
+  if (CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Both" || CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Analogue")
   {
     if(!m_omx_render_analog.Initialize("OMX.broadcom.audio_render", OMX_IndexParamAudioInit))
       return false;
   }
-  if (CSettings::Get().GetBool("audiooutput.dualaudio") || CSettings::Get().GetString("audiooutput.audiodevice") != "PI:Analogue")
+  if (CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Both" || CSettings::Get().GetString("audiooutput.audiodevice") == "PI:HDMI")
   {
     if(!m_omx_render_hdmi.Initialize("OMX.broadcom.audio_render", OMX_IndexParamAudioInit))
       return false;
@@ -252,7 +252,7 @@ bool COMXAudio::PortSettingsChanged()
   {
     // By default audio_render is the clock master, and if output samples don't fit the timestamps, it will speed up/slow down the clock.
     // This tends to be better for maintaining audio sync and avoiding audio glitches, but can affect video/display sync
-    if(CSettings::Get().GetBool("videoplayer.usedisplayasclock") || (CSettings::Get().GetBool("audiooutput.dualaudio") && CSettings::Get().GetString("audiooutput.audiodevice") != "PI:Analogue"))
+    if(CSettings::Get().GetBool("videoplayer.usedisplayasclock") || CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Both")
     {
       OMX_CONFIG_BOOLEANTYPE configBool;
       OMX_INIT_STRUCTURE(configBool);
@@ -278,7 +278,7 @@ bool COMXAudio::PortSettingsChanged()
   {
     // By default audio_render is the clock master, and if output samples don't fit the timestamps, it will speed up/slow down the clock.
     // This tends to be better for maintaining audio sync and avoiding audio glitches, but can affect video/display sync
-    if(CSettings::Get().GetBool("videoplayer.usedisplayasclock") || (CSettings::Get().GetBool("audiooutput.dualaudio") && CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Analogue"))
+    if(CSettings::Get().GetBool("videoplayer.usedisplayasclock"))
     {
       OMX_CONFIG_BOOLEANTYPE configBool;
       OMX_INIT_STRUCTURE(configBool);
@@ -601,7 +601,7 @@ bool COMXAudio::Initialize(AEAudioFormat format, OMXClock *clock, CDVDStreamInfo
     CAEChannelInfo stdLayout = (enum AEStdChLayout)CSettings::Get().GetInt("audiooutput.channels");
 
     // ignore layout setting for analogue
-    if (CSettings::Get().GetBool("audiooutput.dualaudio") || CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Analogue")
+    if (CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Both" || CSettings::Get().GetString("audiooutput.audiodevice") == "PI:Analogue")
       stdLayout = AE_CH_LAYOUT_2_0;
 
     // force out layout to stereo if input is not multichannel - it gives the receiver a chance to upmix
@@ -1799,16 +1799,4 @@ unsigned int COMXAudio::SyncAC3(BYTE* pData, unsigned int iSize)
   /* if we get here, the entire packet is invalid and we have lost sync */
   m_LostSync = true;
   return iSize;
-}
-
-void COMXAudio::CheckOutputBufferSize(void **buffer, int *oldSize, int newSize)
-{
-  if (newSize > *oldSize)
-  {
-    if (*buffer)
-      _aligned_free(*buffer);
-    *buffer = _aligned_malloc(newSize, 16);
-    *oldSize = newSize;
-  }
-  memset(*buffer, 0x0, *oldSize);
 }

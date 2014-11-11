@@ -45,6 +45,7 @@
 
 #include "utils/URIUtils.h"
 #include "GUIInfoManager.h"
+#include "cores/DataCacheCore.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/StereoscopicsManager.h"
 #include "Application.h"
@@ -486,6 +487,8 @@ void CSelectionStreams::Update(CDVDInputStream* input, CDVDDemux* demuxer, std::
       Update(s);
     }
   }
+  g_dataCacheCore.SignalAudioInfoChange();
+  g_dataCacheCore.SignalVideoInfoChange();
 }
 
 void CDVDPlayer::CreatePlayers()
@@ -2112,7 +2115,7 @@ void CDVDPlayer::CheckAutoSceneSkip()
     /*
      * Seeking is NOT flushed so any content up to the demux point is retained when playing forwards.
      */
-    m_messenger.Put(new CDVDMsgPlayerSeek(seek, true, false, true, false, true));
+    m_messenger.Put(new CDVDMsgPlayerSeek(seek, true, m_omxplayer_mode, true, false, true));
     /*
      * Seek doesn't always work reliably. Last physical seek time is recorded to prevent looping
      * if there was an error with seeking and it landed somewhere unexpected, perhaps back in the
@@ -2130,7 +2133,7 @@ void CDVDPlayer::CheckAutoSceneSkip()
     /*
      * Seeking is NOT flushed so any content up to the demux point is retained when playing forwards.
      */
-    m_messenger.Put(new CDVDMsgPlayerSeek(cut.end + 1, true, false, true, false, true));
+    m_messenger.Put(new CDVDMsgPlayerSeek(cut.end + 1, true, m_omxplayer_mode, true, false, true));
     /*
      * Each commercial break is only skipped once so poorly detected commercial breaks can be
      * manually re-entered. Start and end are recorded to prevent looping and to allow seeking back
@@ -3230,6 +3233,9 @@ bool CDVDPlayer::OpenStream(CCurrentStream& current, int iStream, int source, bo
     }
   }
 
+  g_dataCacheCore.SignalAudioInfoChange();
+  g_dataCacheCore.SignalVideoInfoChange();
+
   return res;
 }
 
@@ -3411,7 +3417,7 @@ void CDVDPlayer::UpdateClockMaster()
 void CDVDPlayer::FlushBuffers(bool queued, double pts, bool accurate)
 {
   double startpts;
-  if(accurate)
+  if(accurate && !m_omxplayer_mode)
     startpts = pts;
   else
     startpts = DVD_NOPTS_VALUE;
