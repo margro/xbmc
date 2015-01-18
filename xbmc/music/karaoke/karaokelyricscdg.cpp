@@ -31,7 +31,7 @@
 #include "karaokelyricscdg.h"
 
 
-CKaraokeLyricsCDG::CKaraokeLyricsCDG( const CStdString& cdgFile )
+CKaraokeLyricsCDG::CKaraokeLyricsCDG( const std::string& cdgFile )
   : CKaraokeLyrics()
 {
   m_cdgFile = cdgFile;
@@ -65,7 +65,7 @@ bool CKaraokeLyricsCDG::HasVideo()
   return false;
 }
 
-void CKaraokeLyricsCDG::GetVideoParameters(CStdString & path, int64_t & offset)
+void CKaraokeLyricsCDG::GetVideoParameters(std::string& path, int64_t & offset)
 {
   // no bg video
 }
@@ -146,7 +146,7 @@ void CKaraokeLyricsCDG::Render()
 
   if ( UpdateBuffer( packets_due ) )
   {
-    XUTILS::auto_buffer buf(CDG_FULL_HEIGHT * CDG_FULL_WIDTH);
+    XUTILS::auto_buffer buf(CDG_FULL_HEIGHT * CDG_FULL_WIDTH*sizeof(DWORD));
     DWORD* const pixelbuf = (DWORD*)buf.get();
 
 	  // Update our texture content

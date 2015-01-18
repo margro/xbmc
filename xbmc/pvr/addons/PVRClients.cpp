@@ -34,6 +34,7 @@
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/timers/PVRTimers.h"
 #include "cores/IPlayer.h"
+#include "network/Network.h"
 
 using namespace ADDON;
 using namespace PVR;
@@ -676,8 +677,6 @@ bool CPVRClients::GetMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat, PVR_MENUHOOK
 
 void CPVRClients::ProcessMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat, const CFileItem *item)
 {
-  PVR_MENUHOOKS *hooks = NULL;
-
   // get client id
   if (iClientID < 0 && cat == PVR_MENUHOOK_SETTING)
   {
@@ -719,7 +718,7 @@ void CPVRClients::ProcessMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat, const CF
   PVR_CLIENT client;
   if (GetConnectedClient(iClientID, client) && client->HaveMenuHooks(cat))
   {
-    hooks = client->GetMenuHooks();
+    PVR_MENUHOOKS *hooks = client->GetMenuHooks();
     std::vector<int> hookIDs;
     int selection = 0;
 
@@ -971,7 +970,7 @@ bool CPVRClients::UpdateAndInitialiseClients(bool bInitialiseAllClients /* = fal
   if (disableAddons.size() > 0)
   {
     CSingleLock lock(m_critSection);
-    for (VECADDONS::iterator it = disableAddons.begin(); it != disableAddons.end(); it++)
+    for (VECADDONS::iterator it = disableAddons.begin(); it != disableAddons.end(); ++it)
     {
       // disable in the add-on db
       CAddonMgr::Get().DisableAddon((*it)->ID(), true);
@@ -1372,4 +1371,34 @@ time_t CPVRClients::GetBufferTimeEnd() const
   }
 
   return time;
+}
+
+bool CPVRClients::NextEventWithinBackendIdleTime(const CPVRTimers& timers)
+{
+    // timers going off soon?
+    const CDateTime now(CDateTime::GetUTCDateTime());
+    const CDateTimeSpan idle(
+      0, 0, CSettings::Get().GetInt("pvrpowermanagement.backendidletime"), 0);
+    const CDateTime next(timers.GetNextEventTime());
+    const CDateTimeSpan delta(next - now);
+
+    return (delta <= idle);
+}
+
+bool CPVRClients::AllLocalBackendsIdle() const
+{
+  PVR_CLIENTMAP clients;
+  GetConnectedClients(clients);
+  for (PVR_CLIENTMAP_CITR itr = clients.begin(); itr != clients.end(); itr++)
+  {
+    CPVRTimers timers;
+    PVR_ERROR ret = itr->second->GetTimers(&timers);
+    if (ret == PVR_ERROR_NOT_IMPLEMENTED || ret != PVR_ERROR_NO_ERROR)
+      continue;
+
+    if (((timers.AmountActiveRecordings() > 0) || NextEventWithinBackendIdleTime(timers))
+        && g_application.getNetwork().IsLocalHost(itr->second->GetBackendHostname()))
+      return false;
+  }
+  return true;
 }

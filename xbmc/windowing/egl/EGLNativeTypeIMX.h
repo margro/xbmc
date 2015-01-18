@@ -31,7 +31,7 @@ public:
   virtual bool  CheckCompatibility();
   virtual void  Initialize();
   virtual void  Destroy();
-  virtual int   GetQuirks() { return EGL_QUIRK_NONE; }
+  virtual int   GetQuirks() { return EGL_QUIRK_RECREATE_DISPLAY_ON_CREATE_WINDOW; }
 
   virtual bool  CreateNativeDisplay();
   virtual bool  CreateNativeWindow();
@@ -50,8 +50,6 @@ public:
 
 protected:
   bool m_readonly;
-  int get_sysfs_str(std::string path, std::string& valstr) const;
-  int set_sysfs_str(std::string path, std::string val) const;
   bool ModeToResolution(std::string mode, RESOLUTION_INFO *res) const;
 
   EGLNativeDisplayType m_display;

@@ -418,9 +418,12 @@ bool CDVDVideoCodecIMX::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
     m_pFormatName = "iMX-h263";
     break;
   case CODEC_ID_H264:
-    if (m_hints.profile == 110)
+  {
+    // Test for VPU unsupported profiles to revert to sw decoding
+    if ((m_hints.profile == 110) || //hi10p
+        (m_hints.profile == 578))   //quite uncommon h264 profile
     {
-      CLog::Log(LOGNOTICE, "i.MX6 VPU is not able to decode AVC high 10 profile\n");
+      CLog::Log(LOGNOTICE, "i.MX6 VPU is not able to decode AVC profile %d", m_hints.profile);
       return false;
     }
     m_decOpenParam.CodecFormat = VPU_V_AVC;
@@ -434,6 +437,7 @@ bool CDVDVideoCodecIMX::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
       }
     }
     break;
+  }
   case CODEC_ID_VC1:
     m_decOpenParam.CodecFormat = VPU_V_VC1_AP;
     m_pFormatName = "iMX-vc1";
@@ -731,6 +735,13 @@ int CDVDVideoCodecIMX::Decode(BYTE *pData, int iSize, double dts, double pts)
         // Some codecs (VC1?) lie about their frame size (mod 16). Adjust...
         m_frameInfo.pExtInfo->nFrmWidth  = (((m_frameInfo.pExtInfo->nFrmWidth) + 15) & ~15);
         m_frameInfo.pExtInfo->nFrmHeight = (((m_frameInfo.pExtInfo->nFrmHeight) + 15) & ~15);
+
+        /* quick & dirty fix to get proper timestamping for VP8 codec */
+        if (m_decOpenParam.CodecFormat == VPU_V_VP8)
+        {
+          idx = VpuFindBuffer(m_frameInfo.pDisplayFrameBuf->pbufY);
+          m_outputBuffers[idx]->SetPts(pts);
+        }
 
         retStatus |= VC_PICTURE;
       } //VPU_DEC_OUTPUT_DIS

@@ -59,6 +59,7 @@
 #include "addons/AddonInstaller.h"
 #include "guilib/Key.h"
 #include "dialogs/GUIDialogPVRChannelManager.h"
+#include "dialogs/GUIDialogPVRGroupManager.h"
 
 using namespace MUSIC_INFO;
 using namespace PVR;
@@ -111,11 +112,18 @@ void CPVRManager::Announce(AnnouncementFlag flag, const char *sender, const char
 
   if (strcmp(message, "OnWake") == 0)
   {
-    {
-      CSingleLock lock(m_critSection);
-      m_bFirstStart = true;
-    }
-    Start(true);
+    /* start job to search for missing channel icons */
+    TriggerSearchMissingChannelIcons();
+
+    /* continue last watched channel */
+    ContinueLastChannel();
+    
+    /* trigger PVR data updates */
+    TriggerChannelGroupsUpdate();
+    TriggerChannelsUpdate();
+    TriggerRecordingsUpdate();
+    TriggerEpgsCreate();
+    TriggerTimersUpdate();
   }
 }
 
@@ -195,6 +203,15 @@ void CPVRManager::OnSettingAction(const CSetting *setting)
         dialog->DoModal();
     }
   }
+  else if (settingId == "pvrmanager.groupmanager")
+  {
+    if (IsStarted())
+    {
+      CGUIDialogPVRGroupManager *dialog = (CGUIDialogPVRGroupManager *)g_windowManager.GetWindow(WINDOW_DIALOG_PVR_GROUP_MANAGER);
+      if (dialog)
+        dialog->DoModal();
+    }
+  }
   else if (settingId == "pvrclient.menuhook")
   {
     if (IsStarted())
@@ -263,7 +280,7 @@ bool CPVRManager::UpgradeOutdatedAddons(void)
     return true;
 
   // there's add-ons that couldn't be updated
-  for (std::map<std::string, std::string>::iterator it = m_outdatedAddons.begin(); it != m_outdatedAddons.end(); it++)
+  for (std::map<std::string, std::string>::iterator it = m_outdatedAddons.begin(); it != m_outdatedAddons.end(); ++it)
   {
     if (!InstallAddonAllowed(it->first))
     {
@@ -284,7 +301,7 @@ bool CPVRManager::UpgradeOutdatedAddons(void)
   Cleanup();
 
   // upgrade all add-ons
-  for (std::map<std::string, std::string>::iterator it = outdatedAddons.begin(); it != outdatedAddons.end(); it++)
+  for (std::map<std::string, std::string>::iterator it = outdatedAddons.begin(); it != outdatedAddons.end(); ++it)
   {
     CLog::Log(LOGINFO, "PVR - updating add-on '%s'", it->first.c_str());
     CAddonInstaller::Get().Install(it->first, true, it->second, false);
@@ -1070,6 +1087,36 @@ void CPVRManager::CloseStream(void)
   SAFE_DELETE(m_currentFile);
 }
 
+bool CPVRManager::PlayMedia(const CFileItem& item)
+{
+  if (!g_PVRManager.IsStarted())
+  {
+    CLog::Log(LOGERROR, "CApplication - %s PVR manager not started to play file '%s'", __FUNCTION__, item.GetPath().c_str());
+    return false;
+  }
+
+  CFileItem pvrItem(item);
+  if (URIUtils::IsPVRChannel(item.GetPath()) && !item.HasPVRChannelInfoTag())
+    pvrItem = *g_PVRChannelGroups->GetByPath(item.GetPath());
+  else if (URIUtils::IsPVRRecording(item.GetPath()) && !item.HasPVRRecordingInfoTag())
+    pvrItem = *g_PVRRecordings->GetByPath(item.GetPath());
+  
+  if (!pvrItem.HasPVRChannelInfoTag() && !pvrItem.HasPVRRecordingInfoTag())
+    return false;
+    
+  // check parental lock if we want to play a channel
+  if (pvrItem.IsPVRChannel() && !g_PVRManager.CheckParentalLock(*pvrItem.GetPVRChannelInfoTag()))
+    return false;
+  
+  if (!g_application.IsCurrentThread())  
+  {
+    CApplicationMessenger::Get().MediaPlay(pvrItem);
+    return true;
+  }
+    
+  return g_application.PlayFile(pvrItem, false) == PLAYBACK_OK;
+}
+
 void CPVRManager::UpdateCurrentFile(void)
 {
   CSingleLock lock(m_critSection);
@@ -1097,22 +1144,21 @@ bool CPVRManager::UpdateItem(CFileItem& item)
   g_infoManager.SetCurrentItem(*m_currentFile);
 
   CPVRChannel* channelTag = item.GetPVRChannelInfoTag();
-  CEpgInfoTag epgTagNow;
-  bool bHasTagNow = channelTag->GetEPGNow(epgTagNow);
+  CEpgInfoTagPtr epgTagNow(channelTag->GetEPGNow());
 
   if (channelTag->IsRadio())
   {
     CMusicInfoTag* musictag = item.GetMusicInfoTag();
     if (musictag)
     {
-      musictag->SetTitle(bHasTagNow ?
-          epgTagNow.Title() :
+      musictag->SetTitle(epgTagNow ?
+          epgTagNow->Title() :
           CSettings::Get().GetBool("epg.hidenoinfoavailable") ?
               "" :
               g_localizeStrings.Get(19055)); // no information available
-      if (bHasTagNow)
-        musictag->SetGenre(epgTagNow.Genre());
-      musictag->SetDuration(bHasTagNow ? epgTagNow.GetDuration() : 3600);
+      if (epgTagNow)
+        musictag->SetGenre(epgTagNow->Genre());
+      musictag->SetDuration(epgTagNow ? epgTagNow->GetDuration() : 3600);
       musictag->SetURL(channelTag->Path());
       musictag->SetArtist(channelTag->ChannelName());
       musictag->SetAlbumArtist(channelTag->ChannelName());
@@ -1126,18 +1172,18 @@ bool CPVRManager::UpdateItem(CFileItem& item)
     CVideoInfoTag *videotag = item.GetVideoInfoTag();
     if (videotag)
     {
-      videotag->m_strTitle = bHasTagNow ?
-          epgTagNow.Title() :
+      videotag->m_strTitle = epgTagNow ?
+          epgTagNow->Title() :
           CSettings::Get().GetBool("epg.hidenoinfoavailable") ?
               "" :
               g_localizeStrings.Get(19055); // no information available
-      if (bHasTagNow)
-        videotag->m_genre = epgTagNow.Genre();
+      if (epgTagNow)
+        videotag->m_genre = epgTagNow->Genre();
       videotag->m_strPath = channelTag->Path();
       videotag->m_strFileNameAndPath = channelTag->Path();
-      videotag->m_strPlot = bHasTagNow ? epgTagNow.Plot() : "";
-      videotag->m_strPlotOutline = bHasTagNow ? epgTagNow.PlotOutline() : "";
-      videotag->m_iEpisode = bHasTagNow ? epgTagNow.EpisodeNum() : 0;
+      videotag->m_strPlot = epgTagNow ? epgTagNow->Plot() : "";
+      videotag->m_strPlotOutline = epgTagNow ? epgTagNow->PlotOutline() : "";
+      videotag->m_iEpisode = epgTagNow ? epgTagNow->EpisodeNum() : 0;
     }
   }
 
@@ -1364,6 +1410,26 @@ bool CPVRManager::IsIdle(void) const
   }
 
   return true;
+}
+
+bool CPVRManager::CanSystemPowerdown(bool bAskUser /*= true*/) const
+{
+  bool bReturn(true);
+  if (IsStarted())
+  {
+    if (!m_addons->AllLocalBackendsIdle())
+    {
+      if (bAskUser)
+      {
+        // Inform user about PVR being busy. Ask if user wants to powerdown anyway.
+        bool bCanceled = false;
+        bReturn = CGUIDialogYesNo::ShowAndGetInput(19685, 19686, 0, 0, -1, -1, bCanceled, 10000);
+      }
+      else
+        bReturn = false; // do not powerdown (busy, but no user interaction requested).
+    }
+  }
+  return bReturn;
 }
 
 void CPVRManager::ShowPlayerInfo(int iTimeout)

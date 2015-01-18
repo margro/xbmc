@@ -27,7 +27,9 @@
 #define CONTROL_BTNSORTBY                 3
 #define CONTROL_BTNSORTASC                4
 #define CONTROL_BTNGROUPITEMS             5
+#define CONTROL_BTNSHOWHIDDEN             6
 #define CONTROL_BTNCHANNELGROUPS          28
+#define CONTROL_BTNFILTERCHANNELS         31
 
 #define CONTROL_LABEL_HEADER1             29
 #define CONTROL_LABEL_HEADER2             30
@@ -59,7 +61,6 @@ namespace PVR
     virtual bool OnMessage(CGUIMessage& message);
     virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
     virtual bool OnContextButton(const CFileItem &item, CONTEXT_BUTTON button) { return false; };
-    virtual bool Update(const std::string &strDirectory, bool updateFilterPath = true);
     virtual void UpdateButtons(void);
     virtual bool OnAction(const CAction &action);
     virtual bool OnBack(int actionID);
@@ -69,7 +70,7 @@ namespace PVR
     virtual void SetInvalid();
     
     static std::string GetSelectedItemPath(bool bRadio);
-    static void SetSelectedItemPath(bool bRadio, const std::string path);
+    static void SetSelectedItemPath(bool bRadio, const std::string &path);
 
   protected:
     CGUIWindowPVRBase(bool bRadio, int id, const std::string &xmlFile);

@@ -327,6 +327,13 @@ namespace PVR
     bool OpenRecordedStream(const CPVRRecording &tag);
 
     /*!
+    * @brief Try to playback the given file item
+    * @param item The file item to playback.
+    * @return True if the file could be playback, otherwise false.
+    */
+    bool PlayMedia(const CFileItem& item);
+
+    /*!
      * @brief Start recording on a given channel if it is not already recording, stop if it is.
      * @param channel the channel to start/stop recording.
      * @return True if the recording was started or stopped successfully, false otherwise.
@@ -363,6 +370,18 @@ namespace PVR
      * @return True if there are no active timers/recordings/wake-ups within the configured time span.
      */
     bool IsIdle(void) const;
+
+    /*!
+     * @brief Check whether the system Kodi is running on can be powered down
+     *        (shutdown/reboot/suspend/hibernate) without stopping any active
+     *        recordings and/or without preventing the start of recordings
+     *        sheduled for now + pvrpowermanagement.backendidletime.
+     * @param bAskUser True to informs user in case of potential
+     *        data loss. User can decide to allow powerdown anyway. False to
+     *        not to ask user and to not confirm power down.
+     * @return True if system can be safely powered down, false otherwise.
+     */
+    bool CanSystemPowerdown(bool bAskUser = true) const;
 
     /*!
      * @brief Set the current playing group, used to load the right channel.

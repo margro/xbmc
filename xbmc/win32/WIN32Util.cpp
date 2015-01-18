@@ -240,7 +240,7 @@ bool CWIN32Util::PowerManagement(PowerState State)
   case POWERSTATE_REBOOT:
     CLog::Log(LOGINFO, "Rebooting Windows...");
     if (g_sysinfo.IsWindowsVersionAtLeast(CSysInfo::WindowsVersionWin8))
-      return InitiateShutdownW(NULL, NULL, 0, SHUTDOWN_HYBRID | SHUTDOWN_INSTALL_UPDATES | SHUTDOWN_RESTART,
+      return InitiateShutdownW(NULL, NULL, 0, SHUTDOWN_INSTALL_UPDATES | SHUTDOWN_RESTART,
                                SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_OTHER | SHTDN_REASON_FLAG_PLANNED) == ERROR_SUCCESS;
     return InitiateShutdownW(NULL, NULL, 0, SHUTDOWN_INSTALL_UPDATES | SHUTDOWN_RESTART,
                              SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_OTHER | SHTDN_REASON_FLAG_PLANNED) == ERROR_SUCCESS;
@@ -412,7 +412,7 @@ std::string CWIN32Util::GetSystemPath()
 std::string CWIN32Util::GetProfilePath()
 {
   std::string strProfilePath;
-  CStdString strHomePath;
+  std::string strHomePath;
 
   CUtil::GetHomePath(strHomePath);
 
@@ -808,7 +808,7 @@ bool CWIN32Util::HasGLDefaultDrivers()
 {
   unsigned int a=0,b=0;
 
-  CStdString strVendor = g_Windowing.GetRenderVendor();
+  std::string strVendor = g_Windowing.GetRenderVendor();
   g_Windowing.GetRenderVersion(a, b);
 
   if(strVendor.find("Microsoft")!=strVendor.npos && a==1 && b==1)
@@ -972,9 +972,9 @@ extern "C"
 {
   FILE *fopen_utf8(const char *_Filename, const char *_Mode)
   {
-    CStdStringW wfilename, wmode;
+    std::string modetmp = _Mode;
+    std::wstring wfilename, wmode(modetmp.begin(), modetmp.end());
     g_charsetConverter.utf8ToW(_Filename, wfilename, false);
-    wmode = _Mode;
     return _wfopen(wfilename.c_str(), wmode.c_str());
   }
 }

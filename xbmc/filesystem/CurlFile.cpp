@@ -225,6 +225,7 @@ CCurlFile::CReadState::CReadState()
   m_multiHandle = NULL;
   m_overflowBuffer = NULL;
   m_overflowSize = 0;
+  m_stillRunning = 0;
   m_filePos = 0;
   m_fileSize = 0;
   m_bufferSize = 0;
@@ -374,6 +375,9 @@ CCurlFile::~CCurlFile()
 }
 
 CCurlFile::CCurlFile()
+ : m_writeOffset(0)
+ , m_overflowBuffer(NULL)
+ , m_overflowSize(0)
 {
   g_curlInterface.Load(); // loads the curl dll and resolves exports etc.
   m_opened = false;
@@ -1670,6 +1674,28 @@ bool CCurlFile::GetMimeType(const CURL &url, std::string &content, const std::st
     return true;
   }
   CLog::Log(LOGDEBUG, "CCurlFile::GetMimeType - %s -> failed", redactUrl.c_str());
+  content.clear();
+  return false;
+}
+
+bool CCurlFile::GetContentType(const CURL &url, std::string &content, const std::string &useragent)
+{
+  CCurlFile file;
+  if (!useragent.empty())
+    file.SetUserAgent(useragent);
+
+  struct __stat64 buffer;
+  std::string redactUrl = url.GetRedacted();
+  if (file.Stat(url, &buffer) == 0)
+  {
+    if (buffer.st_mode == _S_IFDIR)
+      content = "x-directory/normal";
+    else
+      content = file.GetContent();
+    CLog::Log(LOGDEBUG, "CCurlFile::GetConentType - %s -> %s", redactUrl.c_str(), content.c_str());
+    return true;
+  }
+  CLog::Log(LOGDEBUG, "CCurlFile::GetConentType - %s -> failed", redactUrl.c_str());
   content.clear();
   return false;
 }

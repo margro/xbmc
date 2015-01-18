@@ -505,6 +505,15 @@ ssize_t CFile::Read(void *lpBuf, size_t uiBufSize)
   if (uiBufSize > SSIZE_MAX)
     uiBufSize = SSIZE_MAX;
 
+  if (uiBufSize == 0)
+  {
+    // "test" read with zero size
+    // some VFSs don't handle correctly null buffer pointer
+    // provide valid buffer pointer for them
+    char dummy;
+    return m_pFile->Read(&dummy, 0);
+  }
+
   if(m_pBuffer)
   {
     if(m_flags & READ_TRUNCATED)
@@ -527,17 +536,6 @@ ssize_t CFile::Read(void *lpBuf, size_t uiBufSize)
 
   try
   {
-    if (uiBufSize == 0)
-    { // "test" read with zero size
-      if (lpBuf != NULL)
-        return m_pFile->Read(lpBuf, 0);
-
-      // some VFSs don't handle correctly null buffer pointer
-      // provide valid buffer pointer for them
-      auto_buffer dummyBuf(255);
-      return m_pFile->Read(dummyBuf.get(), 0);
-    }
-
     if(m_flags & READ_TRUNCATED)
     {
       const ssize_t nBytes = m_pFile->Read(lpBuf, uiBufSize);
@@ -1034,10 +1032,15 @@ CFileStreamBuffer::int_type CFileStreamBuffer::underflow()
     memmove(m_buffer, egptr()-backsize, backsize);
   }
 
-  unsigned int size = m_file->Read(m_buffer+backsize, m_frontsize);
+  ssize_t size = m_file->Read(m_buffer+backsize, m_frontsize);
 
-  if(size == 0)
+  if (size == 0)
     return traits_type::eof();
+  else if (size < 0)
+  {
+    CLog::LogF(LOGWARNING, "Error reading file - assuming eof");
+    return traits_type::eof();
+  }
 
   setg(m_buffer, m_buffer+backsize, m_buffer+backsize+size);
   return traits_type::to_int_type(*gptr());

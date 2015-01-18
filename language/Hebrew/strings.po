@@ -611,7 +611,7 @@ msgstr "שיר"
 
 msgctxt "#180"
 msgid "Duration"
-msgstr "משך"
+msgstr "אורך"
 
 msgctxt "#181"
 msgid "Select album"
@@ -1859,11 +1859,11 @@ msgstr "אפשר החלפת מצב וידאו"
 
 msgctxt "#512"
 msgid "Startup window"
-msgstr "חלון פתיחה"
+msgstr "מסך פתיחה"
 
 msgctxt "#513"
 msgid "Home window"
-msgstr "חלון הבית"
+msgstr "מסך הבית"
 
 msgctxt "#514"
 msgid "Manual settings"
@@ -2472,6 +2472,10 @@ msgstr "פירוט אירועי רכיבי UPnP"
 msgctxt "#679"
 msgid "Verbose logging for CEC library"
 msgstr "פירוט אירועי ספריית CEC"
+
+msgctxt "#680"
+msgid "Verbose logging for VIDEO component"
+msgstr "פירוט אירועי רכיב וידאו"
 
 msgctxt "#700"
 msgid "Cleaning up library"
@@ -3623,7 +3627,7 @@ msgstr "הגדרות - תמונות"
 
 msgctxt "#10013"
 msgid "Settings - Programs"
-msgstr "הגדרות - תוכניות"
+msgstr "הגדרות - תוכנות"
 
 msgctxt "#10014"
 msgid "Settings - Weather"
@@ -3911,11 +3915,11 @@ msgstr "בונה מחדש אינדקס..."
 
 msgctxt "#12010"
 msgid "Return to music window"
-msgstr "חזרה לחלון המוזיקה"
+msgstr "חזרה למסך המוזיקה"
 
 msgctxt "#12011"
 msgid "Return to videos window"
-msgstr "חזרה לחלון הווידאו"
+msgstr "חזרה למסך הווידאו"
 
 msgctxt "#12021"
 msgid "Start from beginning"
@@ -4235,7 +4239,7 @@ msgstr "פעולת כיבוי"
 
 msgctxt "#13009"
 msgid "Quit"
-msgstr "צא"
+msgstr "יציאה"
 
 msgctxt "#13010"
 msgid "Hibernate"
@@ -5415,7 +5419,7 @@ msgstr "אחוז תמונות ממוזערות"
 
 msgctxt "#14018"
 msgid "View options"
-msgstr "הצגת אפשרויות"
+msgstr "אפשרויות תצוגה"
 
 msgctxt "#14019"
 msgid "Change area code 1"
@@ -6193,6 +6197,22 @@ msgctxt "#16329"
 msgid "VAAPI Motion Compensated"
 msgstr "VAAPI Motion Compensated"
 
+msgctxt "#16330"
+msgid "MMAL - Advanced"
+msgstr "MMAL - מתקדם"
+
+msgctxt "#16331"
+msgid "MMAL - Advanced (Half)"
+msgstr "MMAL - מתקדם (חצי)"
+
+msgctxt "#16332"
+msgid "MMAL - Bob"
+msgstr "MMAL - Bob"
+
+msgctxt "#16333"
+msgid "MMAL - Bob (Half)"
+msgstr "MMAL - Bob (חצי)"
+
 msgctxt "#16400"
 msgid "Post-processing"
 msgstr "עיבוד גמר"
@@ -6215,7 +6235,7 @@ msgstr "%i ימים"
 
 msgctxt "#19000"
 msgid "Switch to channel"
-msgstr "העברה לערוץ"
+msgstr "מעבר לערוץ"
 
 msgctxt "#19001"
 msgid "Separate the search words by using AND, OR and/or NOT."
@@ -6551,7 +6571,7 @@ msgstr "יום התחלה:"
 
 msgctxt "#19085"
 msgid "Unknown channel %u"
-msgstr "ערוץ לא ידוע %u"
+msgstr "ערוץ לא מוכר %u"
 
 msgctxt "#19086"
 msgid "Mo-__-__-__-__-__-__"
@@ -6879,7 +6899,7 @@ msgstr "הסתר תיבת מידע וידאו"
 
 msgctxt "#19170"
 msgid "Timeout when starting playback"
-msgstr "גבול המתנה לתחילת ניגון"
+msgstr "זמן המתנה מירבי לתחילת ניגון"
 
 msgctxt "#19171"
 msgid "Start playback minimised"
@@ -6899,11 +6919,11 @@ msgstr "ברירת מחדל לאורך חיי הקלטה"
 
 msgctxt "#19175"
 msgid "Margin at the start of a recording"
-msgstr "הקדמה בתזמון תחילת הקלטה"
+msgstr "הקדמת תזמון תחילת הקלטה"
 
 msgctxt "#19176"
 msgid "Margin at the end of a recording"
-msgstr "איחור בתזמון סיום הקלטה"
+msgstr "איחור תזמון סיום הקלטה"
 
 msgctxt "#19177"
 msgid "Playback"
@@ -7286,8 +7306,8 @@ msgid "Add-on for the backend to be able to use PVR."
 msgstr "המאפשרת צפיה בטלוויזיה חיה דרך שרת אחורי."
 
 msgctxt "#19274"
-msgid "Please visit kodi.tv/pvr to learn more."
-msgstr "לקבלת מידע נוסף ניתן לבקר בכתובת kodi.tv/pvr."
+msgid "Please visit http://kodi.wiki/view/PVR to learn more."
+msgstr "לפרטים נוספים יש לבקר ב־http://kodi.wiki/view/PVR."
 
 msgctxt "#19275"
 msgid "Conflict warning"
@@ -7347,23 +7367,23 @@ msgstr "חזית"
 
 msgctxt "#19499"
 msgid "Other/Unknown"
-msgstr "אחר\\לא ידוע"
+msgstr "אחר / לא ידוע"
 
 msgctxt "#19500"
 msgid "Movie/Drama"
-msgstr "סרט\\דרמה"
+msgstr "סרט / דרמה"
 
 msgctxt "#19501"
 msgid "Detective/Thriller"
-msgstr "מותחן\\בלשי"
+msgstr "בלשי / מותחן"
 
 msgctxt "#19502"
 msgid "Adventure/Western/War"
-msgstr "הרפתקאות\\מערבון\\מלחמה"
+msgstr "הרפתקאות / מערבון / מלחמתי"
 
 msgctxt "#19503"
 msgid "Science Fiction/Fantasy/Horror"
-msgstr "מדע בדיוני\\פנטזיה\\אימה"
+msgstr "מדע בדיוני / פנטזיה / אימה"
 
 msgctxt "#19504"
 msgid "Comedy"
@@ -7371,7 +7391,7 @@ msgstr "קומדיה"
 
 msgctxt "#19505"
 msgid "Soap/Melodrama/Folkloric"
-msgstr "סבון\\מלודרמה\\פולקלור"
+msgstr "סבון / מלודרמה / פולקלור"
 
 msgctxt "#19506"
 msgid "Romance"
@@ -7379,19 +7399,19 @@ msgstr "רומנטי"
 
 msgctxt "#19507"
 msgid "Serious/Classical/Religious/Historical Movie/Drama"
-msgstr "קלסי\\דתי\\סרט היסטורי\\דרמה"
+msgstr "קלסי / דתי / סרט היסטורי / דרמה"
 
 msgctxt "#19508"
 msgid "Adult Movie/Drama"
-msgstr "סרט למבוגרים\\דרמה"
+msgstr "סרט למבוגרים / דרמה"
 
 msgctxt "#19516"
 msgid "News/Current Affairs"
-msgstr "חדשות\\אקטואליה"
+msgstr "חדשות / אקטואליה"
 
 msgctxt "#19517"
 msgid "News/Weather Report"
-msgstr "חדשות\\מזג אוויר"
+msgstr "חדשות / מזג אוויר"
 
 msgctxt "#19518"
 msgid "News Magazine"
@@ -7403,7 +7423,7 @@ msgstr "תעודה"
 
 msgctxt "#19520"
 msgid "Discussion/Interview/Debate"
-msgstr "דיון\\ראיון\\עימות"
+msgstr "דיון / ראיון / עימות"
 
 msgctxt "#19532"
 msgid "Show/Game Show"
@@ -7411,7 +7431,7 @@ msgstr "הצגה "
 
 msgctxt "#19533"
 msgid "Game Show/Quiz/Contest"
-msgstr "הצעה/חידון/תחרות"
+msgstr "הצעה / חידון / תחרות"
 
 msgctxt "#19534"
 msgid "Variety Show"
@@ -7439,7 +7459,7 @@ msgstr "כדורגל"
 
 msgctxt "#19552"
 msgid "Tennis/Squash"
-msgstr "טניס\\סקווש"
+msgstr "טניס / סקווש"
 
 msgctxt "#19553"
 msgid "Team Sports"
@@ -7471,7 +7491,7 @@ msgstr "אמנויות לחימה"
 
 msgctxt "#19564"
 msgid "Children's/Youth Programmes"
-msgstr "ילדים\\נוער"
+msgstr "ילדים / נוער"
 
 msgctxt "#19565"
 msgid "Pre-school Children's Programmes"
@@ -7487,11 +7507,11 @@ msgstr "בידור לגילאים 10-16"
 
 msgctxt "#19568"
 msgid "Informational/Educational/School Programme"
-msgstr "תכניות הסברה\\חינוכיות\\לבית הספר"
+msgstr "תכניות הסברה / חינוכיות / לבית הספר"
 
 msgctxt "#19569"
 msgid "Cartoons/Puppets"
-msgstr "מצויר\\הנפשה"
+msgstr "מצויר / הנפשה"
 
 msgctxt "#19580"
 msgid "Music/Ballet/Dance"
@@ -7499,7 +7519,7 @@ msgstr "מוזיקה / בלט / ריקוד"
 
 msgctxt "#19581"
 msgid "Rock/Pop"
-msgstr "רוק\\פופ"
+msgstr "רוק / פופ"
 
 msgctxt "#19582"
 msgid "Serious/Classical Music"
@@ -7507,11 +7527,11 @@ msgstr "מוזיקה  קלאסית"
 
 msgctxt "#19583"
 msgid "Folk/Traditional Music"
-msgstr "שירי עם\\מוזיקה מסורתית"
+msgstr "שירי עם / מוסיקה מסורתית"
 
 msgctxt "#19584"
 msgid "Musical/Opera"
-msgstr "מוזיקה\\אופרה"
+msgstr "מוסיקה / אופרה"
 
 msgctxt "#19585"
 msgid "Ballet"
@@ -7519,7 +7539,7 @@ msgstr "בלט"
 
 msgctxt "#19596"
 msgid "Arts/Culture"
-msgstr "אמנויות\\תרבות"
+msgstr "אומנויות / תרבות"
 
 msgctxt "#19597"
 msgid "Performing Arts"
@@ -7535,7 +7555,7 @@ msgstr "דת"
 
 msgctxt "#19600"
 msgid "Popular Culture/Traditional Arts"
-msgstr "תרבות פופולרית\\אמנויות מסורתיות"
+msgstr "תרבות פופולרית / אמנויות מסורתיות"
 
 msgctxt "#19601"
 msgid "Literature"
@@ -7543,7 +7563,7 @@ msgstr "ספרות"
 
 msgctxt "#19602"
 msgid "Film/Cinema"
-msgstr "סרטים\\קולנוע"
+msgstr "סרטים / קולנוע"
 
 msgctxt "#19603"
 msgid "Experimental Film/Video"
@@ -7551,7 +7571,7 @@ msgstr "שידורי נסיון"
 
 msgctxt "#19604"
 msgid "Broadcasting/Press"
-msgstr "תשדיר\\עיתונות"
+msgstr "שידור / עיתונות"
 
 msgctxt "#19605"
 msgid "New Media"
@@ -7559,7 +7579,7 @@ msgstr "מדיה חדשה"
 
 msgctxt "#19606"
 msgid "Arts/Culture Magazines"
-msgstr "אמנויות\\מגזיני תרבות"
+msgstr "אמנויות / מגזיני תרבות"
 
 msgctxt "#19607"
 msgid "Fashion"
@@ -7567,15 +7587,15 @@ msgstr "אופנה"
 
 msgctxt "#19612"
 msgid "Social/Political/Economics"
-msgstr "חברתי\\פוליטי\\כלכלה"
+msgstr "חברתי / פוליטי / כלכלה"
 
 msgctxt "#19613"
 msgid "Magazines/Reports/Documentary"
-msgstr "מגזינים\\דווחית\\תעודה"
+msgstr "מגזינים / דיווחים / תעודה"
 
 msgctxt "#19614"
 msgid "Economics/Social Advisory"
-msgstr "כלכלה\\יעוץ כלכלי"
+msgstr "כלכלה / יעוץ כלכלי"
 
 msgctxt "#19615"
 msgid "Remarkable People"
@@ -7583,27 +7603,27 @@ msgstr "אנשים יוצאי דופן"
 
 msgctxt "#19628"
 msgid "Education/Science/Factual"
-msgstr "חינוך\\מדע\\עובדתי"
+msgstr "חינוך / מדע / עובדתי"
 
 msgctxt "#19629"
 msgid "Nature/Animals/Environment"
-msgstr "טבע\\בעלי חיים\\סביבה"
+msgstr "טבע / בעלי חיים / סביבה"
 
 msgctxt "#19630"
 msgid "Technology/Natural Sciences"
-msgstr "טכנולוגי\\מדעי הטבע"
+msgstr "טכנולוגי / מדעי הטבע"
 
 msgctxt "#19631"
 msgid "Medicine/Physiology/Psychology"
-msgstr "רפואה\\פיזיולוגיה\\פסיכולוגיה"
+msgstr "רפואה / פיזיולוגיה / פסיכולוגיה"
 
 msgctxt "#19632"
 msgid "Foreign Countries/Expeditions"
-msgstr "מדינות זרות\\משלחות"
+msgstr "מדינות זרות / משלחות"
 
 msgctxt "#19633"
 msgid "Social/Spiritual Sciences"
-msgstr "חברתי\\מדעי הרוח"
+msgstr "חברתי / מדעי הרוח"
 
 msgctxt "#19634"
 msgid "Further Education"
@@ -7615,11 +7635,11 @@ msgstr "שפות"
 
 msgctxt "#19644"
 msgid "Leisure/Hobbies"
-msgstr "פנאי\\תחביבים"
+msgstr "פנאי / תחביבים"
 
 msgctxt "#19645"
 msgid "Tourism/Travel"
-msgstr "תיירות\\טיולים"
+msgstr "תיירות / טיולים"
 
 msgctxt "#19646"
 msgid "Handicraft"
@@ -7639,7 +7659,7 @@ msgstr "בישול"
 
 msgctxt "#19650"
 msgid "Advertisement/Shopping"
-msgstr "פרסום\\קניות"
+msgstr "פרסום / קניות"
 
 msgctxt "#19651"
 msgid "Gardening"
@@ -7671,15 +7691,15 @@ msgstr "דרמה"
 
 msgctxt "#19677"
 msgid "Detective/Thriller"
-msgstr "בלשי\\מותחן"
+msgstr "בלשי / מותחן"
 
 msgctxt "#19678"
 msgid "Adventure/Western/War"
-msgstr "הרפתקאות\\מערבון\\מלחמתי"
+msgstr "הרפתקאות / מערבון / מלחמתי"
 
 msgctxt "#19679"
 msgid "Science Fiction/Fantasy/Horror"
-msgstr "מדע בדיוני\\פנטזיה\\אימה"
+msgstr "מדע בדיוני / פנטזיה / אימה"
 
 msgctxt "#19680"
 msgid "Comedy"
@@ -7687,7 +7707,7 @@ msgstr "קומדיה"
 
 msgctxt "#19681"
 msgid "Soap/Melodrama/Folkloric"
-msgstr "סבון\\מלודרמה\\פולקלור"
+msgstr "סבון / מלודרמה / פולקלור"
 
 msgctxt "#19682"
 msgid "Romance"
@@ -7695,7 +7715,7 @@ msgstr "רומנטי"
 
 msgctxt "#19683"
 msgid "Serious/ClassicalReligion/Historical"
-msgstr "דתי\\היסטורי"
+msgstr "דתי / היסטורי"
 
 msgctxt "#19684"
 msgid "Adult"
@@ -7795,15 +7815,15 @@ msgstr "סיכום"
 
 msgctxt "#20038"
 msgid "Lock music window"
-msgstr "נעל חלון מוזיקה"
+msgstr "נעל מסך מוזיקה"
 
 msgctxt "#20039"
 msgid "Lock videos window"
-msgstr "נעל חלון וידאו"
+msgstr "נעל מסך וידאו"
 
 msgctxt "#20040"
 msgid "Lock pictures window"
-msgstr "נעל חלון תמונות"
+msgstr "נעל מסך תמונות"
 
 msgctxt "#20041"
 msgid "Lock programs & scripts windows"
@@ -7979,7 +7999,7 @@ msgstr "הצג פרטי מזג אוויר"
 
 msgctxt "#20085"
 msgid "Show system info"
-msgstr "הצגת פרטי מערכת"
+msgstr "הצג פרטי מערכת"
 
 msgctxt "#20086"
 msgid "Show available disk space C: E: F:"
@@ -8023,7 +8043,7 @@ msgstr "יש להזין קוד נעילת משתמש"
 
 msgctxt "#20096"
 msgid "Login screen"
-msgstr "מסך התחברות"
+msgstr "מסך כניסה"
 
 msgctxt "#20097"
 msgid "Fetching album info"
@@ -8103,7 +8123,7 @@ msgstr "חיבור משתמש / בחירת משתמש"
 
 msgctxt "#20116"
 msgid "Use lock on login screen"
-msgstr "שימוש בנעילה במסך ההתחברות"
+msgstr "שימוש בנעילה במסך כניסה"
 
 msgctxt "#20117"
 msgid "Invalid lock code."
@@ -8339,7 +8359,7 @@ msgstr "שרת UPnP"
 
 msgctxt "#20176"
 msgid "Show video info"
-msgstr "הצגת פרטי וידאו"
+msgstr "הצג פרטי וידאו"
 
 msgctxt "#20177"
 msgid "Done"
@@ -8391,7 +8411,7 @@ msgstr "פרסם עדכוני ספריה"
 
 msgctxt "#20189"
 msgid "Enable auto scrolling for plot & review"
-msgstr "אפשר גלילה אוטומטית של עלילה או סקירה"
+msgstr "גלול אוטומטית עלילה וסקירה"
 
 msgctxt "#20190"
 msgid "Custom"
@@ -9351,7 +9371,7 @@ msgstr "פיקסל shader באיכות גבוהה v2"
 
 msgctxt "#21398"
 msgid "Enable playlist at startup"
-msgstr "אפשר נגינת רשימת ניגון בהפעלה"
+msgstr "אפשר פתיחת רשימת ניגון בהפעלה"
 
 msgctxt "#21399"
 msgid "Use tween animations"
@@ -10207,7 +10227,7 @@ msgstr "כתוביות"
 
 msgctxt "#24013"
 msgid "Lyrics"
-msgstr "מילות שירים"
+msgstr "מילות שיר"
 
 msgctxt "#24014"
 msgid "TV information"
@@ -10343,7 +10363,7 @@ msgstr "חזרה לאחור"
 
 msgctxt "#24049"
 msgid "Incompatible"
-msgstr "אי תאימות"
+msgstr "לא תואם"
 
 msgctxt "#24050"
 msgid "Available Add-ons"
@@ -10618,8 +10638,12 @@ msgid "Configuration has been moved"
 msgstr "קבצי ההגדרות הועברו"
 
 msgctxt "#24129"
-msgid "The configuration of XBMC has been moved to the new location for Kodi. Please refer to http://kodi.wiki/view/Migration_from_XBMC_to_Kodi - this message will not be shown again!"
-msgstr "קבצי הגדרות XBMC הועברו למיקום חדש עבור Kodi. למידע נוסף יש לפנות אל http://kodi.wiki/view/Migration_from_XBMC_to_Kodi - הודעה זו לא תוצג שוב!"
+msgid "The configuration of XBMC has been moved to the new location for Kodi. Please refer to http://kodi.wiki/view/Migration - this message will not be shown again!"
+msgstr "קבצי הגדרות XBMC הועברו למיקום חדש עבור Kodi. למידע נוסף יש לפנות אל http://kodi.wiki/view/Migration - הודעה זו לא תוצג שנית!\""
+
+msgctxt "#24999"
+msgid "Hide incompatible"
+msgstr "הסתר לא תואמים"
 
 msgctxt "#25000"
 msgid "Notifications"
@@ -10627,7 +10651,7 @@ msgstr "התראות"
 
 msgctxt "#25001"
 msgid "Hide foreign"
-msgstr "הסתרת זרים"
+msgstr "הסתר זרים"
 
 msgctxt "#25002"
 msgid "Select from all titles ..."
@@ -10959,7 +10983,7 @@ msgstr "שונא"
 
 msgctxt "#33081"
 msgid "This file is stacked, select the part you want to play from."
-msgstr "קובץ זה שייך לערמה, יש לבחור את החלק ממנו יתחיל הניגון."
+msgstr "קובץ זה שייך לערימה. יש לבחור חלק ממנו יתחיל הניגון."
 
 msgctxt "#33082"
 msgid "Path to script"
@@ -11419,11 +11443,11 @@ msgstr "שינוי הגדרות מעטפת ספציפיות. האפשריות ה
 
 msgctxt "#36105"
 msgid "Change the theme associated with your selected skin."
-msgstr "שינוי ערכת נושא המשויכת למעטפת שבחרת."
+msgstr "שינוי ערכת נושא המשויכת למעטפת שנחברה."
 
 msgctxt "#36106"
 msgid "Change the colours of your selected skin."
-msgstr "שינוי צבעי מעטפת שנבחרה."
+msgstr "שינוי צבעי המעטפת שנבחרה."
 
 msgctxt "#36107"
 msgid "Choose the fonts displayed in the user interface. The font sets are configured by your skin."
@@ -11435,7 +11459,7 @@ msgstr "שינוי גודל תצוגה של ממשק המשתמש."
 
 msgctxt "#36109"
 msgid "Select the media window that Kodi displays on startup."
-msgstr "בחירת החלון המוצג מיד לאחר ההפעלה."
+msgstr "בחירת המסך המוצג מיד לאחר ההפעלה."
 
 msgctxt "#36110"
 msgid "Select or disable the sound scheme used in the user interface."
@@ -11831,7 +11855,7 @@ msgstr "מחיקת מסד נתוני ערוץ/לוח שידורים ויבוא �
 
 msgctxt "#36210"
 msgid "Prevent the 'connection lost' notification window from displaying when Kodi is unable to talk to the PVR backend server."
-msgstr "מניעת הופעת חלון ההתרעה 'חיבור אבד' כאשר לקוח טלוויזיה חיה נכשל בהתחברות לשרת טלוויזיה אחורי."
+msgstr "מניעת הופעת חלון ההתראה 'חיבור אבד' כאשר לקוח טלוויזיה חיה נכשל בהתחברות לשרת טלוויזיה אחורי."
 
 msgctxt "#36211"
 msgid "Category for PVR menus and on-screen display settings, as well as channel info windows."
@@ -11895,7 +11919,7 @@ msgstr "לאחר הפעלה מחדש, פתיחה אוטומטית של הערו�
 
 msgctxt "#36229"
 msgid "Display signal quality information in the codec information window (if supported by the Add-on and backend)."
-msgstr "הצגת מידע על איכות האות בחלון מידע קודק (אם נתמך ע\"י ההרחבה והשרת האחורי)."
+msgstr "הצגת מידע על איכות האות בחלון מידע מקודד (אם נתמך ע\"י ההרחבה והשרת האחורי)."
 
 msgctxt "#36230"
 msgid "How long Kodi will wait to change the channel if the channel isn't being received. Useful for over-the-air channels that occasionally lose signal strength."

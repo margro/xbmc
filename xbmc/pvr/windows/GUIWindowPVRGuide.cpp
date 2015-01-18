@@ -42,7 +42,6 @@ CGUIWindowPVRGuide::CGUIWindowPVRGuide(bool bRadio) :
   CGUIWindowPVRBase(bRadio, bRadio ? WINDOW_RADIO_GUIDE : WINDOW_TV_GUIDE, "MyPVRGuide.xml")
 {
   m_bUpdateRequired = false;
-  m_bShowHiddenChannels = false;
   m_cachedTimeline = new CFileItemList;
   m_cachedChannelGroup = CPVRChannelGroupPtr(new CPVRChannelGroup);
 }
@@ -79,7 +78,7 @@ void CGUIWindowPVRGuide::GetContextButtons(int itemNumber, CContextButtons &butt
     else
       buttons.Add(CONTEXT_BUTTON_STOP_RECORD, 19060);  /* delete timer */
   }
-  else if (pItem->GetEPGInfoTag()->EndAsLocalTime() > CDateTime::GetCurrentDateTime())
+  else if (pItem->HasEPGInfoTag() && pItem->GetEPGInfoTag()->EndAsLocalTime() > CDateTime::GetCurrentDateTime())
   {
     if (pItem->GetEPGInfoTag()->StartAsLocalTime() < CDateTime::GetCurrentDateTime())
       buttons.Add(CONTEXT_BUTTON_START_RECORD, 264);   /* record */
@@ -97,7 +96,8 @@ void CGUIWindowPVRGuide::GetContextButtons(int itemNumber, CContextButtons &butt
     buttons.Add(CONTEXT_BUTTON_END, 19064);             /* go to end */
   }
 
-  if (pItem->GetEPGInfoTag()->HasPVRChannel() &&
+  if (pItem->HasEPGInfoTag() &&
+      pItem->GetEPGInfoTag()->HasPVRChannel() &&
       g_PVRClients->HasMenuHooks(pItem->GetEPGInfoTag()->ChannelTag()->ClientID(), PVR_MENUHOOK_EPG))
     buttons.Add(CONTEXT_BUTTON_MENU_HOOKS, 19195);      /* PVR client specific action */
 
@@ -113,7 +113,7 @@ void CGUIWindowPVRGuide::UpdateSelectedItemPath()
     {
       CPVRChannel* channel = epgGridContainer->GetChannel(epgGridContainer->GetSelectedChannel());
       if (channel != NULL)
-        m_selectedItemPaths.at(m_bRadio) = channel->Path();
+        SetSelectedItemPath(m_bRadio, channel->Path());
     }
   }
   else
@@ -295,7 +295,7 @@ void CGUIWindowPVRGuide::UpdateViewNow()
   }
 
   m_viewControl.SetItems(*m_vecItems);
-  m_viewControl.SetSelectedItem(m_selectedItemPaths.at(m_bRadio));
+  m_viewControl.SetSelectedItem(GetSelectedItemPath(m_bRadio));
 }
 
 void CGUIWindowPVRGuide::UpdateViewNext()
@@ -316,7 +316,7 @@ void CGUIWindowPVRGuide::UpdateViewNext()
   }
 
   m_viewControl.SetItems(*m_vecItems);
-  m_viewControl.SetSelectedItem(m_selectedItemPaths.at(m_bRadio));
+  m_viewControl.SetSelectedItem(GetSelectedItemPath(m_bRadio));
 }
 
 void CGUIWindowPVRGuide::UpdateViewTimeline()
@@ -362,7 +362,7 @@ void CGUIWindowPVRGuide::UpdateViewTimeline()
   
   m_viewControl.SetItems(*m_vecItems);
 
-  epgGridContainer->SetChannel(m_selectedItemPaths.at(m_bRadio));
+  epgGridContainer->SetChannel(GetSelectedItemPath(m_bRadio));
 }
 
 bool CGUIWindowPVRGuide::Update(const std::string &strDirectory, bool updateFilterPath /* = true */)

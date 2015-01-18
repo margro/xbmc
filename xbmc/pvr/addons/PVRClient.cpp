@@ -132,6 +132,7 @@ void CPVRClient::ResetProperties(int iClientId /* = PVR_INVALID_CLIENT_ID */)
   m_strConnectionString   = DEFAULT_INFO_STRING_VALUE;
   m_strFriendlyName       = DEFAULT_INFO_STRING_VALUE;
   m_strBackendName        = DEFAULT_INFO_STRING_VALUE;
+  m_strBackendHostname.clear();
   m_bIsPlayingTV          = false;
   m_bIsPlayingRecording   = false;
   memset(&m_addonCapabilities, 0, sizeof(m_addonCapabilities));
@@ -270,7 +271,6 @@ void CPVRClient::WriteClientTimerInfo(const CPVRTimerInfoTag &xbmcTimer, PVR_TIM
 
   addonTimer.iClientIndex      = xbmcTimer.m_iClientIndex;
   addonTimer.state             = xbmcTimer.m_state;
-  addonTimer.iClientIndex      = xbmcTimer.m_iClientIndex;
   addonTimer.iClientChannelUid = xbmcTimer.m_iClientChannelUid;
   strncpy(addonTimer.strTitle, xbmcTimer.m_strTitle.c_str(), sizeof(addonTimer.strTitle) - 1);
   strncpy(addonTimer.strDirectory, xbmcTimer.m_strDirectory.c_str(), sizeof(addonTimer.strDirectory) - 1);
@@ -354,7 +354,7 @@ bool CPVRClient::CheckAPIVersion(void)
 
 bool CPVRClient::GetAddonProperties(void)
 {
-  std::string strBackendName, strConnectionString, strFriendlyName, strBackendVersion;
+  std::string strBackendName, strConnectionString, strFriendlyName, strBackendVersion, strBackendHostname;
   PVR_ADDON_CAPABILITIES addonCapabilities;
 
   /* get the capabilities */
@@ -385,12 +385,17 @@ bool CPVRClient::GetAddonProperties(void)
   try { strBackendVersion = m_pStruct->GetBackendVersion(); }
   catch (std::exception &e) { LogException(e, "GetBackendVersion()"); return false;  }
 
+  /* backend hostname */
+  try { strBackendHostname = m_pStruct->GetBackendHostname(); }
+  catch (std::exception &e) { LogException(e, "GetBackendHostname()"); return false; }
+
   /* update the members */
   m_strBackendName      = strBackendName;
   m_strConnectionString = strConnectionString;
   m_strFriendlyName     = strFriendlyName;
   m_strBackendVersion   = strBackendVersion;
   m_addonCapabilities   = addonCapabilities;
+  m_strBackendHostname  = strBackendHostname;
 
   return true;
 }
@@ -409,6 +414,11 @@ const std::string& CPVRClient::GetBackendName(void) const
 const std::string& CPVRClient::GetBackendVersion(void) const
 {
   return m_strBackendVersion;
+}
+
+const std::string& CPVRClient::GetBackendHostname(void) const
+{
+  return m_strBackendHostname;
 }
 
 const std::string& CPVRClient::GetConnectionString(void) const

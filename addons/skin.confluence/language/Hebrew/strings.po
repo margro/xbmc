@@ -26,7 +26,7 @@ msgstr "אפשרויות חשמל"
 
 msgctxt "#31004"
 msgid "Working..."
-msgstr "עובד..."
+msgstr "עסוק..."
 
 msgctxt "#31005"
 msgid "Hide Information"
@@ -42,7 +42,7 @@ msgstr "מסך מלא"
 
 msgctxt "#31009"
 msgid "Total Duration"
-msgstr "סה\"כ משך זמן"
+msgstr "אורך כולל"
 
 msgctxt "#31022"
 msgid "Music - Files"
@@ -182,7 +182,7 @@ msgstr "אפשרויות שונות"
 
 msgctxt "#31107"
 msgid "Hide Flagging read from video filenames [COLOR=grey3](Blu-ray, HD-DVD)[/COLOR]"
-msgstr "הסתר סימול \"נצפה\" משמות קבצי וידאו [COLOR=grey3](Blu-ray, HD-DVD)[/COLOR]"
+msgstr "הסתר סימון \"נצפה\" משמות קבצי וידאו [COLOR=grey3](Blu-ray, HD-DVD)[/COLOR]"
 
 msgctxt "#31108"
 msgid "Hide Main Menu Buttons"
@@ -318,7 +318,7 @@ msgstr "פרטי סרט"
 
 msgctxt "#31309"
 msgid "Memory Used:"
-msgstr "זכרון מנוצל:"
+msgstr "זכרון בשימוש:"
 
 msgctxt "#31310"
 msgid "Track Number"
@@ -334,7 +334,7 @@ msgstr "סקרייפר נוכחי"
 
 msgctxt "#31313"
 msgid "Choose a Scraper"
-msgstr "יש לבחור סקרייפר"
+msgstr "בחירת סקרייפר"
 
 msgctxt "#31314"
 msgid "Content Scanning Options"
@@ -426,11 +426,11 @@ msgstr "פעיל"
 
 msgctxt "#31390"
 msgid "Skin default"
-msgstr "ברירת מחדל המעטפת"
+msgstr "ברירת מחדל של המעטפת"
 
 msgctxt "#31391"
 msgid "Skin default with no Caps"
-msgstr "ברירת מחדל המעטפת ללא רישיות"
+msgstr "ברירת מחדל של המעטפת ללא רישיות"
 
 msgctxt "#31392"
 msgid "Arial based"
@@ -438,7 +438,7 @@ msgstr "מבוסס Arial"
 
 msgctxt "#31400"
 msgid "[B]CONFIGURE APPEARANCE SETTINGS[/B][CR][CR]Change the skin · Set language and region · Change file listing options[CR]Set up a screensaver"
-msgstr "[B]שינוי הגדרות מראה[/B][CR][CR]בחירה והגדרת מעטפת · בחירת שפה ואזור זמן · שינוי אפשרויות תצוגת קבצים[CR]הגדרת שומר מסך"
+msgstr "[B]שינוי הגדרות מראה[/B][CR][CR]החלפת מעטפת · בחירת שפה ואזור זמן · שינוי אפשרויות תצוגת קבצים[CR]הגדרת שומר מסך"
 
 msgctxt "#31401"
 msgid "[B]CONFIGURE VIDEO SETTINGS[/B][CR][CR]Manage your video library · Set video playback options · Change video listing options[CR]Set subtitle fonts"
@@ -490,15 +490,15 @@ msgstr "כניסה"
 
 msgctxt "#31421"
 msgid "Select your Kodi user Profile[CR]to login and continue"
-msgstr "יש לבחור פרופיל משתמש[CR]לשם כניסה ל־Kodi"
+msgstr "יש לבחור חשבון משתמש Kodi[CR]להתחברות והמשך"
 
 msgctxt "#31422"
 msgid "Show or hide the login screen at startup."
-msgstr "הצג או הסתר מסך התחברות בעת ההפעלה."
+msgstr "הצג או הסתר מסך כניסה בעת ההפעלה."
 
 msgctxt "#31423"
 msgid "Select the profile that will be used at startup when the login screen is disabled."
-msgstr "יש לבחור משתמש שיחובר כברירת מחדל בעת ההפעלה כאשר מסך הכניסה מנורטל."
+msgstr "יש לבחור משתמש שיחובר כברירת מחדל בעת ההפעלה כאשר מסך כניסה מנוטרל."
 
 msgctxt "#31501"
 msgid "Scheduled Time"
@@ -542,7 +542,7 @@ msgstr "תחזית ל־36 שעות"
 
 msgctxt "#31902"
 msgid "Hourly Forecast"
-msgstr "תחזית לשעה הקרובה"
+msgstr "תחזית לפי שעה"
 
 msgctxt "#31903"
 msgid "Weekend Forecast"
