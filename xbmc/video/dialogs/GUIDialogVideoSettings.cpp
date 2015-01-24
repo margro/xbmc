@@ -185,6 +185,13 @@ void CGUIDialogVideoSettings::Save()
   }
 }
 
+void CGUIDialogVideoSettings::SetupView()
+{
+  CGUIDialogSettingsManualBase::SetupView();
+
+  SetHeading(13395);
+}
+
 void CGUIDialogVideoSettings::InitializeSettings()
 {
   CGUIDialogSettingsManualBase::InitializeSettings();
@@ -268,7 +275,7 @@ void CGUIDialogVideoSettings::InitializeSettings()
   for (StaticIntegerSettingOptions::iterator it = entries.begin(); it != entries.end(); )
   {
     if (g_renderManager.Supports((EINTERLACEMETHOD)it->second))
-      it++;
+      ++it;
     else
       it = entries.erase(it);
   }
@@ -307,7 +314,7 @@ void CGUIDialogVideoSettings::InitializeSettings()
   for(StaticIntegerSettingOptions::iterator it = entries.begin(); it != entries.end(); )
   {
     if (g_renderManager.Supports((ESCALINGMETHOD)it->second))
-      it++;
+      ++it;
     else
       it = entries.erase(it);
   }

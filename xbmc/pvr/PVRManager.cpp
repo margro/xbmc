@@ -48,6 +48,7 @@
 #include "PVRManager.h"
 #include "PVRDatabase.h"
 #include "PVRGUIInfo.h"
+#include "PVRActionListener.h"
 #include "addons/PVRClients.h"
 #include "channels/PVRChannel.h"
 #include "channels/PVRChannelGroupsContainer.h"
@@ -215,7 +216,7 @@ void CPVRManager::OnSettingAction(const CSetting *setting)
   else if (settingId == "pvrclient.menuhook")
   {
     if (IsStarted())
-      Clients()->ProcessMenuHooks(-1, PVR_MENUHOOK_SETTING, NULL);
+      m_addons->ProcessMenuHooks(-1, PVR_MENUHOOK_SETTING, NULL);
   }
 }
 
@@ -235,8 +236,6 @@ bool CPVRManager::IsPVRWindowActive(void) const
       g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_OSD_CHANNELS) ||
       g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_GROUP_MANAGER) ||
       g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_GUIDE_INFO) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_OSD_CUTTER) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_OSD_DIRECTOR) ||
       g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_OSD_GUIDE) ||
       g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_GUIDE_SEARCH) ||
       g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_RECORDING_INFO) ||
@@ -355,6 +354,9 @@ void CPVRManager::Cleanup(void)
   for (unsigned int iJobPtr = 0; iJobPtr < m_pendingUpdates.size(); iJobPtr++)
     delete m_pendingUpdates.at(iJobPtr);
   m_pendingUpdates.clear();
+  
+  /* unregister application action listener */
+  g_application.UnregisterActionListener(&CPVRActionListener::Get());
 
   HideProgressDialog();
 
@@ -419,6 +421,9 @@ void CPVRManager::Start(bool bAsync /* = false */, int openWindowId /* = 0 */)
   if (!m_database)
     m_database = new CPVRDatabase;
   m_database->Open();
+  
+  /* register application action listener */
+  g_application.RegisterActionListener(&CPVRActionListener::Get());
 
   /* create the supervisor thread to do all background activities */
   StartUpdateThreads();
@@ -861,19 +866,6 @@ void CPVRManager::ResetPlayingTag(void)
     m_guiInfo->ResetPlayingTag();
 }
 
-int CPVRManager::GetPreviousChannel(void)
-{
-  CPVRChannelPtr currentChannel;
-  if (GetCurrentChannel(currentChannel))
-  {
-    CPVRChannelGroupPtr selectedGroup = GetPlayingGroup(currentChannel->IsRadio());
-    CFileItemPtr channel = selectedGroup->GetLastPlayedChannel(currentChannel->ChannelID());
-    if (channel && channel->HasPVRChannelInfoTag())
-      return channel->GetPVRChannelInfoTag()->ChannelNumber();
-  }
-  return -1;
-}
-
 bool CPVRManager::ToggleRecordingOnChannel(unsigned int iChannelId)
 {
   bool bReturn = false;
@@ -942,7 +934,6 @@ bool CPVRManager::CheckParentalLock(const CPVRChannel &channel)
 bool CPVRManager::IsParentalLocked(const CPVRChannel &channel)
 {
   bool bReturn(false);
-  CSingleLock lock(m_managerStateMutex);
   if (!IsStarted())
     return bReturn;
   CPVRChannelPtr currentChannel(new CPVRChannel(false));
@@ -1566,42 +1557,6 @@ void CPVRManager::ExecutePendingJobs(void)
   m_triggerEvent.Reset();
 }
 
-bool CPVRManager::OnAction(const CAction &action)
-{
-  // process PVR specific play actions
-  if (action.GetID() == ACTION_PVR_PLAY || action.GetID() == ACTION_PVR_PLAY_TV || action.GetID() == ACTION_PVR_PLAY_RADIO)
-  {
-    // pvr not active yet, show error message
-    if (!IsStarted())
-    {
-      CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(19045), g_localizeStrings.Get(19044));
-    }
-    else
-    {
-      // see if we're already playing a PVR stream and if not or the stream type
-      // doesn't match the demanded type, start playback of according type
-      bool isPlayingPvr(IsPlaying() && g_application.CurrentFileItem().HasPVRChannelInfoTag());
-      switch (action.GetID())
-      {
-        case ACTION_PVR_PLAY:
-          if (!isPlayingPvr)
-            StartPlayback(PlaybackTypeAny);
-          break;
-        case ACTION_PVR_PLAY_TV:
-          if (!isPlayingPvr || g_application.CurrentFileItem().GetPVRChannelInfoTag()->IsRadio())
-            StartPlayback(PlaybackTypeTv);
-          break;
-        case ACTION_PVR_PLAY_RADIO:
-          if (!isPlayingPvr || !g_application.CurrentFileItem().GetPVRChannelInfoTag()->IsRadio())
-            StartPlayback(PlaybackTypeRadio);
-          break;
-      }
-    }
-    return true;
-  }
-  return false;
-}
-
 bool CPVRChannelSwitchJob::DoWork(void)
 {
   // announce OnStop and delete m_previous when done
@@ -1654,12 +1609,10 @@ void CPVRManager::UpdateLastWatched(CPVRChannel &channel)
   // NOTE: method could be called with a fileitem copy as argument so we need to obtain the right channel instance
   CPVRChannelPtr channelPtr = m_channelGroups->GetChannelById(channel.ChannelID());
   channelPtr->SetLastWatched(tNow);
-  channelPtr->Persist();
 
   // update last watched timestamp for group
   CPVRChannelGroupPtr group = GetPlayingGroup(channel.IsRadio());
   group->SetLastWatched(tNow);
-  group->Persist();
 
   /* update last played group */
   m_channelGroups->SetLastPlayedGroup(group);

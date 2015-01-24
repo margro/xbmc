@@ -179,6 +179,9 @@
 		3802709A13D5A653009493DD /* SystemClock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3802709813D5A653009493DD /* SystemClock.cpp */; };
 		384718D81325BA04000486D6 /* XBDateTime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 384718D61325BA04000486D6 /* XBDateTime.cpp */; };
 		38F4E57013CCCB3B00664821 /* Implementation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 38F4E56C13CCCB3B00664821 /* Implementation.cpp */; };
+		42DAC16E1A6E789E0066B4C8 /* PVRActionListener.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42DAC16C1A6E789E0066B4C8 /* PVRActionListener.cpp */; };
+		42DAC16F1A6E789E0066B4C8 /* PVRActionListener.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42DAC16C1A6E789E0066B4C8 /* PVRActionListener.cpp */; };
+		42DAC1701A6E789E0066B4C8 /* PVRActionListener.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 42DAC16C1A6E789E0066B4C8 /* PVRActionListener.cpp */; };
 		431AE5DA109C1A63007428C3 /* OverlayRendererUtil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 431AE5D7109C1A63007428C3 /* OverlayRendererUtil.cpp */; };
 		432D7CE412D86DA500CE4C49 /* NetworkLinux.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 432D7CE312D86DA500CE4C49 /* NetworkLinux.cpp */; };
 		432D7CF712D870E800CE4C49 /* TCPServer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 432D7CF612D870E800CE4C49 /* TCPServer.cpp */; };
@@ -1134,8 +1137,6 @@
 		C84828C7156CFCD8005A996F /* PVRChannelGroupsContainer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482882156CFCD8005A996F /* PVRChannelGroupsContainer.cpp */; };
 		C84828C8156CFCD8005A996F /* GUIDialogPVRChannelManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482885156CFCD8005A996F /* GUIDialogPVRChannelManager.cpp */; };
 		C84828C9156CFCD8005A996F /* GUIDialogPVRChannelsOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482887156CFCD8005A996F /* GUIDialogPVRChannelsOSD.cpp */; };
-		C84828CA156CFCD8005A996F /* GUIDialogPVRCutterOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482889156CFCD8005A996F /* GUIDialogPVRCutterOSD.cpp */; };
-		C84828CB156CFCD8005A996F /* GUIDialogPVRDirectorOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288B156CFCD8005A996F /* GUIDialogPVRDirectorOSD.cpp */; };
 		C84828CC156CFCD8005A996F /* GUIDialogPVRGroupManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288D156CFCD8005A996F /* GUIDialogPVRGroupManager.cpp */; };
 		C84828CD156CFCD8005A996F /* GUIDialogPVRGuideInfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288F156CFCD8005A996F /* GUIDialogPVRGuideInfo.cpp */; };
 		C84828CE156CFCD8005A996F /* GUIDialogPVRGuideOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482891156CFCD8005A996F /* GUIDialogPVRGuideOSD.cpp */; };
@@ -2025,8 +2026,6 @@
 		DFF0F37717528350002DA3A4 /* PVRChannelGroupsContainer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482882156CFCD8005A996F /* PVRChannelGroupsContainer.cpp */; };
 		DFF0F37817528350002DA3A4 /* GUIDialogPVRChannelManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482885156CFCD8005A996F /* GUIDialogPVRChannelManager.cpp */; };
 		DFF0F37917528350002DA3A4 /* GUIDialogPVRChannelsOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482887156CFCD8005A996F /* GUIDialogPVRChannelsOSD.cpp */; };
-		DFF0F37A17528350002DA3A4 /* GUIDialogPVRCutterOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482889156CFCD8005A996F /* GUIDialogPVRCutterOSD.cpp */; };
-		DFF0F37B17528350002DA3A4 /* GUIDialogPVRDirectorOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288B156CFCD8005A996F /* GUIDialogPVRDirectorOSD.cpp */; };
 		DFF0F37C17528350002DA3A4 /* GUIDialogPVRGroupManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288D156CFCD8005A996F /* GUIDialogPVRGroupManager.cpp */; };
 		DFF0F37D17528350002DA3A4 /* GUIDialogPVRGuideInfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288F156CFCD8005A996F /* GUIDialogPVRGuideInfo.cpp */; };
 		DFF0F37E17528350002DA3A4 /* GUIDialogPVRGuideOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482891156CFCD8005A996F /* GUIDialogPVRGuideOSD.cpp */; };
@@ -3279,8 +3278,6 @@
 		E49913F8174E5FB000741B6D /* PVRChannelGroupsContainer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482882156CFCD8005A996F /* PVRChannelGroupsContainer.cpp */; };
 		E49913F9174E5FB000741B6D /* GUIDialogPVRChannelManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482885156CFCD8005A996F /* GUIDialogPVRChannelManager.cpp */; };
 		E49913FA174E5FB000741B6D /* GUIDialogPVRChannelsOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482887156CFCD8005A996F /* GUIDialogPVRChannelsOSD.cpp */; };
-		E49913FB174E5FB000741B6D /* GUIDialogPVRCutterOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482889156CFCD8005A996F /* GUIDialogPVRCutterOSD.cpp */; };
-		E49913FC174E5FB000741B6D /* GUIDialogPVRDirectorOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288B156CFCD8005A996F /* GUIDialogPVRDirectorOSD.cpp */; };
 		E49913FD174E5FB000741B6D /* GUIDialogPVRGroupManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288D156CFCD8005A996F /* GUIDialogPVRGroupManager.cpp */; };
 		E49913FE174E5FB000741B6D /* GUIDialogPVRGuideInfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C848288F156CFCD8005A996F /* GUIDialogPVRGuideInfo.cpp */; };
 		E49913FF174E5FB000741B6D /* GUIDialogPVRGuideOSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C8482891156CFCD8005A996F /* GUIDialogPVRGuideOSD.cpp */; };
@@ -4059,6 +4056,9 @@
 		38F4E56C13CCCB3B00664821 /* Implementation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Implementation.cpp; sourceTree = "<group>"; };
 		38F4E56D13CCCB3B00664821 /* README.platform */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.platform; sourceTree = "<group>"; };
 		38F4E56E13CCCB3B00664821 /* ThreadLocal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadLocal.h; sourceTree = "<group>"; };
+		42DAC16B1A6E780C0066B4C8 /* IActionListener.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IActionListener.h; sourceTree = "<group>"; };
+		42DAC16C1A6E789E0066B4C8 /* PVRActionListener.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PVRActionListener.cpp; sourceTree = "<group>"; };
+		42DAC16D1A6E789E0066B4C8 /* PVRActionListener.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PVRActionListener.h; sourceTree = "<group>"; };
 		430C881312D64A730098821A /* IPowerSyscall.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IPowerSyscall.h; sourceTree = "<group>"; };
 		431376FF12D6455C00680C15 /* GUIDialogCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIDialogCache.h; sourceTree = "<group>"; };
 		431AE5D7109C1A63007428C3 /* OverlayRendererUtil.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OverlayRendererUtil.cpp; sourceTree = "<group>"; };
@@ -4694,10 +4694,6 @@
 		C8482886156CFCD8005A996F /* GUIDialogPVRChannelManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIDialogPVRChannelManager.h; sourceTree = "<group>"; };
 		C8482887156CFCD8005A996F /* GUIDialogPVRChannelsOSD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIDialogPVRChannelsOSD.cpp; sourceTree = "<group>"; };
 		C8482888156CFCD8005A996F /* GUIDialogPVRChannelsOSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIDialogPVRChannelsOSD.h; sourceTree = "<group>"; };
-		C8482889156CFCD8005A996F /* GUIDialogPVRCutterOSD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIDialogPVRCutterOSD.cpp; sourceTree = "<group>"; };
-		C848288A156CFCD8005A996F /* GUIDialogPVRCutterOSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIDialogPVRCutterOSD.h; sourceTree = "<group>"; };
-		C848288B156CFCD8005A996F /* GUIDialogPVRDirectorOSD.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIDialogPVRDirectorOSD.cpp; sourceTree = "<group>"; };
-		C848288C156CFCD8005A996F /* GUIDialogPVRDirectorOSD.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIDialogPVRDirectorOSD.h; sourceTree = "<group>"; };
 		C848288D156CFCD8005A996F /* GUIDialogPVRGroupManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIDialogPVRGroupManager.cpp; sourceTree = "<group>"; };
 		C848288E156CFCD8005A996F /* GUIDialogPVRGroupManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GUIDialogPVRGroupManager.h; sourceTree = "<group>"; };
 		C848288F156CFCD8005A996F /* GUIDialogPVRGuideInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GUIDialogPVRGuideInfo.cpp; sourceTree = "<group>"; };
@@ -7136,6 +7132,7 @@
 		4367217312D6640E002508E6 /* interfaces */ = {
 			isa = PBXGroup;
 			children = (
+				42DAC16B1A6E780C0066B4C8 /* IActionListener.h */,
 				DF40BC21178B4C07009DB567 /* generic */,
 				7C89674213C03B21003631FE /* info */,
 				F5AE407F13415D9E0004BD79 /* json-rpc */,
@@ -7991,6 +7988,8 @@
 		C8482871156CFCD8005A996F /* pvr */ = {
 			isa = PBXGroup;
 			children = (
+				42DAC16C1A6E789E0066B4C8 /* PVRActionListener.cpp */,
+				42DAC16D1A6E789E0066B4C8 /* PVRActionListener.h */,
 				C8482872156CFCD8005A996F /* addons */,
 				C8482878156CFCD8005A996F /* channels */,
 				C8482884156CFCD8005A996F /* dialogs */,
@@ -8042,10 +8041,6 @@
 				C8482886156CFCD8005A996F /* GUIDialogPVRChannelManager.h */,
 				C8482887156CFCD8005A996F /* GUIDialogPVRChannelsOSD.cpp */,
 				C8482888156CFCD8005A996F /* GUIDialogPVRChannelsOSD.h */,
-				C8482889156CFCD8005A996F /* GUIDialogPVRCutterOSD.cpp */,
-				C848288A156CFCD8005A996F /* GUIDialogPVRCutterOSD.h */,
-				C848288B156CFCD8005A996F /* GUIDialogPVRDirectorOSD.cpp */,
-				C848288C156CFCD8005A996F /* GUIDialogPVRDirectorOSD.h */,
 				C848288D156CFCD8005A996F /* GUIDialogPVRGroupManager.cpp */,
 				C848288E156CFCD8005A996F /* GUIDialogPVRGroupManager.h */,
 				C848288F156CFCD8005A996F /* GUIDialogPVRGuideInfo.cpp */,
@@ -11424,8 +11419,6 @@
 				C84828C7156CFCD8005A996F /* PVRChannelGroupsContainer.cpp in Sources */,
 				C84828C8156CFCD8005A996F /* GUIDialogPVRChannelManager.cpp in Sources */,
 				C84828C9156CFCD8005A996F /* GUIDialogPVRChannelsOSD.cpp in Sources */,
-				C84828CA156CFCD8005A996F /* GUIDialogPVRCutterOSD.cpp in Sources */,
-				C84828CB156CFCD8005A996F /* GUIDialogPVRDirectorOSD.cpp in Sources */,
 				C84828CC156CFCD8005A996F /* GUIDialogPVRGroupManager.cpp in Sources */,
 				C84828CD156CFCD8005A996F /* GUIDialogPVRGuideInfo.cpp in Sources */,
 				C84828CE156CFCD8005A996F /* GUIDialogPVRGuideOSD.cpp in Sources */,
@@ -11887,6 +11880,7 @@
 				7CCDACC119275D790074CF51 /* NptAppleAutoreleasePool.mm in Sources */,
 				7CCDACCA19275D790074CF51 /* NptAppleLogConfig.mm in Sources */,
 				7CAA469019427AED00008885 /* PosixDirectory.cpp in Sources */,
+				42DAC16E1A6E789E0066B4C8 /* PVRActionListener.cpp in Sources */,
 				DF033D381946612400BFC82E /* AEDeviceEnumerationOSX.cpp in Sources */,
 				7C525DF5195E2D8100BE3482 /* SaveFileStateJob.cpp in Sources */,
 				7C908894196358A8003D0619 /* auto_buffer.cpp in Sources */,
@@ -11977,6 +11971,7 @@
 				DFF0F14417528350002DA3A4 /* AEPackIEC61937.cpp in Sources */,
 				DFF0F14617528350002DA3A4 /* AEStreamInfo.cpp in Sources */,
 				DFF0F14717528350002DA3A4 /* AEUtil.cpp in Sources */,
+				42DAC1701A6E789E0066B4C8 /* PVRActionListener.cpp in Sources */,
 				DFF0F14917528350002DA3A4 /* AEFactory.cpp in Sources */,
 				DFF0F14A17528350002DA3A4 /* EmuFileWrapper.cpp in Sources */,
 				DFF0F14B17528350002DA3A4 /* emu_dummy.cpp in Sources */,
@@ -12529,8 +12524,6 @@
 				DFF0F37717528350002DA3A4 /* PVRChannelGroupsContainer.cpp in Sources */,
 				DFF0F37817528350002DA3A4 /* GUIDialogPVRChannelManager.cpp in Sources */,
 				DFF0F37917528350002DA3A4 /* GUIDialogPVRChannelsOSD.cpp in Sources */,
-				DFF0F37A17528350002DA3A4 /* GUIDialogPVRCutterOSD.cpp in Sources */,
-				DFF0F37B17528350002DA3A4 /* GUIDialogPVRDirectorOSD.cpp in Sources */,
 				DFF0F37C17528350002DA3A4 /* GUIDialogPVRGroupManager.cpp in Sources */,
 				DFF0F37D17528350002DA3A4 /* GUIDialogPVRGuideInfo.cpp in Sources */,
 				DFF0F37E17528350002DA3A4 /* GUIDialogPVRGuideOSD.cpp in Sources */,
@@ -13731,8 +13724,6 @@
 				E49913F8174E5FB000741B6D /* PVRChannelGroupsContainer.cpp in Sources */,
 				E49913F9174E5FB000741B6D /* GUIDialogPVRChannelManager.cpp in Sources */,
 				E49913FA174E5FB000741B6D /* GUIDialogPVRChannelsOSD.cpp in Sources */,
-				E49913FB174E5FB000741B6D /* GUIDialogPVRCutterOSD.cpp in Sources */,
-				E49913FC174E5FB000741B6D /* GUIDialogPVRDirectorOSD.cpp in Sources */,
 				E49913FD174E5FB000741B6D /* GUIDialogPVRGroupManager.cpp in Sources */,
 				E49913FE174E5FB000741B6D /* GUIDialogPVRGuideInfo.cpp in Sources */,
 				E49913FF174E5FB000741B6D /* GUIDialogPVRGuideOSD.cpp in Sources */,
@@ -13835,6 +13826,7 @@
 				E499146F174E605900741B6D /* ScraperUrl.cpp in Sources */,
 				E4991470174E605900741B6D /* Screenshot.cpp in Sources */,
 				E4991471174E605900741B6D /* SeekHandler.cpp in Sources */,
+				42DAC16F1A6E789E0066B4C8 /* PVRActionListener.cpp in Sources */,
 				E4991472174E605900741B6D /* SortUtils.cpp in Sources */,
 				E4991473174E605900741B6D /* Splash.cpp in Sources */,
 				E4991474174E605900741B6D /* Stopwatch.cpp in Sources */,

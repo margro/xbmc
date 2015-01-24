@@ -1,6 +1,7 @@
 #pragma once
+
 /*
- *      Copyright (C) 2012-2013 Team XBMC
+ *      Copyright (C) 2005-2015 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,14 +20,19 @@
  *
  */
 
-#include "guilib/GUIDialog.h"
+#include "interfaces/IActionListener.h"
 
-namespace PVR
+class CPVRActionListener : public IActionListener
 {
-  class CGUIDialogPVRCutterOSD : public CGUIDialog
-  {
-  public:
-    CGUIDialogPVRCutterOSD(void);
-    virtual ~CGUIDialogPVRCutterOSD(void);
-  };
-}
+public:
+  
+  static CPVRActionListener &Get();
+  
+  bool OnAction(const CAction &action);
+  
+private:
+  CPVRActionListener();
+  CPVRActionListener(const CPVRActionListener&);
+  CPVRActionListener& operator=(const CPVRActionListener&);
+  ~CPVRActionListener() {};
+};
