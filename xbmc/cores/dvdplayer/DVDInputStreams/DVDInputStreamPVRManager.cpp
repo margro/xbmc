@@ -91,8 +91,8 @@ bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& con
     m_pRecordable = NULL;
     return false;
   }
-  CStdString pathFile = strFile;
-  CStdString streamUrl = CPVRFile::TranslatePVRFilename(pathFile);
+  std::string pathFile = strFile;
+  std::string streamUrl = CPVRFile::TranslatePVRFilename(pathFile);
   if (!CDVDInputStream::Open(streamUrl.c_str(), content)) return false;
   m_eof = false;
 
