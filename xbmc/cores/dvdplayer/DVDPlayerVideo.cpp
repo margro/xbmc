@@ -811,7 +811,7 @@ int CDVDPlayerVideo::GetLevel() const
     int datasize = m_messageQueue.GetDataSize();
     if (m_pVideoCodec)
       datasize += m_pVideoCodec->GetDataSize();
-    return min(100, (int)(100 * datasize / (m_messageQueue.GetMaxDataSize() * m_messageQueue.GetMaxTimeSize())));
+    return min(100, MathUtils::round_int((100.0 * datasize) / m_messageQueue.GetMaxDataSize()));
   }
   else
   {
@@ -985,13 +985,17 @@ int CDVDPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
   double render_framerate = g_graphicsContext.GetFPS();
   if (CSettings::Get().GetInt("videoplayer.adjustrefreshrate") == ADJUST_REFRESHRATE_OFF)
     render_framerate = config_framerate;
+  bool changerefresh = !m_bFpsInvalid &&
+                       (m_output.framerate == 0.0 || fmod(m_output.framerate, config_framerate) != 0.0) &&
+                       (render_framerate != config_framerate);
+
   /* check so that our format or aspect has changed. if it has, reconfigure renderer */
   if (!g_renderManager.IsConfigured()
    || ( m_output.width           != pPicture->iWidth )
    || ( m_output.height          != pPicture->iHeight )
    || ( m_output.dwidth          != pPicture->iDisplayWidth )
    || ( m_output.dheight         != pPicture->iDisplayHeight )
-   || (!m_bFpsInvalid && fmod(m_output.framerate, config_framerate) != 0.0 && render_framerate != config_framerate)
+   || changerefresh
    || ( m_output.color_format    != (unsigned int)pPicture->format )
    || ( m_output.extended_format != pPicture->extended_format )
    || ( m_output.color_matrix    != pPicture->color_matrix    && pPicture->color_matrix    != 0 ) // don't reconfigure on unspecified
@@ -1159,9 +1163,12 @@ int CDVDPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
       mDisplayField = FS_BOT;
   }
 
-  int buffer = g_renderManager.WaitForBuffer(m_bStop, std::max(DVD_TIME_TO_MSEC(iSleepTime) + 500, 1));
+  int buffer = g_renderManager.WaitForBuffer(m_bStop, std::max(DVD_TIME_TO_MSEC(iSleepTime) + 500, 50));
   if (buffer < 0)
+  {
+    m_droppingStats.AddOutputDropGain(pts, 1/m_fFrameRate);
     return EOS_DROPPED;
+  }
 
   ProcessOverlays(pPicture, pts);
 
@@ -1176,7 +1183,10 @@ int CDVDPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
   }
 
   if (index < 0)
+  {
+    m_droppingStats.AddOutputDropGain(pts, 1/m_fFrameRate);
     return EOS_DROPPED;
+  }
 
   g_renderManager.FlipPage(CThread::m_bStop, (iCurrentClock + iSleepTime) / DVD_TIME_BASE, pts, -1, mDisplayField);
 

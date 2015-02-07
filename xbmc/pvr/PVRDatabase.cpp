@@ -74,11 +74,6 @@ void CPVRDatabase::CreateTables()
 
         // TODO use mapping table
         "iClientId            integer, "
-        "iClientChannelNumber integer, "
-        "iClientSubChannelNumber integer, "
-        "sInputFormat         varchar(32), "
-        "sStreamURL           varchar(255), "
-        "iEncryptionSystem    integer, "
 
         "idEpg                integer"
       ")"
@@ -238,7 +233,7 @@ int CPVRDatabase::Get(CPVRChannelGroupInternal &results)
 
   std::string strQuery = PrepareSQL("SELECT channels.idChannel, channels.iUniqueId, channels.bIsRadio, channels.bIsHidden, channels.bIsUserSetIcon, channels.bIsUserSetName, "
       "channels.sIconPath, channels.sChannelName, channels.bIsVirtual, channels.bEPGEnabled, channels.sEPGScraper, channels.iLastWatched, channels.iClientId, channels.bIsLocked, "
-      "channels.iClientChannelNumber, channels.iClientSubChannelNumber, channels.sInputFormat, channels.sInputFormat, channels.sStreamURL, channels.iEncryptionSystem, map_channelgroups_channels.iChannelNumber, channels.idEpg "
+      "map_channelgroups_channels.iChannelNumber, channels.idEpg "
       "FROM map_channelgroups_channels "
       "LEFT JOIN channels ON channels.idChannel = map_channelgroups_channels.idChannel "
       "WHERE map_channelgroups_channels.idGroup = %u", results.IsRadio() ? PVR_INTERNAL_GROUP_ID_RADIO : PVR_INTERNAL_GROUP_ID_TV);
@@ -260,16 +255,10 @@ int CPVRDatabase::Get(CPVRChannelGroupInternal &results)
         channel->m_bIsLocked               = m_pDS->fv("bIsLocked").get_asBool();
         channel->m_strIconPath             = m_pDS->fv("sIconPath").get_asString();
         channel->m_strChannelName          = m_pDS->fv("sChannelName").get_asString();
-        channel->m_bIsVirtual              = m_pDS->fv("bIsVirtual").get_asBool();
         channel->m_bEPGEnabled             = m_pDS->fv("bEPGEnabled").get_asBool();
         channel->m_strEPGScraper           = m_pDS->fv("sEPGScraper").get_asString();
         channel->m_iLastWatched            = (time_t) m_pDS->fv("iLastWatched").get_asInt();
         channel->m_iClientId               = m_pDS->fv("iClientId").get_asInt();
-        channel->m_iClientChannelNumber.channel    = m_pDS->fv("iClientChannelNumber").get_asInt();
-        channel->m_iClientChannelNumber.subchannel = m_pDS->fv("iClientSubChannelNumber").get_asInt();
-        channel->m_strInputFormat          = m_pDS->fv("sInputFormat").get_asString();
-        channel->m_strStreamURL            = m_pDS->fv("sStreamURL").get_asString();
-        channel->m_iClientEncryptionSystem = m_pDS->fv("iEncryptionSystem").get_asInt();
         if (bIgnoreEpgDB)
           channel->m_iEpgId                = -1;
         else
@@ -741,11 +730,10 @@ bool CPVRDatabase::Persist(CPVRChannel &channel)
     strQuery = PrepareSQL("INSERT INTO channels ("
         "iUniqueId, bIsRadio, bIsHidden, bIsUserSetIcon, bIsUserSetName, bIsLocked, "
         "sIconPath, sChannelName, bIsVirtual, bEPGEnabled, sEPGScraper, iLastWatched, iClientId, "
-        "iClientChannelNumber, iClientSubChannelNumber, sInputFormat, sStreamURL, iEncryptionSystem, idEpg) "
-        "VALUES (%i, %i, %i, %i, %i, %i, '%s', '%s', %i, %i, '%s', %u, %i, %i, %i, '%s', '%s', %i, %i)",
+        "idEpg) "
+        "VALUES (%i, %i, %i, %i, %i, %i, '%s', '%s', %i, %i, '%s', %u, %i, %i)",
         channel.UniqueID(), (channel.IsRadio() ? 1 :0), (channel.IsHidden() ? 1 : 0), (channel.IsUserSetIcon() ? 1 : 0), (channel.IsUserSetName() ? 1 : 0), (channel.IsLocked() ? 1 : 0),
-        channel.IconPath().c_str(), channel.ChannelName().c_str(), (channel.IsVirtual() ? 1 : 0), (channel.EPGEnabled() ? 1 : 0), channel.EPGScraper().c_str(), channel.LastWatched(), channel.ClientID(),
-        channel.ClientChannelNumber(), channel.ClientSubChannelNumber(), channel.InputFormat().c_str(), channel.StreamURL().c_str(), channel.EncryptionSystem(),
+        channel.IconPath().c_str(), channel.ChannelName().c_str(), 0, (channel.EPGEnabled() ? 1 : 0), channel.EPGScraper().c_str(), channel.LastWatched(), channel.ClientID(),
         channel.EpgID());
   }
   else
@@ -754,11 +742,11 @@ bool CPVRDatabase::Persist(CPVRChannel &channel)
     strQuery = PrepareSQL("REPLACE INTO channels ("
         "iUniqueId, bIsRadio, bIsHidden, bIsUserSetIcon, bIsUserSetName, bIsLocked, "
         "sIconPath, sChannelName, bIsVirtual, bEPGEnabled, sEPGScraper, iLastWatched, iClientId, "
-        "iClientChannelNumber, iClientSubChannelNumber, sInputFormat, sStreamURL, iEncryptionSystem, idChannel, idEpg) "
-        "VALUES (%i, %i, %i, %i, %i, %i, '%s', '%s', %i, %i, '%s', %u, %i, %i, %i, '%s', '%s', %i, %i, %i)",
+        "idChannel, idEpg) "
+        "VALUES (%i, %i, %i, %i, %i, %i, '%s', '%s', %i, %i, '%s', %u, %i, %i, %i)",
         channel.UniqueID(), (channel.IsRadio() ? 1 :0), (channel.IsHidden() ? 1 : 0), (channel.IsUserSetIcon() ? 1 : 0), (channel.IsUserSetName() ? 1 : 0), (channel.IsLocked() ? 1 : 0),
-        channel.IconPath().c_str(), channel.ChannelName().c_str(), (channel.IsVirtual() ? 1 : 0), (channel.EPGEnabled() ? 1 : 0), channel.EPGScraper().c_str(), channel.LastWatched(), channel.ClientID(),
-        channel.ClientChannelNumber(), channel.ClientSubChannelNumber(), channel.InputFormat().c_str(), channel.StreamURL().c_str(), channel.EncryptionSystem(), channel.ChannelID(),
+        channel.IconPath().c_str(), channel.ChannelName().c_str(), 0, (channel.EPGEnabled() ? 1 : 0), channel.EPGScraper().c_str(), channel.LastWatched(), channel.ClientID(),
+        channel.ChannelID(),
         channel.EpgID());
   }
 

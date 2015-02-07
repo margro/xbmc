@@ -142,7 +142,7 @@ void CPVRClient::ResetProperties(int iClientId /* = PVR_INVALID_CLIENT_ID */)
 ADDON_STATUS CPVRClient::Create(int iClientId)
 {
   ADDON_STATUS status(ADDON_STATUS_UNKNOWN);
-  if (iClientId <= PVR_INVALID_CLIENT_ID || iClientId == PVR_VIRTUAL_CLIENT_ID)
+  if (iClientId <= PVR_INVALID_CLIENT_ID)
     return status;
 
   /* ensure that a previous instance is destroyed */
@@ -268,6 +268,7 @@ void CPVRClient::WriteClientTimerInfo(const CPVRTimerInfoTag &xbmcTimer, PVR_TIM
 
   memset(&addonTimer, 0, sizeof(addonTimer));
 
+  addonTimer.iClientIndex      = xbmcTimer.m_iClientIndex;
   addonTimer.state             = xbmcTimer.m_state;
   addonTimer.iClientChannelUid = xbmcTimer.m_iClientChannelUid;
   strncpy(addonTimer.strTitle, xbmcTimer.m_strTitle.c_str(), sizeof(addonTimer.strTitle) - 1);
@@ -1364,15 +1365,13 @@ bool CPVRClient::GetPlayingChannel(CPVRChannelPtr &channel) const
   return false;
 }
 
-bool CPVRClient::GetPlayingRecording(CPVRRecording &recording) const
+CPVRRecordingPtr CPVRClient::GetPlayingRecording(void) const
 {
   CSingleLock lock(m_critSection);
   if (m_bReadyToUse && m_bIsPlayingRecording)
-  {
-    recording = m_playingRecording;
-    return true;
-  }
-  return false;
+    return m_playingRecording;
+
+  return CPVRRecordingPtr();
 }
 
 bool CPVRClient::OpenStream(const CPVRChannel &channel, bool bIsSwitchingChannel)
@@ -1425,7 +1424,7 @@ bool CPVRClient::OpenStream(const CPVRChannel &channel, bool bIsSwitchingChannel
   return bReturn;
 }
 
-bool CPVRClient::OpenStream(const CPVRRecording &recording)
+bool CPVRClient::OpenStream(const CPVRRecordingPtr &recording)
 {
   bool bReturn(false);
   CloseStream();
@@ -1433,7 +1432,7 @@ bool CPVRClient::OpenStream(const CPVRRecording &recording)
   if (m_bReadyToUse && m_addonCapabilities.bSupportsRecordings)
   {
     PVR_RECORDING tag;
-    WriteClientRecordingInfo(recording, tag);
+    WriteClientRecordingInfo(*recording, tag);
 
     try
     {

@@ -25,7 +25,7 @@ endif()
 get_filename_component(APP_ROOT "${APP_ROOT}" ABSOLUTE)
 
 if(NOT BUILD_DIR)
-    set(BUILD_DIR "${CMAKE_BINARY_DIR}/build")
+  set(BUILD_DIR "${CMAKE_BINARY_DIR}/build")
 else()
   file(TO_CMAKE_PATH "${BUILD_DIR}" BUILD_DIR)
 endif()
@@ -36,6 +36,7 @@ if(NOT DEPENDS_PATH)
 else()
   file(TO_CMAKE_PATH "${DEPENDS_PATH}" DEPENDS_PATH)
 endif()
+get_filename_component(DEPENDS_PATH "${DEPENDS_PATH}" ABSOLUTE)
 
 # make sure CMAKE_PREFIX_PATH is set
 if(NOT CMAKE_PREFIX_PATH)
@@ -43,6 +44,12 @@ if(NOT CMAKE_PREFIX_PATH)
 else()
   file(TO_CMAKE_PATH "${CMAKE_PREFIX_PATH}" CMAKE_PREFIX_PATH)
   list(APPEND CMAKE_PREFIX_PATH "${DEPENDS_PATH}")
+endif()
+
+# check for autoconf stuff to pass on
+if(AUTOCONF_FILES)
+  separate_arguments(AUTOCONF_FILES)
+  set(CROSS_AUTOCONF "yes")
 endif()
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR NOT CMAKE_INSTALL_PREFIX)
@@ -77,17 +84,23 @@ else()
   separate_arguments(ADDONS_TO_BUILD)
 endif()
 
-if(NOT WIN32)
-  # copy the prepare-env.cmake script to the depends path so that we can include it
-  file(COPY ${APP_ROOT}/project/cmake/scripts/common/prepare-env.cmake DESTINATION ${DEPENDS_PATH}/lib/kodi)
-
-  # add the location of prepare-env.cmake to CMAKE_MODULE_PATH so that it is found
-  list(APPEND CMAKE_MODULE_PATH ${DEPENDS_PATH}/lib/kodi)
-
-  # include prepare-env.cmake which contains the logic to install the addon header bindings etc
-  include(prepare-env)
+if(NOT KODI_LIB_DIR)
+  set(KODI_LIB_DIR "${DEPENDS_PATH}/lib/kodi")
+else()
+  file(TO_CMAKE_PATH "${KODI_LIB_DIR}" KODI_LIB_DIR)
 endif()
 
+### prepare the build environment for the binary addons
+# copy the prepare-env.cmake script to the depends path so that we can include it
+file(COPY ${APP_ROOT}/project/cmake/scripts/common/prepare-env.cmake DESTINATION ${KODI_LIB_DIR})
+
+# add the location of prepare-env.cmake to CMAKE_MODULE_PATH so that it is found
+list(APPEND CMAKE_MODULE_PATH ${KODI_LIB_DIR})
+
+# include prepare-env.cmake which contains the logic to install the addon header bindings etc
+include(prepare-env)
+
+### add the depends subdirectory for any general dependencies
 add_subdirectory(depends)
 
 ### get and build all the binary addons
@@ -200,11 +213,6 @@ foreach(id ${downloaded_addons})
                       SOURCE_DIR ${BUILD_DIR}/${id}
                       INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
                       CMAKE_ARGS ${BUILD_ARGS})
-
-  # on win32 we need to add the "kodi" dependency to every addon
-  if (WIN32)
-    add_dependencies(${id} kodi)
-  endif()
 
   set(${id}_DEPENDS_DIR ${BUILD_DIR}/${id}/depends)
 

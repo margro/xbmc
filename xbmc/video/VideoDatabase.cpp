@@ -2014,6 +2014,38 @@ std::string CVideoDatabase::GetValueString(const CVideoInfoTag &details, int min
 }
 
 //********************************************************************************************************************************
+int CVideoDatabase::SetDetailsForItem(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork)
+{
+  return SetDetailsForItem(details.m_iDbId, details.m_type, details, artwork);
+}
+
+int CVideoDatabase::SetDetailsForItem(int id, const MediaType& mediaType, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork)
+{
+  if (mediaType == MediaTypeNone)
+    return -1;
+
+  if (mediaType == MediaTypeMovie)
+    return SetDetailsForMovie(details.GetPath(), details, artwork, id);
+  else if (mediaType == MediaTypeVideoCollection)
+    return SetDetailsForMovieSet(details, artwork, id);
+  else if (mediaType == MediaTypeTvShow)
+  {
+    map<int, map<string, string> > seasonArtwork;
+    if (!UpdateDetailsForTvShow(id, details, artwork, seasonArtwork))
+      return -1;
+
+    return id;
+  }
+  else if (mediaType == MediaTypeSeason)
+    return SetDetailsForSeason(details, artwork, details.m_iIdShow, id);
+  else if (mediaType == MediaTypeEpisode)
+    return SetDetailsForEpisode(details.GetPath(), details, artwork, details.m_iIdShow, id);
+  else if (mediaType == MediaTypeMusicVideo)
+    return SetDetailsForMusicVideo(details.GetPath(), details, artwork, id);
+
+  return -1;
+}
+
 int CVideoDatabase::SetDetailsForMovie(const std::string& strFilenameAndPath, const CVideoInfoTag& details, const map<string, string> &artwork, int idMovie /* = -1 */)
 {
   try
@@ -4727,10 +4759,9 @@ bool CVideoDatabase::GetPlayCounts(const std::string &strPath, CFileItemList &it
   return false;
 }
 
-int CVideoDatabase::GetPlayCount(const CFileItem &item)
+int CVideoDatabase::GetPlayCount(int iFileId)
 {
-  int id = GetFileId(item);
-  if (id < 0)
+  if (iFileId < 0)
     return 0;  // not in db, so not watched
 
   try
@@ -4739,7 +4770,7 @@ int CVideoDatabase::GetPlayCount(const CFileItem &item)
     if (NULL == m_pDB.get()) return -1;
     if (NULL == m_pDS.get()) return -1;
 
-    std::string strSQL = PrepareSQL("select playCount from files WHERE idFile=%i", id);
+    std::string strSQL = PrepareSQL("select playCount from files WHERE idFile=%i", iFileId);
     int count = 0;
     if (m_pDS->query(strSQL.c_str()))
     {
@@ -4755,6 +4786,16 @@ int CVideoDatabase::GetPlayCount(const CFileItem &item)
     CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
   }
   return -1;
+}
+
+int CVideoDatabase::GetPlayCount(const std::string& strFilenameAndPath)
+{
+  return GetPlayCount(GetFileId(strFilenameAndPath));
+}
+
+int CVideoDatabase::GetPlayCount(const CFileItem &item)
+{
+  return GetPlayCount(GetFileId(item));
 }
 
 void CVideoDatabase::UpdateFanart(const CFileItem &item, VIDEODB_CONTENT_TYPE type)

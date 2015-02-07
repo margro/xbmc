@@ -288,14 +288,13 @@ namespace PVR
      * @param tag The recording to start playing.
      * @return True if the stream was opened successfully, false otherwise.
      */
-    bool OpenStream(const CPVRRecording &tag);
+    bool OpenStream(const CPVRRecordingPtr &tag);
 
     /*!
      * @brief Get the recordings that is currently playing.
-     * @param recording A copy of the recording that is currently playing.
-     * @return True if a recording is playing, false otherwise.
+     * @return The recording that is currently playing, NULL otherwise.
      */
-    bool GetPlayingRecording(CPVRRecording &recording) const;
+    CPVRRecordingPtr GetPlayingRecording(void) const;
 
     //@}
 
@@ -546,11 +545,7 @@ namespace PVR
 
     bool GetPlayingClient(PVR_CLIENT &client) const;
 
-    /*!
-     * @brief Checks whether all local pvr backends (if any) are idle (no recording active, ...).
-     * @return True if all local backends are idle or no local backends are connected, false otherwise.
-     */
-    bool AllLocalBackendsIdle() const;
+    std::string GetBackendHostnameByClientId(int iClientId) const;
 
     time_t GetPlayingTime() const;
     time_t GetBufferTimeStart() const;
@@ -620,8 +615,6 @@ namespace PVR
     int RegisterClient(ADDON::AddonPtr client, bool* newRegistration = NULL);
 
     int GetClientId(const ADDON::AddonPtr client) const;
-
-    static bool NextEventWithinBackendIdleTime(const CPVRTimers& timers);
 
     bool                  m_bChannelScanRunning;      /*!< true when a channel scan is currently running, false otherwise */
     bool                  m_bIsSwitchingChannels;        /*!< true while switching channels */

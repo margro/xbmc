@@ -1040,7 +1040,9 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         if (prop.name == player_times[i].str)
           return AddMultiInfo(GUIInfo(player_times[i].val, TranslateTimeFormat(prop.param())));
       }
-      if (prop.name == "property")
+      if (prop.name == "content" && prop.num_params())
+        return AddMultiInfo(GUIInfo(MUSICPLAYER_CONTENT, ConditionalStringParameter(prop.param()), 0));
+      else if (prop.name == "property")
       {
         // properties are stored case sensitive in m_listItemProperties, but lookup is insensitive in CGUIListItem::GetProperty
         if (StringUtils::EqualsNoCase(prop.param(), "fanart_image"))
@@ -2988,6 +2990,14 @@ bool CGUIInfoManager::GetMultiInfoBool(const GUIInfo &info, int contextWindow, c
                 bReturn = true;
             }
           }
+          break;
+        }
+      case MUSICPLAYER_CONTENT:
+        {
+          std::string strContent = "files";
+          if (m_currentFile->HasPVRChannelInfoTag())
+            strContent = "livetv";
+          bReturn = StringUtils::EqualsNoCase(m_stringParameters[info.GetData1()], strContent);
           break;
         }
       case VIDEOPLAYER_CONTENT:
@@ -5672,7 +5682,7 @@ std::string CGUIInfoManager::GetSkinVariableString(int info,
 
 bool CGUIInfoManager::ConditionsChangedValues(const std::map<INFO::InfoPtr, bool>& map)
 {
-  for (std::map<INFO::InfoPtr, bool>::const_iterator it = map.begin() ; it != map.end() ; it++)
+  for (std::map<INFO::InfoPtr, bool>::const_iterator it = map.begin() ; it != map.end() ; ++it)
   {
     if (it->first->Get() != it->second)
       return true;

@@ -408,6 +408,13 @@ public:
    */
   int GetPlayCount(const CFileItem &item);
 
+  /*! \brief Get the playcount of a filename and path
+   \param strFilenameAndPath filename and path to get the playcount for
+   \return the playcount of the item, or -1 on error
+   \sa SetPlayCount, IncrementPlayCount, GetPlayCounts
+   */
+  int GetPlayCount(const std::string& strFilenameAndPath);
+
   /*! \brief Update the last played time of an item
    Updates the last played date
    \param item CFileItem to update the last played time for
@@ -458,6 +465,9 @@ public:
   int GetSeasonId(int idShow, int season);
 
   void GetEpisodesByFile(const std::string& strFilenameAndPath, std::vector<CVideoInfoTag>& episodes);
+
+  int SetDetailsForItem(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork);
+  int SetDetailsForItem(int id, const MediaType& mediaType, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork);
 
   int SetDetailsForMovie(const std::string& strFilenameAndPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idMovie = -1);
   int SetDetailsForMovieSet(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idSet = -1);
@@ -864,6 +874,13 @@ private:
    \param shows whether this path is from a tvshow (defaults to false)
    */
   bool LookupByFolders(const std::string &path, bool shows = false);
+
+  /*! \brief Get the playcount for a file id
+   \param iFileId file id to get the playcount for
+   \return the playcount of the item, or -1 on error
+   \sa SetPlayCount, IncrementPlayCount, GetPlayCounts
+   */
+  int GetPlayCount(int iFileId);
 
   virtual int GetMinSchemaVersion() const { return 60; };
   virtual int GetSchemaVersion() const;
