@@ -37,7 +37,7 @@ namespace ADDON
 {
   class CSkinInfo;
   class IAddon;
-  typedef boost::shared_ptr<IAddon> AddonPtr;
+  typedef std::shared_ptr<IAddon> AddonPtr;
 }
 
 namespace MEDIA_DETECT
@@ -368,12 +368,6 @@ public:
 
   float GetDimScreenSaverLevel() const;
 
-  /*! \brief Retrieve the applications seek handler.
-   \return a constant pointer to the seek handler.
-   \sa CSeekHandler
-   */
-  const CSeekHandler *GetSeekHandler() const { return m_seekHandler; };
-
   bool SwitchToFullScreen();
 
   CSplash* GetSplash() { return m_splash; }
@@ -408,7 +402,7 @@ protected:
   virtual bool OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode);
 
   bool LoadSkin(const std::string& skinID);
-  bool LoadSkin(const boost::shared_ptr<ADDON::CSkinInfo>& skin);
+  bool LoadSkin(const std::shared_ptr<ADDON::CSkinInfo>& skin);
   
   /*!
    \brief Delegates the action to all registered action handlers.
@@ -502,7 +496,6 @@ protected:
   bool InitDirectoriesWin32();
   void CreateUserDirs();
 
-  CSeekHandler *m_seekHandler;
   CPlayerController *m_playerController;
   CInertialScrollingHandler *m_pInertialScrollingHandler;
   CNetwork    *m_network;

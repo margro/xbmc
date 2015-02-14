@@ -7,6 +7,7 @@ AC_CONFIG_HEADERS([xbmc/config.h])
 AH_TOP([#pragma once])
 m4_include([m4/ax_prog_cc_for_build.m4])
 m4_include([m4/ax_prog_cxx_for_build.m4])
+m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
 m4_include([m4/ax_python_devel.m4])
 m4_include([m4/xbmc_arch.m4])
 
@@ -579,6 +580,7 @@ PASSED_CXXFLAGS=$CXXFLAGS # Hack to override autoconf default values
 AC_PROG_CXX
 AX_PROG_CXX_FOR_BUILD
 CXXFLAGS="$PASSED_CXXFLAGS $DEFAULT_COMPILE_FLAGS"
+AX_CXX_COMPILE_STDCXX_11(,[optional])
 AC_PROG_LIBTOOL
 AC_PROG_AWK
 AC_PROG_LN_S
@@ -928,7 +930,7 @@ AC_CHECK_HEADER([sys/inotify.h], AC_DEFINE([HAVE_INOTIFY],[1],[Define if we have
 
 # Checks for boost headers using CXX instead of CC
 AC_LANG_PUSH([C++])
-AC_CHECK_HEADER([boost/shared_ptr.hpp],, AC_MSG_ERROR($missing_library))
+AC_CHECK_HEADER([boost/circular_buffer.hpp],, AC_MSG_ERROR($missing_library))
 AC_LANG_POP([C++])
 
 # Python
@@ -1117,9 +1119,21 @@ if test "$use_mysql" = "yes"; then
 fi
 AC_CHECK_LIB([bluetooth],   [hci_devid],, AC_MSG_RESULT([Could not find suitable version of libbluetooth]))
 
+AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([TINYXML], [tinyxml >= 2.6.2],
   [INCLUDES="$INCLUDES $TINYXML_CFLAGS"; LIBS="$LIBS $TINYXML_LIBS"],
-  AC_MSG_ERROR("libtinyxml >= 2.6.2 not found"))
+  [AC_RUN_IFELSE(
+   [AC_LANG_SOURCE([[
+#include <stdlib.h>
+#include <tinyxml.h>
+
+int main() {
+  if (TIXML_MAJOR_VERSION < 2) exit(1);
+  if (TIXML_MAJOR_VERSION == 2 && ( TIXML_MINOR_VERSION < 6 || ( TIXML_MINOR_VERSION == 6 && TIXML_PATCH_VERSION < 2 ))) exit(1);
+}
+    ]])],[AC_CHECK_LIB([tinyxml], [main],, AC_MSG_ERROR("tinyxml >= 2.6.2 not found"))], [AC_MSG_ERROR([tinyxml >= 2.6.2 not found])]
+  )])
+AC_LANG_POP([C++])
 
 PKG_CHECK_MODULES([YAJL], [yajl >= 2],
   [INCLUDES="$INCLUDES $YAJL_CFLAGS"; LIBS="$LIBS $YAJL_LIBS"; YAJL_FOUND="true"],
@@ -2840,6 +2854,7 @@ XB_CONFIG_MODULE([lib/gtest], [
     CC="$CC" \
     CXX="$CXX" \
     CFLAGS="$CFLAGS" \
+    CXXFLAGS="$CXXFLAGS" \
     --prefix="${prefix}" --includedir="${includedir}" --libdir="${libdir}" --datadir="${datadir}" \
     --host=$host_alias \
     --build=$build_alias \
