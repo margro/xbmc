@@ -38,6 +38,11 @@ else()
 endif()
 get_filename_component(DEPENDS_PATH "${DEPENDS_PATH}" ABSOLUTE)
 
+if(NOT PLATFORM_DIR)
+  set(PLATFORM_DIR ${APP_ROOT}/project/cmake/platform/${CORE_SYSTEM_NAME})
+  file(TO_CMAKE_PATH "${PLATFORM_DIR}" PLATFORM_DIR)
+endif()
+
 # make sure CMAKE_PREFIX_PATH is set
 if(NOT CMAKE_PREFIX_PATH)
   set(CMAKE_PREFIX_PATH "${DEPENDS_PATH}")
@@ -60,9 +65,10 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX})
 set(BUILD_ARGS -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
                -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
                -DPACKAGE_CONFIG_PATH=${DEPENDS_PATH}/lib/pkgconfig
-               -DCMAKE_BUILD_TYPE=Release
+               -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                -DCMAKE_USER_MAKE_RULES_OVERRIDE=${CMAKE_USER_MAKE_RULES_OVERRIDE}
                -DCMAKE_USER_MAKE_RULES_OVERRIDE_CXX=${CMAKE_USER_MAKE_RULES_OVERRIDE_CXX}
+               -DCORE_SYSTEM_NAME=${CORE_SYSTEM_NAME}
                -DBUILD_SHARED_LIBS=1)
 
 if(PACKAGE_ZIP)
@@ -90,6 +96,18 @@ else()
   file(TO_CMAKE_PATH "${KODI_LIB_DIR}" KODI_LIB_DIR)
 endif()
 
+# check for platform specific stuff
+if(EXISTS ${PLATFORM_DIR}/defines.txt)
+  file(STRINGS ${PLATFORM_DIR}/defines.txt platformdefines)
+
+  if(NOT ARCH_DEFINES AND platformdefines)
+    set(ARCH_DEFINES ${platformdefines})
+  endif()
+endif()
+
+# include check_target_platform() function
+include(${APP_ROOT}/project/cmake/scripts/common/check_target_platform.cmake)
+
 ### prepare the build environment for the binary addons
 # copy the prepare-env.cmake script to the depends path so that we can include it
 file(COPY ${APP_ROOT}/project/cmake/scripts/common/prepare-env.cmake DESTINATION ${KODI_LIB_DIR})
@@ -115,37 +133,10 @@ foreach(addon ${addons})
     list(FIND ADDONS_TO_BUILD ${id} idx)
     if(idx GREATER -1 OR ADDONS_TO_BUILD STREQUAL "all")
       get_filename_component(dir ${addon} PATH)
-      set(platform_found FALSE)
 
       # check if the addon has a platforms.txt
-      if(EXISTS ${dir}/platforms.txt)
-        # get all the specified platforms
-        file(STRINGS ${dir}/platforms.txt platforms)
-        separate_arguments(platforms)
-
-        # check if the addon should be built for the current platform
-        foreach(platform ${platforms})
-          if(${platform} STREQUAL "all" OR ${platform} STREQUAL ${CORE_SYSTEM_NAME})
-            set(platform_found TRUE)
-          else()
-            # check if the platform is defined as "!<platform>"
-            string(SUBSTRING ${platform} 0 1 platform_first)
-            if(${platform_first} STREQUAL "!")
-              # extract the platform
-              string(LENGTH ${platform} platform_length)
-              MATH(EXPR platform_length "${platform_length} - 1")
-              string(SUBSTRING ${platform} 1 ${platform_length} platform)
-
-              # check if the current platform does not match the extracted platform
-              if (NOT ${platform} STREQUAL ${CORE_SYSTEM_NAME})
-                set(platform_found TRUE)
-              endif()
-            endif()
-          endif()
-        endforeach()
-      else()
-        set(platform_found TRUE)
-      endif()
+      set(platform_found FALSE)
+      check_target_platform(${dir} ${CORE_SYSTEM_NAME} platform_found)
 
       if (${platform_found})
         # make sure the output directory is clean

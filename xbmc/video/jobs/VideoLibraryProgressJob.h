@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2014 Team XBMC
+ *      Copyright (C) 2014 Team XBMC
  *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,23 +19,22 @@
  *
  */
 
-#if defined(TARGET_DARWIN)
-#include "VideoSync.h"
-#include "guilib/DispResource.h"
+#include "utils/ProgressJob.h"
+#include "video/jobs/VideoLibraryJob.h"
 
-class CVideoSyncCocoa : public CVideoSync, IDispResource
+/*!
+ \brief Combined base implementation of a video library job with a progress bar.
+ */
+class CVideoLibraryProgressJob : public CProgressJob, public CVideoLibraryJob
 {
 public:
-  virtual bool Setup(PUPDATECLOCK func);
-  virtual void Run(volatile bool& stop);
-  virtual void Cleanup();
-  virtual float GetFps();
-  void VblankHandler(int64_t nowtime, double fps);
-  virtual void OnResetDevice();
-private:
-  void UpdateFPS(double fps);
-  int64_t m_LastVBlankTime;  //timestamp of the last vblank, used for calculating how many vblanks happened
-  volatile bool m_abort;
-};
+  virtual ~CVideoLibraryProgressJob();
 
-#endif
+  // implementation of CJob
+  virtual bool DoWork();
+  virtual const char *GetType() const { return "CVideoLibraryProgressJob"; }
+  virtual bool operator==(const CJob* job) const { return false; }
+
+protected:
+  CVideoLibraryProgressJob(CGUIDialogProgressBarHandle* progressBar);
+};

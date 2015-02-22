@@ -238,6 +238,9 @@ set WORKSPACE=%CD%\..\..
     ECHO ------------------------------------------------------------
     ECHO Building addons...
     cd ..\..\tools\buildsteps\win32
+    IF %buildmode%==clean (
+      call make-addons.bat clean
+    )
     call make-addons.bat
     IF %errorlevel%==1 (
       set DIETEXT="failed to build addons"

@@ -2,9 +2,9 @@ include ../../Makefile.include
 #DEPS= ../../Makefile.include Makefile
 
 LIBNAME=xbmc-pvr-addons
-# VERSION=b2dc035404e14f137033876d14ad92ae3bde5f27
-VERSION=development
-GIT_DIR=$(TARBALLS_LOCATION)/$(LIBNAME).git
+# VERSION=2fb0fc22668b1efdec05e66161d6c419844ee9cd
+VERISON=development
+GIT_DIR=$(PREFIX)/gitrepos/$(LIBNAME).git
 # BASE_URL=git://github.com/opdenkamp/$(LIBNAME).git
 BASE_URL=git://github.com/margro/$(LIBNAME).git
 DYLIB=$(PLATFORM)/addons/pvr.demo/.libs/libpvrdemo-addon.so
@@ -25,7 +25,8 @@ CONFIGURE=./configure --prefix=$(PREFIX) --libdir=$(PREFIX)/lib/$(APP_NAME)/addo
 all: .installed-$(PLATFORM)
 
 $(GIT_DIR)/HEAD:
-	cd $(TARBALLS_LOCATION); git clone --bare $(BASE_URL)
+	mkdir -p $(PREFIX)/gitrepos/
+	cd $(PREFIX)/gitrepos/; git clone --bare $(BASE_URL)
 
 $(GIT_DIR)/current/$(VERSION): $(GIT_DIR)/HEAD $(DEPS)
 	git rev-list -1 $(VERSION) >/dev/null || git fetch origin "+refs/heads/*:refs/remotes/origin/*"
