@@ -50,7 +50,7 @@ CEpg::CEpg(int iEpgID, const std::string &strName /* = "" */, const std::string 
 {
 }
 
-CEpg::CEpg(CPVRChannelPtr channel, bool bLoadedFromDb /* = false */) :
+CEpg::CEpg(const CPVRChannelPtr &channel, bool bLoadedFromDb /* = false */) :
     m_bChanged(!bLoadedFromDb),
     m_bTagsChanged(false),
     m_bLoaded(false),
@@ -226,7 +226,7 @@ CEpgInfoTagPtr CEpg::GetTagNext() const
     /* return the first event that is in the future */
     for (map<CDateTime, CEpgInfoTagPtr>::const_iterator it = m_tags.begin(); it != m_tags.end(); ++it)
     {
-      if (it->second->InTheFuture())
+      if (it->second->IsUpcoming())
         return it->second;
     }
   }
@@ -302,9 +302,8 @@ void CEpg::AddEntry(const CEpgInfoTag &tag)
   {
     newTag->Update(tag);
     newTag->SetPVRChannel(m_pvrChannel);
-    newTag->m_epg          = this;
+    newTag->SetEpg(this);
     UpdateRecording(newTag);
-    newTag->m_bChanged     = false;
   }
 }
 
@@ -328,7 +327,7 @@ bool CEpg::UpdateEntry(const CEpgInfoTag &tag, bool bUpdateDatabase /* = false *
   }
 
   infoTag->Update(tag, bNewTag);
-  infoTag->m_epg          = this;
+  infoTag->SetEpg(this);
   infoTag->SetPVRChannel(m_pvrChannel);
   UpdateRecording(infoTag);
 
@@ -480,8 +479,8 @@ bool CEpg::Update(const time_t start, const time_t end, int iUpdateTime, bool bF
 
   if (bGrabSuccess)
   {
-    CPVRChannelPtr channel;
-    if (g_PVRManager.GetCurrentChannel(channel) &&
+    CPVRChannelPtr channel(g_PVRManager.GetCurrentChannel());
+    if (channel &&
         channel->EpgID() == m_iEpgID)
       g_PVRManager.ResetPlayingTag();
     m_bLoaded = true;
@@ -670,7 +669,7 @@ bool CEpg::UpdateFromScraper(time_t start, time_t end)
     else
     {
       CLog::Log(LOGDEBUG, "EPG - %s - updating EPG for channel '%s' from client '%i'", __FUNCTION__, channel->ChannelName().c_str(), channel->ClientID());
-      bGrabSuccess = (g_PVRClients->GetEPGForChannel(*channel, this, start, end) == PVR_ERROR_NO_ERROR);
+      bGrabSuccess = (g_PVRClients->GetEPGForChannel(channel, this, start, end) == PVR_ERROR_NO_ERROR);
     }
   }
   else if (m_strScraperName.empty()) /* no grabber defined */
@@ -824,7 +823,7 @@ int CEpg::SubChannelNumber(void) const
   return m_pvrChannel ? m_pvrChannel->SubChannelNumber() : -1;
 }
 
-void CEpg::SetChannel(PVR::CPVRChannelPtr channel)
+void CEpg::SetChannel(const PVR::CPVRChannelPtr &channel)
 {
   CSingleLock lock(m_critSection);
   if (m_pvrChannel != channel)

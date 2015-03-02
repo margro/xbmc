@@ -20,6 +20,7 @@
 
 #include "GUIWindowPVRChannels.h"
 
+#include "ContextMenuManager.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogKaiToast.h"
@@ -73,7 +74,7 @@ void CGUIWindowPVRChannels::GetContextButtons(int itemNumber, CContextButtons &b
   if (itemNumber < 0 || itemNumber >= m_vecItems->Size())
     return;
   CFileItemPtr pItem = m_vecItems->Get(itemNumber);
-  CPVRChannel *channel = pItem->GetPVRChannelInfoTag();
+  CPVRChannelPtr channel(pItem->GetPVRChannelInfoTag());
 
   buttons.Add(CONTEXT_BUTTON_INFO, 19047);                                          /* channel info */
   buttons.Add(CONTEXT_BUTTON_FIND, 19003);                                          /* find similar program */
@@ -86,6 +87,8 @@ void CGUIWindowPVRChannels::GetContextButtons(int itemNumber, CContextButtons &b
   CGUIWindowPVRBase::GetContextButtons(itemNumber, buttons);
     
   buttons.Add(CONTEXT_BUTTON_EDIT, 16106);                                          /* "Manage" submenu */
+
+  CContextMenuManager::Get().AddVisibleItems(pItem, buttons);
 }
 
 std::string CGUIWindowPVRChannels::GetDirectoryPath(void)
@@ -328,7 +331,7 @@ bool CGUIWindowPVRChannels::OnContextButtonRecord(CFileItem *item, CONTEXT_BUTTO
   
   if (button == CONTEXT_BUTTON_RECORD_ITEM)
   {
-    CPVRChannel *channel = item->GetPVRChannelInfoTag();
+    CPVRChannelPtr channel(item->GetPVRChannelInfoTag());
 
     if (channel)
       return g_PVRManager.ToggleRecordingOnChannel(channel->ChannelID());
@@ -347,7 +350,8 @@ bool CGUIWindowPVRChannels::OnContextButtonUpdateEpg(CFileItem *item, CONTEXT_BU
     if (!pDialog)
       return bReturn;
 
-    CPVRChannel *channel = item->GetPVRChannelInfoTag();
+    CPVRChannelPtr channel(item->GetPVRChannelInfoTag());
+
     pDialog->SetHeading(19251);
     pDialog->SetLine(0, g_localizeStrings.Get(19252));
     pDialog->SetLine(1, channel->ChannelName());

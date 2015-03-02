@@ -59,6 +59,7 @@
 #include "video/VideoInfoScanner.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "pvr/recordings/PVRRecording.h"
+#include "ContextMenuManager.h"
 
 using namespace XFILE;
 using namespace VIDEODATABASEDIRECTORY;
@@ -945,6 +946,7 @@ void CGUIWindowVideoNav::GetContextButtons(int itemNumber, CContextButtons &butt
       if (item->IsPlugin() || item->IsScript() || m_vecItems->IsPlugin())
         buttons.Add(CONTEXT_BUTTON_PLUGIN_SETTINGS, 1045);
     }
+    CContextMenuManager::Get().AddVisibleItems(item, buttons);
   }
 }
 
@@ -1046,13 +1048,21 @@ bool CGUIWindowVideoNav::OnClick(int iItem)
   if (!item->m_bIsFolder && item->IsVideoDb() && !item->Exists())
   {
     CLog::Log(LOGDEBUG, "%s called on '%s' but file doesn't exist", __FUNCTION__, item->GetPath().c_str());
-    if (!CGUIDialogVideoInfo::DeleteVideoItemFromDatabase(item, true))
-      return true;
+    if (CProfilesManager::Get().GetCurrentProfile().canWriteDatabases())
+    {
+      if (!CGUIDialogVideoInfo::DeleteVideoItemFromDatabase(item, true))
+        return true;
 
-    // update list
-    Refresh(true);
-    m_viewControl.SetSelectedItem(iItem);
-    return true;
+      // update list
+      Refresh(true);
+      m_viewControl.SetSelectedItem(iItem);
+      return true;
+    }
+    else
+    {
+      CGUIDialogOK::ShowAndGetInput(257, 0, 662, 0);
+      return true;
+    }	  
   }
   else if (StringUtils::StartsWithNoCase(item->GetPath(), "newtag://"))
   {

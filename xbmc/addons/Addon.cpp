@@ -80,6 +80,7 @@ static const TypeMapping types[] =
    {"xbmc.python.library",               ADDON_SCRIPT_LIBRARY,      24081, "DefaultAddonHelper.png" },
    {"xbmc.python.module",                ADDON_SCRIPT_MODULE,       24082, "DefaultAddonLibrary.png" },
    {"xbmc.subtitle.module",              ADDON_SUBTITLE_MODULE,     24012, "DefaultAddonSubtitles.png" },
+   {"kodi.context.item",                 ADDON_CONTEXT_ITEM,        24025, "DefaultAddonContextItem.png" },
    {"xbmc.gui.skin",                     ADDON_SKIN,                  166, "DefaultAddonSkin.png" },
    {"xbmc.webinterface",                 ADDON_WEB_INTERFACE,         199, "DefaultAddonWebSkin.png" },
    {"xbmc.addon.repository",             ADDON_REPOSITORY,          24011, "DefaultAddonRepository.png" },
@@ -155,7 +156,9 @@ AddonProps::AddonProps(const cp_extension_t *ext)
   fanart = URIUtils::AddFileToFolder(path, "fanart.jpg");
   changelog = URIUtils::AddFileToFolder(path, "changelog.txt");
   // Grab more detail from the props...
-  const cp_extension_t *metadata = CAddonMgr::Get().GetExtension(ext->plugin, "xbmc.addon.metadata");
+  const cp_extension_t *metadata = CAddonMgr::Get().GetExtension(ext->plugin, "xbmc.addon.metadata"); //<! backword compatibilty
+  if (!metadata)
+    metadata = CAddonMgr::Get().GetExtension(ext->plugin, "kodi.addon.metadata");
   if (metadata)
   {
     summary = CAddonMgr::Get().GetTranslatedString(metadata->configuration, "summary");
@@ -318,12 +321,6 @@ AddonPtr CAddon::Clone() const
 
 bool CAddon::MeetsVersion(const AddonVersion &version) const
 {
-  // if the addon is one of xbmc's extension point definitions (addonid starts with "xbmc.")
-  // and the minversion is "0.0.0" i.e. no <backwards-compatibility> tag has been specified
-  // we need to assume that the current version is not backwards-compatible and therefore check against the actual version
-  if (StringUtils::StartsWithNoCase(m_props.id, "xbmc.") && m_props.minversion.empty())
-    return m_props.version == version;
-
   return m_props.minversion <= version && version <= m_props.version;
 }
 
@@ -364,6 +361,7 @@ void CAddon::BuildLibName(const cp_extension_t *extension)
     case ADDON_SUBTITLE_MODULE:        
     case ADDON_PLUGIN:
     case ADDON_SERVICE:
+    case ADDON_CONTEXT_ITEM:
       ext = ADDON_PYTHON_EXT;
       break;
     default:
@@ -394,9 +392,11 @@ void CAddon::BuildLibName(const cp_extension_t *extension)
       case ADDON_SCRAPER_LIBRARY:
       case ADDON_PVRDLL:
       case ADDON_PLUGIN:
+      case ADDON_WEB_INTERFACE:
       case ADDON_SERVICE:
       case ADDON_REPOSITORY:
       case ADDON_AUDIOENCODER:
+      case ADDON_CONTEXT_ITEM:
         {
           std::string temp = CAddonMgr::Get().GetExtValue(extension->configuration, "@library");
           m_strLibName = temp;

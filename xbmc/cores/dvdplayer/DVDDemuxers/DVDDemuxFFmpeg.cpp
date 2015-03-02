@@ -1402,14 +1402,15 @@ int CDVDDemuxFFmpeg::GetChapter()
   return 0;
 }
 
-void CDVDDemuxFFmpeg::GetChapterName(std::string& strChapterName)
+void CDVDDemuxFFmpeg::GetChapterName(std::string& strChapterName, int chapterIdx)
 {
+  if (chapterIdx <= 0 || chapterIdx > GetChapterCount())
+    chapterIdx = GetChapter();
   CDVDInputStream::IChapter* ich = dynamic_cast<CDVDInputStream::IChapter*>(m_pInput);
   if(ich)  
-    ich->GetChapterName(strChapterName);
+    ich->GetChapterName(strChapterName, chapterIdx);
   else
   {
-    int chapterIdx = GetChapter();
     if(chapterIdx <= 0)
       return;
 
@@ -1418,6 +1419,20 @@ void CDVDDemuxFFmpeg::GetChapterName(std::string& strChapterName)
     if (titleTag)
       strChapterName = titleTag->value;
   }
+}
+
+int64_t CDVDDemuxFFmpeg::GetChapterPos(int chapterIdx)
+{
+  if (chapterIdx <= 0 || chapterIdx > GetChapterCount())
+    chapterIdx = GetChapter();
+  if(chapterIdx <= 0)
+    return 0;
+
+  CDVDInputStream::IChapter* ich = dynamic_cast<CDVDInputStream::IChapter*>(m_pInput);
+  if(ich)  
+    return ich->GetChapterPos(chapterIdx);
+
+  return m_pFormatContext->chapters[chapterIdx-1]->start*av_q2d(m_pFormatContext->chapters[chapterIdx-1]->time_base);
 }
 
 bool CDVDDemuxFFmpeg::SeekChapter(int chapter, double* startpts)
@@ -1433,7 +1448,9 @@ bool CDVDDemuxFFmpeg::SeekChapter(int chapter, double* startpts)
       return false;
 
     if(startpts)
-      *startpts = DVD_NOPTS_VALUE;
+    {
+      *startpts = DVD_SEC_TO_TIME(ich->GetChapterPos(chapter));
+    }
 
     Flush();
     return true;

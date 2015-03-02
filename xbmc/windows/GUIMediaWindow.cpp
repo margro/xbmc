@@ -72,6 +72,7 @@
 #endif
 #include "FileItemListModification.h"
 #include "video/VideoInfoTag.h"
+#include "ContextMenuManager.h"
 
 #define CONTROL_BTNVIEWASICONS       2
 #define CONTROL_BTNSORTBY            3
@@ -962,7 +963,7 @@ bool CGUIMediaWindow::OnClick(int iItem)
     if (CAddonMgr::Get().GetAddon(url.GetHostName(), addon, ADDON_SCRIPT))
     {
       if (!CScriptInvocationManager::Get().Stop(addon->LibPath()))
-        CScriptInvocationManager::Get().Execute(addon->LibPath(), addon);
+        CScriptInvocationManager::Get().ExecuteAsync(addon->LibPath(), addon);
       return true;
     }
   }
@@ -1648,6 +1649,8 @@ bool CGUIMediaWindow::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
   default:
     break;
   }
+  if (button >= CONTEXT_BUTTON_FIRST_ADDON)
+    return CContextMenuManager::Get().Execute(button, m_vecItems->Get(itemNumber));
   return false;
 }
 

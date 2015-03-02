@@ -46,10 +46,12 @@
 #include "settings/Settings.h"
 #include "guilib/Key.h"
 #include "guilib/LocalizeStrings.h"
+#include "ContextMenuManager.h"
 #include "GUIUserMessages.h"
 #include "TextureCache.h"
 #include "music/MusicDatabase.h"
 #include "URL.h"
+#include "video/VideoLibraryQueue.h"
 #include "video/VideoThumbLoader.h"
 #include "filesystem/Directory.h"
 #include "filesystem/VideoDatabaseDirectory.h"
@@ -1011,6 +1013,8 @@ int CGUIDialogVideoInfo::ManageVideoItem(const CFileItemPtr &item)
 
   buttons.Add(CONTEXT_BUTTON_DELETE, 646);
 
+  CContextMenuManager::Get().AddVisibleItems(item, buttons, CONTEXT_MENU_GROUP_MANAGE);
+
   bool result = false;
   int button = CGUIDialogContextMenu::ShowAndGetChoice(buttons);
   if (button >= 0)
@@ -1066,8 +1070,14 @@ int CGUIDialogVideoInfo::ManageVideoItem(const CFileItemPtr &item)
         result = RemoveItemsFromTag(item);
         break;
 
+      case CONTEXT_BUTTON_MARK_WATCHED:
+      case CONTEXT_BUTTON_MARK_UNWATCHED:
+        CVideoLibraryQueue::Get().MarkAsWatched(item, (button == (CONTEXT_BUTTON)CONTEXT_BUTTON_MARK_WATCHED));
+        result = true;
+        break;
+
       default:
-        result = false;
+        result = CContextMenuManager::Get().Execute(button, item);
         break;
     }
   }
@@ -1233,10 +1243,10 @@ bool CGUIDialogVideoInfo::DeleteVideoItem(const CFileItemPtr &item, bool unavail
     return false;
 
   // check if the user is allowed to delete the actual file as well
-  if ((CProfilesManager::Get().GetCurrentProfile().getLockMode() == LOCK_MODE_EVERYONE ||
+  if (CSettings::Get().GetBool("filelists.allowfiledeletion") &&
+      (CProfilesManager::Get().GetCurrentProfile().getLockMode() == LOCK_MODE_EVERYONE ||
        !CProfilesManager::Get().GetCurrentProfile().filesLocked() ||
-       g_passwordManager.IsMasterLockUnlocked(true)) &&
-      CSettings::Get().GetBool("filelists.allowfiledeletion"))
+       g_passwordManager.IsMasterLockUnlocked(true)))
   {
     std::string strDeletePath = item->GetVideoInfoTag()->GetPath();
 

@@ -194,7 +194,7 @@ public:
 
   /*! \brief callbacks for special install/uninstall behaviour */
   virtual bool OnPreInstall() { return false; };
-  virtual void OnPostInstall(bool restart, bool update) {};
+  virtual void OnPostInstall(bool restart, bool update, bool modal) {};
   virtual void OnPreUnInstall() {};
   virtual void OnPostUnInstall() {};
   virtual bool CanInstall(const std::string& referer) { return true; }
@@ -236,6 +236,7 @@ protected:
   bool              m_settingsLoaded;
   bool              m_userSettingsLoaded;
 
+  virtual void ClearStrings();
 private:
   friend class CAddonMgr;
   AddonProps m_props;
@@ -248,7 +249,7 @@ private:
   void Disable() { m_enabled = false; ClearStrings();}
 
   virtual bool LoadStrings();
-  virtual void ClearStrings();
+
   bool m_hasStrings;
   bool m_checkedStrings;
   bool m_hasSettings;

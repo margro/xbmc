@@ -131,11 +131,21 @@ int CApplicationPlayer::GetChapterCount()
     return 0;
 }
 
-void CApplicationPlayer::GetChapterName(std::string& strChapterName)
+void CApplicationPlayer::GetChapterName(std::string& strChapterName,
+                                        int chapterIdx)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
-    player->GetChapterName(strChapterName);
+    player->GetChapterName(strChapterName, chapterIdx);
+}
+
+int64_t CApplicationPlayer::GetChapterPos(int chapterIdx)
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+    return player->GetChapterPos(chapterIdx);
+
+  return -1;
 }
 
 bool CApplicationPlayer::HasAudio() const
@@ -544,7 +554,7 @@ void CApplicationPlayer::SetDynamicRangeCompression(long drc)
     player->SetDynamicRangeCompression(drc);
 }
 
-bool CApplicationPlayer::SwitchChannel(PVR::CPVRChannel &channel)
+bool CApplicationPlayer::SwitchChannel(const PVR::CPVRChannelPtr &channel)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   return (player && player->SwitchChannel(channel));

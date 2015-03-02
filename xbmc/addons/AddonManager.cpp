@@ -47,7 +47,9 @@
 #include "Repository.h"
 #include "Skin.h"
 #include "Service.h"
+#include "ContextItemAddon.h"
 #include "Util.h"
+#include "addons/Webinterface.h"
 
 using namespace std;
 using namespace XFILE;
@@ -86,8 +88,9 @@ AddonPtr CAddonMgr::Factory(const cp_extension_t *props)
     case ADDON_SCRIPT_LYRICS:
     case ADDON_SCRIPT_MODULE:
     case ADDON_SUBTITLE_MODULE:
-    case ADDON_WEB_INTERFACE:
       return AddonPtr(new CAddon(props));
+    case ADDON_WEB_INTERFACE:
+      return AddonPtr(new CWebinterface(props));
     case ADDON_SCRIPT_WEATHER:
       {
         // Eden (API v2.0) broke old weather add-ons
@@ -138,8 +141,6 @@ AddonPtr CAddonMgr::Factory(const cp_extension_t *props)
           tograb = "@library_android";
 #elif defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
           tograb = "@library_linux";
-#elif defined(TARGET_WINDOWS) && defined(HAS_SDL_OPENGL)
-          tograb = "@library_wingl";
 #elif defined(TARGET_WINDOWS) && defined(HAS_DX)
           tograb = "@library_windx";
 #elif defined(TARGET_DARWIN)
@@ -171,6 +172,8 @@ AddonPtr CAddonMgr::Factory(const cp_extension_t *props)
       return AddonPtr(new CAddonLibrary(props));
     case ADDON_REPOSITORY:
       return AddonPtr(new CRepository(props));
+    case ADDON_CONTEXT_ITEM:
+      return AddonPtr(new CContextItemAddon(props));
     default:
       break;
   }
@@ -624,6 +627,82 @@ bool CAddonMgr::IsAddonDisabled(const std::string& ID)
   return ret;
 }
 
+bool CAddonMgr::CanAddonBeDisabled(const std::string& ID)
+{
+  if (ID.empty())
+    return false;
+
+  CSingleLock lock(m_critSection);
+  // can't disable an already disabled addon
+  if (IsAddonDisabled(ID))
+    return false;
+
+  AddonPtr localAddon;
+  // can't disable an addon that isn't installed
+  if (!IsAddonInstalled(ID, localAddon))
+    return false;
+
+  // can't disable an addon that is in use
+  if (localAddon->IsInUse())
+    return false;
+
+  // installed PVR addons can always be disabled
+  if (localAddon->Type() == ADDON_PVRDLL)
+    return true;
+
+  std::string systemAddonsPath = CSpecialProtocol::TranslatePath("special://xbmc/addons");
+  // can't disable system addons
+  if (StringUtils::StartsWith(localAddon->Path(), systemAddonsPath))
+    return false;
+
+  return true;
+}
+
+bool CAddonMgr::IsAddonInstalled(const std::string& ID)
+{
+  AddonPtr tmp;
+  return IsAddonInstalled(ID, tmp);
+}
+
+bool CAddonMgr::IsAddonInstalled(const std::string& ID, AddonPtr& addon)
+{
+  return GetAddon(ID, addon);
+}
+
+bool CAddonMgr::CanAddonBeInstalled(const std::string& ID)
+{
+  if (ID.empty())
+    return false;
+
+  CSingleLock lock(m_critSection);
+  // can't install already installed addon
+  if (IsAddonInstalled(ID))
+    return false;
+
+  // can't install broken addons
+  if (!m_database.IsAddonBroken(ID).empty())
+    return false;
+
+  return true;
+}
+
+bool CAddonMgr::CanAddonBeInstalled(const AddonPtr& addon)
+{
+  if (addon == NULL)
+    return false;
+
+  CSingleLock lock(m_critSection);
+  // can't install already installed addon
+  if (IsAddonInstalled(addon->ID()))
+    return false;
+
+  // can't install broken addons
+  if (!addon->Props().broken.empty())
+    return false;
+
+  return true;
+}
+
 std::string CAddonMgr::GetTranslatedString(const cp_cfg_element_t *root, const char *tag)
 {
   if (!root)
@@ -636,7 +715,7 @@ std::string CAddonMgr::GetTranslatedString(const cp_cfg_element_t *root, const c
     if (strcmp(tag, child.name) == 0)
     { // see if we have a "lang" attribute
       const char *lang = m_cpluff->lookup_cfg_value((cp_cfg_element_t*)&child, "@lang");
-      if (lang && 0 == strcmp(lang,g_langInfo.GetLanguageLocale(true).c_str()))
+      if (lang && 0 == strcmp(lang,g_langInfo.GetLanguageLocale().c_str()))
         return child.value ? child.value : "";
       if (!lang || 0 == strcmp(lang, "en"))
         eng = &child;
@@ -657,8 +736,9 @@ AddonPtr CAddonMgr::AddonFromProps(AddonProps& addonProps)
     case ADDON_SCRIPT_WEATHER:
     case ADDON_SCRIPT_MODULE:
     case ADDON_SUBTITLE_MODULE:
-    case ADDON_WEB_INTERFACE:
       return AddonPtr(new CAddon(addonProps));
+    case ADDON_WEB_INTERFACE:
+      return AddonPtr(new CWebinterface(addonProps));
     case ADDON_SERVICE:
       return AddonPtr(new CService(addonProps));
     case ADDON_SCRAPER_ALBUMS:
@@ -684,6 +764,8 @@ AddonPtr CAddonMgr::AddonFromProps(AddonProps& addonProps)
       return AddonPtr(new CAudioEncoder(addonProps));
     case ADDON_REPOSITORY:
       return AddonPtr(new CRepository(addonProps));
+    case ADDON_CONTEXT_ITEM:
+      return AddonPtr(new CContextItemAddon(addonProps));
     default:
       break;
   }
@@ -698,7 +780,9 @@ bool CAddonMgr::PlatformSupportsAddon(const cp_plugin_info_t *plugin) const
 {
   if (!plugin || !plugin->num_extensions)
     return false;
-  const cp_extension_t *metadata = GetExtension(plugin, "xbmc.addon.metadata");
+  const cp_extension_t *metadata = GetExtension(plugin, "xbmc.addon.metadata"); //<! backword compatibilty
+  if (!metadata)
+    metadata = CAddonMgr::Get().GetExtension(plugin, "kodi.addon.metadata");
   if (!metadata)
     return false;
 
@@ -713,8 +797,6 @@ bool CAddonMgr::PlatformSupportsAddon(const cp_plugin_info_t *plugin) const
       if (*platform == "android")
 #elif defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
       if (*platform == "linux")
-#elif defined(TARGET_WINDOWS) && defined(HAS_SDL_OPENGL)
-      if (*platform == "wingl")
 #elif defined(TARGET_WINDOWS) && defined(HAS_DX)
       if (*platform == "windx")
 #elif defined(TARGET_DARWIN_OSX)
@@ -802,10 +884,11 @@ AddonPtr CAddonMgr::GetAddonFromDescriptor(const cp_plugin_info_t *info,
     return AddonPtr(new CAddon(info));
   }
 
-  // grab a relevant extension point, ignoring our xbmc.addon.metadata extension point
+  // grab a relevant extension point, ignoring our kodi.addon.metadata extension point
   for (unsigned int i = 0; i < info->num_extensions; ++i)
   {
-    if (0 != strcmp("xbmc.addon.metadata", info->extensions[i].ext_point_id) &&
+    if (0 != strcmp("xbmc.addon.metadata" , info->extensions[i].ext_point_id) && //<! backword compatibilty
+        0 != strcmp("kodi.addon.metadata" , info->extensions[i].ext_point_id) &&
         (type.empty() || 0 == strcmp(type.c_str(), info->extensions[i].ext_point_id)))
     { // note that Factory takes care of whether or not we have platform support
       return Factory(&info->extensions[i]);

@@ -807,7 +807,7 @@ bool CApplication::CreateGUI()
 
   uint32_t sdlFlags = 0;
 
-#if (defined(HAS_SDL_OPENGL) || (HAS_GLES == 2)) && !defined(HAS_GLX)
+#if defined(TARGET_DARWIN_OSX)
   sdlFlags |= SDL_INIT_VIDEO;
 #endif
 
@@ -3041,7 +3041,7 @@ PlayBackRet CApplication::PlayStack(const CFileItem& item, bool bRestart)
   // case 2: all other stacks
   else
   {
-    LoadVideoSettings(item.GetPath());
+    LoadVideoSettings(item);
     
     // see if we have the info in the database
     // TODO: If user changes the time speed (FPS via framerate conversion stuff)
@@ -3268,7 +3268,7 @@ PlayBackRet CApplication::PlayFile(const CFileItem& item, bool bRestart)
   else
   {
     options.starttime = item.m_lStartOffset / 75.0;
-    LoadVideoSettings(item.GetPath());
+    LoadVideoSettings(item);
 
     if (item.IsVideo())
     {
@@ -3770,15 +3770,15 @@ void CApplication::UpdateFileState()
   }
 }
 
-void CApplication::LoadVideoSettings(const std::string &path)
+void CApplication::LoadVideoSettings(const CFileItem& item)
 {
   CVideoDatabase dbs;
   if (dbs.Open())
   {
-    CLog::Log(LOGDEBUG, "Loading settings for %s", path.c_str());
+    CLog::Log(LOGDEBUG, "Loading settings for %s", item.GetPath().c_str());
     
     // Load stored settings if they exist, otherwise use default
-    if (!dbs.GetVideoSettings(path, CMediaSettings::Get().GetCurrentVideoSettings()))
+    if (!dbs.GetVideoSettings(item, CMediaSettings::Get().GetCurrentVideoSettings()))
       CMediaSettings::Get().GetCurrentVideoSettings() = CMediaSettings::Get().GetDefaultVideoSettings();
     
     dbs.Close();
@@ -4345,7 +4345,7 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr)
 #ifdef HAS_PYTHON
     if (item.IsPythonScript())
     { // a python script
-      CScriptInvocationManager::Get().Execute(item.GetPath());
+      CScriptInvocationManager::Get().ExecuteAsync(item.GetPath());
     }
     else
 #endif
@@ -4403,7 +4403,7 @@ void CApplication::Process()
     std::string strAutoExecPy = CSpecialProtocol::TranslatePath("special://profile/autoexec.py");
 
     if (XFILE::CFile::Exists(strAutoExecPy))
-      CScriptInvocationManager::Get().Execute(strAutoExecPy);
+      CScriptInvocationManager::Get().ExecuteAsync(strAutoExecPy);
     else
       CLog::Log(LOGDEBUG, "no profile autoexec.py (%s) found, skipping", strAutoExecPy.c_str());
   }
