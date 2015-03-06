@@ -1120,9 +1120,6 @@
     <ClCompile Include="..\..\xbmc\guilib\IWindowManagerCallback.cpp">
       <Filter>guilib</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\guilib\Key.cpp">
-      <Filter>guilib</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\guilib\LocalizeStrings.cpp">
       <Filter>guilib</Filter>
     </ClCompile>
@@ -3146,6 +3143,9 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\video\jobs\VideoLibraryProgressJob.cpp">
       <Filter>video\jobs</Filter>
+	</ClCompile>
+    <ClCompile Include="..\..\xbmc\input\Key.cpp">
+      <Filter>input</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\network\httprequesthandler\python\HTTPPythonInvoker.cpp">
       <Filter>network\httprequesthandler\python</Filter>
@@ -3176,6 +3176,24 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\network\httprequesthandler\HTTPPythonHandler.cpp">
       <Filter>network\httprequesthandler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\addons\AudioDecoder.cpp">
+      <Filter>addons</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\addons\LanguageResource.cpp">
+      <Filter>addons</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\filesystem\ResourceFile.cpp">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\filesystem\ResourceDirectory.cpp">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\Locale.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\test\TestLocale.cpp">
+      <Filter>utils\test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -4085,9 +4103,6 @@
       <Filter>guilib</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\guilib\IWindowManagerCallback.h">
-      <Filter>guilib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\guilib\Key.h">
       <Filter>guilib</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\guilib\LocalizeStrings.h">
@@ -6145,6 +6160,9 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\video\jobs\VideoLibraryProgressJob.h">
       <Filter>video\jobs</Filter>
+	</ClInclude>
+    <ClInclude Include="..\..\xbmc\input\Key.h">
+      <Filter>input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\network\httprequesthandler\python\HTTPPythonRequest.h">
       <Filter>network\httprequesthandler\python</Filter>
@@ -6172,6 +6190,21 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\addons\Webinterface.h">
       <Filter>addons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\addons\Resource.h">
+      <Filter>addons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\addons\LanguageResource.h">
+      <Filter>addons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\filesystem\ResourceFile.h">
+      <Filter>filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\filesystem\ResourceDirectory.h">
+      <Filter>filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\Locale.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

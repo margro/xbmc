@@ -11,10 +11,12 @@ SRCS=Addon.cpp \
      AddonVersion.cpp \
      AudioEncoder.cpp \
      ContextItemAddon.cpp \
+     AudioDecoder.cpp \
      GUIDialogAddonInfo.cpp \
      GUIDialogAddonSettings.cpp \
      GUIViewStateAddonBrowser.cpp \
      GUIWindowAddonBrowser.cpp \
+     LanguageResource.cpp \
      PluginSource.cpp \
      Repository.cpp \
      Scraper.cpp \

@@ -29,7 +29,7 @@
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIRadioButtonControl.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "GUIInfoManager.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
@@ -40,6 +40,7 @@
 #include "epg/EpgContainer.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 #include "threads/SingleLock.h"
 
 using namespace PVR;

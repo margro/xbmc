@@ -178,7 +178,7 @@ namespace XBMCAddon
     String getLanguage(int format /* = CLangCodeExpander::ENGLISH_NAME */, bool region /*= false*/)
     {
       XBMC_TRACE;
-      std::string lang = CSettings::Get().GetString("locale.language");
+      std::string lang = g_langInfo.GetEnglishLanguageName();
 
       switch (format)
       {
@@ -453,7 +453,7 @@ namespace XBMCAddon
       if (strcmpi(mediaType, "video") == 0)
         result = g_advancedSettings.m_videoExtensions;
       else if (strcmpi(mediaType, "music") == 0)
-        result = g_advancedSettings.m_musicExtensions;
+        result = g_advancedSettings.GetMusicExtensions();
       else if (strcmpi(mediaType, "picture") == 0)
         result = g_advancedSettings.m_pictureExtensions;
 

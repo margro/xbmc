@@ -39,7 +39,7 @@
 #include "DVDFileInfo.h"
 
 #include "utils/LangCodeExpander.h"
-#include "guilib/Key.h"
+#include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
 
 #include "utils/URIUtils.h"
@@ -4512,7 +4512,7 @@ std::string CDVDPlayer::GetPlayingTitle()
   return "";
 }
 
-bool CDVDPlayer::SwitchChannel(CPVRChannelPtr &channel)
+bool CDVDPlayer::SwitchChannel(const CPVRChannelPtr &channel)
 {
   if (!g_PVRManager.CheckParentalLock(channel))
     return false;
@@ -4533,6 +4533,7 @@ bool CDVDPlayer::SwitchChannel(CPVRChannelPtr &channel)
 bool CDVDPlayer::CachePVRStream(void) const
 {
   return m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER) &&
-      !g_PVRManager.IsPlayingRecording() &&
+      (!g_PVRManager.IsPlayingRecording() ||
+          (m_item.HasPVRRecordingInfoTag() && m_item.GetPVRRecordingInfoTag()->IsBeingRecorded()))&&
       g_advancedSettings.m_bPVRCacheInDvdPlayer;
 }

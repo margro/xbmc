@@ -22,6 +22,7 @@
 #include "AddonCallbacksPVR.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 #include "dialogs/GUIDialogKaiToast.h"
 
 #include "epg/EpgContainer.h"
@@ -219,7 +220,7 @@ void CAddonCallbacksPVR::PVRTransferTimerEntry(void *addonData, const ADDON_HAND
   }
 
   /* transfer this entry to the timers container */
-  CPVRTimerInfoTag transferTimer(*timer, channel, client->GetID());
+  CPVRTimerInfoTagPtr transferTimer(new CPVRTimerInfoTag(*timer, channel, client->GetID()));
   xbmcTimers->UpdateFromClient(transferTimer);
 }
 

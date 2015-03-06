@@ -51,10 +51,7 @@ CContextItemAddon::CContextItemAddon(const cp_extension_t *ext)
 
     m_label = CAddonMgr::Get().GetExtValue(item, "label");
     if (StringUtils::IsNaturalNumber(m_label))
-    {
       m_label = GetString(boost::lexical_cast<int>(m_label.c_str()));
-      ClearStrings();
-    }
 
     m_parent = CAddonMgr::Get().GetExtValue(item, "parent");
 
@@ -71,7 +68,7 @@ bool CContextItemAddon::OnPreInstall()
   return CContextMenuManager::Get().Unregister(std::dynamic_pointer_cast<CContextItemAddon>(shared_from_this()));
 }
 
-void CContextItemAddon::OnPostInstall(bool restart, bool update)
+void CContextItemAddon::OnPostInstall(bool restart, bool update, bool modal)
 {
   if (restart)
   {

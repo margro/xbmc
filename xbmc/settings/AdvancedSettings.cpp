@@ -39,6 +39,7 @@
 #include "filesystem/SpecialProtocol.h"
 #include "addons/IAddon.h"
 #include "addons/AddonManager.h"
+#include "addons/AudioDecoder.h"
 #include "addons/GUIDialogAddonSettings.h"
 #include "CompileInfo.h"
 #if defined(TARGET_DARWIN_IOS)
@@ -266,7 +267,6 @@ void CAdvancedSettings::Initialize()
   m_musicThumbs = "folder.jpg|Folder.jpg|folder.JPG|Folder.JPG|cover.jpg|Cover.jpg|cover.jpeg|thumb.jpg|Thumb.jpg|thumb.JPG|Thumb.JPG";
   m_fanartImages = "fanart.jpg|fanart.png";
 
-  m_bMusicLibraryHideAllItems = false;
   m_bMusicLibraryAllItemsOnBottom = false;
   m_bMusicLibraryAlbumsSortByArtistThenYear = false;
   m_bMusicLibraryCleanOnUpdate = false;
@@ -277,7 +277,6 @@ void CAdvancedSettings::Initialize()
   m_musicItemSeparator = " / ";
   m_videoItemSeparator = " / ";
 
-  m_bVideoLibraryHideAllItems = false;
   m_bVideoLibraryAllItemsOnBottom = false;
   m_iVideoLibraryRecentlyAddedItems = 25;
   m_bVideoLibraryHideEmptySeries = false;
@@ -744,7 +743,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   pElement = pRootElement->FirstChildElement("musiclibrary");
   if (pElement)
   {
-    XMLUtils::GetBoolean(pElement, "hideallitems", m_bMusicLibraryHideAllItems);
     XMLUtils::GetInt(pElement, "recentlyaddeditems", m_iMusicLibraryRecentlyAddedItems, 1, INT_MAX);
     XMLUtils::GetBoolean(pElement, "prioritiseapetags", m_prioritiseAPEv2tags);
     XMLUtils::GetBoolean(pElement, "allitemsonbottom", m_bMusicLibraryAllItemsOnBottom);
@@ -758,7 +756,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   pElement = pRootElement->FirstChildElement("videolibrary");
   if (pElement)
   {
-    XMLUtils::GetBoolean(pElement, "hideallitems", m_bVideoLibraryHideAllItems);
     XMLUtils::GetBoolean(pElement, "allitemsonbottom", m_bVideoLibraryAllItemsOnBottom);
     XMLUtils::GetInt(pElement, "recentlyaddeditems", m_iVideoLibraryRecentlyAddedItems, 1, INT_MAX);
     XMLUtils::GetBoolean(pElement, "hideemptyseries", m_bVideoLibraryHideEmptySeries);
@@ -1411,4 +1408,20 @@ void CAdvancedSettings::setExtraLogLevel(const std::vector<CVariant> &components
 
     m_extraLogLevels |= static_cast<int>(it->asInteger());
   }
+}
+
+std::string CAdvancedSettings::GetMusicExtensions() const
+{
+  std::string result(m_musicExtensions);
+
+  VECADDONS codecs;
+  CAddonMgr::Get().GetAddons(ADDON_AUDIODECODER, codecs);
+  for (size_t i=0;i<codecs.size();++i)
+  {
+    std::shared_ptr<CAudioDecoder> dec(std::static_pointer_cast<CAudioDecoder>(codecs[i]));
+    result += '|';
+    result += dec->GetExtensions();
+  }
+
+  return result;
 }

@@ -114,13 +114,15 @@
     </category>
     <category id="locale" label="14090" help="36113">
       <group id="1">
-        <setting id="locale.language" type="string" label="248" help="36114">
+        <setting id="locale.language" type="addon" label="248" help="36114">
           <level>0</level>
-          <default>English</default>
+          <default>resource.language.en_gb</default>
           <constraints>
-            <options>languages</options>
+            <addontype>kodi.resource.language</addontype>
           </constraints>
-          <control type="list" format="string" />
+          <control type="button" format="addon">
+            <show more="false" details="false">all</show>
+          </control>
         </setting>
         <setting id="locale.country" type="string" label="20026" help="36115">
           <level>0</level>
@@ -349,9 +351,37 @@
           </constraints>
           <control type="list" format="string" />
         </setting>
-        <setting id="videolibrary.jumptofirstunplayeditem" type="boolean" label="21416" help="21466">
+        <setting id="videolibrary.tvshowsselectfirstunwatcheditem" type="integer" label="21416" help="21466">
           <level>1</level>
-          <default>false</default>
+          <default>0</default> <!-- Never -->
+          <constraints>
+            <options>
+              <option label="20420">0</option> <!-- Never -->
+              <option label="21471">1</option> <!-- On first entry -->
+              <option label="20422">2</option> <!-- Always -->
+            </options>
+          </constraints>
+          <control type="spinner" format="string" />
+        </setting>
+        <setting id="videolibrary.tvshowsincludeallseasonsandspecials" type="integer" parent="videolibrary.tvshowsselectfirstunwatcheditem" label="21472" help="21473">
+          <level>2</level>
+          <default>0</default> <!-- Neither -->
+          <constraints>
+            <options>
+              <option label="21474">0</option> <!-- Neither -->
+              <option label="21475">1</option> <!-- Both -->
+              <option label="21476">2</option> <!-- Just All Seasons -->
+              <option label="21477">3</option> <!-- Just Specials -->
+            </options>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="videolibrary.tvshowsselectfirstunwatcheditem" operator="!is">0</dependency> <!-- Never -->
+          </dependencies>
+          <control type="spinner" format="string" />
+        </setting>
+        <setting id="videolibrary.showallitems" type="boolean" label="38011" help="38012">
+          <level>2</level>
+          <default>true</default>
           <control type="toggle" />
         </setting>
         <setting id="videolibrary.groupmoviesets" type="boolean" label="20458" help="36145">
@@ -818,7 +848,7 @@
           <level>1</level>
           <default>English</default>
           <constraints>
-            <options>languages</options>
+            <options>languagenames</options>
             <delimiter>,</delimiter>
             <minimumItems>1</minimumItems>
             <maximumItems>3</maximumItems>
@@ -1572,6 +1602,11 @@
         </setting>
       </group>
       <group id="4">
+        <setting id="musiclibrary.showallitems" type="boolean" label="38011" help="38012">
+          <level>2</level>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
         <setting id="musiclibrary.cleanup" type="action" label="334" help="36148">
           <level>2</level>
           <control type="button" format="action" />
