@@ -31,6 +31,7 @@ public:
   virtual ~CAddonDatabase();
   virtual bool Open();
 
+  int GetAddonId(const ADDON::AddonPtr& item);
   int AddAddon(const ADDON::AddonPtr& item, int idRepo);
   bool GetAddon(const std::string& addonID, ADDON::AddonPtr& addon);
   bool GetAddons(ADDON::VECADDONS& addons, const ADDON::TYPE &type = ADDON::ADDON_UNKNOWN);
@@ -147,7 +148,7 @@ protected:
   bool GetAddon(int id, ADDON::AddonPtr& addon);
 
   /* keep in sync with the select in GetAddon */
-  enum _AddonFields
+  enum AddonFields
   {
     addon_id=0,
     addon_type,
@@ -170,6 +171,6 @@ protected:
     dependencies_addon,
     dependencies_version,
     dependencies_optional
-  } AddonFields;
+  };
 };
 

@@ -1525,9 +1525,6 @@
     <ClCompile Include="..\..\xbmc\utils\TimeUtils.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\utils\TuxBoxUtil.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\utils\URIUtils.cpp">
       <Filter>utils</Filter>
     </ClCompile>
@@ -2183,12 +2180,6 @@
       <Filter>filesystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\filesystem\StackDirectory.cpp">
-      <Filter>filesystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\filesystem\TuxBoxDirectory.cpp">
-      <Filter>filesystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\filesystem\TuxBoxFile.cpp">
       <Filter>filesystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\filesystem\udf25.cpp">
@@ -3143,7 +3134,7 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\video\jobs\VideoLibraryProgressJob.cpp">
       <Filter>video\jobs</Filter>
-	</ClCompile>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\input\Key.cpp">
       <Filter>input</Filter>
     </ClCompile>
@@ -4573,9 +4564,6 @@
     <ClInclude Include="..\..\xbmc\utils\TimeUtils.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\utils\TuxBoxUtil.h">
-      <Filter>utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\URIUtils.h">
       <Filter>utils</Filter>
     </ClInclude>
@@ -5231,12 +5219,6 @@
       <Filter>filesystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\filesystem\StackDirectory.h">
-      <Filter>filesystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\filesystem\TuxBoxDirectory.h">
-      <Filter>filesystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\filesystem\TuxBoxFile.h">
       <Filter>filesystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\filesystem\udf25.h">
@@ -6160,7 +6142,7 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\video\jobs\VideoLibraryProgressJob.h">
       <Filter>video\jobs</Filter>
-	</ClInclude>
+    </ClInclude>
     <ClInclude Include="..\..\xbmc\input\Key.h">
       <Filter>input</Filter>
     </ClInclude>
@@ -6205,6 +6187,9 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\Locale.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\addons\AudioDecoder.h">
+      <Filter>addons</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -74,7 +74,6 @@
 #ifdef HAS_FILESYSTEM_HTSP
 #include "filesystem/HTSPDirectory.h"
 #endif
-#include "utils/TuxBoxUtil.h"
 #include "utils/SystemInfo.h"
 #include "utils/TimeUtils.h"
 #include "GUILargeTextureManager.h"
@@ -2967,35 +2966,6 @@ PlayBackRet CApplication::PlayFile(const CFileItem& item, bool bRestart)
   if (item.IsStack())
     return PlayStack(item, bRestart);
 
-  //Is TuxBox, this should probably be moved to CTuxBoxFile
-  if(item.IsTuxBox())
-  {
-    CLog::LogF(LOGDEBUG, "TuxBox URL Detected %s",item.GetPath().c_str());
-
-    if(g_tuxboxService.IsRunning())
-      g_tuxboxService.Stop();
-
-    PlayBackRet ret = PLAYBACK_FAIL;
-    CFileItem item_new;
-    if(g_tuxbox.CreateNewItem(item, item_new))
-    {
-
-      // Make sure it doesn't have a player
-      // so we actually select one normally
-      m_pPlayer->ResetPlayer();
-
-      // keep the tuxbox:// url as playing url
-      // and give the new url to the player
-      ret = PlayFile(item_new, true);
-      if(ret == PLAYBACK_OK)
-      {
-        if(!g_tuxboxService.IsRunning())
-          g_tuxboxService.Start();
-      }
-    }
-    return ret;
-  }
-
   CPlayerOptions options;
 
   if( item.HasProperty("StartPercent") )
@@ -3641,6 +3611,10 @@ bool CApplication::WakeUpScreenSaverAndDPMS(bool bPowerOffKeyPressed /* = false 
     CVariant data(CVariant::VariantTypeObject);
     data["shuttingdown"] = bPowerOffKeyPressed;
     CAnnouncementManager::Get().Announce(GUI, "xbmc", "OnScreensaverDeactivated", data);
+#ifdef TARGET_ANDROID
+    // Screensaver deactivated -> acquire wake lock
+    CXBMCApp::EnableWakeLock(true);
+#endif
   }
 
   return result;
@@ -3783,11 +3757,18 @@ void CApplication::ActivateScreenSaver(bool forceType /*= false */)
         m_screenSaver.reset(new CScreenSaver(""));
     }
   }
-  if (m_screenSaver->ID() == "screensaver.xbmc.builtin.dim" || m_screenSaver->ID().empty())
+  if (m_screenSaver->ID() == "screensaver.xbmc.builtin.dim"
+      || m_screenSaver->ID() == "screensaver.xbmc.builtin.black")
+  {
+#ifdef TARGET_ANDROID
+    // Default screensaver activated -> release wake lock
+    CXBMCApp::EnableWakeLock(false);
+#endif
     return;
-  else if (m_screenSaver->ID() == "screensaver.xbmc.builtin.black")
+  }
+  else if (m_screenSaver->ID().empty())
     return;
-  else if (!m_screenSaver->ID().empty())
+  else
     g_windowManager.ActivateWindow(WINDOW_SCREENSAVER);
 }
 
