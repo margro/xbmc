@@ -27,8 +27,6 @@ SRCS += FTPDirectory.cpp
 SRCS += FTPParse.cpp
 SRCS += HDHomeRunDirectory.cpp
 SRCS += HDHomeRunFile.cpp
-SRCS += HTSPDirectory.cpp
-SRCS += HTSPSession.cpp
 SRCS += HTTPDirectory.cpp
 SRCS += HTTPFile.cpp
 SRCS += IDirectory.cpp
@@ -45,9 +43,6 @@ SRCS += MusicDatabaseDirectory.cpp
 SRCS += MusicDatabaseFile.cpp
 SRCS += MusicFileDirectory.cpp
 SRCS += MusicSearchDirectory.cpp
-SRCS += MythDirectory.cpp
-SRCS += MythFile.cpp
-SRCS += MythSession.cpp
 SRCS += NSFFileDirectory.cpp
 SRCS += OGGFileDirectory.cpp
 SRCS += OverrideDirectory.cpp
@@ -85,9 +80,6 @@ SRCS += UDFDirectory.cpp
 SRCS += UDFFile.cpp
 SRCS += VideoDatabaseDirectory.cpp
 SRCS += VirtualDirectory.cpp
-SRCS += VTPDirectory.cpp
-SRCS += VTPFile.cpp
-SRCS += VTPSession.cpp
 SRCS += ZeroconfDirectory.cpp
 SRCS += ZipDirectory.cpp
 SRCS += ZipFile.cpp
@@ -114,11 +106,6 @@ endif
 ifeq (@USE_LIBNFS@,1)
 SRCS += NFSFile.cpp
 SRCS += NFSDirectory.cpp
-endif
-
-ifeq (@USE_LIBAFPCLIENT@,1)
-SRCS += AFPFile.cpp
-SRCS += AFPDirectory.cpp
 endif
 
 ifeq (@HAVE_LIBBLURAY@,1)

@@ -30,7 +30,6 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    lib/SlingboxLib/SlingboxLib.a \
                    lib/libRTV/librtv.a \
                    lib/libXDAAP/libxdaap.a \
-                   lib/libhts/libhts.a \
                    xbmc/addons/addons.a \
                    xbmc/cdrip/cdrip.a \
                    xbmc/cores/AudioEngine/audioengine.a \
@@ -206,11 +205,6 @@ LIB_DIRS=\
 	lib/libhdhomerun \
 	lib/cpluff \
 	lib/xbmc-dll-symbols
-
-ifeq (@USE_MYSQL@,1)
-LIB_DIRS += lib/cmyth
-CMYTH=cmyth
-endif
 
 SS_DIRS=
 ifneq (@DISABLE_RSXS@,1)
@@ -424,8 +418,6 @@ else
 endif
 libexif: dllloader
 	$(MAKE) -C lib/libexif
-cmyth: dllloader
-	$(MAKE) -C lib/cmyth
 libhdhomerun: dllloader
 	$(MAKE) -C lib/libhdhomerun
 papcodecs: dllloader dvdpcodecs
@@ -450,7 +442,7 @@ imagelib: dllloader
 
 codecs: papcodecs dvdpcodecs dvdpextcodecs
 
-libs: $(LIBSSE4) libhdhomerun imagelib libexif system/libcpluff-@ARCH@.so $(CMYTH)
+libs: $(LIBSSE4) libhdhomerun imagelib libexif system/libcpluff-@ARCH@.so
 
 externals: codecs libs visualizations screensavers libaddon
 

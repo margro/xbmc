@@ -44,7 +44,7 @@ public:
     public:
              IHardwareDecoder() {}
     virtual ~IHardwareDecoder() {};
-    virtual bool Open      (AVCodecContext* avctx, const enum PixelFormat, unsigned int surfaces) = 0;
+    virtual bool Open      (AVCodecContext* avctx, AVCodecContext* mainctx, const enum PixelFormat, unsigned int surfaces) = 0;
     virtual int  Decode    (AVCodecContext* avctx, AVFrame* frame) = 0;
     virtual bool GetPicture(AVCodecContext* avctx, AVFrame* frame, DVDVideoPicture* picture) = 0;
     virtual int  Check     (AVCodecContext* avctx) = 0;
@@ -113,15 +113,14 @@ protected:
   unsigned int m_uSurfacesCount;
 
   std::string m_name;
-  bool              m_bSoftware;
-  bool  m_isSWCodec;
+  bool m_bSoftware;
   IHardwareDecoder *m_pHardware;
   std::vector<IHardwareDecoder*> m_disposeDecoders;
   int m_iLastKeyframe;
   double m_dts;
   bool   m_started;
   std::vector<PixelFormat> m_formats;
-  double m_decoderPts, m_decoderInterval;
+  double m_decoderPts;
   int    m_skippedDeint;
   bool   m_requestSkipDeint;
   int    m_codecControlFlags;

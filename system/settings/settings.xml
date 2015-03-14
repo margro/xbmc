@@ -152,8 +152,8 @@
           <constraints>
             <options>keyboardlayouts</options>
             <delimiter>|</delimiter>
-            <minimumItems>1</minimumItems>
-            <maximumItems>3</maximumItems>
+            <minimumitems>1</minimumitems>
+            <maximumitems>3</maximumitems>
           </constraints>
           <control type="list" format="string">
             <multiselect>true</multiselect>
@@ -177,6 +177,77 @@
           </constraints>
           <dependencies>
             <dependency type="update" setting="locale.timezonecountry" />
+          </dependencies>
+          <control type="list" format="string" />
+        </setting>
+      </group>
+      <group id="3">
+        <setting id="locale.shortdateformat" type="string" label="14109" help="36173">
+          <level>1</level>
+          <default>regional</default>
+          <constraints>
+            <options>shortdateformats</options>
+          </constraints>
+          <dependencies>
+            <dependency type="update" setting="locale.country" />
+          </dependencies>
+          <control type="list" format="string" />
+        </setting>
+        <setting id="locale.longdateformat" type="string" label="14110" help="36215">
+          <level>1</level>
+          <default>regional</default>
+          <constraints>
+            <options>longdateformats</options>
+          </constraints>
+          <dependencies>
+            <dependency type="update" setting="locale.country" />
+          </dependencies>
+          <control type="list" format="string" />
+        </setting>
+        <setting id="locale.timeformat" type="string" label="14107" help="36167">
+          <level>1</level>
+          <default>regional</default>
+          <constraints>
+            <options>timeformats</options>
+          </constraints>
+          <dependencies>
+            <dependency type="update" setting="locale.country" />
+            <dependency type="update" setting="locale.use24hourclock" />
+          </dependencies>
+          <control type="list" format="string" />
+        </setting>
+        <setting id="locale.use24hourclock" type="string" label="14108" help="36168">
+          <level>1</level>
+          <default>regional</default>
+          <constraints>
+            <options>24hourclockformats</options>
+          </constraints>
+          <dependencies>
+            <dependency type="update" setting="locale.country" />
+          </dependencies>
+          <control type="spinner" format="string" />
+        </setting>
+      </group>
+      <group id="4">
+        <setting id="locale.temperatureunit" type="string" label="14105" help="36140">
+          <level>1</level>
+          <default>regional</default>
+          <constraints>
+            <options>temperatureunits</options>
+          </constraints>
+          <dependencies>
+            <dependency type="update" setting="locale.country" />
+          </dependencies>
+          <control type="list" format="string" />
+        </setting>
+        <setting id="locale.speedunit" type="string" label="14106" help="36142">
+          <level>1</level>
+          <default>regional</default>
+          <constraints>
+            <options>speedunits</options>
+          </constraints>
+          <dependencies>
+            <dependency type="update" setting="locale.country" />
           </dependencies>
           <control type="list" format="string" />
         </setting>
@@ -445,7 +516,7 @@
           <constraints>
             <options>videoseeksteps</options>
             <delimiter>,</delimiter>
-            <minimumItems>2</minimumItems>
+            <minimumitems>2</minimumitems>
           </constraints>
           <control type="list" format="string">
             <multiselect>true</multiselect>
@@ -848,10 +919,9 @@
           <level>1</level>
           <default>English</default>
           <constraints>
-            <options>languagenames</options>
+            <options>iso6391languages</options>
             <delimiter>,</delimiter>
-            <minimumItems>1</minimumItems>
-            <maximumItems>3</maximumItems>
+            <minimumitems>1</minimumitems>
           </constraints>
           <control type="list" format="string">
             <multiselect>true</multiselect>
@@ -1010,8 +1080,9 @@
         </setting>
         <setting id="subtitles.tv" type="addon" label="24116" help="24117">
           <level>1</level>
-          <default>-</default>
+          <default></default>
           <constraints>
+            <allowempty>true</allowempty>
             <addontype>xbmc.subtitle.module</addontype>
           </constraints>
           <control type="button" format="addon">
@@ -1020,8 +1091,9 @@
         </setting>
         <setting id="subtitles.movie" type="addon" label="24118" help="24119">
           <level>1</level>
-          <default>-</default>
+          <default></default>
           <constraints>
+            <allowempty>true</allowempty>		  
             <addontype>xbmc.subtitle.module</addontype>
           </constraints>
           <control type="button" format="addon">
@@ -1226,7 +1298,7 @@
         </setting>
       </group>
     </category>
-    <category id="epg" label="19069" help="36218">
+    <category id="epg" label="22020" help="36218">
       <group id="1">
         <setting id="epg.daystodisplay" type="integer" label="19182" help="36220">
           <level>2</level>
@@ -1641,7 +1713,7 @@
           <constraints>
             <options>videoseeksteps</options>
             <delimiter>,</delimiter>
-            <minimumItems>2</minimumItems>
+            <minimumitems>2</minimumitems>
           </constraints>
           <control type="list" format="string">
             <multiselect>true</multiselect>

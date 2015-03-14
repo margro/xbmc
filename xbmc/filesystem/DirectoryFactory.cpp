@@ -77,12 +77,6 @@
 #ifdef HAS_FILESYSTEM_SAP
 #include "SAPDirectory.h"
 #endif
-#ifdef HAS_FILESYSTEM_VTP
-#include "VTPDirectory.h"
-#endif
-#ifdef HAS_FILESYSTEM_HTSP
-#include "HTSPDirectory.h"
-#endif
 #ifdef HAS_PVRCLIENTS
 #include "PVRDirectory.h"
 #endif
@@ -95,7 +89,6 @@
 #endif
 #include "HDHomeRunDirectory.h"
 #include "SlingboxDirectory.h"
-#include "MythDirectory.h"
 #include "FileItem.h"
 #include "URL.h"
 #include "RSSDirectory.h"
@@ -107,9 +100,6 @@
 #endif
 #ifdef HAS_FILESYSTEM_NFS
 #include "NFSDirectory.h"
-#endif
-#ifdef HAS_FILESYSTEM_AFP
-#include "AFPDirectory.h"
 #endif
 #ifdef HAVE_LIBBLURAY
 #include "BlurayDirectory.h"
@@ -214,17 +204,9 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
 #endif
     if (url.IsProtocol("hdhomerun")) return new CHomeRunDirectory();
     if (url.IsProtocol("sling")) return new CSlingboxDirectory();
-    if (url.IsProtocol("myth")) return new CMythDirectory();
-    if (url.IsProtocol("cmyth")) return new CMythDirectory();
     if (url.IsProtocol("rss")) return new CRSSDirectory();
 #ifdef HAS_FILESYSTEM_SAP
     if (url.IsProtocol("sap")) return new CSAPDirectory();
-#endif
-#ifdef HAS_FILESYSTEM_VTP
-    if (url.IsProtocol("vtp")) return new CVTPDirectory();
-#endif
-#ifdef HAS_FILESYSTEM_HTSP
-    if (url.IsProtocol("htsp")) return new CHTSPDirectory();
 #endif
 #ifdef HAS_PVRCLIENTS
     if (url.IsProtocol("pvr")) return new CPVRDirectory();
@@ -234,9 +216,6 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
 #endif
 #ifdef HAS_FILESYSTEM_NFS
     if (url.IsProtocol("nfs")) return new CNFSDirectory();
-#endif
-#ifdef HAS_FILESYSTEM_AFP
-      if (url.IsProtocol("afp")) return new CAFPDirectory();
 #endif
 #ifdef HAVE_LIBBLURAY
       if (url.IsProtocol("bluray")) return new CBlurayDirectory();

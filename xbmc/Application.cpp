@@ -66,13 +66,9 @@
 #include "filesystem/StackDirectory.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/DllLibCurl.h"
-#include "filesystem/MythSession.h"
 #include "filesystem/PluginDirectory.h"
 #ifdef HAS_FILESYSTEM_SAP
 #include "filesystem/SAPDirectory.h"
-#endif
-#ifdef HAS_FILESYSTEM_HTSP
-#include "filesystem/HTSPDirectory.h"
 #endif
 #include "utils/SystemInfo.h"
 #include "utils/TimeUtils.h"
@@ -100,6 +96,7 @@
 #include "utils/SeekHandler.h"
 #include "view/ViewStateSettings.h"
 
+#include "input/KeyboardLayoutManager.h"
 #include "input/KeyboardStat.h"
 #include "input/XBMC_vkeys.h"
 #include "input/MouseStat.h"
@@ -123,9 +120,6 @@
 #endif
 #ifdef HAS_FILESYSTEM_NFS
 #include "filesystem/NFSFile.h"
-#endif
-#ifdef HAS_FILESYSTEM_AFP
-#include "filesystem/AFPFile.h"
 #endif
 #ifdef HAS_FILESYSTEM_SFTP
 #include "filesystem/SFTPFile.h"
@@ -706,6 +700,13 @@ bool CApplication::Create()
   // Create the Mouse, Keyboard, Remote, and Joystick devices
   // Initialize after loading settings to get joystick deadzone setting
   CInputManager::Get().InitializeInputs();
+
+  // load the keyboard layouts
+  if (!CKeyboardLayoutManager::Get().Load())
+  {
+    CLog::Log(LOGFATAL, "CApplication::Create: Unable to load keyboard layouts");
+    return false;
+  }
 
 #if defined(TARGET_DARWIN_OSX)
   // Configure and possible manually start the helper.
@@ -4221,14 +4222,6 @@ void CApplication::ProcessSlow()
   // check for any idle curl connections
   g_curlInterface.CheckIdle();
 
-  // check for any idle myth sessions
-  CMythSession::CheckIdle();
-
-#ifdef HAS_FILESYSTEM_HTSP
-  // check for any idle htsp sessions
-  HTSP::CHTSPDirectorySession::CheckIdle();
-#endif
-
 #ifdef HAS_KARAOKE
   if ( m_pKaraokeMgr )
     m_pKaraokeMgr->ProcessSlow();
@@ -4259,17 +4252,11 @@ void CApplication::ProcessSlow()
   gNfsConnection.CheckIfIdle();
 #endif
 
-#ifdef HAS_FILESYSTEM_AFP
-  gAfpConnection.CheckIfIdle();
-#endif
-
 #ifdef HAS_FILESYSTEM_SFTP
   CSFTPSessionManager::ClearOutIdleSessions();
 #endif
 
   g_mediaManager.ProcessEvents();
-
-  CInputManager::Get().EnableRemoteControl();
 
   if (!m_pPlayer->IsPlayingVideo() &&
       CSettings::Get().GetInt("general.addonupdates") != AUTO_UPDATES_NEVER)
@@ -4894,11 +4881,7 @@ void CApplication::CloseNetworkShares()
 #ifdef HAS_FILESYSTEM_NFS
   gNfsConnection.Deinit();
 #endif
-  
-#ifdef HAS_FILESYSTEM_AFP
-  gAfpConnection.Deinit();
-#endif
-  
+
 #ifdef HAS_FILESYSTEM_SFTP
   CSFTPSessionManager::DisconnectAllSessions();
 #endif

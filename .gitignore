@@ -155,9 +155,6 @@ config.log
 /lib/addons/library.xbmc.pvr/project/VS2010Express/Release
 /lib/addons/library.xbmc.pvr/project/VS2010Express/Debug
 
-# /lib/cmyth/
-lib/cmyth/Makefile
-
 # /lib/cpluff/
 /lib/cpluff/ABOUT-NLS
 /lib/cpluff/aclocal.m4
@@ -286,42 +283,6 @@ lib/cpluff/stamp-h1
 /lib/liblame/config.h
 /lib/liblame/obj
 
-
-# /lib/libmicrohttpd
-/lib/libmicrohttpd/MHD_config.h
-/lib/libmicrohttpd/Makefile
-/lib/libmicrohttpd/contrib/Makefile
-/lib/libmicrohttpd/doc/Makefile
-/lib/libmicrohttpd/doc/microhttpd.info
-/lib/libmicrohttpd/doc/stamp-vti
-/lib/libmicrohttpd/doc/version.texi
-/lib/libmicrohttpd/libtool
-/lib/libmicrohttpd/m4/Makefile
-/lib/libmicrohttpd/src/Makefile
-/lib/libmicrohttpd/src/daemon/Makefile
-/lib/libmicrohttpd/src/daemon/https/Makefile
-/lib/libmicrohttpd/src/daemon/https/lgl/Makefile
-/lib/libmicrohttpd/src/daemon/https/minitasn1/Makefile
-/lib/libmicrohttpd/src/daemon/https/tls/Makefile
-/lib/libmicrohttpd/src/daemon/https/x509/Makefile
-/lib/libmicrohttpd/src/examples/Makefile
-/lib/libmicrohttpd/src/examples/authorization_example
-/lib/libmicrohttpd/src/examples/fileserver_example
-/lib/libmicrohttpd/src/examples/fileserver_example_dirs
-/lib/libmicrohttpd/src/examples/fileserver_example_external_select
-/lib/libmicrohttpd/src/examples/https_fileserver_example
-/lib/libmicrohttpd/src/examples/minimal_example
-/lib/libmicrohttpd/src/examples/minimal_example_comet
-/lib/libmicrohttpd/src/examples/querystring_example
-/lib/libmicrohttpd/src/examples/refuse_post_example
-/lib/libmicrohttpd/src/testcurl/daemon_options_test
-/lib/libmicrohttpd/src/testcurl/Makefile
-/lib/libmicrohttpd/src/testcurl/https/Makefile
-/lib/libmicrohttpd/src/include/Makefile
-/lib/libmicrohttpd/src/testzzuf/Makefile
-/lib/libmicrohttpd/stamp-h1
-/lib/libmicrohttpd/autom4te.cache/
-
 # /lib/libmodplug/
 /lib/libmodplug/libtool
 /lib/libmodplug/src/stamp-h1
@@ -342,7 +303,9 @@ lib/cpluff/stamp-h1
 # /project/cmake
 /project/cmake/kodi-config.cmake
 /project/cmake/xbmc-config.cmake
-/project/cmake/*.error
+/project/cmake/addons/*.error
+/project/cmake/addons/.failure
+/project/cmake/addons/.success
 /project/cmake/addons/build
 /project/cmake/addons/depends/build
 /project/cmake/addons/output
@@ -393,7 +356,6 @@ lib/cpluff/stamp-h1
 # /system
 /system/cpluff.dll
 /system/ImageLib.dll
-/system/libcmyth.dll
 /system/libcurl.dll
 /system/libeay32.dll
 /system/librtmp.dll
@@ -468,6 +430,8 @@ lib/cpluff/stamp-h1
 #/tools/depends
 /tools/depends/native/*/*native/
 /tools/depends/native/JsonSchemaBuilder/bin/
+/tools/depends/native/libsquish-native/squish-install/
+/tools/depends/native/TexturePacker/bin/
 /tools/depends/target/ffmpeg/.ffmpeg-installed
 /tools/depends/target/ffmpeg/ffmpeg-*-*.tar.gz
 /tools/depends/target/ffmpeg/ffmpeg-*-*/
@@ -926,14 +890,6 @@ lib/cpluff/stamp-h1
 #/lib/win32/ffmpeg
 /lib/win32/ffmpeg/
 
-# /lib/cmyth/
-/lib/cmyth/Makefile.depend
-/lib/cmyth/Win32/libcmyth.lib
-
-# /lib/cmyth/Win32
-/lib/cmyth/Win32/Debug
-/lib/cmyth/Win32/Release
-
 # lib/cximage-6.0/
 /lib/cximage-6.0/Makefile
 /lib/cximage-6.0/Debug
@@ -952,11 +908,6 @@ lib/cpluff/stamp-h1
 /lib/libexif/libexif.lib
 
 /lib/libhdhomerun/Makefile
-
-# /lib/libhts/Win32
-/lib/libhts/Win32/Debug
-/lib/libhts/Win32/Release
-
 
 # /lib/libRTV/
 /lib/libRTV/Makefile

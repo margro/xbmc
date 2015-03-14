@@ -84,6 +84,7 @@ CInputManager& CInputManager::Get()
 void CInputManager::InitializeInputs()
 {
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
+  m_RemoteControl.SetEnabled(true);
   m_RemoteControl.Initialize();
 #endif
 
@@ -151,30 +152,44 @@ bool CInputManager::ProcessGamepad(int windowId)
       return ExecuteInputAction(action);
     }
   }
-  if (m_Joystick.GetAxis(joyName, joyId))
+  std::list<std::pair<std::string, int> > usedAxes;
+  if (m_Joystick.GetAxes(usedAxes))
   {
-    keymapId = joyId + 1;
-    if (m_Joystick.GetAmount(joyName, joyId) < 0)
+    bool compoundReturn = false;
+    for (std::list<std::pair<std::string, int> >::iterator it = usedAxes.begin();
+         it != usedAxes.end();
+         ++it)
     {
-      keymapId = -keymapId;
-    }
+      joyName = it->first;
+      joyId = it->second;
 
-    int actionID;
-    std::string actionName;
-    bool fullrange;
-    if (CButtonTranslator::GetInstance().TranslateJoystickString(windowId, joyName, keymapId, JACTIVE_AXIS, actionID, actionName, fullrange))
-    {
-      g_application.ResetScreenSaver();
-      if (g_application.WakeUpScreenSaverAndDPMS())
+      keymapId = joyId + 1;
+      if (m_Joystick.GetAmount(joyName, joyId) < 0)
       {
-        return true;
+        keymapId = -keymapId;
       }
 
-      float amount = m_Joystick.GetAmount(joyName, joyId);
-      CAction action(actionID, fullrange ? (amount + 1.0f) / 2.0f : fabs(amount), 0.0f, actionName);
-      m_Mouse.SetActive(false);
-      return ExecuteInputAction(action);
+      int actionID;
+      std::string actionName;
+      bool fullrange;
+      if (CButtonTranslator::GetInstance().TranslateJoystickString(windowId, joyName, keymapId, JACTIVE_AXIS, actionID, actionName, fullrange))
+      {
+        g_application.ResetScreenSaver();
+        if (g_application.WakeUpScreenSaverAndDPMS())
+        {
+          return true;
+        }
+
+        float amount = m_Joystick.GetAmount(joyName, joyId);
+        amount = fullrange ? (amount + 1.0f) / 2.0f : amount;
+
+        CAction action(actionID, amount, 0.0f, actionName);
+
+        m_Mouse.SetActive(false);
+        compoundReturn |= ExecuteInputAction(action);
+      }
     }
+    return compoundReturn;
   }
   int position = 0;
   if (m_Joystick.GetHat(joyName, joyId, position))
@@ -692,11 +707,11 @@ int CInputManager::ExecuteBuiltin(const std::string& execute, const std::vector<
   if (execute == "lirc.stop")
   {
     m_RemoteControl.Disconnect();
-    m_RemoteControl.setUsed(false);
+    m_RemoteControl.SetEnabled(false);
   }
   else if (execute == "lirc.start")
   {
-    m_RemoteControl.setUsed(true);
+    m_RemoteControl.SetEnabled(true);
     m_RemoteControl.Initialize();
   }
   else if (execute == "lirc.send")
@@ -760,12 +775,23 @@ bool CInputManager::IsRemoteControlEnabled()
 #endif
 }
 
+bool CInputManager::IsRemoteControlInitialized()
+{
+#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
+  return m_RemoteControl.IsInitialized();
+#else
+  return false;
+#endif
+}
+
 void CInputManager::EnableRemoteControl()
 {
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  m_RemoteControl.setUsed(true);
+  m_RemoteControl.SetEnabled(true);
   if (!m_RemoteControl.IsInitialized())
+  {
     m_RemoteControl.Initialize();
+  }
 #endif
 }
 
@@ -773,14 +799,22 @@ void CInputManager::DisableRemoteControl()
 {
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
   m_RemoteControl.Disconnect();
-  m_RemoteControl.setUsed(false);
+  m_RemoteControl.SetEnabled(false);
+#endif
+}
+
+void CInputManager::InitializeRemoteControl()
+{
+#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
+  if (!m_RemoteControl.IsInitialized())
+    m_RemoteControl.Initialize();
 #endif
 }
 
 void CInputManager::SetRemoteControlName(const std::string& name)
 {
-#if defined(HAS_LIRC)
-  m_RemoteControl.setDeviceName(name);
+#if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
+  m_RemoteControl.SetDeviceName(name);
 #endif
 }
 
