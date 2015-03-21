@@ -4914,37 +4914,14 @@ msgctxt "#12348"
 msgid "Item locked"
 msgstr ""
 
-#: xbmc/utils/EdenVideoArtUpdater.cpp
-msgctxt "#12349"
-msgid "Updating video library art"
-msgstr ""
-
-#: xbmc/utils/EdenVideoArtUpdater.cpp
-msgctxt "#12350"
-msgid "Processing %s"
-msgstr ""
-
-#: xbmc/video/windows/GUIWindowVideoBase.cpp
-msgctxt "#12351"
-msgid "The art cache in your video library needs updating."
-msgstr ""
-
-#: xbmc/video/windows/GUIWindowVideoBase.cpp
-msgctxt "#12352"
-msgid "No downloading is needed."
-msgstr ""
+#empty strings with id 12349 to 12352
 
 #: xbmc/dialogs/GUIDialogContextMenu.cpp
 msgctxt "#12353"
 msgid "Reactivate lock"
 msgstr ""
 
-#: xbmc/video/windows/GUIWindowVideoBase.cpp
-msgctxt "#12354"
-msgid "Would you like to update it now?"
-msgstr ""
-
-#empty string with id 12355
+#empty strings with id 12354 to 12355
 
 #: xbmc/dialogs/GUIDialogContextMenu.cpp
 msgctxt "#12356"
@@ -9406,16 +9383,12 @@ msgid "Adult"
 msgstr ""
 
 #. Title for shutdown confirmation dialog
-#: xbmc/ApplicationMessenger.cpp
+#: xbmc/pvr/PVRManager.cpp
 msgctxt "#19685"
 msgid "Confirm shutdown"
 msgstr ""
 
-#. Text for shutdown confirmation dialog
-#: xbmc/ApplicationMessenger.cpp
-msgctxt "#19686"
-msgid "The PVR backend is busy. Shutdown anyway?"
-msgstr ""
+#empty string with id 19686
 
 #: xbmc/pvr/windows/GUIWindowPVRGuide.cpp
 msgctxt "#19687"
@@ -9437,7 +9410,43 @@ msgctxt "#19690"
 msgid "Do you want to use this service?"
 msgstr ""
 
-#empty strings from id 19691 to 19999
+#. Text for shutdown confirmation dialog.
+#: xbmc/pvr/PVRManager.cpp
+msgctxt "#19691"
+msgid "PVR is currently recording '%s' on channel '%s'."
+msgstr ""
+
+#. Text for shutdown confirmation dialog
+#: xbmc/pvr/PVRManager.cpp
+msgctxt "#19692"
+msgid "PVR will start recording '%s' on channel '%s' in %s."
+msgstr ""
+
+#. Text for shutdown confirmation dialog
+#: xbmc/pvr/PVRManager.cpp
+msgctxt "#19693"
+msgid "Daily wakeup is due in %s."
+msgstr ""
+
+#. Text for shutdown confirmation dialog
+#: xbmc/pvr/PVRManager.cpp
+msgctxt "#19694"
+msgid "%d minutes"
+msgstr ""
+
+#. Text for shutdown confirmation dialog
+#: xbmc/pvr/PVRManager.cpp
+msgctxt "#19695"
+msgid "about a minute"
+msgstr ""
+
+#. Yes button label for shutdown confirmation dialog
+#: xbmc/pvr/PVRManager.cpp
+msgctxt "#19696"
+msgid "Shutdown anyway"
+msgstr ""
+
+#empty strings from id 19697 to 19999
 
 #: system/settings/settings.xml
 msgctxt "#20000"
@@ -12415,7 +12424,7 @@ msgctxt "#24031"
 msgid "Error loading settings"
 msgstr ""
 
-#: xbmc/filesystem/AddonsDirectory.cpp
+#: xbmc/pvr/addons/PVRClients.cpp
 msgctxt "#24032"
 msgid "All Add-ons"
 msgstr ""
@@ -12423,7 +12432,7 @@ msgstr ""
 #: xbmc/addons/GUIViewStateAddonBrowser.cpp
 #: xbmc/filesystem/AddonsDirectory.cpp
 msgctxt "#24033"
-msgid "Get Add-ons"
+msgid "Install from repository"
 msgstr ""
 
 msgctxt "#24034"
@@ -12692,7 +12701,13 @@ msgctxt "#24086"
 msgid "Installing add-on..."
 msgstr ""
 
-#empty strings from id 24087 to 24088
+#. Used in add-on browser
+#: xbmc/filesystem/AddonsDirectory.cpp
+msgctxt "#24087"
+msgid "All repositories"
+msgstr ""
+
+#empty strings id 24088
 
 msgctxt "#24089"
 msgid "Add-on restarts"
@@ -12923,16 +12938,55 @@ msgctxt "#24134"
 msgid "We were unable to load your configured language. Please check your language settings."
 msgstr ""
 
-#empty strings from id 24135 to 24998
+#empty strings from id 24135 to 24992
 
+#: xbmc/addons/CGUIViewStateAddonBrowser.cpp
+#: xbmc/filesystem/AddonsDirectory.cpp
+msgctxt "#24993"
+msgid "Information Providers"
+msgstr ""
+
+#: xbmc/addons/CGUIViewStateAddonBrowser.cpp
+#: xbmc/filesystem/AddonsDirectory.cpp
+msgctxt "#24994"
+msgid "Running"
+msgstr ""
+
+#: xbmc/addons/CGUIViewStateAddonBrowser.cpp
+#: xbmc/filesystem/AddonsDirectory.cpp
+msgctxt "#24995"
+msgid "Orphaned Dependencies"
+msgstr ""
+
+#: xbmc/addons/CGUIViewStateAddonBrowser.cpp
+#: xbmc/filesystem/AddonsDirectory.cpp
+msgctxt "#24996"
+msgid "Required Dependencies"
+msgstr ""
+
+#: xbmc/addons/CGUIViewStateAddonBrowser.cpp
+#: xbmc/filesystem/AddonsDirectory.cpp
+msgctxt "#24997"
+msgid "System Add-ons"
+msgstr ""
+
+#: xbmc/addons/CGUIViewStateAddonBrowser.cpp
+#: xbmc/filesystem/AddonsDirectory.cpp
+msgctxt "#24998"
+msgid "My Add-ons"
+msgstr ""
+
+#. Used in add-on browser
 msgctxt "#24999"
 msgid "Hide incompatible"
 msgstr ""
 
+#. Used in add-on browser
 msgctxt "#25000"
 msgid "Notifications"
 msgstr ""
 
+#. Used in add-on browser
 msgctxt "#25001"
 msgid "Hide foreign"
 msgstr ""

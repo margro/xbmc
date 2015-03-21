@@ -56,7 +56,8 @@ CPVRChannelGroup::CPVRChannelGroup(void) :
     m_bSelectedGroup(false),
     m_bPreventSortAndRenumber(false),
     m_iLastWatched(0),
-    m_bHidden(false)
+    m_bHidden(false),
+    m_iPosition(0)
 {
 }
 
@@ -72,7 +73,8 @@ CPVRChannelGroup::CPVRChannelGroup(bool bRadio, unsigned int iGroupId, const std
     m_bSelectedGroup(false),
     m_bPreventSortAndRenumber(false),
     m_iLastWatched(0),
-    m_bHidden(false)
+    m_bHidden(false),
+    m_iPosition(0)
 {
 }
 
@@ -88,7 +90,8 @@ CPVRChannelGroup::CPVRChannelGroup(const PVR_CHANNEL_GROUP &group) :
     m_bSelectedGroup(false),
     m_bPreventSortAndRenumber(false),
     m_iLastWatched(0),
-    m_bHidden(false)
+    m_bHidden(false),
+    m_iPosition(group.iPosition)
 {
 }
 
@@ -102,7 +105,8 @@ bool CPVRChannelGroup::operator==(const CPVRChannelGroup& right) const
   return (m_bRadio == right.m_bRadio &&
       m_iGroupType == right.m_iGroupType &&
       m_iGroupId == right.m_iGroupId &&
-      m_strGroupName == right.m_strGroupName);
+      m_strGroupName == right.m_strGroupName &&
+      m_iPosition == right.m_iPosition);
 }
 
 bool CPVRChannelGroup::operator!=(const CPVRChannelGroup &right) const
@@ -133,6 +137,7 @@ CPVRChannelGroup::CPVRChannelGroup(const CPVRChannelGroup &group) :
   m_bPreventSortAndRenumber     = group.m_bPreventSortAndRenumber;
   m_members                     = group.m_members;
   m_sortedMembers               = group.m_sortedMembers;
+  m_iPosition                   = group.m_iPosition;
 }
 
 bool CPVRChannelGroup::Load(void)
@@ -786,6 +791,7 @@ bool CPVRChannelGroup::AddToGroup(const CPVRChannelPtr &channel, int iChannelNum
     {
       PVRChannelGroupMember newMember(realChannel);
       newMember.iChannelNumber = (unsigned int)iChannelNumber;
+      m_sortedMembers.push_back(newMember);
       m_members.insert(std::make_pair(realChannel.channel->StorageId(), newMember));
       m_bChanged = true;
 
@@ -1274,4 +1280,21 @@ bool CPVRChannelGroup::IsHidden(void) const
 {
   CSingleLock lock(m_critSection);
   return m_bHidden;
+}
+
+int CPVRChannelGroup::GetPosition(void) const
+{
+  CSingleLock lock(m_critSection);
+  return m_iPosition;
+}
+
+void CPVRChannelGroup::SetPosition(int iPosition)
+{
+  CSingleLock lock(m_critSection);
+
+  if (m_iPosition != iPosition)
+  {
+    m_iPosition = iPosition;
+    m_bChanged = true;
+  }
 }

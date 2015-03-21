@@ -172,8 +172,13 @@ bool CLangCodeExpander::ConvertISO6391ToISO6392T(const std::string& strISO6391, 
   return false;
 }
 
-bool CLangCodeExpander::ConvertToISO6392T(const std::string& strCharCode, std::string& strISO6392T, bool checkXbmcLocales /* = true */, bool checkWin32Locales /* = false */)
+bool CLangCodeExpander::ConvertToISO6392T(const std::string& strCharCode, std::string& strISO6392T, bool checkWin32Locales /* = false */)
 {
+
+  //first search in the user defined map
+  if (LookupUserCode(strCharCode, strISO6392T))
+    return true;
+
   if (strCharCode.size() == 2)
     return g_LangCodeExpander.ConvertISO6391ToISO6392T(strCharCode, strISO6392T, checkWin32Locales);
 
@@ -209,18 +214,20 @@ bool CLangCodeExpander::ConvertToISO6392T(const std::string& strCharCode, std::s
         return true;
       }
     }
+  }
+  return false;
+}
 
-    if (checkXbmcLocales)
+bool CLangCodeExpander::LookupUserCode(const std::string& desc, std::string &userCode)
+{
+  for (STRINGLOOKUPTABLE::const_iterator it = m_mapUser.begin(); it != m_mapUser.end(); ++it)
+  {
+    if (StringUtils::EqualsNoCase(desc, it->first) || StringUtils::EqualsNoCase(desc, it->second))
     {
-      CLangInfo langInfo;
-      if (!langInfo.CheckLoadLanguage(strCharCode))
-        return false;
-
-      strISO6392T = langInfo.GetLanguageCode();
-      return !strISO6392T.empty();
+      userCode = it->first;
+      return true;
     }
   }
-
   return false;
 }
 
@@ -266,10 +273,14 @@ bool CLangCodeExpander::ConvertWindowsLanguageCodeToISO6392T(const std::string& 
 }
 #endif
 
-bool CLangCodeExpander::ConvertToISO6391(const std::string& lang, std::string& code, bool checkXbmcLocales /*= true*/)
+bool CLangCodeExpander::ConvertToISO6391(const std::string& lang, std::string& code)
 {
   if (lang.empty())
     return false;
+
+  //first search in the user defined map
+  if (LookupUserCode(lang, code))
+    return true;
 
   if (lang.length() == 2)
   {
@@ -316,15 +327,7 @@ bool CLangCodeExpander::ConvertToISO6391(const std::string& lang, std::string& c
       return ConvertToISO6391(tmp, code);
   }
 
-  if (!checkXbmcLocales)
-    return false;
-
-  // try xbmc specific language names
-  CLangInfo langInfo;
-  if (!langInfo.CheckLoadLanguage(lang))
-    return false;
-
-  return ConvertToISO6391(langInfo.GetLanguageCode(), code, false);
+  return false;
 }
 
 bool CLangCodeExpander::ReverseLookup(const std::string& desc, std::string& code)
@@ -456,7 +459,7 @@ bool CLangCodeExpander::CompareFullLanguageNames(const std::string& lang1, const
   return StringUtils::EqualsNoCase(expandedLang1, expandedLang2);
 }
 
-std::vector<std::string> CLangCodeExpander::GetLanguageNames(LANGFORMATS format /* = CLangCodeExpander::ISO_639_1 */)
+std::vector<std::string> CLangCodeExpander::GetLanguageNames(LANGFORMATS format /* = CLangCodeExpander::ISO_639_1 */, bool customNames /* = false */)
 {
   std::vector<std::string> languages;
   const LCENTRY *lang = g_iso639_1;
@@ -472,6 +475,12 @@ std::vector<std::string> CLangCodeExpander::GetLanguageNames(LANGFORMATS format 
   {
     languages.push_back(lang->name);
     ++lang;
+  }
+
+  if (customNames)
+  {
+    for (STRINGLOOKUPTABLE::const_iterator it = m_mapUser.begin(); it != m_mapUser.end(); ++it)
+      languages.push_back(it->second);
   }
 
   return languages;
