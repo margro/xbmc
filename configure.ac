@@ -221,6 +221,8 @@ libcap_disabled="== Capabilities detection support disabled. =="
 libcap_not_found="== Could not find libcap. Capabilities detection support disabled. =="
 gtest_enabled="== Google Test Framework will be configured. =="
 gtest_disabled="== Google Test Framework will not be configured. =="
+breakpad_enabled="== Google Breakpad will be configured. =="
+breakpad_disabled="== Google Breakpad Framework will not be configured. =="
 
 libudev_not_found="== Could not find libudev. Will use polling to check for device changes. =="
 libudev_disabled="== udev support disabled. Will use polling to check for device changes. =="
@@ -500,6 +502,12 @@ AC_ARG_ENABLE([texturepacker],
   [use_texturepacker=$enableval],
   [use_texturepacker=auto])
 
+AC_ARG_ENABLE([lirc],
+  [AS_HELP_STRING([--disable-lirc],
+  [disable lirc support (default is enabled)])],
+  [AC_MSG_RESULT("Lirc disabled")],
+  [AC_DEFINE([HAVE_LIRC], [1], ["Lirc enabled"])])
+
 AC_ARG_WITH([lirc-device],
   [AS_HELP_STRING([--with-lirc-device=file],
   [specify the default LIRC device (default is /dev/lircd)])],
@@ -542,6 +550,12 @@ AC_ARG_ENABLE([gtest],
   [configure Google Test Framework (default is yes)])],
   [configure_gtest=$enableval],
   [configure_gtest=yes])
+
+AC_ARG_ENABLE([breakpad],
+  [AS_HELP_STRING([--enable-breakpad],
+  [configure Google Breakpad (default is no)])],
+  [use_breakpad=$enableval],
+  [use_breakpad=no])
 
 AC_ARG_ENABLE([codec],
   [AS_HELP_STRING([--enable-codec],
@@ -777,7 +791,11 @@ else
     DEBUG_FLAGS="-pg -DNDEBUG=1"
   else
     final_message="$final_message\n  Profiling:\tNo"
-    DEBUG_FLAGS="-DNDEBUG=1"
+    if test "$use_breakpad" = "yes"; then
+       DEBUG_FLAGS="-g -DNDEBUG=1"
+    else
+       DEBUG_FLAGS="-DNDEBUG=1"
+    fi
   fi
 fi
 CFLAGS="$DEBUG_FLAGS $CFLAGS"
@@ -2296,6 +2314,21 @@ else
   SKIP_CONFIG_GTEST=1
 fi
 
+# Google Breakpad
+if test "$use_breakpad" = "yes"; then
+  USE_BREAKPAD=1
+  PKG_CHECK_MODULES([BREAKPAD],    [breakpad-client],
+    [INCLUDES="$INCLUDES $BREAKPAD_CFLAGS"; LIBS="$LIBS $BREAKPAD_LIBS"],
+    AC_MSG_ERROR("breakpad-client not found"))
+  AC_DEFINE([HAVE_BREAKPAD],[1],["Define to 1 if Google Breakpad is installed"])
+  AC_MSG_NOTICE($breakpad_enabled)
+  final_message="$final_message\n  Google Breakpad Configured:\tYes"
+else
+  AC_MSG_NOTICE($breakpad_disabled)
+  final_message="$final_message\n  Google Breakpad Configured:\tNo"
+  USE_BREAKPAD=0
+fi
+
 if test "$use_avahi" = "yes"; then
   final_message="$final_message\n  Avahi:\tYes"
 else
@@ -2481,9 +2514,7 @@ OUTPUT_FILES="Makefile \
     xbmc/network/Makefile \
     xbmc/network/httprequesthandler/python/Makefile \
     xbmc/network/upnp/Makefile \
-    lib/libRTV/Makefile \
     lib/libexif/Makefile \
-    lib/libXDAAP/Makefile \
     lib/libhdhomerun/Makefile \
     lib/cximage-6.0/Makefile \
     lib/libUPnP/Makefile \
@@ -2535,6 +2566,7 @@ OUTPUT_FILES="Makefile \
     tools/android/packaging/xbmc/src/org/xbmc/kodi/Main.java \
     tools/android/packaging/xbmc/src/org/xbmc/kodi/XBMCBroadcastReceiver.java \
     tools/android/packaging/xbmc/src/org/xbmc/kodi/XBMCOnFrameAvailableListener.java \
+    tools/android/packaging/xbmc/src/org/xbmc/kodi/XBMCSettingsContentObserver.java \
     tools/android/packaging/xbmc/strings.xml \
     addons/xbmc.addon/addon.xml"
 
@@ -2630,6 +2662,7 @@ AC_SUBST(UPNP_DEFINES)
 AC_SUBST(USE_SSE4)
 AC_SUBST(USE_MMAL)
 AC_SUBST(USE_X11)
+AC_SUBST(USE_BREAKPAD)
 
 # pushd and popd are not available in other shells besides bash, so implement
 # our own pushd/popd functions

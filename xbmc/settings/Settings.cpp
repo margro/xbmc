@@ -49,6 +49,9 @@
 #if defined(TARGET_DARWIN)
 #include "osx/DarwinUtils.h"
 #endif
+#if defined(TARGET_RASPBERRY_PI)
+#include "linux/RBP.h"
+#endif
 #include "peripherals/Peripherals.h"
 #include "powermanagement/PowerManager.h"
 #include "profiles/ProfilesManager.h"
@@ -456,9 +459,14 @@ bool CSettings::InitializeDefinitions()
 #elif defined(TARGET_RASPBERRY_PI)
   if (CFile::Exists(SETTINGS_XML_FOLDER "rbp.xml") && !Initialize(SETTINGS_XML_FOLDER "rbp.xml"))
     CLog::Log(LOGFATAL, "Unable to load rbp-specific settings definitions");
+  if (g_RBP.RasberryPiVersion() > 1 && CFile::Exists(SETTINGS_XML_FOLDER "rbp2.xml") && !Initialize(SETTINGS_XML_FOLDER "rbp2.xml"))
+    CLog::Log(LOGFATAL, "Unable to load rbp2-specific settings definitions");
 #elif defined(TARGET_FREEBSD)
   if (CFile::Exists(SETTINGS_XML_FOLDER "freebsd.xml") && !Initialize(SETTINGS_XML_FOLDER "freebsd.xml"))
     CLog::Log(LOGFATAL, "Unable to load freebsd-specific settings definitions");
+#elif defined(HAS_IMXVPU)
+  if (CFile::Exists(SETTINGS_XML_FOLDER "imx6.xml") && !Initialize(SETTINGS_XML_FOLDER "imx6.xml"))
+    CLog::Log(LOGFATAL, "Unable to load imx6-specific settings definitions");
 #elif defined(TARGET_LINUX)
   if (CFile::Exists(SETTINGS_XML_FOLDER "linux.xml") && !Initialize(SETTINGS_XML_FOLDER "linux.xml"))
     CLog::Log(LOGFATAL, "Unable to load linux-specific settings definitions");
@@ -505,6 +513,7 @@ void CSettings::InitializeControls()
   m_settingsManager->RegisterSettingControl("list", this);
   m_settingsManager->RegisterSettingControl("slider", this);
   m_settingsManager->RegisterSettingControl("range", this);
+  m_settingsManager->RegisterSettingControl("title", this);
 }
 
 void CSettings::InitializeVisibility()

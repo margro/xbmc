@@ -455,7 +455,8 @@ bool CDVDDemuxFFmpeg::Open(CDVDInputStream* pInput, bool streaminfo, bool filein
       CLog::Log(LOGWARNING,"could not find codec parameters for %s", CURL::GetRedacted(strFile).c_str());
       if (m_pInput->IsStreamType(DVDSTREAM_TYPE_DVD)
       ||  m_pInput->IsStreamType(DVDSTREAM_TYPE_BLURAY)
-      || (m_pFormatContext->nb_streams == 1 && m_pFormatContext->streams[0]->codec->codec_id == AV_CODEC_ID_AC3))
+      || (m_pFormatContext->nb_streams == 1 && m_pFormatContext->streams[0]->codec->codec_id == AV_CODEC_ID_AC3)
+      || m_checkvideo)
       {
         // special case, our codecs can still handle it.
       }
@@ -509,6 +510,11 @@ void CDVDDemuxFFmpeg::Dispose()
 
   if (m_pFormatContext)
   {
+    for (unsigned int i = 0; i < m_pFormatContext->nb_streams; i++)
+    {
+      avcodec_close(m_pFormatContext->streams[i]->codec);
+    }
+
     if (m_ioContext && m_pFormatContext->pb && m_pFormatContext->pb != m_ioContext)
     {
       CLog::Log(LOGWARNING, "CDVDDemuxFFmpeg::Dispose - demuxer changed our byte context behind our back, possible memleak");
@@ -1650,6 +1656,7 @@ void CDVDDemuxFFmpeg::ParsePacket(AVPacket *pkt)
 
     int got_picture = 0;
     avcodec_decode_video2(st->codec, &picture, &got_picture, pkt);
+    av_frame_unref(&picture);
   }
 }
 

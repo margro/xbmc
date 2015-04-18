@@ -402,6 +402,28 @@ bool URIUtils::GetParentPath(const std::string& strPath, std::string& strParent)
   return true;
 }
 
+std::string URIUtils::GetBasePath(const std::string& strPath)
+{
+  std::string strCheck(strPath);
+  if (IsStack(strPath))
+    strCheck = CStackDirectory::GetFirstStackedFile(strPath);
+
+  std::string strDirectory = GetDirectory(strCheck);
+  if (IsInRAR(strCheck))
+  {
+    std::string strPath=strDirectory;
+    GetParentPath(strPath, strDirectory);
+  }
+  if (IsStack(strPath))
+  {
+    strCheck = strDirectory;
+    RemoveSlashAtEnd(strCheck);
+    if (GetFileName(strCheck).size() == 3 && StringUtils::StartsWithNoCase(GetFileName(strCheck), "cd"))
+      strDirectory = GetDirectory(strCheck);
+  }
+  return strDirectory;
+}
+
 std::string URLEncodePath(const std::string& strPath)
 {
   vector<string> segments = StringUtils::Split(strPath, "/");
@@ -579,9 +601,6 @@ bool URIUtils::IsOnLAN(const std::string& strPath)
   if(IsSpecial(strPath))
     return IsOnLAN(CSpecialProtocol::TranslatePath(strPath));
 
-  if(IsDAAP(strPath))
-    return true;
-  
   if(IsPlugin(strPath))
     return false;
 
@@ -834,6 +853,22 @@ bool URIUtils::IsFTP(const std::string& strFile)
          IsProtocol(strFile, "ftps");
 }
 
+bool URIUtils::IsHTTP(const std::string& strFile)
+{
+  if (IsStack(strFile))
+    return IsHTTP(CStackDirectory::GetFirstStackedFile(strFile));
+
+  if (IsSpecial(strFile))
+    return IsHTTP(CSpecialProtocol::TranslatePath(strFile));
+
+  CURL url(strFile);
+  if (HasParentInHostname(url))
+    return IsHTTP(url.GetHostName());
+
+  return IsProtocol(strFile, "http") ||
+         IsProtocol(strFile, "https");
+}
+
 bool URIUtils::IsUDP(const std::string& strFile)
 {
   std::string strFile2(strFile);
@@ -913,11 +948,6 @@ bool URIUtils::IsInternetStream(const CURL& url, bool bStrictCheck /* = false */
     return true;
 
   return false;
-}
-
-bool URIUtils::IsDAAP(const std::string& strFile)
-{
-  return IsProtocol(strFile, "daap");
 }
 
 bool URIUtils::IsUPnP(const std::string& strFile)

@@ -22,6 +22,7 @@
 #include "system.h"
 #include "utils/AlarmClock.h"
 #include "utils/Screenshot.h"
+#include "utils/SeekHandler.h"
 #include "Application.h"
 #include "ApplicationMessenger.h"
 #include "Autorun.h"
@@ -34,6 +35,7 @@
 #include "guilib/GUIKeyboardFactory.h"
 #include "input/Key.h"
 #include "guilib/StereoscopicsManager.h"
+#include "guilib/GUIAudioManager.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogProgress.h"
@@ -149,6 +151,7 @@ const BUILT_IN commands[] = {
   { "NotifyAll",                  true,   "Notify all connected clients" },
   { "Extract",                    true,   "Extracts the specified archive" },
   { "PlayMedia",                  true,   "Play the specified media file (or playlist)" },
+  { "Seek",                       true,   "Performs a seek in seconds on the current playing media file" },
   { "ShowPicture",                true,   "Display a picture by file path" },
   { "SlideShow",                  true,   "Run a slideshow from the specified directory" },
   { "RecursiveSlideShow",         true,   "Run a slideshow from the specified directory, including all subdirs" },
@@ -292,6 +295,22 @@ void CBuiltins::GetHelp(std::string &help)
     help += commands[i].description;
     help += "\n";
   }
+}
+
+bool CBuiltins::ActivateWindow(int iWindowID, const std::vector<std::string>& params /* = {} */, bool swappingWindows /* = false */)
+{
+  // don't activate a window if there are active modal dialogs
+  if (g_windowManager.HasModalDialog() && !g_windowManager.GetWindow(iWindowID)->IsDialog())
+  {
+    CLog::Log(LOG_LEVEL_DEBUG, "Activate of window '%i' refused because there are active modal dialogs", iWindowID);
+    g_audioManager.PlayActionSound(CAction(ACTION_ERROR));
+    return false;
+  }
+
+  // disable the screensaver
+  g_application.WakeUpScreenSaverAndDPMS();
+  g_windowManager.ActivateWindow(iWindowID, params, swappingWindows);
+  return true;
 }
 
 int CBuiltins::Execute(const std::string& execString)
@@ -442,9 +461,7 @@ int CBuiltins::Execute(const std::string& execString)
       // activate window only if window and path differ from the current active window
       if (iWindow != g_windowManager.GetActiveWindow() || !bIsSameStartFolder)
       {
-        // disable the screensaver
-        g_application.WakeUpScreenSaverAndDPMS();
-        g_windowManager.ActivateWindow(iWindow, params, execute != "activatewindow");
+        return ActivateWindow(iWindow, params, execute != "activatewindow");
       }
     }
     else
@@ -470,10 +487,8 @@ int CBuiltins::Execute(const std::string& execString)
     {
       if (iWindow != g_windowManager.GetActiveWindow())
       {
-        // disable the screensaver
-        g_application.WakeUpScreenSaverAndDPMS();
-        vector<string> dummy;
-        g_windowManager.ActivateWindow(iWindow, dummy, execute != "activatewindowandfocus");
+        if (!ActivateWindow(iWindow, {}, execute != "activatewindowandfocus"))
+          return false;
 
         unsigned int iPtr = 1;
         while (params.size() > iPtr + 1)
@@ -799,6 +814,16 @@ int CBuiltins::Execute(const std::string& execString)
         return false;
       }
     }
+  }
+  else if (execute == "seek")
+  {
+    if (!params.size())
+    {
+      CLog::Log(LOGERROR, "Seek called with empty parameter");
+      return -3;
+    }
+    if (g_application.m_pPlayer->IsPlaying())
+      CSeekHandler::Get().SeekSeconds(atoi(params[0].c_str()));
   }
   else if (execute == "showpicture")
   {
@@ -1485,7 +1510,10 @@ int CBuiltins::Execute(const std::string& execString)
     g_application.getNetwork().NetworkMessage(CNetwork::SERVICES_DOWN,1);
     CProfilesManager::Get().LoadMasterProfileForLogin();
     g_passwordManager.bMasterUser = false;
-    g_windowManager.ActivateWindow(WINDOW_LOGIN_SCREEN);
+
+    if (!ActivateWindow(WINDOW_LOGIN_SCREEN))
+      return false;
+
     if (!CNetworkServices::Get().StartEventServer()) // event server could be needed in some situations
       CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
   }

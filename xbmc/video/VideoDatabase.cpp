@@ -43,6 +43,8 @@
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "dialogs/GUIDialogKaiToast.h"
+#include "dialogs/GUIDialogOK.h"
 #include "FileItem.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/AdvancedSettings.h"
@@ -6874,15 +6876,20 @@ std::string CVideoDatabase::GetContentForPath(const std::string& strPath)
   if (scraper)
   {
     if (scraper->Content() == CONTENT_TVSHOWS)
-    { // check for episodes or seasons.  Assumptions are:
+    {
+      if (foundDirectly)
+        return "tvshows";
+
+      // check for episodes or seasons.  Assumptions are:
       // 1. if episodes are in the path then we're in episodes.
       // 2. if no episodes are found, and content was set directly on this path, then we're in shows.
       // 3. if no episodes are found, and content was not set directly on this path, we're in seasons (assumes tvshows/seasons/episodes)
-      std::string sql = PrepareSQL("select count(1) from episode_view where strPath = '%s' limit 1", strPath.c_str());
+      std::string sql = PrepareSQL("SELECT count(1) FROM episode_view WHERE strPath LIKE '%s%%' LIMIT 1", strPath.c_str());
+
       m_pDS->query( sql.c_str() );
       if (m_pDS->num_rows() && m_pDS->fv(0).get_asInt() > 0)
         return "episodes";
-      return foundDirectly ? "tvshows" : "seasons";
+      return "seasons";
     }
     return TranslateContent(scraper->Content());
   }
@@ -7349,7 +7356,10 @@ unsigned int CVideoDatabase::GetMusicVideoIDs(const std::string& strWhere, vecto
     if (NULL == m_pDB.get()) return 0;
     if (NULL == m_pDS.get()) return 0;
 
-    std::string strSQL = "select distinct idMVideo from musicvideo_view " + strWhere;
+    std::string strSQL = "select distinct idMVideo from musicvideo_view";
+    if (!strWhere.empty())
+      strSQL += " where " + strWhere;
+
     if (!m_pDS->query(strSQL.c_str())) return 0;
     songIDs.clear();
     if (m_pDS->num_rows() == 0)
@@ -7884,6 +7894,7 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
     }
 
     std::string filesToTestForDelete;
+    VECSOURCES *videoSources = CMediaSourceSettings::Get().GetSources("video");
 
     int total = m_pDS->num_rows();
     int current = 0;
@@ -7903,8 +7914,10 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
       if (URIUtils::IsInArchive(fullPath))
         fullPath = CURL(fullPath).GetHostName();
 
-      // remove optical, non-existing files
-      if (URIUtils::IsOnDVD(fullPath) || !CFile::Exists(fullPath, false))
+      // remove optical, non-existing files, files with no matching source
+      bool bIsSource;
+      if (URIUtils::IsOnDVD(fullPath) || !CFile::Exists(fullPath, false) ||
+          CUtil::GetMatchingSource(fullPath, *videoSources, bIsSource) < 0)
         filesToTestForDelete += m_pDS->fv("files.idFile").get_asString() + ",";
 
       if (handle == NULL && progress != NULL)
@@ -8220,6 +8233,7 @@ std::vector<int> CVideoDatabase::CleanMediaType(const std::string &mediaType, co
                     parentPathIdField.c_str(),
                     table.c_str(), cleanableFileIDs.c_str());
 
+  VECSOURCES *videoSources = CMediaSourceSettings::Get().GetSources("video");
   // map of parent path ID to boolean pair (if not exists and user choice)
   std::map<int, std::pair<bool, bool> > sourcePathsDeleteDecisions;
   m_pDS2->query(sql.c_str());
@@ -8234,13 +8248,21 @@ std::vector<int> CVideoDatabase::CleanMediaType(const std::string &mediaType, co
       SScanSettings scanSettings;
       std::string sourcePath;
       GetSourcePath(parentPath, sourcePath, scanSettings);
+
+      bool bIsSourceName;
+      bool sourceNotFound = (CUtil::GetMatchingSource(parentPath, *videoSources, bIsSourceName) < 0);
+
+      if (sourceNotFound && sourcePath.empty())
+        sourcePath = parentPath;
+
       int sourcePathID = GetPathId(sourcePath);
       std::map<int, std::pair<bool, bool> >::const_iterator sourcePathsDeleteDecision = sourcePathsDeleteDecisions.find(sourcePathID);
       if (sourcePathsDeleteDecision == sourcePathsDeleteDecisions.end())
       {
-        bool sourcePathNotExists = !CDirectory::Exists(sourcePath, false);
+        bool sourcePathNotExists = (sourceNotFound || !CDirectory::Exists(sourcePath, false));
         // if the parent path exists, the file will be deleted without asking
-        // if the parent path doesn't exist, ask the user whether to remove all items it contained
+        // if the parent path doesn't exist or does not belong to a valid media source,
+        // ask the user whether to remove all items it contained
         if (sourcePathNotExists)
         {
           // in silent mode assume that the files are just temporarily missing
@@ -8338,6 +8360,7 @@ void CVideoDatabase::DumpToDummyFiles(const std::string &path)
 
 void CVideoDatabase::ExportToXML(const std::string &path, bool singleFiles /* = false */, bool images /* = false */, bool actorThumbs /* false */, bool overwrite /*=false*/)
 {
+  int iFailCount = 0;
   CGUIDialogProgress *progress=NULL;
   try
   {
@@ -8465,16 +8488,8 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFiles /* = 
             if(!xmlDoc.SaveFile(nfoFile))
             {
               CLog::Log(LOGERROR, "%s: Movie nfo export failed! ('%s')", __FUNCTION__, nfoFile.c_str());
-              bSkip = ExportSkipEntry(nfoFile);
-              if (!bSkip)
-              {
-                if (progress)
-                {
-                  progress->Close();
-                  m_pDS->close();
-                  return;
-                }
-              }
+              CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, g_localizeStrings.Get(20302), nfoFile);
+              iFailCount++;
             }
           }
         }
@@ -8563,16 +8578,8 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFiles /* = 
             if(!xmlDoc.SaveFile(nfoFile))
             {
               CLog::Log(LOGERROR, "%s: Musicvideo nfo export failed! ('%s')", __FUNCTION__, nfoFile.c_str());
-              bSkip = ExportSkipEntry(nfoFile);
-              if (!bSkip)
-              {
-                if (progress)
-                {
-                  progress->Close();
-                  m_pDS->close();
-                  return;
-                }
-              }
+              CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, g_localizeStrings.Get(20302), nfoFile);
+              iFailCount++;
             }
           }
         }
@@ -8669,16 +8676,8 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFiles /* = 
             if(!xmlDoc.SaveFile(nfoFile))
             {
               CLog::Log(LOGERROR, "%s: TVShow nfo export failed! ('%s')", __FUNCTION__, nfoFile.c_str());
-              bSkip = ExportSkipEntry(nfoFile);
-              if (!bSkip)
-              {
-                if (progress)
-                {
-                  progress->Close();
-                  m_pDS->close();
-                  return;
-                }
-              }
+              CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, g_localizeStrings.Get(20302), nfoFile);
+              iFailCount++;
             }
           }
         }
@@ -8772,16 +8771,8 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFiles /* = 
               if(!xmlDoc.SaveFile(nfoFile))
               {
                 CLog::Log(LOGERROR, "%s: Episode nfo export failed! ('%s')", __FUNCTION__, nfoFile.c_str());
-                bSkip = ExportSkipEntry(nfoFile);
-                if (!bSkip)
-                {
-                  if (progress)
-                  {
-                    progress->Close();
-                    m_pDS->close();
-                    return;
-                  }
-                }
+                CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, g_localizeStrings.Get(20302), nfoFile);
+                iFailCount++;
               }
             }
           }
@@ -8850,10 +8841,14 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFiles /* = 
   catch (...)
   {
     CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+    iFailCount++;
   }
 
   if (progress)
     progress->Close();
+
+  if (iFailCount > 0)
+    CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(647), StringUtils::Format(g_localizeStrings.Get(15011).c_str(), iFailCount), "", "");
 }
 
 void CVideoDatabase::ExportActorThumbs(const std::string &strDir, const CVideoInfoTag &tag, bool singleFiles, bool overwrite /*=false*/)
@@ -8879,22 +8874,6 @@ void CVideoDatabase::ExportActorThumbs(const std::string &strDir, const CVideoIn
       CTextureCache::Get().Export(iter->thumb, thumbFile, overwrite);
     }
   }
-}
-
-bool CVideoDatabase::ExportSkipEntry(const std::string &nfoFile)
-{
-  std::string strParent;
-  URIUtils::GetParentPath(nfoFile,strParent);
-  CLog::Log(LOGERROR, "%s: Unable to write to '%s'!", __FUNCTION__, strParent.c_str());
-
-  bool bSkip = CGUIDialogYesNo::ShowAndGetInput(g_localizeStrings.Get(647), g_localizeStrings.Get(20302), strParent.c_str(), g_localizeStrings.Get(20303));
-
-  if (bSkip)
-    CLog::Log(LOGERROR, "%s: Skipping export of '%s' as requested", __FUNCTION__, nfoFile.c_str());
-  else
-    CLog::Log(LOGERROR, "%s: Export failed! Canceling as requested", __FUNCTION__);
-
-  return bSkip;
 }
 
 void CVideoDatabase::ImportFromXML(const std::string &path)

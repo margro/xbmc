@@ -203,6 +203,7 @@
 
 #define ACTION_VOLUME_UP            88
 #define ACTION_VOLUME_DOWN          89
+#define ACTION_VOLAMP               90
 #define ACTION_MUTE                 91
 #define ACTION_NAV_BACK             92
 #define ACTION_VOLAMP_UP            93
@@ -350,6 +351,7 @@
 
 #define ACTION_TRIGGER_OSD            243 // show autoclosing OSD. Can b used in videoFullScreen.xml window id=2005
 #define ACTION_INPUT_TEXT             244
+#define ACTION_VOLUME_SET             245
 
 // touch actions
 #define ACTION_TOUCH_TAP              401
@@ -381,7 +383,8 @@
 
 // The NOOP action can be specified to disable an input event. This is
 // useful in user keyboard.xml etc to disable actions specified in the
-// system mappings.
+// system mappings. ERROR action is used to play an error sound
+#define ACTION_ERROR                  998
 #define ACTION_NOOP                   999
 
 #define ICON_TYPE_NONE          101

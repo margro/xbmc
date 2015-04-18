@@ -88,7 +88,6 @@ bool CThumbExtractor::DoWork()
 {
   if (m_item.IsLiveTV()
   ||  URIUtils::IsUPnP(m_item.GetPath())
-  ||  m_item.IsDAAP()
   ||  m_item.IsDVD()
   ||  m_item.IsDiscImage()
   ||  m_item.IsDVDFile(false, true)
@@ -97,12 +96,12 @@ bool CThumbExtractor::DoWork()
   ||  m_item.IsPlayList())
     return false;
 
-  if (URIUtils::IsRemote(m_item.GetPath()) && !URIUtils::IsOnLAN(m_item.GetPath()))
-  {
-    // A quasi internet filesystem like webdav is generally fast enough for extracting stuff
-    if (!URIUtils::IsDAV(m_item.GetPath()))
-      return false;
-  }
+  // For HTTP/FTP we only allow extraction when on a LAN
+  if (URIUtils::IsRemote(m_item.GetPath()) &&
+     !URIUtils::IsOnLAN(m_item.GetPath())  &&
+     (URIUtils::IsFTP(m_item.GetPath())    ||
+      URIUtils::IsHTTP(m_item.GetPath())))
+    return false;
 
   bool result=false;
   if (m_thumb)
@@ -159,7 +158,7 @@ bool CThumbExtractor::DoWork()
         db.SetStreamDetailsForFileId(info->m_streamDetails, info->m_iFileId);
 
       // overwrite the runtime value if the one from streamdetails is available
-      if (info->m_iDbId > 0 && info->m_duration != info->GetDuration())
+      if (info->m_iDbId > 0 && info->m_duration != static_cast<int>(info->GetDuration()))
       {
         info->m_duration = info->GetDuration();
 

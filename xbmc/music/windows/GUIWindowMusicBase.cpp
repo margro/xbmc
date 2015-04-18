@@ -24,9 +24,6 @@
 #include "GUIWindowMusicBase.h"
 #include "music/dialogs/GUIDialogMusicInfo.h"
 #include "filesystem/ZipManager.h"
-#ifdef HAS_FILESYSTEM_DAAP
-#include "filesystem/DAAPDirectory.h"
-#endif
 #include "playlists/PlayListFactory.h"
 #include "Util.h"
 #include "playlists/PlayListM3U.h"
@@ -713,7 +710,10 @@ void CGUIWindowMusicBase::UpdateButtons()
   msg2.SetLabel(g_localizeStrings.Get(744)); // Files
   g_windowManager.SendMessage(msg2);
 
-  msg2.SetLabel(g_localizeStrings.Get(15100)); // Library
+  msg2.SetLabel(g_localizeStrings.Get(14022)); // Library
+  g_windowManager.SendMessage(msg2);
+
+  msg2.SetLabel(g_localizeStrings.Get(20389)); // Music Videos
   g_windowManager.SendMessage(msg2);
 
   // Select the current window as default item
@@ -889,16 +889,6 @@ void CGUIWindowMusicBase::PlayItem(int iItem)
 
   const CFileItemPtr pItem = m_vecItems->Get(iItem);
 
-  // special case for DAAP playlist folders
-  bool bIsDAAPplaylist = false;
-#ifdef HAS_FILESYSTEM_DAAP
-  if (pItem->IsDAAP() && pItem->m_bIsFolder)
-  {
-    CDAAPDirectory dirDAAP;
-    if (dirDAAP.GetCurrLevel(pItem->GetPath()) == 0)
-      bIsDAAPplaylist = true;
-  }
-#endif
   // if its a folder, build a playlist
   if ((pItem->m_bIsFolder && !pItem->IsPlugin()) || (g_windowManager.GetActiveWindow() == WINDOW_MUSIC_NAV && pItem->IsPlayList()))
   {
@@ -931,10 +921,6 @@ void CGUIWindowMusicBase::PlayItem(int iItem)
     g_playlistPlayer.Reset();
     g_playlistPlayer.Add(PLAYLIST_MUSIC, queuedItems);
     g_playlistPlayer.SetCurrentPlaylist(PLAYLIST_MUSIC);
-
-    // activate the playlist window if its not activated yet
-    if (bIsDAAPplaylist && GetID() == g_windowManager.GetActiveWindow())
-      g_windowManager.ActivateWindow(WINDOW_MUSIC_PLAYLIST);
 
     // play!
     g_playlistPlayer.Play();

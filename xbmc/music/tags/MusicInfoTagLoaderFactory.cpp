@@ -23,9 +23,6 @@
 #include "TagLoaderTagLib.h"
 #include "MusicInfoTagLoaderCDDA.h"
 #include "MusicInfoTagLoaderShn.h"
-#ifdef HAS_MOD_PLAYER
-#include "cores/ModPlayer.h"
-#endif
 #include "MusicInfoTagLoaderDatabase.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -44,17 +41,16 @@ CMusicInfoTagLoaderFactory::CMusicInfoTagLoaderFactory()
 CMusicInfoTagLoaderFactory::~CMusicInfoTagLoaderFactory()
 {}
 
-IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const std::string& strFileName)
+IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const CFileItem& item)
 {
   // dont try to read the tags for streams & shoutcast
-  CFileItem item(strFileName, false);
   if (item.IsInternetStream())
     return NULL;
 
   if (item.IsMusicDb())
     return new CMusicInfoTagLoaderDatabase();
 
-  std::string strExtension = URIUtils::GetExtension(strFileName);
+  std::string strExtension = URIUtils::GetExtension(item.GetPath());
   StringUtils::ToLower(strExtension);
   StringUtils::TrimLeft(strExtension, ".");
 
@@ -85,7 +81,7 @@ IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const std::string&
       strExtension == "ogg" || strExtension == "oga" || strExtension == "oggstream" ||
       strExtension == "aif" || strExtension == "aiff" ||
       strExtension == "wav" ||
-      strExtension == "mod" || strExtension == "nsf" || strExtension == "nsfstream" ||
+      strExtension == "mod" ||
       strExtension == "s3m" || strExtension == "it" || strExtension == "xm" ||
       strExtension == "wv")
   {

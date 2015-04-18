@@ -84,7 +84,6 @@ CInputManager& CInputManager::Get()
 void CInputManager::InitializeInputs()
 {
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
-  m_RemoteControl.SetEnabled(true);
   m_RemoteControl.Initialize();
 #endif
 
@@ -458,7 +457,8 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
   switch (newEvent.type)
   {
   case XBMC_KEYDOWN:
-    OnKey(m_Keyboard.ProcessKeyDown(newEvent.key.keysym));
+    m_Keyboard.ProcessKeyDown(newEvent.key.keysym);
+    OnKey(m_Keyboard.TranslateKey(newEvent.key.keysym));
     break;
   case XBMC_KEYUP:
     m_Keyboard.ProcessKeyUp();

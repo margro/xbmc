@@ -25,7 +25,8 @@
 
 #include "utils/ISerializable.h"
 #include "XBDateTime.h"
-#include "music/tags/MusicInfoTag.h" // for EmbeddedArt
+#include "music/EmbeddedArt.h"
+#include "music/tags/ReplayGain.h"
 #include "Artist.h"
 #include <map>
 #include <string>
@@ -92,6 +93,7 @@ public:
   MUSIC_INFO::EmbeddedArtInfo embeddedArt;
   std::string strMusicBrainzTrackID;
   std::string strComment;
+  std::string strMood;
   std::string strCueSheet;
   char rating;
   int iTrack;

@@ -107,9 +107,6 @@
 #include <SDL2/SDL.h>
 #endif
 
-#if defined(FILESYSTEM) && !defined(TARGET_POSIX)
-#include "filesystem/FileDAAP.h"
-#endif
 #ifdef HAS_UPNP
 #include "network/upnp/UPnP.h"
 #include "network/upnp/UPnPSettings.h"
@@ -190,6 +187,7 @@
 #include "utils/XMLUtils.h"
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
+#include "music/tags/MusicInfoTag.h"
 #include "music/tags/MusicInfoTagLoaderFactory.h"
 #include "CompileInfo.h"
 
@@ -330,6 +328,7 @@ CApplication::CApplication(void)
   m_currentStackPosition = 0;
   m_lastFrameTime = 0;
   m_lastRenderTime = 0;
+  m_skipGuiRender = false;
   m_bTestMode = false;
 
   m_muted = false;
@@ -1558,9 +1557,15 @@ bool CApplication::Load(const TiXmlNode *settings)
   const TiXmlElement *audioElement = settings->FirstChildElement("audio");
   if (audioElement != NULL)
   {
+#ifndef TARGET_ANDROID
     XMLUtils::GetBoolean(audioElement, "mute", m_muted);
     if (!XMLUtils::GetFloat(audioElement, "fvolumelevel", m_volumeLevel, VOLUME_MINIMUM, VOLUME_MAXIMUM))
       m_volumeLevel = VOLUME_MAXIMUM;
+#else
+    // Use system volume settings
+    m_volumeLevel = CXBMCApp::GetSystemVolume();
+    m_muted = (m_volumeLevel == 0);
+#endif
   }
 
   return true;
@@ -1887,6 +1892,7 @@ void CApplication::Render()
   bool hasRendered = false;
   bool limitFrames = false;
   unsigned int singleFrameTime = 10; // default limit 100 fps
+  bool vsync = true;
 
   // Whether externalplayer is playing and we're unfocused
   bool extPlayerActive = m_pPlayer->GetCurrentPlayer() == EPC_EXTPLAYER && m_pPlayer->IsPlaying() && !m_AppFocused;
@@ -1899,6 +1905,8 @@ void CApplication::Render()
     if (!extPlayerActive && g_graphicsContext.IsFullScreenVideo() && !m_pPlayer->IsPausedPlayback())
     {
       m_bPresentFrame = g_renderManager.HasFrame();
+      if (vsync_mode == VSYNC_DISABLED)
+        vsync = false;
     }
     else
     {
@@ -1907,9 +1915,15 @@ void CApplication::Render()
       // DXMERGE - we checked for g_videoConfig.GetVSyncMode() before this
       //           perhaps allowing it to be set differently than the UI option??
       if (vsync_mode == VSYNC_DISABLED || vsync_mode == VSYNC_VIDEO)
+      {
         limitFrames = true; // not using vsync.
+        vsync = false;
+      }
       else if ((g_infoManager.GetFPS() > g_graphicsContext.GetFPS() + 10) && g_infoManager.GetFPS() > 1000 / singleFrameTime)
+      {
         limitFrames = true; // using vsync, but it isn't working.
+        vsync = false;
+      }
 
       if (limitFrames)
       {
@@ -1926,7 +1940,6 @@ void CApplication::Render()
   }
 
   CSingleLock lock(g_graphicsContext);
-  g_infoManager.UpdateFPS();
 
   if (g_graphicsContext.IsFullScreenVideo() && m_pPlayer->IsPlaying() && vsync_mode == VSYNC_VIDEO)
     g_Windowing.SetVSync(true);
@@ -1941,41 +1954,54 @@ void CApplication::Render()
   if(!g_Windowing.BeginRender())
     return;
 
-  CDirtyRegionList dirtyRegions = g_windowManager.GetDirty();
-  if(g_graphicsContext.GetStereoMode())
-  {
-    g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_LEFT);
-    if(RenderNoPresent())
-      hasRendered = true;
+  CDirtyRegionList dirtyRegions;
 
-    if(g_graphicsContext.GetStereoMode() != RENDER_STEREO_MODE_MONO)
+  // render gui layer
+  if (!m_skipGuiRender)
+  {
+    dirtyRegions = g_windowManager.GetDirty();
+    if (g_graphicsContext.GetStereoMode())
     {
-      g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_RIGHT);
-      if(RenderNoPresent())
+      g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_LEFT);
+      if (RenderNoPresent())
+        hasRendered = true;
+
+      if (g_graphicsContext.GetStereoMode() != RENDER_STEREO_MODE_MONO)
+      {
+        g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_RIGHT);
+        if (RenderNoPresent())
+          hasRendered = true;
+      }
+      g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_OFF);
+    }
+    else
+    {
+      if (RenderNoPresent())
         hasRendered = true;
     }
-    g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_OFF);
+    // execute post rendering actions (finalize window closing)
+    g_windowManager.AfterRender();
   }
-  else
-  {
-    if(RenderNoPresent())
-      hasRendered = true;
-  }
+
+  // render video layer
+  g_windowManager.RenderEx();
 
   g_Windowing.EndRender();
-
-  // execute post rendering actions (finalize window closing)
-  g_windowManager.AfterRender();
 
   // reset our info cache - we do this at the end of Render so that it is
   // fresh for the next process(), or after a windowclose animation (where process()
   // isn't called)
   g_infoManager.ResetCache();
-  lock.Leave();
+
 
   unsigned int now = XbmcThreads::SystemClockMillis();
   if (hasRendered)
+  {
+    g_infoManager.UpdateFPS();
     m_lastRenderTime = now;
+  }
+
+  lock.Leave();
 
   //when nothing has been rendered for m_guiDirtyRegionNoFlipTimeout milliseconds,
   //we don't call g_graphicsContext.Flip() anymore, this saves gpu and cpu usage
@@ -2005,7 +2031,7 @@ void CApplication::Render()
   }
 
   m_lastFrameTime = XbmcThreads::SystemClockMillis();
-  CTimeUtils::UpdateFrameTime(flip);
+  CTimeUtils::UpdateFrameTime(flip, vsync);
 
   g_renderManager.UpdateResolution();
   g_renderManager.ManageCaptures();
@@ -2377,7 +2403,7 @@ bool CApplication::OnAction(const CAction &action)
   }
 
   // Check for global volume control
-  if (action.GetAmount() && (action.GetID() == ACTION_VOLUME_UP || action.GetID() == ACTION_VOLUME_DOWN))
+  if (action.GetAmount() && (action.GetID() == ACTION_VOLUME_UP || action.GetID() == ACTION_VOLUME_DOWN || action.GetID() == ACTION_VOLUME_SET))
   {
     if (!m_pPlayer->IsPassthrough())
     {
@@ -2395,12 +2421,17 @@ bool CApplication::OnAction(const CAction &action)
 #endif
       if (action.GetID() == ACTION_VOLUME_UP)
         volume += (float)fabs(action.GetAmount()) * action.GetAmount() * step;
-      else
+      else if (action.GetID() == ACTION_VOLUME_DOWN)
         volume -= (float)fabs(action.GetAmount()) * action.GetAmount() * step;
-      SetVolume(volume, false);
+      else
+        volume = action.GetAmount() * step;
+      if (volume != m_volumeLevel)
+      {
+        SetVolume(volume, false);
+        // show visual feedback of volume change...
+        ShowVolumeBar(&action);
+      }
     }
-    // show visual feedback of volume change...
-    ShowVolumeBar(&action);
     return true;
   }
   if (action.GetID() == ACTION_GUIPROFILE_BEGIN)
@@ -2459,8 +2490,26 @@ void CApplication::FrameMove(bool processEvents, bool processGUI)
   }
   if (processGUI && m_renderGUI)
   {
+    m_skipGuiRender = false;
+    int fps = 0;
+
+#if defined(TARGET_RASPBERRY_PI) || defined(HAS_IMXVPU)
+    // This code reduces rendering fps of the GUI layer when playing videos in fullscreen mode
+    // it makes only sense on architectures with multiple layers
+    if (g_graphicsContext.IsFullScreenVideo() && !m_pPlayer->IsPausedPlayback() && g_renderManager.IsVideoLayer())
+      fps = CSettings::Get().GetInt("videoplayer.limitguiupdate");
+#endif
+
+    unsigned int now = XbmcThreads::SystemClockMillis();
+    unsigned int frameTime = now - m_lastRenderTime;
+    if (fps > 0 && frameTime * fps < 1000)
+      m_skipGuiRender = true;
+
     if (!m_bStop)
-      g_windowManager.Process(CTimeUtils::GetFrameTime());
+    {
+      if (!m_skipGuiRender)
+        g_windowManager.Process(CTimeUtils::GetFrameTime());
+    }
     g_windowManager.FrameMove();
   }
 }
@@ -2586,10 +2635,6 @@ void CApplication::Stop(int exitCode)
     StopServices();
     //Sleep(5000);
 
-#if HAS_FILESYTEM_DAAP
-    CLog::Log(LOGNOTICE, "stop daap clients");
-    g_DaapClient.Release();
-#endif
 #ifdef HAS_FILESYSTEM_SAP
     CLog::Log(LOGNOTICE, "stop sap announcement listener");
     g_sapsessions.StopThread();
@@ -3876,7 +3921,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
           {
             if (!m_itemCurrentFile->HasMusicInfoTag() || !m_itemCurrentFile->GetMusicInfoTag()->Loaded())
             {
-              IMusicInfoTagLoader* tagloader = CMusicInfoTagLoaderFactory::CreateLoader(m_itemCurrentFile->GetPath());
+              IMusicInfoTagLoader* tagloader = CMusicInfoTagLoaderFactory::CreateLoader(*m_itemCurrentFile);
               tagloader->Load(m_itemCurrentFile->GetPath(),*m_itemCurrentFile->GetMusicInfoTag());
               delete tagloader;
             }

@@ -287,6 +287,7 @@ namespace INFO
 #define VIDEOPLAYER_CHANNEL_NUMBER_LBL 315
 #define VIDEOPLAYER_CAN_RESUME_LIVE_TV 316
 #define VIDEOPLAYER_IMDBNUMBER        317
+#define VIDEOPLAYER_EPISODENAME       318
 
 #define CONTAINER_CAN_FILTER         342
 #define CONTAINER_CAN_FILTERADVANCED 343
@@ -404,9 +405,11 @@ namespace INFO
 #define LIBRARY_HAS_MOVIE_SETS      723
 #define LIBRARY_HAS_TVSHOWS         724
 #define LIBRARY_HAS_MUSICVIDEOS     725
-#define LIBRARY_IS_SCANNING         726
-#define LIBRARY_IS_SCANNING_VIDEO   727
-#define LIBRARY_IS_SCANNING_MUSIC   728
+#define LIBRARY_HAS_SINGLES         726
+#define LIBRARY_HAS_COMPILATIONS    727
+#define LIBRARY_IS_SCANNING         728
+#define LIBRARY_IS_SCANNING_VIDEO   729
+#define LIBRARY_IS_SCANNING_MUSIC   730
 
 #define SYSTEM_PLATFORM_LINUX       741
 #define SYSTEM_PLATFORM_WINDOWS     742
@@ -661,6 +664,7 @@ namespace INFO
 #define LISTITEM_CHANNEL_NUMBER_LBL (LISTITEM_START + 145)
 #define LISTITEM_IMDBNUMBER         (LISTITEM_START + 146)
 #define LISTITEM_EPISODENAME        (LISTITEM_START + 147)
+#define LISTITEM_IS_COLLECTION      (LISTITEM_START + 148)
 
 #define LISTITEM_PROPERTY_START     (LISTITEM_START + 200)
 #define LISTITEM_PROPERTY_END       (LISTITEM_PROPERTY_START + 1000)
@@ -958,6 +962,8 @@ protected:
   int m_libraryHasTVShows;
   int m_libraryHasMusicVideos;
   int m_libraryHasMovieSets;
+  int m_libraryHasSingles;
+  int m_libraryHasCompilations;
 
   SPlayerVideoStreamInfo m_videoInfo;
   SPlayerAudioStreamInfo m_audioInfo;

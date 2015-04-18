@@ -36,21 +36,22 @@
 #include "utils/log.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/TimeUtils.h"
+#include "threads/SingleLock.h"
 
-CRemoteControl::CRemoteControl() :
-  CThread("RemoteControl"),
-  m_deviceName(LIRC_DEVICE)
+CRemoteControl::CRemoteControl()
+  : CThread("RemoteControl")
+  , m_fd(-1)
+  , m_inotify_fd(-1)
+  , m_inotify_wd(-1)
+  , m_file(nullptr)
+  , m_holdTime(0)
+  , m_button(0)
+  , m_bInitialized(false)
+  , m_inReply(false)
+  , m_nrSending(0)
+  , m_used(true)
+  , m_deviceName(LIRC_DEVICE)
 {
-  m_fd = -1;
-  m_file = NULL;
-  m_bInitialized = false;
-  m_button = 0;
-  m_holdTime = 0;
-  m_used = true;
-  m_inotify_fd = -1;
-  m_inotify_wd = -1;
-  m_inReply = false;
-  m_nrSending = 0;
 }
 
 CRemoteControl::~CRemoteControl()
@@ -74,6 +75,9 @@ void CRemoteControl::Reset()
 
 void CRemoteControl::Disconnect()
 {
+  CSingleLock lock(m_CS);
+  //make sure that any new function calls abort directly
+  m_bInitialized = false;
   m_event.Set();
 
   if (IsRunning())
@@ -81,7 +85,6 @@ void CRemoteControl::Disconnect()
 
   if (m_fd != -1) 
   {
-    m_bInitialized = false;
     if (m_file != NULL)
       fclose(m_file);
     if (m_fd != -1)
@@ -113,6 +116,11 @@ void CRemoteControl::SetDeviceName(const std::string& value)
 
 void CRemoteControl::Initialize()
 {
+  //Create must not be called twice, make sure to lock before
+  //check IsRunning() so that any other thread will block until
+  //we know IsRunning is true and will not call Create again
+  CSingleLock lock(m_CS);
+
   if (m_bInitialized || !m_used || IsRunning())
     return;
 
@@ -121,6 +129,13 @@ void CRemoteControl::Initialize()
 void CRemoteControl::Process()
 {
   struct sockaddr_un addr;
+  if (m_deviceName.length() >= sizeof(addr.sun_path))
+  {
+    CLog::Log(LOGERROR, "LIRC %s: device name is too long(%ud), maximum is %d",
+              __FUNCTION__, m_deviceName.length(), sizeof(addr.sun_path));
+    return;
+  }
+
   addr.sun_family = AF_UNIX;
   strcpy(addr.sun_path, m_deviceName.c_str());
 
@@ -133,8 +148,11 @@ void CRemoteControl::Process()
   // multiple tries because LIRC service might be up and running a little later then xbmc on boot.
   while (!m_bStop && iAttempt <= 60)
   {
-    if (Connect(addr))
+    if (Connect(addr, iAttempt == 0))
+    {
+      m_bInitialized = true;
       break;
+    }
 
     if (iAttempt == 0)
       CLog::Log(LOGINFO, "CRemoteControl::Process - failed to connect to LIRC, will keep retrying every %d seconds", iMsRetryDelay / 1000);
@@ -152,6 +170,9 @@ void CRemoteControl::Process()
 }
 
 bool CRemoteControl::CheckDevice() {
+  if (!m_bInitialized || !m_used)
+    return false;
+
 #ifdef HAVE_INOTIFY
   if (m_inotify_fd < 0 || m_inotify_wd < 0)
     return true; // inotify wasn't setup for some reason, assume all is well
@@ -181,11 +202,18 @@ void CRemoteControl::Update()
 
   uint32_t now = XbmcThreads::SystemClockMillis();
 
+  char buf[128];
   // Read a line from the socket
-  while (fgets(m_buf, sizeof(m_buf), m_file) != NULL)
+  while (true)
   {
+    {
+      CSingleLock lock(m_CS);
+      if (fgets(buf, sizeof(buf), m_file) == NULL)
+        break;
+    }
+
     // Remove the \n
-    m_buf[strlen(m_buf)-1] = '\0';
+    buf[strlen(buf)-1] = '\0';
 
     // Parse the result. Sample line:
     // 000000037ff07bdd 00 OK mceusb
@@ -193,7 +221,7 @@ void CRemoteControl::Update()
     char buttonName[128];
     char repeatStr[4];
     char deviceName[128];
-    sscanf(m_buf, "%s %s %s %s", &scanCode[0], &repeatStr[0], &buttonName[0], &deviceName[0]);
+    sscanf(buf, "%s %s %s %s", &scanCode[0], &repeatStr[0], &buttonName[0], &deviceName[0]);
 
     //beginning of lirc reply packet
     //we get one when lirc is done sending something
@@ -232,7 +260,7 @@ void CRemoteControl::Update()
       CLog::Log(LOGERROR, "LIRC: invalid non-numeric character in expression %s", repeatStr);
     if (repeat == 0)
     {
-      CLog::Log(LOGDEBUG, "LIRC: %s - NEW at %d:%s (%s)", __FUNCTION__, now, m_buf, buttonName);
+      CLog::Log(LOGDEBUG, "LIRC: %s - NEW at %d:%s (%s)", __FUNCTION__, now, buf, buttonName);
       m_firstClickTime = now;
       m_holdTime = 0;
       return;
@@ -250,6 +278,8 @@ void CRemoteControl::Update()
 
   //drop commands when already sending
   //because keypresses come in faster than lirc can send we risk hammering the daemon with commands
+  CSingleLock lock(m_CS);
+
   if (m_nrSending > 0)
   {
     m_sendData.clear();
@@ -268,7 +298,10 @@ void CRemoteControl::Update()
   }
 
   if (feof(m_file) != 0)
+  {
+    CSingleExit ex(m_CS); //Disconnect takes the lock
     Disconnect();
+  }
 }
 
 WORD CRemoteControl::GetButton()
@@ -286,12 +319,15 @@ void CRemoteControl::AddSendCommand(const std::string& command)
   if (!m_bInitialized || !m_used)
     return;
 
+  CSingleLock lock(m_CS);
+
   m_sendData += command;
   m_sendData += '\n';
 }
 
-bool CRemoteControl::Connect(struct sockaddr_un addr)
+bool CRemoteControl::Connect(struct sockaddr_un addr, bool logMessages)
 {
+  bool bResult = false;
   // Open the socket from which we will receive the remote commands
   if ((m_fd = socket(AF_UNIX, SOCK_STREAM, 0)) != -1)
   {
@@ -320,7 +356,7 @@ bool CRemoteControl::Connect(struct sockaddr_un addr)
                   // Set an inotify watch on the lirc device
                   if ((m_inotify_wd = inotify_add_watch(m_inotify_fd, m_deviceName.c_str(), IN_DELETE_SELF)) != -1)
                   {
-                    m_bInitialized = true;
+                    bResult = true;
                     CLog::Log(LOGINFO, "LIRC %s: successfully started", __FUNCTION__);
                   }
                   else
@@ -329,7 +365,7 @@ bool CRemoteControl::Connect(struct sockaddr_un addr)
               }
             }
 #else
-            m_bInitialized = true;
+            bResult = true;
             CLog::Log(LOGINFO, "LIRC %s: successfully started", __FUNCTION__);
 #endif
           }
@@ -342,13 +378,13 @@ bool CRemoteControl::Connect(struct sockaddr_un addr)
       else
         CLog::Log(LOGERROR, "LIRC %s: fcntl(F_GETFL) failed: %s", __FUNCTION__, strerror(errno));
     }
-    else
+    else if (logMessages)
       CLog::Log(LOGINFO, "LIRC %s: connect failed: %s", __FUNCTION__, strerror(errno));
   }
-  else
+  else if (logMessages)
     CLog::Log(LOGINFO, "LIRC %s: socket failed: %s", __FUNCTION__, strerror(errno));
 
-  return m_bInitialized;
+  return bResult;
 }
 
 #endif
