@@ -29,11 +29,8 @@
 #include "cores/VideoRenderers/RenderManager.h"
 #include "guilib/GraphicContext.h"
 #include "Application.h"
-#include "guilib/GraphicContext.h"
-#include "windowing/WindowingFactory.h"
-#include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
-#include "settings/DisplaySettings.h"
+#include "settings/AdvancedSettings.h"
 #include "threads/SingleLock.h"
 #include "utils/MathUtils.h"
 #include "OverlayRendererUtil.h"
@@ -339,7 +336,7 @@ COverlay* CRenderer::Convert(CDVDOverlaySSA* o, double pts)
   int subalign = CSettings::Get().GetInt("subtitles.align");
   if(subalign == SUBTITLE_ALIGN_BOTTOM_OUTSIDE
   || subalign == SUBTITLE_ALIGN_TOP_OUTSIDE
-  || subalign == SUBTITLE_ALIGN_MANUAL)
+  ||(subalign == SUBTITLE_ALIGN_MANUAL && g_advancedSettings.m_videoAssFixedWorks))
     useMargin = 1;
   else
     useMargin = 0;
@@ -349,7 +346,7 @@ COverlay* CRenderer::Convert(CDVDOverlaySSA* o, double pts)
   if(subalign == SUBTITLE_ALIGN_TOP_INSIDE
   || subalign == SUBTITLE_ALIGN_TOP_OUTSIDE)
     position = 100.0;
-  else if (subalign == SUBTITLE_ALIGN_MANUAL)
+  else if (subalign == SUBTITLE_ALIGN_MANUAL && g_advancedSettings.m_videoAssFixedWorks)
   {
     RESOLUTION_INFO res;
     res = g_graphicsContext.GetResInfo(g_renderManager.GetResolution());

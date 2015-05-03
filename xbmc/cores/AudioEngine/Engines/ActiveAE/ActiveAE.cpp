@@ -28,13 +28,10 @@ using namespace ActiveAE;
 #include "cores/AudioEngine/Encoders/AEEncoderFFmpeg.h"
 
 #include "settings/Settings.h"
-#include "settings/AdvancedSettings.h"
 #include "windowing/WindowingFactory.h"
 
-#include "utils/TimeUtils.h"
-
-#define MAX_CACHE_LEVEL 0.5   // total cache time of stream in seconds
-#define MAX_WATER_LEVEL 0.25  // buffered time after stream stages in seconds
+#define MAX_CACHE_LEVEL 0.4   // total cache time of stream in seconds
+#define MAX_WATER_LEVEL 0.2   // buffered time after stream stages in seconds
 #define MAX_BUFFER_TIME 0.1   // max time of a buffer in seconds
 
 void CEngineStats::Reset(unsigned int sampleRate)
@@ -1271,8 +1268,10 @@ void CActiveAE::DiscardStream(CActiveAEStream *stream)
         (*it)->m_processingSamples.front()->Return();
         (*it)->m_processingSamples.pop_front();
       }
-      m_discardBufferPools.push_back((*it)->m_inputBuffers);
-      m_discardBufferPools.push_back((*it)->m_resampleBuffers);
+      if ((*it)->m_inputBuffers)
+        m_discardBufferPools.push_back((*it)->m_inputBuffers);
+      if ((*it)->m_resampleBuffers)
+        m_discardBufferPools.push_back((*it)->m_resampleBuffers);
       CLog::Log(LOGDEBUG, "CActiveAE::DiscardStream - audio stream deleted");
       delete (*it)->m_streamPort;
       delete (*it);

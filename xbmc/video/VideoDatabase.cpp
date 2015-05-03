@@ -315,6 +315,12 @@ void CVideoDatabase::CreateAnalytics()
   m_pDS->exec("CREATE TRIGGER delete_tag AFTER DELETE ON tag_link FOR EACH ROW BEGIN "
               "DELETE FROM tag WHERE tag_id=old.tag_id AND tag_id NOT IN (SELECT DISTINCT tag_id FROM tag_link); "
               "END");
+  m_pDS->exec("CREATE TRIGGER delete_file AFTER DELETE ON files FOR EACH ROW BEGIN "
+              "DELETE FROM bookmark WHERE idFile=old.idFile; "
+              "DELETE FROM settings WHERE idFile=old.idFile; "
+              "DELETE FROM stacktimes WHERE idFile=old.idFile; "
+              "DELETE FROM streamdetails WHERE idFile=old.idFile; "
+              "END");
 
   CreateViews();
 }
@@ -2184,6 +2190,26 @@ int CVideoDatabase::UpdateDetailsForMovie(int idMovie, const CVideoInfoTag& deta
         map<string, string> setArt;
         if (!GetArtForItem(idSet, "set", setArt))
           SetArtForItem(idSet, "set", artwork);
+      }
+    }
+
+    if (updatedDetails.find("showlink") != updatedDetails.end())
+    {
+      // remove existing links
+      vector<int> tvShowIds;
+      GetLinksToTvShow(idMovie, tvShowIds);
+      for (const auto& idTVShow : tvShowIds)
+        LinkMovieToTvshow(idMovie, idTVShow, true);
+
+      // setup links to shows if the linked shows are in the db
+      for (const auto& showLink : details.m_showLink)
+      {
+        CFileItemList items;
+        GetTvShowsByName(showLink, items);
+        if (!items.IsEmpty())
+          LinkMovieToTvshow(idMovie, items[0]->GetVideoInfoTag()->m_iDbId, false);
+        else
+          CLog::Log(LOGWARNING, "%s: Failed to link movie %s to show %s", __FUNCTION__, details.m_strTitle.c_str(), showLink.c_str());
       }
     }
 
@@ -4674,7 +4700,7 @@ void CVideoDatabase::UpdateTables(int iVersion)
 
 int CVideoDatabase::GetSchemaVersion() const
 {
-  return 91;
+  return 92;
 }
 
 void CVideoDatabase::CleanupActorLinkTablePre91(const std::string &linkTable, const std::string &linkTableIdActor, const std::string &linkTableIdMedia, int idActor, const std::string &strActor)
@@ -7985,22 +8011,6 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
 
       CLog::Log(LOGDEBUG, "%s: Cleaning files table", __FUNCTION__);
       sql = "DELETE FROM files WHERE idFile IN " + filesToDelete;
-      m_pDS->exec(sql.c_str());
-
-      CLog::Log(LOGDEBUG, "%s: Cleaning streamdetails table", __FUNCTION__);
-      sql = "DELETE FROM streamdetails WHERE idFile IN " + filesToDelete;
-      m_pDS->exec(sql.c_str());
-
-      CLog::Log(LOGDEBUG, "%s: Cleaning bookmark table", __FUNCTION__);
-      sql = "DELETE FROM bookmark WHERE idFile IN " + filesToDelete;
-      m_pDS->exec(sql.c_str());
-
-      CLog::Log(LOGDEBUG, "%s: Cleaning settings table", __FUNCTION__);
-      sql = "DELETE FROM settings WHERE idFile IN " + filesToDelete;
-      m_pDS->exec(sql.c_str());
-
-      CLog::Log(LOGDEBUG, "%s: Cleaning stacktimes table", __FUNCTION__);
-      sql = "DELETE FROM stacktimes WHERE idFile IN " + filesToDelete;
       m_pDS->exec(sql.c_str());
     }
 
