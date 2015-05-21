@@ -320,6 +320,23 @@ bool CAddonMgr::Init()
 
   FindAddons();
 
+  // disable some system addons by default because they are optional
+  VECADDONS addons;
+  GetAddons(ADDON_PVRDLL, addons);
+  GetAddons(ADDON_AUDIODECODER, addons);
+  std::string systemAddonsPath = CSpecialProtocol::TranslatePath("special://xbmc/addons");
+  for (auto &addon : addons)
+  {
+    if (StringUtils::StartsWith(addon->Path(), systemAddonsPath))
+    {
+      if (!m_database.IsSystemAddonRegistered(addon->ID()))
+      {
+        m_database.DisableAddon(addon->ID());
+        m_database.AddSystemAddon(addon->ID());
+      }
+    }
+  }
+
   std::vector<std::string> disabled;
   m_database.GetDisabled(disabled);
   m_disabled.insert(disabled.begin(), disabled.end());
@@ -706,6 +723,14 @@ bool CAddonMgr::CanAddonBeDisabled(const std::string& ID)
   if (localAddon->Type() == ADDON_PVRDLL)
     return true;
 
+  // installed audio decoder addons can always be disabled
+  if (localAddon->Type() == ADDON_AUDIODECODER)
+    return true;
+
+  // installed audio encoder addons can always be disabled
+  if (localAddon->Type() == ADDON_AUDIOENCODER)
+    return true;
+
   std::string systemAddonsPath = CSpecialProtocol::TranslatePath("special://xbmc/addons");
   // can't disable system addons
   if (StringUtils::StartsWith(localAddon->Path(), systemAddonsPath))
@@ -767,11 +792,10 @@ std::string CAddonMgr::GetTranslatedString(const cp_cfg_element_t *root, const c
     {
       // see if we have a "lang" attribute
       const char *lang = m_cpluff->lookup_cfg_value((cp_cfg_element_t*)&child, "@lang");
-      if (lang != NULL &&
-         (g_langInfo.GetLocale().Matches(lang) || strcmp(lang, "en") == 0))
+      if (lang != NULL && g_langInfo.GetLocale().Matches(lang))
         translatedValues.insert(std::make_pair(lang, child.value != NULL ? child.value : ""));
-      else if (lang == NULL)
-        translatedValues.insert(std::make_pair("en", child.value != NULL ? child.value : ""));
+      else if (lang == NULL || strcmp(lang, "en") == 0 || strcmp(lang, "en_GB") == 0)
+        translatedValues.insert(std::make_pair("en_GB", child.value != NULL ? child.value : ""));
     }
   }
 
@@ -783,7 +807,7 @@ std::string CAddonMgr::GetTranslatedString(const cp_cfg_element_t *root, const c
   // find the language from the list that matches the current locale best
   std::string matchingLanguage = g_langInfo.GetLocale().FindBestMatch(languages);
   if (matchingLanguage.empty())
-    matchingLanguage = "en";
+    matchingLanguage = "en_GB";
 
   auto const& translatedValue = translatedValues.find(matchingLanguage);
   if (translatedValue != translatedValues.end())

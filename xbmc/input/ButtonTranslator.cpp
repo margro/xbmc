@@ -855,6 +855,13 @@ void CButtonTranslator::MapJoystickActions(int windowID, TiXmlNode *pJoystick)
     if (!pButton->NoChildren())
       action = pButton->FirstChild()->ValueStr();
 
+    // skip altname tags here because those contain no mappings ...
+    if (type == "altname")
+    {
+      pButton = pButton->NextSiblingElement();
+      continue;
+    }
+
     if ((pButton->QueryIntAttribute("id", &id) == TIXML_SUCCESS) && id>=0 && id<=256)
     {
       if (type == "button")
@@ -922,9 +929,17 @@ void CButtonTranslator::MapJoystickActions(int windowID, TiXmlNode *pJoystick)
 
     pButton = pButton->NextSiblingElement();
   }
-  m_joystickButtonMap[joyFamilyName][windowID].insert(buttonMap.begin(), buttonMap.end());
-  m_joystickAxisMap[joyFamilyName][windowID].insert(axisMap.begin(), axisMap.end());
-  m_joystickHatMap[joyFamilyName][windowID].insert(hatMap.begin(), hatMap.end());
+
+  // add/overwrite keys with mapped actions
+  for (auto button : buttonMap)
+    m_joystickButtonMap[joyFamilyName][windowID][button.first] = button.second;
+
+  for (auto axis : axisMap)
+    m_joystickAxisMap[joyFamilyName][windowID][axis.first] = axis.second;
+
+  for (auto hat : hatMap)
+    m_joystickHatMap[joyFamilyName][windowID][hat.first] = hat.second;
+
   if (windowID == -1) 
     m_joystickAxesConfigs[joyFamilyName] = axesConfig;
 }

@@ -1208,6 +1208,7 @@ bool CWinRenderer::CreateYV12Texture(int index)
     if (!buf->Create(m_format, m_sourceWidth, m_sourceHeight))
     {
       CLog::Log(LOGERROR, __FUNCTION__" - Unable to create YV12 video texture %i", index);
+      delete buf;
       return false;
     }
     m_VideoBuffers[index] = buf;
@@ -1331,12 +1332,16 @@ EINTERLACEMETHOD CWinRenderer::AutoInterlaceMethod()
     return VS_INTERLACEMETHOD_DEINTERLACE_HALF;
 }
 
-unsigned int CWinRenderer::GetOptimalBufferSize()
+CRenderInfo CWinRenderer::GetRenderInfo()
 {
+  CRenderInfo info;
+  info.formats = m_formats;
+  info.max_buffer_size = NUM_BUFFERS;
   if (m_format == RENDER_FMT_DXVA && m_processor)
-    return m_processor->Size();
+    info.optimal_buffer_size = m_processor->Size();
   else
-    return 3;
+    info.optimal_buffer_size = 3;
+  return info;
 }
 
 void CWinRenderer::ReleaseBuffer(int idx)

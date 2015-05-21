@@ -178,19 +178,17 @@ double CDVDPlayerVideo::GetOutputDelay()
 
 bool CDVDPlayerVideo::OpenStream( CDVDStreamInfo &hint )
 {
-  unsigned int surfaces = 0;
-  std::vector<ERenderFormat> formats;
-#ifdef HAS_VIDEO_PLAYBACK
-  surfaces = g_renderManager.GetOptimalBufferSize();
-  formats  = g_renderManager.SupportedFormats();
-#endif
+  CRenderInfo info;
+  #ifdef HAS_VIDEO_PLAYBACK
+  info = g_renderManager.GetRenderInfo();
+  #endif
 
   m_pullupCorrection.ResetVFRDetection();
   if(hint.flags & AV_DISPOSITION_ATTACHED_PIC)
     return false;
 
   CLog::Log(LOGNOTICE, "Creating video codec with codec id: %i", hint.codec);
-  CDVDVideoCodec* codec = CDVDFactoryCodec::CreateVideoCodec(hint, surfaces, formats);
+  CDVDVideoCodec* codec = CDVDFactoryCodec::CreateVideoCodec(hint, info);
   if(!codec)
   {
     CLog::Log(LOGERROR, "Unsupported video codec");
@@ -470,6 +468,7 @@ void CDVDPlayerVideo::Process()
         if (pts == DVD_NOPTS_VALUE)
           pts = m_pClock->GetClock();
         state.time = DVD_TIME_TO_MSEC(pts + state.time_offset);
+        state.disptime = state.time;
         state.timestamp = CDVDClock::GetAbsoluteClock();
       }
       else
@@ -1109,34 +1108,6 @@ int CDVDPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
     pts += m_iVideoDelay - DVD_SEC_TO_TIME(g_renderManager.GetDisplayLatency());
   }
 
-  if (m_speed < 0)
-  {
-    double inputPts = m_droppingStats.m_lastPts;
-    double renderPts = m_droppingStats.m_lastRenderPts;
-    if (pts_org > renderPts)
-    {
-      if (inputPts >= renderPts)
-      {
-        Sleep(50);
-      }
-      return result | EOS_DROPPED;
-    }
-  }
-  else if (m_speed > DVD_PLAYSPEED_NORMAL)
-  {
-    double iSleepTime, iRenderPts;
-    int iBufferLevel;
-    g_renderManager.GetStats(iSleepTime, iRenderPts, iBufferLevel);
-
-    double diff = pts_org - iRenderPts;
-    double mindiff = DVD_SEC_TO_TIME(1/m_fFrameRate * m_speed / DVD_PLAYSPEED_NORMAL) * (iBufferLevel +1);
-    if (diff < mindiff)
-    {
-      m_droppingStats.AddOutputDropGain(pts, 1/m_fFrameRate);
-      return result | EOS_DROPPED;
-    }
-  }
-
   // calculate the time we need to delay this picture before displaying
   double iSleepTime, iClockSleep, iFrameSleep, iPlayingClock, iCurrentClock;
 
@@ -1160,6 +1131,44 @@ int CDVDPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
     iSleepTime = iFrameSleep;
   else
     iSleepTime = iClockSleep;
+
+  if (m_speed < 0)
+  {
+    double sleepTime, renderPts;
+    int bufferLevel;
+    double inputPts = m_droppingStats.m_lastPts;
+    g_renderManager.GetStats(sleepTime, renderPts, bufferLevel);
+    if (pts_org > renderPts || bufferLevel > 0)
+    {
+      if (inputPts >= renderPts)
+      {
+        Sleep(50);
+      }
+      return result | EOS_DROPPED;
+    }
+
+    if (iSleepTime > DVD_MSEC_TO_TIME(20))
+      iSleepTime = DVD_MSEC_TO_TIME(20);
+  }
+  else if (m_speed > DVD_PLAYSPEED_NORMAL)
+  {
+    double sleepTime, renderPts;
+    int bufferLevel;
+    g_renderManager.GetStats(sleepTime, renderPts, bufferLevel);
+
+    // estimate the time it will take for the next frame to get rendered
+    // drop the frame if it's late in regard to this estimation
+    double diff = pts_org - renderPts;
+    double mindiff = DVD_SEC_TO_TIME(1/m_fFrameRate) * (bufferLevel + 1);
+    if (diff < mindiff)
+    {
+      m_droppingStats.AddOutputDropGain(pts, 1/m_fFrameRate);
+      return result | EOS_DROPPED;
+    }
+
+    if (iSleepTime > DVD_MSEC_TO_TIME(20))
+      iSleepTime = DVD_MSEC_TO_TIME(20);
+  }
 
   // sync clock if we are master
   if(m_pClock->GetMaster() == MASTER_CLOCK_VIDEO)
@@ -1192,7 +1201,12 @@ int CDVDPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
       mDisplayField = FS_BOT;
   }
 
-  int buffer = g_renderManager.WaitForBuffer(m_bStop, std::max(DVD_TIME_TO_MSEC(iSleepTime) + 500, 50));
+  // make sure waiting time is not negative
+  int maxWaitTime = std::max(DVD_TIME_TO_MSEC(iSleepTime) + 500, 50);
+  // don't wait when going ff
+  if (m_speed > DVD_PLAYSPEED_NORMAL)
+    maxWaitTime = 0;
+  int buffer = g_renderManager.WaitForBuffer(m_bStop, maxWaitTime);
   if (buffer < 0)
   {
     m_droppingStats.AddOutputDropGain(pts, 1/m_fFrameRate);

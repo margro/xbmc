@@ -40,7 +40,7 @@
 #if defined(HAS_IMXVPU)
 #include "Video/DVDVideoCodecIMX.h"
 #endif
-#include "Video/DVDVideoCodecMMAL.h"
+#include "Video/MMALCodec.h"
 #include "Video/DVDVideoCodecStageFright.h"
 #if defined(HAS_LIBAMCODEC)
 #include "utils/AMLUtils.h"
@@ -131,15 +131,17 @@ CDVDOverlayCodec* CDVDFactoryCodec::OpenCodec(CDVDOverlayCodec* pCodec, CDVDStre
 }
 
 
-CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigned int surfaces, const std::vector<ERenderFormat>& formats)
+CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, const CRenderInfo &info)
 {
   CDVDVideoCodec* pCodec = NULL;
   CDVDCodecOptions options;
 
-  if(formats.empty())
+  if(info.formats.empty())
     options.m_formats.push_back(RENDER_FMT_YUV420P);
   else
-    options.m_formats = formats;
+    options.m_formats = info.formats;
+
+  options.m_opaque_pointer = info.opaque_pointer;
 
   //when support for a hardware decoder is not compiled in
   //only print it if it's actually available on the platform
@@ -297,7 +299,7 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
           hint.codec == AV_CODEC_ID_VP6 || hint.codec == AV_CODEC_ID_VP6F || hint.codec == AV_CODEC_ID_VP6A || hint.codec == AV_CODEC_ID_VP8 ||
           hint.codec == AV_CODEC_ID_THEORA || hint.codec == AV_CODEC_ID_MJPEG || hint.codec == AV_CODEC_ID_MJPEGB || hint.codec == AV_CODEC_ID_VC1 || hint.codec == AV_CODEC_ID_WMV3)
       {
-        if ( (pCodec = OpenCodec(new CDVDVideoCodecMMAL(), hint, options)) ) return pCodec;
+        if ( (pCodec = OpenCodec(new CMMALVideo(), hint, options)) ) return pCodec;
       }
     }
 #endif
@@ -331,7 +333,7 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, unsigne
   }
 #endif
 
-  std::string value = StringUtils::Format("%d", surfaces);
+  std::string value = StringUtils::Format("%d", info.max_buffer_size);
   options.m_keys.push_back(CDVDCodecOption("surfaces", value));
   if( (pCodec = OpenCodec(new CDVDVideoCodecFFmpeg(), hint, options)) ) return pCodec;
 
