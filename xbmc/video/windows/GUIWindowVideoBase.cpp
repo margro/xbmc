@@ -23,13 +23,9 @@
 #include "Util.h"
 #include "video/VideoInfoDownloader.h"
 #include "video/VideoInfoScanner.h"
-#include "utils/RegExp.h"
 #include "utils/Variant.h"
-#include "addons/AddonManager.h"
 #include "addons/GUIDialogAddonInfo.h"
-#include "addons/IAddon.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
-#include "GUIWindowVideoNav.h"
 #include "dialogs/GUIDialogSmartPlaylistEditor.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogYesNo.h"
@@ -38,12 +34,8 @@
 #include "NfoFile.h"
 #include "PlayListPlayer.h"
 #include "GUIPassword.h"
-#include "filesystem/ZipManager.h"
 #include "filesystem/StackDirectory.h"
-#include "filesystem/MultiPathDirectory.h"
 #include "video/dialogs/GUIDialogFileStacking.h"
-#include "dialogs/GUIDialogMediaSource.h"
-#include "windows/GUIWindowFileManager.h"
 #include "filesystem/VideoDatabaseDirectory.h"
 #include "PartyModeManager.h"
 #include "guilib/GUIWindowManager.h"
@@ -62,18 +54,14 @@
 #include "utils/StringUtils.h"
 #include "utils/log.h"
 #include "utils/FileUtils.h"
-#include "interfaces/AnnouncementManager.h"
-#include "network/upnp/UPnP.h"
 #include "pvr/PVRManager.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "utils/URIUtils.h"
 #include "GUIUserMessages.h"
-#include "addons/Skin.h"
 #include "storage/MediaManager.h"
 #include "Autorun.h"
 #include "URL.h"
 #include "utils/GroupUtils.h"
-#include "filesystem/File.h"
 #include "TextureDatabase.h"
 
 using namespace std;
@@ -265,7 +253,7 @@ void CGUIWindowVideoBase::OnInfo(CFileItem* pItem, ADDON::ScraperPtr& scraper)
       // no video file in this folder
       if (!bFoundFile)
       {
-        CGUIDialogOK::ShowAndGetInput(13346,20349,20022,20022);
+        CGUIDialogOK::ShowAndGetInput(13346, 20349);
         return;
       }
     }
@@ -412,7 +400,7 @@ bool CGUIWindowVideoBase::ShowIMDB(CFileItem *item, const ScraperPtr &info2, boo
 
   if (g_application.IsVideoScanning())
   {
-    CGUIDialogOK::ShowAndGetInput(13346,14057,-1,-1);
+    CGUIDialogOK::ShowAndGetInput(13346, 14057);
     return false;
   }
 
@@ -449,7 +437,7 @@ bool CGUIWindowVideoBase::ShowIMDB(CFileItem *item, const ScraperPtr &info2, boo
         bHasInfo = true;
         if (!info->IsNoop() && (nfoResult == CNfoFile::URL_NFO || nfoResult == CNfoFile::COMBINED_NFO || nfoResult == CNfoFile::FULL_NFO))
         {
-          if (CGUIDialogYesNo::ShowAndGetInput(13346,20446,20447,20022))
+          if (CGUIDialogYesNo::ShowAndGetInput(13346, 20446, -1, -1))
           {
             hasDetails = false;
             ignoreNfo = true;
@@ -661,7 +649,7 @@ bool CGUIWindowVideoBase::ShowIMDB(CFileItem *item, const ScraperPtr &info2, boo
           m_database.Close();
           return listNeedsUpdating; // user cancelled
         }
-        CGUIDialogOK::ShowAndGetInput(195, movieName, 0, 0);
+        CGUIDialogOK::ShowAndGetInput(195, movieName);
         m_database.Close();
         return listNeedsUpdating;
       }
@@ -774,7 +762,7 @@ void CGUIWindowVideoBase::AddItemToPlayList(const CFileItemPtr &pItem, CFileItem
         // load it
         if (!pPlayList->Load(pItem->GetPath()))
         {
-          CGUIDialogOK::ShowAndGetInput(6, 0, 477, 0);
+          CGUIDialogOK::ShowAndGetInput(6, 477);
           return; //hmmm unable to load playlist?
         }
 
@@ -1409,7 +1397,7 @@ bool CGUIWindowVideoBase::OnPlayMedia(int iItem)
       else
       {
         CLog::Log(LOGERROR, "CGUIWindowTV: Can't open recording, no valid filename!");
-        CGUIDialogOK::ShowAndGetInput(19033,0,19036,0);
+        CGUIDialogOK::ShowAndGetInput(19033, 19036);
         return false;
       }
     }
@@ -1497,7 +1485,7 @@ void CGUIWindowVideoBase::LoadPlayList(const std::string& strPlayList, int iPlay
     // load it
     if (!pPlayList->Load(strPlayList))
     {
-      CGUIDialogOK::ShowAndGetInput(6, 0, 477, 0);
+      CGUIDialogOK::ShowAndGetInput(6, 477);
       return; //hmmm unable to load playlist?
     }
   }
@@ -1783,7 +1771,7 @@ void CGUIWindowVideoBase::OnSearch()
   }
   else
   {
-    CGUIDialogOK::ShowAndGetInput(194, 284, 0, 0);
+    CGUIDialogOK::ShowAndGetInput(194, 284);
   }
 }
 
@@ -1900,7 +1888,7 @@ bool CGUIWindowVideoBase::OnUnAssignContent(const std::string &path, int label1,
   bool bCanceled;
   CVideoDatabase db;
   db.Open();
-  if (CGUIDialogYesNo::ShowAndGetInput(label1,label2,label3,20022,bCanceled))
+  if (CGUIDialogYesNo::ShowAndGetInput(label1, label2, label3, -1, bCanceled))
   {
     CGUIDialogProgress *progress = (CGUIDialogProgress *)g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS);
     db.RemoveContentForPath(path, progress);

@@ -29,6 +29,7 @@
 #include "playlists/PlayListFactory.h"
 #include "utils/Crc32.h"
 #include "filesystem/Directory.h"
+#include "filesystem/File.h"
 #include "filesystem/StackDirectory.h"
 #include "filesystem/CurlFile.h"
 #include "filesystem/MultiPathDirectory.h"
@@ -43,7 +44,6 @@
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
-#include "utils/Observer.h"
 #include "video/VideoInfoTag.h"
 #include "threads/SingleLock.h"
 #include "music/tags/MusicInfoTag.h"
@@ -2313,6 +2313,12 @@ void CFileItemList::StackFolders()
       folderRegExps.push_back(folderRegExp);
 
     strExpression++;
+  }
+
+  if (!folderRegExp.IsCompiled())
+  {
+    CLog::Log(LOGDEBUG, "%s: No stack expressions available. Skipping folder stacking", __FUNCTION__);
+    return;
   }
 
   // stack folders

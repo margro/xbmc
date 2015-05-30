@@ -28,7 +28,6 @@
 #include "settings/MediaSourceSettings.h"
 #include "guilib/TextureManager.h"
 #include "storage/MediaManager.h"
-#include "utils/StringUtils.h"
 
 using namespace XFILE;
 
@@ -91,7 +90,7 @@ bool CSourcesDirectory::GetDirectory(const VECSOURCES &sources, CFileItemList &i
     else if (pItem->IsISO9660())
       strIcon = "DefaultDVDRom.png";
     else if (pItem->IsDVD())
-      strIcon = "DefaultDVDRom.png";
+      strIcon = "defaultDVDFull.png";
     else if (pItem->IsCDDA())
       strIcon = "DefaultCDDA.png";
     else if (pItem->IsRemovable() && g_TextureManager.HasTexture("DefaultRemovableDisk.png"))

@@ -27,14 +27,12 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "pvr/PVRManager.h"
-#include "pvr/PVRDatabase.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/Settings.h"
 #include "pvr/channels/PVRChannelGroups.h"
 #include "pvr/channels/PVRChannelGroupInternal.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/timers/PVRTimers.h"
-#include "cores/IPlayer.h"
 
 #include <assert.h>
 
@@ -899,7 +897,7 @@ void CPVRClients::StartChannelScan(void)
   /* no clients found */
   else if (!scanClient)
   {
-    CGUIDialogOK::ShowAndGetInput(19033,0,19192,0);
+    CGUIDialogOK::ShowAndGetInput(19033, 19192);
     return;
   }
 
@@ -914,7 +912,7 @@ void CPVRClients::StartChannelScan(void)
   /* do the scan */
   if (scanClient->StartChannelScan() != PVR_ERROR_NO_ERROR)
     /* an error occured */
-    CGUIDialogOK::ShowAndGetInput(19111,0,19193,0);
+    CGUIDialogOK::ShowAndGetInput(19111, 19193);
 
   /* restart the supervisor thread */
   g_PVRManager.StartUpdateThreads();
@@ -953,7 +951,7 @@ bool CPVRClients::OpenDialogChannelAdd(const CPVRChannelPtr &channel)
 
   if (error == PVR_ERROR_NOT_IMPLEMENTED)
   {
-    CGUIDialogOK::ShowAndGetInput(19033,19038,0,0);
+    CGUIDialogOK::ShowAndGetInput(19033, 19038);
     return true;
   }
 
@@ -972,7 +970,7 @@ bool CPVRClients::OpenDialogChannelSettings(const CPVRChannelPtr &channel)
 
   if (error == PVR_ERROR_NOT_IMPLEMENTED)
   {
-    CGUIDialogOK::ShowAndGetInput(19033,19038,0,0);
+    CGUIDialogOK::ShowAndGetInput(19033, 19038);
     return true;
   }
 
@@ -991,7 +989,7 @@ bool CPVRClients::DeleteChannel(const CPVRChannelPtr &channel)
 
   if (error == PVR_ERROR_NOT_IMPLEMENTED)
   {
-    CGUIDialogOK::ShowAndGetInput(19033,19038,0,0);
+    CGUIDialogOK::ShowAndGetInput(19033, 19038);
     return true;
   }
 
@@ -1271,7 +1269,7 @@ void CPVRClients::ShowDialogNoClientsEnabled(void)
   if (!g_PVRManager.IsStarted() && !g_PVRManager.IsInitialising())
     return;
 
-  CGUIDialogOK::ShowAndGetInput(19240, 19241, 19242, 19243);
+  CGUIDialogOK::ShowAndGetInput(19240, 19241);
 
   std::vector<std::string> params;
   params.push_back("addons://disabled/xbmc.pvrclient");
@@ -1325,7 +1323,7 @@ bool CPVRClients::UpdateAddons(void)
     // You need a tuner, backend software, and an add-on for the backend to be able to use PVR.
     // Please visit http://kodi.wiki/view/PVR to learn more.
     m_bNoAddonWarningDisplayed = true;
-    CGUIDialogOK::ShowAndGetInput(19271, 19272, 19273, 19274);
+    CGUIDialogOK::ShowAndGetInput(19271, 19272);
     CSettings::Get().SetBool("pvrmanager.enabled", false);
     CGUIMessage msg(GUI_MSG_UPDATE, WINDOW_SETTINGS_MYPVR, 0);
     g_windowManager.SendThreadMessage(msg, WINDOW_SETTINGS_MYPVR);

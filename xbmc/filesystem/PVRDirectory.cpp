@@ -20,7 +20,6 @@
 
 #include "PVRDirectory.h"
 #include "FileItem.h"
-#include "Util.h"
 #include "URL.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -29,7 +28,6 @@
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/channels/PVRChannelGroup.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/timers/PVRTimers.h"
 
@@ -47,7 +45,10 @@ CPVRDirectory::~CPVRDirectory()
 
 bool CPVRDirectory::Exists(const CURL& url)
 {
-  return (url.IsProtocol("pvr") && url.GetHostName() == "recordings");
+  if (!g_PVRManager.IsStarted())
+    return false;
+
+  return (url.IsProtocol("pvr") && StringUtils::StartsWith(url.GetFileName(), "recordings"));
 }
 
 bool CPVRDirectory::GetDirectory(const CURL& url, CFileItemList &items)

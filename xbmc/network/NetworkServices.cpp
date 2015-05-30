@@ -181,7 +181,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
     {
       if (!StartWebserver())
       {
-        CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(33101), "", g_localizeStrings.Get(33100), "");
+        CGUIDialogOK::ShowAndGetInput(33101, 33100);
         return false;
       }
     }
@@ -203,7 +203,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
       // cannot disable 
       if (IsAirPlayServerRunning() || IsAirTunesServerRunning())
       {
-        CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(1259), g_localizeStrings.Get(34303), g_localizeStrings.Get(34304), "");
+        CGUIDialogOK::ShowAndGetInput(1259, 34303);
         return false;
       }
 
@@ -232,14 +232,14 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
 #ifdef HAS_AIRTUNES
       if (!StartAirTunesServer())
       {
-        CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(1274), "", g_localizeStrings.Get(33100), "");
+        CGUIDialogOK::ShowAndGetInput(1274, 33100);
         return false;
       }
 #endif //HAS_AIRTUNES
       
       if (!StartAirPlayServer())
       {
-        CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(1273), "", g_localizeStrings.Get(33100), "");
+        CGUIDialogOK::ShowAndGetInput(1273, 33100);
         return false;
       }      
     }
@@ -312,7 +312,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
     {
       if (!StartEventServer())
       {
-        CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(33102), "", g_localizeStrings.Get(33100), "");
+        CGUIDialogOK::ShowAndGetInput(33102, 33100);
         return false;
       }
     }
@@ -325,7 +325,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
     {
       if (!StartJSONRPCServer())
       {
-        CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(33103), "", g_localizeStrings.Get(33100), "");
+        CGUIDialogOK::ShowAndGetInput(33103, 33100);
         return false;
       }
     }
@@ -342,7 +342,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
 
     if (!StartEventServer())
     {
-      CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(33102), "", g_localizeStrings.Get(33100), "");
+      CGUIDialogOK::ShowAndGetInput(33102, 33100);
       return false;
     }
 
@@ -362,7 +362,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
 
       if (!StartEventServer())
       {
-        CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(33102), "", g_localizeStrings.Get(33100), "");
+        CGUIDialogOK::ShowAndGetInput(33102, 33100);
         return false;
       }
     }
@@ -373,7 +373,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
     {
       if (!StartJSONRPCServer())
       {
-        CGUIDialogOK::ShowAndGetInput(g_localizeStrings.Get(33103), "", g_localizeStrings.Get(33100), "");
+        CGUIDialogOK::ShowAndGetInput(33103, 33100);
         return false;
       }
     }
@@ -412,7 +412,7 @@ void CNetworkServices::OnSettingChanged(const CSetting *setting)
   {
     // okey we really don't need to restart, only deinit samba, but that could be damn hard if something is playing
     // TODO - General way of handling setting changes that require restart
-    if (CGUIDialogYesNo::ShowAndGetInput(14038, 14039, 14040, -1, -1))
+    if (CGUIDialogYesNo::ShowAndGetInput(14038, 14039, -1, -1))
     {
       CSettings::Get().Save();
       CApplicationMessenger::Get().RestartApp();
@@ -755,8 +755,7 @@ bool CNetworkServices::StopEventServer(bool bWait, bool promptuser)
     if (server->GetNumberOfClients() > 0)
     {
       bool cancelled = false;
-      if (!CGUIDialogYesNo::ShowAndGetInput(13140, 13141, 13142, 20022,
-                                            -1, -1, cancelled, 10000)
+      if (!CGUIDialogYesNo::ShowAndGetInput(13140, 13141, cancelled, -1, -1, 10000)
           || cancelled)
       {
         CLog::Log(LOGNOTICE, "ES: Not stopping event server");

@@ -18,7 +18,6 @@
  *
  */
 
-#include "threads/SystemClock.h"
 #include "system.h"
 
 #ifdef HAS_CDDA_RIPPER
@@ -38,11 +37,8 @@
 #include "settings/Settings.h"
 #include "settings/windows/GUIControlSettings.h"
 #include "FileItem.h"
-#include "filesystem/SpecialProtocol.h"
 #include "storage/MediaManager.h"
-#include "guilib/LocalizeStrings.h"
 #include "utils/log.h"
-#include "utils/TimeUtils.h"
 #include "utils/URIUtils.h"
 #include "settings/MediaSourceSettings.h"
 #include "Application.h"
@@ -172,7 +168,7 @@ bool CCDDARipper::CreateAlbumDir(const MUSIC_INFO::CMusicInfoTag& infoTag, std::
     // no rip path has been set, show error
     CLog::Log(LOGERROR, "Error: CDDARipPath has not been set");
     g_graphicsContext.Lock();
-    CGUIDialogOK::ShowAndGetInput(257, 608, 609, 0);
+    CGUIDialogOK::ShowAndGetInput(257, 608);
     g_graphicsContext.Unlock();
     return false;
   }

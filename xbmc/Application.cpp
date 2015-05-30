@@ -38,7 +38,6 @@
 #include "Autorun.h"
 #include "video/Bookmark.h"
 #include "video/VideoLibraryQueue.h"
-#include "network/NetworkServices.h"
 #include "guilib/GUIControlProfiler.h"
 #include "utils/LangCodeExpander.h"
 #include "GUIInfoManager.h"
@@ -46,7 +45,6 @@
 #include "guilib/GUIFontManager.h"
 #include "guilib/GUIColorManager.h"
 #include "guilib/StereoscopicsManager.h"
-#include "guilib/GUITextLayout.h"
 #include "addons/LanguageResource.h"
 #include "addons/Skin.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
@@ -83,23 +81,15 @@
 #include "windowing/WindowingFactory.h"
 #include "powermanagement/PowerManager.h"
 #include "powermanagement/DPMSSupport.h"
-#include "settings/SettingAddon.h"
 #include "settings/Settings.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
-#include "settings/MediaSourceSettings.h"
-#include "settings/SkinSettings.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/CPUInfo.h"
-#include "utils/RssManager.h"
 #include "utils/SeekHandler.h"
-#include "view/ViewStateSettings.h"
 
 #include "input/KeyboardLayoutManager.h"
-#include "input/KeyboardStat.h"
-#include "input/XBMC_vkeys.h"
-#include "input/MouseStat.h"
 
 #if SDL_VERSION == 1
 #include <SDL/SDL.h>
@@ -109,7 +99,6 @@
 
 #ifdef HAS_UPNP
 #include "network/upnp/UPnP.h"
-#include "network/upnp/UPnPSettings.h"
 #include "filesystem/UPnPDirectory.h"
 #endif
 #if defined(TARGET_POSIX) && defined(HAS_FILESYSTEM_SMB)
@@ -128,7 +117,6 @@
 #ifdef HAS_KARAOKE
 #include "music/karaoke/karaokelyricsmanager.h"
 #endif
-#include "network/Zeroconf.h"
 #include "network/ZeroconfBrowser.h"
 #ifndef TARGET_POSIX
 #include "threads/platform/win/Win32Exception.h"
@@ -141,18 +129,10 @@
 #endif
 #ifdef HAS_JSONRPC
 #include "interfaces/json-rpc/JSONRPC.h"
-#include "network/TCPServer.h"
-#endif
-#ifdef HAS_AIRPLAY
-#include "network/AirPlayServer.h"
-#endif
-#ifdef HAS_AIRTUNES
-#include "network/AirTunesServer.h"
 #endif
 #include "interfaces/AnnouncementManager.h"
 #include "peripherals/Peripherals.h"
 #include "peripherals/dialogs/GUIDialogPeripheralManager.h"
-#include "peripherals/dialogs/GUIDialogPeripheralSettings.h"
 #include "peripherals/devices/PeripheralImon.h"
 #include "music/infoscanner/MusicInfoScanner.h"
 
@@ -175,7 +155,6 @@
 
 // PVR related include Files
 #include "pvr/PVRManager.h"
-#include "pvr/timers/PVRTimers.h"
 
 #include "epg/EpgContainer.h"
 
@@ -198,7 +177,6 @@
 #endif
 
 #ifdef TARGET_WINDOWS
-#include <shlobj.h>
 #include "win32util.h"
 #endif
 
@@ -210,7 +188,6 @@
 #include "osx/DarwinUtils.h"
 #endif
 
-
 #ifdef HAS_DVD_DRIVE
 #include <cdio/logging.h>
 #endif
@@ -219,9 +196,7 @@
 #include "utils/JobManager.h"
 #include "utils/SaveFileStateJob.h"
 #include "utils/AlarmClock.h"
-#include "utils/RssReader.h"
 #include "utils/StringUtils.h"
-#include "utils/Weather.h"
 #include "DatabaseManager.h"
 #include "input/InputManager.h"
 
@@ -244,6 +219,7 @@
 #endif
 
 #include "cores/FFmpeg.h"
+#include "utils/CharsetConverter.h"
 
 using namespace std;
 using namespace ADDON;
@@ -282,6 +258,7 @@ CApplication::CApplication(void)
   , m_progressTrackingItem(new CFileItem)
   , m_musicInfoScanner(new CMusicInfoScanner)
   , m_playerController(new CPlayerController)
+  , m_fallbackLanguageLoaded(false)
 {
   m_network = NULL;
   TiXmlBase::SetCondenseWhiteSpace(false);
@@ -1147,8 +1124,7 @@ bool CApplication::Initialize()
   }
 
   // load the language and its translated strings
-  bool fallbackLanguage = false;
-  if (!LoadLanguage(false, fallbackLanguage))
+  if (!LoadLanguage(false))
     return false;
 
   // Load curl so curl_global_init gets called before any service threads
@@ -1170,6 +1146,7 @@ bool CApplication::Initialize()
 
   // Init DPMS, before creating the corresponding setting control.
   m_dpms = new DPMSSupport();
+  bool uiInitializationFinished = true;
   if (g_windowManager.Initialized())
   {
     CSettings::Get().GetSetting("powermanagement.displaysoff")->SetRequirementsMet(m_dpms->IsSupported());
@@ -1197,7 +1174,12 @@ bool CApplication::Initialize()
 
     // check if we should use the login screen
     if (CProfilesManager::Get().UsingLoginScreen())
+    {
+      // the login screen still needs to perform additional initialization
+      uiInitializationFinished = false;
+
       g_windowManager.ActivateWindow(WINDOW_LOGIN_SCREEN);
+    }
     else
     {
 #ifdef HAS_JSONRPC
@@ -1206,8 +1188,16 @@ bool CApplication::Initialize()
       ADDON::CAddonMgr::Get().StartServices(false);
 
       // let's start the PVR manager and decide if the PVR manager handle the startup window activation
-      if (!StartPVRManager())
-        g_windowManager.ActivateWindow(g_SkinInfo->GetFirstWindow());
+      if (StartPVRManager())
+        uiInitializationFinished = false;
+      else
+      {
+        int firstWindow = g_SkinInfo->GetFirstWindow();
+        // the startup window is considered part of the initialization as it most likely switches to the final window
+        uiInitializationFinished = firstWindow != WINDOW_STARTUP_ANIM;
+
+        g_windowManager.ActivateWindow(firstWindow);
+      }
 
       CStereoscopicsManager::Get().Initialize();
     }
@@ -1251,11 +1241,12 @@ bool CApplication::Initialize()
                     CPeripheralImon::GetCountOfImonsConflictWithDInput() == 0 );
 #endif
 
-  if (fallbackLanguage)
-    CGUIDialogOK::ShowAndGetInput(24133, 24134);
-
-  // show info dialog about moved configuration files if needed
-  ShowAppMigrationMessage();
+  // if the user interfaces has been fully initialized let everyone know
+  if (uiInitializationFinished)
+  {
+    CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UI_READY);
+    g_windowManager.SendThreadMessage(msg);
+  }
 
   return true;
 }
@@ -1367,16 +1358,31 @@ void CApplication::OnSettingChanged(const CSetting *setting)
     // which in turn will reload the skin.  Similarly, if the current skin font is not
     // the default, reset it as well.
     if (settingId == "lookandfeel.skin" && CSettings::Get().GetString("lookandfeel.skintheme") != "SKINDEFAULT")
-      CSettings::Get().SetString("lookandfeel.skintheme", "SKINDEFAULT");
-    else if (settingId == "lookandfeel.skin" && CSettings::Get().GetString("lookandfeel.font") != "Default")
-      CSettings::Get().SetString("lookandfeel.font", "Default");
-    else
     {
-      std::string builtin("ReloadSkin");
-      if (settingId == "lookandfeel.skin" && !m_skinReverting)
-        builtin += "(confirm)";
-      CApplicationMessenger::Get().ExecBuiltIn(builtin);
+      CSettings::Get().SetString("lookandfeel.skintheme", "SKINDEFAULT");
+      return;
     }
+    if (settingId == "lookandfeel.skin" && CSettings::Get().GetString("lookandfeel.font") != "Default")
+    {
+      CSettings::Get().SetString("lookandfeel.font", "Default");
+      return;
+    }
+
+    // Reset sounds setting if new skin doen't provide sounds
+    if (settingId == "lookandfeel.skin" && CSettings::Get().GetString("lookandfeel.soundskin") == "SKINDEFAULT")
+    {
+      ADDON::AddonPtr addon;
+      if (CAddonMgr::Get().GetAddon(((CSettingString*)setting)->GetValue(), addon, ADDON_SKIN))
+      {
+        if (!CDirectory::Exists(URIUtils::AddFileToFolder(addon->Path(), "sounds")))
+          CSettings::Get().GetSetting("lookandfeel.soundskin")->Reset();
+      }
+    }
+
+    std::string builtin("ReloadSkin");
+    if (settingId == "lookandfeel.skin" && !m_skinReverting)
+      builtin += "(confirm)";
+    CApplicationMessenger::Get().ExecBuiltIn(builtin);
   }
   else if (settingId == "lookandfeel.skintheme")
   {
@@ -2970,7 +2976,7 @@ PlayBackRet CApplication::PlayFile(const CFileItem& item, bool bRestart)
     }
     else
 #endif
-      CGUIDialogOK::ShowAndGetInput(435, 0, 436, 0);
+      CGUIDialogOK::ShowAndGetInput(435, 436);
 
     return PLAYBACK_OK;
   }
@@ -3866,6 +3872,14 @@ bool CApplication::OnMessage(CGUIMessage& message)
         if (m_itemCurrentFile->IsOnDVD())
           StopPlaying();
       }
+      else if (message.GetParam1() == GUI_MSG_UI_READY)
+      {
+        if (m_fallbackLanguageLoaded)
+          CGUIDialogOK::ShowAndGetInput(24133, 24134);
+
+        // show info dialog about moved configuration files if needed
+        ShowAppMigrationMessage();
+      }
     }
     break;
 
@@ -4153,7 +4167,7 @@ void CApplication::ShowAppMigrationMessage()
   if (CFile::Exists("special://home/.kodi_data_was_migrated") &&
       !CFile::Exists("special://home/.kodi_migration_info_shown"))
   {
-    CGUIDialogOK::ShowAndGetInput(24128, 0, 24129, 0);
+    CGUIDialogOK::ShowAndGetInput(24128, 24129);
     CFile tmpFile;
     // create the file which will prevent this dialog from appearing in the future
     tmpFile.OpenForWrite("special://home/.kodi_migration_info_shown");
@@ -4902,10 +4916,10 @@ bool CApplication::SetLanguage(const std::string &strLanguage)
   return CSettings::Get().SetString("locale.language", strLanguage);
 }
 
-bool CApplication::LoadLanguage(bool reload, bool& fallback)
+bool CApplication::LoadLanguage(bool reload)
 {
   // load the configured langauge
-  if (!g_langInfo.SetLanguage(fallback, "", reload))
+  if (!g_langInfo.SetLanguage(m_fallbackLanguageLoaded, "", reload))
     return false;
 
   // set the proper audio and subtitle languages

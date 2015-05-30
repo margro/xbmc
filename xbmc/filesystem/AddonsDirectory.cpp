@@ -24,11 +24,7 @@
 #include "AddonsDirectory.h"
 #include "addons/AddonDatabase.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
-#include "DirectoryFactory.h"
-#include "Directory.h"
-#include "DirectoryCache.h"
 #include "FileItem.h"
-#include "addons/Repository.h"
 #include "addons/AddonInstaller.h"
 #include "addons/PluginSource.h"
 #include "guilib/TextureManager.h"
@@ -129,6 +125,9 @@ static void GenerateCategoryListing(const CURL& path, const VECADDONS& addons, C
     CFileItemPtr item(new CFileItem(g_localizeStrings.Get(24993)));
     item->SetPath(URIUtils::AddFileToFolder(path.Get(), "group.infoproviders"));
     item->m_bIsFolder = true;
+    const std::string thumb = "DefaultAddonInfoProvider.png";
+    if (g_TextureManager.HasTexture(thumb))
+      item->SetArt("thumb", thumb);
     items.Add(item);
   }
   for (unsigned int i = ADDON_UNKNOWN + 1; i < ADDON_MAX - 1; ++i)

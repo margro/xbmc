@@ -30,6 +30,7 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    lib/SlingboxLib/SlingboxLib.a \
                    xbmc/addons/addons.a \
                    xbmc/cdrip/cdrip.a \
+                   xbmc/contrib/kissfft/kissfft.a \
                    xbmc/cores/AudioEngine/audioengine.a \
                    xbmc/cores/DllLoader/dllloader.a \
                    xbmc/cores/DllLoader/exports/exports.a \
@@ -487,7 +488,7 @@ else
 endif
 
 @APP_NAME_LC@-xrandr: xbmc-xrandr.c
-ifneq (1,@USE_XRANDR@)
+ifneq (1,@USE_X11@)
 	# xbmc-xrandr.c gets picked up by the default make rules
 	@echo "excluding @APP_NAME_LC@-xrandr"
 else
@@ -514,7 +515,7 @@ install-binaries: install-scripts
 	@echo "Copying @APP_NAME_LC@ binary to $(DESTDIR)$(libdir)/@APP_NAME_LC@/"
 	@install -d $(DESTDIR)$(libdir)/@APP_NAME_LC@
 	@cd $(DESTDIR)$(libdir); [ -L xbmc ] || [ -d xbmc ] || ln -s @APP_NAME_LC@ xbmc
-ifeq (1,@USE_XRANDR@)
+ifeq (1,@USE_X11@)
 	@install @APP_NAME_LC@-xrandr $(DESTDIR)$(libdir)/@APP_NAME_LC@/@APP_NAME_LC@-xrandr
 endif
 ifeq (@USE_LIBXBMC@,1)
@@ -572,7 +573,7 @@ install-datas: install-scripts
 	@# Arch independent files
 ifeq ($(findstring bsd,@ARCH@), bsd)
 	@find -E addons media userdata system -type f \
-		-not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.so\.[0-9].*|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" \
+		-not -iregex ".*-@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.so\.[0-9].*|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" \
 		-exec sh -c "install -d \"$(DESTDIR)$(datarootdir)/@APP_NAME_LC@/\`dirname '{}'\`\"" \; \
 		-and \
 		-exec install -m 0644 "{}" $(DESTDIR)$(datarootdir)/@APP_NAME_LC@/"{}" \; \
@@ -580,13 +581,13 @@ ifeq ($(findstring bsd,@ARCH@), bsd)
 else
 ifeq ($(findstring Darwin,$(shell uname -s)),Darwin)
 	@find -E addons media userdata system -type f \
-		-not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.so\.[0-9].*|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" \
+		-not -iregex ".*-@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.so\.[0-9].*|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" \
 		-exec sh -c "install -d \"$(DESTDIR)$(datarootdir)/xbmc/\`dirname '{}'\`\"" \; \
 		-and \
 		-exec install -m 0644 "{}" $(DESTDIR)$(datarootdir)/xbmc/"{}" \; \
 		-exec printf " -- %-75.75s\r" "{}" \;
 else
-	@find addons media userdata system -regextype posix-extended -type f -not -iregex ".*@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.so\.[0-9].*|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" -exec install -D -m 0644 "{}" $(DESTDIR)$(datarootdir)/@APP_NAME_LC@/"{}" \; -printf " -- %-75.75f\r"
+	@find addons media userdata system -regextype posix-extended -type f -not -iregex ".*-@ARCH@.*|.*\.vis|.*\.xbs|.*\.git.*|.*\.so|.*\.so\.[0-9].*|.*\.dll|$(subst ${space},|,$(INSTALL_FILTER))" -exec install -D -m 0644 "{}" $(DESTDIR)$(datarootdir)/@APP_NAME_LC@/"{}" \; -printf " -- %-75.75f\r"
 endif
 endif
 	@# Icons and links

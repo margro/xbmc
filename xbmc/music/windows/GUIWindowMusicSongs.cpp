@@ -23,11 +23,9 @@
 #include "Util.h"
 #include "GUIInfoManager.h"
 #include "Application.h"
-#include "CueDocument.h"
 #include "GUIPassword.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "GUIUserMessages.h"
-#include "guilib/GUIWindowManager.h"
 #include "FileItem.h"
 #include "profiles/ProfilesManager.h"
 #include "storage/MediaManager.h"
@@ -35,13 +33,10 @@
 #include "settings/Settings.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
-#include "utils/log.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "Autorun.h"
 #include "cdrip/CDDARipper.h"
-#include "cores/IPlayer.h"
-#include "utils/StringUtils.h"
 #include "ContextMenuManager.h"
 
 #define CONTROL_BTNVIEWASICONS     2
@@ -485,7 +480,7 @@ bool CGUIWindowMusicSongs::Update(const std::string &strDirectory, bool updateFi
 void CGUIWindowMusicSongs::OnRemoveSource(int iItem)
 {
   bool bCanceled;
-  if (CGUIDialogYesNo::ShowAndGetInput(522,20340,20341,20022,bCanceled))
+  if (CGUIDialogYesNo::ShowAndGetInput(522, 20340, -1, -1, bCanceled))
   {
     MAPSONGS songs;
     CMusicDatabase database;
