@@ -1226,6 +1226,9 @@ bool CApplication::Initialize()
 
   CAddonMgr::Get().StartServices(true);
 
+  // configure seek handler
+  CSeekHandler::Get().Configure();
+
   // register action listeners
   RegisterActionListener(&CSeekHandler::Get());
 
@@ -1531,7 +1534,7 @@ void CApplication::ReloadSkin(bool confirm/*=false*/)
     if (confirm && !m_skinReverting)
     {
       bool cancelled;
-      if (!CGUIDialogYesNo::ShowAndGetInput(13123, 13111, -1, -1, -1, -1, cancelled, 10000))
+      if (!CGUIDialogYesNo::ShowAndGetInput(13123, 13111, cancelled, "", "", 10000))
       {
         m_skinReverting = true;
         if (oldSkin.empty())
@@ -2594,6 +2597,9 @@ void CApplication::Stop(int exitCode)
     vExitCode["exitcode"] = exitCode;
     CAnnouncementManager::Get().Announce(System, "xbmc", "OnQuit", vExitCode);
 
+    // Abort any active screensaver
+    WakeUpScreenSaverAndDPMS();
+
     SaveFileState(true);
 
     g_alarmClock.StopThread();
@@ -3306,6 +3312,9 @@ void CApplication::OnPlayBackEnded()
 #ifdef HAS_PYTHON
   g_pythonParser.OnPlayBackEnded();
 #endif
+#ifdef TARGET_ANDROID
+  CXBMCApp::OnPlayBackEnded();
+#endif
 
   CVariant data(CVariant::VariantTypeObject);
   data["end"] = true;
@@ -3327,6 +3336,9 @@ void CApplication::OnPlayBackStarted()
   // informs python script currently running playback has started
   // (does nothing if python is not loaded)
   g_pythonParser.OnPlayBackStarted();
+#endif
+#ifdef TARGET_ANDROID
+  CXBMCApp::OnPlayBackStarted();
 #endif
 
   CGUIMessage msg(GUI_MSG_PLAYBACK_STARTED, 0, 0);
@@ -3362,6 +3374,9 @@ void CApplication::OnPlayBackStopped()
 #ifdef HAS_PYTHON
   g_pythonParser.OnPlayBackStopped();
 #endif
+#ifdef TARGET_ANDROID
+  CXBMCApp::OnPlayBackStopped();
+#endif
 
   CVariant data(CVariant::VariantTypeObject);
   data["end"] = false;
@@ -3376,6 +3391,9 @@ void CApplication::OnPlayBackPaused()
 #ifdef HAS_PYTHON
   g_pythonParser.OnPlayBackPaused();
 #endif
+#ifdef TARGET_ANDROID
+  CXBMCApp::OnPlayBackPaused();
+#endif
 
   CVariant param;
   param["player"]["speed"] = 0;
@@ -3387,6 +3405,9 @@ void CApplication::OnPlayBackResumed()
 {
 #ifdef HAS_PYTHON
   g_pythonParser.OnPlayBackResumed();
+#endif
+#ifdef TARGET_ANDROID
+  CXBMCApp::OnPlayBackResumed();
 #endif
 
   CVariant param;
@@ -3888,8 +3909,6 @@ bool CApplication::OnMessage(CGUIMessage& message)
 #ifdef TARGET_DARWIN
       CDarwinUtils::SetScheduling(message.GetMessage());
 #endif
-      // reset the seek handler
-      CSeekHandler::Get().Reset();
       CPlayList playList = g_playlistPlayer.GetPlaylist(g_playlistPlayer.GetCurrentPlaylist());
 
       // Update our infoManager with the new details etc.

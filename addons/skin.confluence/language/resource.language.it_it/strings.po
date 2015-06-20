@@ -168,6 +168,10 @@ msgctxt "#31102"
 msgid "Background"
 msgstr "Sfondo"
 
+msgctxt "#31103"
+msgid "Show \"Paused\" in picture slideshow"
+msgstr "Mostra \"In Pausa\" durante la presentazione delle immagini"
+
 msgctxt "#31104"
 msgid "Play trailers in a window [COLOR=grey3](Video information dialogue only)[/COLOR]"
 msgstr "Mostra trailer in finestra [COLOR=grey3](Solo finestra dialogo informazioni Video)[/COLOR]"
@@ -175,6 +179,10 @@ msgstr "Mostra trailer in finestra [COLOR=grey3](Solo finestra dialogo informazi
 msgctxt "#31106"
 msgid "Miscellaneous options"
 msgstr "Opzioni varie"
+
+msgctxt "#31107"
+msgid "Hide flagging read from video filenames [COLOR=grey3](e.g. Blu-ray, HD-DVD)[/COLOR]"
+msgstr "Nascondi la spunta letto dai nomi dei file video [COLOR=grey3](es. Blu-ray, HD-DVD)[/COLOR]"
 
 msgctxt "#31108"
 msgid "Hide main menu buttons"
@@ -203,6 +211,10 @@ msgstr "Mostra Album aggiunti di recente"
 msgctxt "#31117"
 msgid "Show recently added videos"
 msgstr "Mostra Video aggiunti di recente"
+
+msgctxt "#31118"
+msgid "Home page programs submenu"
+msgstr "Sottomenù Programmi Pagina Iniziale"
 
 msgctxt "#31119"
 msgid "Hide background fanart"
@@ -235,6 +247,18 @@ msgstr "Nascondi Fanart nella visualizzazione a schermo intero"
 msgctxt "#31132"
 msgid "Lyrics add-on"
 msgstr "Add-on Testi"
+
+msgctxt "#31134"
+msgid "Home page \"Videos\" submenu"
+msgstr "Sottomenù \"Video\" Pagina Iniziale"
+
+msgctxt "#31135"
+msgid "Home page \"Music\" submenu"
+msgstr "Sottomenù \"Musica\" Pagina Iniziale"
+
+msgctxt "#31136"
+msgid "Home page \"Pictures\" submenu"
+msgstr "Sottomenù \"Immagini\" Pagina Iniziale"
 
 msgctxt "#31140"
 msgid "Music OSD"
@@ -271,6 +295,10 @@ msgstr "Trova altri elementi"
 msgctxt "#31208"
 msgid "Upcoming episodes"
 msgstr "Prossimi Episodi"
+
+msgctxt "#31300"
+msgid "Current temperature"
+msgstr "Temperatura attuale"
 
 msgctxt "#31301"
 msgid "Last updated"
@@ -420,6 +448,14 @@ msgctxt "#31402"
 msgid "[B]CONFIGURE MUSIC SETTINGS[/B][CR][CR]Manage your music library · Set music playback options · Change music listing options[CR]Setup song submission · Set karaoke options"
 msgstr "[B]CONFIGURA IMPOSTAZIONI MUSICA[/B][CR][CR]Gestisci la tua libreria musicale · Imposta le opzioni di riproduzione della musica · Cambia le impostazioni per le liste audio[CR]Imposta invio canzone · Imposta le opzioni per il karaoke"
 
+msgctxt "#31403"
+msgid "[B]CONFIGURE PICTURE SETTINGS[/B][CR][CR]Set picture listing options · Configure slideshow"
+msgstr "[B]CONFIGURA IMPOSTAZIONI IMMAGINI[/B][CR][CR]Cambia le opzioni per le liste delle immagini · Configura presentazioni"
+
+msgctxt "#31404"
+msgid "[B]CONFIGURE WEATHER SETTINGS[/B][CR][CR]Set various cities to collect weather information"
+msgstr "[B]CONFIGURA IMPOSTAZIONI METEO[/B][CR][CR]Imposta varie città delle quali ottenere le informazioni meteo"
+
 msgctxt "#31406"
 msgid "[B]CONFIGURE SYSTEM SETTINGS[/B][CR][CR]Setup and calibrate displays · Configure audio output · Setup remote controls[CR]Set power saving options · Enable debugging · Setup master lock"
 msgstr "[B]CONFIGURA IMPOSTAZIONI DI SISTEMA[/B][CR][CR]Imposta e calibra il video · Configura l'uscita audio · Imposta i controlli remoti[CR]Imposta le opzioni di risparmio energetico · Abilita il debug · Imposta il master lock"
@@ -439,6 +475,10 @@ msgstr "[B]CONFIGURA IMPOSTAZIONI DI RETE[/B][CR][CR]Imposta il controllo di Kod
 msgctxt "#31411"
 msgid "First run help..."
 msgstr "Aiuto primo avvio...."
+
+msgctxt "#31412"
+msgid "This tab signifies that there is a menu off to the side of this window that contains extra options for this section. To access the menu, navigate to the left with your remote control or keyboard or place your mouse pointer over the tab. [CR][CR]Click \"OK\" to close this dialogue. It will not appear again."
+msgstr "Questa linguetta significa che c'è un menù a lato di questa finestra che contiene ulteriori opzioni per questa sezione. Per accedere al menù, naviga a sinistra con il tuo telecomando o tastiera, oppure posiziona il cursore del mouse sulla linguetta. [CR][CR]Clicca \"OK\" per chiudere questo avviso. Non apparirà nuovamente."
 
 msgctxt "#31413"
 msgid "Local subtitle available"
@@ -495,6 +535,10 @@ msgstr "Timer impostato"
 msgctxt "#31511"
 msgid "Channel options"
 msgstr "Opzioni Canali"
+
+msgctxt "#31901"
+msgid "36-hour forecast"
+msgstr "Previsioni a 36 ore"
 
 msgctxt "#31902"
 msgid "Hourly forecast"

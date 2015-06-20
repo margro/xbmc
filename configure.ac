@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([kodi], [14.9.802], [http://trac.kodi.tv])
+AC_INIT([kodi], [14.9.901], [http://trac.kodi.tv])
 AC_CONFIG_HEADERS([xbmc/config.h])
 AH_TOP([#pragma once])
 m4_include([m4/ax_prog_cc_for_build.m4])
@@ -119,6 +119,7 @@ AC_DEFUN([XB_PUSH_FLAGS], [
 # version can be overridden by setting the following as ENV vars when running configure
 APP_NAME=${APP_NAME-$(${AWK} '/APP_NAME/ {print $2}' version.txt)}
 APP_NAME_LC=$(echo $APP_NAME | ${AWK} '{print tolower($0)}')
+APP_NAME_UC=$(echo $APP_NAME | ${AWK} '{print toupper($0)}')
 APP_VERSION_MAJOR=${APP_VERSION_MAJOR-$(${AWK} '/VERSION_MAJOR/ {print $2}' version.txt)}
 APP_VERSION_MINOR=${APP_VERSION_MINOR-$(${AWK} '/VERSION_MINOR/ {print $2}' version.txt)}
 APP_VERSION_TAG=${APP_VERSION_TAG-$(${AWK} '/VERSION_TAG/ {print $2}' version.txt)}
@@ -134,6 +135,7 @@ if test "$APP_NAME" != "" && test "$APP_VERSION_MAJOR" != "" && test "$APP_VERSI
 
   AC_SUBST(APP_NAME)
   AC_SUBST(APP_NAME_LC)
+  AC_SUBST(APP_NAME_UC)
   AC_SUBST(APP_VERSION)
   AC_SUBST(APP_VERSION_MAJOR)
   AC_SUBST(APP_VERSION_MINOR)
@@ -2528,6 +2530,7 @@ OUTPUT_FILES="Makefile \
     tools/android/packaging/xbmc/src/org/xbmc/kodi/XBMCBroadcastReceiver.java \
     tools/android/packaging/xbmc/src/org/xbmc/kodi/XBMCOnFrameAvailableListener.java \
     tools/android/packaging/xbmc/src/org/xbmc/kodi/XBMCSettingsContentObserver.java \
+    tools/android/packaging/xbmc/src/org/xbmc/kodi/XBMCOnAudioFocusChangeListener.java \
     tools/android/packaging/xbmc/strings.xml \
     addons/xbmc.addon/addon.xml"
 
@@ -2560,8 +2563,12 @@ if echo "$libdir" | grep -q '${exec_prefix}'; then
     exec_prefix=${prefix}
   fi
 fi
-eval "APP_LIBDIR=${libdir}"
-AC_SUBST(APP_LIBDIR)
+eval "APP_PREFIX=${prefix}"
+eval "APP_LIB_DIR=${libdir}/${APP_NAME_LC}"
+eval "APP_INCLUDE_DIR=${includedir}/${APP_NAME_LC}"
+AC_SUBST(APP_PREFIX)
+AC_SUBST(APP_LIB_DIR)
+AC_SUBST(APP_INCLUDE_DIR)
 
 # Line below is used so we can use AM_INIT_AUTOMAKE. The corresponding
 # .dummy.am does nothing.
