@@ -22,11 +22,11 @@
 #include "DVDClock.h"
 #include "cores/VideoRenderers/RenderManager.h"
 #include "utils/log.h"
-#include "utils/fastmemcpy.h"
 #include "cores/FFmpeg.h"
 #include "Util.h"
 #ifdef HAS_DX
 #include "cores/dvdplayer/DVDCodecs/Video/DXVA.h"
+#include "windowing/WindowingFactory.h"
 #endif
 
 #ifdef TARGET_WINDOWS
@@ -95,7 +95,7 @@ bool CDVDCodecUtils::CopyPicture(DVDVideoPicture* pDst, DVDVideoPicture* pSrc)
 
   for (int y = 0; y < h; y++)
   {
-    fast_memcpy(d, s, w);
+    memcpy(d, s, w);
     s += pSrc->iLineSize[0];
     d += pDst->iLineSize[0];
   }
@@ -107,7 +107,7 @@ bool CDVDCodecUtils::CopyPicture(DVDVideoPicture* pDst, DVDVideoPicture* pSrc)
   d = pDst->data[1];
   for (int y = 0; y < h; y++)
   {
-    fast_memcpy(d, s, w);
+    memcpy(d, s, w);
     s += pSrc->iLineSize[1];
     d += pDst->iLineSize[1];
   }
@@ -116,7 +116,7 @@ bool CDVDCodecUtils::CopyPicture(DVDVideoPicture* pDst, DVDVideoPicture* pSrc)
   d = pDst->data[2];
   for (int y = 0; y < h; y++)
   {
-    fast_memcpy(d, s, w);
+    memcpy(d, s, w);
     s += pSrc->iLineSize[2];
     d += pDst->iLineSize[2];
   }
@@ -131,13 +131,13 @@ bool CDVDCodecUtils::CopyPicture(YV12Image* pImage, DVDVideoPicture *pSrc)
   int h = pImage->height;
   if ((w == pSrc->iLineSize[0]) && ((unsigned int) pSrc->iLineSize[0] == pImage->stride[0]))
   {
-    fast_memcpy(d, s, w*h);
+    memcpy(d, s, w*h);
   }
   else
   {
     for (int y = 0; y < h; y++)
     {
-      fast_memcpy(d, s, w);
+      memcpy(d, s, w);
       s += pSrc->iLineSize[0];
       d += pImage->stride[0];
     }
@@ -148,13 +148,13 @@ bool CDVDCodecUtils::CopyPicture(YV12Image* pImage, DVDVideoPicture *pSrc)
   h =(pImage->height >> pImage->cshift_y);
   if ((w==pSrc->iLineSize[1]) && ((unsigned int) pSrc->iLineSize[1]==pImage->stride[1]))
   {
-    fast_memcpy(d, s, w*h);
+    memcpy(d, s, w*h);
   }
   else
   {
     for (int y = 0; y < h; y++)
     {
-      fast_memcpy(d, s, w);
+      memcpy(d, s, w);
       s += pSrc->iLineSize[1];
       d += pImage->stride[1];
     }
@@ -163,13 +163,13 @@ bool CDVDCodecUtils::CopyPicture(YV12Image* pImage, DVDVideoPicture *pSrc)
   d = pImage->plane[2];
   if ((w==pSrc->iLineSize[2]) && ((unsigned int) pSrc->iLineSize[2]==pImage->stride[2]))
   {
-    fast_memcpy(d, s, w*h);
+    memcpy(d, s, w*h);
   }
   else
   {
     for (int y = 0; y < h; y++)
     {
-      fast_memcpy(d, s, w);
+      memcpy(d, s, w);
       s += pSrc->iLineSize[2];
       d += pImage->stride[2];
     }
@@ -207,7 +207,7 @@ DVDVideoPicture* CDVDCodecUtils::ConvertToNV12Picture(DVDVideoPicture *pSrc)
       uint8_t *d = pPicture->data[0];
       for (int y = 0; y < (int)pSrc->iHeight; y++)
       {
-        fast_memcpy(d, s, pSrc->iWidth);
+        memcpy(d, s, pSrc->iWidth);
         s += pSrc->iLineSize[0];
         d += pPicture->iLineSize[0];
       }
@@ -298,13 +298,13 @@ bool CDVDCodecUtils::CopyNV12Picture(YV12Image* pImage, DVDVideoPicture *pSrc)
   // Copy Y
   if ((w == pSrc->iLineSize[0]) && ((unsigned int) pSrc->iLineSize[0] == pImage->stride[0]))
   {
-    fast_memcpy(d, s, w*h);
+    memcpy(d, s, w*h);
   }
   else
   {
     for (int y = 0; y < h; y++)
     {
-      fast_memcpy(d, s, w);
+      memcpy(d, s, w);
       s += pSrc->iLineSize[0];
       d += pImage->stride[0];
     }
@@ -317,13 +317,13 @@ bool CDVDCodecUtils::CopyNV12Picture(YV12Image* pImage, DVDVideoPicture *pSrc)
   // Copy packed UV (width is same as for Y as it's both U and V components)
   if ((w==pSrc->iLineSize[1]) && ((unsigned int) pSrc->iLineSize[1]==pImage->stride[1]))
   {
-    fast_memcpy(d, s, w*h);
+    memcpy(d, s, w*h);
   }
   else
   {
     for (int y = 0; y < h; y++)
     {
-      fast_memcpy(d, s, w);
+      memcpy(d, s, w);
       s += pSrc->iLineSize[1];
       d += pImage->stride[1];
     }
@@ -342,13 +342,13 @@ bool CDVDCodecUtils::CopyYUV422PackedPicture(YV12Image* pImage, DVDVideoPicture 
   // Copy YUYV
   if ((w * 2 == pSrc->iLineSize[0]) && ((unsigned int) pSrc->iLineSize[0] == pImage->stride[0]))
   {
-    fast_memcpy(d, s, w*h*2);
+    memcpy(d, s, w*h*2);
   }
   else
   {
     for (int y = 0; y < h; y++)
     {
-      fast_memcpy(d, s, w*2);
+      memcpy(d, s, w*2);
       s += pSrc->iLineSize[0];
       d += pImage->stride[0];
     }
@@ -360,58 +360,98 @@ bool CDVDCodecUtils::CopyYUV422PackedPicture(YV12Image* pImage, DVDVideoPicture 
 bool CDVDCodecUtils::CopyDXVA2Picture(YV12Image* pImage, DVDVideoPicture *pSrc)
 {
 #ifdef HAS_DX
-  // TODO: Optimize this later using shaders/swscale/etc.
+  HRESULT hr;
   switch (pSrc->extended_format)
   {
-    case MAKEFOURCC('N','V','1','2'):
-      {
-        IDirect3DSurface9* surface = (IDirect3DSurface9*)(pSrc->dxva->surface);
-
-        D3DLOCKED_RECT rectangle;
-        if (FAILED(surface->LockRect(&rectangle, NULL, 0)))
-          return false;
-
-        // Copy Y
-        uint8_t* bits = (uint8_t*)(rectangle.pBits);
-        uint8_t* d = pImage->plane[0];
-        for (unsigned y = 0; y < pSrc->iHeight; y++)
-        {
-          memcpy(d, bits, pSrc->iWidth);
-          bits += rectangle.Pitch;
-          d += pImage->stride[0];
-        }
-
-        D3DSURFACE_DESC desc;
-        if (FAILED(surface->GetDesc(&desc)))
-          return false;
-        
-        // Copy packed UV
-        uint8_t *s_uv = ((uint8_t*)(rectangle.pBits)) + desc.Height * rectangle.Pitch;
-        uint8_t *d_uv = pImage->plane[1];
-        for (unsigned y = 0; y < pSrc->iHeight >> 1; y++)
-        {
-          memcpy(d_uv, s_uv, pSrc->iWidth);
-          s_uv += rectangle.Pitch;
-          d_uv += pImage->stride[1];
-        }
-
-        if (FAILED(surface->UnlockRect()))
-          return false;
-      }
-      return true;
-
+    case DXGI_FORMAT_NV12: // MAKEFOURCC('N', 'V', '1', '2'):
     // Future...
-    /*case MAKEFOURCC('Y','V','1','2'):
-      return true;*/
-
-    /*case MAKEFOURCC('Y','V','V','Y'):
-      return true;*/
-
+    //case DXGI_FORMAT_420_OPAQUE: // MAKEFOURCC('Y', 'V', '1', '2'):
+    //case MAKEFOURCC('Y','V','V','Y'): - what is it?
+      break;
     default:
       CLog::Log(LOGWARNING, "CDVDCodecUtils::CopyDXVA2Picture colorspace not supported");
       return false;
   }
-#endif
+
+  // TODO: Optimize this later using shaders/swscale/etc. 
+  ID3D11VideoDecoderOutputView* view = reinterpret_cast<ID3D11VideoDecoderOutputView*>(pSrc->dxva->view);
+  if (!view)
+    return false;
+
+  ID3D11Resource* resource = nullptr;
+  ID3D11Texture2D* surface = nullptr;
+  view->GetResource(&resource);
+  hr = resource->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&surface));
+  SAFE_RELEASE(resource);
+  if (FAILED(hr))
+    return false;
+
+  D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC vpivd;
+  view->GetDesc(&vpivd);
+
+  D3D11_TEXTURE2D_DESC tDesc;
+  surface->GetDesc(&tDesc);
+
+  int subresource = D3D11CalcSubresource(0, vpivd.Texture2D.ArraySlice, tDesc.MipLevels);
+
+  // we cannot read from dxva decoder texture so create new one with read access and copy content to it.
+  CD3D11_TEXTURE2D_DESC sDesc(tDesc);
+  sDesc.ArraySize = 1;
+  sDesc.Usage = D3D11_USAGE_STAGING;
+  sDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+  sDesc.BindFlags = 0;
+
+  ID3D11Texture2D* staging = nullptr;
+  hr = g_Windowing.Get3D11Device()->CreateTexture2D(&sDesc, nullptr, &staging);
+  if (FAILED(hr))
+  {
+    SAFE_RELEASE(surface);
+    return false;
+  }
+
+  ID3D11DeviceContext* pContext = g_Windowing.GetImmediateContext();
+  // copy content from decoder texture to temporary texture.
+  pContext->CopySubresourceRegion(staging, D3D11CalcSubresource(0, 0, tDesc.MipLevels), 0, 0, 0, surface, subresource, nullptr);
+
+  D3D11_MAPPED_SUBRESOURCE rectangle;
+  if (FAILED(pContext->Map(staging, 0, D3D11_MAP_READ, 0, &rectangle)))
+    return false;
+
+  switch (pSrc->extended_format)
+  {
+  case DXGI_FORMAT_NV12:
+    {
+      uint8_t* s_y = (uint8_t*)(rectangle.pData);
+      uint8_t* d_y = pImage->plane[0];
+      uint8_t *s_uv = ((uint8_t*)(rectangle.pData)) + sDesc.Height * rectangle.RowPitch;
+      uint8_t *d_uv = pImage->plane[1];
+      for (unsigned y = 0; y < pSrc->iHeight >> 1; ++y)
+      {
+        // Copy Y
+        memcpy(d_y, s_y, pSrc->iWidth);
+        s_y += rectangle.RowPitch;
+        d_y += pImage->stride[0];
+        // Copy Y
+        memcpy(d_y, s_y, pSrc->iWidth);
+        s_y += rectangle.RowPitch;
+        d_y += pImage->stride[0];
+        // Copy UV
+        memcpy(d_uv, s_uv, pSrc->iWidth);
+        s_uv += rectangle.RowPitch;
+        d_uv += pImage->stride[1];
+      }
+    }
+    break;
+  case DXGI_FORMAT_420_OPAQUE:
+    // not implemented yet
+    break;
+  }
+  pContext->Unmap(staging, 0);
+  SAFE_RELEASE(surface);
+  SAFE_RELEASE(staging);
+  return true;
+
+#endif // HAS_DX
   return false;
 }
 

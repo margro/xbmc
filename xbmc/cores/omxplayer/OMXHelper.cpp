@@ -56,6 +56,12 @@ bool OMXPlayerUnsuitable(bool m_HasVideo, bool m_HasAudio, CDVDDemux* m_pDemuxer
     CLog::Log(LOGNOTICE, "%s OMXPlayer unsuitable due to audio sink", __func__);
     return true;
   }
+  // omxplayer doesn't handle ac3 transcode
+  if (CSettings::Get().GetBool("audiooutput.ac3transcode"))
+  {
+    CLog::Log(LOGNOTICE, "%s OMXPlayer unsuitable due to ac3transcode", __func__);
+    return true;
+  }
   if (m_pDemuxer)
   {
     // find video stream
@@ -128,7 +134,7 @@ bool OMXDoProcessing(struct SOmxPlayerState &m_OmxPlayerState, int m_playSpeed, 
        (m_OmxPlayerState.current_deinterlace != VS_DEINTERLACEMODE_OFF &&
         m_OmxPlayerState.interlace_method != g_renderManager.AutoInterlaceMethod(CMediaSettings::Get().GetCurrentVideoSettings().m_InterlaceMethod)))
     {
-      CLog::Log(LOGERROR, "%s - Reopen stream due to interlace change (%d,%d,%d,%d)", __FUNCTION__,
+      CLog::Log(LOGNOTICE, "%s - Reopen stream due to interlace change (%d,%d,%d,%d)", __FUNCTION__,
         m_OmxPlayerState.current_deinterlace, CMediaSettings::Get().GetCurrentVideoSettings().m_DeinterlaceMode,
         m_OmxPlayerState.interlace_method, g_renderManager.AutoInterlaceMethod(CMediaSettings::Get().GetCurrentVideoSettings().m_InterlaceMethod));
 

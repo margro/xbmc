@@ -350,6 +350,13 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
     case AV_CODEC_ID_AVS:
     case AV_CODEC_ID_CAVS:
     case AV_CODEC_ID_H264:
+      switch(hints.profile)
+      {
+        case FF_PROFILE_H264_HIGH_10:
+        case FF_PROFILE_H264_HIGH_10_INTRA:
+          // No known h/w decoder supporting Hi10P
+          return false;
+      }
       m_mime = "video/avc";
       m_formatname = "amc-h264";
       // check for h264-avcC and convert to h264-annex-b
@@ -359,7 +366,6 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
         if (!m_bitstream->Open(m_hints.codec, (uint8_t*)m_hints.extradata, m_hints.extrasize, true))
         {
           SAFE_DELETE(m_bitstream);
-          return false;
         }
       }
       break;
@@ -372,9 +378,7 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
         m_bitstream = new CBitstreamConverter;
         if (!m_bitstream->Open(m_hints.codec, (uint8_t*)m_hints.extradata, m_hints.extrasize, true))
         {
-          CLog::Log(LOGERROR, "CDVDVideoCodecAndroidMediaCodec::Open CBitstreamConverter Open failed");
           SAFE_DELETE(m_bitstream);
-          return false;
         }
       }
       break;
@@ -529,6 +533,8 @@ void CDVDVideoCodecAndroidMediaCodec::Dispose()
     m_codec->stop();
     m_codec->release();
     m_codec.reset();
+    if (xbmc_jnienv()->ExceptionCheck())
+      xbmc_jnienv()->ExceptionClear();
   }
   ReleaseSurfaceTexture();
 

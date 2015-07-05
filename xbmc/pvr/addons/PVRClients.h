@@ -45,12 +45,26 @@ namespace PVR
   typedef std::map< int, PVR_CLIENT >::const_iterator PVR_CLIENTMAP_CITR;
   typedef std::map< int, PVR_STREAM_PROPERTIES >      STREAMPROPS;
 
+  /**
+   * Holds generic data about a backend (number of channels etc.)
+   */
+  struct SBackend
+  {
+    std::string name;
+    std::string version;
+    std::string host;
+    int         numTimers = 0;
+    int         numRecordings = 0;
+    int         numDeletedRecordings = 0;
+    int         numChannels = 0;
+    long long   diskUsed = 0;
+    long long   diskTotal = 0;
+  };
+
   class CPVRClients : public ADDON::IAddonMgrCallback,
                       public Observer,
                       private CThread
   {
-    friend class CPVRGUIInfo;
-
   public:
     CPVRClients(void);
     virtual ~CPVRClients(void);
@@ -147,18 +161,17 @@ namespace PVR
     bool GetClientName(int iClientId, std::string &strName) const;
 
     /*!
+     * @brief Returns properties about all connected clients
+     * @return the properties
+     */
+    std::vector<SBackend> GetBackendProperties() const;
+
+    /*!
      * Get the add-on ID of the client
      * @param iClientId The db id of the client
      * @return The add-on id
      */
     std::string GetClientAddonId(int iClientId) const;
-
-    /*!
-     * @bried Get all connected clients.
-     * @param clients Store the active clients in this map.
-     * @return The amount of added clients.
-     */
-    int GetConnectedClients(PVR_CLIENTMAP &clients) const;
 
     /*!
      * @return The client ID of the client that is currently playing a stream or -1 if no client is playing.
@@ -341,10 +354,11 @@ namespace PVR
      * @brief Delete a timer from the backend.
      * @param timer The timer to delete.
      * @param bForce Also delete when currently recording if true.
+     * @param bDeleteSchedule Also delete schedule instead of single timer.
      * @param error An error if it occured.
      * @return True if the timer was deleted successfully, false otherwise.
      */
-    PVR_ERROR DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce);
+    PVR_ERROR DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce, bool bDeleteSchedule);
 
     /*!
      * @brief Rename a timer on the backend.
@@ -354,6 +368,21 @@ namespace PVR
      * @return True if the timer was renamed successfully, false otherwise.
      */
     PVR_ERROR RenameTimer(const CPVRTimerInfoTag &timer, const std::string &strNewName);
+
+    /*!
+     * @brief Get all supported timer types.
+     * @param results The container to store the result in.
+     * @return PVR_ERROR_NO_ERROR if the list has been fetched successfully.
+     */
+    PVR_ERROR GetTimerTypes(CPVRTimerTypes& results) const;
+
+    /*!
+     * @brief Get all timer types supported by a certain client.
+     * @param iClientId The id of the client.
+     * @param results The container to store the result in.
+     * @return PVR_ERROR_NO_ERROR if the list has been fetched successfully.
+     */
+    PVR_ERROR GetTimerTypes(CPVRTimerTypes& results, int iClientId) const;
 
     //@}
 
@@ -602,7 +631,6 @@ namespace PVR
     bool SupportsChannelSettings(int iClientId) const;
     bool SupportsLastPlayedPosition(int iClientId) const;
     bool SupportsRadio(int iClientId) const;
-    bool SupportsRecordingFolders(int iClientId) const;
     bool SupportsRecordingPlayCount(int iClientId) const;
     bool SupportsRecordingEdl(int iClientId) const;
     bool SupportsTimers(int iClientId) const;
@@ -666,6 +694,13 @@ namespace PVR
      * @return True if the client is connected, false otherwise.
      */
     bool GetConnectedClient(int iClientId, PVR_CLIENT &addon) const;
+
+    /*!
+     * @bried Get all connected clients.
+     * @param clients Store the active clients in this map.
+     * @return The amount of added clients.
+     */
+    int GetConnectedClients(PVR_CLIENTMAP &clients) const;
 
     /*!
      * @brief Check whether a client is registered.

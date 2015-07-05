@@ -258,6 +258,40 @@ bool CPVRClients::GetClientName(int iClientId, std::string &strName) const
   return bReturn;
 }
 
+std::vector<SBackend> CPVRClients::GetBackendProperties() const
+{
+  std::vector<SBackend> backendProperties;
+  CSingleLock lock(m_critSection);
+
+  for (const auto &entry : m_clientMap)
+  {
+    const auto &client = entry.second;
+    
+    if (!client->ReadyToUse())
+      continue;
+
+    SBackend properties;
+
+    if (client->GetDriveSpace(&properties.diskTotal, &properties.diskUsed) == PVR_ERROR_NO_ERROR)
+    {
+      properties.diskTotal *= 1024;  
+      properties.diskUsed *= 1024;
+    }
+
+    properties.numChannels = client->GetChannelsAmount();
+    properties.numTimers = client->GetTimersAmount();
+    properties.numRecordings = client->GetRecordingsAmount(false);
+    properties.numDeletedRecordings = client->GetRecordingsAmount(true);
+    properties.name = client->GetBackendName();
+    properties.version = client->GetBackendVersion();
+    properties.host = client->GetConnectionString();
+
+    backendProperties.push_back(properties);
+  }
+
+  return backendProperties;
+}
+
 std::string CPVRClients::GetClientAddonId(int iClientId) const
 {
   PVR_CLIENT client;
@@ -443,13 +477,13 @@ PVR_ERROR CPVRClients::UpdateTimer(const CPVRTimerInfoTag &timer)
   return error;
 }
 
-PVR_ERROR CPVRClients::DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce)
+PVR_ERROR CPVRClients::DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce, bool bDeleteSchedule)
 {
   PVR_ERROR error(PVR_ERROR_UNKNOWN);
   PVR_CLIENT client;
 
   if (GetConnectedClient(timer.m_iClientId, client))
-    error = client->DeleteTimer(timer, bForce);
+    error = client->DeleteTimer(timer, bForce, bDeleteSchedule);
 
   return error;
 }
@@ -464,6 +498,47 @@ PVR_ERROR CPVRClients::RenameTimer(const CPVRTimerInfoTag &timer, const std::str
 
   if (error != PVR_ERROR_NO_ERROR)
     CLog::Log(LOGERROR, "PVR - %s - cannot rename timer on client '%d': %s",__FUNCTION__, timer.m_iClientId, CPVRClient::ToString(error));
+
+  return error;
+}
+
+PVR_ERROR CPVRClients::GetTimerTypes(CPVRTimerTypes& results) const
+{
+  PVR_ERROR error(PVR_ERROR_NO_ERROR);
+
+  PVR_CLIENTMAP clients;
+  GetConnectedClients(clients);
+
+  for (const auto &clientEntry : clients)
+  {
+    CPVRTimerTypes types;
+    PVR_ERROR currentError = clientEntry.second->GetTimerTypes(types);
+    if (currentError != PVR_ERROR_NOT_IMPLEMENTED &&
+        currentError != PVR_ERROR_NO_ERROR)
+    {
+      CLog::Log(LOGERROR, "PVR - %s - cannot get timer types from client '%d': %s",__FUNCTION__, clientEntry.first, CPVRClient::ToString(currentError));
+      error = currentError;
+    }
+    else
+    {
+      for (const auto &typesEntry : types)
+        results.push_back(typesEntry);
+    }
+  }
+
+  return error;
+}
+
+PVR_ERROR CPVRClients::GetTimerTypes(CPVRTimerTypes& results, int iClientId) const
+{
+  PVR_ERROR error(PVR_ERROR_UNKNOWN);
+
+  PVR_CLIENT client;
+  if (GetConnectedClient(iClientId, client))
+    error = client->GetTimerTypes(results);
+
+  if (error != PVR_ERROR_NO_ERROR)
+    CLog::Log(LOGERROR, "PVR - %s - cannot get timer types from client '%d': %s",__FUNCTION__, iClientId, CPVRClient::ToString(error));
 
   return error;
 }
@@ -1398,12 +1473,6 @@ bool CPVRClients::SupportsRecordingsUndelete(int iClientId) const
 {
   PVR_CLIENT client;
   return GetConnectedClient(iClientId, client) && client->SupportsRecordingsUndelete();
-}
-
-bool CPVRClients::SupportsRecordingFolders(int iClientId) const
-{
-  PVR_CLIENT client;
-  return GetConnectedClient(iClientId, client) && client->SupportsRecordingFolders();
 }
 
 bool CPVRClients::SupportsRecordingPlayCount(int iClientId) const

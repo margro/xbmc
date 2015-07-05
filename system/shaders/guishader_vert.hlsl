@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,19 +17,21 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "guishader_common.hlsl"
 
-#if !defined(TARGET_WINDOWS) && !defined(__ppc__) && !defined(__powerpc__) && !defined(__mips__) && !defined(TARGET_ANDROID) && !defined(TARGET_DARWIN_IOS)
-void * fast_memcpy(void * to, const void * from, size_t len);
-//#define fast_memcpy memcpy
-#else
-#define fast_memcpy memcpy
-#endif
+cbuffer cbWorld : register(b0)
+{
+  float4x4 worldViewProj;
+};
 
-#ifdef __cplusplus
+PS_INPUT VS(VS_INPUT input)
+{
+  PS_INPUT output = (PS_INPUT)0;
+  output.pos   = mul(input.pos, worldViewProj);
+  output.color = input.color;
+  output.tex   = input.tex;
+  output.tex2  = input.tex2;
+
+  return output;
 }
-#endif
