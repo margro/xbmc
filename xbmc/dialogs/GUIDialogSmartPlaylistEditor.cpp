@@ -24,6 +24,7 @@
 #include "utils/SortUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
+#include "utils/Variant.h"
 #include "GUIDialogSmartPlaylistRule.h"
 #include "guilib/GUIWindowManager.h"
 #include "filesystem/File.h"
@@ -32,6 +33,7 @@
 #include "FileItem.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
+
 
 using namespace std;
 
@@ -201,7 +203,7 @@ void CGUIDialogSmartPlaylistEditor::OnOK()
   {
     std::string filename(CUtil::MakeLegalFileName(m_playlist.m_playlistName));
     std::string path;
-    if (CGUIKeyboardFactory::ShowAndGetInput(filename, g_localizeStrings.Get(16013), false))
+    if (CGUIKeyboardFactory::ShowAndGetInput(filename, CVariant{g_localizeStrings.Get(16013)}, false))
     {
       path = URIUtils::AddFileToFolder(systemPlaylistsPath, m_playlist.GetSaveLocation());
       path = URIUtils::AddFileToFolder(path, CUtil::MakeLegalFileName(filename));
@@ -559,7 +561,7 @@ bool CGUIDialogSmartPlaylistEditor::NewPlaylist(const std::string &type)
   editor->m_playlist = CSmartPlaylist();
   editor->m_mode = type;
   editor->Initialize();
-  editor->DoModal(g_windowManager.GetActiveWindow());
+  editor->Open();
   return !editor->m_cancelled;
 }
 
@@ -587,6 +589,6 @@ bool CGUIDialogSmartPlaylistEditor::EditPlaylist(const std::string &path, const 
   editor->m_playlist = playlist;
   editor->m_path = path;
   editor->Initialize();
-  editor->DoModal(g_windowManager.GetActiveWindow());
+  editor->Open();
   return !editor->m_cancelled;
 }

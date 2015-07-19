@@ -24,6 +24,7 @@
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "guilib/GUIWindowManager.h"
+#include "utils/Variant.h"
 
 using namespace std;
 
@@ -107,7 +108,7 @@ void CProgressJob::ShowProgressDialog() const
     return;
 
   // show the progress dialog as a modal dialog with a progress bar
-  m_progressDialog->StartModal();
+  m_progressDialog->Open();
   m_progressDialog->ShowProgressBar(true);
 }
 
@@ -120,7 +121,7 @@ void CProgressJob::SetTitle(const std::string &title)
     m_progress->SetTitle(title);
   else if (m_progressDialog != NULL)
   {
-    m_progressDialog->SetHeading(title);
+    m_progressDialog->SetHeading(CVariant{title});
 
     ShowProgressDialog();
   }
@@ -135,7 +136,7 @@ void CProgressJob::SetText(const std::string &text)
     m_progress->SetText(text);
   else if (m_progressDialog != NULL)
   {
-    m_progressDialog->SetText(text);
+    m_progressDialog->SetText(CVariant{text});
 
     ShowProgressDialog();
   }

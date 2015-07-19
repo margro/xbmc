@@ -33,8 +33,10 @@
 #include "settings/Settings.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/Variant.h"
 
 #include <assert.h>
+#include <memory>
 
 using namespace ADDON;
 using namespace PVR;
@@ -417,15 +419,15 @@ bool CPVRClient::GetAddonProperties(void)
   {
     try
     {
-      PVR_TIMER_TYPE types_array[PVR_ADDON_TIMERTYPE_ARRAY_SIZE];
+      std::unique_ptr<PVR_TIMER_TYPE[]> types_array(new PVR_TIMER_TYPE[PVR_ADDON_TIMERTYPE_ARRAY_SIZE]);
       int size = PVR_ADDON_TIMERTYPE_ARRAY_SIZE;
 
-      PVR_ERROR retval = m_pStruct->GetTimerTypes(types_array, &size);
+      PVR_ERROR retval = m_pStruct->GetTimerTypes(types_array.get(), &size);
 
       if (retval == PVR_ERROR_NOT_IMPLEMENTED)
       {
         // begin compat section
-        CLog::Log(LOGWARNING, "%s - Addon %s does not support timer types. It will work, but not benefit from the timer features introduced with PVR Addon API 1.9.7.", __FUNCTION__, strFriendlyName.c_str());
+        CLog::Log(LOGWARNING, "%s - Addon %s does not support timer types. It will work, but not benefit from the timer features introduced with PVR Addon API 2.0.0", __FUNCTION__, strFriendlyName.c_str());
 
         // Create standard timer types (mostly) matching the timer functionality available in Isengard.
         // This is for migration only and does not make changes to the addons obsolete. Addons should
@@ -1286,6 +1288,9 @@ PVR_ERROR CPVRClient::UpdateTimer(const CPVRTimerInfoTag &timer)
 
 PVR_ERROR CPVRClient::GetTimerTypes(CPVRTimerTypes& results) const
 {
+  if (!m_bReadyToUse)
+    return PVR_ERROR_REJECTED;
+
   results = m_timertypes;
   return PVR_ERROR_NO_ERROR;
 }
@@ -1916,10 +1921,10 @@ bool CPVRClient::Autoconfigure(void)
         std::string strLogLine(StringUtils::Format(g_localizeStrings.Get(19689).c_str(), (*it).GetName().c_str(), (*it).GetIP().c_str()));
         CLog::Log(LOGDEBUG, "%s - %s", __FUNCTION__, strLogLine.c_str());
 
-        if (!CGUIDialogYesNo::ShowAndGetInput(19688, // Scanning for PVR services
-                                              strLogLine,
-                                              19690, // Do you want to use this service?
-                                              ""))
+        if (!CGUIDialogYesNo::ShowAndGetInput(CVariant{19688}, // Scanning for PVR services
+                                              CVariant{strLogLine},
+                                              CVariant{19690}, // Do you want to use this service?
+                                              CVariant{""}))
         {
           CLog::Log(LOGDEBUG, "%s - %s service found but not enabled by the user", __FUNCTION__, (*it).GetName().c_str());
           m_rejectedAvahiHosts.push_back(*it);

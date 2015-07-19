@@ -41,7 +41,10 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
+#include "utils/Variant.h"
 #include "video/VideoDatabase.h"
+#include <string>
+#include <vector>
 
 #define SETTING_AUDIO_VOLUME                   "audio.volume"
 #define SETTING_AUDIO_VOLUME_AMPLIFICATION     "audio.volumeamplification"
@@ -56,8 +59,6 @@
 #define SETTING_SUBTITLE_BROWSER               "subtitles.browser"
 
 #define SETTING_AUDIO_MAKE_DEFAULT             "audio.makedefault"
-
-using namespace std;
 
 CGUIDialogAudioSubtitleSettings::CGUIDialogAudioSubtitleSettings()
   : CGUIDialogSettingsManualBase(WINDOW_DIALOG_AUDIO_OSD_SETTINGS, "VideoOSDSettings.xml"),
@@ -228,7 +229,7 @@ void CGUIDialogAudioSubtitleSettings::Save()
     return;
 
   // prompt user if they are sure
-  if (!CGUIDialogYesNo::ShowAndGetInput(12376, 12377))
+  if (!CGUIDialogYesNo::ShowAndGetInput(CVariant{12376}, CVariant{12377}))
     return;
 
   // reset the settings

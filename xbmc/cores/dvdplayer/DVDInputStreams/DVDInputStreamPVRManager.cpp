@@ -74,7 +74,7 @@ bool CDVDInputStreamPVRManager::IsEOF()
     return !m_pFile || m_eof;
 }
 
-bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& content)
+bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& content, bool contentLookup)
 {
   /* Open PVR File for both cases, to have access to ILiveTVInterface and
    * IRecordable
@@ -84,6 +84,7 @@ bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& con
   m_pRecordable = ((CPVRFile*)m_pFile)->GetRecordable();
 
   CURL url(strFile);
+  if (!CDVDInputStream::Open(strFile, content, contentLookup)) return false;
   if (!m_pFile->Open(url))
   {
     delete m_pFile;
@@ -92,9 +93,6 @@ bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& con
     m_pRecordable = NULL;
     return false;
   }
-  std::string pathFile = strFile;
-  std::string streamUrl = CPVRFile::TranslatePVRFilename(pathFile);
-  if (!CDVDInputStream::Open(streamUrl.c_str(), content)) return false;
   m_eof = false;
 
   /*
@@ -119,7 +117,7 @@ bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& con
     else
       m_pOtherStream->SetFileItem(m_item);
 
-    if (!m_pOtherStream->Open(transFile.c_str(), content))
+    if (!m_pOtherStream->Open(transFile.c_str(), content, contentLookup))
     {
       CLog::Log(LOGERROR, "CDVDInputStreamPVRManager::Open - error opening [%s]", transFile.c_str());
       delete m_pFile;
@@ -134,6 +132,7 @@ bool CDVDInputStreamPVRManager::Open(const char* strFile, const std::string& con
 
   ResetScanTimeout((unsigned int) CSettings::Get().GetInt("pvrplayback.scantime") * 1000);
   m_content = content;
+  m_contentLookup = contentLookup;
   CLog::Log(LOGDEBUG, "CDVDInputStreamPVRManager::Open - stream opened: %s", transFile.c_str());
 
   return true;
@@ -375,7 +374,7 @@ bool CDVDInputStreamPVRManager::CloseAndOpen(const char* strFile)
 {
   Close();
 
-  if (Open(strFile, m_content))
+  if (Open(strFile, m_content, m_contentLookup))
   {
     return true;
   }

@@ -26,6 +26,7 @@
 #include "utils/log.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
+#include "utils/Variant.h"
 
 #include "PVRTimers.h"
 #include "pvr/PVRManager.h"
@@ -413,7 +414,7 @@ bool CPVRTimers::GetRootDirectory(const CPVRTimersPath &path, CFileItemList &ite
     for (const auto &timer : *tagsEntry.second)
     {
       if ((bRadio == timer->m_bIsRadio) &&
-          (!bGrouped || (timer->m_iParentClientIndex == 0)))
+          (!bGrouped || (timer->m_iParentClientIndex == PVR_TIMER_NO_PARENT)))
       {
         item.reset(new CFileItem(timer));
         std::string strItemPath(
@@ -440,7 +441,7 @@ bool CPVRTimers::GetSubDirectory(const CPVRTimersPath &path, CFileItemList &item
     for (const auto &timer : *tagsEntry.second)
     {
       if ((timer->m_bIsRadio == bRadio) &&
-          (timer->m_iParentClientIndex > 0) &&
+          (timer->m_iParentClientIndex != PVR_TIMER_NO_PARENT) &&
           (timer->m_iClientId == iClientId) &&
           (timer->m_iParentClientIndex == iParentId))
       {
@@ -562,13 +563,13 @@ bool CPVRTimers::AddTimer(const CPVRTimerInfoTagPtr &item)
   if (!item->m_channel && item->GetTimerType() && !item->GetTimerType()->IsRepeatingEpgBased())
   {
     CLog::Log(LOGERROR, "PVRTimers - %s - no channel given", __FUNCTION__);
-    CGUIDialogOK::ShowAndGetInput(19033, 19109); // Couldn't save timer
+    CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19109}); // Couldn't save timer
     return false;
   }
 
   if (!g_PVRClients->SupportsTimers(item->m_iClientId))
   {
-    CGUIDialogOK::ShowAndGetInput(19033, 19215);
+    CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19215});
     return false;
   }
 

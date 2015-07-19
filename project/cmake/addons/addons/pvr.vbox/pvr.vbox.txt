@@ -1,1 +1,1 @@
-pvr.vbox https://github.com/kodi-pvr/pvr.vbox d43c785
+pvr.vbox https://github.com/kodi-pvr/pvr.vbox c3a922f

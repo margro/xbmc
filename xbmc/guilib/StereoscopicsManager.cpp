@@ -27,7 +27,7 @@
 #include "StereoscopicsManager.h"
 
 #include "Application.h"
-#include "ApplicationMessenger.h"
+#include "messaging/ApplicationMessenger.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "GUIInfoManager.h"
@@ -42,8 +42,11 @@
 #include "utils/log.h"
 #include "utils/RegExp.h"
 #include "utils/StringUtils.h"
+#include "utils/Variant.h"
 #include "windowing/WindowingFactory.h"
+#include "guiinfo/GUIInfoLabels.h"
 
+using namespace KODI::MESSAGING;
 
 struct StereoModeMap
 {
@@ -212,9 +215,9 @@ RENDER_STEREO_MODE CStereoscopicsManager::GetStereoModeByUserChoice(const std::s
   CGUIDialogSelect* pDlgSelect = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
   pDlgSelect->Reset();
   if (heading.empty())
-    pDlgSelect->SetHeading(g_localizeStrings.Get(36528).c_str());
+    pDlgSelect->SetHeading(CVariant{g_localizeStrings.Get(36528)});
   else
-    pDlgSelect->SetHeading(heading.c_str());
+    pDlgSelect->SetHeading(CVariant{heading});
 
   // prepare selectable stereo modes
   std::vector<RENDER_STEREO_MODE> selectableModes;
@@ -237,7 +240,7 @@ RENDER_STEREO_MODE CStereoscopicsManager::GetStereoModeByUserChoice(const std::s
     }
   }
 
-  pDlgSelect->DoModal();
+  pDlgSelect->Open();
 
   int iItem = pDlgSelect->GetSelectedLabel();
   if (iItem > -1 && pDlgSelect->IsConfirmed())
@@ -547,11 +550,11 @@ void CStereoscopicsManager::OnPlaybackStarted(void)
   {
   case STEREOSCOPIC_PLAYBACK_MODE_ASK: // Ask
     {
-      CApplicationMessenger::Get().MediaPause();
+      CApplicationMessenger::Get().SendMsg(TMSG_MEDIA_PAUSE);
 
       CGUIDialogSelect* pDlgSelect = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
       pDlgSelect->Reset();
-      pDlgSelect->SetHeading(g_localizeStrings.Get(36527).c_str());
+      pDlgSelect->SetHeading(CVariant{g_localizeStrings.Get(36527)});
 
       int idx_playing   = -1;
 
@@ -571,7 +574,7 @@ void CStereoscopicsManager::OnPlaybackStarted(void)
 
       int idx_select = pDlgSelect->Add( g_localizeStrings.Get(36531) ); // other / select
 
-      pDlgSelect->DoModal();
+      pDlgSelect->Open();
 
       if(pDlgSelect->IsConfirmed())
       {
@@ -584,7 +587,7 @@ void CStereoscopicsManager::OnPlaybackStarted(void)
         SetStereoModeByUser( mode );
       }
 
-      CApplicationMessenger::Get().MediaUnPause();
+      CApplicationMessenger::Get().SendMsg(TMSG_MEDIA_UNPAUSE);
     }
     break;
   case STEREOSCOPIC_PLAYBACK_MODE_PREFERRED: // Stereoscopic

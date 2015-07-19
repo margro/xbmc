@@ -19,7 +19,7 @@
  */
 
 #include "Application.h"
-#include "ApplicationMessenger.h"
+#include "messaging/ApplicationMessenger.h"
 #include "GUIInfoManager.h"
 #include "Util.h"
 #include "dialogs/GUIDialogOK.h"
@@ -40,6 +40,7 @@
 #include "utils/Stopwatch.h"
 #include "utils/StringUtils.h"
 #include "utils/JobManager.h"
+#include "utils/Variant.h"
 #include "interfaces/AnnouncementManager.h"
 #include "video/VideoDatabase.h"
 #include "network/Network.h"
@@ -65,6 +66,7 @@ using namespace MUSIC_INFO;
 using namespace PVR;
 using namespace EPG;
 using namespace ANNOUNCEMENT;
+using namespace KODI::MESSAGING;
 
 int CPVRManager::m_pvrWindowIds[10] = {
     WINDOW_TV_CHANNELS,
@@ -151,7 +153,7 @@ void CPVRManager::OnSettingChanged(const CSetting *setting)
   const std::string &settingId = setting->GetId();
   if (settingId == "pvrmanager.enabled")
   {
-    CApplicationMessenger::Get().SetPVRManagerState(((CSettingBool*)setting)->GetValue());
+    CApplicationMessenger::Get().PostMsg(TMSG_SETPVRMANAGERSTATE, ((CSettingBool*)setting)->GetValue() ? 1 : 0);
   }
   else if (settingId == "pvrparental.enabled")
   {
@@ -182,7 +184,7 @@ void CPVRManager::OnSettingAction(const CSetting *setting)
   else if (settingId == "pvrmanager.resetdb")
   {
     if (CheckParentalPIN(g_localizeStrings.Get(19262)) &&
-        CGUIDialogYesNo::ShowAndGetInput(19098, 19186))
+        CGUIDialogYesNo::ShowAndGetInput(CVariant{19098}, CVariant{19186}))
     {
       CDateTime::ResetTimezoneBias();
       ResetDatabase(false);
@@ -190,7 +192,7 @@ void CPVRManager::OnSettingAction(const CSetting *setting)
   }
   else if (settingId == "epg.resetepg")
   {
-    if (CGUIDialogYesNo::ShowAndGetInput(19098, 19188))
+    if (CGUIDialogYesNo::ShowAndGetInput(CVariant{19098}, CVariant{19188}))
     {
       CDateTime::ResetTimezoneBias();
       ResetDatabase(true);
@@ -207,7 +209,7 @@ void CPVRManager::OnSettingAction(const CSetting *setting)
     {
       CGUIDialogPVRChannelManager *dialog = (CGUIDialogPVRChannelManager *)g_windowManager.GetWindow(WINDOW_DIALOG_PVR_CHANNEL_MANAGER);
       if (dialog)
-        dialog->DoModal();
+        dialog->Open();
     }
   }
   else if (settingId == "pvrmanager.groupmanager")
@@ -216,7 +218,7 @@ void CPVRManager::OnSettingAction(const CSetting *setting)
     {
       CGUIDialogPVRGroupManager *dialog = (CGUIDialogPVRGroupManager *)g_windowManager.GetWindow(WINDOW_DIALOG_PVR_GROUP_MANAGER);
       if (dialog)
-        dialog->DoModal();
+        dialog->Open();
     }
   }
   else if (settingId == "pvrclient.menuhook")
@@ -452,7 +454,7 @@ void CPVRManager::Stop(void)
   if (IsPlaying())
   {
     CLog::Log(LOGNOTICE,"PVRManager - %s - stopping PVR playback", __FUNCTION__);
-    CApplicationMessenger::Get().MediaStop();
+    CApplicationMessenger::Get().SendMsg(TMSG_MEDIA_STOP);
   }
 
   /* stop all update threads */
@@ -561,7 +563,7 @@ void CPVRManager::Process(void)
   if (IsStarted())
   {
     CLog::Log(LOGNOTICE, "PVRManager - %s - no add-ons enabled anymore. restarting the pvrmanager", __FUNCTION__);
-    CApplicationMessenger::Get().SetPVRManagerState(true);
+    CApplicationMessenger::Get().PostMsg(TMSG_SETPVRMANAGERSTATE, 1);
   }
   else
   {
@@ -767,16 +769,16 @@ void CPVRManager::ResetDatabase(bool bResetEPGOnly /* = false */)
   g_EpgContainer.Stop();
 
   CGUIDialogProgress* pDlgProgress = (CGUIDialogProgress*)g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS);
-  pDlgProgress->SetLine(0, "");
-  pDlgProgress->SetLine(1, g_localizeStrings.Get(19186)); // All data in the PVR database is being erased
-  pDlgProgress->SetLine(2, "");
-  pDlgProgress->StartModal();
+  pDlgProgress->SetLine(0, CVariant{""});
+  pDlgProgress->SetLine(1, CVariant{g_localizeStrings.Get(19186)}); // All data in the PVR database is being erased
+  pDlgProgress->SetLine(2, CVariant{""});
+  pDlgProgress->Open();
   pDlgProgress->Progress();
 
   if (m_addons && m_addons->IsPlaying())
   {
     CLog::Log(LOGNOTICE,"PVRManager - %s - stopping playback", __FUNCTION__);
-    CApplicationMessenger::Get().MediaStop();
+    CApplicationMessenger::Get().SendMsg(TMSG_MEDIA_STOP);
   }
 
   pDlgProgress->SetPercentage(10);
@@ -893,7 +895,7 @@ bool CPVRManager::ToggleRecordingOnChannel(unsigned int iChannelId)
     {
       bReturn = m_timers->InstantTimer(channel);
       if (!bReturn)
-        CGUIDialogOK::ShowAndGetInput(19033, 19164);
+        CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19164});
     }
     else
     {
@@ -920,7 +922,7 @@ bool CPVRManager::StartRecordingOnPlayingChannel(bool bOnOff)
     {
       bReturn = m_timers->InstantTimer(channel);
       if (!bReturn)
-        CGUIDialogOK::ShowAndGetInput(19033, 19164);
+        CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19164});
     }
     else if (!bOnOff && channel->IsRecording())
     {
@@ -977,7 +979,7 @@ bool CPVRManager::CheckParentalPIN(const std::string& strTitle /* = "" */)
   bool bValidPIN = CGUIDialogNumeric::ShowAndVerifyInput(pinCode, !strTitle.empty() ? strTitle : g_localizeStrings.Get(19263), true);
   if (!bValidPIN)
     // display message: The entered PIN number was incorrect
-    CGUIDialogOK::ShowAndGetInput(19264, 19265);
+    CGUIDialogOK::ShowAndGetInput(CVariant{19264}, CVariant{19265});
   else if (m_parentalTimer)
   {
     // reset the timer
@@ -1113,7 +1115,9 @@ bool CPVRManager::PlayMedia(const CFileItem& item)
 
   if (!g_application.IsCurrentThread())
   {
-    CApplicationMessenger::Get().MediaPlay(pvrItem);
+    CFileItemList *l = new CFileItemList; //don't delete,
+    l->Add(std::make_shared<CFileItem>(pvrItem));
+    CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_PLAY, -1, -1, static_cast<void*>(l));
     return true;
   }
 
@@ -1196,7 +1200,11 @@ bool CPVRManager::UpdateItem(CFileItem& item)
 bool CPVRManager::StartPlayback(const CPVRChannelPtr &channel, bool bMinimised /* = false */)
 {
   CMediaSettings::Get().SetVideoStartWindowed(bMinimised);
-  CApplicationMessenger::Get().MediaPlay(CFileItem(channel));
+  
+  CFileItemList *l = new CFileItemList; //don't delete,
+  l->Add(std::make_shared<CFileItem>(channel));
+  CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_PLAY, -1, -1, static_cast<void*>(l));
+
   CLog::Log(LOGNOTICE, "PVRManager - %s - started playback on channel '%s'",
       __FUNCTION__, channel->ChannelName().c_str());
   return true;
@@ -1487,12 +1495,12 @@ bool CPVRManager::CanSystemPowerdown(bool bAskUser /*= true*/) const
 
         // Inform user about PVR being busy. Ask if user wants to powerdown anyway.
         bool bCanceled = false;
-        bReturn = CGUIDialogYesNo::ShowAndGetInput(19685, // "Confirm shutdown"
-                                                   text,
+        bReturn = CGUIDialogYesNo::ShowAndGetInput(CVariant{19685}, // "Confirm shutdown"
+                                                   CVariant{text},
                                                    bCanceled,
-                                                   222,   // "Cancel"
-                                                   19696, // "Shutdown anyway"
-                                                   10000);
+                                                   CVariant{222},   // "Cancel"
+                                                   CVariant{19696}, // "Shutdown anyway"
+                                                   10000); //This is a timeout and IS NOT a CVariant
       }
       else
         bReturn = false; // do not powerdown (busy, but no user interaction requested).

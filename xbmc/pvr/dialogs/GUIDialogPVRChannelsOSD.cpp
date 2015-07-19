@@ -20,7 +20,7 @@
 
 #include "GUIDialogPVRChannelsOSD.h"
 #include "Application.h"
-#include "ApplicationMessenger.h"
+#include "messaging/ApplicationMessenger.h"
 #include "FileItem.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
@@ -38,6 +38,7 @@
 
 using namespace PVR;
 using namespace EPG;
+using namespace KODI::MESSAGING;
 
 #define CONTROL_LIST                  11
 
@@ -261,7 +262,7 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
     }
   }
   else
-    CApplicationMessenger::Get().PlayFile(*pItem);
+    CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_PLAY, 0, 0, static_cast<void*>(new CFileItem(*pItem)));
 
   m_group = GetPlayingGroup();
 
@@ -293,7 +294,7 @@ void CGUIDialogPVRChannelsOSD::ShowInfo(int item)
     /* inform dialog about the file item and open dialog window */
     CFileItem *itemNow  = new CFileItem(epgnow);
     pDlgInfo->SetProgInfo(itemNow);
-    pDlgInfo->DoModal();
+    pDlgInfo->Open();
     delete itemNow; /* delete previuosly created FileItem */
   }
 

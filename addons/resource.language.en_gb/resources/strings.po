@@ -592,6 +592,8 @@ msgctxt "#143"
 msgid "Current:"
 msgstr ""
 
+#. Used in Confluence system info to show build info
+#: addons/skin.confluence/720p/SettingsSystemInfo.xml
 msgctxt "#144"
 msgid "Build:"
 msgstr ""
@@ -725,7 +727,11 @@ msgctxt "#173"
 msgid "Display 4:3 videos as"
 msgstr ""
 
-#empty string with id 174
+#. Used in Confluence system info to show build date
+#: addons/skin.confluence/720p/SettingsSystemInfo.xml
+msgctxt "#174"
+msgid "Compiled:"
+msgstr ""
 
 #: xbmc/playlists/SmartPlaylist.cpp
 msgctxt "#175"
@@ -2542,10 +2548,12 @@ msgctxt "#583"
 msgid "Remember views for different folders"
 msgstr ""
 
+#: xbmc/view/GUIViewState.cpp
 msgctxt "#584"
 msgid "Ascending"
 msgstr ""
 
+#: xbmc/view/GUIViewState.cpp
 msgctxt "#585"
 msgid "Descending"
 msgstr ""
@@ -2777,6 +2785,11 @@ msgstr ""
 #: system/settings/settings.xml
 msgctxt "#643"
 msgid "Avoid clipping on ReplayGained files"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#644"
+msgid "Stretch 16:9 - Nonlinear"
 msgstr ""
 
 #empty string with id 644
@@ -11432,7 +11445,30 @@ msgctxt "#21330"
 msgid "Show hidden files and directories"
 msgstr ""
 
-#empty strings from id 21331 to 21335
+#: xbmc/storage/AutorunMediaJob.cpp
+msgctxt "#21331"
+msgid "New media detected"
+msgstr ""
+
+#: xbmc/storage/AutorunMediaJob.cpp
+msgctxt "#21332"
+msgid "Browse videos"
+msgstr ""
+
+#: xbmc/storage/AutorunMediaJob.cpp
+msgctxt "#21333"
+msgid "Browse music"
+msgstr ""
+
+#: xbmc/storage/AutorunMediaJob.cpp
+msgctxt "#21334"
+msgid "Browse pictures"
+msgstr ""
+
+#: xbmc/storage/AutorunMediaJob.cpp
+msgctxt "#21335"
+msgid "Browse files"
+msgstr ""
 
 #: xbmc/peripherals/devices/peripheralcecadapter.cpp
 msgctxt "#21336"
@@ -12137,7 +12173,11 @@ msgctxt "#21843"
 msgid "Orientation"
 msgstr ""
 
-#empty strings from id 21844 to 21856
+msgctxt "#21844"
+msgid "XP comment"
+msgstr ""
+
+#empty strings from id 21845 to 21856
 
 msgctxt "#21857"
 msgid "Sub-location"
@@ -12758,7 +12798,11 @@ msgctxt "#24034"
 msgid "Check for updates"
 msgstr ""
 
-#empty string with id 24035
+#: Name of an Add-on category
+#: xbmc/addons/Addon.cpp
+msgctxt "#24035"
+msgid "Image collections"
+msgstr ""
 
 msgctxt "#24036"
 msgid "Changelog"

@@ -21,6 +21,7 @@
 #include "GUIEditControl.h"
 #include "GUIWindowManager.h"
 #include "utils/CharsetConverter.h"
+#include "utils/Variant.h"
 #include "GUIKeyboardFactory.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "input/XBMC_vkeys.h"
@@ -363,7 +364,7 @@ void CGUIEditControl::OnClick()
       // fallthrough
     case INPUT_TYPE_TEXT:
     default:
-      textChanged = CGUIKeyboardFactory::ShowAndGetInput(utf8, heading, true, m_inputType == INPUT_TYPE_PASSWORD || m_inputType == INPUT_TYPE_PASSWORD_MD5);
+      textChanged = CGUIKeyboardFactory::ShowAndGetInput(utf8, CVariant{heading}, true, m_inputType == INPUT_TYPE_PASSWORD || m_inputType == INPUT_TYPE_PASSWORD_MD5);
       break;
   }
   if (textChanged)
@@ -485,17 +486,19 @@ void CGUIEditControl::ProcessText(unsigned int currentTime)
     changed |= m_label2.SetMaxRect(m_clipRect.x1 + m_textOffset, m_posY, m_clipRect.Width() - m_textOffset, m_height);
 
     std::wstring text = GetDisplayedText();
-    std::string hint = m_hintInfo.GetLabel(GetParentID());
 
-    if (!HasFocus() && text.empty() && !hint.empty())
-      changed |= m_label2.SetText(hint);
-    else
+    if ((HasFocus() || GetParentID() == WINDOW_DIALOG_KEYBOARD) && m_inputType != INPUT_TYPE_READONLY)
     {
-      if (m_inputType != INPUT_TYPE_READONLY)
-        changed |= SetStyledText(text);
-      else
-        changed |= m_label2.SetTextW(text);
+      changed |= SetStyledText(text);
     }
+    else if (!HasFocus() && text.empty())
+    {
+      std::string hint = m_hintInfo.GetLabel(GetParentID());
+      if (!hint.empty())
+        changed |= m_label2.SetText(hint);
+    }
+    else
+      changed |= m_label2.SetTextW(text);
 
     changed |= m_label2.SetAlign(align);
     changed |= m_label2.SetColor(GetTextColor());
@@ -582,13 +585,10 @@ bool CGUIEditControl::SetStyledText(const std::wstring &text)
   }
 
   // show the cursor
-  if (HasFocus() || GetParentID() == WINDOW_DIALOG_KEYBOARD)
-  {
-    unsigned int ch = L'|';
-    if ((++m_cursorBlink % 64) > 32)
-      ch |= (3 << 16);
-    styled.insert(styled.begin() + m_cursorPos, ch);
-  }
+  unsigned int ch = L'|';
+  if ((++m_cursorBlink % 64) > 32)
+    ch |= (3 << 16);
+  styled.insert(styled.begin() + m_cursorPos, ch);
 
   return m_label2.SetStyledText(styled, colors);
 }

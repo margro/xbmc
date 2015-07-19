@@ -32,6 +32,7 @@
 #include "epg/EpgInfoTag.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "guiinfo/GUIInfoLabels.h"
 
 using namespace PVR;
 using namespace EPG;
@@ -495,7 +496,7 @@ void CPVRGUIInfo::CharInfoBackendNumber(std::string &strValue) const
   size_t numBackends = m_backendProperties.size();
 
   if (numBackends > 0)
-    strValue = StringUtils::Format("%u %s %u", m_iCurrentActiveClient + 1, g_localizeStrings.Get(20163).c_str(), numBackends);
+    strValue = StringUtils::Format("%u %s %" PRIuS, m_iCurrentActiveClient + 1, g_localizeStrings.Get(20163).c_str(), numBackends);
   else
     strValue = g_localizeStrings.Get(14023);
 }

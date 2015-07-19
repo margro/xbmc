@@ -21,11 +21,12 @@
 #include "GUIDialogProgress.h"
 #include "guilib/GUIProgressControl.h"
 #include "Application.h"
-#include "GUIInfoManager.h"
+#include "guiinfo/GUIInfoLabels.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
+#include "utils/Variant.h"
 
 using namespace std;
 
@@ -55,28 +56,16 @@ void CGUIDialogProgress::SetCanCancel(bool bCanCancel)
   SetInvalid();
 }
 
-void CGUIDialogProgress::StartModal()
+void CGUIDialogProgress::Open()
 {
-  CSingleLock lock(g_graphicsContext);
-
   CLog::Log(LOGDEBUG, "DialogProgress::StartModal called %s", m_active ? "(already running)!" : "");
-  m_bCanceled = false;
 
-  // set running before it's routed, else the auto-show code
-  // could show it as well if we are in a different thread from
-  // the main rendering thread (this should really be handled via
-  // a thread message though IMO)
-  m_active = true;
-  m_modalityType = DialogModalityType::MODAL;
-  m_closing = false;
-  g_windowManager.RegisterDialog(this);
-
-  // active this window...
-  ShowProgressBar(false);
-  CGUIMessage msg(GUI_MSG_WINDOW_INIT, 0, 0);
-  OnMessage(msg);
-
-  lock.Leave();
+  {
+    CSingleLock lock(g_graphicsContext);
+    ShowProgressBar(false);
+  }
+  
+  CGUIDialog::Open_Internal(false);
 
   while (m_active && IsAnimating(ANIM_TYPE_WINDOW_OPEN))
   {
@@ -123,7 +112,7 @@ bool CGUIDialogProgress::OnMessage(CGUIMessage& message)
         string strHeading = m_strHeading;
         strHeading.append(" : ");
         strHeading.append(g_localizeStrings.Get(16024));
-        CGUIDialogBoxBase::SetHeading(strHeading);
+        CGUIDialogBoxBase::SetHeading(CVariant{strHeading});
         m_bCanceled = true;
         return true;
       }

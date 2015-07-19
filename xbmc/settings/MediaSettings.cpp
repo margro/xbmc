@@ -18,6 +18,8 @@
  *
  */
 
+#include <string>
+
 #include <limits.h>
 
 #include "MediaSettings.h"
@@ -35,9 +37,8 @@
 #include "utils/URIUtils.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
+#include "utils/Variant.h"
 #include "video/VideoDatabase.h"
-
-using namespace std;
 
 CMediaSettings::CMediaSettings()
 {
@@ -310,7 +311,7 @@ void CMediaSettings::OnSettingAction(const CSetting *setting)
   }
   else if (settingId == "musiclibrary.cleanup")
   {
-    if (CGUIDialogYesNo::ShowAndGetInput(313, 333))
+    if (CGUIDialogYesNo::ShowAndGetInput(CVariant{313}, CVariant{333}))
       g_application.StartMusicCleanup(true);
   }
   else if (settingId == "musiclibrary.export")
@@ -330,7 +331,7 @@ void CMediaSettings::OnSettingAction(const CSetting *setting)
   }
   else if (settingId == "videolibrary.cleanup")
   {
-    if (CGUIDialogYesNo::ShowAndGetInput(313, 333))
+    if (CGUIDialogYesNo::ShowAndGetInput(CVariant{313}, CVariant{333}))
       g_application.StartVideoCleanup(true);
   }
   else if (settingId == "videolibrary.export")

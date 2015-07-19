@@ -59,9 +59,13 @@
 #include "utils/SeekHandler.h"
 #include "URL.h"
 #include "addons/Skin.h"
-#include <memory>
+#include <algorithm>
 #include <functional>
+#include <iterator>
+#include <memory>
 #include "cores/DataCacheCore.h"
+#include "guiinfo/GUIInfoLabels.h"
+#include "messaging/ApplicationMessenger.h"
 
 // stuff for current song
 #include "music/MusicInfoLoader.h"
@@ -98,7 +102,6 @@ static CLinuxResourceCounter m_resourceCounter;
 
 #define SYSHEATUPDATEINTERVAL 60000
 
-using namespace std;
 using namespace XFILE;
 using namespace MUSIC_INFO;
 using namespace ADDON;
@@ -426,8 +429,11 @@ const infomap mediacontainer[] = {{ "hasfiles",         CONTAINER_HASFILES },
                                   { "pluginname",       CONTAINER_PLUGINNAME },
                                   { "viewmode",         CONTAINER_VIEWMODE },
                                   { "totaltime",        CONTAINER_TOTALTIME },
+                                  { "totalwatched",     CONTAINER_TOTALWATCHED },
+                                  { "totalunwatched",   CONTAINER_TOTALUNWATCHED },
                                   { "hasthumb",         CONTAINER_HAS_THUMB },
                                   { "sortmethod",       CONTAINER_SORT_METHOD },
+                                  { "sortorder",        CONTAINER_SORT_ORDER },
                                   { "showplot",         CONTAINER_SHOWPLOT }};
 
 const infomap container_bools[] ={{ "onnext",           CONTAINER_MOVE_NEXT },
@@ -771,7 +777,7 @@ unsigned int CGUIInfoManager::Property::num_params() const
   return params.size();
 }
 
-void CGUIInfoManager::SplitInfoString(const std::string &infoString, vector<Property> &info)
+void CGUIInfoManager::SplitInfoString(const std::string &infoString, std::vector<Property> &info)
 {
   // our string is of the form:
   // category[(params)][.info(params).info2(params)] ...
@@ -838,7 +844,7 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
   std::string strTest = strCondition;
   StringUtils::Trim(strTest);
 
-  vector< Property> info;
+  std::vector< Property> info;
   SplitInfoString(strTest, info);
 
   if (info.empty())
@@ -1117,11 +1123,6 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         else if (StringUtils::EqualsNoCase(prop.param(), "descending"))
           order = SortOrderDescending;
         return AddMultiInfo(GUIInfo(CONTAINER_SORT_DIRECTION, order));
-      }
-      else if (prop.name == "sort")
-      {
-        if (StringUtils::EqualsNoCase(prop.param(), "songrating"))
-          return AddMultiInfo(GUIInfo(CONTAINER_SORT_METHOD, SortByRating));
       }
     }
     else if (cat.name == "listitem")
@@ -1800,14 +1801,20 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
       break;
     }
   case CONTAINER_SORT_METHOD:
-    {
+  case CONTAINER_SORT_ORDER:
+  {
       CGUIWindow *window = GetWindowWithCondition(contextWindow, WINDOW_CONDITION_IS_MEDIA_WINDOW);
       if (window)
       {
         const CGUIViewState *viewState = ((CGUIMediaWindow*)window)->GetViewState();
         if (viewState)
-          strLabel = g_localizeStrings.Get(viewState->GetSortMethodLabel());
-    }
+        {
+          if (info == CONTAINER_SORT_METHOD)
+            strLabel = g_localizeStrings.Get(viewState->GetSortMethodLabel());
+          else if (info == CONTAINER_SORT_ORDER)
+            strLabel = g_localizeStrings.Get(viewState->GetSortOrderLabel());
+        }
+      }
     }
     break;
   case CONTAINER_NUM_PAGES:
@@ -1824,33 +1831,42 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
     }
     break;
   case CONTAINER_TOTALTIME:
+  case CONTAINER_TOTALWATCHED:
+  case CONTAINER_TOTALUNWATCHED:
     {
       CGUIWindow *window = GetWindowWithCondition(contextWindow, WINDOW_CONDITION_IS_MEDIA_WINDOW);
       if (window)
       {
         const CFileItemList& items=((CGUIMediaWindow *)window)->CurrentDirectory();
-        int duration=0;
+        int count=0;
         for (int i=0;i<items.Size();++i)
         {
+          // Iterate through container and count watched, unwatched and total duration.
           CFileItemPtr item=items.Get(i);
-          if (item->HasMusicInfoTag())
-            duration += item->GetMusicInfoTag()->GetDuration();
-          else if (item->HasVideoInfoTag())
-            duration += item->GetVideoInfoTag()->m_streamDetails.GetVideoDuration();
+          if (info == CONTAINER_TOTALWATCHED && item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_playCount > 0)
+            count += 1;
+          else if (info == CONTAINER_TOTALUNWATCHED && item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_playCount == 0)
+            count += 1;
+          else if (info == CONTAINER_TOTALTIME && item->HasMusicInfoTag())
+            count += item->GetMusicInfoTag()->GetDuration();
+          else if (info == CONTAINER_TOTALTIME && item->HasVideoInfoTag())
+            count += item->GetVideoInfoTag()->m_streamDetails.GetVideoDuration();
         }
-        if (duration > 0)
-          return StringUtils::SecondsToTimeString(duration);
+        if (info == CONTAINER_TOTALTIME && count > 0)
+          return StringUtils::SecondsToTimeString(count);
+        else if (info == CONTAINER_TOTALWATCHED || info == CONTAINER_TOTALUNWATCHED)
+          return StringUtils::Format("%i", count);
       }
     }
     break;
   case SYSTEM_BUILD_VERSION_SHORT:
-    strLabel = GetVersionShort();
+    strLabel = CSysInfo::GetVersionShort();
     break;
   case SYSTEM_BUILD_VERSION:
-    strLabel = GetVersion();
+    strLabel = CSysInfo::GetVersion();
     break;
   case SYSTEM_BUILD_DATE:
-    strLabel = GetBuild();
+    strLabel = CSysInfo::GetBuildDate();
     break;
   case SYSTEM_FREE_MEMORY:
   case SYSTEM_FREE_MEMORY_PERCENT:
@@ -1865,15 +1881,15 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
       int iMemPercentUsed = 100 - iMemPercentFree;
 
       if (info == SYSTEM_FREE_MEMORY)
-        strLabel = StringUtils::Format("%luMB", (ULONG)(stat.ullAvailPhys/MB));
+        strLabel = StringUtils::Format("%uMB", (unsigned int)(stat.ullAvailPhys/MB));
       else if (info == SYSTEM_FREE_MEMORY_PERCENT)
         strLabel = StringUtils::Format("%i%%", iMemPercentFree);
       else if (info == SYSTEM_USED_MEMORY)
-        strLabel = StringUtils::Format("%luMB", (ULONG)((stat.ullTotalPhys - stat.ullAvailPhys)/MB));
+        strLabel = StringUtils::Format("%uMB", (unsigned int)((stat.ullTotalPhys - stat.ullAvailPhys)/MB));
       else if (info == SYSTEM_USED_MEMORY_PERCENT)
         strLabel = StringUtils::Format("%i%%", iMemPercentUsed);
       else if (info == SYSTEM_TOTAL_MEMORY)
-        strLabel = StringUtils::Format("%luMB", (ULONG)(stat.ullTotalPhys/MB));
+        strLabel = StringUtils::Format("%uMB", (unsigned int)(stat.ullTotalPhys/MB));
     }
     break;
   case SYSTEM_SCREEN_MODE:
@@ -1946,17 +1962,7 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
     }
     break;
   case SYSTEM_FRIENDLY_NAME:
-    {
-      std::string friendlyName = CSettings::Get().GetString("services.devicename");
-      if (StringUtils::EqualsNoCase(friendlyName, CCompileInfo::GetAppName()))
-      {
-        std::string hostname("[unknown]");
-        g_application.getNetwork().GetHostName(hostname);
-        strLabel = StringUtils::Format("%s (%s)", friendlyName.c_str(), hostname.c_str());
-      }
-      else
-        strLabel = friendlyName;
-    }
+    strLabel = CSysInfo::GetDeviceName();
     break;
   case SYSTEM_STEREOSCOPIC_MODE:
     {
@@ -1998,14 +2004,14 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
     break;
   case NETWORK_DNS1_ADDRESS:
     {
-      vector<std::string> nss = g_application.getNetwork().GetNameServers();
+      std::vector<std::string> nss = g_application.getNetwork().GetNameServers();
       if (nss.size() >= 1)
         return nss[0];
     }
     break;
   case NETWORK_DNS2_ADDRESS:
     {
-      vector<std::string> nss = g_application.getNetwork().GetNameServers();
+      std::vector<std::string> nss = g_application.getNetwork().GetNameServers();
       if (nss.size() >= 2)
         return nss[1];
     }
@@ -2218,7 +2224,7 @@ INFO::InfoPtr CGUIInfoManager::Register(const std::string &expression, int conte
 
   CSingleLock lock(m_critInfo);
   // do we have the boolean expression already registered?
-  vector<InfoPtr>::const_iterator i = find_if(m_bools.begin(), m_bools.end(), InfoBoolFinder(condition, context));
+  std::vector<InfoPtr>::const_iterator i = std::find_if(m_bools.begin(), m_bools.end(), InfoBoolFinder(condition, context));
   if (i != m_bools.end())
     return *i;
 
@@ -2481,7 +2487,7 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
     CGUIWindow *pWindow = GetWindowWithCondition(contextWindow, WINDOW_CONDITION_IS_MEDIA_WINDOW);
     if (pWindow)
     {
-      map<int,int>::const_iterator it = m_containerMoves.find(pWindow->GetViewContainerID());
+      std::map<int,int>::const_iterator it = m_containerMoves.find(pWindow->GetViewContainerID());
       if (it != m_containerMoves.end())
       {
         if (condition > CONTAINER_STATIC) // moving up
@@ -2954,7 +2960,7 @@ bool CGUIInfoManager::GetMultiInfoBool(const GUIInfo &info, int contextWindow, c
       case CONTAINER_MOVE_NEXT:
       case CONTAINER_SCROLL_NEXT:
         {
-          map<int,int>::const_iterator it = m_containerMoves.find(info.GetData1());
+          std::map<int,int>::const_iterator it = m_containerMoves.find(info.GetData1());
           if (it != m_containerMoves.end())
           {
             if (condition > CONTAINER_STATIC) // moving up
@@ -3293,7 +3299,7 @@ std::string CGUIInfoManager::GetMultiInfoLabel(const GUIInfo &info, int contextW
   else if (info.m_info == SYSTEM_DATE)
   {
     CDateTime time=CDateTime::GetCurrentDateTime();
-    return time.GetAsLocalizedDate(m_stringParameters[info.GetData1()],false);
+    return time.GetAsLocalizedDate(m_stringParameters[info.GetData1()]);
   }
   else if (info.m_info == CONTAINER_NUM_PAGES || info.m_info == CONTAINER_CURRENT_PAGE ||
            info.m_info == CONTAINER_NUM_ITEMS || info.m_info == CONTAINER_POSITION ||
@@ -4282,7 +4288,7 @@ void CGUIInfoManager::SetCurrentMovie(CFileItem &item)
   m_currentMovieThumb = item.GetArt("thumb");
 }
 
-string CGUIInfoManager::GetSystemHeatInfo(int info)
+std::string CGUIInfoManager::GetSystemHeatInfo(int info)
 {
   if (CTimeUtils::GetFrameTime() - m_lastSysHeatInfoTime >= SYSHEATUPDATEINTERVAL)
   { // update our variables
@@ -4348,30 +4354,6 @@ CTemperature CGUIInfoManager::GetGPUTemperature()
   return CTemperature();
 }
 
-// Version string MUST NOT contain spaces.  It is used
-// in the HTTP request user agent.
-std::string CGUIInfoManager::GetVersionShort(void)
-{
-  if (strlen(CCompileInfo::GetSuffix()) == 0)
-    return StringUtils::Format("%d.%d", CCompileInfo::GetMajor(), CCompileInfo::GetMinor());
-  else
-    return StringUtils::Format("%d.%d-%s", CCompileInfo::GetMajor(), CCompileInfo::GetMinor(), CCompileInfo::GetSuffix());
-}
-
-std::string CGUIInfoManager::GetVersion()
-{
-  return GetVersionShort() + " Git:" + CCompileInfo::GetSCMID();
-}
-
-std::string CGUIInfoManager::GetBuild()
-{
-  return StringUtils::Format("%s", __DATE__);
-}
-
-std::string CGUIInfoManager::GetAppName()
-{
-  return CCompileInfo::GetAppName();
-}
 
 void CGUIInfoManager::SetDisplayAfterSeek(unsigned int timeOut, int seekOffset)
 {
@@ -4403,14 +4385,14 @@ void CGUIInfoManager::Clear()
     will remove those bools that are no longer dependencies of other bools
     in the vector.
    */
-  vector<InfoPtr>::iterator i = remove_if(m_bools.begin(), m_bools.end(), std::mem_fun_ref(&InfoPtr::unique));
+  std::vector<InfoPtr>::iterator i = std::remove_if(m_bools.begin(), m_bools.end(), std::mem_fun_ref(&InfoPtr::unique));
   while (i != m_bools.end())
   {
     m_bools.erase(i, m_bools.end());
-    i = remove_if(m_bools.begin(), m_bools.end(), std::mem_fun_ref(&InfoPtr::unique));
+    i = std::remove_if(m_bools.begin(), m_bools.end(), std::mem_fun_ref(&InfoPtr::unique));
   }
   // log which ones are used - they should all be gone by now
-  for (vector<InfoPtr>::const_iterator i = m_bools.begin(); i != m_bools.end(); ++i)
+  for (std::vector<InfoPtr>::const_iterator i = m_bools.begin(); i != m_bools.end(); ++i)
     CLog::Log(LOGDEBUG, "Infobool '%s' still used by %u instances", (*i)->GetExpression().c_str(), (unsigned int) i->use_count());
 }
 
@@ -4482,9 +4464,9 @@ int CGUIInfoManager::ConditionalStringParameter(const std::string &parameter, bo
   // check to see if we have this parameter already
   if (caseSensitive)
   {
-    vector<string>::const_iterator i = find(m_stringParameters.begin(), m_stringParameters.end(), parameter);
+    std::vector<std::string>::const_iterator i = std::find(m_stringParameters.begin(), m_stringParameters.end(), parameter);
     if (i != m_stringParameters.end())
-      return (int)distance<vector<string>::const_iterator>(m_stringParameters.begin(), i);
+      return (int)std::distance<std::vector<std::string>::const_iterator>(m_stringParameters.begin(), i);
   }
   else
   {
@@ -5492,7 +5474,7 @@ bool CGUIInfoManager::GetItemBool(const CGUIListItem *item, int condition) const
       {
         CFileItemPtr timer = g_PVRTimers->GetTimerForEpgTag(pItem);
         if (timer && timer->HasPVRTimerInfoTag())
-          return timer->GetPVRTimerInfoTag()->IsRepeating();
+          return timer->GetPVRTimerInfoTag()->GetTimerScheduleId() > 0;
       }
     }
     else if (condition == LISTITEM_HASRECORDING)
@@ -5545,7 +5527,7 @@ void CGUIInfoManager::ResetCache()
   m_containerMoves.clear();
   // mark our infobools as dirty
   CSingleLock lock(m_critInfo);
-  for (vector<InfoPtr>::iterator i = m_bools.begin(); i != m_bools.end(); ++i)
+  for (std::vector<InfoPtr>::iterator i = m_bools.begin(); i != m_bools.end(); ++i)
     (*i)->SetDirty();
 }
 
@@ -5835,7 +5817,7 @@ int CGUIInfoManager::RegisterSkinVariableString(const CSkinVariableString* info)
 
 int CGUIInfoManager::TranslateSkinVariableString(const std::string& name, int context)
 {
-  for (vector<CSkinVariableString>::const_iterator it = m_skinVariableStrings.begin();
+  for (std::vector<CSkinVariableString>::const_iterator it = m_skinVariableStrings.begin();
        it != m_skinVariableStrings.end(); ++it)
   {
     if (StringUtils::EqualsNoCase(it->GetName(), name) && it->GetContext() == context)
@@ -5875,4 +5857,55 @@ CEpgInfoTagPtr CGUIInfoManager::GetEpgInfoTag() const
       currentTag = currentTag->GetNextEvent();
   }
   return currentTag;
+}
+
+int CGUIInfoManager::GetMessageMask()
+{
+  return TMSG_MASK_GUIINFOMANAGER;
+}
+
+void CGUIInfoManager::OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg)
+{
+  switch (pMsg->dwMessage)
+  {
+  case TMSG_GUI_INFOLABEL:
+  {
+    if (pMsg->lpVoid)
+    {
+      auto infoLabels = static_cast<std::vector<std::string>*>(pMsg->lpVoid);
+      for (auto& param : pMsg->params)
+        infoLabels->push_back(GetLabel(TranslateString(param)));
+    }
+  }
+  break;
+
+  case TMSG_GUI_INFOBOOL:
+  {
+    if (pMsg->lpVoid)
+    {
+      auto infoLabels = static_cast<std::vector<bool>*>(pMsg->lpVoid);
+      for (auto& param : pMsg->params)
+        infoLabels->push_back(EvaluateBool(param));
+    }
+  }
+  break;
+
+  case TMSG_UPDATE_CURRENT_ITEM:
+  {
+    auto item = static_cast<CFileItem*>(pMsg->lpVoid);
+    if (!item)
+      return;
+    if (pMsg->param1 == 1 && item->HasMusicInfoTag()) // only grab music tag
+      SetCurrentSongTag(*item->GetMusicInfoTag());
+    else if (pMsg->param1 == 2 && item->HasVideoInfoTag()) // only grab video tag
+      SetCurrentVideoTag(*item->GetVideoInfoTag());
+    else
+      SetCurrentItem(*item);
+    delete item;
+  }
+  break;
+
+  default:
+    break;
+  }
 }

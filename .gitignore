@@ -126,6 +126,7 @@ config.log
 /addons/xbmc.addon/addon.xml
 /addons/xbmc.json/addon.xml
 /addons/kodi.guilib/addon.xml
+/addons/audiodecoder.*
 
 # /lib/
 /lib/Makefile
@@ -362,7 +363,6 @@ lib/cpluff/stamp-h1
 /system/libgif.dll
 /system/libssh2.dll
 /system/libssl32.dll
-/system/hdhomerun.dll
 /system/ssh.dll
 /system/sqlite3.dll
 /system/libnfs.dll
@@ -370,6 +370,7 @@ lib/cpluff/stamp-h1
 /system/libcec.dll
 /system/pthreadVC2.dll
 /system/libxslt.dll
+/system/ssleay32.dll
 
 # /system/cdrip
 /system/cdrip/lame_enc.dll
@@ -435,6 +436,8 @@ lib/cpluff/stamp-h1
 /tools/depends/target/ffmpeg/ffmpeg-*-*.tar.gz
 /tools/depends/target/ffmpeg/ffmpeg-*-*/
 /tools/depends/target/ffmpeg/ffmpeg-install/
+/tools/depends/target/Toolchain_binaddons.cmake
+/tools/depends/target/config-binaddons.site
 
 # /tools/EventClients/
 /tools/EventClients/*.pyc
@@ -905,8 +908,6 @@ lib/cpluff/stamp-h1
 /lib/libexif/Debug (DLL)
 /lib/libexif/Release (DLL)
 /lib/libexif/libexif.lib
-
-/lib/libhdhomerun/Makefile
 
 /lib/libsquish/Makefile
 /lib/libsquish/lib/squishd.lib
