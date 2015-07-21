@@ -90,6 +90,7 @@
 #include "music/MusicThumbLoader.h"
 #include "video/VideoDatabase.h"
 #include "cores/IPlayer.h"
+#include "cores/AudioEngine/DSPAddons/ActiveAEDSPProcess.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/VideoRenderers/BaseRenderer.h"
 #include "interfaces/info/InfoExpression.h"
@@ -296,7 +297,8 @@ const infomap system_labels[] =  {{ "hasnetwork",       SYSTEM_ETHERNET_LINK_ACT
                                   { "hasshutdown",      SYSTEM_HAS_SHUTDOWN },
                                   { "haspvr",           SYSTEM_HAS_PVR },
                                   { "startupwindow",    SYSTEM_STARTUP_WINDOW },
-                                  { "stereoscopicmode", SYSTEM_STEREOSCOPIC_MODE } };
+                                  { "stereoscopicmode", SYSTEM_STEREOSCOPIC_MODE },
+                                  { "hasadsp",          SYSTEM_HAS_ADSP }};
 
 const infomap system_param[] =   {{ "hasalarm",         SYSTEM_HAS_ALARM },
                                   { "hascoreid",        SYSTEM_HAS_CORE_ID },
@@ -698,7 +700,26 @@ const infomap pvr[] =            {{ "isrecording",              PVR_IS_RECORDING
                                   { "actstreamencryptionname",  PVR_ACTUAL_STREAM_CRYPTION },
                                   { "actstreamservicename",     PVR_ACTUAL_STREAM_SERVICE },
                                   { "actstreammux",             PVR_ACTUAL_STREAM_MUX },
-                                  { "actstreamprovidername",    PVR_ACTUAL_STREAM_PROVIDER }};
+                                  { "actstreamprovidername",    PVR_ACTUAL_STREAM_PROVIDER },
+                                  { "istimeshift",              PVR_IS_TIMESHIFTING },
+                                  { "timeshiftstart",           PVR_TIMESHIFT_START_TIME },
+                                  { "timeshiftend",             PVR_TIMESHIFT_END_TIME },
+                                  { "timeshiftcur",             PVR_TIMESHIFT_PLAY_TIME },
+                                  { "timeshiftprogress",        PVR_TIMESHIFT_PROGRESS }};
+
+const infomap adsp[] =           {{ "isactive",                 ADSP_IS_ACTIVE },
+                                  { "hasinputresample",         ADSP_HAS_INPUT_RESAMPLE },
+                                  { "haspreprocess",            ADSP_HAS_PRE_PROCESS },
+                                  { "hasmasterprocess",         ADSP_HAS_MASTER_PROCESS },
+                                  { "haspostprocess",           ADSP_HAS_POST_PROCESS },
+                                  { "hasoutputresample",        ADSP_HAS_OUTPUT_RESAMPLE },
+                                  { "masteractive",             ADSP_MASTER_ACTIVE },
+                                  { "activestreamtype",         ADSP_ACTIVE_STREAM_TYPE },
+                                  { "detectedstreamtype",       ADSP_DETECTED_STREAM_TYPE },
+                                  { "mastername",               ADSP_MASTER_NAME },
+                                  { "masterinfo",               ADSP_MASTER_INFO },
+                                  { "masterownicon",            ADSP_MASTER_OWN_ICON },
+                                  { "masteroverrideicon",       ADSP_MASTER_OVERRIDE_ICON }};
 
 const infomap slideshow[] =      {{ "ispaused",         SLIDESHOW_ISPAUSED },
                                   { "isactive",         SLIDESHOW_ISACTIVE },
@@ -1269,6 +1290,14 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
           return pvr[i].val;
       }
     }
+    else if (cat.name == "adsp")
+    {
+      for (size_t i = 0; i < sizeof(adsp) / sizeof(infomap); i++)
+      {
+        if (prop.name == adsp[i].str)
+          return adsp[i].val;
+      }
+    }
   }
   else if (info.size() == 3 || info.size() == 4)
   {
@@ -1465,7 +1494,18 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
   case PVR_ACTUAL_STREAM_SERVICE:
   case PVR_ACTUAL_STREAM_MUX:
   case PVR_ACTUAL_STREAM_PROVIDER:
+  case PVR_TIMESHIFT_START_TIME:
+  case PVR_TIMESHIFT_END_TIME:
+  case PVR_TIMESHIFT_PLAY_TIME:
     g_PVRManager.TranslateCharInfo(info, strLabel);
+    break;
+  case ADSP_ACTIVE_STREAM_TYPE:
+  case ADSP_DETECTED_STREAM_TYPE:
+  case ADSP_MASTER_NAME:
+  case ADSP_MASTER_INFO:
+  case ADSP_MASTER_OWN_ICON:
+  case ADSP_MASTER_OVERRIDE_ICON:
+    ActiveAE::CActiveAEDSP::Get().TranslateCharInfo(info, strLabel);
     break;
   case WEATHER_CONDITIONS:
     strLabel = g_weatherManager.GetInfo(WEATHER_LABEL_CURRENT_COND);
@@ -2197,6 +2237,7 @@ bool CGUIInfoManager::GetInt(int &value, int info, int contextWindow, const CGUI
     case PVR_ACTUAL_STREAM_SIG_PROGR:
     case PVR_ACTUAL_STREAM_SNR_PROGR:
     case PVR_BACKEND_DISKSPACE_PROGR:
+    case PVR_TIMESHIFT_PROGRESS:
       value = g_PVRManager.TranslateIntInfo(info);
       return true;
     case SYSTEM_BATTERY_LEVEL:
@@ -2380,6 +2421,8 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
     bReturn = CProfilesManager::Get().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE;
   else if (condition == SYSTEM_HAS_PVR)
     bReturn = true;
+  else if (condition == SYSTEM_HAS_ADSP)
+    bReturn = true;
   else if (condition == SYSTEM_ISMASTER)
     bReturn = CProfilesManager::Get().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE && g_passwordManager.bMasterUser;
   else if (condition == SYSTEM_ISFULLSCREEN)
@@ -2400,7 +2443,8 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
     bReturn = g_weatherManager.IsFetched();
   else if (condition >= PVR_CONDITIONS_START && condition <= PVR_CONDITIONS_END)
     bReturn = g_PVRManager.TranslateBoolInfo(condition);
-
+  else if (condition >= ADSP_CONDITIONS_START && condition <= ADSP_CONDITIONS_END)
+    bReturn = ActiveAE::CActiveAEDSP::Get().TranslateBoolInfo(condition);
   else if (condition == SYSTEM_INTERNET_STATE)
   {
     g_sysinfo.GetInfo(condition);
@@ -3638,7 +3682,7 @@ std::string CGUIInfoManager::GetPlaylistLabel(int item, int playlistid /* = PLAY
   {
   case PLAYLIST_LENGTH:
     {
-      return StringUtils::Format("%i", g_playlistPlayer.GetPlaylist(iPlaylist).size());;
+      return StringUtils::Format("%i", g_playlistPlayer.GetPlaylist(iPlaylist).size());
     }
   case PLAYLIST_POSITION:
     {
@@ -4792,7 +4836,7 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
     break;
   case LISTITEM_PROGRAM_COUNT:
     {
-      return StringUtils::Format("%i", item->m_iprogramCount);;
+      return StringUtils::Format("%i", item->m_iprogramCount);
     }
   case LISTITEM_DURATION:
     {
@@ -5282,7 +5326,7 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
       int val;
       if (GetItemInt(val, item, info))
       {
-        return StringUtils::Format("%d", val);;
+        return StringUtils::Format("%d", val);
       }
       break;
     }
@@ -5297,11 +5341,11 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
   case LISTITEM_DBID:
     if (item->HasVideoInfoTag())
       {
-        return StringUtils::Format("%i", item->GetVideoInfoTag()->m_iDbId);;
+        return StringUtils::Format("%i", item->GetVideoInfoTag()->m_iDbId);
       }
     if (item->HasMusicInfoTag())
       {
-        return StringUtils::Format("%i", item->GetMusicInfoTag()->GetDatabaseId());;
+        return StringUtils::Format("%i", item->GetMusicInfoTag()->GetDatabaseId());
       }
     break;
   case LISTITEM_STEREOSCOPIC_MODE:

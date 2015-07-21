@@ -486,16 +486,16 @@ void CGUIEditControl::ProcessText(unsigned int currentTime)
     changed |= m_label2.SetMaxRect(m_clipRect.x1 + m_textOffset, m_posY, m_clipRect.Width() - m_textOffset, m_height);
 
     std::wstring text = GetDisplayedText();
+    std::string hint = m_hintInfo.GetLabel(GetParentID());
 
-    if ((HasFocus() || GetParentID() == WINDOW_DIALOG_KEYBOARD) && m_inputType != INPUT_TYPE_READONLY)
+    if (!HasFocus() && text.empty() && !hint.empty())
+    {
+      changed |= m_label2.SetText(hint);
+    }
+    else if ((HasFocus() || GetParentID() == WINDOW_DIALOG_KEYBOARD) &&
+             m_inputType != INPUT_TYPE_READONLY)
     {
       changed |= SetStyledText(text);
-    }
-    else if (!HasFocus() && text.empty())
-    {
-      std::string hint = m_hintInfo.GetLabel(GetParentID());
-      if (!hint.empty())
-        changed |= m_label2.SetText(hint);
     }
     else
       changed |= m_label2.SetTextW(text);
@@ -548,7 +548,7 @@ std::wstring CGUIEditControl::GetDisplayedText() const
       text.append(m_text2.size() - m_cursorPos, L'*');
     }
     else
-      text.append(m_text2.size(), L'*');;
+      text.append(m_text2.size(), L'*');
   }
   else if (!m_edit.empty())
     text.insert(m_editOffset, m_edit);
