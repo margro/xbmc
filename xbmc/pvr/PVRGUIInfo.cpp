@@ -263,15 +263,15 @@ void CPVRGUIInfo::UpdateTimeshift(void)
   CDateTime tmp;
   time_t iTimeshiftStartTime = g_PVRClients->GetBufferTimeStart();
   tmp.SetFromUTCDateTime(iTimeshiftStartTime);
-  std::string strTimeshiftStartTime = tmp.GetAsLocalizedTime("hh:mm", true);
+  std::string strTimeshiftStartTime = tmp.GetAsLocalizedTime("", false);
 
   time_t iTimeshiftEndTime = g_PVRClients->GetBufferTimeEnd();
   tmp.SetFromUTCDateTime(iTimeshiftEndTime);
-  std::string strTimeshiftEndTime = tmp.GetAsLocalizedTime("hh:mm", true);
+  std::string strTimeshiftEndTime = tmp.GetAsLocalizedTime("", false);
 
   time_t iTimeshiftPlayTime = g_PVRClients->GetPlayingTime();
   tmp.SetFromUTCDateTime(iTimeshiftPlayTime);
-  std::string strTimeshiftPlayTime = tmp.GetAsLocalizedTime("hh:mm:ss", true);
+  std::string strTimeshiftPlayTime = tmp.GetAsLocalizedTime("", true);
 
   CSingleLock lock(m_critSection);
   m_bIsTimeshifting = bIsTimeshifting;
@@ -747,7 +747,14 @@ void CPVRGUIInfo::UpdateBackendCache(void)
 
   // Update the backend information for all backends once per iteration
   if (m_iCurrentActiveClient == 0)
-    m_backendProperties = g_PVRClients->GetBackendProperties();
+  {
+    std::vector<SBackend> backendProperties;
+    {
+      CSingleExit exit(m_critSection);
+      backendProperties = g_PVRClients->GetBackendProperties();
+    }
+    m_backendProperties = backendProperties;
+  }
 
   // Get the properties for the currently active backend
   const auto &backend = GetCurrentActiveBackend();

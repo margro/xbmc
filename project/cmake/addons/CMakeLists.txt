@@ -78,16 +78,17 @@ if(MSVC)
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
 
+option(PACKAGE_ZIP "Prepare built addons for packaging" OFF)
 if(PACKAGE_ZIP)
   # needed for project installing
-  list(APPEND BUILD_ARGS -DPACKAGE_ZIP=1)
-  MESSAGE("package zip specified")
+  list(APPEND BUILD_ARGS -DPACKAGE_ZIP=ON)
+  MESSAGE(STATUS "ZIP packaging enabled")
 endif()
 
 if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND BUILD_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
-  MESSAGE("toolchain specified")
-  MESSAGE(${BUILD_ARGS})
+  MESSAGE(STATUS "Toolchain specified")
+  MESSAGE(STATUS ${BUILD_ARGS})
 endif()
 
 if(NOT ADDONS_TO_BUILD)
