@@ -62,7 +62,7 @@ void CGUIWindowPVRTimers::ResetObservers(void)
 std::string CGUIWindowPVRTimers::GetDirectoryPath(void)
 {
   const std::string basePath(
-    CPVRTimersPath(m_bRadio, CSettings::Get().GetBool("pvrtimers.timertypefilter")).GetPath());
+    CPVRTimersPath(m_bRadio, CSettings::GetInstance().GetBool(CSettings::SETTING_PVRTIMERS_TIMERTYPEFILTER)).GetPath());
   return StringUtils::StartsWith(m_vecItems->GetPath(), basePath) ? m_vecItems->GetPath() : basePath;
 }
 
@@ -111,7 +111,7 @@ void CGUIWindowPVRTimers::GetContextButtons(int itemNumber, CContextButtons &but
   }
 
   CGUIWindowPVRBase::GetContextButtons(itemNumber, buttons);
-  CContextMenuManager::Get().AddVisibleItems(pItem, buttons);
+  CContextMenuManager::GetInstance().AddVisibleItems(pItem, buttons);
 }
 
 bool CGUIWindowPVRTimers::OnAction(const CAction &action)
@@ -152,7 +152,7 @@ bool CGUIWindowPVRTimers::Update(const std::string &strDirectory, bool updateFil
 
 void CGUIWindowPVRTimers::UpdateButtons(void)
 {
-  SET_CONTROL_SELECTED(GetID(), CONTROL_BTNTIMERTYPEFILTER, CSettings::Get().GetBool("pvrtimers.timertypefilter"));
+  SET_CONTROL_SELECTED(GetID(), CONTROL_BTNTIMERTYPEFILTER, CSettings::GetInstance().GetBool(CSettings::SETTING_PVRTIMERS_TIMERTYPEFILTER));
 
   CGUIWindowPVRBase::UpdateButtons();
 
@@ -168,6 +168,9 @@ void CGUIWindowPVRTimers::UpdateButtons(void)
 
 bool CGUIWindowPVRTimers::OnMessage(CGUIMessage &message)
 {
+  if (!IsValidMessage(message))
+    return false;
+  
   bool bReturn = false;
   switch (message.GetMessage())
   {
@@ -212,8 +215,8 @@ bool CGUIWindowPVRTimers::OnMessage(CGUIMessage &message)
       }
       else if (message.GetSenderId() == CONTROL_BTNTIMERTYPEFILTER)
       {
-        CSettings::Get().ToggleBool("pvrtimers.timertypefilter");
-        CSettings::Get().Save();
+        CSettings::GetInstance().ToggleBool(CSettings::SETTING_PVRTIMERS_TIMERTYPEFILTER);
+        CSettings::GetInstance().Save();
         Update(GetDirectoryPath());
         bReturn = true;
       }
@@ -222,6 +225,9 @@ bool CGUIWindowPVRTimers::OnMessage(CGUIMessage &message)
       switch(message.GetParam1())
       {
         case ObservableMessageTimers:
+        case ObservableMessageEpg:
+        case ObservableMessageEpgContainer:
+        case ObservableMessageEpgActiveItem:
         case ObservableMessageCurrentItem:
         {
           if (IsActive())
@@ -346,7 +352,7 @@ bool CGUIWindowPVRTimers::ActionDeleteTimer(CFileItem *item)
 {
   /* check if the timer tag is valid */
   CPVRTimerInfoTagPtr timerTag = item->GetPVRTimerInfoTag();
-  if (!timerTag || timerTag->m_state == PVR_TIMER_STATE_NEW)
+  if (!timerTag || (timerTag->m_iClientIndex == -1))
     return false;
 
   bool bDeleteSchedule(false);

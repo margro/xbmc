@@ -46,19 +46,19 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(bool bRadio /* = false */) :
   m_iClientIndex        = -1;
   m_iParentClientIndex  = PVR_TIMER_NO_PARENT;
   m_iClientChannelUid   = PVR_INVALID_CHANNEL_UID;
-  m_iPriority           = CSettings::Get().GetInt("pvrrecord.defaultpriority");
-  m_iLifetime           = CSettings::Get().GetInt("pvrrecord.defaultlifetime");
-  m_iPreventDupEpisodes = CSettings::Get().GetInt("pvrrecord.preventduplicateepisodes");
+  m_iPriority           = CSettings::GetInstance().GetInt(CSettings::SETTING_PVRRECORD_DEFAULTPRIORITY);
+  m_iLifetime           = CSettings::GetInstance().GetInt(CSettings::SETTING_PVRRECORD_DEFAULTLIFETIME);
+  m_iPreventDupEpisodes = CSettings::GetInstance().GetInt(CSettings::SETTING_PVRRECORD_PREVENTDUPLICATEEPISODES);
   m_iRecordingGroup     = 0;
   m_iChannelNumber      = 0;
   m_bIsRadio            = bRadio;
-  m_iMarginStart        = CSettings::Get().GetInt("pvrrecord.marginstart");
-  m_iMarginEnd          = CSettings::Get().GetInt("pvrrecord.marginend");
+  m_iMarginStart        = CSettings::GetInstance().GetInt(CSettings::SETTING_PVRRECORD_MARGINSTART);
+  m_iMarginEnd          = CSettings::GetInstance().GetInt(CSettings::SETTING_PVRRECORD_MARGINEND);
   m_iGenreType          = 0;
   m_iGenreSubType       = 0;
   m_StartTime           = CDateTime::GetUTCDateTime();
   m_StopTime            = m_StartTime;
-  m_state               = PVR_TIMER_STATE_NEW;
+  m_state               = PVR_TIMER_STATE_SCHEDULED;
   m_FirstDay.SetValid(false);
   m_iTimerId            = 0;
 
@@ -129,7 +129,7 @@ CPVRTimerInfoTag::CPVRTimerInfoTag(const PVR_TIMER &timer, const CPVRChannelPtr 
       unsigned int iMustHave    = PVR_TIMER_TYPE_ATTRIBUTE_NONE;
       unsigned int iMustNotHave = PVR_TIMER_TYPE_FORBIDS_NEW_INSTANCES;
 
-      if (timer.iWeekdays != PVR_WEEKDAY_NONE)
+      if (timer.iEpgUid == 0 && timer.iWeekdays != PVR_WEEKDAY_NONE)
         iMustHave |= PVR_TIMER_TYPE_IS_REPEATING;
       else
         iMustNotHave |= PVR_TIMER_TYPE_IS_REPEATING;
@@ -360,11 +360,12 @@ void CPVRTimerInfoTag::SetTimerType(const CPVRTimerTypePtr &type)
   CSingleLock lock(m_critSection);
   m_timerType = type;
 
-  if (m_timerType && (m_state == PVR_TIMER_STATE_NEW))
+  if (m_timerType && m_iClientIndex == -1)
   {
     m_iPriority           = m_timerType->GetPriorityDefault();
     m_iLifetime           = m_timerType->GetLifetimeDefault();
     m_iPreventDupEpisodes = m_timerType->GetPreventDuplicateEpisodesDefault();
+    m_iRecordingGroup     = m_timerType->GetRecordingGroupDefault();
   }
 
   if (m_timerType && !m_timerType->IsRepeating())
@@ -848,7 +849,7 @@ std::string CPVRTimerInfoTag::GetDeletedNotificationText() const
 
 void CPVRTimerInfoTag::QueueNotification(void) const
 {
-  if (CSettings::Get().GetBool("pvrrecord.timernotifications"))
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_PVRRECORD_TIMERNOTIFICATIONS))
   {
     std::string strMessage;
     GetNotificationText(strMessage);

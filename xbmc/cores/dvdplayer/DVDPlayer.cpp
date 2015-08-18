@@ -137,6 +137,8 @@ class PredicateSubtitleFilter
 private:
   std::string audiolang;
   bool original;
+  bool nosub;
+  bool onlyforced;
 public:
   /** \brief The class' operator() decides if the given (subtitle) SelectionStream is relevant wrt.
   *          preferred subtitle language and audio language. If the subtitle is relevant <B>false</B> false is returned.
@@ -151,15 +153,28 @@ public:
   */
   PredicateSubtitleFilter(std::string& lang)
     : audiolang(lang),
-      original(StringUtils::EqualsNoCase(CSettings::Get().GetString("locale.subtitlelanguage"), "original"))
+      original(StringUtils::EqualsNoCase(CSettings::GetInstance().GetString(CSettings::SETTING_LOCALE_SUBTITLELANGUAGE), "original")),
+      nosub(StringUtils::EqualsNoCase(CSettings::GetInstance().GetString(CSettings::SETTING_LOCALE_SUBTITLELANGUAGE), "none")),
+      onlyforced(StringUtils::EqualsNoCase(CSettings::GetInstance().GetString(CSettings::SETTING_LOCALE_SUBTITLELANGUAGE), "foced_only"))
   {
   };
 
   bool operator()(const SelectionStream& ss) const
   {
-    if (ss.type_index == CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleStream)
+    if (ss.type_index == CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleStream)
       return false;
 
+    if (nosub)
+      return true;
+
+    if (onlyforced)
+    {
+      if ((ss.flags & CDemuxStream::FLAG_FORCED) && g_LangCodeExpander.CompareISO639Codes(ss.language, audiolang))
+        return false;
+      else
+        return true;
+    }
+      
     if(STREAM_SOURCE_MASK(ss.source) == STREAM_SOURCE_DEMUX_SUB || STREAM_SOURCE_MASK(ss.source) == STREAM_SOURCE_TEXT)
       return false;
 
@@ -182,25 +197,25 @@ public:
 
 static bool PredicateAudioPriority(const SelectionStream& lh, const SelectionStream& rh)
 {
-  PREDICATE_RETURN(lh.type_index == CMediaSettings::Get().GetCurrentVideoSettings().m_AudioStream
-                 , rh.type_index == CMediaSettings::Get().GetCurrentVideoSettings().m_AudioStream);
+  PREDICATE_RETURN(lh.type_index == CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioStream
+                 , rh.type_index == CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioStream);
 
-  if(!StringUtils::EqualsNoCase(CSettings::Get().GetString("locale.audiolanguage"), "original"))
+  if(!StringUtils::EqualsNoCase(CSettings::GetInstance().GetString(CSettings::SETTING_LOCALE_AUDIOLANGUAGE), "original"))
   {
     std::string audio_language = g_langInfo.GetAudioLanguage();
     PREDICATE_RETURN(g_LangCodeExpander.CompareISO639Codes(audio_language, lh.language)
                    , g_LangCodeExpander.CompareISO639Codes(audio_language, rh.language));
 
-    bool hearingimp = CSettings::Get().GetBool("accessibility.audiohearing");
+    bool hearingimp = CSettings::GetInstance().GetBool(CSettings::SETTING_ACCESSIBILITY_AUDIOHEARING);
     PREDICATE_RETURN(!hearingimp ? !(lh.flags & CDemuxStream::FLAG_HEARING_IMPAIRED) : lh.flags & CDemuxStream::FLAG_HEARING_IMPAIRED
                    , !hearingimp ? !(rh.flags & CDemuxStream::FLAG_HEARING_IMPAIRED) : rh.flags & CDemuxStream::FLAG_HEARING_IMPAIRED);
 
-    bool visualimp = CSettings::Get().GetBool("accessibility.audiovisual");
+    bool visualimp = CSettings::GetInstance().GetBool(CSettings::SETTING_ACCESSIBILITY_AUDIOVISUAL);
     PREDICATE_RETURN(!visualimp ? !(lh.flags & CDemuxStream::FLAG_VISUAL_IMPAIRED) : lh.flags & CDemuxStream::FLAG_VISUAL_IMPAIRED
                    , !visualimp ? !(rh.flags & CDemuxStream::FLAG_VISUAL_IMPAIRED) : rh.flags & CDemuxStream::FLAG_VISUAL_IMPAIRED);
   }
 
-  if (CSettings::Get().GetBool("videoplayer.preferdefaultflag"))
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_PREFERDEFAULTFLAG))
   {
     PREDICATE_RETURN(lh.flags & CDemuxStream::FLAG_DEFAULT
                    , rh.flags & CDemuxStream::FLAG_DEFAULT);
@@ -239,8 +254,8 @@ private:
 public:
   PredicateSubtitlePriority(std::string& lang)
     : audiolang(lang),
-      original(StringUtils::EqualsNoCase(CSettings::Get().GetString("locale.subtitlelanguage"), "original")),
-      subson(CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleOn),
+      original(StringUtils::EqualsNoCase(CSettings::GetInstance().GetString(CSettings::SETTING_LOCALE_SUBTITLELANGUAGE), "original")),
+      subson(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn),
       filter(lang)
   {
   };
@@ -255,8 +270,8 @@ public:
     PREDICATE_RETURN(relevant(lh)
                    , relevant(rh));
 
-    PREDICATE_RETURN(lh.type_index == CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleStream
-                   , rh.type_index == CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleStream);
+    PREDICATE_RETURN(lh.type_index == CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleStream
+                   , rh.type_index == CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleStream);
 
     // prefer external subs
     PREDICATE_RETURN(STREAM_SOURCE_MASK(lh.source) == STREAM_SOURCE_DEMUX_SUB || STREAM_SOURCE_MASK(lh.source) == STREAM_SOURCE_TEXT
@@ -283,7 +298,7 @@ public:
       PREDICATE_RETURN(g_LangCodeExpander.CompareISO639Codes(subtitle_language, lh.language)
                      , g_LangCodeExpander.CompareISO639Codes(subtitle_language, rh.language));
 
-      bool hearingimp = CSettings::Get().GetBool("accessibility.subhearing");
+      bool hearingimp = CSettings::GetInstance().GetBool(CSettings::SETTING_ACCESSIBILITY_SUBHEARING);
       PREDICATE_RETURN(!hearingimp ? !(lh.flags & CDemuxStream::FLAG_HEARING_IMPAIRED) : lh.flags & CDemuxStream::FLAG_HEARING_IMPAIRED
                      , !hearingimp ? !(rh.flags & CDemuxStream::FLAG_HEARING_IMPAIRED) : rh.flags & CDemuxStream::FLAG_HEARING_IMPAIRED);
     }
@@ -519,10 +534,11 @@ int CSelectionStreams::CountSource(StreamType type, StreamSource source) const
 void CDVDPlayer::CreatePlayers()
 {
 #ifdef HAS_OMXPLAYER
-  if (m_omxplayer_mode && OMXPlayerUnsuitable(m_HasVideo, m_HasAudio, m_pDemuxer, m_pInputStream, m_SelectionStreams))
+  bool omx_suitable = !OMXPlayerUnsuitable(m_HasVideo, m_HasAudio, m_pDemuxer, m_pInputStream, m_SelectionStreams);
+  if (m_omxplayer_mode != omx_suitable)
   {
     DestroyPlayers();
-    m_omxplayer_mode = false;
+    m_omxplayer_mode = omx_suitable;
   }
 #endif
   if (m_players_created)
@@ -597,10 +613,10 @@ CDVDPlayer::CDVDPlayer(IPlayerCallback& callback)
   m_OmxPlayerState.bOmxWaitAudio       = false;
   m_OmxPlayerState.bOmxSentEOFs        = false;
   m_OmxPlayerState.threshold           = 0.2f;
-  m_OmxPlayerState.current_deinterlace = CMediaSettings::Get().GetCurrentVideoSettings().m_DeinterlaceMode;
+  m_OmxPlayerState.current_deinterlace = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_DeinterlaceMode;
   m_OmxPlayerState.interlace_method    = VS_INTERLACEMETHOD_MAX;
 #ifdef HAS_OMXPLAYER
-  m_omxplayer_mode                     = CSettings::Get().GetBool("videoplayer.useomxplayer");
+  m_omxplayer_mode                     = CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_USEOMXPLAYER);
 #else
   m_omxplayer_mode                     = false;
 #endif
@@ -772,11 +788,11 @@ bool CDVDPlayer::OpenInputStream()
       }
     } // end loop over all subtitle files
 
-    CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleCached = true;
+    CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleCached = true;
   }
 
-  SetAVDelay(CMediaSettings::Get().GetCurrentVideoSettings().m_AudioDelay);
-  SetSubTitleDelay(CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleDelay);
+  SetAVDelay(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_AudioDelay);
+  SetSubTitleDelay(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleDelay);
   m_clock.Reset();
   m_dvd.Clear();
   m_errorCount = 0;
@@ -863,7 +879,7 @@ void CDVDPlayer::OpenDefaultStreams(bool reset)
     CloseStream(m_CurrentAudio, true);
 
   // enable  or disable subtitles
-  bool visible = CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleOn;
+  bool visible = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn;
 
   // open subtitle stream
   SelectionStream as = m_SelectionStreams.Get(STREAM_AUDIO, GetAudioStream());
@@ -1110,9 +1126,9 @@ void CDVDPlayer::Process()
     if(m_PlayerOptions.state.size() > 0)
       ptr->SetState(m_PlayerOptions.state);
     else if(CDVDInputStreamNavigator* nav = dynamic_cast<CDVDInputStreamNavigator*>(m_pInputStream))
-      nav->EnableSubtitleStream(CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleOn);
+      nav->EnableSubtitleStream(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleOn);
 
-    CMediaSettings::Get().GetCurrentVideoSettings().m_SubtitleCached = true;
+    CMediaSettings::GetInstance().GetCurrentVideoSettings().m_SubtitleCached = true;
   }
 
   if(!OpenDemuxStream())
@@ -1130,7 +1146,7 @@ void CDVDPlayer::Process()
   {
     if (!m_OmxPlayerState.av_clock.OMXInitialize(&m_clock))
       m_bAbortRequest = true;
-    if (CSettings::Get().GetInt("videoplayer.adjustrefreshrate") != ADJUST_REFRESHRATE_OFF)
+    if (CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF)
       m_OmxPlayerState.av_clock.HDMIClockSync();
     m_OmxPlayerState.av_clock.OMXStateIdle();
     m_OmxPlayerState.av_clock.OMXStateExecute();
@@ -1434,7 +1450,7 @@ void CDVDPlayer::Process()
     CheckBetterStream(m_CurrentTeletext, pStream);
 
     // demux video stream
-    if (CSettings::Get().GetBool("subtitles.parsecaptions") && CheckIsCurrent(m_CurrentVideo, pStream, pPacket))
+    if (CSettings::GetInstance().GetBool(CSettings::SETTING_SUBTITLES_PARSECAPTIONS) && CheckIsCurrent(m_CurrentVideo, pStream, pPacket))
     {
       if (m_pCCDemuxer)
       {
@@ -1828,7 +1844,7 @@ void CDVDPlayer::HandlePlaySpeed()
         check = false;
       // skip if frame on screen has not changed
       else if (m_SpeedState.lastpts == m_dvdPlayerVideo->GetCurrentPts() &&
-          fabs(m_SpeedState.lastabstime - CDVDClock::GetAbsoluteClock()) < DVD_MSEC_TO_TIME(1000))
+               (m_SpeedState.lastpts > m_State.dts || m_playSpeed > 0))
         check = false;
 
       if (check)
@@ -2565,12 +2581,12 @@ void CDVDPlayer::HandleMessages()
 #ifdef HAS_VIDEO_PLAYBACK
           // when using fast channel switching some shortcuts are taken which 
           // means we'll have to update the view mode manually
-          g_renderManager.SetViewMode(CMediaSettings::Get().GetCurrentVideoSettings().m_ViewMode);
+          g_renderManager.SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
 #endif
         }else
         {
           CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-          CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_STOP);
+          CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
         }
       }
       else if (pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_SELECT) && m_messenger.GetPacketCount(CDVDMsg::PLAYER_CHANNEL_SELECT) == 0)
@@ -2584,16 +2600,19 @@ void CDVDPlayer::HandleMessages()
         }else
         {
           CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-          CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_STOP);
+          CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
         }
       }
-      else if (pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_NEXT) || pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREV))
+      else if (pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_NEXT) || pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREV) ||
+               pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREVIEW_NEXT) || pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREVIEW_PREV))
       {
         CDVDInputStream::IChannel* input = dynamic_cast<CDVDInputStream::IChannel*>(m_pInputStream);
-        if(input)
+        if (input)
         {
           bool bSwitchSuccessful(false);
-          bool bShowPreview(CSettings::Get().GetInt("pvrplayback.channelentrytimeout") > 0);
+          bool bShowPreview(!g_infoManager.IsPlayerOSDActive() &&
+                            (pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREVIEW_NEXT) ||
+                             pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREVIEW_PREV)));
 
           if (!bShowPreview)
           {
@@ -2601,17 +2620,22 @@ void CDVDPlayer::HandleMessages()
             FlushBuffers(false);
           }
 
-          if(pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_NEXT))
+          if (pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_NEXT) || pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREVIEW_NEXT))
             bSwitchSuccessful = input->NextChannel(bShowPreview);
           else
             bSwitchSuccessful = input->PrevChannel(bShowPreview);
 
-          if(bSwitchSuccessful)
+          if (bSwitchSuccessful)
           {
             if (bShowPreview)
             {
               UpdateApplication(0);
-              m_ChannelEntryTimeOut.Set(CSettings::Get().GetInt("pvrplayback.channelentrytimeout"));
+
+              if (!g_infoManager.IsPlayerOSDActive() &&
+                  CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH))
+                m_ChannelEntryTimeOut.SetInfinite();
+              else
+                m_ChannelEntryTimeOut.Set(CSettings::GetInstance().GetInt(CSettings::SETTING_PVRPLAYBACK_CHANNELENTRYTIMEOUT));
             }
             else
             {
@@ -2623,14 +2647,14 @@ void CDVDPlayer::HandleMessages()
 #ifdef HAS_VIDEO_PLAYBACK
               // when using fast channel switching some shortcuts are taken which 
               // means we'll have to update the view mode manually
-              g_renderManager.SetViewMode(CMediaSettings::Get().GetCurrentVideoSettings().m_ViewMode);
+              g_renderManager.SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
 #endif
             }
           }
           else
           {
             CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-            CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_STOP);
+            CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
           }
         }
       }
@@ -2725,7 +2749,7 @@ void CDVDPlayer::SetCaching(ECacheState state)
     m_dvdPlayerVideo->SendMessage(new CDVDMsg(CDVDMsg::PLAYER_STARTED), 1);
 
     if (state == CACHESTATE_PVR)
-      m_pInputStream->ResetScanTimeout((unsigned int) CSettings::Get().GetInt("pvrplayback.scantime") * 1000);
+      m_pInputStream->ResetScanTimeout((unsigned int) CSettings::GetInstance().GetInt(CSettings::SETTING_PVRPLAYBACK_SCANTIME) * 1000);
   }
 
   if(state == CACHESTATE_PLAY
@@ -2985,7 +3009,7 @@ void CDVDPlayer::GetGeneralInfo(std::string& strGeneralInfo)
       CSingleLock lock(m_StateSection);
       if(m_StateInput.cache_bytes >= 0)
       {
-        strBuf += StringUtils::Format(" cache:%s %2.0f%%"
+        strBuf += StringUtils::Format(" forward:%s %2.0f%%"
                                       , StringUtils::SizeToString(m_StateInput.cache_bytes).c_str()
                                       , m_StateInput.cache_level * 100);
         if(m_playSpeed == 0 || m_caching == CACHESTATE_FULL)
@@ -3021,7 +3045,7 @@ void CDVDPlayer::GetGeneralInfo(std::string& strGeneralInfo)
       CSingleLock lock(m_StateSection);
       if(m_StateInput.cache_bytes >= 0)
       {
-        strBuf += StringUtils::Format(" cache:%s %2.0f%%"
+        strBuf += StringUtils::Format(" forward:%s %2.0f%%"
                                       , StringUtils::SizeToString(m_StateInput.cache_bytes).c_str()
                                       , m_StateInput.cache_level * 100);
         if(m_playSpeed == 0 || m_caching == CACHESTATE_FULL)
@@ -3425,7 +3449,7 @@ bool CDVDPlayer::OpenVideoStream(CDVDStreamInfo& hint, bool reset)
     // set framerate if not set by demuxer
     if (hint.fpsrate == 0 || hint.fpsscale == 0)
     {
-      int fpsidx = CSettings::Get().GetInt("pvrplayback.fps");
+      int fpsidx = CSettings::GetInstance().GetInt(CSettings::SETTING_PVRPLAYBACK_FPS);
       if (fpsidx == 1)
       {
         hint.fpsscale = 1000;
@@ -3444,7 +3468,7 @@ bool CDVDPlayer::OpenVideoStream(CDVDStreamInfo& hint, bool reset)
     hint.stills = true;
 
   if (hint.stereo_mode.empty())
-    hint.stereo_mode = CStereoscopicsManager::Get().DetectStereoModeByString(m_filename);
+    hint.stereo_mode = CStereoscopicsManager::GetInstance().DetectStereoModeByString(m_filename);
 
   if(hint.flags & AV_DISPOSITION_ATTACHED_PIC)
     return false;
@@ -3887,9 +3911,9 @@ bool CDVDPlayer::ShowPVRChannelInfo(void)
 {
   bool bReturn(false);
 
-  if (CSettings::Get().GetInt("pvrmenu.displaychannelinfo") > 0)
+  if (CSettings::GetInstance().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO) > 0)
   {
-    g_PVRManager.ShowPlayerInfo(CSettings::Get().GetInt("pvrmenu.displaychannelinfo"));
+    g_PVRManager.ShowPlayerInfo(CSettings::GetInstance().GetInt(CSettings::SETTING_PVRMENU_DISPLAYCHANNELINFO));
 
     bReturn = true;
   }
@@ -4044,7 +4068,7 @@ bool CDVDPlayer::OnAction(const CAction &action)
               return true;
             else
             {
-              CApplicationMessenger::Get().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_TRIGGER_OSD)));
+              CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_TRIGGER_OSD)));
               return false;
             }
           }
@@ -4095,20 +4119,42 @@ bool CDVDPlayer::OnAction(const CAction &action)
       case ACTION_MOVE_UP:
       case ACTION_NEXT_ITEM:
       case ACTION_CHANNEL_UP:
-        m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_NEXT));
-        g_infoManager.SetDisplayAfterSeek();
+      {
+        bool bPreview(action.GetID() == ACTION_MOVE_UP && // only up/down shows a preview, all others do switch
+                      (CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH) ||
+                       CSettings::GetInstance().GetInt(CSettings::SETTING_PVRPLAYBACK_CHANNELENTRYTIMEOUT) > 0));
+
+        if (bPreview)
+          m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_PREVIEW_NEXT));
+        else
+          m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_NEXT));
+
+        if (!bPreview || g_infoManager.IsPlayerOSDActive())
+          g_infoManager.SetDisplayAfterSeek();
+
         ShowPVRChannelInfo();
         return true;
-      break;
+      }
 
       case ACTION_MOVE_DOWN:
       case ACTION_PREV_ITEM:
       case ACTION_CHANNEL_DOWN:
-        m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_PREV));
-        g_infoManager.SetDisplayAfterSeek();
+      {
+        bool bPreview(action.GetID() == ACTION_MOVE_DOWN && // only up/down shows a preview, all others do switch
+                      (CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH) ||
+                       CSettings::GetInstance().GetInt(CSettings::SETTING_PVRPLAYBACK_CHANNELENTRYTIMEOUT) > 0));
+
+        if (bPreview)
+          m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_PREVIEW_PREV));
+        else
+          m_messenger.Put(new CDVDMsg(CDVDMsg::PLAYER_CHANNEL_PREV));
+
+        if (!bPreview || g_infoManager.IsPlayerOSDActive())
+          g_infoManager.SetDisplayAfterSeek();
+
         ShowPVRChannelInfo();
         return true;
-      break;
+      }
 
       case ACTION_CHANNEL_SWITCH:
       {
@@ -4558,7 +4604,7 @@ void CDVDPlayer::UpdateApplication(double timeout)
     if(pStream->UpdateItem(item))
     {
       g_application.CurrentFileItem() = item;
-      CApplicationMessenger::Get().PostMsg(TMSG_UPDATE_CURRENT_ITEM, 0, -1, static_cast<void*>(new CFileItem(item)));
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_UPDATE_CURRENT_ITEM, 0, -1, static_cast<void*>(new CFileItem(item)));
     }
   }
   m_UpdateApplication = CDVDClock::GetAbsoluteClock();
@@ -4637,6 +4683,9 @@ std::string CDVDPlayer::GetPlayingTitle()
 
 bool CDVDPlayer::SwitchChannel(const CPVRChannelPtr &channel)
 {
+  if (g_PVRManager.IsPlayingChannel(channel))
+    return false; // desired channel already active, nothing to do.
+
   if (!g_PVRManager.CheckParentalLock(channel))
     return false;
 

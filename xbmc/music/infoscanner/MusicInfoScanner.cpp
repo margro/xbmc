@@ -23,6 +23,8 @@
 #include "music/tags/MusicInfoTagLoaderFactory.h"
 #include "MusicAlbumInfo.h"
 #include "MusicInfoScraper.h"
+#include "events/EventLog.h"
+#include "events/MediaLibraryEvent.h"
 #include "filesystem/MusicDatabaseDirectory.h"
 #include "filesystem/MusicDatabaseDirectory/DirectoryNode.h"
 #include "Util.h"
@@ -78,7 +80,7 @@ CMusicInfoScanner::~CMusicInfoScanner()
 
 void CMusicInfoScanner::Process()
 {
-  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnScanStarted");
+  ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnScanStarted");
   try
   {
     if (m_bClean)
@@ -93,7 +95,7 @@ void CMusicInfoScanner::Process()
 
     m_musicDatabase.Open();
 
-    if (m_showDialog && !CSettings::Get().GetBool("musiclibrary.backgroundupdate"))
+    if (m_showDialog && !CSettings::GetInstance().GetBool(CSettings::SETTING_MUSICLIBRARY_BACKGROUNDUPDATE))
     {
       CGUIDialogExtendedProgressBar* dialog =
         (CGUIDialogExtendedProgressBar*)g_windowManager.GetWindow(WINDOW_DIALOG_EXT_PROGRESS);
@@ -247,7 +249,7 @@ void CMusicInfoScanner::Process()
   CLog::Log(LOGDEBUG, "%s - Finished scan", __FUNCTION__);
   
   m_bRunning = false;
-  ANNOUNCEMENT::CAnnouncementManager::Get().Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnScanFinished");
+  ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::AudioLibrary, "xbmc", "OnScanFinished");
   
   // we need to clear the musicdb cache and update any active lists
   CUtil::DeleteMusicDatabaseDirectoryCache();
@@ -752,10 +754,10 @@ int CMusicInfoScanner::RetrieveMusicInfo(const std::string& strDirectory, CFileI
   ADDON::AddonPtr addon;
   ADDON::ScraperPtr albumScraper;
   ADDON::ScraperPtr artistScraper;
-  if(ADDON::CAddonMgr::Get().GetDefault(ADDON::ADDON_SCRAPER_ALBUMS, addon))
+  if(ADDON::CAddonMgr::GetInstance().GetDefault(ADDON::ADDON_SCRAPER_ALBUMS, addon))
     albumScraper = std::dynamic_pointer_cast<ADDON::CScraper>(addon);
 
-  if(ADDON::CAddonMgr::Get().GetDefault(ADDON::ADDON_SCRAPER_ARTISTS, addon))
+  if(ADDON::CAddonMgr::GetInstance().GetDefault(ADDON::ADDON_SCRAPER_ARTISTS, addon))
     artistScraper = std::dynamic_pointer_cast<ADDON::CScraper>(addon);
 
   // Add each album
@@ -974,10 +976,17 @@ loop:
       album.artist = StringUtils::Split(strTempArtist, g_advancedSettings.m_musicItemSeparator);
       goto loop;
     }
+    else
+    {
+      CEventLog::GetInstance().Add(EventPtr(new CMediaLibraryEvent(
+        MediaTypeAlbum, album.strPath, 24146,
+        StringUtils::Format(g_localizeStrings.Get(24147).c_str(), MediaTypeAlbum, album.strAlbum.c_str()),
+        CScraperUrl::GetThumbURL(album.thumbURL.GetFirstThumb()), CURL::GetRedacted(album.strPath), EventLevelWarning)));
+    }
   }
   else if (albumDownloadStatus == INFO_ADDED)
   {
-    album.MergeScrapedAlbum(albumInfo.GetAlbum(), CSettings::Get().GetBool("musiclibrary.overridetags"));
+    album.MergeScrapedAlbum(albumInfo.GetAlbum(), CSettings::GetInstance().GetBool(CSettings::SETTING_MUSICLIBRARY_OVERRIDETAGS));
     m_musicDatabase.Open();
     m_musicDatabase.UpdateAlbum(album);
     GetAlbumArtwork(album.idAlbum, album);
@@ -1005,10 +1014,17 @@ loop:
         return INFO_CANCELLED;
       goto loop;
     }
+    else
+    {
+      CEventLog::GetInstance().Add(EventPtr(new CMediaLibraryEvent(
+        MediaTypeArtist, artist.strPath, 24146,
+        StringUtils::Format(g_localizeStrings.Get(24147).c_str(), MediaTypeArtist, artist.strArtist.c_str()),
+        CScraperUrl::GetThumbURL(artist.thumbURL.GetFirstThumb()), CURL::GetRedacted(artist.strPath), EventLevelWarning)));
+    }
   }
   else if (artistDownloadStatus == INFO_ADDED)
   {
-    artist.MergeScrapedArtist(artistInfo.GetArtist(), CSettings::Get().GetBool("musiclibrary.overridetags"));
+    artist.MergeScrapedArtist(artistInfo.GetArtist(), CSettings::GetInstance().GetBool(CSettings::SETTING_MUSICLIBRARY_OVERRIDETAGS));
     m_musicDatabase.Open();
     m_musicDatabase.UpdateArtist(artist);
     m_musicDatabase.GetArtistPath(artist.idArtist, artist.strPath);
@@ -1079,7 +1095,7 @@ INFO_RET CMusicInfoScanner::DownloadAlbumInfo(const CAlbum& album, const ADDON::
       CLog::Log(LOGERROR,"Unable to find an url in nfo file: %s", strNfo.c_str());
   }
 
-  if (!scraper.CheckValidOrFallback(CSettings::Get().GetString("musiclibrary.albumsscraper")))
+  if (!scraper.CheckValidOrFallback(CSettings::GetInstance().GetString(CSettings::SETTING_MUSICLIBRARY_ALBUMSSCRAPER)))
   { // the current scraper is invalid, as is the default - bail
     CLog::Log(LOGERROR, "%s - current and default scrapers are invalid.  Pick another one", __FUNCTION__);
     return INFO_ERROR;
@@ -1233,7 +1249,7 @@ void CMusicInfoScanner::GetAlbumArtwork(long id, const CAlbum &album)
       string thumb = CScraperUrl::GetThumbURL(album.thumbURL.GetFirstThumb());
       if (!thumb.empty())
       {
-        CTextureCache::Get().BackgroundCacheImage(thumb);
+        CTextureCache::GetInstance().BackgroundCacheImage(thumb);
         m_musicDatabase.SetArtForItem(id, MediaTypeAlbum, "thumb", thumb);
       }
     }
@@ -1449,7 +1465,7 @@ map<string, string> CMusicInfoScanner::GetArtistArtwork(const CArtist& artist)
     thumb = CScraperUrl::GetThumbURL(artist.thumbURL.GetFirstThumb());
   if (!thumb.empty())
   {
-    CTextureCache::Get().BackgroundCacheImage(thumb);
+    CTextureCache::GetInstance().BackgroundCacheImage(thumb);
     artwork.insert(make_pair("thumb", thumb));
   }
 
@@ -1469,7 +1485,7 @@ map<string, string> CMusicInfoScanner::GetArtistArtwork(const CArtist& artist)
     fanart = artist.fanart.GetImageURL();
   if (!fanart.empty())
   {
-    CTextureCache::Get().BackgroundCacheImage(fanart);
+    CTextureCache::GetInstance().BackgroundCacheImage(fanart);
     artwork.insert(make_pair("fanart", fanart));
   }
 

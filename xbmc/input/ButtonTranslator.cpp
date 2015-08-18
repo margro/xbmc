@@ -75,6 +75,7 @@ static const ActionMapping actions[] =
     { "parentdir"                , ACTION_NAV_BACK },                   // backward compatibility
     { "parentfolder"             , ACTION_PARENT_DIR },
     { "back"                     , ACTION_NAV_BACK },
+    { "menu"                     , ACTION_MENU},
     { "previousmenu"             , ACTION_PREVIOUS_MENU },
     { "info"                     , ACTION_SHOW_INFO },
     { "pause"                    , ACTION_PAUSE },
@@ -142,13 +143,6 @@ static const ActionMapping actions[] =
     { "number7"                  , REMOTE_7 },
     { "number8"                  , REMOTE_8 },
     { "number9"                  , REMOTE_9 },
-    { "osdleft"                  , ACTION_OSD_SHOW_LEFT },
-    { "osdright"                 , ACTION_OSD_SHOW_RIGHT },
-    { "osdup"                    , ACTION_OSD_SHOW_UP },
-    { "osddown"                  , ACTION_OSD_SHOW_DOWN },
-    { "osdselect"                , ACTION_OSD_SHOW_SELECT },
-    { "osdvalueplus"             , ACTION_OSD_SHOW_VALUE_PLUS },
-    { "osdvalueminus"            , ACTION_OSD_SHOW_VALUE_MIN },
     { "smallstepback"            , ACTION_SMALL_STEP_BACK },
     { "fastforward"              , ACTION_PLAYER_FORWARD },
     { "rewind"                   , ACTION_PLAYER_REWIND },
@@ -158,8 +152,6 @@ static const ActionMapping actions[] =
     { "delete"                   , ACTION_DELETE_ITEM },
     { "copy"                     , ACTION_COPY_ITEM },
     { "move"                     , ACTION_MOVE_ITEM },
-    { "mplayerosd"               , ACTION_SHOW_MPLAYER_OSD },
-    { "hidesubmenu"              , ACTION_OSD_HIDESUBMENU },
     { "screenshot"               , ACTION_TAKE_SCREENSHOT },
     { "rename"                   , ACTION_RENAME_ITEM },
     { "togglewatched"            , ACTION_TOGGLE_WATCHED },
@@ -405,7 +397,8 @@ static const ActionMapping windows[] =
     { "peripheralsettings"       , WINDOW_DIALOG_PERIPHERAL_SETTINGS },
     { "extendedprogressdialog"   , WINDOW_DIALOG_EXT_PROGRESS },
     { "mediafilter"              , WINDOW_DIALOG_MEDIA_FILTER },
-    { "addon"                    , WINDOW_ADDON_START }
+    { "addon"                    , WINDOW_ADDON_START },
+    { "eventlog"                 , WINDOW_EVENT_LOG}
 };
 
 static const ActionMapping mousekeys[] =
@@ -612,7 +605,7 @@ bool CButtonTranslator::Load(bool AlwaysLoad)
   else
     CLog::Log(LOGDEBUG, "CButtonTranslator::Load - no system %s found, skipping", REMOTEMAP);
 
-  lircmapPath = CProfilesManager::Get().GetUserDataItem(REMOTEMAP);
+  lircmapPath = CProfilesManager::GetInstance().GetUserDataItem(REMOTEMAP);
   if(CFile::Exists(lircmapPath))
     success |= LoadLircMap(lircmapPath);
   else
@@ -1190,6 +1183,43 @@ CAction CButtonTranslator::GetAction(int window, const CKey &key, bool fallback)
   return action;
 }
 
+CAction CButtonTranslator::GetGlobalAction(const CKey &key)
+{
+  return GetAction(-1, key, true);
+}
+
+bool CButtonTranslator::HasLonpressMapping(int window, const CKey &key)
+{
+  map<int, buttonMap>::const_iterator it = m_translatorMap.find(window);
+  if (it == m_translatorMap.end())
+  {
+    if (window > -1)
+      return HasLonpressMapping(GetFallbackWindow(window), key);
+    return false;
+  }
+
+  uint32_t code = key.GetButtonCode();
+  code |= CKey::MODIFIER_LONG;
+  buttonMap::const_iterator it2 = (*it).second.find(code);
+
+  if (it2 != (*it).second.end())
+    return true;
+
+#ifdef TARGET_POSIX
+  // Some buttoncodes changed in Hardy
+  if ((code & KEY_VKEY) == KEY_VKEY && (code & 0x0F00))
+  {
+    code &= ~0x0F00;
+    it2 = (*it).second.find(code);
+    if (it2 != (*it).second.end())
+      return true;
+  }
+#endif
+  if (window > -1)
+    return HasLonpressMapping(GetFallbackWindow(window), key);
+  return false;
+}
+
 int CButtonTranslator::GetActionCode(int window, const CKey &key, std::string &strAction) const
 {
   uint32_t code = key.GetButtonCode();
@@ -1199,6 +1229,11 @@ int CButtonTranslator::GetActionCode(int window, const CKey &key, std::string &s
     return 0;
   buttonMap::const_iterator it2 = (*it).second.find(code);
   int action = 0;
+  if (it2 == (*it).second.end() && code & CKey::MODIFIER_LONG) // If long action not found, try short one
+  {
+    code &= ~CKey::MODIFIER_LONG;
+    it2 = (*it).second.find(code);
+  }
   if (it2 != (*it).second.end())
   {
     action = (*it2).second.id;
@@ -1593,6 +1628,8 @@ uint32_t CButtonTranslator::TranslateKeyboardButton(TiXmlElement *pButton)
         button_id |= CKey::MODIFIER_SUPER;
       else if (substr == "meta" || substr == "cmd")
         button_id |= CKey::MODIFIER_META;
+      else if (substr == "longpress")
+        button_id |= CKey::MODIFIER_LONG;
       else
         CLog::Log(LOGERROR, "Keyboard Translator: Unknown key modifier %s in %s", substr.c_str(), strMod.c_str());
      }

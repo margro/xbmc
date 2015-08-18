@@ -78,7 +78,7 @@ void CGUIWindowPVRSearch::GetContextButtons(int itemNumber, CContextButtons &but
   buttons.Add(CONTEXT_BUTTON_CLEAR, 19232);             /* Clear search results */
 
   CGUIWindowPVRBase::GetContextButtons(itemNumber, buttons);
-  CContextMenuManager::Get().AddVisibleItems(pItem, buttons);
+  CContextMenuManager::GetInstance().AddVisibleItems(pItem, buttons);
 }
 
 void CGUIWindowPVRSearch::OnWindowLoaded()
@@ -173,6 +173,9 @@ void CGUIWindowPVRSearch::OnPrepareFileItems(CFileItemList &items)
 
 bool CGUIWindowPVRSearch::OnMessage(CGUIMessage &message)
 {
+  if (!IsValidMessage(message))
+    return false;
+  
   if (message.GetMessage() == GUI_MSG_CLICKED)
   {
     if (message.GetSenderId() == m_viewControl.GetCurrentControl())

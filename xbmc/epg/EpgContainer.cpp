@@ -47,6 +47,7 @@ CEpgContainer::CEpgContainer(void) :
   m_bIsInitialising = true;
   m_iNextEpgId = 0;
   m_bPreventUpdates = false;
+  m_bMarkForPersist = false;
   m_updateEvent.Reset();
   m_bStarted = false;
   m_bLoaded = false;
@@ -64,7 +65,7 @@ CEpgContainer::~CEpgContainer(void)
   Unload();
 }
 
-CEpgContainer &CEpgContainer::Get(void)
+CEpgContainer &CEpgContainer::GetInstance()
 {
   static CEpgContainer epgInstance;
   return epgInstance;
@@ -127,11 +128,31 @@ void CEpgContainer::Clear(bool bClearDb /* = false */)
   NotifyObservers(ObservableMessageEpgContainer);
 
   if (bThreadRunning)
-    Start();
+    Start(true);
 }
 
-void CEpgContainer::Start(void)
+class CEPGContainerStartJob : public CJob
 {
+public:
+  CEPGContainerStartJob() {}
+  ~CEPGContainerStartJob(void) {}
+
+  bool DoWork(void)
+  {
+    g_EpgContainer.Start(false);
+    return true;
+  }
+};
+
+void CEpgContainer::Start(bool bAsync)
+{
+  if (bAsync)
+  {
+    CEPGContainerStartJob *job = new CEPGContainerStartJob();
+    CJobManager::GetInstance().AddJob(job, NULL);
+    return;
+  }
+
   Stop();
 
   {
@@ -149,6 +170,7 @@ void CEpgContainer::Start(void)
   }
 
   LoadFromDB();
+
   if (g_PVRManager.IsStarted())
     g_PVRManager.Recordings()->UpdateEpgTags();
 
@@ -161,6 +183,8 @@ void CEpgContainer::Start(void)
     SetPriority(-1);
 
     m_bStarted = true;
+
+    g_PVRManager.TriggerEpgsCreate();
 
     CLog::Log(LOGNOTICE, "%s - EPG thread started", __FUNCTION__);
   }
@@ -191,8 +215,8 @@ void CEpgContainer::OnSettingChanged(const CSetting *setting)
     return;
 
   const std::string &settingId = setting->GetId();
-  if (settingId == "epg.ignoredbforclient" || settingId == "epg.epgupdate" ||
-      settingId == "epg.daystodisplay")
+  if (settingId == CSettings::SETTING_EPG_IGNOREDBFORCLIENT || settingId == CSettings::SETTING_EPG_EPGUPDATE ||
+      settingId == CSettings::SETTING_EPG_DAYSTODISPLAY)
     LoadSettings();
 }
 
@@ -231,6 +255,14 @@ void CEpgContainer::LoadFromDB(void)
   }
 
   m_bLoaded = bLoaded;
+}
+
+bool CEpgContainer::MarkTablesForPersist(void)
+{
+  /* Set m_bMarkForPersist to persist tables on the next Process() run but only
+  if epg.ignoredbforclient is set, otherwise persistAll does already persisting. */
+  CSingleLock lock(m_critSection);
+  return m_bMarkForPersist = CSettings::GetInstance().GetBool(CSettings::SETTING_EPG_IGNOREDBFORCLIENT);
 }
 
 bool CEpgContainer::PersistTables(void)
@@ -322,6 +354,13 @@ void CEpgContainer::Process(void)
     /* check for updated active tag */
     if (!m_bStop)
       CheckPlayingEvents();
+
+    /* Check if PVR requests an update of Epg Channels */
+    if (m_bMarkForPersist)
+    {
+      PersistTables();
+      m_bMarkForPersist = false;
+    }
 
     /* check for changes that need to be saved every 60 seconds */
     if (iNow - iLastSave > 60)
@@ -429,9 +468,9 @@ CEpg *CEpgContainer::CreateChannelEpg(CPVRChannelPtr channel)
 
 bool CEpgContainer::LoadSettings(void)
 {
-  m_bIgnoreDbForClient = CSettings::Get().GetBool("epg.ignoredbforclient");
-  m_iUpdateTime        = CSettings::Get().GetInt ("epg.epgupdate") * 60;
-  m_iDisplayTime       = CSettings::Get().GetInt ("epg.daystodisplay") * 24 * 60 * 60;
+  m_bIgnoreDbForClient = CSettings::GetInstance().GetBool(CSettings::SETTING_EPG_IGNOREDBFORCLIENT);
+  m_iUpdateTime        = CSettings::GetInstance().GetInt (CSettings::SETTING_EPG_EPGUPDATE) * 60;
+  m_iDisplayTime       = CSettings::GetInstance().GetInt (CSettings::SETTING_EPG_DAYSTODISPLAY) * 24 * 60 * 60;
 
   return true;
 }
@@ -516,7 +555,7 @@ bool CEpgContainer::InterruptUpdate(void) const
   bReturn = g_application.m_bStop || m_bStop || m_bPreventUpdates;
 
   return bReturn ||
-    (CSettings::Get().GetBool("epg.preventupdateswhileplayingtv") &&
+    (CSettings::GetInstance().GetBool(CSettings::SETTING_EPG_PREVENTUPDATESWHILEPLAYINGTV) &&
      g_application.m_pPlayer && g_application.m_pPlayer->IsPlaying());
 }
 

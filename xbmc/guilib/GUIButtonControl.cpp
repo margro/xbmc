@@ -142,17 +142,28 @@ void CGUIButtonControl::ProcessText(unsigned int currentTime)
   CRect labelRenderRect = m_label.GetRenderRect();
   CRect label2RenderRect = m_label2.GetRenderRect();
 
-  bool changed = m_label.SetMaxRect(m_posX, m_posY, GetWidth(), m_height);
+  float renderWidth = GetWidth();
+  bool changed = m_label.SetMaxRect(m_posX, m_posY, renderWidth, m_height);
   changed |= m_label.SetText(m_info.GetLabel(m_parentID));
   changed |= m_label.SetScrolling(HasFocus());
 
+  // text changed - images need resizing
+  if (m_minWidth && (m_label.GetRenderRect() != labelRenderRect))
+    SetInvalid();
+
+  // auto-width - adjust hitrect
+  if (m_minWidth && m_width != renderWidth)
+  {
+    CRect rect(m_posX, m_posY, renderWidth, m_height);
+    SetHitRect(rect);
+  }
+
   // render the second label if it exists
-  std::string label2(m_info2.GetLabel(m_parentID));
-  changed |= m_label2.SetMaxRect(m_posX, m_posY, GetWidth(), m_height);
-  changed |= m_label2.SetText(label2);
-  if (!label2.empty())
+  if (!m_info2.GetLabel(m_parentID).empty())
   {
     changed |= m_label2.SetAlign(XBFONT_RIGHT | (m_label.GetLabelInfo().align & XBFONT_CENTER_Y) | XBFONT_TRUNCATED);
+    changed |= m_label2.SetMaxRect(m_posX, m_posY, renderWidth, m_height);
+    changed |= m_label2.SetText(m_info2.GetLabel(m_parentID));
     changed |= m_label2.SetScrolling(HasFocus());
 
     // If overlapping was corrected - compare render rects to determine
@@ -255,14 +266,20 @@ void CGUIButtonControl::SetInvalid()
 
 void CGUIButtonControl::SetLabel(const string &label)
 { // NOTE: No fallback for buttons at this point
-  m_info.SetLabel(label, "", GetParentID());
-  SetInvalid();
+  if (m_info.GetLabel(GetParentID(), false) != label)
+  {
+    m_info.SetLabel(label, "", GetParentID());
+    SetInvalid();
+  }
 }
 
 void CGUIButtonControl::SetLabel2(const string &label2)
 { // NOTE: No fallback for buttons at this point
-  m_info2.SetLabel(label2, "", GetParentID());
-  SetInvalid();
+  if (m_info2.GetLabel(GetParentID(), false) != label2)
+  {
+    m_info2.SetLabel(label2, "", GetParentID());
+    SetInvalid();
+  }
 }
 
 void CGUIButtonControl::SetPosition(float posX, float posY)
@@ -283,6 +300,7 @@ bool CGUIButtonControl::UpdateColors()
 {
   bool changed = CGUIControl::UpdateColors();
   changed |= m_label.UpdateColors();
+  changed |= m_label2.UpdateColors();
   changed |= m_imgFocus.SetDiffuseColor(m_diffuseColor);
   changed |= m_imgNoFocus.SetDiffuseColor(m_diffuseColor);
 

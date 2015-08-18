@@ -48,6 +48,7 @@
 #include "Util.h"
 #include "input/Key.h"
 #include "settings/lib/Setting.h"
+#include "settings/Settings.h"
 #include "messaging/ThreadMessage.h"
 #include "messaging/ApplicationMessenger.h"
 
@@ -65,7 +66,7 @@ CPeripherals::~CPeripherals(void)
   Clear();
 }
 
-CPeripherals &CPeripherals::Get(void)
+CPeripherals &CPeripherals::GetInstance()
 {
   static CPeripherals peripheralsInstance;
   return peripheralsInstance;
@@ -102,7 +103,7 @@ void CPeripherals::Initialise(void)
     }
 
     m_bInitialised = true;
-    KODI::MESSAGING::CApplicationMessenger::Get().RegisterReceiver(this);
+    KODI::MESSAGING::CApplicationMessenger::GetInstance().RegisterReceiver(this);
   }
 }
 
@@ -702,7 +703,7 @@ void CPeripherals::OnSettingChanged(const CSetting *setting)
     return;
 
   const std::string &settingId = setting->GetId();
-  if (settingId == "locale.language")
+  if (settingId == CSettings::SETTING_LOCALE_LANGUAGE)
   {
     // user set language, no longer use the TV's language
     vector<CPeripheral *> cecDevices;
@@ -720,7 +721,7 @@ void CPeripherals::OnSettingAction(const CSetting *setting)
     return;
 
   const std::string &settingId = setting->GetId();
-  if (settingId == "input.peripherals")
+  if (settingId == CSettings::SETTING_INPUT_PERIPHERALS)
   {
     CGUIDialogPeripheralManager *dialog = (CGUIDialogPeripheralManager *)g_windowManager.GetWindow(WINDOW_DIALOG_PERIPHERAL_MANAGER);
     if (dialog != NULL)

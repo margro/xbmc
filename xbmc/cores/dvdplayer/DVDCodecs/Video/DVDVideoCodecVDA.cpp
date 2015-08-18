@@ -157,7 +157,7 @@ CDVDVideoCodecVDA::~CDVDVideoCodecVDA()
 
 bool CDVDVideoCodecVDA::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
 {
-  if (CSettings::Get().GetBool("videoplayer.usevda") && !hints.software)
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_USEVDA) && !hints.software)
   {
     CCocoaAutoPool pool;
 

@@ -583,6 +583,9 @@ lib/cpluff/stamp-h1
 /xbmc/peripherals/bus/Makefile
 /xbmc/peripherals/devices/Makefile
 
+# /xbmc/main/posix/
+xbmc/main/posix/Makefile
+
 #/xbmc/screensavers/
 /xbmc/screensavers/Makefile
 /xbmc/screensavers/rsxs-0.9/Makefile
@@ -760,6 +763,7 @@ lib/cpluff/stamp-h1
 /lib/libdvd/libdvdcss/stamp-doxygen
 /lib/libdvd/libdvdcss/test/Makefile
 /lib/libdvd/libdvdcss/doc/doxygen.cfg
+/lib/libdvd/libdvdcss/doc/doxygen_sqlite3.db
 /lib/libdvd/libdvdcss/doc/Makefile
 /lib/libdvd/libdvdcss/doc/Makefile.in
 /lib/libdvd/libdvdcss/doc/html/

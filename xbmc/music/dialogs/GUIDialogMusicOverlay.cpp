@@ -29,7 +29,7 @@
 CGUIDialogMusicOverlay::CGUIDialogMusicOverlay()
   : CGUIDialog(WINDOW_DIALOG_MUSIC_OVERLAY, "MusicOverlay.xml", DialogModalityType::MODELESS)
 {
-  m_renderOrder = 0;
+  m_renderOrder = RENDER_ORDER_WINDOW;
   m_loadType = KEEP_IN_MEMORY;
 }
 
@@ -59,7 +59,7 @@ EVENT_RESULT CGUIDialogMusicOverlay::OnMouseEvent(const CPoint &point, const CMo
   if (pControl && pControl->HitTest(point))
   {
     // send highlight message
-    CInputManager::Get().SetMouseState(MOUSE_STATE_FOCUS);
+    CInputManager::GetInstance().SetMouseState(MOUSE_STATE_FOCUS);
     if (event.m_id == ACTION_MOUSE_LEFT_CLICK)
     { // send mouse message
       CGUIMessage message(GUI_MSG_FULLSCREEN, CONTROL_LOGO_PIC, GetID());
@@ -80,7 +80,7 @@ EVENT_RESULT CGUIDialogMusicOverlay::OnMouseEvent(const CPoint &point, const CMo
 void CGUIDialogMusicOverlay::SetDefaults()
 {
   CGUIDialog::SetDefaults();
-  m_renderOrder = 0;
+  m_renderOrder = RENDER_ORDER_WINDOW;
   SetVisibleCondition("skin.hasmusicoverlay");
 }
 

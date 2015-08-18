@@ -92,35 +92,35 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
       {
         const CGUIControl *control = GetControl(CONTROL_AUTOUPDATE);
         if (control && control->GetControlType() == CGUIControl::GUICONTROL_BUTTON)
-          CSettings::Get().SetInt("general.addonupdates", (CSettings::Get().GetInt("general.addonupdates")+1) % AUTO_UPDATES_MAX);
+          CSettings::GetInstance().SetInt(CSettings::SETTING_GENERAL_ADDONUPDATES, (CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES)+1) % AUTO_UPDATES_MAX);
         else
-          CSettings::Get().SetInt("general.addonupdates", (CSettings::Get().GetInt("general.addonupdates") == 0) ? 1 : 0);
+          CSettings::GetInstance().SetInt(CSettings::SETTING_GENERAL_ADDONUPDATES, (CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) == 0) ? 1 : 0);
         UpdateButtons();
         return true;
       }
       else if (iControl == CONTROL_SHUTUP)
       {
-        CSettings::Get().ToggleBool("general.addonnotifications");
-        CSettings::Get().Save();
+        CSettings::GetInstance().ToggleBool(CSettings::SETTING_GENERAL_ADDONNOTIFICATIONS);
+        CSettings::GetInstance().Save();
         return true;
       }
       else if (iControl == CONTROL_FOREIGNFILTER)
       {
-        CSettings::Get().ToggleBool("general.addonforeignfilter");
-        CSettings::Get().Save();
+        CSettings::GetInstance().ToggleBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER);
+        CSettings::GetInstance().Save();
         Refresh();
         return true;
       }
       else if (iControl == CONTROL_BROKENFILTER)
       {
-        CSettings::Get().ToggleBool("general.addonbrokenfilter");
-        CSettings::Get().Save();
+        CSettings::GetInstance().ToggleBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER);
+        CSettings::GetInstance().Save();
         Refresh();
         return true;
       }
       else if (iControl == CONTROL_CHECK_FOR_UPDATES)
       {
-        CAddonInstaller::Get().UpdateRepos(true, false, true);
+        CAddonInstaller::GetInstance().UpdateRepos(true, false, true);
         return true;
       }
       else if (m_viewControl.HasControl(iControl))  // list/thumb control
@@ -165,7 +165,7 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
 
 void CGUIWindowAddonBrowser::SetProperties()
 {
-  auto lastChecked = CAddonInstaller::Get().LastRepoUpdate();
+  auto lastChecked = CAddonInstaller::GetInstance().LastRepoUpdate();
   if (lastChecked.IsValid())
     SetProperty("Updated", lastChecked.GetAsLocalizedDateTime());
 }
@@ -182,11 +182,11 @@ void CGUIWindowAddonBrowser::GetContextButtons(int itemNumber, CContextButtons& 
     buttons.Add(CONTEXT_BUTTON_INFO, 24003);
 
     AddonPtr addon;
-    if (CAddonMgr::Get().GetAddon(addonId, addon, ADDON_UNKNOWN, false) && addon->HasSettings())
+    if (CAddonMgr::GetInstance().GetAddon(addonId, addon, ADDON_UNKNOWN, false) && addon->HasSettings())
       buttons.Add(CONTEXT_BUTTON_SETTINGS, 24020);
   }
 
-  CContextMenuManager::Get().AddVisibleItems(pItem, buttons);
+  CContextMenuManager::GetInstance().AddVisibleItems(pItem, buttons);
 }
 
 bool CGUIWindowAddonBrowser::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
@@ -203,7 +203,7 @@ bool CGUIWindowAddonBrowser::OnContextButton(int itemNumber, CONTEXT_BUTTON butt
     else if (button == CONTEXT_BUTTON_SETTINGS)
     {
       AddonPtr addon;
-      if (CAddonMgr::Get().GetAddon(addonId, addon, ADDON_UNKNOWN, false))
+      if (CAddonMgr::GetInstance().GetAddon(addonId, addon, ADDON_UNKNOWN, false))
         return CGUIDialogAddonSettings::ShowAndGetInput(addon);
     }
   }
@@ -216,11 +216,11 @@ class UpdateAddons : public IRunnable
   virtual void Run()
   {
     VECADDONS addons;
-    CAddonMgr::Get().GetAllOutdatedAddons(addons, true); // get local
+    CAddonMgr::GetInstance().GetAllOutdatedAddons(addons, true); // get local
     for (VECADDONS::iterator i = addons.begin(); i != addons.end(); ++i)
     {
       std::string referer = StringUtils::Format("Referer=%s-%s.zip",(*i)->ID().c_str(),(*i)->Version().asString().c_str());
-      CAddonInstaller::Get().Install((*i)->ID(), true, referer); // force install
+      CAddonInstaller::GetInstance().Install((*i)->ID(), true, referer); // force install
     }
   }
 };
@@ -232,12 +232,12 @@ bool CGUIWindowAddonBrowser::OnClick(int iItem)
   if (item->GetPath() == "addons://install/")
   {
     // pop up filebrowser to grab an installed folder
-    VECSOURCES shares = *CMediaSourceSettings::Get().GetSources("files");
+    VECSOURCES shares = *CMediaSourceSettings::GetInstance().GetSources("files");
     g_mediaManager.GetLocalDrives(shares);
     g_mediaManager.GetNetworkLocations(shares);
     std::string path;
     if (CGUIDialogFileBrowser::ShowAndGetFile(shares, "*.zip", g_localizeStrings.Get(24041), path))
-      CAddonInstaller::Get().InstallFromZip(path);
+      CAddonInstaller::GetInstance().InstallFromZip(path);
     return true;
   }
   if (item->GetPath() == "addons://update_all/")
@@ -255,7 +255,7 @@ bool CGUIWindowAddonBrowser::OnClick(int iItem)
     {
       if (CGUIDialogYesNo::ShowAndGetInput(CVariant{24000}, item->GetProperty("Addon.Name"), CVariant{24066}, CVariant{""}))
       {
-        if (CAddonInstaller::Get().Cancel(item->GetProperty("Addon.ID").asString()))
+        if (CAddonInstaller::GetInstance().Cancel(item->GetProperty("Addon.ID").asString()))
           Refresh();
       }
       return true;
@@ -275,7 +275,7 @@ void CGUIWindowAddonBrowser::UpdateButtons()
   const CGUIControl *control = GetControl(CONTROL_AUTOUPDATE);
   if (control && control->GetControlType() == CGUIControl::GUICONTROL_BUTTON)
   { // set label
-    CSettingInt *setting = (CSettingInt *)CSettings::Get().GetSetting("general.addonupdates");
+    CSettingInt *setting = (CSettingInt *)CSettings::GetInstance().GetSetting(CSettings::SETTING_GENERAL_ADDONUPDATES);
     if (setting)
     {
       const StaticIntegerSettingOptions& options = setting->GetOptions();
@@ -291,11 +291,11 @@ void CGUIWindowAddonBrowser::UpdateButtons()
   }
   else
   { // old skin with toggle button - set on if auto updates are on
-    SET_CONTROL_SELECTED(GetID(),CONTROL_AUTOUPDATE, CSettings::Get().GetInt("general.addonupdates") == AUTO_UPDATES_ON);
+    SET_CONTROL_SELECTED(GetID(),CONTROL_AUTOUPDATE, CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) == AUTO_UPDATES_ON);
   }
-  SET_CONTROL_SELECTED(GetID(),CONTROL_SHUTUP, CSettings::Get().GetBool("general.addonnotifications"));
-  SET_CONTROL_SELECTED(GetID(),CONTROL_FOREIGNFILTER, CSettings::Get().GetBool("general.addonforeignfilter"));
-  SET_CONTROL_SELECTED(GetID(),CONTROL_BROKENFILTER, CSettings::Get().GetBool("general.addonbrokenfilter"));
+  SET_CONTROL_SELECTED(GetID(),CONTROL_SHUTUP, CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONNOTIFICATIONS));
+  SET_CONTROL_SELECTED(GetID(),CONTROL_FOREIGNFILTER, CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER));
+  SET_CONTROL_SELECTED(GetID(),CONTROL_BROKENFILTER, CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER));
   CONTROL_ENABLE(CONTROL_CHECK_FOR_UPDATES);
 
   bool allowFilter = CAddonsDirectory::IsRepoDirectory(CURL(m_vecItems->GetPath()));
@@ -305,8 +305,7 @@ void CGUIWindowAddonBrowser::UpdateButtons()
   CGUIMediaWindow::UpdateButtons();
 }
 
-static bool FilterVar(bool valid, const CVariant& variant,
-                                  const std::string& check)
+static bool FilterVar(bool valid, const CVariant& variant, const std::string& check)
 {
   if (!valid)
     return false;
@@ -318,14 +317,13 @@ static bool FilterVar(bool valid, const CVariant& variant,
   return regions.find(check) == std::string::npos;
 }
 
-bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory,
-                                          CFileItemList& items)
+bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory, CFileItemList& items)
 {
   bool result;
   if (URIUtils::PathEquals(strDirectory, "addons://downloading/"))
   {
     VECADDONS addons;
-    CAddonInstaller::Get().GetInstallList(addons);
+    CAddonInstaller::GetInstance().GetInstallList(addons);
 
     CURL url(strDirectory);
     CAddonsDirectory::GenerateAddonListing(url, addons, items, g_localizeStrings.Get(24067));
@@ -346,11 +344,11 @@ bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory,
   {
     result = CGUIMediaWindow::GetDirectory(strDirectory, items);
 
-    if (CAddonsDirectory::IsRepoDirectory(CURL(strDirectory)))
+    if (result && CAddonsDirectory::IsRepoDirectory(CURL(strDirectory)))
     {
-      if (CSettings::Get().GetBool("general.addonforeignfilter"))
+      if (CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER))
       {
-        int i=0;
+        int i = 0;
         while (i < items.Size())
         {
           if (!FilterVar(true, items[i]->GetProperty("Addon.Language"), "en") ||
@@ -363,14 +361,15 @@ bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory,
             items.Remove(i);
         }
       }
-      if (CSettings::Get().GetBool("general.addonbrokenfilter"))
+      if (CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER))
       {
         for (int i = items.Size() - 1; i >= 0; i--)
         {
           if (!items[i]->GetProperty("Addon.Broken").empty())
-          { //check if it's installed
+          {
+            //check if it's installed
             AddonPtr addon;
-            if (!CAddonMgr::Get().GetAddon(items[i]->GetProperty("Addon.ID").asString(), addon))
+            if (!CAddonMgr::GetInstance().GetAddon(items[i]->GetProperty("Addon.ID").asString(), addon))
               items.Remove(i);
           }
         }
@@ -378,9 +377,9 @@ bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory,
     }
   }
 
-  if (strDirectory.empty() && CAddonInstaller::Get().IsDownloading())
+  if (strDirectory.empty() && CAddonInstaller::GetInstance().IsDownloading())
   {
-    CFileItemPtr item(new CFileItem("addons://downloading/",true));
+    CFileItemPtr item(new CFileItem("addons://downloading/", true));
     item->SetLabel(g_localizeStrings.Get(24067));
     item->SetLabelPreformated(true);
     item->SetIconImage("DefaultNetwork.png");
@@ -389,7 +388,7 @@ bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory,
 
   items.SetContent("addons");
 
-  for (int i=0;i<items.Size();++i)
+  for (int i = 0; i < items.Size(); ++i)
     SetItemLabel2(items[i]);
 
   return result;
@@ -399,7 +398,7 @@ void CGUIWindowAddonBrowser::SetItemLabel2(CFileItemPtr item)
 {
   if (!item || item->m_bIsFolder) return;
   unsigned int percent;
-  if (CAddonInstaller::Get().GetProgress(item->GetProperty("Addon.ID").asString(), percent))
+  if (CAddonInstaller::GetInstance().GetProgress(item->GetProperty("Addon.ID").asString(), percent))
   {
     std::string progress = StringUtils::Format(g_localizeStrings.Get(24042).c_str(), percent);
     item->SetProperty("Addon.Status", progress);
@@ -489,7 +488,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const vector<ADDON::TYPE> &types, vect
       else if (*type == ADDON_VIDEO)
         CAddonsDirectory::GetScriptsAndPlugins("video", typeAddons);
       else
-        CAddonMgr::Get().GetAddons(*type, typeAddons);
+        CAddonMgr::GetInstance().GetAddons(*type, typeAddons);
 
       addons.insert(addons.end(), typeAddons.begin(), typeAddons.end());
     }
@@ -517,13 +516,13 @@ int CGUIWindowAddonBrowser::SelectAddonID(const vector<ADDON::TYPE> &types, vect
         }
 
         // only show addons that match one of the provided addon types and that aren't disabled
-        if (matchesType && !CAddonMgr::Get().IsAddonDisabled(pAddon->ID()))
+        if (matchesType && !CAddonMgr::GetInstance().IsAddonDisabled(pAddon->ID()))
         {
           // check if the addon is installed
-          bool isInstalled = CAddonMgr::Get().IsAddonInstalled(pAddon->ID());
+          bool isInstalled = CAddonMgr::GetInstance().IsAddonInstalled(pAddon->ID());
 
           // check if the addon is installed or can be installed
-          if ((showInstallable || showMore) && !isInstalled && CAddonMgr::Get().CanAddonBeInstalled(pAddon))
+          if ((showInstallable || showMore) && !isInstalled && CAddonMgr::GetInstance().CanAddonBeInstalled(pAddon))
           {
             ++addon;
             continue;
@@ -613,10 +612,9 @@ int CGUIWindowAddonBrowser::SelectAddonID(const vector<ADDON::TYPE> &types, vect
     return 0;
 
   addonIDs.clear();
-  const CFileItemList& list = dialog->GetSelectedItems();
-  for (int i = 0; i < list.Size(); i++)
+  for (int i : dialog->GetSelectedItems())
   {
-    const CFileItemPtr& item = list.Get(i);
+    const CFileItemPtr& item = items.Get(i);
 
     // check if one of the selected addons needs to be installed
     if (showInstallable)
@@ -627,16 +625,16 @@ int CGUIWindowAddonBrowser::SelectAddonID(const vector<ADDON::TYPE> &types, vect
         const AddonPtr& addon = itAddon->second;
 
         // if the addon isn't installed we need to install it
-        if (!CAddonMgr::Get().IsAddonInstalled(addon->ID()))
+        if (!CAddonMgr::GetInstance().IsAddonInstalled(addon->ID()))
         {
           AddonPtr installedAddon;
-          if (!CAddonInstaller::Get().InstallModal(addon->ID(), installedAddon, false))
+          if (!CAddonInstaller::GetInstance().InstallModal(addon->ID(), installedAddon, false))
             continue;
         }
 
         // if the addon is disabled we need to enable it
-        if (CAddonMgr::Get().IsAddonDisabled(addon->ID()))
-          CAddonMgr::Get().EnableAddon(addon->ID());
+        if (CAddonMgr::GetInstance().IsAddonDisabled(addon->ID()))
+          CAddonMgr::GetInstance().EnableAddon(addon->ID());
       }
     }
 

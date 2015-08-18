@@ -35,7 +35,7 @@ class CGUIDialogProgressBarHandle;
 
 namespace EPG
 {
-  #define g_EpgContainer CEpgContainer::Get()
+  #define g_EpgContainer CEpgContainer::GetInstance()
 
   struct SUpdateRequest
   {
@@ -64,7 +64,7 @@ namespace EPG
     /*!
      * @return An instance of this singleton.
      */
-    static CEpgContainer &Get(void);
+    static CEpgContainer &GetInstance();
 
     /*!
      * @brief Get a pointer to the database instance.
@@ -74,8 +74,9 @@ namespace EPG
 
     /*!
      * @brief Start the EPG update thread.
+     * @param bAsync Should the EPG container starts asynchronously
      */
-    virtual void Start(void);
+    virtual void Start(bool bAsync);
 
     /*!
      * @brief Stop the EPG update thread.
@@ -232,11 +233,21 @@ namespace EPG
     bool IsInitialising(void) const;
 
     /*!
+     * @brief Set m_bMarkForPersist to force PersistTables() on next Process() run
+     * @return True when m_bMarkForPersist was set.
+     */
+    bool MarkTablesForPersist(void);
+
+    /*!
      * @brief Call Persist() on each table
      * @return True when they all were persisted, false otherwise.
      */
     bool PersistAll(void);
 
+    /*!
+     * @brief Call Persist() on each table
+     * @return True when they all were persisted, false otherwise.
+     */
     bool PersistTables(void);
 
     /*!
@@ -297,6 +308,7 @@ namespace EPG
     bool         m_bStarted;               /*!< true if EpgContainer has fully started */
     bool         m_bLoaded;                /*!< true after epg data is initially loaded from the database */
     bool         m_bPreventUpdates;        /*!< true to prevent EPG updates */
+    bool         m_bMarkForPersist;        /*!< true to update channel Epgs called from PVR  */
     int          m_pendingUpdates;         /*!< count of pending manual updates */
     time_t       m_iLastEpgCleanup;        /*!< the time the EPG was cleaned up */
     time_t       m_iNextEpgUpdate;         /*!< the time the EPG will be updated */

@@ -42,7 +42,7 @@ CPluginSource::CPluginSource(const cp_extension_t *ext)
   std::string provides;
   if (ext)
   {
-    provides = CAddonMgr::Get().GetExtValue(ext->configuration, "provides");
+    provides = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "provides");
     if (!provides.empty())
       Props().extrainfo.insert(make_pair("provides", provides));
   }
@@ -82,6 +82,20 @@ CPluginSource::Content CPluginSource::Translate(const std::string &content)
     return CPluginSource::VIDEO;
   else
     return CPluginSource::UNKNOWN;
+}
+
+TYPE CPluginSource::FullType() const
+{
+  if (Provides(VIDEO))
+    return ADDON_VIDEO;
+  if (Provides(AUDIO))
+    return ADDON_AUDIO;
+  if (Provides(IMAGE))
+    return ADDON_IMAGE;
+  if (Provides(EXECUTABLE))
+    return ADDON_EXECUTABLE;
+
+  return CAddon::FullType();
 }
 
 bool CPluginSource::IsType(TYPE type) const

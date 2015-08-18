@@ -2186,7 +2186,7 @@ bool CGUIAddonWindowDialog::OnMessage(CGUIMessage &message)
 void CGUIAddonWindowDialog::Show(bool show /* = true */)
 {
   unsigned int iCount = g_graphicsContext.exit();
-  CApplicationMessenger::Get().SendMsg(TMSG_GUI_ADDON_DIALOG, 1, show ? 1 : 0, static_cast<void*>(this));
+  CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ADDON_DIALOG, 1, show ? 1 : 0, static_cast<void*>(this));
   g_graphicsContext.restore(iCount);
 }
 
@@ -2204,7 +2204,7 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
 
     // this dialog is derived from GUiMediaWindow
     // make sure it is rendered last
-    m_renderOrder = 1;
+    m_renderOrder = RENDER_ORDER_DIALOG;
     while (m_bRunning && !g_application.m_bStop)
     {
       g_windowManager.ProcessRenderLoop();

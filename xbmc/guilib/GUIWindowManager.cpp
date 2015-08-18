@@ -36,6 +36,7 @@
 #include "utils/StringUtils.h"
 
 #include "windows/GUIWindowHome.h"
+#include "events/windows/GUIWindowEventLog.h"
 #include "settings/windows/GUIWindowSettings.h"
 #include "windows/GUIWindowFileManager.h"
 #include "settings/windows/GUIWindowSettingsCategory.h"
@@ -67,6 +68,7 @@
 #include "windows/GUIWindowScreensaver.h"
 #include "windows/GUIWindowScreensaverDim.h"
 #include "pictures/GUIWindowSlideShow.h"
+#include "windows/GUIWindowSplash.h"
 #include "windows/GUIWindowStartup.h"
 #include "video/windows/GUIWindowFullScreen.h"
 #include "video/dialogs/GUIDialogVideoOSD.h"
@@ -168,11 +170,12 @@ CGUIWindowManager::~CGUIWindowManager(void)
 void CGUIWindowManager::Initialize()
 {
   m_tracker.SelectAlgorithm();
+
   m_initialized = true;
 
   LoadNotOnDemandWindows();
 
-  CApplicationMessenger::Get().RegisterReceiver(this);
+  CApplicationMessenger::GetInstance().RegisterReceiver(this);
 }
 
 void CGUIWindowManager::CreateWindows()
@@ -300,12 +303,16 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIWindowScreensaver);
   Add(new CGUIWindowWeather);
   Add(new CGUIWindowStartup);
+  Add(new CGUIWindowSplash);
+
+  Add(new CGUIWindowEventLog);
 }
 
 bool CGUIWindowManager::DestroyWindows()
 {
   try
   {
+    Delete(WINDOW_SPLASH);
     Delete(WINDOW_MUSIC_PLAYLIST);
     Delete(WINDOW_MUSIC_PLAYLIST_EDITOR);
     Delete(WINDOW_MUSIC_FILES);
@@ -418,6 +425,8 @@ bool CGUIWindowManager::DestroyWindows()
 
     Remove(WINDOW_DIALOG_SEEK_BAR);
     Remove(WINDOW_DIALOG_VOLUME_BAR);
+
+    Delete(WINDOW_EVENT_LOG);
   }
   catch (...)
   {
@@ -729,7 +738,7 @@ void CGUIWindowManager::ActivateWindow(int iWindowID, const vector<string>& para
   {
     // make sure graphics lock is not held
     CSingleExit leaveIt(g_graphicsContext);
-    CApplicationMessenger::Get().SendMsg(TMSG_GUI_ACTIVATE_WINDOW, iWindowID, swappingWindows ? 1 : 0, nullptr, "", params);
+    CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTIVATE_WINDOW, iWindowID, swappingWindows ? 1 : 0, nullptr, "", params);
   }
   else
   {
@@ -744,7 +753,7 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const vector<stri
   // virtual music window which returns the last open music window (aka the music start window)
   if (iWindowID == WINDOW_MUSIC)
   {
-    iWindowID = CSettings::Get().GetInt("mymusic.startwindow");
+    iWindowID = CSettings::GetInstance().GetInt(CSettings::SETTING_MYMUSIC_STARTWINDOW);
     // ensure the music virtual window only returns music files and music library windows
     if (iWindowID != WINDOW_MUSIC_NAV)
       iWindowID = WINDOW_MUSIC_FILES;

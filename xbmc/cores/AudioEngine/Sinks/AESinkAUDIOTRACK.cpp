@@ -218,7 +218,7 @@ bool CAESinkAUDIOTRACK::Initialize(AEAudioFormat &format, std::string &device)
     m_passthrough = false;
 
 #if defined(HAS_LIBAMCODEC)
-  if (CSettings::Get().GetBool("videoplayer.useamcodec"))
+  if (CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_USEAMCODEC))
     aml_set_audio_passthrough(m_passthrough);
 #endif
 

@@ -109,7 +109,7 @@ void CGUIDialogPVRTimerSettings::SetTimer(CFileItem *item)
   // Copy data we need from tag. Do not modify the tag itself until Save()!
   m_timerType     = m_timerInfoTag->GetTimerType();
   m_bIsRadio      = m_timerInfoTag->m_bIsRadio;
-  m_bIsNewTimer   = m_timerInfoTag->m_state == PVR_TIMER_STATE_NEW;
+  m_bIsNewTimer   = m_timerInfoTag->m_iClientIndex == -1;
   m_bStartAnytime = m_bIsNewTimer || m_timerInfoTag->IsStartAtAnyTime();
   m_bEndAnytime   = m_bIsNewTimer || m_timerInfoTag->IsEndAtAnyTime();
   m_bTimerActive  = m_bIsNewTimer || m_timerInfoTag->IsActive();
@@ -316,11 +316,11 @@ void CGUIDialogPVRTimerSettings::InitializeSettings()
   AddTypeDependentEnableCondition(setting, SETTING_TMR_NEW_EPISODES);
 
   // Pre and post record time
-  setting = AddSpinner(group, SETTING_TMR_BEGIN_PRE, 813, 0, 0, m_iMarginStart, 1, 60, 14044);
+  setting = AddSpinner(group, SETTING_TMR_BEGIN_PRE, 813, 0, m_iMarginStart, 0, 1, 60, 14044);
   AddTypeDependentVisibilityCondition(setting, SETTING_TMR_BEGIN_PRE);
   AddTypeDependentEnableCondition(setting, SETTING_TMR_BEGIN_PRE);
 
-  setting = AddSpinner(group, SETTING_TMR_END_POST,  814, 0, 0, m_iMarginEnd,   1, 60, 14044);
+  setting = AddSpinner(group, SETTING_TMR_END_POST,  814, 0, m_iMarginEnd,   0, 1, 60, 14044);
   AddTypeDependentVisibilityCondition(setting, SETTING_TMR_END_POST);
   AddTypeDependentEnableCondition(setting, SETTING_TMR_END_POST);
 

@@ -26,6 +26,7 @@
 #include "interfaces/Builtins.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/lib/Setting.h"
+#include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/RssReader.h"
@@ -45,7 +46,7 @@ CRssManager::~CRssManager()
   Stop();
 }
 
-CRssManager& CRssManager::Get()
+CRssManager& CRssManager::GetInstance()
 {
   static CRssManager sRssManager;
   return sRssManager;
@@ -67,15 +68,15 @@ void CRssManager::OnSettingAction(const CSetting *setting)
     return;
 
   const std::string &settingId = setting->GetId();
-  if (settingId == "lookandfeel.rssedit")
+  if (settingId == CSettings::SETTING_LOOKANDFEEL_RSSEDIT)
   {
     ADDON::AddonPtr addon;
-    ADDON::CAddonMgr::Get().GetAddon("script.rss.editor",addon);
+    ADDON::CAddonMgr::GetInstance().GetAddon("script.rss.editor",addon);
     if (!addon)
     {
       if (!CGUIDialogYesNo::ShowAndGetInput(CVariant{24076}, CVariant{24100}, CVariant{"RSS Editor"}, CVariant{24101}))
         return;
-      CAddonInstaller::Get().Install("script.rss.editor", true, "", false);
+      CAddonInstaller::GetInstance().Install("script.rss.editor", true, "", false);
     }
     CBuiltins::Execute("RunScript(script.rss.editor)");
   }
@@ -101,7 +102,7 @@ void CRssManager::Stop()
 bool CRssManager::Load()
 {
   CSingleLock lock(m_critical);
-  string rssXML = CProfilesManager::Get().GetUserDataItem("RssFeeds.xml");
+  string rssXML = CProfilesManager::GetInstance().GetUserDataItem("RssFeeds.xml");
   if (!CFile::Exists(rssXML))
     return false;
 

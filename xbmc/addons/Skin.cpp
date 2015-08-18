@@ -141,16 +141,16 @@ CSkinInfo::CSkinInfo(const cp_extension_t *ext)
   : CAddon(ext), m_version(""), m_effectsSlowDown(1.f)
 {
   ELEMENTS elements;
-  if (CAddonMgr::Get().GetExtElements(ext->configuration, "res", elements))
+  if (CAddonMgr::GetInstance().GetExtElements(ext->configuration, "res", elements))
   {
     for (ELEMENTS::iterator i = elements.begin(); i != elements.end(); ++i)
     {
-      int width = atoi(CAddonMgr::Get().GetExtValue(*i, "@width").c_str());
-      int height = atoi(CAddonMgr::Get().GetExtValue(*i, "@height").c_str());
-      bool defRes = CAddonMgr::Get().GetExtValue(*i, "@default") == "true";
-      std::string folder = CAddonMgr::Get().GetExtValue(*i, "@folder");
+      int width = atoi(CAddonMgr::GetInstance().GetExtValue(*i, "@width").c_str());
+      int height = atoi(CAddonMgr::GetInstance().GetExtValue(*i, "@height").c_str());
+      bool defRes = CAddonMgr::GetInstance().GetExtValue(*i, "@default") == "true";
+      std::string folder = CAddonMgr::GetInstance().GetExtValue(*i, "@folder");
       float aspect = 0;
-      std::string strAspect = CAddonMgr::Get().GetExtValue(*i, "@aspect");
+      std::string strAspect = CAddonMgr::GetInstance().GetExtValue(*i, "@aspect");
       vector<string> fracs = StringUtils::Split(strAspect, ':');
       if (fracs.size() == 2)
         aspect = (float)(atof(fracs[0].c_str())/atof(fracs[1].c_str()));
@@ -166,17 +166,17 @@ CSkinInfo::CSkinInfo(const cp_extension_t *ext)
   }
   else
   { // no resolutions specified -> backward compatibility
-    std::string defaultWide = CAddonMgr::Get().GetExtValue(ext->configuration, "@defaultwideresolution");
+    std::string defaultWide = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@defaultwideresolution");
     if (defaultWide.empty())
-      defaultWide = CAddonMgr::Get().GetExtValue(ext->configuration, "@defaultresolution");
+      defaultWide = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@defaultresolution");
     TranslateResolution(defaultWide, m_defaultRes);
   }
 
-  std::string str = CAddonMgr::Get().GetExtValue(ext->configuration, "@effectslowdown");
+  std::string str = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@effectslowdown");
   if (!str.empty())
     m_effectsSlowDown = (float)atof(str.c_str());
 
-  m_debugging = CAddonMgr::Get().GetExtValue(ext->configuration, "@debugging") == "true";
+  m_debugging = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@debugging") == "true";
 
   LoadStartupWindows(ext);
 
@@ -289,7 +289,7 @@ void CSkinInfo::ResolveIncludes(TiXmlElement *node, std::map<INFO::InfoPtr, bool
 
 int CSkinInfo::GetStartWindow() const
 {
-  int windowID = CSettings::Get().GetInt("lookandfeel.startupwindow");
+  int windowID = CSettings::GetInstance().GetInt(CSettings::SETTING_LOOKANDFEEL_STARTUPWINDOW);
   assert(m_startupWindows.size());
   for (vector<CStartupWindow>::const_iterator it = m_startupWindows.begin(); it != m_startupWindows.end(); ++it)
   {
@@ -357,7 +357,7 @@ int CSkinInfo::GetFirstWindow() const
 bool CSkinInfo::IsInUse() const
 {
   // Could extend this to prompt for reverting to the standard skin perhaps
-  return CSettings::Get().GetString("lookandfeel.skin") == ID();
+  return CSettings::GetInstance().GetString(CSettings::SETTING_LOOKANDFEEL_SKIN) == ID();
 }
 
 const INFO::CSkinVariableString* CSkinInfo::CreateSkinVariable(const std::string& name, int context)
@@ -368,7 +368,7 @@ const INFO::CSkinVariableString* CSkinInfo::CreateSkinVariable(const std::string
 void CSkinInfo::OnPreInstall()
 {
   if (IsInUse())
-    CApplicationMessenger::Get().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "UnloadSkin");
+    CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "UnloadSkin");
 }
 
 void CSkinInfo::OnPostInstall(bool update, bool modal)
@@ -381,10 +381,10 @@ void CSkinInfo::OnPostInstall(bool update, bool modal)
       toast->ResetTimer();
       toast->Close(true);
     }
-    if (CSettings::Get().GetString("lookandfeel.skin") == ID())
-      CApplicationMessenger::Get().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "ReloadSkin");
+    if (CSettings::GetInstance().GetString(CSettings::SETTING_LOOKANDFEEL_SKIN) == ID())
+      CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "ReloadSkin");
     else
-      CSettings::Get().SetString("lookandfeel.skin", ID());
+      CSettings::GetInstance().SetString(CSettings::SETTING_LOOKANDFEEL_SKIN, ID());
   }
 }
 
@@ -476,50 +476,6 @@ void CSkinInfo::SettingOptionsSkinFontsFiller(const CSetting *setting, std::vect
 
   if (!currentValueSet)
     current = list[0].second;
-}
-
-void CSkinInfo::SettingOptionsSkinSoundFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
-{
-  std::string settingValue = ((const CSettingString*)setting)->GetValue();
-  current = "SKINDEFAULT";
-
-  list.push_back(make_pair(g_localizeStrings.Get(474), "OFF"));
-
-  if (CDirectory::Exists(URIUtils::AddFileToFolder(g_SkinInfo->Path(), "sounds")))
-    list.push_back(make_pair(g_localizeStrings.Get(15106), "SKINDEFAULT"));
-
-  ADDON::VECADDONS addons;
-  if (ADDON::CAddonMgr::Get().GetAddons(ADDON::ADDON_RESOURCE_UISOUNDS, addons))
-  {
-    for (const auto& addon : addons)
-      list.push_back(make_pair(addon->Name(), addon->ID()));
-  }
-
-  //Add sounds from special directories
-  CFileItemList items;
-  CDirectory::GetDirectory("special://xbmc/sounds/", items);
-  CDirectory::GetDirectory("special://home/sounds/", items);
-  for (int i = 0; i < items.Size(); i++)
-  {
-    CFileItemPtr pItem = items[i];
-    if (pItem->m_bIsFolder)
-    {
-      if (StringUtils::EqualsNoCase(pItem->GetLabel(), ".svn") ||
-          StringUtils::EqualsNoCase(pItem->GetLabel(), "fonts") ||
-          StringUtils::EqualsNoCase(pItem->GetLabel(), "media"))
-        continue;
-      list.push_back(make_pair(pItem->GetLabel(), pItem->GetLabel()));
-    }
-  }
-
-  sort(list.begin() + 2, list.end());
-
-  // try to find the best matching value
-  for (vector< pair<string, string> >::const_iterator it = list.begin(); it != list.end(); ++it)
-  {
-    if (StringUtils::EqualsNoCase(it->second, settingValue))
-      current = settingValue;
-  }
 }
 
 void CSkinInfo::SettingOptionsSkinThemesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)

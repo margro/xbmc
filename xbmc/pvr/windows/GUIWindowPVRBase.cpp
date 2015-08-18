@@ -27,6 +27,7 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "dialogs/GUIDialogSelect.h"
+#include "dialogs/GUIDialogProgress.h"
 #include "filesystem/StackDirectory.h"
 #include "input/Key.h"
 #include "guilib/GUIMessage.h"
@@ -50,6 +51,8 @@
 #include <utility>
 
 #include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
+
+#define MAX_INVALIDATION_FREQUENCY 2000 // limit to one invalidation per X milliseconds
 
 using namespace PVR;
 using namespace EPG;
@@ -88,7 +91,7 @@ void CGUIWindowPVRBase::Notify(const Observable &obs, const ObservableMessage ms
 {
   UpdateSelectedItemPath();
   CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, msg);
-  CApplicationMessenger::Get().SendGUIMessage(m);
+  CApplicationMessenger::GetInstance().SendGUIMessage(m);
 }
 
 bool CGUIWindowPVRBase::OnAction(const CAction &action)
@@ -111,7 +114,10 @@ bool CGUIWindowPVRBase::OnBack(int actionID)
   {
     // don't call CGUIMediaWindow as it will attempt to go to the parent folder which we don't want.
     if (GetPreviousWindow() != WINDOW_FULLSCREEN_LIVETV)
+    {
       g_windowManager.ActivateWindow(WINDOW_HOME);
+      return true;
+    }
     else
       return CGUIWindow::OnBack(actionID);
   }
@@ -122,12 +128,48 @@ void CGUIWindowPVRBase::OnInitWindow(void)
 {
   if (!g_PVRManager.IsStarted() || !g_PVRClients->HasConnectedClients())
   {
-    g_windowManager.PreviousWindow();
-    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning,
-        g_localizeStrings.Get(19045),
-        g_localizeStrings.Get(19044));
-    return;
+    // wait until the PVR manager has been started
+    CGUIDialogProgress* dialog = static_cast<CGUIDialogProgress*>(g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS));
+    if (dialog)
+    {
+      dialog->SetHeading(CVariant{19235});
+      dialog->SetText(CVariant{19045});
+      dialog->ShowProgressBar(false);
+      dialog->Open();
+
+      // do not block the gfx context while waiting
+      CSingleExit exit(g_graphicsContext);
+
+      CEvent event(true);
+      while(!event.WaitMSec(1))
+      {
+        if (g_PVRManager.IsStarted() && g_PVRClients->HasConnectedClients())
+          event.Set();
+
+        if (dialog->IsCanceled())
+        {
+          // return to previous window if canceled
+          dialog->Close();
+          g_windowManager.PreviousWindow();
+          return;
+        }
+
+        g_windowManager.ProcessRenderLoop(false);
+      }
+
+      dialog->Close();
+    }
   }
+
+  {
+    // set window group to playing group
+    CPVRChannelGroupPtr group = g_PVRManager.GetPlayingGroup(m_bRadio);
+    CSingleLock lock(m_critSection);
+    if (m_group != group)
+      m_viewControl.SetSelectedItem(0);
+    m_group = group;
+  }
+  SetProperty("IsRadio", m_bRadio ? "true" : "");
 
   m_vecItems->SetPath(GetDirectoryPath());
 
@@ -146,16 +188,6 @@ bool CGUIWindowPVRBase::OnMessage(CGUIMessage& message)
 {
   switch (message.GetMessage())
   {
-    case GUI_MSG_WINDOW_INIT:
-    {
-      CPVRChannelGroupPtr group = g_PVRManager.GetPlayingGroup(m_bRadio);
-      if (m_group != group)
-        m_viewControl.SetSelectedItem(0);
-      m_group = group;
-      SetProperty("IsRadio", m_bRadio ? "true" : "");
-    }
-    break;
-
     case GUI_MSG_CLICKED:
     {
       switch (message.GetSenderId())
@@ -168,6 +200,32 @@ bool CGUIWindowPVRBase::OnMessage(CGUIMessage& message)
   }
 
   return CGUIMediaWindow::OnMessage(message);
+}
+
+bool CGUIWindowPVRBase::IsValidMessage(CGUIMessage& message)
+{
+  bool bReturn = false;
+
+  // we need to protect the pvr windows against certain messages
+  // if the pvr manager is not started yet. we only want to support
+  // that the window can be loaded to show the user an info about
+  // the manager startup. Any other interactions with the windows
+  // would cause access violations.
+  switch (message.GetMessage())
+  {
+    // valid messages
+    case GUI_MSG_WINDOW_LOAD:
+    case GUI_MSG_WINDOW_INIT:
+    case GUI_MSG_WINDOW_DEINIT:
+      bReturn = true;
+      break;
+    default:
+      if (g_PVRManager.IsStarted())
+        bReturn = true;
+      break;
+  }
+
+  return bReturn;
 }
 
 bool CGUIWindowPVRBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
@@ -222,7 +280,7 @@ bool CGUIWindowPVRBase::OnContextButtonActiveAEDSPSettings(CFileItem *item, CONT
   {
     bReturn = true;
 
-    if (ActiveAE::CActiveAEDSP::Get().IsProcessing())
+    if (ActiveAE::CActiveAEDSP::GetInstance().IsProcessing())
       g_windowManager.ActivateWindow(WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS);
   }
 
@@ -231,10 +289,14 @@ bool CGUIWindowPVRBase::OnContextButtonActiveAEDSPSettings(CFileItem *item, CONT
 
 void CGUIWindowPVRBase::SetInvalid()
 {
-  VECFILEITEMS items = m_vecItems->GetList();
-  for (VECFILEITEMS::iterator it = items.begin(); it != items.end(); ++it)
-    (*it)->SetInvalid();
-  CGUIMediaWindow::SetInvalid();
+  if (m_refreshTimeout.IsTimePast())
+  {
+    VECFILEITEMS items = m_vecItems->GetList();
+    for (VECFILEITEMS::iterator it = items.begin(); it != items.end(); ++it)
+      (*it)->SetInvalid();
+    CGUIMediaWindow::SetInvalid();
+    m_refreshTimeout.Set(MAX_INVALIDATION_FREQUENCY);
+  }
 }
 
 bool CGUIWindowPVRBase::OpenGroupSelectionDialog(void)
@@ -305,7 +367,7 @@ bool CGUIWindowPVRBase::PlayFile(CFileItem *item, bool bPlayMinimized /* = false
     return true;
   }
 
-  CMediaSettings::Get().SetVideoStartWindowed(bPlayMinimized);
+  CMediaSettings::GetInstance().SetVideoStartWindowed(bPlayMinimized);
 
   if (item->HasPVRRecordingInfoTag())
   {
@@ -333,7 +395,7 @@ bool CGUIWindowPVRBase::PlayFile(CFileItem *item, bool bPlayMinimized /* = false
           if (pDialog->IsConfirmed())
           {
             CFileItem recordingItem(recording);
-            return PlayRecording(&recordingItem, CSettings::Get().GetBool("pvrplayback.playminimized"), bCheckResume);
+            return PlayRecording(&recordingItem, CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_PLAYMINIMIZED), bCheckResume);
           }
         }
       }
@@ -348,7 +410,7 @@ bool CGUIWindowPVRBase::PlayFile(CFileItem *item, bool bPlayMinimized /* = false
 
       if (!bSwitchSuccessful)
       {
-        CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_PLAY, 0, 0, static_cast<void*>(new CFileItem(*item)));
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, 0, 0, static_cast<void*>(new CFileItem(*item)));
         return true;
       }
     }
@@ -478,7 +540,7 @@ bool CGUIWindowPVRBase::PlayRecording(CFileItem *item, bool bPlayMinimized /* = 
   {
     if (bCheckResume)
       CheckResumeRecording(item);
-    CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_PLAY, 0, 0, static_cast<void*>(new CFileItem(*item)));
+    CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, 0, 0, static_cast<void*>(new CFileItem(*item)));
     return true;
   }
 
@@ -530,7 +592,7 @@ bool CGUIWindowPVRBase::PlayRecording(CFileItem *item, bool bPlayMinimized /* = 
 
   if (bCheckResume)
     CheckResumeRecording(item);
-  CApplicationMessenger::Get().PostMsg(TMSG_MEDIA_PLAY, 0, 0, static_cast<void*>(new CFileItem(*item)));
+  CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, 0, 0, static_cast<void*>(new CFileItem(*item)));
 
   return true;
 }
@@ -631,7 +693,7 @@ bool CGUIWindowPVRBase::ActionInputChannelNumber(int input)
 
 bool CGUIWindowPVRBase::ActionPlayChannel(CFileItem *item)
 {
-  return PlayFile(item, CSettings::Get().GetBool("pvrplayback.playminimized"));
+  return PlayFile(item, CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPLAYBACK_PLAYMINIMIZED));
 }
 
 bool CGUIWindowPVRBase::ActionPlayEpg(CFileItem *item, bool bPlayRecording)

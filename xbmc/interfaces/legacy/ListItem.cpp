@@ -139,8 +139,10 @@ namespace XBMCAddon
         {
           std::string artName = it->first;
           StringUtils::ToLower(artName);
-          const std::string artFilename(it->second.c_str());
-          item->SetArt(artName, artFilename);
+          if (artName == "icon")
+            item->SetIconImage(it->second);
+          else
+            item->SetArt(artName, it->second);
         }
       }
     }
@@ -232,6 +234,12 @@ namespace XBMCAddon
     {
       LOCKGUI;
       item->SetMimeType(mimetype);
+    }
+
+    void ListItem::setContentLookup(bool enable)
+    {
+      LOCKGUI;
+      item->SetContentLookup(enable);
     }
 
     String ListItem::getdescription()
@@ -396,24 +404,12 @@ namespace XBMCAddon
           }
           else if (key == "dateadded")
             item->GetVideoInfoTag()->m_dateAdded.SetFromDBDateTime(value.c_str());
-        }
-
-        // For backward compatibility.
-        // FIXME: Remove this behaviour. It should be possible to set only tvshowtitle without
-        // having mediatype implicitly changed.
-        if (item->GetVideoInfoTag()->m_type == MediaTypeNone)
-        {
-          if (!item->GetVideoInfoTag()->m_strShowTitle.empty() && item->GetVideoInfoTag()->m_iSeason == -1)
+          else if (key == "mediatype")
           {
-            item->GetVideoInfoTag()->m_type = MediaTypeTvShow;
-          }
-          else if (item->GetVideoInfoTag()->m_iSeason > -1)
-          {
-            item->GetVideoInfoTag()->m_type = MediaTypeEpisode;
-          }
-          else if (!item->GetVideoInfoTag()->m_artist.empty())
-          {
-            item->GetVideoInfoTag()->m_type = MediaTypeMusicVideo;
+            if (MediaTypes::IsValidMediaType(value))
+              item->GetVideoInfoTag()->m_type = value;
+            else
+              CLog::Log(LOGWARNING, "Invalid media type \"%s\"", value.c_str());
           }
         }
       }
