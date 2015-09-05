@@ -1,6 +1,11 @@
 project(kodi-addons)
 
-cmake_minimum_required(VERSION 2.8)
+if(WIN32)
+  # there seems to be a bug in the CMake generator implementation in CMake 2.8.x releases for WIN32
+  cmake_minimum_required(VERSION 3.0)
+else()
+  cmake_minimum_required(VERSION 2.8)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
@@ -76,6 +81,7 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX})
 set(BUILD_ARGS -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
                -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
                -DPACKAGE_CONFIG_PATH=${DEPENDS_PATH}/lib/pkgconfig
+               -DDEPENDS_PATH=${DEPENDS_PATH}
                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                -DCMAKE_USER_MAKE_RULES_OVERRIDE=${CMAKE_USER_MAKE_RULES_OVERRIDE}
                -DCMAKE_USER_MAKE_RULES_OVERRIDE_CXX=${CMAKE_USER_MAKE_RULES_OVERRIDE_CXX}
@@ -178,8 +184,18 @@ foreach(addon ${addons})
     separate_arguments(def)
     list(GET def 0 id)
 
+    set(ADDON_FOUND FALSE)
+    # try to find a perfect match
     list(FIND ADDONS_TO_BUILD ${id} idx)
     if(idx GREATER -1 OR ADDONS_TO_BUILD STREQUAL "all")
+      set(ADDON_FOUND TRUE)
+    # Maybe we have a regex
+    elseif(id MATCHES "${ADDONS_TO_BUILD}")
+      message(STATUS "Pattern ${ADDONS_TO_BUILD} matches ${id}, building addon")
+      set(ADDON_FOUND TRUE)
+    endif()
+
+    if(ADDON_FOUND)
       get_filename_component(dir ${addon} PATH)
 
       # check if the addon has a platforms.txt
@@ -317,11 +333,24 @@ foreach(addon ${addons})
             endif()
           endif()
 
+          if(CROSS_AUTOCONF AND AUTOCONF_FILES)
+            if(EXISTS ${SOURCE_DIR}/bootstrap/autoreconf.txt)
+              file(STRINGS ${SOURCE_DIR}/bootstrap/autoreconf.txt conf_dirs)
+              foreach(conf_dir ${conf_dirs})
+                foreach(afile ${AUTOCONF_FILES})
+                  message(STATUS "copying ${afile} to ${SOURCE_DIR}/${conf_dir}")
+                  file(COPY ${afile} DESTINATION ${SOURCE_DIR}/${conf_dir})
+                endforeach()
+              endforeach()
+            endif()
+          endif()
+
           # create a forwarding target to the addon-package target
           add_custom_target(package-${id}
                     COMMAND ${CMAKE_COMMAND} --build ${BUILD_DIR}/${id}-prefix/src/${id}-build --target addon-package
                     DEPENDS ${id})
           add_dependencies(package-addons package-${id})
+
         else()
           message(FATAL_ERROR "${id}: invalid or missing addon source directory at ${SOURCE_DIR}")
         endif()

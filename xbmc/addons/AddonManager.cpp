@@ -59,7 +59,6 @@
 #include "Util.h"
 #include "addons/Webinterface.h"
 
-using namespace std;
 using namespace XFILE;
 
 namespace ADDON
@@ -74,7 +73,7 @@ void cp_logger(cp_log_severity_t level, const char *msg, const char *apid, void 
  *
  */
 
-map<TYPE, IAddonMgrCallback*> CAddonMgr::m_managers;
+std::map<TYPE, IAddonMgrCallback*> CAddonMgr::m_managers;
 
 AddonPtr CAddonMgr::Factory(const cp_extension_t *props)
 {
@@ -355,13 +354,8 @@ bool CAddonMgr::Init()
 
 void CAddonMgr::DeInit()
 {
-  if (m_cpluff)
-  {
-    m_cpluff->unregister_pcollections(m_cp_context);
-    m_cpluff->unregister_logger(m_cp_context, cp_logger);
-    m_cpluff->destroy_context(m_cp_context);
+  if (m_cpluff && m_cpluff->IsLoaded())
     m_cpluff->destroy();
-  }
   delete m_cpluff;
   m_cpluff = NULL;
   m_database.Close();
@@ -900,10 +894,10 @@ bool CAddonMgr::PlatformSupportsAddon(const cp_plugin_info_t *plugin) const
   if (!metadata)
     return false;
 
-  vector<std::string> platforms;
+  std::vector<std::string> platforms;
   if (CAddonMgr::GetInstance().GetExtList(metadata->configuration, "platform", platforms))
   {
-    for (vector<std::string>::const_iterator platform = platforms.begin(); platform != platforms.end(); ++platform)
+    for (std::vector<std::string>::const_iterator platform = platforms.begin(); platform != platforms.end(); ++platform)
     {
       if (*platform == "all")
         return true;
@@ -979,7 +973,7 @@ std::string CAddonMgr::GetExtValue(cp_cfg_element_t *base, const char *path) con
     return "";
 }
 
-bool CAddonMgr::GetExtList(cp_cfg_element_t *base, const char *path, vector<std::string> &result) const
+bool CAddonMgr::GetExtList(cp_cfg_element_t *base, const char *path, std::vector<std::string> &result) const
 {
   result.clear();
   if (!base || !path)

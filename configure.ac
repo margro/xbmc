@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([kodi], [15.9.702], [http://trac.kodi.tv])
+AC_INIT([kodi], [15.9.703], [http://trac.kodi.tv])
 AC_CONFIG_HEADERS([xbmc/config.h])
 AH_TOP([#pragma once])
 m4_include([m4/ax_prog_cc_for_build.m4])
@@ -170,20 +170,8 @@ configure_debug="ERROR: this is a configure debug statement"
 missing_library="Could not find a required library. Please see the README for your platform."
 missing_headers="Could not find some required headers. Please see the README for your platform."
 missing_program="Could not find a required program. Please see the README for your platform."
-waveform_enabled="== WAVEFORM enabled =="
-waveform_disabled="== WAVEFORM disabled =="
-spectrum_enabled="== SPECTRUM enabled =="
-spectrum_disabled="== SPECTRUM disabled =="
-goom_enabled="== GOOM enabled. =="
-goom_disabled="== GOOM disabled. =="
 alsa_disabled="== ALSA support disabled. =="
 dbus_disabled="== DBUS support disabled. =="
-rsxs_enabled="== RSXS enabled. =="
-rsxs_disabled="== RSXS disabled. =="
-fishbmc_enabled="== FishBMC enabled. =="
-fishbmc_disabled="== FishBMC disabled. =="
-projectm_enabled="== ProjectM enabled. =="
-projectm_disabled="== ProjectM disabled. =="
 wayland_enabled="== Wayland enabled. =="
 wayland_disabled="== Wayland disabled. =="
 x11_enabled="== X11 enabled. =="
@@ -315,42 +303,6 @@ AC_ARG_ENABLE([joystick],
   [enable SDL joystick support (default is auto)])],
   [use_joystick=$enableval],
   [use_joystick=auto])
-
-AC_ARG_ENABLE([waveform],
-  [AS_HELP_STRING([--enable-waveform],
-  [enable Waveform visualisation (default is yes)])],
-  [use_waveform=$enableval],
-  [use_waveform=yes])
-
-AC_ARG_ENABLE([spectrum],
-  [AS_HELP_STRING([--enable-spectrum],
-  [enable Spectrum visualisation (default is yes)])],
-  [use_spectrum=$enableval],
-  [use_spectrum=yes])
-
-AC_ARG_ENABLE([goom],
-  [AS_HELP_STRING([--enable-goom],
-  [enable GOOM visualisation (default is no)])],
-  [use_goom=$enableval],
-  [use_goom=no])
-
-AC_ARG_ENABLE([rsxs],
-  [AS_HELP_STRING([--enable-rsxs],
-  [enable really slick X screensavers (default is yes)])],
-  [use_rsxs=$enableval],
-  [use_rsxs=yes])
-
-AC_ARG_ENABLE([fishbmc],
-  [AS_HELP_STRING([--enable-fishbmc],
-  [enable FishBMC visualisation (default is yes)])],
-  [use_fishbmc=$enableval],
-  [use_fishbmc=yes])
-
-AC_ARG_ENABLE([projectm],
-  [AS_HELP_STRING([--enable-projectm],
-  [enable ProjectM visualisation (default is yes)])],
-  [use_projectm=$enableval],
-  [use_projectm=yes])
 
 AC_ARG_ENABLE([wayland],
   [AS_HELP_STRING([--enable-wayland],
@@ -767,7 +719,6 @@ if test "$host_vendor" = "apple"; then
   use_avahi=no
   use_alsa=no
   use_openmax=no
-  use_goom=no
   use_libudev=no
   use_libusb=no
   use_x11=no
@@ -1108,6 +1059,7 @@ AC_CHECK_HEADER([mpeg2dec/mpeg2convert.h],, AC_MSG_ERROR($missing_library),
 AC_CHECK_HEADER([jpeglib.h],,        AC_MSG_ERROR($missing_library))
 AC_CHECK_HEADER([ogg/ogg.h],,        AC_MSG_ERROR($missing_library))
 AC_CHECK_HEADER([vorbis/vorbisfile.h],, AC_MSG_ERROR($missing_library))
+PKG_CHECK_MODULES([LIBDCADEC], [dcadec],, AC_MSG_ERROR([libdcadec not found]))
 
 PKG_CHECK_MODULES([LIBCURL], [libcurl],, AC_MSG_ERROR([libcurl not found]))
 XB_FIND_SONAME([CURL], [curl])
@@ -1139,6 +1091,7 @@ PKG_CHECK_MODULES([GNUTLS], [gnutls], [have_gnutls=yes];AC_DEFINE([HAVE_GNUTLS],
 AC_CHECK_LIB([bz2],         [main],, AC_MSG_ERROR($missing_library))
 AC_CHECK_LIB([jpeg],        [main],, AC_MSG_ERROR($missing_library)) # check for cximage
 AC_CHECK_LIB([tiff],        [main],, AC_MSG_ERROR($missing_library))
+AC_CHECK_LIB([dcadec],      [main],, AC_MSG_ERROR($missing_library))
 if echo "$ARCH" | grep -q freebsd; then
 AC_CHECK_LIB([pthread],     [main],LIBS="-pthread $LIBS", AC_MSG_ERROR($missing_library))
 AC_CHECK_LIB([pthread],     [pthread_set_name_np],
@@ -1263,16 +1216,16 @@ fi
 # check for libbluray
 AS_CASE([x$use_libbluray],
   [xyes],[
-    PKG_CHECK_MODULES([LIBBLURAY],[libbluray >= 0.2.1],[use_libbluray="yes"], AC_MSG_ERROR($missing_library))
+    PKG_CHECK_MODULES([LIBBLURAY],[libbluray >= 0.7.0],[use_libbluray="yes"], AC_MSG_ERROR($missing_library))
   ],
   [xauto],[
-    PKG_CHECK_MODULES([LIBBLURAY],[libbluray >= 0.2.1],[use_libbluray="yes"], [use_libbluray="no"])
+    PKG_CHECK_MODULES([LIBBLURAY],[libbluray >= 0.7.0],[use_libbluray="yes"], [use_libbluray="no"])
   ])
 
 AS_CASE([x$use_libbluray],
   [xyes],[
     INCLUDES="$INCLUDES $LIBBLURAY_CFLAGS";
-    LIBBLURAY_LIB_BASENAME=`$PKG_CONFIG --libs-only-L "libbluray >= 0.2.1"`;
+    LIBBLURAY_LIB_BASENAME=`$PKG_CONFIG --libs-only-L "libbluray >= 0.7.0"`;
     XB_FIND_SONAME([BLURAY], [bluray], [use_libbluray], [$LIBBLURAY_LIB_BASENAME])
     AC_DEFINE([HAVE_LIBBLURAY], 1, [System has libbluray library])
     AC_SUBST([HAVE_LIBBLURAY], 1)
@@ -1336,9 +1289,6 @@ fi
   fi
 fi
 
-XB_FIND_SONAME([OGG],         [ogg])
-XB_FIND_SONAME([VORBIS],      [vorbis])
-XB_FIND_SONAME([VORBISFILE],  [vorbisfile])
 XB_FIND_SONAME([ASS],         [ass])
 XB_FIND_SONAME([MPEG2],       [mpeg2])
 
@@ -1445,71 +1395,6 @@ if test "$use_x11" = "yes"; then
   AC_DEFINE([HAVE_X11], [1], [Define to 1 if you have X11 libs installed.])
 else
   AC_MSG_RESULT($x11_disabled)
-fi
-
-# WAVEFORM
-if test "$use_waveform" = "yes"; then
-  AC_MSG_NOTICE($waveform_enabled)
-    DISABLE_WAVEFORM=0
-else
-  AC_MSG_NOTICE($waveform_disabled)
-  DISABLE_WAVEFORM=1
-fi
-
-# SPECTRUM
-if test "$use_spectrum" = "yes"; then
-  AC_MSG_NOTICE($spectrum_enabled)
-    DISABLE_SPECTRUM=0
-else
-  AC_MSG_NOTICE($spectrum_disabled)
-  DISABLE_SPECTRUM=1
-fi
-
-# GOOM
-if test "$use_goom" = "yes" && test "$use_gl" = "yes"; then
-  AC_MSG_NOTICE($goom_enabled)
-  DISABLE_GOOM=0
-else
-  AC_MSG_NOTICE($goom_disabled)
-  DISABLE_GOOM=1
-fi
-
-# RSXS
-if test "$use_rsxs" = "no" || test "$use_gl" = "no"; then
-  AC_MSG_NOTICE($rsxs_disabled)
-  DISABLE_RSXS=1
-else
-  AC_MSG_NOTICE($rsxs_enabled)
-  DISABLE_RSXS=0
-  # darwin osx can do rsxs but does not use x11, so do not pkg-config check for them
-  if test "$host_vendor" != "apple" ; then
-    PKG_CHECK_MODULES([XT],    [xt],
-      [INCLUDES="$INCLUDES $XT_CFLAGS"; LIBS="$LIBS $XT_LIBS"],
-      AC_MSG_ERROR($missing_library))
-    PKG_CHECK_MODULES([XMU],   [xmu],
-      [INCLUDES="$INCLUDES $XMU_CFLAGS"; LIBS="$LIBS $XMU_LIBS"],
-      AC_MSG_ERROR($missing_library))
-  fi
-fi
-
-# FISHBMC
-if test "$use_fishbmc" = "no" || test "$use_gl" = "no"; then
-  AC_MSG_NOTICE($fishbmc_disabled)   
-  DISABLE_FISHBMC=1
-  use_fishbmc="no"
-else
-  AC_MSG_NOTICE($fishbmc_enabled)
-  DISABLE_FISHBMC=0
-fi
-
-# PROJECTM
-if test "$use_projectm" = "no" || test "$use_gl" = "no"; then
-  AC_MSG_NOTICE($projectm_disabled)
-  DISABLE_PROJECTM=1
-  use_projectm="no"
-else
-  AC_MSG_NOTICE($projectm_enabled)
-  DISABLE_PROJECTM=0
 fi
 
 # touch skin
@@ -1817,6 +1702,7 @@ if test "${USE_STATIC_FFMPEG}" = "1"; then
   FFMPEG_LIBDIR=${pkg_cfg_prefix}$(PKG_CONFIG_SYSROOT_DIR="" ${PKG_CONFIG} --static --variable=libdir libavcodec)
   GNUTLS_ALL_LIBS=$(${PKG_CONFIG} --static --libs-only-l --silence-errors gnutls)
   VORBISENC_ALL_LIBS=$(${PKG_CONFIG} --static --libs-only-l --silence-errors vorbisenc)
+  DCADEC_ALL_LIBS=$(${PKG_CONFIG} --static --libs-only-l --silence-errors dcadec)
 
   # check if static libs are available
   for ff_lib in ${ff_libs}; do
@@ -2134,42 +2020,6 @@ if test "$use_joystick" = "yes"; then
   AC_DEFINE([HAS_SDL_JOYSTICK],[1],["Define to 1 if using SDL joystick"])
 else
   final_message="$final_message\n  Joystick:\tNo"
-fi
-
-if test "$use_waveform" = "yes"; then
-  final_message="$final_message\n  Waveform:\tYes"
-else
-  final_message="$final_message\n  Waveform:\tNo"
-fi
-
-if test "$use_spectrum" = "yes"; then
-  final_message="$final_message\n  Spectrum:\tYes"
-else
-  final_message="$final_message\n  Spectrum:\tNo"
-fi
-
-if test "$use_goom" = "yes"; then
-  final_message="$final_message\n  GOOM:\t\tYes"
-else
-  final_message="$final_message\n  GOOM:\t\tNo"
-fi
-
-if test "$use_rsxs" = "yes"; then
-  final_message="$final_message\n  RSXS:\t\tYes"
-else
-  final_message="$final_message\n  RSXS:\t\tNo"
-fi
-
-if test "$use_fishbmc" = "yes"; then
-  final_message="$final_message\n  FishBMC:\tYes"
-else
-  final_message="$final_message\n  FishBMC:\tNo"
-fi
-
-if test "$use_projectm" = "yes"; then
-  final_message="$final_message\n  ProjectM:\tYes"
-else
-  final_message="$final_message\n  ProjectM:\tNo"
 fi
 
 if test "$use_touch_skin" = "yes"; then
@@ -2515,12 +2365,6 @@ OUTPUT_FILES="Makefile \
     xbmc/freebsd/Makefile \
     xbmc/linux/Makefile \
     xbmc/filesystem/Makefile \
-    xbmc/screensavers/rsxs-0.9/xbmc/Makefile \
-    xbmc/visualizations/XBMCProjectM/Makefile \
-    xbmc/visualizations/Goom/Makefile \
-    xbmc/visualizations/OpenGLSpectrum/Makefile \
-    xbmc/visualizations/fishBMC/Makefile \
-    xbmc/visualizations/WaveForm/Makefile \
     xbmc/windowing/Makefile \
     xbmc/windowing/egl/Makefile \
     lib/addons/library.xbmc.addon/Makefile \
@@ -2528,7 +2372,6 @@ OUTPUT_FILES="Makefile \
     lib/addons/library.xbmc.codec/Makefile \
     lib/addons/library.kodi.guilib/Makefile \
     lib/addons/library.xbmc.pvr/Makefile \
-    xbmc/visualizations/EGLHelpers/Makefile \
     tools/Linux/${APP_NAME_LC}.sh \
     tools/Linux/${APP_NAME_LC}-standalone.sh \
     tools/Linux/${APP_NAME_LC}-xsession.desktop \
@@ -2623,16 +2466,11 @@ AC_SUBST(CXXFLAGS_FOR_BUILD)
 AC_SUBST(LDFLAGS_FOR_BUILD)
 AC_SUBST(SDL_DEFINES)
 AC_SUBST(BUILD_DVDCSS)
-AC_SUBST(DISABLE_WAVEFORM)
-AC_SUBST(DISABLE_SPECTRUM)
-AC_SUBST(DISABLE_GOOM)
-AC_SUBST(DISABLE_RSXS)
-AC_SUBST(DISABLE_FISHBMC)
-AC_SUBST(DISABLE_PROJECTM)
 AC_SUBST(FFMPEG_LIBDIR)
 AC_SUBST(USE_STATIC_FFMPEG)
 AC_SUBST(GNUTLS_ALL_LIBS)
 AC_SUBST(VORBISENC_ALL_LIBS)
+AC_SUBST(DCADEC_ALL_LIBS)
 AC_SUBST(USE_TOUCH_SKIN)
 AC_SUBST(USE_LIBAV_HACKS)
 AC_SUBST(PYTHON_VERSION)
@@ -2772,78 +2610,6 @@ XB_CONFIG_MODULE([lib/libdvd/libdvdnav], [
     --disable-shared \
     --cc="$CC"
 ], [0])
-
-XB_CONFIG_MODULE([xbmc/visualizations/XBMCProjectM/libprojectM],[
-  set -x
-  rm -f CMakeCache.txt &&                              \
-  CC="$ORIGCC" CXX="$ORIGCXX" LDFLAGS="$LDFLAGS" cmake \
-    -DCMAKE_BUILD_TYPE=None -DUSE_FTGL:BOOL=OFF        \
-    -DCMAKE_C_FLAGS:STRING="${CPPFLAGS} ${CFLAGS}"     \
-    -DCMAKE_CXX_FLAGS:STRING="${CPPFLAGS} ${CXXFLAGS}" \
-    -DCMAKE_INSTALL_PREFIX="${prefix}"                 \
-    -DCMAKE_INSTALL_LIBDIR:PATH="${libdir}"            \
-    -DINCLUDE_INSTALL_DIR:PATH="${includedir}"         \
-    -DLIB_INSTALL_DIR:PATH="${libdir}"                 \
-    -DSYSCONF_INSTALL_DIR:PATH="${sysconfdir}"         \
-    -DSHARE_INSTALL_PREFIX:PATH="${datadir}" . &&
-  if test "$host_vendor" = "apple" ; then
-    # cmake has hardcoded paths to macports which bork our darwin depends cross/ppc, remove them
-    sed -ie "s|-L/opt/local/lib| |" CMakeFiles/projectM.dir/link.txt
-    sed -ie "s|-L/opt/local/lib| |" CMakeFiles/projectM.dir/flags.make
-    sed -ie "s|-I/opt/local/include| |" CMakeFiles/projectM.dir/flags.make
-  fi
-  set +x
-], [$DISABLE_PROJECTM])
-
-XB_CONFIG_MODULE([xbmc/visualizations/Goom/goom2k4-0],[
-  ./configure  \
-    CFLAGS="$CFLAGS" \ 
-    CXXFLAGS="$CXXFLAGS" \
-    --prefix="${prefix}" --includedir="${includedir}" --libdir="${libdir}" --datadir="${datadir}" \
-    --host=$host_alias \
-    --build=$build_alias \
-    --target=$target_alias \      
-    --disable-shared \
-    --enable-static \
-    --with-pic
-], [$DISABLE_GOOM])
-
-XB_CONFIG_MODULE([xbmc/screensavers/rsxs-0.9/], [
-  if test "$host_vendor" = "apple"; then
-    # clang treats inlines different
-    case $CC in
-      *clang*)
-        TEMPCFLAGS="$CFLAGS";;
-      *)
-        TEMPCFLAGS="${CFLAGS} -fgnu89-inline";;
-    esac
-  else
-    TEMPCFLAGS="$CFLAGS";
-  fi
-  ./configure \
-    CC="$CC" \
-    CXX="$CXX" \
-    CFLAGS="$TEMPCFLAGS" \ 
-    CXXFLAGS="$CXXFLAGS" \
-    `if test "$host_vendor" = "apple"; then echo --with-png=${prefix} --x-includes=/usr/X11/include --x-libraries=/usr/X11/lib; fi` \
-    --prefix="${prefix}" --includedir="${includedir}" --libdir="${libdir}" --datadir="${datadir}" \
-    --host=$host_alias \
-    --build=$build_alias \
-    --target=$target_alias \      
-    --without-xscreensaver \
-    --disable-sound \
-    --disable-cyclone \
-    --disable-fieldlines \
-    --disable-flocks \
-    --disable-flux \
-    --disable-helios \
-    --disable-hyperspace \
-    --disable-lattice \
-    --disable-skyrocket
-  if echo "$ARCH" | grep -q freebsd ; then
-    sed -i.back "s;\(STDBOOL_H = \)stdbool.h;\1;" lib/Makefile
-  fi
-], [$DISABLE_RSXS])
 
 XB_CONFIG_MODULE([lib/cpluff], [
   ./configure --disable-nls \

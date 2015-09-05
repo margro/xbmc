@@ -28,7 +28,6 @@
 
 #include <algorithm>
 
-using namespace std;
 using namespace MUSIC_INFO;
 
 typedef struct ReleaseTypeInfo {
@@ -68,7 +67,7 @@ CAlbum::CAlbum(const CFileItem& item)
         artistName = (i < artist.size()) ? artist[i] : artist[0];
       else if (!tag.GetMusicBrainzArtistID().empty() && !tag.GetArtist().empty())
       {
-        vector<string>::const_iterator j = std::find(tag.GetMusicBrainzArtistID().begin(), tag.GetMusicBrainzArtistID().end(), artistId);
+        std::vector<std::string>::const_iterator j = std::find(tag.GetMusicBrainzArtistID().begin(), tag.GetMusicBrainzArtistID().end(), artistId);
         if (j != tag.GetMusicBrainzArtistID().end())
         { // find corresponding artist
           size_t d = std::distance(j,tag.GetMusicBrainzArtistID().begin());
@@ -84,7 +83,7 @@ CAlbum::CAlbum(const CFileItem& item)
   }
   else
   { // no musicbrainz info, so fill in directly
-    for (vector<string>::const_iterator it = tag.GetAlbumArtist().begin(); it != tag.GetAlbumArtist().end(); ++it)
+    for (std::vector<std::string>::const_iterator it = tag.GetAlbumArtist().begin(); it != tag.GetAlbumArtist().end(); ++it)
     {
       std::string strJoinPhrase = (it == --tag.GetAlbumArtist().end() ? "" : g_advancedSettings.m_musicItemSeparator);
       CArtistCredit artistCredit(*it, "", strJoinPhrase);
@@ -94,6 +93,7 @@ CAlbum::CAlbum(const CFileItem& item)
   iYear = stTime.wYear;
   bCompilation = tag.GetCompilation();
   iTimesPlayed = 0;
+  dateAdded.Reset();
   releaseType = tag.GetAlbumReleaseType();
 }
 
@@ -169,6 +169,11 @@ std::string CAlbum::GetReleaseType() const
 void CAlbum::SetReleaseType(const std::string& strReleaseType)
 {
   releaseType = ReleaseTypeFromString(strReleaseType);
+}
+
+void CAlbum::SetDateAdded(const std::string& strDateAdded)
+{
+  dateAdded.SetFromDBDateTime(strDateAdded);
 }
 
 std::string CAlbum::ReleaseTypeToString(CAlbum::ReleaseType releaseType)
@@ -295,7 +300,7 @@ bool CAlbum::Load(const TiXmlElement *album, bool append, bool prioritise)
   // or removed entirely in preference for better tags (MusicBrainz?)
   if (artistCredits.empty() && !artist.empty())
   {
-    for (vector<string>::const_iterator it = artist.begin(); it != artist.end(); ++it)
+    for (std::vector<std::string>::const_iterator it = artist.begin(); it != artist.end(); ++it)
     {
       CArtistCredit artistCredit(*it, "",
                                  it == --artist.end() ? "" : g_advancedSettings.m_musicItemSeparator);

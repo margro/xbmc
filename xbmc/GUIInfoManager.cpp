@@ -23,6 +23,8 @@
 #include "CompileInfo.h"
 #include "GUIInfoManager.h"
 #include "windows/GUIMediaWindow.h"
+#include "dialogs/GUIDialogKeyboardGeneric.h"
+#include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "Application.h"
 #include "Util.h"
@@ -244,6 +246,7 @@ const infomap system_labels[] =  {{ "hasnetwork",       SYSTEM_ETHERNET_LINK_ACT
                                   { "dvdready",         SYSTEM_DVDREADY },
                                   { "trayopen",         SYSTEM_TRAYOPEN },
                                   { "haslocks",         SYSTEM_HASLOCKS },
+                                  { "hashiddeninput",   SYSTEM_HAS_INPUT_HIDDEN },
                                   { "hasloginscreen",   SYSTEM_HAS_LOGINSCREEN },
                                   { "hasmodaldialog",   SYSTEM_HAS_MODAL_DIALOG },
                                   { "ismaster",         SYSTEM_ISMASTER },
@@ -378,6 +381,7 @@ const infomap videoplayer[] =    {{ "title",            VIDEOPLAYER_TITLE },
                                   { "season",           VIDEOPLAYER_SEASON },
                                   { "rating",           VIDEOPLAYER_RATING },
                                   { "ratingandvotes",   VIDEOPLAYER_RATING_AND_VOTES },
+                                  { "userrating",       VIDEOPLAYER_USER_RATING },
                                   { "votes",            VIDEOPLAYER_VOTES },
                                   { "tvshowtitle",      VIDEOPLAYER_TVSHOW },
                                   { "premiered",        VIDEOPLAYER_PREMIERED },
@@ -490,6 +494,7 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "size",             LISTITEM_SIZE },
                                   { "rating",           LISTITEM_RATING },
                                   { "ratingandvotes",   LISTITEM_RATING_AND_VOTES },
+                                  { "userrating",       LISTITEM_USER_RATING },
                                   { "votes",            LISTITEM_VOTES },
                                   { "programcount",     LISTITEM_PROGRAM_COUNT },
                                   { "duration",         LISTITEM_DURATION },
@@ -622,6 +627,7 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
 
 const infomap visualisation[] =  {{ "locked",           VISUALISATION_LOCKED },
                                   { "preset",           VISUALISATION_PRESET },
+                                  { "haspresets",       VISUALISATION_HAS_PRESETS },
                                   { "name",             VISUALISATION_NAME },
                                   { "enabled",          VISUALISATION_ENABLED }};
 
@@ -1665,6 +1671,7 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
   case VIDEOPLAYER_SEASON:
   case VIDEOPLAYER_RATING:
   case VIDEOPLAYER_RATING_AND_VOTES:
+  case VIDEOPLAYER_USER_RATING:
   case VIDEOPLAYER_TVSHOW:
   case VIDEOPLAYER_PREMIERED:
   case VIDEOPLAYER_STUDIO:
@@ -2463,6 +2470,16 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
     g_sysinfo.GetInfo(condition);
     bReturn = g_sysinfo.HasInternet();
   }
+  else if (condition == SYSTEM_HAS_INPUT_HIDDEN)
+  {
+    CGUIDialogNumeric *pNumeric = (CGUIDialogNumeric *)g_windowManager.GetWindow(WINDOW_DIALOG_NUMERIC);
+    CGUIDialogKeyboardGeneric *pKeyboard = (CGUIDialogKeyboardGeneric*)g_windowManager.GetWindow(WINDOW_DIALOG_KEYBOARD);
+
+    if (pNumeric && pNumeric->IsActive())
+      bReturn = pNumeric->IsInputHidden();
+    else if (pKeyboard && pKeyboard->IsActive())
+      bReturn = pKeyboard->IsInputHidden();
+  }
   else if (condition == CONTAINER_HASFILES || condition == CONTAINER_HASFOLDERS)
   {
     CGUIWindow *pWindow = GetWindowWithCondition(contextWindow, WINDOW_CONDITION_IS_MEDIA_WINDOW);
@@ -2751,6 +2768,18 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
         bReturn = (epgTag && epgTag->IsActive() && epgTag->ChannelTag());
       }
       break;
+    case VISUALISATION_HAS_PRESETS:
+    {
+      CGUIMessage msg(GUI_MSG_GET_VISUALISATION, 0, 0);
+      g_windowManager.SendMessage(msg);
+      if (msg.GetPointer())
+      {
+        CVisualisation* viz = NULL;
+        viz = (CVisualisation*)msg.GetPointer();
+        bReturn = (viz && viz->HasPresets());
+      }
+    }
+    break;
     default: // default, use integer value different from 0 as true
       {
         int val;
@@ -3359,6 +3388,7 @@ std::string CGUIInfoManager::GetMultiInfoLabel(const GUIInfo &info, int contextW
   }
   else if (info.m_info == CONTAINER_NUM_PAGES || info.m_info == CONTAINER_CURRENT_PAGE ||
            info.m_info == CONTAINER_NUM_ITEMS || info.m_info == CONTAINER_POSITION ||
+           info.m_info == CONTAINER_ROW || info.m_info == CONTAINER_COLUMN ||
            info.m_info == CONTAINER_CURRENT_ITEM)
   {
     const CGUIControl *control = NULL;
@@ -3410,6 +3440,20 @@ std::string CGUIInfoManager::GetMultiInfoLabel(const GUIInfo &info, int contextW
     CGUIWindow *window = GetWindowWithCondition(contextWindow, WINDOW_CONDITION_IS_MEDIA_WINDOW);
     if (window)
       return ((CGUIMediaWindow *)window)->CurrentDirectory().GetArt(m_stringParameters[info.GetData2()]);
+  }
+  else if (info.m_info == CONTAINER_CONTENT)
+  {
+    CGUIWindow *window = NULL;
+    if (info.GetData1())
+    { // container specified
+      window = GetWindowWithCondition(contextWindow, 0);
+    }
+    else
+    { // no container specified - assume a mediawindow
+      window = GetWindowWithCondition(contextWindow, WINDOW_CONDITION_IS_MEDIA_WINDOW);
+    }
+    if (window)
+      return ((CGUIMediaWindow *)window)->CurrentDirectory().GetContent();
   }
   else if (info.m_info == CONTROL_GET_LABEL)
   {
@@ -3780,8 +3824,6 @@ std::string CGUIInfoManager::GetMusicLabel(int item)
       return StringUtils::Format("%s", m_audioInfo.audioCodecName.c_str());
     }
     break;
-  case MUSICPLAYER_LYRICS:
-    return GetItemLabel(m_currentFile, AddListItemProp("lyrics"));
   }
   return GetMusicTagLabel(item, m_currentFile);
 }
@@ -4057,6 +4099,13 @@ std::string CGUIInfoManager::GetVideoLabel(int item)
         return strRatingAndVotes;
       }
       break;
+    case VIDEOPLAYER_USER_RATING:
+    {
+      std::string strUserRating;
+      if (m_currentFile->GetVideoInfoTag()->m_iUserRating > 0)
+        strUserRating = StringUtils::Format("%i", m_currentFile->GetVideoInfoTag()->m_iUserRating);
+      return strUserRating;
+    }
     case VIDEOPLAYER_VOTES:
       return m_currentFile->GetVideoInfoTag()->m_strVotes;
     case VIDEOPLAYER_YEAR:
@@ -4862,6 +4911,14 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
       }
     }
     break;
+  case LISTITEM_USER_RATING:
+    {
+      std::string strUserRating;
+      if (item->GetVideoInfoTag()->m_iUserRating > 0)
+        strUserRating = StringUtils::Format("%i", item->GetVideoInfoTag()->m_iUserRating);
+      return strUserRating;
+    }
+    break;
   case LISTITEM_VOTES:
     if (item->HasVideoInfoTag())
       return item->GetVideoInfoTag()->m_strVotes;
@@ -5559,8 +5616,8 @@ bool CGUIInfoManager::GetItemBool(const CGUIListItem *item, int condition) const
       if (pItem->HasEPGInfoTag())
       {
         CFileItemPtr timer = g_PVRTimers->GetTimerForEpgTag(pItem);
-        if (timer && timer->HasPVRTimerInfoTag())
-          return timer->GetPVRTimerInfoTag()->GetTimerScheduleId() > 0;
+        if (timer && timer->HasPVRTimerInfoTag() && timer->GetPVRTimerInfoTag()->GetTimerScheduleId() != PVR_TIMER_NO_PARENT)
+          return timer->GetPVRTimerInfoTag()->IsActive();
       }
     }
     else if (condition == LISTITEM_HASRECORDING)
