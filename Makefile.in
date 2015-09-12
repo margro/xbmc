@@ -49,6 +49,7 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    xbmc/filesystem/filesystem.a \
                    xbmc/guilib/guilib.a \
                    xbmc/input/input.a \
+                   xbmc/interfaces/builtins/builtins.a \
                    xbmc/interfaces/generic/interfaces-generic.a \
                    xbmc/interfaces/info/info.a \
                    xbmc/interfaces/interfaces.a \
@@ -60,6 +61,7 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    xbmc/main/posix/MessagePrinter.a \
                    xbmc/media/media.a \
                    xbmc/messaging/messaging.a \
+                   xbmc/messaging/helpers/messagingHelpers.a \
                    xbmc/music/dialogs/musicdialogs.a \
                    xbmc/music/infoscanner/musicscanner.a \
                    xbmc/music/karaoke/karaoke.a \

@@ -24,7 +24,7 @@
 #include "Application.h"
 #include "events/EventLog.h"
 #include "events/NotificationEvent.h"
-#include "interfaces/Builtins.h"
+#include "interfaces/builtins/Builtins.h"
 #include "utils/Variant.h"
 #include "utils/Splash.h"
 #include "LangInfo.h"
@@ -60,6 +60,7 @@
 #include "input/InertialScrollingHandler.h"
 #include "messaging/ThreadMessage.h"
 #include "messaging/ApplicationMessenger.h"
+#include "messaging/helpers/DialogHelper.h"
 #include "SectionLoader.h"
 #include "cores/DllLoader/DllLoaderContainer.h"
 #include "GUIUserMessages.h"
@@ -96,9 +97,9 @@
 
 #include "input/KeyboardLayoutManager.h"
 
-#if SDL_VERSION == 1
+#if HAVE_SDL_VERSION == 1
 #include <SDL/SDL.h>
-#elif SDL_VERSION == 2
+#elif HAVE_SDL_VERSION == 2
 #include <SDL2/SDL.h>
 #endif
 
@@ -149,7 +150,6 @@
 
 // Dialog includes
 #include "video/dialogs/GUIDialogVideoBookmarks.h"
-#include "dialogs/GUIDialogYesNo.h"
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogSubMenu.h"
@@ -170,6 +170,7 @@
 #include "utils/XMLUtils.h"
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
+#include "addons/RepositoryUpdater.h"
 #include "music/tags/MusicInfoTag.h"
 #include "music/tags/MusicInfoTagLoaderFactory.h"
 #include "CompileInfo.h"
@@ -249,6 +250,8 @@ using namespace KODI::MESSAGING;
 using namespace ActiveAE;
 
 using namespace XbmcThreads;
+
+using KODI::MESSAGING::HELPERS::DialogResponse;
 
 // uncomment this if you want to use release libs in the debug build.
 // Atm this saves you 7 mb of memory
@@ -1243,6 +1246,8 @@ bool CApplication::Initialize()
   RegisterActionListener(&CSeekHandler::GetInstance());
   RegisterActionListener(&CPlayerController::GetInstance());
 
+  CRepositoryUpdater::GetInstance().Start();
+
   CLog::Log(LOGNOTICE, "initialize done");
 
   m_bInitializing = false;
@@ -1565,8 +1570,8 @@ void CApplication::ReloadSkin(bool confirm/*=false*/)
        user as to whether they want to keep the current skin. */
     if (confirm && !m_skinReverting)
     {
-      bool cancelled;
-      if (!CGUIDialogYesNo::ShowAndGetInput(CVariant{13123}, CVariant{13111}, cancelled, CVariant{""}, CVariant{""}, 10000))
+      if (HELPERS::ShowYesNoDialogText(CVariant{13123}, CVariant{13111}, CVariant{""}, CVariant{""}, 10000) != 
+        DialogResponse::YES)
       {
         m_skinReverting = true;
         if (oldSkin.empty())
@@ -2180,10 +2185,10 @@ bool CApplication::OnAction(const CAction &action)
   // built in functions : execute the built-in
   if (action.GetID() == ACTION_BUILT_IN_FUNCTION)
   {
-    if (!CBuiltins::IsSystemPowerdownCommand(action.GetName()) ||
+    if (!CBuiltins::GetInstance().IsSystemPowerdownCommand(action.GetName()) ||
         g_PVRManager.CanSystemPowerdown())
     {
-      CBuiltins::Execute(action.GetName());
+      CBuiltins::GetInstance().Execute(action.GetName());
       m_navigationTimer.StartZero();
     }
     return true;
@@ -2671,7 +2676,7 @@ void CApplication::OnApplicationMessage(ThreadMessage* pMsg)
     break;
 
   case TMSG_EXECUTE_BUILT_IN:
-    CBuiltins::Execute(pMsg->strParam.c_str());
+    CBuiltins::GetInstance().Execute(pMsg->strParam.c_str());
     break;
 
   case TMSG_PICTURE_SHOW:
@@ -4257,7 +4262,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
 
   case GUI_MSG_PLAYBACK_STARTED:
     {
-#ifdef TARGET_DARWIN
+#ifdef TARGET_DARWIN_IOS
       CDarwinUtils::SetScheduling(message.GetMessage());
 #endif
       CPlayList playList = g_playlistPlayer.GetPlaylist(g_playlistPlayer.GetCurrentPlaylist());
@@ -4375,7 +4380,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
       if (m_pKaraokeMgr )
         m_pKaraokeMgr->Stop();
 #endif
-#ifdef TARGET_DARWIN
+#ifdef TARGET_DARWIN_IOS
       CDarwinUtils::SetScheduling(message.GetMessage());
 #endif
       // first check if we still have items in the stack to play
@@ -4487,11 +4492,11 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr)
   actionStr = CGUIInfoLabel::GetLabel(actionStr);
 
   // user has asked for something to be executed
-  if (CBuiltins::HasCommand(actionStr))
+  if (CBuiltins::GetInstance().HasCommand(actionStr))
   {
-    if (!CBuiltins::IsSystemPowerdownCommand(actionStr) ||
+    if (!CBuiltins::GetInstance().IsSystemPowerdownCommand(actionStr) ||
         g_PVRManager.CanSystemPowerdown())
-      CBuiltins::Execute(actionStr);
+      CBuiltins::GetInstance().Execute(actionStr);
   }
   else
   {
@@ -4680,10 +4685,6 @@ void CApplication::ProcessSlow()
 #endif
 
   g_mediaManager.ProcessEvents();
-
-  if (!m_pPlayer->IsPlayingVideo() &&
-      CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) != AUTO_UPDATES_NEVER)
-    CAddonInstaller::GetInstance().UpdateRepos();
 
   CAEFactory::GarbageCollect();
 

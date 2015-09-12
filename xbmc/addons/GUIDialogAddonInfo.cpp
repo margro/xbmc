@@ -40,7 +40,7 @@
 #include "utils/Variant.h"
 #include "addons/AddonInstaller.h"
 #include "Util.h"
-#include "interfaces/Builtins.h"
+#include "interfaces/builtins/Builtins.h"
 
 #include <utility>
 
@@ -197,14 +197,16 @@ void CGUIDialogAddonInfo::UpdateControls()
 
 void CGUIDialogAddonInfo::OnUpdate()
 {
-  std::string referer = StringUtils::Format("Referer=%s-%s.zip",m_localAddon->ID().c_str(),m_localAddon->Version().asString().c_str());
-  CAddonInstaller::GetInstance().Install(m_addon->ID(), true, referer); // force install
+  CAddonInstaller::GetInstance().InstallOrUpdate(m_addon->ID());
   Close();
 }
 
 void CGUIDialogAddonInfo::OnInstall()
 {
-  CAddonInstaller::GetInstance().Install(m_addon->ID());
+  if (!g_passwordManager.CheckMenuLock(WINDOW_ADDON_BROWSER))
+    return;
+
+  CAddonInstaller::GetInstance().InstallOrUpdate(m_addon->ID());
   Close();
 }
 
@@ -214,7 +216,7 @@ void CGUIDialogAddonInfo::OnLaunch()
     return;
 
   Close();
-  CBuiltins::Execute("RunAddon(" + m_localAddon->ID() + ")");
+  CBuiltins::GetInstance().Execute("RunAddon(" + m_localAddon->ID() + ")");
 }
 
 bool CGUIDialogAddonInfo::PromptIfDependency(int heading, int line2)
@@ -398,9 +400,9 @@ bool CGUIDialogAddonInfo::SetItem(const CFileItemPtr& item)
     database.Open();
     VECADDONS addons;
     if (m_addon)
-      database.GetRepository(m_addon->ID(), addons);
+      database.GetRepositoryContent(m_addon->ID(), addons);
     else if (m_localAddon) // sanity
-      database.GetRepository(m_localAddon->ID(), addons);
+      database.GetRepositoryContent(m_localAddon->ID(), addons);
     int tot=0;
     for (int i = ADDON_UNKNOWN+1;i<ADDON_MAX;++i)
     {

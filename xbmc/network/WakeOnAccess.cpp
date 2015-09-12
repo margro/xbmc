@@ -170,12 +170,6 @@ public:
       m_dialog->SetLine(0, CVariant{""});
       m_dialog->SetLine(1, CVariant{""});
       m_dialog->SetLine(2, CVariant{""});
-
-      int nest_level = NestDetect::Level();
-      if (nest_level > 1)
-      {
-        m_dialog->SetLine(2, CVariant{StringUtils::Format("Nesting:%d", nest_level)});
-      }
     }
   }
   ~ProgressDialogHelper ()
@@ -194,7 +188,7 @@ public:
 
     if (m_dialog)
     {
-      m_dialog->SetLine(1, CVariant{line1});
+      m_dialog->SetLine(0, CVariant{line1});
 
       m_dialog->SetPercentage(1); // avoid flickering by starting at 1% ..
     }
@@ -633,6 +627,23 @@ void CWakeOnAccess::OnJobComplete(unsigned int jobID, bool success, CJob *job)
   }
 }
 
+void CWakeOnAccess::OnSettingChanged(const CSetting *setting)
+{
+  if (setting == nullptr)
+    return;
+
+  const std::string& settingId = setting->GetId();
+  if (settingId == CSettings::SETTING_POWERMANAGEMENT_WAKEONACCESS)
+  {
+    bool enabled = static_cast<const CSettingBool*>(setting)->GetValue();
+
+    SetEnabled(enabled);
+
+    if (enabled)
+      QueueMACDiscoveryForAllRemotes();
+  }
+}
+
 std::string CWakeOnAccess::GetSettingFile()
 {
   return CSpecialProtocol::TranslatePath("special://profile/wakeonlan.xml");
@@ -643,19 +654,6 @@ void CWakeOnAccess::OnSettingsLoaded()
   CSingleLock lock (m_entrylist_protect);
 
   LoadFromXML();
-}
-
-void CWakeOnAccess::OnSettingsSaved()
-{
-  bool enabled = CSettings::GetInstance().GetBool(CSettings::SETTING_POWERMANAGEMENT_WAKEONACCESS);
-
-  if (enabled != IsEnabled())
-  {
-    SetEnabled(enabled);
-
-    if (enabled)
-      QueueMACDiscoveryForAllRemotes();
-  }
 }
 
 void CWakeOnAccess::SetEnabled(bool enabled) 

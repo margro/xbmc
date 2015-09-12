@@ -26,6 +26,7 @@
 #include "LangInfo.h"
 #include "Util.h"
 #include "events/EventLog.h"
+#include "addons/RepositoryUpdater.h"
 #include "addons/Skin.h"
 #include "cores/AudioEngine/AEFactory.h"
 #include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
@@ -582,7 +583,9 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterSettingOptionsFiller("videoseeksteps");
   m_settingsManager->UnregisterSettingOptionsFiller("shutdownstates");
   m_settingsManager->UnregisterSettingOptionsFiller("startupwindows");
-  m_settingsManager->UnregisterSettingOptionsFiller("streamlanguages");
+  m_settingsManager->UnregisterSettingOptionsFiller("audiostreamlanguages");
+  m_settingsManager->UnregisterSettingOptionsFiller("subtitlestreamlanguages");
+  m_settingsManager->UnregisterSettingOptionsFiller("subtitledownloadlanguages");
   m_settingsManager->UnregisterSettingOptionsFiller("iso6391languages");
   m_settingsManager->UnregisterSettingOptionsFiller("skincolors");
   m_settingsManager->UnregisterSettingOptionsFiller("skinfonts");
@@ -611,6 +614,7 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterCallback(&g_passwordManager);
   m_settingsManager->UnregisterCallback(&PVR::g_PVRManager);
   m_settingsManager->UnregisterCallback(&CRssManager::GetInstance());
+  m_settingsManager->UnregisterCallback(&ADDON::CRepositoryUpdater::GetInstance());
 #if defined(TARGET_LINUX)
   m_settingsManager->UnregisterCallback(&g_timezone);
 #endif // defined(TARGET_LINUX)
@@ -620,6 +624,7 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterCallback(&XBMCHelper::GetInstance());
 #endif
   m_settingsManager->UnregisterCallback(&ActiveAE::CActiveAEDSP::GetInstance());
+  m_settingsManager->UnregisterCallback(&CWakeOnAccess::GetInstance());
 
   // cleanup the settings manager
   m_settingsManager->Clear();
@@ -948,7 +953,9 @@ void CSettings::InitializeOptionFillers()
   m_settingsManager->RegisterSettingOptionsFiller("videoseeksteps", CSeekHandler::SettingOptionsSeekStepsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("shutdownstates", CPowerManager::SettingOptionsShutdownStatesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("startupwindows", ADDON::CSkinInfo::SettingOptionsStartupWindowsFiller);
-  m_settingsManager->RegisterSettingOptionsFiller("streamlanguages", CLangInfo::SettingOptionsStreamLanguagesFiller);
+  m_settingsManager->RegisterSettingOptionsFiller("audiostreamlanguages", CLangInfo::SettingOptionsAudioStreamLanguagesFiller);
+  m_settingsManager->RegisterSettingOptionsFiller("subtitlestreamlanguages", CLangInfo::SettingOptionsSubtitleStreamLanguagesFiller);
+  m_settingsManager->RegisterSettingOptionsFiller("subtitledownloadlanguages", CLangInfo::SettingOptionsSubtitleDownloadlanguagesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("iso6391languages", CLangInfo::SettingOptionsISO6391LanguagesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("skincolors", ADDON::CSkinInfo::SettingOptionsSkinColorsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("skinfonts", ADDON::CSkinInfo::SettingOptionsSkinFontsFiller);
@@ -1202,6 +1209,14 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_DSPSETTINGS);
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_DSPRESETDB);
   m_settingsManager->RegisterCallback(&ActiveAE::CActiveAEDSP::GetInstance(), settingSet);
+
+  settingSet.clear();
+  settingSet.insert(CSettings::SETTING_GENERAL_ADDONUPDATES);
+  m_settingsManager->RegisterCallback(&ADDON::CRepositoryUpdater::GetInstance(), settingSet);
+
+  settingSet.clear();
+  settingSet.insert(CSettings::SETTING_POWERMANAGEMENT_WAKEONACCESS);
+  m_settingsManager->RegisterCallback(&CWakeOnAccess::GetInstance(), settingSet);
 }
 
 bool CSettings::Reset()

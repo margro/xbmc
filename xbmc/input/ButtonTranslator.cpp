@@ -19,7 +19,7 @@
  */
 
 #include "system.h"
-#include "interfaces/Builtins.h"
+#include "interfaces/builtins/Builtins.h"
 #include "ButtonTranslator.h"
 #include "profiles/ProfilesManager.h"
 #include "utils/URIUtils.h"
@@ -293,6 +293,7 @@ static const ActionMapping windows[] =
     { "radiosearch"              , WINDOW_RADIO_SEARCH },
     { "pvrguideinfo"             , WINDOW_DIALOG_PVR_GUIDE_INFO },
     { "pvrrecordinginfo"         , WINDOW_DIALOG_PVR_RECORDING_INFO },
+    { "pvrradiordsinfo"          , WINDOW_DIALOG_PVR_RADIO_RDS_INFO },
     { "pvrtimersetting"          , WINDOW_DIALOG_PVR_TIMER_SETTING },
     { "pvrgroupmanager"          , WINDOW_DIALOG_PVR_GROUP_MANAGER },
     { "pvrchannelmanager"        , WINDOW_DIALOG_PVR_CHANNEL_MANAGER },
@@ -1364,7 +1365,7 @@ bool CButtonTranslator::TranslateActionString(const char *szAction, int &action)
   action = ACTION_NONE;
   std::string strAction = szAction;
   StringUtils::ToLower(strAction);
-  if (CBuiltins::HasCommand(strAction)) 
+  if (CBuiltins::GetInstance().HasCommand(strAction))
     action = ACTION_BUILT_IN_FUNCTION;
 
   for (unsigned int index=0;index < ARRAY_SIZE(actions);++index)
