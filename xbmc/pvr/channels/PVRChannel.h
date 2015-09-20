@@ -1,5 +1,4 @@
 #pragma once
-
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://xbmc.org
@@ -20,13 +19,14 @@
  *
  */
 
-#include "FileItem.h"
+#include <memory>
+#include <utility>
+
 #include "addons/include/xbmc_pvr_types.h"
-#include "utils/Observer.h"
+#include "FileItem.h"
 #include "threads/CriticalSection.h"
 #include "utils/ISerializable.h"
-
-#include <memory>
+#include "utils/Observer.h"
 
 #define PVR_INVALID_CHANNEL_UID -1
 

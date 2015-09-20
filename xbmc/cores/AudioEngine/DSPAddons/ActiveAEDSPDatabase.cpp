@@ -94,7 +94,7 @@ void CActiveAEDSPDatabase::CreateTables()
     CLog::Log(LOGERROR, "Audio DSP - %s - failed to get add-ons from the add-on manager", __FUNCTION__);
   else
   {
-    for (IVECADDONS it = addons.begin(); it != addons.end(); it++)
+    for (IVECADDONS it = addons.begin(); it != addons.end(); ++it)
       CAddonMgr::GetInstance().DisableAddon(it->get()->ID());
   }
 }
@@ -175,7 +175,7 @@ bool CActiveAEDSPDatabase::PersistModes(std::vector<CActiveAEDSPModePtr> &modes,
 {
   bool bReturn(true);
 
-  for (unsigned int iModePtr = 0; iModePtr < modes.size(); iModePtr++)
+  for (unsigned int iModePtr = 0; iModePtr < modes.size(); ++iModePtr)
   {
     CActiveAEDSPModePtr member = modes.at(iModePtr);
     if (!member->IsInternal() && (member->IsChanged() || member->IsNew()))
@@ -212,7 +212,7 @@ bool CActiveAEDSPDatabase::AddUpdateMode(CActiveAEDSPMode &mode)
     if (NULL == m_pDS.get()) return false;
     std::string strSQL = PrepareSQL("SELECT * FROM modes WHERE modes.iAddonId=%i AND modes.iAddonModeNumber=%i AND modes.iType=%i", mode.AddonID(), mode.AddonModeNumber(), mode.ModeType());
 
-    m_pDS->query( strSQL.c_str() );
+    m_pDS->query( strSQL );
     if (m_pDS->num_rows() > 0)
     {
       /* get user selected settings */
@@ -245,7 +245,7 @@ bool CActiveAEDSPDatabase::AddUpdateMode(CActiveAEDSPMode &mode)
         mode.AddonModeName().c_str(),
         (mode.HasSettingsDialog() ? 1 : 0),
         mode.AddonID(), mode.AddonModeNumber(), mode.ModeType());
-		bReturn = m_pDS->exec(strSQL.c_str());
+		bReturn = m_pDS->exec(strSQL);
     }
     else
     { // add the items
@@ -283,7 +283,7 @@ bool CActiveAEDSPDatabase::AddUpdateMode(CActiveAEDSPMode &mode)
         mode.AddonID(),
         mode.AddonModeNumber(),
         (mode.HasSettingsDialog() ? 1 : 0));
-      bReturn = m_pDS->exec(strSQL.c_str());
+      bReturn = m_pDS->exec(strSQL);
     }
   }
   catch (...)
@@ -307,7 +307,7 @@ int CActiveAEDSPDatabase::GetModes(AE_DSP_MODELIST &results, int modeType)
 
   std::string strQuery=PrepareSQL("SELECT * FROM modes WHERE modes.iType=%i ORDER BY iPosition", modeType);
 
-  m_pDS->query( strQuery.c_str() );
+  m_pDS->query( strQuery );
   if (m_pDS->num_rows() > 0)
   {
     try
@@ -384,7 +384,7 @@ bool CActiveAEDSPDatabase::GetActiveDSPSettings(const CFileItem &item, CAudioSet
     URIUtils::Split(item.GetPath(), strPath, strFileName);
     std::string strSQL=PrepareSQL("SELECT * FROM settings WHERE settings.strPath='%s' and settings.strFileName='%s'", strPath.c_str() , strFileName.c_str());
 
-    m_pDS->query( strSQL.c_str() );
+    m_pDS->query( strSQL );
     if (m_pDS->num_rows() > 0)
     { // get the audio dsp settings info
       settings.m_MasterStreamTypeSel      = m_pDS->fv("MasterStreamTypeSel").get_asInt();
@@ -418,7 +418,7 @@ void CActiveAEDSPDatabase::SetActiveDSPSettings(const CFileItem &item, const CAu
     std::string strPath, strFileName;
     URIUtils::Split(item.GetPath(), strPath, strFileName);
     std::string strSQL = StringUtils::Format("select * from settings WHERE settings.strPath='%s' and settings.strFileName='%s'", strPath.c_str() , strFileName.c_str());
-    m_pDS->query( strSQL.c_str() );
+    m_pDS->query( strSQL );
     if (m_pDS->num_rows() > 0)
     {
       m_pDS->close();
@@ -436,7 +436,7 @@ void CActiveAEDSPDatabase::SetActiveDSPSettings(const CFileItem &item, const CAu
           setting.m_MasterModes[setting.m_MasterStreamType][setting.m_MasterStreamBase],
           strPath.c_str(),
           strFileName.c_str());
-      m_pDS->exec(strSQL.c_str());
+      m_pDS->exec(strSQL);
       return ;
     }
     else
@@ -458,7 +458,7 @@ void CActiveAEDSPDatabase::SetActiveDSPSettings(const CFileItem &item, const CAu
                            setting.m_MasterStreamType,
                            setting.m_MasterStreamBase,
                            setting.m_MasterModes[setting.m_MasterStreamType][setting.m_MasterStreamBase]);
-      m_pDS->exec(strSQL.c_str());
+      m_pDS->exec(strSQL);
     }
   }
   catch (...)

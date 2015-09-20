@@ -18,19 +18,18 @@
  *
  */
 
-#include "system.h"
 #include "ZipManager.h"
-#include "URL.h"
+
+#include <algorithm>
+#include <utility>
+
 #include "File.h"
+#include "system.h"
+#include "URL.h"
 #include "utils/CharsetConverter.h"
-#include "utils/log.h"
 #include "utils/EndianSwap.h"
+#include "utils/log.h"
 #include "utils/URIUtils.h"
-
-
-#ifndef min
-#define min(a,b)            (((a) < (b)) ? (a) : (b))
-#endif
 
 using namespace XFILE;
 
@@ -45,8 +44,6 @@ CZipManager::~CZipManager()
 
 bool CZipManager::GetZipList(const CURL& url, std::vector<SZipEntry>& items)
 {
-  CLog::Log(LOGDEBUG, "%s - Processing %s", __FUNCTION__, url.GetRedacted().c_str());
-
   struct __stat64 m_StatData = {};
 
   std::string strFile = url.GetHostName();
@@ -61,15 +58,14 @@ bool CZipManager::GetZipList(const CURL& url, std::vector<SZipEntry>& items)
   if (it != mZipMap.end()) // already listed, just return it if not changed, else release and reread
   {
     std::map<std::string,int64_t>::iterator it2=mZipDate.find(strFile);
-    CLog::Log(LOGDEBUG,"statdata: %" PRId64" new: %" PRIu64, it2->second, (uint64_t)m_StatData.st_mtime);
 
-      if (m_StatData.st_mtime == it2->second)
-      {
-        items = it->second;
-        return true;
-      }
-      mZipMap.erase(it);
-      mZipDate.erase(it2);
+    if (m_StatData.st_mtime == it2->second)
+    {
+      items = it->second;
+      return true;
+    }
+    mZipMap.erase(it);
+    mZipDate.erase(it2);
   }
 
   CFile mFile;
@@ -104,8 +100,8 @@ bool CZipManager::GetZipList(const CURL& url, std::vector<SZipEntry>& items)
   // Don't need to look in the last 18 bytes (ECDREC_SIZE-4)
   // But as we need to do overlapping between blocks (3 bytes),
   // we start the search at ECDREC_SIZE-1 from the end of file
-  int searchSize = (int) min(65557, fileSize-ECDREC_SIZE+1);
-  int blockSize = (int) min(1024, searchSize);
+  int searchSize = (int) std::min(static_cast<int64_t>(65557), fileSize-ECDREC_SIZE+1);
+  int blockSize = (int) std::min(1024, searchSize);
   int nbBlock = searchSize / blockSize;
   int extraBlockSize = searchSize % blockSize;
   // Signature is on 4 bytes

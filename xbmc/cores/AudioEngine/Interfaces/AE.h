@@ -19,9 +19,10 @@
  *
  */
 
-#include <list>
 #include <map>
+#include <list>
 #include <vector>
+#include <utility>
 
 #include "system.h"
 
@@ -257,10 +258,11 @@ public:
   virtual bool HasDSP() { return false; };
 
   /**
-   * Gets the currently used sink format.
+   * Get the current sink data format
    *
-   * @return The current sink format.
+   * @param Current sink data format. For more details see AEAudioFormat.
+   * @return Returns true on success, else false.
    */
-  virtual AEAudioFormat GetCurrentSinkFormat() = 0;
+  virtual bool GetCurrentSinkFormat(AEAudioFormat &SinkFormat) { return false; }
 };
 

@@ -19,12 +19,13 @@
  */
 
 #include "ApplicationMessenger.h"
-#include "Application.h"
-
-#include "threads/SingleLock.h"
-#include "guilib/GraphicContext.h"
 
 #include <memory>
+#include <utility>
+
+#include "Application.h"
+#include "guilib/GraphicContext.h"
+#include "threads/SingleLock.h"
 
 namespace KODI
 {
@@ -123,7 +124,7 @@ int CApplicationMessenger::SendMsg(ThreadMessage&& message, bool wait)
   
   CSingleLock lock (m_critSection);
 
-  if (msg->dwMessage & TMSG_MASK_WINDOWMANAGER)
+  if (msg->dwMessage == TMSG_GUI_MESSAGE)
     m_vecWindowMessages.push(msg);
   else
     m_vecMessages.push(msg);
