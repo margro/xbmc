@@ -120,9 +120,6 @@
 #ifdef HAS_VIDEO_PLAYBACK
 #include "cores/VideoRenderers/RenderManager.h"
 #endif
-#ifdef HAS_KARAOKE
-#include "music/karaoke/karaokelyricsmanager.h"
-#endif
 #include "network/ZeroconfBrowser.h"
 #ifndef TARGET_POSIX
 #include "threads/platform/win/Win32Exception.h"
@@ -292,9 +289,6 @@ CApplication::CApplication(void)
 
 
   /* for now always keep this around */
-#ifdef HAS_KARAOKE
-  m_pKaraokeMgr = new CKaraokeLyricsManager();
-#endif
   m_currentStack = new CFileItemList;
 
   m_bPresentFrame = false;
@@ -328,10 +322,6 @@ CApplication::~CApplication(void)
   delete m_Autorun;
 #endif
   delete m_currentStack;
-
-#ifdef HAS_KARAOKE
-  delete m_pKaraokeMgr;
-#endif
 
   delete m_dpms;
   delete m_pInertialScrollingHandler;
@@ -518,9 +508,7 @@ bool CApplication::Create()
   buildType = "Unknown";
 #endif
   std::string specialVersion;
-#if defined(TARGET_DARWIN_IOS_ATV2)
-  specialVersion = " (version for AppleTV2)";
-#elif defined(TARGET_RASPBERRY_PI)
+#if defined(TARGET_RASPBERRY_PI)
   specialVersion = " (version for Raspberry Pi)";
 //#elif defined(some_ID) // uncomment for special version/fork
 //  specialVersion = " (version for XXXX)";
@@ -828,25 +816,17 @@ bool CApplication::CreateGUI()
   return true;
 }
 
-bool CApplication::InitWindow()
+bool CApplication::InitWindow(RESOLUTION res)
 {
-#ifdef TARGET_DARWIN_OSX
-  // force initial window creation to be windowed, if fullscreen, it will switch to it below
-  // fixes the white screen of death if starting fullscreen and switching to windowed.
-  bool bFullScreen = false;
-  if (!g_Windowing.CreateNewWindow(CSysInfo::GetAppName(), bFullScreen, CDisplaySettings::GetInstance().GetResolutionInfo(RES_WINDOW), OnEvent))
+  if (res == RES_INVALID)
+    res = CDisplaySettings::GetInstance().GetCurrentResolution();
+
+  bool bFullScreen = res != RES_WINDOW;
+  if (!g_Windowing.CreateNewWindow(CSysInfo::GetAppName(), bFullScreen, CDisplaySettings::GetInstance().GetResolutionInfo(res), OnEvent))
   {
     CLog::Log(LOGFATAL, "CApplication::Create: Unable to create window");
     return false;
   }
-#else
-  bool bFullScreen = CDisplaySettings::GetInstance().GetCurrentResolution() != RES_WINDOW;
-  if (!g_Windowing.CreateNewWindow(CSysInfo::GetAppName(), bFullScreen, CDisplaySettings::GetInstance().GetCurrentResolutionInfo(), OnEvent))
-  {
-    CLog::Log(LOGFATAL, "CApplication::Create: Unable to create window");
-    return false;
-  }
-#endif
 
   if (!g_Windowing.InitRenderSystem())
   {
@@ -854,7 +834,7 @@ bool CApplication::InitWindow()
     return false;
   }
   // set GUI res and force the clear of the screen
-  g_graphicsContext.SetVideoResolution(CDisplaySettings::GetInstance().GetCurrentResolution());
+  g_graphicsContext.SetVideoResolution(res);
   return true;
 }
 
@@ -1502,9 +1482,8 @@ bool CApplication::OnSettingUpdate(CSetting* &setting, const char *oldSettingId,
   if (setting == NULL)
     return false;
 
-  const std::string &settingId = setting->GetId();
 #if defined(HAS_LIBAMCODEC)
-  if (settingId == CSettings::SETTING_VIDEOPLAYER_USEAMCODEC)
+  if (setting->GetId() == CSettings::SETTING_VIDEOPLAYER_USEAMCODEC)
   {
     // Do not permit amcodec to be used on non-aml platforms.
     // The setting will be hidden but the default value is true,
@@ -1517,14 +1496,14 @@ bool CApplication::OnSettingUpdate(CSetting* &setting, const char *oldSettingId,
   }
 #endif
 #if defined(TARGET_ANDROID)
-  if (settingId == CSettings::SETTING_VIDEOPLAYER_USESTAGEFRIGHT)
+  if (setting->GetId() == CSettings::SETTING_VIDEOPLAYER_USESTAGEFRIGHT)
   {
     CSettingBool *usestagefright = (CSettingBool*)setting;
     return usestagefright->SetValue(false);
   }
 #endif
 #if defined(TARGET_DARWIN_OSX)
-  if (settingId == CSettings::SETTING_AUDIOOUTPUT_AUDIODEVICE)
+  if (setting->GetId() == CSettings::SETTING_AUDIOOUTPUT_AUDIODEVICE)
   {
     CSettingString *audioDevice = (CSettingString*)setting;
     // Gotham and older didn't enumerate audio devices per stream on osx
@@ -1600,15 +1579,9 @@ bool CApplication::Load(const TiXmlNode *settings)
   const TiXmlElement *audioElement = settings->FirstChildElement("audio");
   if (audioElement != NULL)
   {
-#ifndef TARGET_ANDROID
     XMLUtils::GetBoolean(audioElement, "mute", m_muted);
     if (!XMLUtils::GetFloat(audioElement, "fvolumelevel", m_volumeLevel, VOLUME_MINIMUM, VOLUME_MAXIMUM))
       m_volumeLevel = VOLUME_MAXIMUM;
-#else
-    // Use system volume settings
-    m_volumeLevel = CXBMCApp::GetSystemVolume();
-    m_muted = (m_volumeLevel == 0);
-#endif
   }
 
   return true;
@@ -2218,16 +2191,16 @@ bool CApplication::OnAction(const CAction &action)
     if (tag)
     {
       *m_itemCurrentFile->GetMusicInfoTag() = *tag;
-      char rating = tag->GetRating();
+      char rating = tag->GetUserrating();
       bool needsUpdate(false);
       if (rating > '0' && action.GetID() == ACTION_DECREASE_RATING)
       {
-        m_itemCurrentFile->GetMusicInfoTag()->SetRating(rating - 1);
+        m_itemCurrentFile->GetMusicInfoTag()->SetUserrating(rating - 1);
         needsUpdate = true;
       }
       else if (rating < '5' && action.GetID() == ACTION_INCREASE_RATING)
       {
-        m_itemCurrentFile->GetMusicInfoTag()->SetRating(rating + 1);
+        m_itemCurrentFile->GetMusicInfoTag()->SetUserrating(rating + 1);
         needsUpdate = true;
       }
       if (needsUpdate)
@@ -2235,7 +2208,7 @@ bool CApplication::OnAction(const CAction &action)
         CMusicDatabase db;
         if (db.Open())      // OpenForWrite() ?
         {
-          db.SetSongRating(m_itemCurrentFile->GetPath(), m_itemCurrentFile->GetMusicInfoTag()->GetRating());
+          db.SetSongUserrating(m_itemCurrentFile->GetPath(), m_itemCurrentFile->GetMusicInfoTag()->GetUserrating());
           db.Close();
         }
         // send a message to all windows to tell them to update the fileitem (eg playlistplayer, media windows)
@@ -2342,9 +2315,6 @@ bool CApplication::OnAction(const CAction &action)
       if (!m_pPlayer->IsPaused() && m_pPlayer->GetPlaySpeed() != 1)
         m_pPlayer->SetPlaySpeed(1, g_application.m_muted);
 
-      #ifdef HAS_KARAOKE
-      m_pKaraokeMgr->SetPaused( m_pPlayer->IsPaused() );
-#endif
       g_audioManager.Enable(m_pPlayer->IsPaused());
       return true;
     }
@@ -2578,8 +2548,10 @@ void CApplication::OnApplicationMessage(ThreadMessage* pMsg)
   }
   break;
 
+#ifdef TARGET_ANDROID
   case TMSG_DISPLAY_SETUP:
-    *static_cast<bool*>(pMsg->lpVoid) = InitWindow();
+    // We might come from a refresh rate switch destroying the native window; use the context resolution
+    *static_cast<bool*>(pMsg->lpVoid) = InitWindow(g_graphicsContext.GetVideoResolution());
     SetRenderGUI(true);
     break;
 
@@ -2587,6 +2559,7 @@ void CApplication::OnApplicationMessage(ThreadMessage* pMsg)
     *static_cast<bool*>(pMsg->lpVoid) = DestroyWindow();
     SetRenderGUI(false);
     break;
+#endif
 
   case TMSG_SETPVRMANAGERSTATE:
     if (pMsg->param1 != 0)
@@ -3489,14 +3462,6 @@ PlayBackRet CApplication::PlayFile(const CFileItem& item, bool bRestart)
   // reset VideoStartWindowed as it's a temp setting
   CMediaSettings::GetInstance().SetVideoStartWindowed(false);
 
-#ifdef HAS_KARAOKE
-  //We have to stop parsing a cdg before mplayer is deallocated
-  // WHY do we have to do this????
-  if (m_pKaraokeMgr)
-    m_pKaraokeMgr->Stop();
-#endif
-
-
   {
     CSingleLock lock(m_playStateMutex);
     // tell system we are starting a file
@@ -3934,10 +3899,6 @@ void CApplication::StopPlaying()
   int iWin = g_windowManager.GetActiveWindow();
   if ( m_pPlayer->IsPlaying() )
   {
-#ifdef HAS_KARAOKE
-    if( m_pKaraokeMgr )
-      m_pKaraokeMgr->Stop();
-#endif
     m_pPlayer->CloseFile();
 
     // turn off visualisation window when stopping
@@ -4289,30 +4250,6 @@ bool CApplication::OnMessage(CGUIMessage& message)
       param["player"]["speed"] = 1;
       param["player"]["playerid"] = g_playlistPlayer.GetCurrentPlaylist();
       CAnnouncementManager::GetInstance().Announce(Player, "xbmc", "OnPlay", m_itemCurrentFile, param);
-
-      if (m_pPlayer->IsPlayingAudio())
-      {
-        // Start our cdg parser as appropriate
-#ifdef HAS_KARAOKE
-        if (m_pKaraokeMgr && CSettings::GetInstance().GetBool(CSettings::SETTING_KARAOKE_ENABLED) && !m_itemCurrentFile->IsInternetStream())
-        {
-          m_pKaraokeMgr->Stop();
-          if (m_itemCurrentFile->IsMusicDb())
-          {
-            if (!m_itemCurrentFile->HasMusicInfoTag() || !m_itemCurrentFile->GetMusicInfoTag()->Loaded())
-            {
-              IMusicInfoTagLoader* tagloader = CMusicInfoTagLoaderFactory::CreateLoader(*m_itemCurrentFile);
-              tagloader->Load(m_itemCurrentFile->GetPath(),*m_itemCurrentFile->GetMusicInfoTag());
-              delete tagloader;
-            }
-            m_pKaraokeMgr->Start(m_itemCurrentFile->GetMusicInfoTag()->GetURL());
-          }
-          else
-            m_pKaraokeMgr->Start(m_itemCurrentFile->GetPath());
-        }
-#endif
-      }
-
       return true;
     }
     break;
@@ -4373,10 +4310,6 @@ bool CApplication::OnMessage(CGUIMessage& message)
   case GUI_MSG_PLAYBACK_ENDED:
   case GUI_MSG_PLAYLISTPLAYER_STOPPED:
     {
-#ifdef HAS_KARAOKE
-      if (m_pKaraokeMgr )
-        m_pKaraokeMgr->Stop();
-#endif
 #ifdef TARGET_DARWIN_IOS
       CDarwinUtils::SetScheduling(message.GetMessage());
 #endif
@@ -4473,20 +4406,23 @@ bool CApplication::OnMessage(CGUIMessage& message)
     break;
   case GUI_MSG_EXECUTE:
     if (message.GetNumStringParams())
-      return ExecuteXBMCAction(message.GetStringParam());
+      return ExecuteXBMCAction(message.GetStringParam(), message.GetItem());
     break;
   }
   return false;
 }
 
-bool CApplication::ExecuteXBMCAction(std::string actionStr)
+bool CApplication::ExecuteXBMCAction(std::string actionStr, const CGUIListItemPtr &item /* = NULL */)
 {
   // see if it is a user set string
 
   //We don't know if there is unsecure information in this yet, so we
   //postpone any logging
   const std::string in_actionStr(actionStr);
-  actionStr = CGUIInfoLabel::GetLabel(actionStr);
+  if (item)
+    actionStr = CGUIInfoLabel::GetItemLabel(actionStr, item.get());
+  else
+    actionStr = CGUIInfoLabel::GetLabel(actionStr);
 
   // user has asked for something to be executed
   if (CBuiltins::GetInstance().HasCommand(actionStr))
@@ -4646,11 +4582,6 @@ void CApplication::ProcessSlow()
 
   // check for any idle curl connections
   g_curlInterface.CheckIdle();
-
-#ifdef HAS_KARAOKE
-  if ( m_pKaraokeMgr )
-    m_pKaraokeMgr->ProcessSlow();
-#endif
 
   if (!m_pPlayer->IsPlayingVideo())
     g_largeTextureManager.CleanupUnusedImages();

@@ -389,7 +389,7 @@
 #define SYSTEM_PLATFORM_DARWIN      743
 #define SYSTEM_PLATFORM_DARWIN_OSX  744
 #define SYSTEM_PLATFORM_DARWIN_IOS  745
-#define SYSTEM_PLATFORM_DARWIN_ATV2 746
+//#define SYSTEM_PLATFORM_DARWIN_ATV2 746
 #define SYSTEM_PLATFORM_ANDROID     747
 #define SYSTEM_PLATFORM_LINUX_RASPBERRY_PI 748
 
@@ -736,4 +736,5 @@
 // Stored in the top 8 bits of GUIInfo::m_data1
 // therefore we only have room for 8 flags
 #define INFOFLAG_LISTITEM_WRAP        ((uint32_t) (1 << 25))  // Wrap ListItem lookups
-#define INFOFLAG_LISTITEM_POSITION    ((uint32_t) (1 << 26))  // Absolute ListItem lookups
+#define INFOFLAG_LISTITEM_POSITION    ((uint32_t) (1 << 26))  // ListItem lookups based on cursor position
+#define INFOFLAG_LISTITEM_ABSOLUTE    ((uint32_t) (1 << 27))  // Absolute ListItem lookups

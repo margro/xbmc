@@ -107,7 +107,7 @@ public:
   virtual ~CGUIInfoManager(void);
 
   void Clear();
-  virtual bool OnMessage(CGUIMessage &message);
+  virtual bool OnMessage(CGUIMessage &message) override;
 
   virtual int GetMessageMask() override;
   virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
@@ -130,7 +130,7 @@ public:
    \return the value of the evaluated expression.
    \sa Register
    */
-  bool EvaluateBool(const std::string &expression, int context = 0);
+  bool EvaluateBool(const std::string &expression, int context = 0, const CGUIListItemPtr &item = nullptr);
 
   int TranslateString(const std::string &strCondition);
 

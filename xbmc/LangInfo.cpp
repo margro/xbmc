@@ -263,13 +263,13 @@ void CLangInfo::CRegion::SetGlobalLocale()
   std::string strLocale;
   if (m_strRegionLocaleName.length() > 0)
   {
+#ifdef TARGET_WINDOWS
     std::string strLang, strRegion;
     g_LangCodeExpander.ConvertToISO6391(m_strLangLocaleName, strLang);
     g_LangCodeExpander.ConvertToISO6391(m_strRegionLocaleName, strRegion);
-#ifdef TARGET_WINDOWS
     strLocale = strLang + "-" + strRegion;
 #else
-    strLocale = strLang + "_" + strRegion;
+    strLocale = m_strLangLocaleName + "_" + m_strRegionLocaleName;
 #endif
 #ifdef TARGET_POSIX
     strLocale += ".UTF-8";
@@ -576,7 +576,7 @@ void CLangInfo::SetDefaults()
 std::string CLangInfo::GetGuiCharSet() const
 {
   CSettingString* charsetSetting = static_cast<CSettingString*>(CSettings::GetInstance().GetSetting(CSettings::SETTING_LOCALE_CHARSET));
-  if (charsetSetting->IsDefault())
+  if (charsetSetting == NULL || charsetSetting->IsDefault())
     return m_strGuiCharSet;
 
   return charsetSetting->GetValue();

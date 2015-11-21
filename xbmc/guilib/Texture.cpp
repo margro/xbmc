@@ -184,18 +184,15 @@ CBaseTexture *CBaseTexture::LoadFromFile(const std::string& texturePath, unsigne
     XFILE::CFileAndroidApp file;
     if (file.Open(url))
     {
-      unsigned int imgsize = (unsigned int)file.GetLength();
-      unsigned char* inputBuff = new unsigned char[imgsize];
-      unsigned int inputBuffSize = file.Read(inputBuff, imgsize);
+      unsigned char* inputBuff;
+      unsigned int width;
+      unsigned int height;
+      unsigned int inputBuffSize = file.ReadIcon(&inputBuff, &width, &height);
       file.Close();
-      if (inputBuffSize != imgsize)
-      {
-        delete [] inputBuff;
+      if (!inputBuffSize)
         return NULL;
-      }
+
       CTexture *texture = new CTexture();
-      unsigned int width = file.GetIconWidth();
-      unsigned int height = file.GetIconHeight();
       texture->LoadFromMemory(width, height, width*4, XB_FMT_RGBA8, true, inputBuff);
       delete [] inputBuff;
       return texture;
@@ -274,7 +271,7 @@ bool CBaseTexture::LoadFromFileInternal(const std::string& texturePath, unsigned
     pImage = ImageFactory::CreateFallbackLoader(texturePath);
     if (!LoadIImage(pImage, (unsigned char *)buf.get(), buf.size(), width, height))
     {
-      CLog::Log(LOGDEBUG, "%s - Load of %s failed.", __FUNCTION__, texturePath.c_str());
+      CLog::Log(LOGDEBUG, "%s - Load of %s failed.", __FUNCTION__, CURL::GetRedacted(texturePath).c_str());
       delete pImage;
       return false;
     }
@@ -314,7 +311,7 @@ bool CBaseTexture::LoadIImage(IImage *pImage, unsigned char* buffer, unsigned in
     if (pImage->Width() > 0 && pImage->Height() > 0)
     {
       Allocate(pImage->Width(), pImage->Height(), XB_FMT_A8R8G8B8);
-      if (pImage->Decode(m_pixels, GetPitch(), XB_FMT_A8R8G8B8))
+      if (pImage->Decode(m_pixels, GetTextureWidth(), GetRows(), GetPitch(), XB_FMT_A8R8G8B8))
       {
         if (pImage->Orientation())
           m_orientation = pImage->Orientation() - 1;

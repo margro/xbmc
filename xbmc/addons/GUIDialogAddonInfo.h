@@ -58,8 +58,8 @@ private:
   void OnEnable(bool enable);
   void OnSettings();
   void OnChangeLog();
-  void OnRollback();
   void OnSelect();
+  void OnToggleAutoUpdates();
 
   /*! Returns true if current addon can be opened (i.e is a plugin)*/
   bool CanOpen() const;
@@ -84,9 +84,5 @@ private:
   ADDON::AddonPtr m_localAddon;
   unsigned int m_jobid;
   bool m_changelog;
-
-  // rollback data
-  void GrabRollbackVersions();
-  std::vector<std::string> m_rollbackVersions;
 };
 

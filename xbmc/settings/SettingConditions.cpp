@@ -206,9 +206,6 @@ void CSettingConditions::Initialize()
 #if HAS_GLES == 2
   m_simpleConditions.insert("has_glesv2");
 #endif
-#ifdef HAS_KARAOKE
-  m_simpleConditions.insert("has_karaoke");
-#endif
 #ifdef HAS_SDL_JOYSTICK
   m_simpleConditions.insert("has_sdl_joystick");
 #endif
@@ -253,10 +250,6 @@ void CSettingConditions::Initialize()
 #ifdef HAS_LIBAMCODEC
   if (aml_present())
     m_simpleConditions.insert("have_amcodec");
-#endif
-#ifdef TARGET_DARWIN_IOS_ATV2
-  if (g_sysinfo.IsAppleTV2())
-    m_simpleConditions.insert("isappletv2");
 #endif
 #ifdef TARGET_DARWIN_OSX
   if (CDarwinUtils::IsSnowLeopard())

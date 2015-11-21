@@ -306,7 +306,7 @@ CFileItemPtr CPVRTimers::GetNextActiveTimer(void) const
     for (VecTimerInfoTag::const_iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
     {
       CPVRTimerInfoTagPtr current = *timerIt;
-      if (current->IsActive() && !current->IsRecording() && !current->IsRepeating())
+      if (current->IsActive() && !current->IsRecording() && !current->IsRepeating() && !current->IsBroken())
       {
         CFileItemPtr fileItem(new CFileItem(current));
         return fileItem;
@@ -362,7 +362,7 @@ std::vector<CFileItemPtr> CPVRTimers::GetActiveRecordings(void) const
     for (VecTimerInfoTag::const_iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
     {
       CPVRTimerInfoTagPtr current = *timerIt;
-      if (current->IsRecording())
+      if (current->IsRecording() && !current->IsRepeating())
       {
         CFileItemPtr fileItem(new CFileItem(current));
         tags.push_back(fileItem);
@@ -446,6 +446,9 @@ bool CPVRTimers::GetSubDirectory(const CPVRTimersPath &path, CFileItemList &item
           (timer->m_iParentClientIndex == iParentId))
       {
         item.reset(new CFileItem(timer));
+        std::string strItemPath(
+          CPVRTimersPath(path.GetPath(), timer->m_iClientId, timer->m_iClientIndex).GetPath());
+        item->SetPath(strItemPath);
         items.Add(item);
       }
     }
@@ -774,7 +777,7 @@ void CPVRTimers::UpdateEpgEvent(CPVRTimerInfoTagPtr timer)
     return;
 
   /* try to get the EPG table */
-  CEpg *epg = channel->GetEPG();
+  CEpgPtr epg = channel->GetEPG();
   if (!epg)
     return;
 

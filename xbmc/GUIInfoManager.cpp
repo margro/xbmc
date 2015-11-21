@@ -1203,34 +1203,24 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         return AddMultiInfo(GUIInfo(CONTAINER_SORT_DIRECTION, order));
       }
     }
-    else if (cat.name == "listitem")
+    else if (cat.name == "listitem" || cat.name == "listitemposition"
+      || cat.name == "listitemnowrap" || cat.name == "listitemabsolute")
     {
       int offset = atoi(cat.param().c_str());
       int ret = TranslateListItem(prop);
       if (ret)
         listItemDependent = true;
       if (offset)
-        return AddMultiInfo(GUIInfo(ret, 0, offset, INFOFLAG_LISTITEM_WRAP));
-      return ret;
-    }
-    else if (cat.name == "listitemposition")
-    {
-      int offset = atoi(cat.param().c_str());
-      int ret = TranslateListItem(prop);
-      if (ret)
-        listItemDependent = true;
-      if (offset)
-        return AddMultiInfo(GUIInfo(ret, 0, offset, INFOFLAG_LISTITEM_POSITION));
-      return ret;
-    }
-    else if (cat.name == "listitemnowrap")
-    {
-      int offset = atoi(cat.param().c_str());
-      int ret = TranslateListItem(prop);
-      if (ret)
-        listItemDependent = true;
-      if (offset)
-        return AddMultiInfo(GUIInfo(ret, 0, offset));
+      {
+        if (cat.name == "listitem")
+          return AddMultiInfo(GUIInfo(ret, 0, offset, INFOFLAG_LISTITEM_WRAP));
+        else if (cat.name == "listitemposition")
+          return AddMultiInfo(GUIInfo(ret, 0, offset, INFOFLAG_LISTITEM_POSITION));
+        else if (cat.name == "listitemabsolute")
+          return AddMultiInfo(GUIInfo(ret, 0, offset, INFOFLAG_LISTITEM_ABSOLUTE));
+        else if (cat.name == "listitemnowrap")
+          return AddMultiInfo(GUIInfo(ret, 0, offset));
+      }
       return ret;
     }
     else if (cat.name == "visualisation")
@@ -1383,7 +1373,6 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
       else if (platform == "darwin")  return SYSTEM_PLATFORM_DARWIN;
       else if (platform == "osx")  return SYSTEM_PLATFORM_DARWIN_OSX;
       else if (platform == "ios")  return SYSTEM_PLATFORM_DARWIN_IOS;
-      else if (platform == "atv2") return SYSTEM_PLATFORM_DARWIN_ATV2;
       else if (platform == "android") return SYSTEM_PLATFORM_ANDROID;
     }
     if (info[0].name == "musicplayer")
@@ -1419,6 +1408,11 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
       {
         listItemDependent = true;
         return AddMultiInfo(GUIInfo(TranslateListItem(info[2]), id, offset, INFOFLAG_LISTITEM_WRAP));
+      }
+      else if (info[1].name == "listitemabsolute")
+      {
+        listItemDependent = true;
+        return AddMultiInfo(GUIInfo(TranslateListItem(info[2]), id, offset, INFOFLAG_LISTITEM_ABSOLUTE));
       }
     }
     else if (info[0].name == "control")
@@ -2402,12 +2396,12 @@ INFO::InfoPtr CGUIInfoManager::Register(const std::string &expression, int conte
   return m_bools.back();
 }
 
-bool CGUIInfoManager::EvaluateBool(const std::string &expression, int contextWindow)
+bool CGUIInfoManager::EvaluateBool(const std::string &expression, int contextWindow /* = 0 */, const CGUIListItemPtr &item /* = NULL */)
 {
   bool result = false;
   INFO::InfoPtr info = Register(expression, contextWindow);
   if (info)
-    result = info->Get();
+    result = info->Get(item.get());
   return result;
 }
 
@@ -2491,12 +2485,6 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
 #endif
   else if (condition == SYSTEM_PLATFORM_DARWIN_IOS)
 #ifdef TARGET_DARWIN_IOS
-    bReturn = true;
-#else
-    bReturn = false;
-#endif
-  else if (condition == SYSTEM_PLATFORM_DARWIN_ATV2)
-#ifdef TARGET_DARWIN_IOS_ATV2
     bReturn = true;
 #else
     bReturn = false;
@@ -4144,10 +4132,10 @@ std::string CGUIInfoManager::GetMusicTagLabel(int info, const CFileItem *item)
     if (tag.GetAlbum().size()) { return tag.GetAlbum(); }
     break;
   case MUSICPLAYER_ARTIST:
-    if (tag.GetArtist().size()) { return StringUtils::Join(tag.GetArtist(), g_advancedSettings.m_musicItemSeparator); }
+    if (tag.GetArtistString().size()) { return tag.GetArtistString(); }
     break;
   case MUSICPLAYER_ALBUM_ARTIST:
-    if (tag.GetAlbumArtist().size()) { return StringUtils::Join(tag.GetAlbumArtist(), g_advancedSettings.m_musicItemSeparator); }
+    if (tag.GetAlbumArtistString().size()) { return tag.GetAlbumArtistString(); }
     break;
   case MUSICPLAYER_YEAR:
     if (tag.GetYear()) { return tag.GetYearString(); }
@@ -4226,22 +4214,7 @@ std::string CGUIInfoManager::GetVideoLabel(int item)
   if (!g_application.m_pPlayer->IsPlaying())
     return "";
 
-  if (item == VIDEOPLAYER_TITLE)
-  {
-    if(g_application.m_pPlayer->IsPlayingVideo())
-       return GetLabel(PLAYER_TITLE);
-  }
-  else if (item == VIDEOPLAYER_PLAYLISTLEN)
-  {
-    if (g_playlistPlayer.GetCurrentPlaylist() == PLAYLIST_VIDEO)
-      return GetPlaylistLabel(PLAYLIST_LENGTH);
-  }
-  else if (item == VIDEOPLAYER_PLAYLISTPOS)
-  {
-    if (g_playlistPlayer.GetCurrentPlaylist() == PLAYLIST_VIDEO)
-      return GetPlaylistLabel(PLAYLIST_POSITION);
-  }
-  else if (m_currentFile->HasPVRChannelInfoTag())
+  if (m_currentFile->HasPVRChannelInfoTag())
   {
     CPVRChannelPtr tag(m_currentFile->GetPVRChannelInfoTag());
     CEpgInfoTagPtr epgTag;
@@ -4515,6 +4488,22 @@ std::string CGUIInfoManager::GetVideoLabel(int item)
       }
     }
   }
+  else if (g_playlistPlayer.GetCurrentPlaylist() == PLAYLIST_VIDEO)
+  {
+    switch (item)
+    {
+    case VIDEOPLAYER_PLAYLISTLEN:
+      return GetPlaylistLabel(PLAYLIST_LENGTH);
+    case VIDEOPLAYER_PLAYLISTPOS:
+      return GetPlaylistLabel(PLAYLIST_POSITION);
+    default:
+      break;
+    }
+  }
+  
+  if (item == VIDEOPLAYER_TITLE)
+    return GetLabel(PLAYER_TITLE);
+
   return "";
 }
 
@@ -4559,7 +4548,7 @@ int CGUIInfoManager::GetPlayTimeRemaining() const
 
 float CGUIInfoManager::GetSeekPercent() const
 {
-  if (g_infoManager.GetTotalPlayTime() == 0)
+  if (GetTotalPlayTime() == 0)
     return 0.0f;
 
   float percentPlayTime = static_cast<float>(GetPlayTime()) / GetTotalPlayTime() * 0.1f;
@@ -5076,11 +5065,11 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
     if (item->HasVideoInfoTag())
       return StringUtils::Join(item->GetVideoInfoTag()->m_artist, g_advancedSettings.m_videoItemSeparator);
     if (item->HasMusicInfoTag())
-      return StringUtils::Join(item->GetMusicInfoTag()->GetArtist(), g_advancedSettings.m_musicItemSeparator);
+      return item->GetMusicInfoTag()->GetArtistString();
     break;
   case LISTITEM_ALBUM_ARTIST:
     if (item->HasMusicInfoTag())
-      return StringUtils::Join(item->GetMusicInfoTag()->GetAlbumArtist(), g_advancedSettings.m_musicItemSeparator);
+      return item->GetMusicInfoTag()->GetAlbumArtistString();
     break;
   case LISTITEM_DIRECTOR:
     if (item->HasPVRChannelInfoTag())
@@ -5209,9 +5198,9 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
       std::string rating;
       if (item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_fRating > 0.f) // movie rating
         rating = StringUtils::Format("%.1f", item->GetVideoInfoTag()->m_fRating);
-      else if (item->HasMusicInfoTag() && item->GetMusicInfoTag()->GetRating() > '0')
+      else if (item->HasMusicInfoTag() && item->GetMusicInfoTag()->GetUserrating() > '0')
       { // song rating.  Images will probably be better than numbers for this in the long run
-        rating.assign(1, item->GetMusicInfoTag()->GetRating());
+        rating.assign(1, item->GetMusicInfoTag()->GetUserrating());
       }
       return rating;
     }
@@ -5235,8 +5224,10 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
   case LISTITEM_USER_RATING:
     {
       std::string strUserRating;
-      if (item->GetVideoInfoTag()->m_iUserRating > 0)
+      if (item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_iUserRating > 0)
         strUserRating = StringUtils::Format("%i", item->GetVideoInfoTag()->m_iUserRating);
+      else if (item->HasMusicInfoTag() && item->GetMusicInfoTag()->GetUserrating() > '0')
+        strUserRating.assign(1, item->GetMusicInfoTag()->GetUserrating());
       return strUserRating;
     }
     break;
@@ -5824,7 +5815,7 @@ std::string CGUIInfoManager::GetItemImage(const CFileItem *item, int info, std::
     {
       if (item->HasMusicInfoTag())
       {
-        return StringUtils::Format("songrating%c.png", item->GetMusicInfoTag()->GetRating());
+        return StringUtils::Format("songrating%c.png", item->GetMusicInfoTag()->GetUserrating());
       }
     }
     break;
@@ -5837,7 +5828,7 @@ std::string CGUIInfoManager::GetItemImage(const CFileItem *item, int info, std::
       }
       else if (item->HasMusicInfoTag())
       { // song rating.
-        rating = StringUtils::Format("rating%c.png", item->GetMusicInfoTag()->GetRating());
+        rating = StringUtils::Format("rating%c.png", item->GetMusicInfoTag()->GetUserrating());
       }
       return rating;
     }
@@ -5905,9 +5896,9 @@ bool CGUIInfoManager::GetItemBool(const CGUIListItem *item, int condition) const
       {
         CEpgInfoTagPtr epgTag = pItem->GetEPGInfoTag();
 
-        // Check if the tag has a currently active recording associated
-        if (epgTag->HasRecording() && epgTag->IsActive())
-          return true;
+        // Check if the tag has a currently recording timer associated
+        if (epgTag->HasTimer())
+          return epgTag->Timer()->IsRecording();
 
         // Search all timers for something that matches the tag
         CFileItemPtr timer = g_PVRTimers->GetTimerForEpgTag(pItem);

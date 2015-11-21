@@ -124,14 +124,6 @@ void CAdvancedSettings::Initialize()
   m_omxHWAudioDecode = false;
   m_omxDecodeStartWithValidFrame = true;
 
-  m_karaokeSyncDelayCDG = 0.0f;
-  m_karaokeSyncDelayLRC = 0.0f;
-  m_karaokeChangeGenreForKaraokeSongs = false;
-  m_karaokeKeepDelay = true;
-  m_karaokeStartIndex = 1;
-  m_karaokeAlwaysEmptyOnCdgs = 1;
-  m_karaokeUseSongSpecificBackground = 0;
-
   m_audioDefaultPlayer = "paplayer";
   m_audioPlayCountMinimumPercent = 90.0f;
 
@@ -275,7 +267,6 @@ void CAdvancedSettings::Initialize()
   m_bMusicLibraryCleanOnUpdate = false;
   m_iMusicLibraryRecentlyAddedItems = 25;
   m_strMusicLibraryAlbumFormat = "";
-  m_strMusicLibraryAlbumFormatRight = "";
   m_prioritiseAPEv2tags = false;
   m_musicItemSeparator = " / ";
   m_videoItemSeparator = " / ";
@@ -283,7 +274,6 @@ void CAdvancedSettings::Initialize()
 
   m_bVideoLibraryAllItemsOnBottom = false;
   m_iVideoLibraryRecentlyAddedItems = 25;
-  m_bVideoLibraryHideEmptySeries = false;
   m_bVideoLibraryCleanOnUpdate = false;
   m_bVideoLibraryUseFastHash = true;
   m_bVideoLibraryExportAutoThumbs = false;
@@ -400,7 +390,7 @@ void CAdvancedSettings::Initialize()
     std::string logDir = getenv("HOME");
     #if defined(TARGET_DARWIN_OSX)
     logDir += "/Library/Logs/";
-    #else // ios/atv2
+    #else // ios
     logDir += "/" + std::string(CDarwinUtils::GetAppRootFolder()) + "/";
     #endif
     m_logFolder = logDir;
@@ -503,25 +493,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   {
     XMLUtils::GetBoolean(pElement, "omxhwaudiodecode", m_omxHWAudioDecode);
     XMLUtils::GetBoolean(pElement, "omxdecodestartwithvalidframe", m_omxDecodeStartWithValidFrame);
-  }
-
-  pElement = pRootElement->FirstChildElement("karaoke");
-  if (pElement)
-  {
-    XMLUtils::GetFloat(pElement, "syncdelaycdg", m_karaokeSyncDelayCDG, -3.0f, 3.0f); // keep the old name for comp
-    XMLUtils::GetFloat(pElement, "syncdelaylrc", m_karaokeSyncDelayLRC, -3.0f, 3.0f);
-    XMLUtils::GetBoolean(pElement, "alwaysreplacegenre", m_karaokeChangeGenreForKaraokeSongs );
-    XMLUtils::GetBoolean(pElement, "storedelay", m_karaokeKeepDelay );
-    XMLUtils::GetInt(pElement, "autoassignstartfrom", m_karaokeStartIndex, 1, 2000000000);
-    XMLUtils::GetBoolean(pElement, "nocdgbackground", m_karaokeAlwaysEmptyOnCdgs );
-    XMLUtils::GetBoolean(pElement, "lookupsongbackground", m_karaokeUseSongSpecificBackground );
-
-    TiXmlElement* pKaraokeBackground = pElement->FirstChildElement("defaultbackground");
-    if (pKaraokeBackground)
-    {
-      pKaraokeBackground->QueryStringAttribute("type", &m_karaokeDefaultBackgroundType);
-      pKaraokeBackground->QueryStringAttribute("path", &m_karaokeDefaultBackgroundFilePath);
-    }
   }
 
   pElement = pRootElement->FirstChildElement("video");
@@ -739,7 +710,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetBoolean(pElement, "allitemsonbottom", m_bMusicLibraryAllItemsOnBottom);
     XMLUtils::GetBoolean(pElement, "cleanonupdate", m_bMusicLibraryCleanOnUpdate);
     XMLUtils::GetString(pElement, "albumformat", m_strMusicLibraryAlbumFormat);
-    XMLUtils::GetString(pElement, "albumformatright", m_strMusicLibraryAlbumFormatRight);
     XMLUtils::GetString(pElement, "itemseparator", m_musicItemSeparator);
     XMLUtils::GetInt(pElement, "dateadded", m_iMusicLibraryDateAdded);
   }
@@ -749,7 +719,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   {
     XMLUtils::GetBoolean(pElement, "allitemsonbottom", m_bVideoLibraryAllItemsOnBottom);
     XMLUtils::GetInt(pElement, "recentlyaddeditems", m_iVideoLibraryRecentlyAddedItems, 1, INT_MAX);
-    XMLUtils::GetBoolean(pElement, "hideemptyseries", m_bVideoLibraryHideEmptySeries);
     XMLUtils::GetBoolean(pElement, "cleanonupdate", m_bVideoLibraryCleanOnUpdate);
     XMLUtils::GetBoolean(pElement, "usefasthash", m_bVideoLibraryUseFastHash);
     XMLUtils::GetString(pElement, "itemseparator", m_videoItemSeparator);

@@ -594,6 +594,7 @@ void CGUIEPGGridContainer::RenderProgressIndicator()
 {
   if (g_graphicsContext.SetClipRegion(m_rulerPosX, m_rulerPosY, m_gridWidth, m_height))
   {
+    m_guiProgressIndicatorTexture.SetDiffuseColor(m_diffuseColor);
     m_guiProgressIndicatorTexture.Render();
     g_graphicsContext.RestoreClipRegion();
   }
@@ -977,11 +978,12 @@ void CGUIEPGGridContainer::UpdateItems(CFileItemList *items)
     {
       CFileItemPtr item = m_gridIndex[row][block].item;
 
-      if (item != m_gridIndex[row][block+1].item)
+      if ((item != m_gridIndex[row][block+1].item) || (!item && block == m_blocks - 1))
       {
         if (!item)
         {
           CEpgInfoTagPtr gapTag(CEpgInfoTag::CreateDefaultTag());
+          gapTag->SetPVRChannel(m_channelItems[row]->GetPVRChannelInfoTag());
           CFileItemPtr gapItem(new CFileItem(gapTag));
           for (int i = block ; i > block - itemSize; i--)
           {
@@ -1082,7 +1084,7 @@ void CGUIEPGGridContainer::ProgrammesScroll(int amount)
 
 void CGUIEPGGridContainer::OnUp()
 {
-  CGUIAction action = GetNavigateAction(ACTION_MOVE_UP);
+  CGUIAction action = GetAction(ACTION_MOVE_UP);
   if (m_channelCursor > 0)
   {
     SetChannel(m_channelCursor - 1);
@@ -1108,7 +1110,7 @@ void CGUIEPGGridContainer::OnUp()
 
 void CGUIEPGGridContainer::OnDown()
 {
-  CGUIAction action = GetNavigateAction(ACTION_MOVE_DOWN);
+  CGUIAction action = GetAction(ACTION_MOVE_DOWN);
   if (m_channelOffset + m_channelCursor + 1 < m_channels)
   {
     if (m_channelCursor + 1 < m_channelsPerPage)
@@ -1486,6 +1488,19 @@ int CGUIEPGGridContainer::GetSelectedItem() const
 const int CGUIEPGGridContainer::GetSelectedChannel() const
 {
   return m_channelCursor + m_channelOffset;
+}
+
+CFileItemPtr CGUIEPGGridContainer::GetSelectedChannelItem() const
+{
+  CFileItemPtr item;
+
+  if (!m_gridIndex.empty() &&
+      !m_epgItemsPtr.empty() &&
+      m_channelCursor + m_channelOffset < m_channels &&
+      m_blockCursor + m_blockOffset < m_blocks)
+    item = m_gridIndex[m_channelCursor + m_channelOffset][m_blockCursor + m_blockOffset].item;
+
+  return item;
 }
 
 CEpgInfoTagPtr CGUIEPGGridContainer::GetSelectedEpgInfoTag() const

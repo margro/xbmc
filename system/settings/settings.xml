@@ -481,6 +481,11 @@
           <default>false</default>
           <control type="toggle" />
         </setting>
+        <setting id="videolibrary.showemptytvshows" type="boolean" label="20471" help="36163">
+          <level>1</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
       </group>
       <group id="2">
         <setting id="videolibrary.updateonstartup" type="boolean" label="22000" help="36146">
@@ -1479,27 +1484,19 @@
         </setting>
         <setting id="pvrrecord.marginstart" type="integer" label="19175" help="36237">
           <level>2</level>
-          <default>0</default>
+          <default>0</default> <!-- 0 mins -->
           <constraints>
-            <minimum>0</minimum>
-            <step>1</step>
-            <maximum>60</maximum>
+            <options>pvrrecordmargins</options>
           </constraints>
-          <control type="spinner" format="string">
-            <formatlabel>14044</formatlabel>
-          </control>
+          <control type="list" format="string"/>
         </setting>
         <setting id="pvrrecord.marginend" type="integer" label="19176" help="36238">
           <level>2</level>
-          <default>0</default>
+          <default>0</default> <!-- 0 mins -->
           <constraints>
-            <minimum>0</minimum>
-            <step>1</step>
-            <maximum>60</maximum>
+            <options>pvrrecordmargins</options>
           </constraints>
-          <control type="spinner" format="string">
-            <formatlabel>14044</formatlabel>
-          </control>
+          <control type="list" format="string"/>
         </setting>
         <setting id="pvrrecord.preventduplicateepisodes" type="integer" label="812" help="36423">
           <level>2</level>
@@ -1865,13 +1862,6 @@
             <heading>16016</heading>
           </control>
         </setting>
-        <setting id="musicfiles.trackformatright" type="string" label="13387" help="36276">
-          <level>2</level>
-          <default>%D</default>
-          <control type="edit" format="string">
-            <heading>16016</heading>
-          </control>
-        </setting>
         <setting id="musicfiles.nowplayingtrackformat" type="string" label="13307" help="36277">
           <level>4</level>
           <default></default>
@@ -1882,27 +1872,7 @@
             <heading>16016</heading>
           </control>
         </setting>
-        <setting id="musicfiles.nowplayingtrackformatright" type="string" label="13387" help="36278">
-          <level>4</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-            <heading>16016</heading>
-          </control>
-        </setting>
         <setting id="musicfiles.librarytrackformat" type="string" label="13307" help="36279">
-          <level>4</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-            <heading>16016</heading>
-          </control>
-        </setting>
-        <setting id="musicfiles.librarytrackformatright" type="string" label="13387" help="36280">
           <level>4</level>
           <default></default>
           <constraints>
@@ -1976,94 +1946,6 @@
           <level>1</level>
           <default>true</default>
           <control type="toggle" />
-        </setting>
-      </group>
-    </category>
-    <category id="karaoke" label="13327" help="36292">
-      <requirement>HAS_KARAOKE</requirement>
-      <group id="1">
-        <setting id="karaoke.enabled" type="boolean" label="13323" help="36293">
-          <level>2</level>
-          <default>false</default>
-          <control type="toggle" />
-        </setting>
-        <setting id="karaoke.autopopupselector" type="boolean" label="22037" help="36294">
-          <level>2</level>
-          <default>false</default>
-          <dependencies>
-            <dependency type="enable" setting="karaoke.enabled">true</dependency>
-          </dependencies>
-          <control type="toggle" />
-        </setting>
-      </group>
-      <group id="2">
-        <setting id="karaoke.font" type="string" label="22030" help="36295">
-          <level>2</level>
-          <default>arial.ttf</default>
-          <constraints>
-            <options>fonts</options>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="karaoke.enabled">true</dependency>
-          </dependencies>
-          <control type="list" format="string" />
-        </setting>
-        <setting id="karaoke.fontheight" type="integer" parent="karaoke.font" label="22031" help="36296">
-          <level>2</level>
-          <default>36</default>
-          <constraints>
-            <minimum>16</minimum>
-            <step>2</step>
-            <maximum>74</maximum>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="karaoke.enabled">true</dependency>
-            <dependency type="update" setting="karaoke.font" />
-          </dependencies>
-          <control type="spinner" format="string" />
-        </setting>
-        <setting id="karaoke.fontcolors" type="integer" parent="karaoke.font" label="22032" help="36297">
-          <level>2</level>
-          <default>0</default> <!-- white/green -->
-          <constraints>
-            <options>
-              <option label="22040">0</option> <!-- white/green -->
-              <option label="22041">1</option> <!-- white/red -->
-              <option label="22042">2</option> <!-- white/blue -->
-              <option label="22043">3</option> <!-- black/white -->
-            </options>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="karaoke.enabled">true</dependency>
-          </dependencies>
-          <control type="list" format="string" />
-        </setting>
-        <setting id="karaoke.charset" type="string" parent="karaoke.font" label="22033" help="36298">
-          <level>2</level>
-          <default>DEFAULT</default>
-          <constraints>
-            <options>charsets</options>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="karaoke.enabled">true</dependency>
-          </dependencies>
-          <control type="list" format="string" />
-        </setting>
-      </group>
-      <group id="3">
-        <setting id="karaoke.export" type="action" label="22038" help="36299">
-          <level>2</level>
-          <dependencies>
-            <dependency type="enable" setting="karaoke.enabled">true</dependency>
-          </dependencies>
-          <control type="button" format="action" />
-        </setting>
-        <setting id="karaoke.importcsv" type="action" label="22036" help="36300">
-          <level>2</level>
-          <dependencies>
-            <dependency type="enable" setting="karaoke.enabled">true</dependency>
-          </dependencies>
-          <control type="button" format="action" />
         </setting>
       </group>
     </category>
@@ -2413,7 +2295,7 @@
             <hidden>true</hidden>
           </control>
         </setting>
-        <setting id="services.airplayios8compat" type="boolean" parent="services.airplay" label="1268" help="36549">
+        <setting id="services.airplayvideosupport" type="boolean" parent="services.airplay" label="1268" help="36549">
           <level>3</level>
           <default>true</default>
           <dependencies>

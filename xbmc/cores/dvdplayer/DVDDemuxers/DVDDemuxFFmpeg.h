@@ -80,7 +80,6 @@ public:
 
 };
 
-#define FFMPEG_FILE_BUFFER_SIZE   32768 // default reading size for ffmpeg
 #define FFMPEG_DVDNAV_BUFFER_SIZE 2048  // for dvd's
 
 struct StereoModeConversionMap;
@@ -143,6 +142,7 @@ protected:
   std::string ConvertCodecToInternalStereoMode(const std::string &mode, const StereoModeConversionMap *conversionMap);
 
   void GetL16Parameters(int &channels, int &samplerate);
+  double SelectAspect(AVStream* st, bool& forced);
 
   CCriticalSection m_critSection;
   std::map<int, CDemuxStream*> m_streams;

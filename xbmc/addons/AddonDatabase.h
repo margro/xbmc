@@ -48,8 +48,8 @@ public:
   bool GetAvailableVersions(const std::string& addonId,
       std::vector<std::pair<ADDON::AddonVersion, std::string>>& versionsInfo);
 
-  /*! \brief grab the (largest) add-on version for an add-on */
-  ADDON::AddonVersion GetAddonVersion(const std::string &id);
+  /*! Get the most recent version for an add-on and the repo id it belongs to*/
+  std::pair<ADDON::AddonVersion, std::string> GetAddonVersion(const std::string &id);
 
   int AddRepository(const std::string& id, const ADDON::VECADDONS& addons, const std::string& checksum, const ADDON::AddonVersion& version);
   void DeleteRepository(const std::string& id);
@@ -82,25 +82,11 @@ public:
    \sa IsAddonDisabled, HasDisabledAddons */
   bool DisableAddon(const std::string &addonID, bool disable = true);
 
-  /*! \brief Checks if an addon is in the database.
-   \param addonID id of the addon to be checked
-   \return true if addon is in database, false if addon is not in database yet */
-  bool HasAddon(const std::string &addonID);
-  
   /*! \brief Check whether an addon has been disabled via DisableAddon.
    \param addonID id of the addon to check
    \return true if the addon is disabled, false otherwise
    \sa DisableAddon, HasDisabledAddons */
   bool IsAddonDisabled(const std::string &addonID);
-
-  /*! \brief Check whether we have disabled addons.
-   \return true if we have disabled addons, false otherwise
-   \sa DisableAddon, IsAddonDisabled */
-  bool HasDisabledAddons();
-
-  /*! @deprecated only here to allow clean upgrades from earlier pvr versions
-   */
-  bool IsSystemPVRAddonEnabled(const std::string &addonID);
 
   /*! \brief Mark an addon as broken
    Sets a flag that this addon has been marked as broken in the repository.
@@ -117,11 +103,8 @@ public:
   std::string IsAddonBroken(const std::string &addonID);
 
   bool BlacklistAddon(const std::string& addonID);
-  bool BlacklistAddon(const std::string& addonID, const std::string& version);
-  bool IsAddonBlacklisted(const std::string& addonID, const std::string& version);
   bool RemoveAddonFromBlacklist(const std::string& addonID);
-  bool RemoveAddonFromBlacklist(const std::string& addonID,
-                                const std::string& version);
+  bool GetBlacklisted(std::vector<std::string>& addons);
 
   /*! \brief Store an addon's package filename and that file's hash for future verification
       \param  addonID         id of the addon we're adding a package for
@@ -160,12 +143,15 @@ public:
   */
   bool IsSystemAddonRegistered(const std::string &addonID);
 
+  /*! Clear internal fields that shouldn't be kept around indefinitely */
+  void OnPostUnInstall(const std::string& addonId);
+
 protected:
   virtual void CreateTables();
   virtual void CreateAnalytics();
   virtual void UpdateTables(int version);
   virtual int GetMinSchemaVersion() const { return 15; }
-  virtual int GetSchemaVersion() const { return 19; }
+  virtual int GetSchemaVersion() const { return 20; }
   const char *GetBaseDBName() const { return "Addons"; }
 
   bool GetAddon(int id, ADDON::AddonPtr& addon);

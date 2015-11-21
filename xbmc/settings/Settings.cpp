@@ -63,6 +63,7 @@
 #include "powermanagement/PowerManager.h"
 #include "profiles/ProfilesManager.h"
 #include "pvr/PVRManager.h"
+#include "pvr/PVRSettings.h"
 #include "pvr/windows/GUIWindowPVRGuide.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
@@ -142,6 +143,7 @@ const std::string CSettings::SETTING_VIDEOLIBRARY_BACKGROUNDUPDATE = "videolibra
 const std::string CSettings::SETTING_VIDEOLIBRARY_CLEANUP = "videolibrary.cleanup";
 const std::string CSettings::SETTING_VIDEOLIBRARY_EXPORT = "videolibrary.export";
 const std::string CSettings::SETTING_VIDEOLIBRARY_IMPORT = "videolibrary.import";
+const std::string CSettings::SETTING_VIDEOLIBRARY_SHOWEMPTYTVSHOWS = "videolibrary.showemptytvshows";
 const std::string CSettings::SETTING_LOCALE_AUDIOLANGUAGE = "locale.audiolanguage";
 const std::string CSettings::SETTING_VIDEOPLAYER_PREFERDEFAULTFLAG = "videoplayer.preferdefaultflag";
 const std::string CSettings::SETTING_VIDEOPLAYER_AUTOPLAYNEXTITEM = "videoplayer.autoplaynextitem";
@@ -160,6 +162,7 @@ const std::string CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD = "videoplayer.ren
 const std::string CSettings::SETTING_VIDEOPLAYER_HQSCALERS = "videoplayer.hqscalers";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEAMCODEC = "videoplayer.useamcodec";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEMEDIACODEC = "videoplayer.usemediacodec";
+const std::string CSettings::SETTING_VIDEOPLAYER_USEMEDIACODECSURFACE = "videoplayer.usemediacodecsurface";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEVDPAU = "videoplayer.usevdpau";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEVDPAUMIXER = "videoplayer.usevdpaumixer";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEVDPAUMPEG2 = "videoplayer.usevdpaumpeg2";
@@ -281,11 +284,8 @@ const std::string CSettings::SETTING_MUSICPLAYER_CROSSFADEALBUMTRACKS = "musicpl
 const std::string CSettings::SETTING_MUSICPLAYER_VISUALISATION = "musicplayer.visualisation";
 const std::string CSettings::SETTING_MUSICFILES_USETAGS = "musicfiles.usetags";
 const std::string CSettings::SETTING_MUSICFILES_TRACKFORMAT = "musicfiles.trackformat";
-const std::string CSettings::SETTING_MUSICFILES_TRACKFORMATRIGHT = "musicfiles.trackformatright";
 const std::string CSettings::SETTING_MUSICFILES_NOWPLAYINGTRACKFORMAT = "musicfiles.nowplayingtrackformat";
-const std::string CSettings::SETTING_MUSICFILES_NOWPLAYINGTRACKFORMATRIGHT = "musicfiles.nowplayingtrackformatright";
 const std::string CSettings::SETTING_MUSICFILES_LIBRARYTRACKFORMAT = "musicfiles.librarytrackformat";
-const std::string CSettings::SETTING_MUSICFILES_LIBRARYTRACKFORMATRIGHT = "musicfiles.librarytrackformatright";
 const std::string CSettings::SETTING_MUSICFILES_FINDREMOTETHUMBS = "musicfiles.findremotethumbs";
 const std::string CSettings::SETTING_AUDIOCDS_AUTOACTION = "audiocds.autoaction";
 const std::string CSettings::SETTING_AUDIOCDS_USECDDB = "audiocds.usecddb";
@@ -294,14 +294,6 @@ const std::string CSettings::SETTING_AUDIOCDS_TRACKPATHFORMAT = "audiocds.trackp
 const std::string CSettings::SETTING_AUDIOCDS_ENCODER = "audiocds.encoder";
 const std::string CSettings::SETTING_AUDIOCDS_SETTINGS = "audiocds.settings";
 const std::string CSettings::SETTING_AUDIOCDS_EJECTONRIP = "audiocds.ejectonrip";
-const std::string CSettings::SETTING_KARAOKE_ENABLED = "karaoke.enabled";
-const std::string CSettings::SETTING_KARAOKE_AUTOPOPUPSELECTOR = "karaoke.autopopupselector";
-const std::string CSettings::SETTING_KARAOKE_FONT = "karaoke.font";
-const std::string CSettings::SETTING_KARAOKE_FONTHEIGHT = "karaoke.fontheight";
-const std::string CSettings::SETTING_KARAOKE_FONTCOLORS = "karaoke.fontcolors";
-const std::string CSettings::SETTING_KARAOKE_CHARSET = "karaoke.charset";
-const std::string CSettings::SETTING_KARAOKE_EXPORT = "karaoke.export";
-const std::string CSettings::SETTING_KARAOKE_IMPORTCSV = "karaoke.importcsv";
 const std::string CSettings::SETTING_MYMUSIC_STARTWINDOW = "mymusic.startwindow";
 const std::string CSettings::SETTING_MYMUSIC_SONGTHUMBINVIS = "mymusic.songthumbinvis";
 const std::string CSettings::SETTING_MYMUSIC_DEFAULTLIBVIEW = "mymusic.defaultlibview";
@@ -337,7 +329,7 @@ const std::string CSettings::SETTING_SERVICES_AIRPLAY = "services.airplay";
 const std::string CSettings::SETTING_SERVICES_AIRPLAYVOLUMECONTROL = "services.airplayvolumecontrol";
 const std::string CSettings::SETTING_SERVICES_USEAIRPLAYPASSWORD = "services.useairplaypassword";
 const std::string CSettings::SETTING_SERVICES_AIRPLAYPASSWORD = "services.airplaypassword";
-const std::string CSettings::SETTING_SERVICES_AIRPLAYIOS8COMPAT = "services.airplayios8compat";
+const std::string CSettings::SETTING_SERVICES_AIRPLAYVIDEOSUPPORT = "services.airplayvideosupport";
 const std::string CSettings::SETTING_SMB_WINSSERVER = "smb.winsserver";
 const std::string CSettings::SETTING_SMB_WORKGROUP = "smb.workgroup";
 const std::string CSettings::SETTING_VIDEOSCREEN_MONITOR = "videoscreen.monitor";
@@ -595,6 +587,7 @@ void CSettings::Uninitialize()
 #endif // defined(TARGET_LINUX)
   m_settingsManager->UnregisterSettingOptionsFiller("verticalsyncs");
   m_settingsManager->UnregisterSettingOptionsFiller("keyboardlayouts");
+  m_settingsManager->UnregisterSettingOptionsFiller("pvrrecordmargins");
 
   // unregister ISettingCallback implementations
   m_settingsManager->UnregisterCallback(&CEventLog::GetInstance());
@@ -823,10 +816,6 @@ bool CSettings::InitializeDefinitions()
 #elif defined(TARGET_DARWIN_IOS)
   if (CFile::Exists(SETTINGS_XML_FOLDER "darwin_ios.xml") && !Initialize(SETTINGS_XML_FOLDER "darwin_ios.xml"))
     CLog::Log(LOGFATAL, "Unable to load ios-specific settings definitions");
-#if defined(TARGET_DARWIN_IOS_ATV2)
-  if (CFile::Exists(SETTINGS_XML_FOLDER "darwin_ios_atv2.xml") && !Initialize(SETTINGS_XML_FOLDER "darwin_ios_atv2.xml"))
-    CLog::Log(LOGFATAL, "Unable to load atv2-specific settings definitions");
-#endif
 #endif
 #endif
 
@@ -867,7 +856,7 @@ void CSettings::InitializeVisibility()
   CSettingString* timezonecountry = (CSettingString*)m_settingsManager->GetSetting(CSettings::SETTING_LOCALE_TIMEZONECOUNTRY);
   CSettingString* timezone = (CSettingString*)m_settingsManager->GetSetting(CSettings::SETTING_LOCALE_TIMEZONE);
 
-  if (!g_sysinfo.IsAppleTV2() || CDarwinUtils::GetIOSVersion() >= 4.3)
+  if (CDarwinUtils::GetIOSVersion() >= 4.3)
   {
     timezonecountry->SetRequirementsMet(false);
     timezone->SetRequirementsMet(false);
@@ -878,7 +867,7 @@ void CSettings::InitializeVisibility()
 void CSettings::InitializeDefaults()
 {
   // set some default values if necessary
-#if defined(HAS_TOUCH_SKIN) && defined(TARGET_DARWIN_IOS) && !defined(TARGET_DARWIN_IOS_ATV2)
+#if defined(HAS_TOUCH_SKIN) && defined(TARGET_DARWIN_IOS)
   ((CSettingAddon*)m_settingsManager->GetSetting(CSettings::SETTING_LOOKANDFEEL_SKIN))->SetDefault("skin.re-touched");
 #endif
 
@@ -966,6 +955,7 @@ void CSettings::InitializeOptionFillers()
   m_settingsManager->RegisterSettingOptionsFiller("verticalsyncs", CDisplaySettings::SettingOptionsVerticalSyncsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("keyboardlayouts", CKeyboardLayoutManager::SettingOptionsKeyboardLayoutsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("loggingcomponents", CAdvancedSettings::SettingOptionsLoggingComponentsFiller);
+  m_settingsManager->RegisterSettingOptionsFiller("pvrrecordmargins", PVR::CPVRSettings::MarginTimeFiller);
 }
 
 void CSettings::InitializeConditions()
@@ -1029,13 +1019,10 @@ void CSettings::InitializeISettingCallbacks()
   m_settingsManager->RegisterCallback(&g_advancedSettings, settingSet);
 
   settingSet.clear();
-  settingSet.insert(CSettings::SETTING_KARAOKE_EXPORT);
-  settingSet.insert(CSettings::SETTING_KARAOKE_IMPORTCSV);
   settingSet.insert(CSettings::SETTING_MUSICLIBRARY_CLEANUP);
   settingSet.insert(CSettings::SETTING_MUSICLIBRARY_EXPORT);
   settingSet.insert(CSettings::SETTING_MUSICLIBRARY_IMPORT);
   settingSet.insert(CSettings::SETTING_MUSICFILES_TRACKFORMAT);
-  settingSet.insert(CSettings::SETTING_MUSICFILES_TRACKFORMATRIGHT);
   settingSet.insert(CSettings::SETTING_VIDEOLIBRARY_FLATTENTVSHOWS);
   settingSet.insert(CSettings::SETTING_VIDEOLIBRARY_REMOVE_DUPLICATES);
   settingSet.insert(CSettings::SETTING_VIDEOLIBRARY_GROUPMOVIESETS);
@@ -1103,6 +1090,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_VIDEOSCREEN_TESTPATTERN);
   settingSet.insert(CSettings::SETTING_VIDEOPLAYER_USEAMCODEC);
   settingSet.insert(CSettings::SETTING_VIDEOPLAYER_USEMEDIACODEC);
+  settingSet.insert(CSettings::SETTING_VIDEOPLAYER_USEMEDIACODECSURFACE);
   m_settingsManager->RegisterCallback(&g_application, settingSet);
 
   settingSet.clear();
@@ -1111,7 +1099,6 @@ void CSettings::InitializeISettingCallbacks()
 
   settingSet.clear();
   settingSet.insert(CSettings::SETTING_SUBTITLES_CHARSET);
-  settingSet.insert(CSettings::SETTING_KARAOKE_CHARSET);
   settingSet.insert(CSettings::SETTING_LOCALE_CHARSET);
   m_settingsManager->RegisterCallback(&g_charsetConverter, settingSet);
 
@@ -1145,6 +1132,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_SERVICES_ZEROCONF);
   settingSet.insert(CSettings::SETTING_SERVICES_AIRPLAY);
   settingSet.insert(CSettings::SETTING_SERVICES_AIRPLAYVOLUMECONTROL);
+  settingSet.insert(CSettings::SETTING_SERVICES_AIRPLAYVIDEOSUPPORT);
   settingSet.insert(CSettings::SETTING_SERVICES_USEAIRPLAYPASSWORD);
   settingSet.insert(CSettings::SETTING_SERVICES_AIRPLAYPASSWORD);
   settingSet.insert(CSettings::SETTING_SERVICES_UPNPSERVER);

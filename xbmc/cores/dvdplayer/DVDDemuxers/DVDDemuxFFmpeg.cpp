@@ -1030,16 +1030,25 @@ int CDVDDemuxFFmpeg::GetNrOfStreams()
   return m_stream_index.size();
 }
 
-static double SelectAspect(AVStream* st, bool* forced)
+double CDVDDemuxFFmpeg::SelectAspect(AVStream* st, bool& forced)
 {
-  *forced = false;
-  /* if stream aspect is 1:1 or 0:0 use codec aspect */
-  if((st->sample_aspect_ratio.den == 1 || st->sample_aspect_ratio.den == 0)
-  && (st->sample_aspect_ratio.num == 1 || st->sample_aspect_ratio.num == 0)
-  && st->codec->sample_aspect_ratio.num != 0)
-    return av_q2d(st->codec->sample_aspect_ratio);
+  // trust matroshka container
+  if (m_bMatroska && st->sample_aspect_ratio.num != 0)
+  {
+    forced = true;
+    return av_q2d(st->sample_aspect_ratio);
+  }
 
-  *forced = true;
+  forced = false;
+  /* if stream aspect is 1:1 or 0:0 use codec aspect */
+  if((st->sample_aspect_ratio.den == 1 || st->sample_aspect_ratio.den == 0) &&
+     (st->sample_aspect_ratio.num == 1 || st->sample_aspect_ratio.num == 0) &&
+      st->codec->sample_aspect_ratio.num != 0)
+  {
+    return av_q2d(st->codec->sample_aspect_ratio);
+  }
+
+  forced = true;
   if(st->sample_aspect_ratio.num != 0)
     return av_q2d(st->sample_aspect_ratio);
 
@@ -1184,7 +1193,7 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
 
         st->iWidth = pStream->codec->width;
         st->iHeight = pStream->codec->height;
-        st->fAspect = SelectAspect(pStream, &st->bForcedAspect) * pStream->codec->width / pStream->codec->height;
+        st->fAspect = SelectAspect(pStream, st->bForcedAspect) * pStream->codec->width / pStream->codec->height;
         st->iOrientation = 0;
         st->iBitsPerPixel = pStream->codec->bits_per_coded_sample;
 
@@ -1282,9 +1291,6 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int iId)
         break;
       }
     }
-
-    // set ffmpeg type
-    stream->orig_type = pStream->codec->codec_type;
 
     // generic stuff
     if (pStream->duration != (int64_t)AV_NOPTS_VALUE)
@@ -1552,9 +1558,9 @@ bool CDVDDemuxFFmpeg::IsProgramChange()
   {
     int idx = m_pFormatContext->programs[m_program]->stream_index[i];
     CDemuxStream *stream = GetStreamInternal(idx);
-    if(!stream)
+    if (!stream)
       return true;
-    if(m_pFormatContext->streams[idx]->codec->codec_type != stream->orig_type)
+    if (m_pFormatContext->streams[idx]->codec->codec_id != stream->codec)
       return true;
   }
   return false;

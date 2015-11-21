@@ -153,7 +153,7 @@ bool CGUIWindowVideoBase::OnMessage(CGUIMessage& message)
         }
         else if (iAction == ACTION_SHOW_INFO)
         {
-          return OnInfo(iItem);
+          return OnItemInfo(iItem);
         }
         else if (iAction == ACTION_PLAYER_PLAY)
         {
@@ -201,7 +201,7 @@ bool CGUIWindowVideoBase::OnMessage(CGUIMessage& message)
   return CGUIMediaWindow::OnMessage(message);
 }
 
-void CGUIWindowVideoBase::OnInfo(CFileItem* pItem, ADDON::ScraperPtr& scraper)
+void CGUIWindowVideoBase::OnItemInfo(CFileItem* pItem, ADDON::ScraperPtr& scraper)
 {
   if (!pItem)
     return;
@@ -377,6 +377,8 @@ bool CGUIWindowVideoBase::ShowIMDB(CFileItemPtr item, const ScraperPtr &info2, b
     *item->GetVideoInfoTag() = movieDetails;
     pDlgInfo->SetMovie(item.get());
     pDlgInfo->Open();
+    if (pDlgInfo->HasUpdatedUserrating())
+      return true;
     needsRefresh = pDlgInfo->NeedRefresh();
     if (!needsRefresh)
       return pDlgInfo->HasUpdatedThumb();
@@ -671,7 +673,7 @@ bool CGUIWindowVideoBase::OnFileAction(int iItem, int action)
   case SELECT_ACTION_PLAY_OR_RESUME:
     return OnResumeItem(iItem);
   case SELECT_ACTION_INFO:
-    if (OnInfo(iItem))
+    if (OnItemInfo(iItem))
       return true;
     break;
   case SELECT_ACTION_MORE:
@@ -691,7 +693,7 @@ bool CGUIWindowVideoBase::OnFileAction(int iItem, int action)
   return OnClick(iItem);
 }
 
-bool CGUIWindowVideoBase::OnInfo(int iItem) 
+bool CGUIWindowVideoBase::OnItemInfo(int iItem) 
 {
   if (iItem < 0 || iItem >= m_vecItems->Size())
     return false;
@@ -734,9 +736,12 @@ bool CGUIWindowVideoBase::OnInfo(int iItem)
       return true;
   }
 
-  OnInfo(item.get(), scraper);
+  OnItemInfo(item.get(), scraper);
 
-  return true;
+  // Return whether or not we have information to display.
+  // Note: This will cause the default select action to start
+  // playback in case it's set to "Show information".
+  return item->HasVideoInfoTag();
 }
 
 void CGUIWindowVideoBase::OnRestartItem(int iItem)
@@ -1032,7 +1037,7 @@ bool CGUIWindowVideoBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     return OnFileAction(itemNumber, SELECT_ACTION_RESUME);
 
   case CONTEXT_BUTTON_INFO:
-    OnInfo(itemNumber);
+    OnItemInfo(itemNumber);
     return true;
 
   case CONTEXT_BUTTON_STOP_SCANNING:
@@ -1063,7 +1068,7 @@ bool CGUIWindowVideoBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
         OnScan(strPath, true);
       }
       else
-        OnInfo(item.get(),info);
+        OnItemInfo(item.get(),info);
 
       return true;
     }
@@ -1711,9 +1716,8 @@ void CGUIWindowVideoBase::OnAssignContent(const std::string &path)
       if (OnUnAssignContent(path, 20442, 20443))
         bScan = true;
     }
+    db.SetScraperForPath(path, info, settings);
   }
-
-  db.SetScraperForPath(path,info,settings);
 
   if (bScan)
   {

@@ -25,6 +25,7 @@
 #include <taglib/id3v1tag.h>
 #include <taglib/id3v2tag.h>
 #include <taglib/apetag.h>
+#include <taglib/asftag.h>
 #include <taglib/xiphcomment.h>
 #include <taglib/id3v1genres.h>
 
@@ -76,7 +77,6 @@ CTagLoaderTagLib::CTagLoaderTagLib()
 
 CTagLoaderTagLib::~CTagLoaderTagLib()
 {
-  
 }
 
 static const std::vector<std::string> StringListToVectorString(const StringList& stringList)
@@ -92,173 +92,9 @@ bool CTagLoaderTagLib::Load(const std::string& strFileName, MUSIC_INFO::CMusicIn
   return Load(strFileName, tag, "", art);
 }
 
-bool CTagLoaderTagLib::Load(const std::string& strFileName, CMusicInfoTag& tag, const std::string& fallbackFileExtension, MUSIC_INFO::EmbeddedArt *art /* = NULL */)
-{  
-  std::string strExtension = URIUtils::GetExtension(strFileName);
-  StringUtils::ToLower(strExtension);
-  StringUtils::TrimLeft(strExtension, ".");
 
-  if (strExtension.empty())
-  {
-    strExtension = fallbackFileExtension;
-    if (strExtension.empty())
-      return false;
-    StringUtils::ToLower(strExtension);
-  }
-
-  TagLibVFSStream*           stream = new TagLibVFSStream(strFileName, true);
-  if (!stream)
-  {
-    CLog::Log(LOGERROR, "could not create TagLib VFS stream for: %s", strFileName.c_str());
-    return false;
-  }
-  
-  ID3v1::Tag::setStringHandler(&ID3v1StringHandler);
-  ID3v2::Tag::setLatin1StringHandler(&ID3v2StringHandler);
-  TagLib::File*              file = NULL;
-  TagLib::APE::File*         apeFile = NULL;
-  TagLib::ASF::File*         asfFile = NULL;
-  TagLib::FLAC::File*        flacFile = NULL;
-  TagLib::IT::File*          itFile = NULL;
-  TagLib::Mod::File*         modFile = NULL;
-  TagLib::MP4::File*         mp4File = NULL;
-  TagLib::MPC::File*         mpcFile = NULL;
-  TagLib::MPEG::File*        mpegFile = NULL;
-  TagLib::Ogg::Vorbis::File* oggVorbisFile = NULL;
-  TagLib::Ogg::FLAC::File*   oggFlacFile = NULL;
-  TagLib::S3M::File*         s3mFile = NULL;
-  TagLib::TrueAudio::File*   ttaFile = NULL;
-  TagLib::WavPack::File*     wvFile = NULL;
-  TagLib::XM::File*          xmFile = NULL;
-  TagLib::RIFF::WAV::File *  wavFile = NULL;
-  TagLib::RIFF::AIFF::File * aiffFile = NULL;
-
-  if (strExtension == "ape")
-    file = apeFile = new APE::File(stream);
-  else if (strExtension == "asf" || strExtension == "wmv" || strExtension == "wma")
-    file = asfFile = new ASF::File(stream);
-  else if (strExtension == "flac")
-    file = flacFile = new FLAC::File(stream, ID3v2::FrameFactory::instance());
-  else if (strExtension == "it")
-    file = itFile = new IT::File(stream);
-  else if (strExtension == "mod" || strExtension == "module" || strExtension == "nst" || strExtension == "wow")
-    file = modFile = new Mod::File(stream);
-  else if (strExtension == "mp4" || strExtension == "m4a" || 
-           strExtension == "m4r" || strExtension == "m4b" || 
-           strExtension == "m4p" || strExtension == "3g2")
-    file = mp4File = new MP4::File(stream);
-  else if (strExtension == "mpc")
-    file = mpcFile = new MPC::File(stream);
-  else if (strExtension == "mp3" || strExtension == "aac")
-    file = mpegFile = new MPEG::File(stream, ID3v2::FrameFactory::instance());
-  else if (strExtension == "s3m")
-    file = s3mFile = new S3M::File(stream);
-  else if (strExtension == "tta")
-    file = ttaFile = new TrueAudio::File(stream, ID3v2::FrameFactory::instance());
-  else if (strExtension == "wv")
-    file = wvFile = new WavPack::File(stream);
-  else if (strExtension == "aif" || strExtension == "aiff")
-    file = aiffFile = new RIFF::AIFF::File(stream);
-  else if (strExtension == "wav")
-    file = wavFile = new RIFF::WAV::File(stream);
-  else if (strExtension == "xm")
-    file = xmFile = new XM::File(stream);
-  else if (strExtension == "ogg")
-    file = oggVorbisFile = new Ogg::Vorbis::File(stream);
-  else if (strExtension == "oga") // Leave this madness until last - oga container can have Vorbis or FLAC
-  {
-    file = oggFlacFile = new Ogg::FLAC::File(stream);
-    if (!file || !file->isValid())
-    {
-      delete file;
-      oggFlacFile = NULL;
-      file = oggVorbisFile = new Ogg::Vorbis::File(stream);
-    }
-  }
-
-  if (!file || !file->isOpen())
-  {
-    delete file;
-    delete stream;
-    CLog::Log(LOGDEBUG, "file could not be opened for tag reading");
-    return false;
-  }
-
-  APE::Tag *ape = NULL;
-  ASF::Tag *asf = NULL;
-  MP4::Tag *mp4 = NULL;
-  ID3v1::Tag *id3v1 = NULL;
-  ID3v2::Tag *id3v2 = NULL;
-  Ogg::XiphComment *xiph = NULL;
-  Tag *generic = NULL;
-
-  if (apeFile)
-    ape = apeFile->APETag(false);
-  else if (asfFile)
-    asf = asfFile->tag();
-  else if (flacFile)
-  {
-    xiph = flacFile->xiphComment(false);
-    id3v2 = flacFile->ID3v2Tag(false);
-  }
-  else if (mp4File)
-    mp4 = mp4File->tag();
-  else if (mpegFile)
-  {
-    id3v1 = mpegFile->ID3v1Tag(false);
-    id3v2 = mpegFile->ID3v2Tag(false);
-    ape = mpegFile->APETag(false);
-  }
-  else if (oggFlacFile)
-    xiph = dynamic_cast<Ogg::XiphComment *>(oggFlacFile->tag());
-  else if (oggVorbisFile)
-    xiph = dynamic_cast<Ogg::XiphComment *>(oggVorbisFile->tag());
-  else if (ttaFile)
-    id3v2 = ttaFile->ID3v2Tag(false);
-  else if (aiffFile)
-    id3v2 = aiffFile->tag();
-  else if (wavFile)
-    id3v2 = wavFile->tag();
-  else if (wvFile)
-    ape = wvFile->APETag(false);
-  else if (mpcFile)
-    ape = mpcFile->APETag(false);
-  else    // This is a catch all to get generic information for other files types (s3m, xm, it, mod, etc)
-    generic = file->tag();
-
-  if (file->audioProperties())
-    tag.SetDuration(file->audioProperties()->length());
-
-  if (asf)
-    ParseASF(asf, art, tag);
-  if (id3v1)
-    ParseID3v1Tag(id3v1, art, tag);
-  if (id3v2)
-    ParseID3v2Tag(id3v2, art, tag);
-  if (generic)
-    ParseGenericTag(generic, art, tag);
-  if (mp4)
-    ParseMP4Tag(mp4, art, tag);
-  if (xiph) // xiph tags override id3v2 tags in badly tagged FLACs
-    ParseXiphComment(xiph, art, tag);
-  if (ape && (!id3v2 || g_advancedSettings.m_prioritiseAPEv2tags)) // ape tags override id3v2 if we're prioritising them
-    ParseAPETag(ape, art, tag);
-
-  // art for flac files is outside the tag
-  if (flacFile)
-    SetFlacArt(flacFile, art, tag);
-
-  if (!tag.GetTitle().empty() || !tag.GetArtist().empty() || !tag.GetAlbum().empty())
-    tag.SetLoaded();
-  tag.SetURL(strFileName);
-
-  delete file;
-  delete stream;
-  
-  return true;
-}
-
-bool CTagLoaderTagLib::ParseASF(ASF::Tag *asf, EmbeddedArt *art, CMusicInfoTag& tag)
+template<>
+bool CTagLoaderTagLib::ParseTag(ASF::Tag *asf, EmbeddedArt *art, CMusicInfoTag& tag)
 {
   if (!asf)
     return false;
@@ -334,12 +170,14 @@ bool CTagLoaderTagLib::ParseASF(ASF::Tag *asf, EmbeddedArt *art, CMusicInfoTag& 
   if (tag.GetArtist().empty())
     tag.SetArtist(asf->artist().toCString(true));
 
+  if (asf->comment() != String::null)
+    tag.SetComment(asf->comment().toCString(true));
   tag.SetReplayGain(replayGainInfo);
   tag.SetLoaded(true);
   return true;
 }
 
-char POPMtoXBMC(int popm)
+char CTagLoaderTagLib::POPMtoXBMC(int popm)
 {
   // Ratings:
   // FROM: http://thiagoarrais.com/repos/banshee/src/Core/Banshee.Core/Banshee.Streaming/StreamRatingTagger.cs
@@ -360,7 +198,8 @@ char POPMtoXBMC(int popm)
   return '5';
 }
 
-bool CTagLoaderTagLib::ParseID3v1Tag(ID3v1::Tag *id3v1, EmbeddedArt *art, CMusicInfoTag& tag)
+template<>
+bool CTagLoaderTagLib::ParseTag(ID3v1::Tag *id3v1, EmbeddedArt *art, CMusicInfoTag& tag)
 {
   if (!id3v1) return false;
   tag.SetTitle(id3v1->title().to8Bit(true));
@@ -373,17 +212,20 @@ bool CTagLoaderTagLib::ParseID3v1Tag(ID3v1::Tag *id3v1, EmbeddedArt *art, CMusic
   return true;
 }
 
-bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusicInfoTag& tag)
+template<>
+bool CTagLoaderTagLib::ParseTag(ID3v2::Tag *id3v2, MUSIC_INFO::EmbeddedArt *art, MUSIC_INFO::CMusicInfoTag& tag)
 {
-  //  tag.SetURL(strFile);
   if (!id3v2) return false;
-
   ReplayGain replayGainInfo;
 
   ID3v2::AttachedPictureFrame *pictures[3] = {};
   const ID3v2::FrameListMap& frameListMap = id3v2->frameListMap();
   for (ID3v2::FrameListMap::ConstIterator it = frameListMap.begin(); it != frameListMap.end(); ++it)
   {
+    // It is possible that the taglist is empty. In that case no useable values can be extracted.
+    // and we should skip the tag.
+    if (it->second.isEmpty()) continue;
+
     if      (it->first == "TPE1")   SetArtist(tag, GetID3v2StringList(it->second));
     else if (it->first == "TALB")   tag.SetAlbum(it->second.front()->toString().to8Bit(true));
     else if (it->first == "TPE2")   SetAlbumArtist(tag, GetID3v2StringList(it->second));
@@ -405,7 +247,7 @@ bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusic
       for (ID3v2::FrameList::ConstIterator lt = it->second.begin(); lt != it->second.end(); ++lt)
       {
         ID3v2::UnsynchronizedLyricsFrame *lyricsFrame = dynamic_cast<ID3v2::UnsynchronizedLyricsFrame *> (*lt);
-        if (lyricsFrame)           
+        if (lyricsFrame)
           tag.SetLyrics(lyricsFrame->text().to8Bit(true));
       }
     else if (it->first == "COMM")
@@ -422,9 +264,10 @@ bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusic
       {
         ID3v2::UserTextIdentificationFrame *frame = dynamic_cast<ID3v2::UserTextIdentificationFrame *> (*ut);
         if (!frame) continue;
-        
+
         // First field is the same as the description
-        StringList stringList = frame->fieldList(); 
+        StringList stringList = frame->fieldList();
+        if (stringList.size() == 1) continue;
         stringList.erase(stringList.begin());
         String desc = frame->description().upper();
         if      (desc == "MUSICBRAINZ ARTIST ID")
@@ -485,7 +328,7 @@ bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusic
       {
         ID3v2::AttachedPictureFrame *pictureFrame = dynamic_cast<ID3v2::AttachedPictureFrame *> (*pi);
         if (!pictureFrame) continue;
-        
+
         if      (pictureFrame->type() == ID3v2::AttachedPictureFrame::FrontCover) pictures[0] = pictureFrame;
         else if (pictureFrame->type() == ID3v2::AttachedPictureFrame::Other)      pictures[1] = pictureFrame;
         else if (pi == it->second.begin())                                        pictures[2] = pictureFrame;
@@ -496,11 +339,11 @@ bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusic
       {
         ID3v2::PopularimeterFrame *popFrame = dynamic_cast<ID3v2::PopularimeterFrame *> (*ct);
         if (!popFrame) continue;
-        
+
         // @xbmc.org ratings trump others (of course)
         if      (popFrame->email() == "ratings@xbmc.org")
-          tag.SetRating(popFrame->rating() / 51 + '0');
-        else if (tag.GetRating() == '0')
+          tag.SetUserrating(popFrame->rating() / 51 + '0');
+        else if (tag.GetUserrating() == '0')
         {
           if (popFrame->email() != "Windows Media Player 9 Series" &&
               popFrame->email() != "Banshee" &&
@@ -508,7 +351,7 @@ bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusic
               popFrame->email() != "quodlibet@lists.sacredchao.net" &&
               popFrame->email() != "rating@winamp.com")
             CLog::Log(LOGDEBUG, "unrecognized ratings schema detected: %s", popFrame->email().toCString(true));
-          tag.SetRating(POPMtoXBMC(popFrame->rating()));
+          tag.SetUserrating(POPMtoXBMC(popFrame->rating()));
         }
       }
     else if (g_advancedSettings.m_logLevel == LOG_LEVEL_MAX)
@@ -524,16 +367,21 @@ bool CTagLoaderTagLib::ParseID3v2Tag(ID3v2::Tag *id3v2, EmbeddedArt *art, CMusic
       tag.SetCoverArtInfo(size, mime);
       if (art)
         art->set((const uint8_t*)pictures[i]->picture().data(), size, mime);
-      
+
       // Stop after we find the first picture for now.
       break;
     }
+
+
+  if (id3v2->comment() != String::null)
+    tag.SetComment(id3v2->comment().toCString(true));
 
   tag.SetReplayGain(replayGainInfo);
   return true;
 }
 
-bool CTagLoaderTagLib::ParseAPETag(APE::Tag *ape, EmbeddedArt *art, CMusicInfoTag& tag)
+template<>
+bool CTagLoaderTagLib::ParseTag(APE::Tag *ape, EmbeddedArt *art, CMusicInfoTag& tag)
 {
   if (!ape)
     return false;
@@ -598,7 +446,8 @@ bool CTagLoaderTagLib::ParseAPETag(APE::Tag *ape, EmbeddedArt *art, CMusicInfoTa
   return true;
 }
 
-bool CTagLoaderTagLib::ParseXiphComment(Ogg::XiphComment *xiph, EmbeddedArt *art, CMusicInfoTag& tag)
+template<>
+bool CTagLoaderTagLib::ParseTag(Ogg::XiphComment *xiph, EmbeddedArt *art, CMusicInfoTag& tag)
 {
   if (!xiph)
     return false;
@@ -670,7 +519,7 @@ bool CTagLoaderTagLib::ParseXiphComment(Ogg::XiphComment *xiph, EmbeddedArt *art
       // So, that's what we'll support for now.
       int iRating = it->second.front().toInt();
       if (iRating > 0 && iRating <= 100)
-        tag.SetRating((iRating / 20) + '0');
+        tag.SetUserrating((iRating / 20) + '0');
     }
     else if (it->first == "METADATA_BLOCK_PICTURE")
     {
@@ -681,7 +530,7 @@ bool CTagLoaderTagLib::ParseXiphComment(Ogg::XiphComment *xiph, EmbeddedArt *art
 
       if      (pictureFrame->type() == FLAC::Picture::FrontCover) pictures[0].parse(bv);
       else if (pictureFrame->type() == FLAC::Picture::Other)      pictures[1].parse(bv);
-      
+
       delete pictureFrame;
     }
     else if (it->first == "COVERART")
@@ -717,11 +566,15 @@ bool CTagLoaderTagLib::ParseXiphComment(Ogg::XiphComment *xiph, EmbeddedArt *art
       break;
     }
 
+  if (xiph->comment() != String::null)
+    tag.SetComment(xiph->comment().toCString(true));
+
   tag.SetReplayGain(replayGainInfo);
   return true;
 }
 
-bool CTagLoaderTagLib::ParseMP4Tag(MP4::Tag *mp4, EmbeddedArt *art, CMusicInfoTag& tag)
+template<>
+bool CTagLoaderTagLib::ParseTag(MP4::Tag *mp4, EmbeddedArt *art, CMusicInfoTag& tag)
 {
   if (!mp4)
     return false;
@@ -799,11 +652,15 @@ bool CTagLoaderTagLib::ParseMP4Tag(MP4::Tag *mp4, EmbeddedArt *art, CMusicInfoTa
     }
   }
 
+  if (mp4->comment() != String::null)
+    tag.SetComment(mp4->comment().toCString(true));
+
   tag.SetReplayGain(replayGainInfo);
   return true;
 }
 
-bool CTagLoaderTagLib::ParseGenericTag(Tag *generic, EmbeddedArt *art, CMusicInfoTag& tag)
+template<>
+bool CTagLoaderTagLib::ParseTag(Tag *generic, EmbeddedArt *art, CMusicInfoTag& tag)
 {
   if (!generic)
     return false;
@@ -862,13 +719,14 @@ const std::vector<std::string> CTagLoaderTagLib::GetASFStringList(const List<ASF
   return values;
 }
 
-const std::vector<std::string> CTagLoaderTagLib::GetID3v2StringList(const ID3v2::FrameList& frameList) const
+const std::vector<std::string> CTagLoaderTagLib::GetID3v2StringList(const ID3v2::FrameList& frameList)
 {
   const ID3v2::TextIdentificationFrame *frame = dynamic_cast<ID3v2::TextIdentificationFrame *>(frameList.front());
   if (frame)
     return StringListToVectorString(frame->fieldList());
   return std::vector<std::string>();
 }
+
 
 void CTagLoaderTagLib::SetArtist(CMusicInfoTag &tag, const std::vector<std::string> &values)
 {
@@ -928,4 +786,173 @@ void CTagLoaderTagLib::SetGenre(CMusicInfoTag &tag, const std::vector<std::strin
     tag.SetGenre(genres[0]);
   else
     tag.SetGenre(genres);
+}
+
+bool CTagLoaderTagLib::Load(const std::string& strFileName, CMusicInfoTag& tag, const std::string& fallbackFileExtension, MUSIC_INFO::EmbeddedArt *art /* = NULL */)
+{
+  std::string strExtension = URIUtils::GetExtension(strFileName);
+  StringUtils::TrimLeft(strExtension, ".");
+
+  if (strExtension.empty())
+  {
+    strExtension = fallbackFileExtension;
+    if (strExtension.empty())
+      return false;
+  }
+
+  StringUtils::ToLower(strExtension);
+  TagLibVFSStream*           stream = new TagLibVFSStream(strFileName, true);
+  if (!stream)
+  {
+    CLog::Log(LOGERROR, "could not create TagLib VFS stream for: %s", strFileName.c_str());
+    return false;
+  }
+
+  ID3v1::Tag::setStringHandler(&ID3v1StringHandler);
+  ID3v2::Tag::setLatin1StringHandler(&ID3v2StringHandler);
+  TagLib::File*              file = NULL;
+  TagLib::APE::File*         apeFile = NULL;
+  TagLib::ASF::File*         asfFile = NULL;
+  TagLib::FLAC::File*        flacFile = NULL;
+  TagLib::IT::File*          itFile = NULL;
+  TagLib::Mod::File*         modFile = NULL;
+  TagLib::MP4::File*         mp4File = NULL;
+  TagLib::MPC::File*         mpcFile = NULL;
+  TagLib::MPEG::File*        mpegFile = NULL;
+  TagLib::Ogg::Vorbis::File* oggVorbisFile = NULL;
+  TagLib::Ogg::FLAC::File*   oggFlacFile = NULL;
+  TagLib::S3M::File*         s3mFile = NULL;
+  TagLib::TrueAudio::File*   ttaFile = NULL;
+  TagLib::WavPack::File*     wvFile = NULL;
+  TagLib::XM::File*          xmFile = NULL;
+  TagLib::RIFF::WAV::File *  wavFile = NULL;
+  TagLib::RIFF::AIFF::File * aiffFile = NULL;
+
+  if (strExtension == "ape")
+    file = apeFile = new APE::File(stream);
+  else if (strExtension == "asf" || strExtension == "wmv" || strExtension == "wma")
+    file = asfFile = new ASF::File(stream);
+  else if (strExtension == "flac")
+    file = flacFile = new FLAC::File(stream, ID3v2::FrameFactory::instance());
+  else if (strExtension == "it")
+    file = itFile = new IT::File(stream);
+  else if (strExtension == "mod" || strExtension == "module" || strExtension == "nst" || strExtension == "wow")
+    file = modFile = new Mod::File(stream);
+  else if (strExtension == "mp4" || strExtension == "m4a" ||
+           strExtension == "m4r" || strExtension == "m4b" ||
+           strExtension == "m4p" || strExtension == "3g2")
+    file = mp4File = new MP4::File(stream);
+  else if (strExtension == "mpc")
+    file = mpcFile = new MPC::File(stream);
+  else if (strExtension == "mp3" || strExtension == "aac")
+    file = mpegFile = new MPEG::File(stream, ID3v2::FrameFactory::instance());
+  else if (strExtension == "s3m")
+    file = s3mFile = new S3M::File(stream);
+  else if (strExtension == "tta")
+    file = ttaFile = new TrueAudio::File(stream, ID3v2::FrameFactory::instance());
+  else if (strExtension == "wv")
+    file = wvFile = new WavPack::File(stream);
+  else if (strExtension == "aif" || strExtension == "aiff")
+    file = aiffFile = new RIFF::AIFF::File(stream);
+  else if (strExtension == "wav")
+    file = wavFile = new RIFF::WAV::File(stream);
+  else if (strExtension == "xm")
+    file = xmFile = new XM::File(stream);
+  else if (strExtension == "ogg")
+    file = oggVorbisFile = new Ogg::Vorbis::File(stream);
+  else if (strExtension == "oga") // Leave this madness until last - oga container can have Vorbis or FLAC
+  {
+    file = oggFlacFile = new Ogg::FLAC::File(stream);
+    if (!file || !file->isValid())
+    {
+      delete file;
+      oggFlacFile = NULL;
+      file = oggVorbisFile = new Ogg::Vorbis::File(stream);
+    }
+  }
+
+  if (!file || !file->isOpen())
+  {
+    delete file;
+    delete stream;
+    CLog::Log(LOGDEBUG, "file could not be opened for tag reading");
+    return false;
+  }
+
+  APE::Tag *ape = NULL;
+  ASF::Tag *asf = NULL;
+  MP4::Tag *mp4 = NULL;
+  ID3v1::Tag *id3v1 = NULL;
+  ID3v2::Tag *id3v2 = NULL;
+  Ogg::XiphComment *xiph = NULL;
+  Tag *generic = NULL;
+
+  if (apeFile)
+    ape = apeFile->APETag(false);
+  else if (asfFile)
+    asf = asfFile->tag();
+  else if (flacFile)
+  {
+    xiph = flacFile->xiphComment(false);
+    id3v2 = flacFile->ID3v2Tag(false);
+  }
+  else if (mp4File)
+    mp4 = mp4File->tag();
+  else if (mpegFile)
+  {
+    id3v1 = mpegFile->ID3v1Tag(false);
+    id3v2 = mpegFile->ID3v2Tag(false);
+    ape = mpegFile->APETag(false);
+  }
+  else if (oggFlacFile)
+    xiph = dynamic_cast<Ogg::XiphComment *>(oggFlacFile->tag());
+  else if (oggVorbisFile)
+    xiph = dynamic_cast<Ogg::XiphComment *>(oggVorbisFile->tag());
+  else if (ttaFile)
+    id3v2 = ttaFile->ID3v2Tag(false);
+  else if (aiffFile)
+    id3v2 = aiffFile->tag();
+  else if (wavFile)
+#if TAGLIB_MAJOR_VERSION > 1 || TAGLIB_MINOR_VERSION > 8
+    id3v2 = wavFile->ID3v2Tag();
+#else
+    id3v2 = wavFile->tag();
+#endif
+  else if (wvFile)
+    ape = wvFile->APETag(false);
+  else if (mpcFile)
+    ape = mpcFile->APETag(false);
+  else    // This is a catch all to get generic information for other files types (s3m, xm, it, mod, etc)
+    generic = file->tag();
+
+  if (file->audioProperties())
+    tag.SetDuration(file->audioProperties()->length());
+
+  if (asf)
+    ParseTag(asf, art, tag);
+  if (id3v1)
+    ParseTag(id3v1, art, tag);
+  if (id3v2)
+    ParseTag(id3v2, art, tag);
+  if (generic)
+    ParseTag(generic, art, tag);
+  if (mp4)
+    ParseTag(mp4, art, tag);
+  if (xiph) // xiph tags override id3v2 tags in badly tagged FLACs
+    ParseTag(xiph, art, tag);
+  if (ape && (!id3v2 || g_advancedSettings.m_prioritiseAPEv2tags)) // ape tags override id3v2 if we're prioritising them
+    ParseTag(ape, art, tag);
+
+  // art for flac files is outside the tag
+  if (flacFile)
+    SetFlacArt(flacFile, art, tag);
+
+  if (!tag.GetTitle().empty() || !tag.GetArtist().empty() || !tag.GetAlbum().empty())
+    tag.SetLoaded();
+  tag.SetURL(strFileName);
+
+  delete file;
+  delete stream;
+
+  return true;
 }

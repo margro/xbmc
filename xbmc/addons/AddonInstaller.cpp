@@ -204,7 +204,7 @@ bool CAddonInstaller::InstallOrUpdate(const std::string &addonID, bool backgroun
 
 void CAddonInstaller::Install(const std::string& addonId, const AddonVersion& version, const std::string& repoId)
 {
-  CLog::Log(LOGDEBUG, "CAddonInstaller: intalling '%s' version '%s' from repository '%s'",
+  CLog::Log(LOGDEBUG, "CAddonInstaller: installing '%s' version '%s' from repository '%s'",
       addonId.c_str(), version.asString().c_str(), repoId.c_str());
 
   AddonPtr addon;
@@ -258,6 +258,8 @@ bool CAddonInstaller::InstallFromZip(const std::string &path)
 {
   if (!g_passwordManager.CheckMenuLock(WINDOW_ADDON_BROWSER))
     return false;
+
+  CLog::Log(LOGDEBUG, "CAddonInstaller: installing from zip '%s'", CURL::GetRedacted(path).c_str());
 
   // grab the descriptive XML document from the zip, and read it in
   CFileItemList items;
@@ -422,15 +424,16 @@ void CAddonInstaller::PrunePackageCache()
     delete it->second;
 }
 
-void CAddonInstaller::InstallUpdates()
+void CAddonInstaller::InstallUpdates(bool includeBlacklisted /* = false */)
 {
-  VECADDONS addons;
-  if (CAddonMgr::GetInstance().GetAllOutdatedAddons(addons, true))
+  VECADDONS addons = CAddonMgr::GetInstance().GetOutdated();
+  if (addons.empty())
+    return;
+
+  for (const auto& addon : addons)
   {
-    for (const auto& addon : addons)
-    {
+    if (includeBlacklisted || !CAddonMgr::GetInstance().IsBlacklisted(addon->ID()))
       CAddonInstaller::GetInstance().InstallOrUpdate(addon->ID());
-    }
   }
 }
 
@@ -440,11 +443,9 @@ bool CAddonInstaller::GetRepoForAddon(const std::string& addonId, RepositoryPtr&
   if (!database.Open())
     return false;
 
-  std::vector<std::pair<ADDON::AddonVersion, std::string>> versions;
-  if (!database.GetAvailableVersions(addonId, versions) || versions.empty())
+  auto repoId = database.GetAddonVersion(addonId).second;
+  if (repoId.empty())
     return false;
-
-  auto repoId = std::min_element(versions.begin(), versions.end())->second;
 
   AddonPtr tmp;
   if (!CAddonMgr::GetInstance().GetAddon(repoId, tmp, ADDON_REPOSITORY))
@@ -622,10 +623,8 @@ bool CAddonInstallJob::DoWork()
 
   ADDON::OnPostInstall(m_addon, m_update, IsModal());
 
-  //Clear addon from the disabled table
-  CAddonDatabase database;
-  database.Open();
-  database.DisableAddon(m_addon->ID(), false);
+  //Enable it if it was previously disabled
+  CAddonMgr::GetInstance().EnableAddon(m_addon->ID());
 
   // and we're done!
   MarkFinished();
@@ -892,6 +891,9 @@ bool CAddonUnInstallJob::DoWork()
   if (!database.Open() || !database.GetAddon(m_addon->ID(), addon) || addon == NULL)
     addon = m_addon;
   CEventLog::GetInstance().Add(EventPtr(new CAddonManagementEvent(addon, 24144)));
+
+  CAddonMgr::GetInstance().OnPostUnInstall(m_addon->ID());
+  database.OnPostUnInstall(m_addon->ID());
 
   ADDON::OnPostUnInstall(m_addon);
   return true;

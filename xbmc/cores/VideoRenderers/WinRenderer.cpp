@@ -510,7 +510,7 @@ bool CWinRenderer::CreateIntermediateRenderTarget(unsigned int width, unsigned i
 
   if(!m_IntermediateTarget.Create(width, height, 1, D3D11_USAGE_DEFAULT, format))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": intermediate render target creation failed.", format);
+    CLog::Log(LOGERROR, __FUNCTION__": intermediate render target creation failed.");
     return false;
   }
   return true;
@@ -814,92 +814,62 @@ void CWinRenderer::RenderPS()
 
 void CWinRenderer::Stage1()
 {
+  CD3D11_VIEWPORT viewPort(0.0f, 0.0f, 0.0f, 0.0f);
   ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
-  g_Windowing.ResetScissors();
 
-  // Store current render target and depth view.
-  ID3D11RenderTargetView *oldRT = nullptr; ID3D11DepthStencilView* oldDS = nullptr;
-  pContext->OMGetRenderTargets(1, &oldRT, &oldDS);
-
-  if (!m_bUseHQScaler)
+  // store current render target and depth view.
+  ID3D11RenderTargetView *oldRTView = nullptr; ID3D11DepthStencilView* oldDSView = nullptr;
+  pContext->OMGetRenderTargets(1, &oldRTView, &oldDSView);
+  // select destination rectangle 
+  CRect destRect = m_bUseHQScaler ? m_sourceRect : g_graphicsContext.StereoCorrection(m_destRect);
+  // select target view 
+  ID3D11RenderTargetView* pRTView = m_bUseHQScaler ? m_IntermediateTarget.GetRenderTarget() : oldRTView;
+  // set destination render target
+  pContext->OMSetRenderTargets(1, &pRTView, nullptr);
+  // get rendertarget's dimension
+  if (pRTView)
   {
-    // disable depth
-    pContext->OMSetRenderTargets(1, &oldRT, nullptr);
-    // render video frame
-    m_colorShader->Render(m_sourceRect, g_graphicsContext.StereoCorrection(m_destRect),
-                            CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast,
-                            CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness,
-                            m_iFlags, (YUVBuffer*)m_VideoBuffers[m_iYV12RenderBuffer]);
+    ID3D11Resource* pResource = nullptr;
+    ID3D11Texture2D* pTexture = nullptr;
+
+    pRTView->GetResource(&pResource);
+    if (SUCCEEDED(pResource->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pTexture))))
+    {
+      D3D11_TEXTURE2D_DESC desc;
+      pTexture->GetDesc(&desc);
+      viewPort = CD3D11_VIEWPORT(0.0f, 0.0f, desc.Width, desc.Height);
+    }
+    SAFE_RELEASE(pResource);
+    SAFE_RELEASE(pTexture);
   }
-  else
-  {
-    // At DX9 setting a new render target will cause the viewport 
-    // to be set to the full size of the new render target.
-    // In DX11 we should do this manualy
-    CD3D11_VIEWPORT viewPort(0.0f, 0.0f, static_cast<float>(m_IntermediateTarget.GetWidth()), static_cast<float>(m_IntermediateTarget.GetHeight()));
-    pContext->RSSetViewports(1, &viewPort);
-
-    ID3D11RenderTargetView *newRT = m_IntermediateTarget.GetRenderTarget();
-
-    // this needs to avoid binding m_IntermediateTarget as shader resource and as render target at the same time
-    CD3DHelper::PSClearShaderResources(pContext);
-    // Switch the render target to the temporary destination
-    pContext->OMSetRenderTargets(1, &newRT, nullptr);
-
-    CRect srcRect(0.0f, 0.0f, static_cast<float>(m_sourceWidth), static_cast<float>(m_sourceHeight));
-
-    m_colorShader->Render(srcRect, srcRect,
-                          CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast,
-                          CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness,
-                          m_iFlags, (YUVBuffer*)m_VideoBuffers[m_iYV12RenderBuffer]);
-
-    // Restore our view port.
-    g_Windowing.RestoreViewPort();
-  }
-
+  // reset scissors for HQ scaler
+  if (m_bUseHQScaler)
+    g_Windowing.ResetScissors();
+  // reset view port
+  pContext->RSSetViewports(1, &viewPort);
+  // render video frame
+  m_colorShader->Render(m_sourceRect, destRect,
+                        CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast,
+                        CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness,
+                        m_iFlags, (YUVBuffer*)m_VideoBuffers[m_iYV12RenderBuffer]);
+  // Restore our view port.
+  g_Windowing.RestoreViewPort();
   // Restore the render target and depth view.
-  pContext->OMSetRenderTargets(1, &oldRT, oldDS);
-  SAFE_RELEASE(oldRT);
-  SAFE_RELEASE(oldDS);
+  pContext->OMSetRenderTargets(1, &oldRTView, oldDSView);
+  SAFE_RELEASE(oldRTView);
+  SAFE_RELEASE(oldDSView);
 }
 
 void CWinRenderer::Stage2()
 {
-  g_Windowing.ResetScissors();
-
-  CRect sourceRect;
-
-  // fixup stereo+dxva+hq scaling issue
-  if (m_renderMethod == RENDER_DXVA)
-  {
-    sourceRect.y1 = 0.0f;
-    sourceRect.y2 = static_cast<float>(m_sourceHeight);
-    sourceRect.x1 = 0.0f;
-    sourceRect.x2 = static_cast<float>(m_sourceWidth);
-  }
-  else
-    sourceRect = m_sourceRect;
-
-  m_scalerShader->Render(m_IntermediateTarget, m_sourceWidth, m_sourceHeight, m_destWidth, m_destHeight, sourceRect, g_graphicsContext.StereoCorrection(m_destRect));
+  m_scalerShader->Render(m_IntermediateTarget, m_sourceWidth, m_sourceHeight, m_destWidth, m_destHeight, m_sourceRect, g_graphicsContext.StereoCorrection(m_destRect));
 }
 
 void CWinRenderer::RenderProcessor(DWORD flags)
 {
   CSingleLock lock(g_graphicsContext);
-  CRect destRect;
-
-  if (m_bUseHQScaler)
-  {
-    destRect.y1 = 0.0f;
-    destRect.y2 = static_cast<float>(m_sourceHeight);
-    destRect.x1 = 0.0f;
-    destRect.x2 = static_cast<float>(m_sourceWidth);
-  }
-  else
-    destRect = g_graphicsContext.StereoCorrection(m_destRect);
-
+  CRect destRect = m_bUseHQScaler ? m_sourceRect : g_graphicsContext.StereoCorrection(m_destRect);
   DXVABuffer *image = (DXVABuffer*)m_VideoBuffers[m_iYV12RenderBuffer];
-
   if (!image->pic)
     return;
 
@@ -911,14 +881,17 @@ void CWinRenderer::RenderProcessor(DWORD flags)
     || true /* workaround for some GPUs */)
   {
     target = m_IntermediateTarget.Get();
-    //target->AddRef(); // uncomment when workaround removed
+    target->AddRef();
   }
   else // dead code.
   {
     ID3D11RenderTargetView* rtv = nullptr;
     g_Windowing.Get3D11Context()->OMGetRenderTargets(1, &rtv, nullptr);
-    rtv->GetResource(&target);
-    rtv->Release();
+    if (rtv)
+    {
+      rtv->GetResource(&target);
+      rtv->Release();
+    }
   }
 
   int past = 0;
@@ -964,7 +937,6 @@ void CWinRenderer::RenderProcessor(DWORD flags)
   }
 
   m_processor->Render(m_sourceRect, destRect, target, views, flags, image->frameIdx);
-  //target->Release(); // uncomment when workaround removed
   
   if (m_bUseHQScaler)
   {
@@ -979,6 +951,7 @@ void CWinRenderer::RenderProcessor(DWORD flags)
     CRect tu = { destRect.x1 / m_destWidth, destRect.y1 / m_destHeight, destRect.x2 / m_destWidth, destRect.y2 / m_destHeight };
     CD3DTexture::DrawQuad(m_destRect, 0, &m_IntermediateTarget, &tu, SHADER_METHOD_RENDER_TEXTURE_NOBLEND);
   }
+  SAFE_RELEASE(target);
 }
 
 bool CWinRenderer::RenderCapture(CRenderCapture* capture)

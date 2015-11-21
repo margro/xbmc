@@ -67,6 +67,7 @@ using namespace KODI::MESSAGING;
 #define CONTROL_TEXTAREA             4
 #define CONTROL_BTN_TRACKS           5
 #define CONTROL_BTN_REFRESH          6
+#define CONTROL_BTN_USERRATING       7
 #define CONTROL_BTN_PLAY             8
 #define CONTROL_BTN_RESUME           9
 #define CONTROL_BTN_GET_THUMB       10
@@ -89,8 +90,10 @@ CGUIDialogVideoInfo::CGUIDialogVideoInfo(void)
   m_bRefreshAll = true;
   m_bRefresh = false;
   m_hasUpdatedThumb = false;
+  m_hasUpdatedUserrating = false;
   m_castList = new CFileItemList;
   m_loadType = KEEP_IN_MEMORY;
+  m_startUserrating = -1;
 }
 
 CGUIDialogVideoInfo::~CGUIDialogVideoInfo(void)
@@ -105,6 +108,17 @@ bool CGUIDialogVideoInfo::OnMessage(CGUIMessage& message)
   case GUI_MSG_WINDOW_DEINIT:
     {
       ClearCastList();
+
+      if (m_startUserrating != m_movieItem->GetVideoInfoTag()->m_iUserRating)
+      {
+        CVideoDatabase db;
+        if (db.Open())
+        {
+          m_hasUpdatedUserrating = true;
+          db.SetVideoUserRating(m_movieItem->GetVideoInfoTag()->m_iDbId, m_movieItem->GetVideoInfoTag()->m_iUserRating, m_movieItem->GetVideoInfoTag()->m_type);
+          db.Close();
+        }
+      }
     }
     break;
 
@@ -144,6 +158,10 @@ bool CGUIDialogVideoInfo::OnMessage(CGUIMessage& message)
       else if (iControl == CONTROL_BTN_PLAY)
       {
         Play();
+      }
+      else if (iControl == CONTROL_BTN_USERRATING)
+      {
+        OnSetUserrating();
       }
       else if (iControl == CONTROL_BTN_RESUME)
       {
@@ -206,6 +224,7 @@ void CGUIDialogVideoInfo::OnInitWindow()
   m_bRefresh = false;
   m_bRefreshAll = true;
   m_hasUpdatedThumb = false;
+  m_hasUpdatedUserrating = false;
   m_bViewReview = true;
 
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_REFRESH, (CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser) && !StringUtils::StartsWithNoCase(m_movieItem->GetVideoInfoTag()->m_strIMDBNumber, "xx"));
@@ -224,12 +243,37 @@ void CGUIDialogVideoInfo::OnInitWindow()
 
 bool CGUIDialogVideoInfo::OnAction(const CAction &action)
 {
-  if (action.GetID() == ACTION_SHOW_INFO)
+  int userrating = m_movieItem->GetVideoInfoTag()->m_iUserRating;
+  if (action.GetID() == ACTION_INCREASE_RATING)
+  {
+    SetUserrating(userrating + 1);
+    return true;
+  }
+  else if (action.GetID() == ACTION_DECREASE_RATING)
+  {
+    SetUserrating(userrating - 1);
+    return true;
+  }
+  else if (action.GetID() == ACTION_SHOW_INFO)
   {
     Close();
     return true;
   }
   return CGUIDialog::OnAction(action);
+}
+
+void CGUIDialogVideoInfo::SetUserrating(int userrating)
+{
+  userrating = std::max(userrating, 0);
+  userrating = std::min(userrating, 10);
+  if (userrating != m_movieItem->GetVideoInfoTag()->m_iUserRating)
+  {
+    m_movieItem->GetVideoInfoTag()->SetUserrating(userrating);
+    
+    // send a message to all windows to tell them to update the fileitem (eg playlistplayer, media windows)
+    CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM, 0, m_movieItem);
+    g_windowManager.SendMessage(msg);
+  }
 }
 
 void CGUIDialogVideoInfo::SetMovie(const CFileItem *item)
@@ -239,6 +283,8 @@ void CGUIDialogVideoInfo::SetMovie(const CFileItem *item)
   // setup cast list
   ClearCastList();
   MediaType type = item->GetVideoInfoTag()->m_type;
+
+  m_startUserrating = m_movieItem->GetVideoInfoTag()->m_iUserRating;
 
   if (type == MediaTypeMusicVideo)
   { // music video
@@ -819,6 +865,26 @@ void CGUIDialogVideoInfo::OnGetFanart()
   Update();
 }
 
+void CGUIDialogVideoInfo::OnSetUserrating()
+{
+  CGUIDialogSelect *dialog = (CGUIDialogSelect *)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
+  if (dialog)
+  {
+    dialog->SetHeading(CVariant{ 38023 });
+    dialog->Add(g_localizeStrings.Get(38022));
+    for (int i = 1; i <= 10; i++)
+      dialog->Add(StringUtils::Format("%s: %i", g_localizeStrings.Get(563).c_str(), i));
+
+    dialog->Open();
+
+    int iItem = dialog->GetSelectedLabel();
+    if (iItem < 0)
+      return;
+
+    SetUserrating(iItem);
+  }
+}
+
 void CGUIDialogVideoInfo::PlayTrailer()
 {
   CFileItem item;
@@ -901,6 +967,7 @@ int CGUIDialogVideoInfo::ManageVideoItem(const CFileItemPtr &item)
   CContextButtons buttons;
   if (type == MediaTypeMovie || type == MediaTypeVideoCollection ||
       type == MediaTypeTvShow || type == MediaTypeEpisode ||
+     (type == MediaTypeSeason && item->GetVideoInfoTag()->m_iSeason > 0) ||  // seasons without "all seasons" and "specials"
       type == MediaTypeMusicVideo)
     buttons.Add(CONTEXT_BUTTON_EDIT, 16105);
 
@@ -946,6 +1013,10 @@ int CGUIDialogVideoInfo::ManageVideoItem(const CFileItemPtr &item)
     buttons.Add(CONTEXT_BUTTON_MOVIESET_ADD_REMOVE_ITEMS, 20465);
   }
 
+  // seasons
+  if (item->m_bIsFolder && type == MediaTypeSeason)
+    buttons.Add(CONTEXT_BUTTON_SET_SEASON_ART, 13511);
+
   // tags
   if (item->m_bIsFolder && type == "tag")
   {
@@ -959,7 +1030,8 @@ int CGUIDialogVideoInfo::ManageVideoItem(const CFileItemPtr &item)
     }
   }
 
-  buttons.Add(CONTEXT_BUTTON_DELETE, 646);
+  if (type != MediaTypeSeason)
+    buttons.Add(CONTEXT_BUTTON_DELETE, 646);
 
   CContextMenuManager::GetInstance().AddVisibleItems(item, buttons, CContextMenuManager::MANAGE);
 
@@ -1003,7 +1075,8 @@ int CGUIDialogVideoInfo::ManageVideoItem(const CFileItemPtr &item)
         break;
 
       case CONTEXT_BUTTON_SET_MOVIESET_ART:
-        result = ManageVideoItemArtwork(item, MediaTypeVideoCollection);
+      case CONTEXT_BUTTON_SET_SEASON_ART:
+        result = ManageVideoItemArtwork(item, type);
         break;
 
       case CONTEXT_BUTTON_MOVIESET_ADD_REMOVE_ITEMS:
@@ -1056,24 +1129,58 @@ bool CGUIDialogVideoInfo::UpdateVideoItemTitle(const CFileItemPtr &pItem)
     return false;
 
   int iDbId = pItem->GetVideoInfoTag()->m_iDbId;
+  MediaType mediaType = pItem->GetVideoInfoTag()->m_type;
+
   CVideoInfoTag detail;
-  VIDEODB_CONTENT_TYPE iType = (VIDEODB_CONTENT_TYPE)pItem->GetVideoContentType();
-  if (iType == VIDEODB_CONTENT_MOVIES)
+  std::string title;
+  if (mediaType == MediaTypeMovie)
+  {
     database.GetMovieInfo("", detail, iDbId);
-  else if (iType == VIDEODB_CONTENT_MOVIE_SETS)
+    title = detail.m_strTitle;
+  }
+  else if (mediaType == MediaTypeVideoCollection)
+  {
     database.GetSetInfo(iDbId, detail);
-  else if (iType == VIDEODB_CONTENT_EPISODES)
+    title = detail.m_strTitle;
+  }
+  else if (mediaType == MediaTypeEpisode)
+  {
     database.GetEpisodeInfo(pItem->GetPath(), detail, iDbId);
-  else if (iType == VIDEODB_CONTENT_TVSHOWS)
+    title = detail.m_strTitle;
+  }
+  else if (mediaType == MediaTypeSeason)
+  {
+    database.GetSeasonInfo(iDbId, detail);
+    title = detail.m_strSortTitle;
+  }
+  else if (mediaType == MediaTypeTvShow)
+  {
     database.GetTvShowInfo(pItem->GetVideoInfoTag()->m_strFileNameAndPath, detail, iDbId);
-  else if (iType == VIDEODB_CONTENT_MUSICVIDEOS)
+    title = detail.m_strTitle;
+  }
+  else if (mediaType == MediaTypeMusicVideo)
+  {
     database.GetMusicVideoInfo(pItem->GetVideoInfoTag()->m_strFileNameAndPath, detail, iDbId);
+    title = detail.m_strTitle;
+  }
 
   // get the new title
-  if (!CGUIKeyboardFactory::ShowAndGetInput(detail.m_strTitle, CVariant{g_localizeStrings.Get(16105)}, false))
+  if (!CGUIKeyboardFactory::ShowAndGetInput(title, CVariant{ g_localizeStrings.Get(16105) }, false))
     return false;
 
-  database.UpdateMovieTitle(iDbId, detail.m_strTitle, iType);
+  if (mediaType == MediaTypeSeason)
+  {
+    detail.m_strSortTitle = title;
+    std::map<std::string, std::string> artwork;
+    database.SetDetailsForSeason(detail, artwork, detail.m_iIdShow, detail.m_iDbId);
+  }
+  else
+  {
+    detail.m_strTitle = title;
+    VIDEODB_CONTENT_TYPE iType = (VIDEODB_CONTENT_TYPE)pItem->GetVideoContentType();
+    database.UpdateMovieTitle(iDbId, detail.m_strTitle, iType);
+  }
+
   return true;
 }
 
@@ -1460,7 +1567,7 @@ bool CGUIDialogVideoInfo::GetItemsForTag(const std::string &strHeading, const st
     if (!showAll)
       videoUrl.AddOption("tagid", idTag);
     else
-      filter.where = videodb.PrepareSQL("%s_view.%s NOT IN (SELECT tag_link.media_type FROM tag_link WHERE tag_link.tag_id = %d AND tag_link.media_type = '%s')", type.c_str(), idColumn.c_str(), idTag, type.c_str());
+      filter.where = videodb.PrepareSQL("%s_view.%s NOT IN (SELECT tag_link.media_id FROM tag_link WHERE tag_link.tag_id = %d AND tag_link.media_type = '%s')", type.c_str(), idColumn.c_str(), idTag, type.c_str());
   }
 
   CFileItemList listItems;

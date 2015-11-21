@@ -733,7 +733,7 @@ void CGUIWindowVideoNav::PlayItem(int iItem)
   CGUIWindowVideoBase::PlayItem(iItem);
 }
 
-void CGUIWindowVideoNav::OnInfo(CFileItem* pItem, ADDON::ScraperPtr& scraper)
+void CGUIWindowVideoNav::OnItemInfo(CFileItem* pItem, ADDON::ScraperPtr& scraper)
 {
   if (!scraper || scraper->Content() == CONTENT_NONE)
   {
@@ -748,7 +748,7 @@ void CGUIWindowVideoNav::OnInfo(CFileItem* pItem, ADDON::ScraperPtr& scraper)
     }
     m_database.Close();
   }
-  CGUIWindowVideoBase::OnInfo(pItem,scraper);
+  CGUIWindowVideoBase::OnItemInfo(pItem,scraper);
 }
 
 void CGUIWindowVideoNav::OnDeleteItem(CFileItemPtr pItem)
@@ -936,6 +936,7 @@ void CGUIWindowVideoNav::GetContextButtons(int itemNumber, CContextButtons &butt
         if (!g_application.IsVideoScanning() && item->IsVideoDb() && item->HasVideoInfoTag() &&
            (item->GetVideoInfoTag()->m_type == MediaTypeMovie ||          // movies
             item->GetVideoInfoTag()->m_type == MediaTypeTvShow ||         // tvshows
+            item->GetVideoInfoTag()->m_type == MediaTypeSeason ||         // seasons
             item->GetVideoInfoTag()->m_type == MediaTypeEpisode ||        // episodes
             item->GetVideoInfoTag()->m_type == MediaTypeMusicVideo ||     // musicvideos
             item->GetVideoInfoTag()->m_type == "tag" ||                   // tags
@@ -950,9 +951,6 @@ void CGUIWindowVideoNav::GetContextButtons(int itemNumber, CContextButtons &butt
 
           buttons.Add(CONTEXT_BUTTON_SCAN, 13349);
         }
-
-        if (node == NODE_TYPE_SEASONS && item->m_bIsFolder)
-          buttons.Add(CONTEXT_BUTTON_SET_SEASON_ART, 13511);
 
         if (node == NODE_TYPE_ACTOR && !dir.IsAllItem(item->GetPath()) && item->m_bIsFolder)
         {
@@ -1003,7 +1001,9 @@ bool CGUIWindowVideoNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     if (button == CONTEXT_BUTTON_REMOVE_SOURCE && !item->IsPlugin()
         && !item->IsLiveTV() &&!item->IsRSS() && !URIUtils::IsUPnP(item->GetPath()))
     {
-      OnUnAssignContent(item->GetPath(), 20375, 20340);
+      // if the source has been properly removed, remove the cached source list because the list has changed
+      if (OnUnAssignContent(item->GetPath(), 20375, 20340))
+        m_vecItems->RemoveDiscCache(GetID());
     }
     Refresh();
     return true;
@@ -1028,7 +1028,6 @@ bool CGUIWindowVideoNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
       return true;
     }
 
-  case CONTEXT_BUTTON_SET_SEASON_ART:
   case CONTEXT_BUTTON_SET_ACTOR_THUMB:
   case CONTEXT_BUTTON_SET_ARTIST_THUMB:
     {

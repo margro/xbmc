@@ -489,11 +489,11 @@ CFileItemPtr CPVRChannelGroup::GetByChannelNumber(unsigned int iChannelNumber, u
   CFileItemPtr retval;
   CSingleLock lock(m_critSection);
 
-  for (PVR_CHANNEL_GROUP_MEMBERS::const_iterator it = m_members.begin(); !retval && it != m_members.end(); ++it)
+  for (PVR_CHANNEL_GROUP_SORTED_MEMBERS::const_iterator it = m_sortedMembers.begin(); !retval && it != m_sortedMembers.end(); ++it)
   {
-    if (it->second.iChannelNumber == iChannelNumber &&
-        (iSubChannelNumber == 0 || iSubChannelNumber == it->second.iSubChannelNumber))
-      retval = CFileItemPtr(new CFileItem(it->second.channel));
+    if ((*it).iChannelNumber == iChannelNumber &&
+        (iSubChannelNumber == 0 || iSubChannelNumber == (*it).iSubChannelNumber))
+      retval = CFileItemPtr(new CFileItem((*it).channel));
   }
 
   if (!retval)
@@ -1068,7 +1068,6 @@ int CPVRChannelGroup::GetEPGSearch(CFileItemList &results, const EpgSearchFilter
 int CPVRChannelGroup::GetEPGNowOrNext(CFileItemList &results, bool bGetNext) const
 {
   int iInitialSize = results.Size();
-  CEpg* epg;
   CEpgInfoTagPtr epgNext;
   CPVRChannelPtr channel;
   CSingleLock lock(m_critSection);
@@ -1076,7 +1075,7 @@ int CPVRChannelGroup::GetEPGNowOrNext(CFileItemList &results, bool bGetNext) con
   for (PVR_CHANNEL_GROUP_SORTED_MEMBERS::const_iterator it = m_sortedMembers.begin(); it != m_sortedMembers.end(); ++it)
   {
     channel = (*it).channel;
-    epg = channel->GetEPG();
+    CEpgPtr epg = channel->GetEPG();
     if (epg && !channel->IsHidden())
     {
       epgNext = bGetNext ? epg->GetTagNext() : epg->GetTagNow();
@@ -1094,21 +1093,35 @@ int CPVRChannelGroup::GetEPGNowOrNext(CFileItemList &results, bool bGetNext) con
   return results.Size() - iInitialSize;
 }
 
-int CPVRChannelGroup::GetEPGAll(CFileItemList &results) const
+int CPVRChannelGroup::GetEPGAll(CFileItemList &results, bool bIncludeChannelsWithoutEPG /* = false */) const
 {
   int iInitialSize = results.Size();
-  CEpg* epg;
+  CEpgInfoTagPtr epgTag;
   CPVRChannelPtr channel;
   CSingleLock lock(m_critSection);
 
   for (PVR_CHANNEL_GROUP_SORTED_MEMBERS::const_iterator it = m_sortedMembers.begin(); it != m_sortedMembers.end(); ++it)
   {
     channel = (*it).channel;
-    if (!channel->IsHidden() && (epg = channel->GetEPG()) != NULL)
+    if (!channel->IsHidden())
     {
-      // XXX channel pointers aren't set in some occasions. this works around the issue, but is not very nice
-      epg->SetChannel(channel);
-      epg->Get(results);
+      int iAdded = 0;
+
+      CEpgPtr epg = channel->GetEPG();
+      if (epg)
+      {
+        // XXX channel pointers aren't set in some occasions. this works around the issue, but is not very nice
+        epg->SetChannel(channel);
+        iAdded = epg->Get(results);
+      }
+
+      if (bIncludeChannelsWithoutEPG && iAdded == 0)
+      {
+        // Add dummy EPG tag associated with this channel
+        epgTag = CEpgInfoTag::CreateDefaultTag();
+        epgTag->SetPVRChannel(channel);
+        results.Add(CFileItemPtr(new CFileItem(epgTag)));
+      }
     }
   }
 
@@ -1118,14 +1131,14 @@ int CPVRChannelGroup::GetEPGAll(CFileItemList &results) const
 CDateTime CPVRChannelGroup::GetEPGDate(EpgDateType epgDateType) const
 {
   CDateTime date;
-  CEpg* epg;
+  CEpgPtr epg;
   CPVRChannelPtr channel;
   CSingleLock lock(m_critSection);
 
   for (PVR_CHANNEL_GROUP_MEMBERS::const_iterator it = m_members.begin(); it != m_members.end(); ++it)
   {
     channel = it->second.channel;
-    if (!channel->IsHidden() && (epg = channel->GetEPG()) != NULL)
+    if (!channel->IsHidden() && (epg = channel->GetEPG()))
     {
       CDateTime epgDate;
       switch (epgDateType)

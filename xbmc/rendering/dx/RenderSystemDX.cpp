@@ -158,7 +158,7 @@ void CRenderSystemDX::SetMonitor(HMONITOR monitor)
         {
           pAdapter->GetDesc(&m_adapterDesc);
 
-          CLog::Log(LOGDEBUG, __FUNCTION__" - Selected %S adapter. ", m_adapterDesc.Description, outputDesc.DeviceName);
+          CLog::Log(LOGDEBUG, __FUNCTION__" - Selected %S adapter. ", m_adapterDesc.Description);
 
           SAFE_RELEASE(m_adapter);
           m_adapter = pAdapter;
@@ -414,13 +414,6 @@ bool CRenderSystemDX::DestroyRenderSystem()
   SAFE_RELEASE(m_pOutput);
   SAFE_RELEASE(m_adapter);
   SAFE_RELEASE(m_dxgiFactory);
-#ifdef _DEBUG
-  if (m_d3dDebug)
-  {
-    m_d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
-    m_d3dDebug->Release();
-  }
-#endif
   return true;
 }
 
@@ -435,6 +428,9 @@ void CRenderSystemDX::DeleteDevice()
   for (std::vector<ID3DResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
     (*i)->OnDestroyDevice();
 
+  if (m_pSwapChain)
+    m_pSwapChain->SetFullscreenState(false, NULL);
+
   SAFE_DELETE(m_pGUIShader);
   SAFE_RELEASE(m_pTextureRight);
   SAFE_RELEASE(m_pRenderTargetViewRight);
@@ -446,16 +442,8 @@ void CRenderSystemDX::DeleteDevice()
   SAFE_RELEASE(m_depthStencilState);
   SAFE_RELEASE(m_depthStencilView);
   SAFE_RELEASE(m_pRenderTargetView);
-  if (m_pSwapChain)
-  {
-    m_pSwapChain->SetFullscreenState(false, NULL);
-    SAFE_RELEASE(m_pSwapChain);
-  }
-  SAFE_RELEASE(m_pSwapChain1);
-  SAFE_RELEASE(m_pD3DDev);
   if (m_pContext && m_pContext != m_pImdContext)
   {
-    FinishCommandList(false);
     m_pContext->ClearState();
     m_pContext->Flush();
     SAFE_RELEASE(m_pContext);
@@ -466,6 +454,16 @@ void CRenderSystemDX::DeleteDevice()
     m_pImdContext->Flush();
     SAFE_RELEASE(m_pImdContext);
   }
+  SAFE_RELEASE(m_pSwapChain);
+  SAFE_RELEASE(m_pSwapChain1);
+  SAFE_RELEASE(m_pD3DDev);
+#ifdef _DEBUG
+  if (m_d3dDebug)
+  {
+    m_d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY | D3D11_RLDO_DETAIL);
+    SAFE_RELEASE(m_d3dDebug);
+  }
+#endif
   m_bResizeRequred = false;
   m_bHWStereoEnabled = false;
   m_bRenderCreated = false;
@@ -492,14 +490,16 @@ void CRenderSystemDX::OnDeviceReset()
 
   if (m_needNewDevice)
     CreateDevice();
-  else
-  { // we're back
+  
+  if (m_bRenderCreated)
+  {
+    // we're back
     for (std::vector<ID3DResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
       (*i)->OnResetDevice();
-  }
 
-  g_renderManager.Flush();
-  g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_RENDERER_RESET);
+    g_renderManager.Flush();
+    g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_RENDERER_RESET);
+  }
 }
 
 bool CRenderSystemDX::CreateDevice()
@@ -1210,6 +1210,7 @@ bool CRenderSystemDX::BeginRender()
     if (DXGI_ERROR_DEVICE_REMOVED == m_nDeviceStatus)
     {
       OnDeviceLost();
+      OnDeviceReset();
     }
     return false;
   }
@@ -1249,9 +1250,7 @@ bool CRenderSystemDX::ClearBuffers(color_t color)
     if (m_stereoView == RENDER_STEREO_VIEW_RIGHT)
     {
       // execute command's queue
-      if ( m_stereoMode != RENDER_STEREO_MODE_SPLIT_HORIZONTAL
-        && m_stereoMode != RENDER_STEREO_MODE_SPLIT_VERTICAL)
-        FinishCommandList();
+      FinishCommandList();
 
       // do not clear RT for anaglyph modes
       if ( m_stereoMode == RENDER_STEREO_MODE_ANAGLYPH_GREEN_MAGENTA
@@ -1362,6 +1361,9 @@ void CRenderSystemDX::SetCameraPosition(const CPoint &camera, int screenWidth, i
 
 void CRenderSystemDX::Project(float &x, float &y, float &z)
 {
+  if (!m_bRenderCreated)
+    return;
+
   m_pGUIShader->Project(x, y, z);
 }
 
@@ -1482,7 +1484,10 @@ void CRenderSystemDX::RestoreViewPort()
 
 bool CRenderSystemDX::ScissorsCanEffectClipping()
 {
-  return m_pGUIShader != NULL && m_pGUIShader->HardwareClipIsPossible(); 
+  if (!m_bRenderCreated)
+    return false;
+
+  return m_pGUIShader != NULL && m_pGUIShader->HardwareClipIsPossible();
 }
 
 CRect CRenderSystemDX::ClipRectToScissorRect(const CRect &rect)
@@ -1637,6 +1642,9 @@ bool CRenderSystemDX::SupportsStereo(RENDER_STEREO_MODE mode) const
 
 void CRenderSystemDX::FlushGPU()
 {
+  if (!m_bRenderCreated)
+    return;
+
   FinishCommandList();
   m_pImdContext->Flush();
 }

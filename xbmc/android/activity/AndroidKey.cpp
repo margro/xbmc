@@ -117,12 +117,6 @@ static KeyMap keyMap[] = {
   { AKEYCODE_MENU            , XBMCK_MENU },
   { AKEYCODE_NOTIFICATION    , XBMCK_LAST },
   { AKEYCODE_SEARCH          , XBMCK_LAST },
-  { AKEYCODE_MEDIA_PLAY_PAUSE, XBMCK_MEDIA_PLAY_PAUSE },
-  { AKEYCODE_MEDIA_STOP      , XBMCK_MEDIA_STOP },
-  { AKEYCODE_MEDIA_NEXT      , XBMCK_MEDIA_NEXT_TRACK },
-  { AKEYCODE_MEDIA_PREVIOUS  , XBMCK_MEDIA_PREV_TRACK },
-  { AKEYCODE_MEDIA_REWIND    , XBMCK_MEDIA_REWIND },
-  { AKEYCODE_MEDIA_FAST_FORWARD , XBMCK_MEDIA_FASTFORWARD },
   { AKEYCODE_MUTE            , XBMCK_LAST },
   { AKEYCODE_PAGE_UP         , XBMCK_PAGEUP },
   { AKEYCODE_PAGE_DOWN       , XBMCK_PAGEDOWN },
@@ -151,10 +145,6 @@ static KeyMap keyMap[] = {
   { AKEYCODE_SCROLL_LOCK     , XBMCK_SCROLLOCK },
   { AKEYCODE_INSERT          , XBMCK_INSERT },
   { AKEYCODE_FORWARD         , XBMCK_MEDIA_FASTFORWARD },
-  { AKEYCODE_MEDIA_PLAY      , XBMCK_MEDIA_PLAY_PAUSE },
-  { AKEYCODE_MEDIA_PAUSE     , XBMCK_MEDIA_PLAY_PAUSE },
-  { AKEYCODE_MEDIA_RECORD    , XBMCK_RECORD },
-  { AKEYCODE_MEDIA_EJECT     , XBMCK_EJECT },
   { AKEYCODE_GUIDE           , XBMCK_GUIDE },
   { AKEYCODE_SETTINGS        , XBMCK_SETTINGS },
   { AKEYCODE_INFO            , XBMCK_INFO },
@@ -163,6 +153,21 @@ static KeyMap keyMap[] = {
   { AKEYCODE_PROG_YELLOW     , XBMCK_YELLOW },
   { AKEYCODE_PROG_BLUE       , XBMCK_BLUE },
 };
+
+static KeyMap MediakeyMap[] = {
+  { AKEYCODE_MEDIA_PLAY_PAUSE, XBMCK_MEDIA_PLAY_PAUSE },
+  { AKEYCODE_MEDIA_STOP      , XBMCK_MEDIA_STOP },
+  { AKEYCODE_MEDIA_NEXT      , XBMCK_MEDIA_NEXT_TRACK },
+  { AKEYCODE_MEDIA_PREVIOUS  , XBMCK_MEDIA_PREV_TRACK },
+  { AKEYCODE_MEDIA_REWIND    , XBMCK_MEDIA_REWIND },
+  { AKEYCODE_MEDIA_FAST_FORWARD , XBMCK_MEDIA_FASTFORWARD },
+  { AKEYCODE_MEDIA_PLAY      , XBMCK_MEDIA_PLAY_PAUSE },
+  { AKEYCODE_MEDIA_PAUSE     , XBMCK_MEDIA_PLAY_PAUSE },
+  { AKEYCODE_MEDIA_RECORD    , XBMCK_RECORD },
+  { AKEYCODE_MEDIA_EJECT     , XBMCK_EJECT },
+};
+
+bool CAndroidKey::m_handleMediaKeys = false;
 
 bool CAndroidKey::onKeyboardEvent(AInputEvent *event)
 {
@@ -187,6 +192,17 @@ bool CAndroidKey::onKeyboardEvent(AInputEvent *event)
     {
       sym = keyMap[index].xbmcKey;
       break;
+    }
+  }
+  if (m_handleMediaKeys)
+  {
+    for (unsigned int index = 0; index < sizeof(MediakeyMap) / sizeof(KeyMap); index++)
+    {
+      if (keycode == MediakeyMap[index].nativeKey)
+      {
+        sym = MediakeyMap[index].xbmcKey;
+        break;
+      }
     }
   }
 

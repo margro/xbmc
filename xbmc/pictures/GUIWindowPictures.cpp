@@ -162,7 +162,7 @@ bool CGUIWindowPictures::OnMessage(CGUIMessage& message)
         }
         else if (iAction == ACTION_SHOW_INFO)
         {
-          OnInfo(iItem);
+          OnItemInfo(iItem);
           return true;
         }
       }
@@ -500,8 +500,6 @@ void CGUIWindowPictures::GetContextButtons(int itemNumber, CContextButtons &butt
     }
   }
   CGUIMediaWindow::GetContextButtons(itemNumber, buttons);
-  if (item && !item->GetProperty("pluginreplacecontextitems").asBoolean())
-    buttons.Add(CONTEXT_BUTTON_SETTINGS, 5);                  // Settings
 
   CContextMenuManager::GetInstance().AddVisibleItems(item, buttons);
 }
@@ -527,7 +525,7 @@ bool CGUIWindowPictures::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
       OnSlideShowRecursive(item->GetPath());
     return true;
   case CONTEXT_BUTTON_INFO:
-    OnInfo(itemNumber);
+    OnItemInfo(itemNumber);
     return true;
   case CONTEXT_BUTTON_REFRESH_THUMBS:
     OnRegenerateThumbs();
@@ -537,9 +535,6 @@ bool CGUIWindowPictures::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     return true;
   case CONTEXT_BUTTON_RENAME:
     OnRenameItem(itemNumber);
-    return true;
-  case CONTEXT_BUTTON_SETTINGS:
-    g_windowManager.ActivateWindow(WINDOW_SETTINGS_MYPICTURES);
     return true;
   case CONTEXT_BUTTON_GOTO_ROOT:
     Update("");
@@ -598,7 +593,7 @@ void CGUIWindowPictures::LoadPlayList(const std::string& strPlayList)
   }
 }
 
-void CGUIWindowPictures::OnInfo(int itemNumber)
+void CGUIWindowPictures::OnItemInfo(int itemNumber)
 {
   CFileItemPtr item = (itemNumber >= 0 && itemNumber < m_vecItems->Size()) ? m_vecItems->Get(itemNumber) : CFileItemPtr();
   if (!item)
