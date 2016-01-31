@@ -268,9 +268,9 @@ bool CAddonInstaller::InstallFromZip(const std::string &path)
   CURL zipDir = URIUtils::CreateArchivePath("zip", pathToUrl, "");
   if (!CDirectory::GetDirectory(zipDir, items) || items.Size() != 1 || !items[0]->m_bIsFolder)
   {
-    CEventLog::GetInstance().AddWithNotification(
-      EventPtr(new CNotificationEvent(24045, StringUtils::Format(g_localizeStrings.Get(24143).c_str(), path.c_str()),
-                   "special://xbmc/media/icon256x256.png", EventLevelError)));
+    CEventLog::GetInstance().AddWithNotification(EventPtr(new CNotificationEvent(24045,
+        StringUtils::Format(g_localizeStrings.Get(24143).c_str(), path.c_str()),
+        "special://xbmc/media/icon256x256.png", EventLevel::Error)));
     return false;
   }
 
@@ -289,9 +289,9 @@ bool CAddonInstaller::InstallFromZip(const std::string &path)
     return DoInstall(addon, RepositoryPtr());
   }
 
-  CEventLog::GetInstance().AddWithNotification(
-    EventPtr(new CNotificationEvent(24045, StringUtils::Format(g_localizeStrings.Get(24143).c_str(), path.c_str()),
-                 "special://xbmc/media/icon256x256.png", EventLevelError)));
+  CEventLog::GetInstance().AddWithNotification(EventPtr(new CNotificationEvent(24045,
+      StringUtils::Format(g_localizeStrings.Get(24143).c_str(), path.c_str()),
+      "special://xbmc/media/icon256x256.png", EventLevel::Error)));
   return false;
 }
 
@@ -340,7 +340,7 @@ bool CAddonInstaller::CheckDependencies(const AddonPtr &addon,
         database.Close();
 
         // fill in the details of the failed dependency
-        failedDep.first = addon->ID();
+        failedDep.first = addonID;
         failedDep.second = version.asString();
 
         return false;
@@ -426,11 +426,7 @@ void CAddonInstaller::PrunePackageCache()
 
 void CAddonInstaller::InstallUpdates(bool includeBlacklisted /* = false */)
 {
-  VECADDONS addons = CAddonMgr::GetInstance().GetOutdated();
-  if (addons.empty())
-    return;
-
-  for (const auto& addon : addons)
+  for (const auto& addon : CAddonMgr::GetInstance().GetAvailableUpdates())
   {
     if (includeBlacklisted || !CAddonMgr::GetInstance().IsBlacklisted(addon->ID()))
       CAddonInstaller::GetInstance().InstallOrUpdate(addon->ID());
@@ -619,7 +615,7 @@ bool CAddonInstallJob::DoWork()
   // run any post-install guff
   CEventLog::GetInstance().Add(
     EventPtr(new CAddonManagementEvent(m_addon, m_update ? 24065 : 24064)),
-    !IsModal() && CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONNOTIFICATIONS), false);
+    !IsModal() && CSettings::GetInstance().GetBool(CSettings::SETTING_ADDONS_NOTIFICATIONS), false);
 
   ADDON::OnPostInstall(m_addon, m_update, IsModal());
 
@@ -833,16 +829,15 @@ void CAddonInstallJob::ReportInstallError(const std::string& addonID, const std:
     if (msg.empty())
       msg = g_localizeStrings.Get(addon2 != NULL ? 113 : 114);
 
-    activity = EventPtr(new CAddonManagementEvent(addon, EventLevelError, msg));
+    activity = EventPtr(new CAddonManagementEvent(addon, EventLevel::Error, msg));
     if (IsModal())
       CGUIDialogOK::ShowAndGetInput(CVariant{m_addon->Name()}, CVariant{msg});
   }
   else
   {
-    activity =
-      EventPtr(new CNotificationEvent(24045,
-                   !msg.empty() ? msg : StringUtils::Format(g_localizeStrings.Get(24143).c_str(), fileName.c_str()),
-                   EventLevelError));
+    activity = EventPtr(new CNotificationEvent(24045,
+        !msg.empty() ? msg : StringUtils::Format(g_localizeStrings.Get(24143).c_str(), fileName.c_str()),
+        EventLevel::Error));
 
     if (IsModal())
       CGUIDialogOK::ShowAndGetInput(CVariant{fileName}, CVariant{msg});

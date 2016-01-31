@@ -57,6 +57,10 @@ JSONRPC_STATUS CAudioLibrary::GetArtists(const std::string &method, ITransportLa
     genreID = (int)filter["genreid"].asInteger();
   else if (filter.isMember("genre"))
     musicUrl.AddOption("genre", filter["genre"].asString());
+  else if (filter.isMember("roleid"))
+    musicUrl.AddOption("roleid", (int)filter["roleid"].asInteger());
+  else if (filter.isMember("role"))
+    musicUrl.AddOption("role", filter["role"].asString());
   else if (filter.isMember("albumid"))
     albumID = (int)filter["albumid"].asInteger();
   else if (filter.isMember("album"))
@@ -173,7 +177,7 @@ JSONRPC_STATUS CAudioLibrary::GetAlbums(const std::string &method, ITransportLay
   for (unsigned int index = 0; index < albums.size(); index++)
   {
     CMusicDbUrl itemUrl = musicUrl;
-    std::string path = StringUtils::Format("%i/", albums[index].idAlbum);
+    std::string path = StringUtils::Format("%li/", albums[index].idAlbum);
     itemUrl.AppendPath(path);
 
     CFileItemPtr pItem;
@@ -246,6 +250,10 @@ JSONRPC_STATUS CAudioLibrary::GetSongs(const std::string &method, ITransportLaye
     musicUrl.AddOption("genreid", (int)filter["genreid"].asInteger());
   else if (filter.isMember("genre"))
     musicUrl.AddOption("genre", filter["genre"].asString());
+  else if (filter.isMember("roleid"))
+    musicUrl.AddOption("roleid", (int)filter["roleid"].asInteger());
+  else if (filter.isMember("role"))
+    musicUrl.AddOption("role", filter["role"].asString());
   else if (filter.isMember("albumid"))
     musicUrl.AddOption("albumid", (int)filter["albumid"].asInteger());
   else if (filter.isMember("album"))
@@ -419,6 +427,24 @@ JSONRPC_STATUS CAudioLibrary::GetGenres(const std::string &method, ITransportLay
   return OK;
 }
 
+JSONRPC_STATUS CAudioLibrary::GetContributorRoles(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+{
+  CMusicDatabase musicdatabase;
+  if (!musicdatabase.Open())
+    return InternalError;
+
+  CFileItemList items;
+  if (!musicdatabase.GetRolesNav("musicdb://songs/", items))
+    return InternalError;
+
+  /* need to set strTitle in each item*/
+  for (unsigned int i = 0; i < (unsigned int)items.Size(); i++)
+    items[i]->GetMusicInfoTag()->SetTitle(items[i]->GetLabel());
+
+  HandleFileItemList("roleid", false, "roles", items, parameterObject, result);
+  return OK;
+}
+
 JSONRPC_STATUS CAudioLibrary::SetArtistDetails(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
   int id = (int)parameterObject["artistid"].asInteger();
@@ -498,7 +524,9 @@ JSONRPC_STATUS CAudioLibrary::SetAlbumDetails(const std::string &method, ITransp
   if (ParameterNotNull(parameterObject, "albumlabel"))
     album.strLabel = parameterObject["albumlabel"].asString();
   if (ParameterNotNull(parameterObject, "rating"))
-    album.iRating = (int)parameterObject["rating"].asInteger();
+    album.fRating = parameterObject["rating"].asFloat();
+  if (ParameterNotNull(parameterObject, "userrating"))
+    album.iUserrating = parameterObject["userrating"].asInteger();
   if (ParameterNotNull(parameterObject, "year"))
     album.iYear = (int)parameterObject["year"].asInteger();
 
@@ -540,7 +568,9 @@ JSONRPC_STATUS CAudioLibrary::SetSongDetails(const std::string &method, ITranspo
   if (ParameterNotNull(parameterObject, "year"))
     song.iYear = (int)parameterObject["year"].asInteger();
   if (ParameterNotNull(parameterObject, "rating"))
-    song.rating = '0' + (char)parameterObject["rating"].asInteger();
+    song.rating = parameterObject["rating"].asFloat();
+  if (ParameterNotNull(parameterObject, "userrating"))
+    song.userrating = parameterObject["userrating"].asInteger();
   //Album title is not part of song, it belongs to album so not changed as a song detail??
   if (ParameterNotNull(parameterObject, "album"))
     song.strAlbum = parameterObject["album"].asString();
@@ -726,9 +756,9 @@ JSONRPC_STATUS CAudioLibrary::GetAdditionalDetails(const CVariant &parameterObje
     return OK;
 
   CMusicDatabase musicdb;
-  if (MediaTypes::IsMediaType(items.GetContent(), MediaTypeAlbum))
+  if (CMediaTypes::IsMediaType(items.GetContent(), MediaTypeAlbum))
     return GetAdditionalAlbumDetails(parameterObject, items, musicdb);
-  else if (MediaTypes::IsMediaType(items.GetContent(), MediaTypeSong))
+  else if (CMediaTypes::IsMediaType(items.GetContent(), MediaTypeSong))
     return GetAdditionalSongDetails(parameterObject, items, musicdb);
 
   return OK;

@@ -63,7 +63,7 @@ bool CRecentlyAddedJob::UpdateVideo()
     {
       CFileItemPtr item = items.Get(i);
       std::string   value = StringUtils::Format("%i", i + 1);
-      std::string   strRating = StringUtils::Format("%.1f", item->GetVideoInfoTag()->m_fRating);
+      std::string   strRating = StringUtils::Format("%.1f", item->GetVideoInfoTag()->GetRating().rating);
       
       home->SetProperty("LatestMovie." + value + ".Title"       , item->GetLabel());
       home->SetProperty("LatestMovie." + value + ".Rating"      , strRating);
@@ -106,7 +106,7 @@ bool CRecentlyAddedJob::UpdateVideo()
       int          EpisodeNumber = item->GetVideoInfoTag()->m_iEpisode;
       std::string   EpisodeNo = StringUtils::Format("s%02de%02d", EpisodeSeason, EpisodeNumber);
       std::string   value = StringUtils::Format("%i", i + 1);
-      std::string   strRating = StringUtils::Format("%.1f", item->GetVideoInfoTag()->m_fRating);
+      std::string   strRating = StringUtils::Format("%.1f", item->GetVideoInfoTag()->GetRating().rating);
 
       home->SetProperty("LatestEpisode." + value + ".ShowTitle"     , item->GetVideoInfoTag()->m_strShowTitle);
       home->SetProperty("LatestEpisode." + value + ".EpisodeTitle"  , item->GetVideoInfoTag()->m_strTitle);
@@ -273,7 +273,7 @@ bool CRecentlyAddedJob::UpdateMusic()
       home->SetProperty("LatestAlbum." + value + ".Title"   , album.strAlbum);
       home->SetProperty("LatestAlbum." + value + ".Year"    , album.iYear);
       home->SetProperty("LatestAlbum." + value + ".Artist"  , album.GetAlbumArtistString());
-      home->SetProperty("LatestAlbum." + value + ".Rating"  , album.iRating);
+      home->SetProperty("LatestAlbum." + value + ".Rating"  , album.fRating);
       home->SetProperty("LatestAlbum." + value + ".Path"    , strDBpath);
       home->SetProperty("LatestAlbum." + value + ".Thumb"   , strThumb);
       home->SetProperty("LatestAlbum." + value + ".Fanart"  , strFanart);

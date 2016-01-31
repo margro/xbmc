@@ -23,8 +23,11 @@
 #include "GUIUserMessages.h"
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
+#include "addons/AddonSystemSettings.h"
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "dialogs/GUIDialogKaiToast.h"
+#include "events/AddonManagementEvent.h"
+#include "events/EventLog.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
@@ -61,23 +64,26 @@ void CRepositoryUpdater::OnJobComplete(unsigned int jobID, bool success, CJob* j
     CLog::Log(LOGDEBUG, "CRepositoryUpdater: done.");
     m_doneEvent.Set();
 
-    if (CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) == AUTO_UPDATES_NOTIFY)
+    if (CSettings::GetInstance().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_NOTIFY)
     {
-      VECADDONS hasUpdate = CAddonMgr::GetInstance().GetOutdated();
-      if (!hasUpdate.empty())
+      VECADDONS updates = CAddonMgr::GetInstance().GetAvailableUpdates();
+      if (!updates.empty())
       {
-        if (hasUpdate.size() == 1)
+        if (updates.size() == 1)
           CGUIDialogKaiToast::QueueNotification(
-              hasUpdate[0]->Icon(), hasUpdate[0]->Name(), g_localizeStrings.Get(24068),
+              updates[0]->Icon(), updates[0]->Name(), g_localizeStrings.Get(24068),
               TOAST_DISPLAY_TIME, false, TOAST_DISPLAY_TIME);
         else
           CGUIDialogKaiToast::QueueNotification(
               "", g_localizeStrings.Get(24001), g_localizeStrings.Get(24061),
               TOAST_DISPLAY_TIME, false, TOAST_DISPLAY_TIME);
+
+        for (const auto &addon : updates)
+          CEventLog::GetInstance().Add(EventPtr(new CAddonManagementEvent(addon, 24068)));
       }
     }
 
-    if (CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) == AUTO_UPDATES_ON)
+    if (CSettings::GetInstance().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_ON)
       CAddonInstaller::GetInstance().InstallUpdates();
 
     ScheduleUpdate();
@@ -90,7 +96,7 @@ void CRepositoryUpdater::OnJobComplete(unsigned int jobID, bool success, CJob* j
 void CRepositoryUpdater::CheckForUpdates(bool showProgress)
 {
   VECADDONS addons;
-  if (CAddonMgr::GetInstance().GetAddons(ADDON_REPOSITORY, addons) && !addons.empty())
+  if (CAddonMgr::GetInstance().GetAddons(addons, ADDON_REPOSITORY) && !addons.empty())
   {
     CSingleLock lock(m_criticalSection);
     for (const auto& addon : addons)
@@ -149,14 +155,14 @@ void CRepositoryUpdater::OnTimeout()
 
 void CRepositoryUpdater::OnSettingChanged(const CSetting* setting)
 {
-  if (setting->GetId() == CSettings::SETTING_GENERAL_ADDONUPDATES)
+  if (setting->GetId() == CSettings::SETTING_ADDONS_AUTOUPDATES)
     ScheduleUpdate();
 }
 
 CDateTime CRepositoryUpdater::LastUpdated() const
 {
   VECADDONS repos;
-  if (!CAddonMgr::GetInstance().GetAddons(ADDON_REPOSITORY, repos) || repos.empty())
+  if (!CAddonMgr::GetInstance().GetAddons(repos, ADDON_REPOSITORY) || repos.empty())
     return CDateTime();
 
   CAddonDatabase db;
@@ -181,7 +187,7 @@ void CRepositoryUpdater::ScheduleUpdate()
   CSingleLock lock(m_criticalSection);
   m_timer.Stop(true);
 
-  if (CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) == AUTO_UPDATES_NEVER)
+  if (CSettings::GetInstance().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_NEVER)
     return;
 
   if (!CAddonMgr::GetInstance().HasAddons(ADDON_REPOSITORY))

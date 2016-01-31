@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,13 +13,14 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "GUIWindowAddonBrowser.h"
 #include "addons/AddonManager.h"
+#include "AddonSystemSettings.h"
 #include "addons/RepositoryUpdater.h"
 #include "GUIDialogAddonInfo.h"
 #include "GUIDialogAddonSettings.h"
@@ -34,6 +35,7 @@
 #include "FileItem.h"
 #include "filesystem/AddonsDirectory.h"
 #include "addons/AddonInstaller.h"
+#include "messaging/helpers/DialogHelper.h"
 #include "settings/Settings.h"
 #include "settings/MediaSourceSettings.h"
 #include "utils/StringUtils.h"
@@ -46,8 +48,7 @@
 
 #include <utility>
 
-#define CONTROL_AUTOUPDATE    5
-#define CONTROL_SHUTUP        6
+#define CONTROL_SETTINGS 5
 #define CONTROL_FOREIGNFILTER 7
 #define CONTROL_BROKENFILTER  8
 #define CONTROL_CHECK_FOR_UPDATES  9
@@ -88,23 +89,7 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
   case GUI_MSG_CLICKED:
     {
       int iControl = message.GetSenderId();
-      if (iControl == CONTROL_AUTOUPDATE)
-      {
-        const CGUIControl *control = GetControl(CONTROL_AUTOUPDATE);
-        if (control && control->GetControlType() == CGUIControl::GUICONTROL_BUTTON)
-          CSettings::GetInstance().SetInt(CSettings::SETTING_GENERAL_ADDONUPDATES, (CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES)+1) % AUTO_UPDATES_MAX);
-        else
-          CSettings::GetInstance().SetInt(CSettings::SETTING_GENERAL_ADDONUPDATES, (CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) == 0) ? 1 : 0);
-        UpdateButtons();
-        return true;
-      }
-      else if (iControl == CONTROL_SHUTUP)
-      {
-        CSettings::GetInstance().ToggleBool(CSettings::SETTING_GENERAL_ADDONNOTIFICATIONS);
-        CSettings::GetInstance().Save();
-        return true;
-      }
-      else if (iControl == CONTROL_FOREIGNFILTER)
+      if (iControl == CONTROL_FOREIGNFILTER)
       {
         CSettings::GetInstance().ToggleBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER);
         CSettings::GetInstance().Save();
@@ -121,6 +106,11 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
       else if (iControl == CONTROL_CHECK_FOR_UPDATES)
       {
         CRepositoryUpdater::GetInstance().CheckForUpdates(true);
+        return true;
+      }
+      else if (iControl == CONTROL_SETTINGS)
+      {
+        g_windowManager.ActivateWindow(WINDOW_SETTINGS_SYSTEM, "addons");
         return true;
       }
       else if (m_viewControl.HasControl(iControl))  // list/thumb control
@@ -228,18 +218,28 @@ class UpdateAddons : public IRunnable
 };
 
 
-bool CGUIWindowAddonBrowser::OnClick(int iItem)
+bool CGUIWindowAddonBrowser::OnClick(int iItem, const std::string &player)
 {
   CFileItemPtr item = m_vecItems->Get(iItem);
   if (item->GetPath() == "addons://install/")
   {
-    // pop up filebrowser to grab an installed folder
-    VECSOURCES shares = *CMediaSourceSettings::GetInstance().GetSources("files");
-    g_mediaManager.GetLocalDrives(shares);
-    g_mediaManager.GetNetworkLocations(shares);
-    std::string path;
-    if (CGUIDialogFileBrowser::ShowAndGetFile(shares, "*.zip", g_localizeStrings.Get(24041), path))
-      CAddonInstaller::GetInstance().InstallFromZip(path);
+    using namespace KODI::MESSAGING::HELPERS;
+
+    if (!CSettings::GetInstance().GetBool(CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES))
+    {
+      if (ShowYesNoDialogText(13106, 36617, 186, 10004) == DialogResponse::YES)
+        g_windowManager.ActivateWindow(WINDOW_SETTINGS_SYSTEM, "addons");
+    }
+    else
+    {
+      // pop up filebrowser to grab an installed folder
+      VECSOURCES shares = *CMediaSourceSettings::GetInstance().GetSources("files");
+      g_mediaManager.GetLocalDrives(shares);
+      g_mediaManager.GetNetworkLocations(shares);
+      std::string path;
+      if (CGUIDialogFileBrowser::ShowAndGetFile(shares, "*.zip", g_localizeStrings.Get(24041), path))
+        CAddonInstaller::GetInstance().InstallFromZip(path);
+    }
     return true;
   }
   if (item->GetPath() == "addons://update_all/")
@@ -271,31 +271,10 @@ bool CGUIWindowAddonBrowser::OnClick(int iItem)
 
 void CGUIWindowAddonBrowser::UpdateButtons()
 {
-  const CGUIControl *control = GetControl(CONTROL_AUTOUPDATE);
-  if (control && control->GetControlType() == CGUIControl::GUICONTROL_BUTTON)
-  { // set label
-    CSettingInt *setting = (CSettingInt *)CSettings::GetInstance().GetSetting(CSettings::SETTING_GENERAL_ADDONUPDATES);
-    if (setting)
-    {
-      const StaticIntegerSettingOptions& options = setting->GetOptions();
-      for (StaticIntegerSettingOptions::const_iterator it = options.begin(); it != options.end(); ++it)
-      {
-        if (it->second == setting->GetValue())
-        {
-          SET_CONTROL_LABEL(CONTROL_AUTOUPDATE, it->first);
-          break;
-        }
-      }
-    }
-  }
-  else
-  { // old skin with toggle button - set on if auto updates are on
-    SET_CONTROL_SELECTED(GetID(),CONTROL_AUTOUPDATE, CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) == AUTO_UPDATES_ON);
-  }
-  SET_CONTROL_SELECTED(GetID(),CONTROL_SHUTUP, CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONNOTIFICATIONS));
   SET_CONTROL_SELECTED(GetID(),CONTROL_FOREIGNFILTER, CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER));
   SET_CONTROL_SELECTED(GetID(),CONTROL_BROKENFILTER, CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER));
   CONTROL_ENABLE(CONTROL_CHECK_FOR_UPDATES);
+  CONTROL_ENABLE(CONTROL_SETTINGS);
 
   bool allowFilter = CAddonsDirectory::IsRepoDirectory(CURL(m_vecItems->GetPath()));
   CONTROL_ENABLE_ON_CONDITION(CONTROL_FOREIGNFILTER, allowFilter);
@@ -445,7 +424,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
   if (!addonID.empty())
     addonIDs.push_back(addonID);
   int retval = SelectAddonID(types, addonIDs, showNone, showDetails, false, showInstalled, showInstallable, showMore);
-  if (addonIDs.size() > 0)
+  if (!addonIDs.empty())
     addonID = addonIDs.at(0);
   else
     addonID = "";
@@ -489,7 +468,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
       else if (*type == ADDON_VIDEO)
         CAddonsDirectory::GetScriptsAndPlugins("video", typeAddons);
       else
-        CAddonMgr::GetInstance().GetAddons(*type, typeAddons);
+        CAddonMgr::GetInstance().GetAddons(typeAddons, *type);
 
       addons.insert(addons.end(), typeAddons.begin(), typeAddons.end());
     }
@@ -591,7 +570,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
   }
   items.Sort(SortByLabel, SortOrderAscending);
 
-  if (addonIDs.size() > 0)
+  if (!addonIDs.empty())
   {
     for (std::vector<std::string>::const_iterator it = addonIDs.begin(); it != addonIDs.end() ; ++it)
     {

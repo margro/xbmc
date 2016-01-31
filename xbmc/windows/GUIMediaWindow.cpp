@@ -33,7 +33,7 @@
 #include "addons/GUIDialogAddonSettings.h"
 #include "addons/PluginSource.h"
 #if defined(TARGET_ANDROID)
-#include "android/activity/XBMCApp.h"
+#include "platform/android/activity/XBMCApp.h"
 #endif
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogMediaFilter.h"
@@ -94,7 +94,6 @@ CGUIMediaWindow::CGUIMediaWindow(int id, const char *xmlFile)
   m_unfilteredItems = new CFileItemList;
   m_vecItems->SetPath("?");
   m_iLastControl = -1;
-  m_iSelectedItem = -1;
   m_canFilterAdvanced = false;
 
   m_guiState.reset(CGUIViewState::GetViewState(GetID(), *m_vecItems));
@@ -229,7 +228,6 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
   {
   case GUI_MSG_WINDOW_DEINIT:
     {
-      m_iSelectedItem = m_viewControl.GetSelectedItem();
       m_iLastControl = GetFocusedControlID();
       CGUIWindow::OnMessage(message);
 
@@ -420,6 +418,7 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
             filter = message.GetStringParam();
         }
         OnFilterItems(filter);
+        UpdateButtons();
         return true;
       }
       else
@@ -722,21 +721,10 @@ bool CGUIMediaWindow::Update(const std::string &strDirectory, bool updateFilterP
   if (strDirectory == "?")
     return false;
 
-  // get selected item
-  int iItem = m_viewControl.GetSelectedItem();
-  std::string strSelectedItem;
-  if (iItem >= 0 && iItem < m_vecItems->Size())
-  {
-    CFileItemPtr pItem = m_vecItems->Get(iItem);
-    if (!pItem->IsParentFolder())
-    {
-      GetDirectoryHistoryString(pItem.get(), strSelectedItem);
-    }
-  }
-  
-  std::string strCurrentDirectory = m_vecItems->GetPath();
-  m_history.SetSelectedItem(strSelectedItem, strCurrentDirectory);
+  // stores the selected item in history
+  SaveSelectedItemInHistory();
 
+  std::string strCurrentDirectory = m_vecItems->GetPath();
   std::string directory = strDirectory;
   // check if the path contains a filter and temporarily remove it
   // so that the retrieved list of items is unfiltered
@@ -822,31 +810,10 @@ bool CGUIMediaWindow::Update(const std::string &strDirectory, bool updateFilterP
 
   // Filter and group the items if necessary
   OnFilterItems(GetProperty("filter").asString());
-
   UpdateButtons();
 
-  strSelectedItem = m_history.GetSelectedItem(m_vecItems->GetPath());
-
-  bool bSelectedFound = false;
-  //int iSongInDirectory = -1;
-  for (int i = 0; i < m_vecItems->Size(); ++i)
-  {
-    CFileItemPtr pItem = m_vecItems->Get(i);
-
-    // Update selected item
-    std::string strHistory;
-    GetDirectoryHistoryString(pItem.get(), strHistory);
-    if (strHistory == strSelectedItem)
-    {
-      m_viewControl.SetSelectedItem(i);
-      bSelectedFound = true;
-      break;
-    }
-  }
-
-  // if we haven't found the selected item, select the first item
-  if (!bSelectedFound)
-    m_viewControl.SetSelectedItem(0);
+  // Restore selected item from history
+  RestoreSelectedItemFromHistory();
 
   m_history.AddPath(m_vecItems->GetPath(), m_strFilterPath);
 
@@ -893,7 +860,7 @@ void CGUIMediaWindow::OnCacheFileItems(CFileItemList &items)
 // \brief With this function you can react on a users click in the list/thumb panel.
 // It returns true, if the click is handled.
 // This function calls OnPlayMedia()
-bool CGUIMediaWindow::OnClick(int iItem)
+bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
 {
   if ( iItem < 0 || iItem >= (int)m_vecItems->Size() ) return true;
   CFileItemPtr pItem = m_vecItems->Get(iItem);
@@ -995,7 +962,7 @@ bool CGUIMediaWindow::OnClick(int iItem)
 #endif
   else
   {
-    m_iSelectedItem = m_viewControl.GetSelectedItem();
+    SaveSelectedItemInHistory();
 
     if (pItem->GetPath() == "newplaylist://")
     {
@@ -1008,11 +975,6 @@ bool CGUIMediaWindow::OnClick(int iItem)
       m_vecItems->RemoveDiscCache(GetID());
       if (CGUIDialogSmartPlaylistEditor::NewPlaylist(pItem->GetPath().substr(19)))
         Refresh();
-      return true;
-    }
-    else if (StringUtils::StartsWithNoCase(pItem->GetPath(), "addons://more/"))
-    {
-      CBuiltins::GetInstance().Execute("ActivateWindow(AddonBrowser,addons://all/xbmc.addon." + pItem->GetPath().substr(14) + ",return)");
       return true;
     }
 
@@ -1037,11 +999,11 @@ bool CGUIMediaWindow::OnClick(int iItem)
     if (autoplay && !g_partyModeManager.IsEnabled() && 
         !pItem->IsPlayList())
     {
-      return OnPlayAndQueueMedia(pItem);
+      return OnPlayAndQueueMedia(pItem, player);
     }
     else
     {
-      return OnPlayMedia(iItem);
+      return OnPlayMedia(iItem, player);
     }
   }
 
@@ -1150,6 +1112,44 @@ void CGUIMediaWindow::GoParentFolder()
     CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, g_localizeStrings.Get(2080), g_localizeStrings.Get(2081));
     GoParentFolder();
   }
+}
+
+void CGUIMediaWindow::SaveSelectedItemInHistory()
+{
+  int iItem = m_viewControl.GetSelectedItem();
+  std::string strSelectedItem;
+  if (iItem >= 0 && iItem < m_vecItems->Size())
+  {
+    CFileItemPtr pItem = m_vecItems->Get(iItem);
+    if (!pItem->IsParentFolder())
+      GetDirectoryHistoryString(pItem.get(), strSelectedItem);
+  }
+
+  m_history.SetSelectedItem(strSelectedItem, m_vecItems->GetPath());
+}
+
+void CGUIMediaWindow::RestoreSelectedItemFromHistory()
+{
+  std::string strSelectedItem = m_history.GetSelectedItem(m_vecItems->GetPath());
+
+  if (!strSelectedItem.empty())
+  {
+    for (int i = 0; i < m_vecItems->Size(); ++i)
+    {
+      CFileItemPtr pItem = m_vecItems->Get(i);
+      std::string strHistory;
+      GetDirectoryHistoryString(pItem.get(), strHistory);
+      // set selected item if equals with history
+      if (strHistory == strSelectedItem)
+      {
+        m_viewControl.SetSelectedItem(i);
+        return;
+      }
+    }
+  }
+
+  // if we haven't found the selected item, select the first item
+  m_viewControl.SetSelectedItem(0);
 }
 
 // \brief Override the function to change the default behavior on how
@@ -1281,7 +1281,7 @@ void CGUIMediaWindow::SetHistoryForPath(const std::string& strDirectory)
 // \brief Override if you want to change the default behavior, what is done
 // when the user clicks on a file.
 // This function is called by OnClick()
-bool CGUIMediaWindow::OnPlayMedia(int iItem)
+bool CGUIMediaWindow::OnPlayMedia(int iItem, const std::string &player)
 {
   // Reset Playlistplayer, playback started now does
   // not use the playlistplayer.
@@ -1293,9 +1293,9 @@ bool CGUIMediaWindow::OnPlayMedia(int iItem)
 
   bool bResult = false;
   if (pItem->IsInternetStream() || pItem->IsPlayList())
-    bResult = g_application.PlayMedia(*pItem, m_guiState->GetPlaylist());
+    bResult = g_application.PlayMedia(*pItem, player, m_guiState->GetPlaylist());
   else
-    bResult = g_application.PlayFile(*pItem) == PLAYBACK_OK;
+    bResult = g_application.PlayFile(*pItem, player) == PLAYBACK_OK;
 
   if (pItem->m_lStartOffset == STARTOFFSET_RESUME)
     pItem->m_lStartOffset = 0;
@@ -1306,7 +1306,7 @@ bool CGUIMediaWindow::OnPlayMedia(int iItem)
 // \brief Override if you want to change the default behavior of what is done
 // when the user clicks on a file in a "folder" with similar files.
 // This function is called by OnClick()
-bool CGUIMediaWindow::OnPlayAndQueueMedia(const CFileItemPtr &item)
+bool CGUIMediaWindow::OnPlayAndQueueMedia(const CFileItemPtr &item, std::string player)
 {
   //play and add current directory to temporary playlist
   int iPlaylist = m_guiState->GetPlaylist();
@@ -1360,7 +1360,7 @@ bool CGUIMediaWindow::OnPlayAndQueueMedia(const CFileItemPtr &item)
 
     // play
     g_playlistPlayer.SetCurrentPlaylist(iPlaylist);
-    g_playlistPlayer.Play(mediaToPlay);
+    g_playlistPlayer.Play(mediaToPlay, player);
   }
   return true;
 }
@@ -1460,10 +1460,19 @@ void CGUIMediaWindow::OnInitWindow()
 
   m_rootDir.SetAllowThreads(true);
 
-  if (m_iSelectedItem > -1)
-    m_viewControl.SetSelectedItem(m_iSelectedItem);
-
   CGUIWindow::OnInitWindow();
+}
+
+void CGUIMediaWindow::SaveControlStates()
+{
+  CGUIWindow::SaveControlStates();
+  SaveSelectedItemInHistory();
+}
+
+void CGUIMediaWindow::RestoreControlStates()
+{
+  CGUIWindow::RestoreControlStates();
+  RestoreSelectedItemFromHistory();
 }
 
 CGUIControl *CGUIMediaWindow::GetFirstFocusableControl(int id)
@@ -1544,7 +1553,7 @@ void CGUIMediaWindow::GetContextButtons(int itemNumber, CContextButtons &buttons
   // TODO: FAVOURITES Conditions on masterlock and localisation
   if (!item->IsParentFolder() && !item->IsPath("add") && !item->IsPath("newplaylist://") &&
       !URIUtils::IsProtocol(item->GetPath(), "newsmartplaylist") && !URIUtils::IsProtocol(item->GetPath(), "newtag") &&
-      !URIUtils::PathStarts(item->GetPath(), "addons://more/") && !URIUtils::IsProtocol(item->GetPath(), "musicsearch") &&
+      !URIUtils::IsProtocol(item->GetPath(), "musicsearch") &&
       !URIUtils::PathStarts(item->GetPath(), "pvr://guide/") && !URIUtils::PathStarts(item->GetPath(), "pvr://timers/"))
   {
     if (XFILE::CFavouritesDirectory::IsFavourite(item.get(), GetID()))
@@ -1800,7 +1809,6 @@ void CGUIMediaWindow::OnFilterItems(const std::string &filter)
   // and update our view control + buttons
   m_viewControl.SetItems(*m_vecItems);
   m_viewControl.SetSelectedItem(currentItemPath);
-  UpdateButtons();
 }
 
 bool CGUIMediaWindow::GetFilteredItems(const std::string &filter, CFileItemList &items)
@@ -1939,6 +1947,7 @@ bool CGUIMediaWindow::Filter(bool advanced /* = true */)
       CGUIMessage selected(GUI_MSG_ITEM_SELECTED, GetID(), CONTROL_BTN_FILTER);
       OnMessage(selected);
       OnFilterItems(selected.GetLabel());
+      UpdateButtons();
       return true;
     }
     if (GetProperty("filter").empty())
@@ -1948,7 +1957,10 @@ bool CGUIMediaWindow::Filter(bool advanced /* = true */)
       SetProperty("filter", filter);
     }
     else
+    {
       OnFilterItems("");
+      UpdateButtons();
+    }
   }
   // advanced filtering
   else

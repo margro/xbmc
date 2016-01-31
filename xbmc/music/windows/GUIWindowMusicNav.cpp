@@ -265,12 +265,6 @@ bool CGUIWindowMusicNav::Update(const std::string &strDirectory, bool updateFilt
 
   if (CGUIWindowMusicBase::Update(strDirectory, updateFilterPath))
   {
-    
-    if (m_vecItems->GetContent().empty() && 
-        !m_vecItems->IsSourcesPath() &&
-        !m_vecItems->IsVirtualDirectoryRoot())
-      m_vecItems->SetContent("files");
-
     m_thumbLoader.Load(*m_unfilteredItems);
     return true;
   }
@@ -355,6 +349,9 @@ bool CGUIWindowMusicNav::GetDirectory(const std::string &strDirectory, CFileItem
     items.SetContent("plugins");
   else if (items.IsAddonsPath())
     items.SetContent("addons");
+  else if (!items.IsSourcesPath() && !items.IsVirtualDirectoryRoot() &&
+           !items.IsLibraryFolder() && !items.IsPlugin() && !items.IsSmartPlayList())
+    items.SetContent("files");
 
   return bResult;
 }
@@ -442,7 +439,7 @@ void CGUIWindowMusicNav::GetContextButtons(int itemNumber, CContextButtons &butt
   CFileItemPtr item;
   if (itemNumber >= 0 && itemNumber < m_vecItems->Size())
     item = m_vecItems->Get(itemNumber);
-  if (item && !StringUtils::StartsWithNoCase(item->GetPath(), "addons://more/"))
+  if (item)
   {
     // are we in the playlists location?
     bool inPlaylists = m_vecItems->IsPath(CUtil::MusicPlaylistsLocation()) ||
@@ -470,8 +467,11 @@ void CGUIWindowMusicNav::GetContextButtons(int itemNumber, CContextButtons &butt
       // Add the scan button(s)
       if (g_application.IsMusicScanning())
         buttons.Add(CONTEXT_BUTTON_STOP_SCANNING, 13353); // Stop Scanning
-      else if (CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() ||
-               g_passwordManager.bMasterUser)
+      else if (!inPlaylists && !m_vecItems->IsInternetStream() &&
+        !item->IsPath("add") && !item->IsParentFolder() &&
+        !item->IsPlugin() &&
+        !StringUtils::StartsWithNoCase(item->GetPath(), "addons://") &&
+        (CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser))
       {
         buttons.Add(CONTEXT_BUTTON_SCAN, 13352);
       }

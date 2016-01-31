@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2012-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -580,7 +580,7 @@ const std::string& CPVRClient::GetFriendlyName(void) const
 PVR_ERROR CPVRClient::GetDriveSpace(long long *iTotal, long long *iUsed)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   try { return m_pStruct->GetDriveSpace(iTotal, iUsed); }
   catch (std::exception &e) { LogException(e, __FUNCTION__); }
@@ -595,7 +595,7 @@ PVR_ERROR CPVRClient::GetDriveSpace(long long *iTotal, long long *iUsed)
 PVR_ERROR CPVRClient::StartChannelScan(void)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsChannelScan)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -609,7 +609,7 @@ PVR_ERROR CPVRClient::StartChannelScan(void)
 PVR_ERROR CPVRClient::OpenDialogChannelAdd(const CPVRChannelPtr &channel)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsChannelSettings)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -634,7 +634,7 @@ PVR_ERROR CPVRClient::OpenDialogChannelAdd(const CPVRChannelPtr &channel)
 PVR_ERROR CPVRClient::OpenDialogChannelSettings(const CPVRChannelPtr &channel)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsChannelSettings)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -659,7 +659,7 @@ PVR_ERROR CPVRClient::OpenDialogChannelSettings(const CPVRChannelPtr &channel)
 PVR_ERROR CPVRClient::DeleteChannel(const CPVRChannelPtr &channel)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsChannelSettings)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -684,7 +684,7 @@ PVR_ERROR CPVRClient::DeleteChannel(const CPVRChannelPtr &channel)
 PVR_ERROR CPVRClient::RenameChannel(const CPVRChannelPtr &channel)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsChannelSettings)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -752,7 +752,7 @@ void CPVRClient::CallMenuHook(const PVR_MENUHOOK &hook, const CFileItem *item)
 PVR_ERROR CPVRClient::GetEPGForChannel(const CPVRChannelPtr &channel, CEpg *epg, time_t start /* = 0 */, time_t end /* = 0 */, bool bSaveInDb /* = false*/)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsEPG)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -801,7 +801,7 @@ int CPVRClient::GetChannelGroupsAmount(void)
 PVR_ERROR CPVRClient::GetChannelGroups(CPVRChannelGroups *groups)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsChannelGroups)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -827,7 +827,7 @@ PVR_ERROR CPVRClient::GetChannelGroups(CPVRChannelGroups *groups)
 PVR_ERROR CPVRClient::GetChannelGroupMembers(CPVRChannelGroup *group)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsChannelGroups)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -871,7 +871,7 @@ int CPVRClient::GetChannelsAmount(void)
 PVR_ERROR CPVRClient::GetChannels(CPVRChannelGroup &channels, bool radio)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if ((!m_addonCapabilities.bSupportsRadio && radio) ||
       (!m_addonCapabilities.bSupportsTV && !radio))
@@ -918,7 +918,7 @@ int CPVRClient::GetRecordingsAmount(bool deleted)
 PVR_ERROR CPVRClient::GetRecordings(CPVRRecordings *results, bool deleted)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsRecordings || (deleted && !m_addonCapabilities.bSupportsRecordingsUndelete))
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -944,7 +944,7 @@ PVR_ERROR CPVRClient::GetRecordings(CPVRRecordings *results, bool deleted)
 PVR_ERROR CPVRClient::DeleteRecording(const CPVRRecording &recording)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsRecordings)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -970,7 +970,7 @@ PVR_ERROR CPVRClient::DeleteRecording(const CPVRRecording &recording)
 PVR_ERROR CPVRClient::UndeleteRecording(const CPVRRecording &recording)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsRecordingsUndelete)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -996,7 +996,7 @@ PVR_ERROR CPVRClient::UndeleteRecording(const CPVRRecording &recording)
 PVR_ERROR CPVRClient::DeleteAllRecordingsFromTrash()
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsRecordingsUndelete)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1019,7 +1019,7 @@ PVR_ERROR CPVRClient::DeleteAllRecordingsFromTrash()
 PVR_ERROR CPVRClient::RenameRecording(const CPVRRecording &recording)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsRecordings)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1045,7 +1045,7 @@ PVR_ERROR CPVRClient::RenameRecording(const CPVRRecording &recording)
 PVR_ERROR CPVRClient::SetRecordingPlayCount(const CPVRRecording &recording, int count)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsRecordingPlayCount)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1071,7 +1071,7 @@ PVR_ERROR CPVRClient::SetRecordingPlayCount(const CPVRRecording &recording, int 
 PVR_ERROR CPVRClient::SetRecordingLastPlayedPosition(const CPVRRecording &recording, int lastplayedposition)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsLastPlayedPosition)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1170,7 +1170,7 @@ int CPVRClient::GetTimersAmount(void)
 PVR_ERROR CPVRClient::GetTimers(CPVRTimers *results)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsTimers)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1196,7 +1196,7 @@ PVR_ERROR CPVRClient::GetTimers(CPVRTimers *results)
 PVR_ERROR CPVRClient::AddTimer(const CPVRTimerInfoTag &timer)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsTimers)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1222,7 +1222,7 @@ PVR_ERROR CPVRClient::AddTimer(const CPVRTimerInfoTag &timer)
 PVR_ERROR CPVRClient::DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce /* = false */)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsTimers)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1248,7 +1248,7 @@ PVR_ERROR CPVRClient::DeleteTimer(const CPVRTimerInfoTag &timer, bool bForce /* 
 PVR_ERROR CPVRClient::RenameTimer(const CPVRTimerInfoTag &timer, const std::string &strNewName)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsTimers)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1274,7 +1274,7 @@ PVR_ERROR CPVRClient::RenameTimer(const CPVRTimerInfoTag &timer, const std::stri
 PVR_ERROR CPVRClient::UpdateTimer(const CPVRTimerInfoTag &timer)
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   if (!m_addonCapabilities.bSupportsTimers)
     return PVR_ERROR_NOT_IMPLEMENTED;
@@ -1300,7 +1300,7 @@ PVR_ERROR CPVRClient::UpdateTimer(const CPVRTimerInfoTag &timer)
 PVR_ERROR CPVRClient::GetTimerTypes(CPVRTimerTypes& results) const
 {
   if (!m_bReadyToUse)
-    return PVR_ERROR_REJECTED;
+    return PVR_ERROR_SERVER_ERROR;
 
   results = m_timertypes;
   return PVR_ERROR_NO_ERROR;
@@ -1499,7 +1499,7 @@ DemuxPacket* CPVRClient::DemuxRead(void)
 bool CPVRClient::HaveMenuHooks(PVR_MENUHOOK_CAT cat) const
 {
   bool bReturn(false);
-  if (m_bReadyToUse && m_menuhooks.size() > 0)
+  if (m_bReadyToUse && !m_menuhooks.empty())
   {
     for (unsigned int i = 0; i < m_menuhooks.size(); i++)
     {
@@ -1970,5 +1970,19 @@ bool CPVRClient::Autoconfigure(void)
     }
   }
 
+  return bReturn;
+}
+
+bool CPVRClient::IsRealTimeStream(void) const
+{
+  bool bReturn(false);
+  if (IsPlaying())
+  {
+    try
+    {
+      bReturn = m_pStruct->IsRealTimeStream();
+    }
+    catch (std::exception &e) { LogException(e, __FUNCTION__); }
+  }
   return bReturn;
 }

@@ -396,6 +396,11 @@ std::string ByDateTaken(SortAttribute attributes, const SortItem &values)
   return values.at(FieldDateTaken).asString();
 }
 
+std::string ByRelevance(SortAttribute attributes, const SortItem &values)
+{
+  return StringUtils::Format("%i", (int)values.at(FieldRelevance).asInteger());
+}
+
 bool preliminarySort(const SortItem &left, const SortItem &right, bool handleFolder, bool &result, std::wstring &labelLeft, std::wstring &labelRight)
 {
   // make sure both items have the necessary data to do the sorting
@@ -575,6 +580,7 @@ std::map<SortBy, SortUtils::SortPreparator> fillPreparators()
   preparators[SortByChannel]                  = ByChannel;
   preparators[SortByChannelNumber]            = ByChannelNumber;
   preparators[SortByDateTaken]                = ByDateTaken;
+  preparators[SortByRelevance]                = ByRelevance;
 
   return preparators;
 }
@@ -653,6 +659,7 @@ std::map<SortBy, Fields> fillSortingFields()
   sortingFields[SortByChannel].insert(FieldChannelName);
   sortingFields[SortByChannelNumber].insert(FieldChannelNumber);
   sortingFields[SortByDateTaken].insert(FieldDateTaken);
+  sortingFields[SortByRelevance].insert(FieldRelevance);
   sortingFields.insert(std::pair<SortBy, Fields>(SortByRandom, Fields()));
 
   return sortingFields;
@@ -850,6 +857,7 @@ const sort_map table[] = {
   { SortByFile,                     SORT_METHOD_FILE,                         SortAttributeIgnoreFolders, 561 },
   { SortByRating,                   SORT_METHOD_SONG_RATING,                  SortAttributeNone,          563 },
   { SortByRating,                   SORT_METHOD_VIDEO_RATING,                 SortAttributeIgnoreFolders, 563 },
+  { SortByUserRating,               SORT_METHOD_SONG_USER_RATING,             SortAttributeIgnoreFolders, 38018 },
   { SortByUserRating,               SORT_METHOD_VIDEO_USER_RATING,            SortAttributeIgnoreFolders, 38018 },
   { SortBySortTitle,                SORT_METHOD_VIDEO_SORT_TITLE,             SortAttributeIgnoreFolders, 171 },
   { SortBySortTitle,                SORT_METHOD_VIDEO_SORT_TITLE_IGNORE_THE,  (SortAttribute)(SortAttributeIgnoreFolders | SortAttributeIgnoreArticle), 171 },

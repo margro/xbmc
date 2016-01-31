@@ -383,6 +383,7 @@ bool CAddonDatabase::GetAddons(VECADDONS& addons, const ADDON::TYPE &type /* = A
         sql += PrepareSQL(" AND a.type = '%s'", strType.c_str());
     }
 
+    auto start = XbmcThreads::SystemClockMillis();
     m_pDS->query(sql);
     while (!m_pDS->eof())
     {
@@ -392,6 +393,7 @@ bool CAddonDatabase::GetAddons(VECADDONS& addons, const ADDON::TYPE &type /* = A
       m_pDS->next();
     }
     m_pDS->close();
+    CLog::Log(LOGDEBUG, "CAddonDatabase::GetAddons took %i ms", XbmcThreads::SystemClockMillis() - start);
     return true;
   }
   catch (...)
@@ -628,7 +630,6 @@ void CAddonDatabase::SetPropertiesFromAddon(const AddonPtr& addon,
 {
   pItem->SetProperty("Addon.ID", addon->ID());
   pItem->SetProperty("Addon.Type", TranslateType(addon->Type(),true));
-  pItem->SetProperty("Addon.intType", TranslateType(addon->Type()));
   pItem->SetProperty("Addon.Name", addon->Name());
   pItem->SetProperty("Addon.Version", addon->Version().asString());
   pItem->SetProperty("Addon.Summary", addon->Summary());

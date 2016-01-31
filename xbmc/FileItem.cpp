@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -1537,9 +1537,9 @@ bool CFileItem::IsURL(const CURL& url) const
   return IsPath(url.Get());
 }
 
-bool CFileItem::IsPath(const std::string& path) const
+bool CFileItem::IsPath(const std::string& path, bool ignoreURLOptions /* = false */) const
 {
-  return URIUtils::PathEquals(m_strPath, path);
+  return URIUtils::PathEquals(m_strPath, path, false, ignoreURLOptions);
 }
 
 void CFileItem::SetCueDocument(const CCueDocumentPtr& cuePtr)
@@ -1705,18 +1705,18 @@ void CFileItemList::SetFastLookup(bool fastLookup)
   m_fastLookup = fastLookup;
 }
 
-bool CFileItemList::Contains(const std::string& fileName) const
+bool CFileItemList::Contains(const std::string& fileName, bool ignoreURLOptions /* = false */) const
 {
   CSingleLock lock(m_lock);
 
-  if (m_fastLookup)
+  if (m_fastLookup && !ignoreURLOptions)
     return m_map.find(fileName) != m_map.end();
 
   // slow method...
   for (unsigned int i = 0; i < m_items.size(); i++)
   {
     const CFileItemPtr pItem = m_items[i];
-    if (pItem->IsPath(fileName))
+    if (pItem->IsPath(fileName, ignoreURLOptions))
       return true;
   }
   return false;
@@ -2038,7 +2038,7 @@ void CFileItemList::Archive(CArchive& ar)
     CFileItem::Archive(ar);
 
     int i = 0;
-    if (m_items.size() > 0 && m_items[0]->IsParentFolder())
+    if (!m_items.empty() && m_items[0]->IsParentFolder())
       i = 1;
 
     ar << (int)(m_items.size() - i);
@@ -2525,7 +2525,7 @@ void CFileItemList::StackFiles()
                 if (StringUtils::EqualsNoCase(Ignore1, Ignore2) &&
                     StringUtils::EqualsNoCase(Extension1, Extension2))
                 {
-                  if (stack.size() == 0)
+                  if (stack.empty())
                   {
                     stackName = Title1 + Ignore1 + Extension1;
                     stack.push_back(i);
@@ -2930,7 +2930,7 @@ std::string CFileItem::GetBaseMoviePath(bool bUseFolderNames) const
 
   if (bUseFolderNames &&
      (!m_bIsFolder || URIUtils::IsInArchive(m_strPath) ||
-     (HasVideoInfoTag() && GetVideoInfoTag()->m_iDbId > 0 && !MediaTypes::IsContainer(GetVideoInfoTag()->m_type))))
+     (HasVideoInfoTag() && GetVideoInfoTag()->m_iDbId > 0 && !CMediaTypes::IsContainer(GetVideoInfoTag()->m_type))))
   {
     std::string name2(strMovieName);
     URIUtils::GetParentPath(name2,strMovieName);

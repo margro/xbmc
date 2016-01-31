@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2016 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -162,6 +162,7 @@ bool CGUIWindowVideoNav::OnMessage(CGUIMessage& message)
         CMediaSettings::GetInstance().CycleWatchedMode(m_vecItems->GetContent());
         CSettings::GetInstance().Save();
         OnFilterItems(GetProperty("filter").asString());
+        UpdateButtons();
         return true;
       }
       else if (iControl == CONTROL_BTNSHOWALL)
@@ -172,6 +173,7 @@ bool CGUIWindowVideoNav::OnMessage(CGUIMessage& message)
           CMediaSettings::GetInstance().SetWatchedMode(m_vecItems->GetContent(), WatchedModeAll);
         CSettings::GetInstance().Save();
         OnFilterItems(GetProperty("filter").asString());
+        UpdateButtons();
         return true;
       }
       else if (iControl == CONTROL_UPDATE_LIBRARY)
@@ -435,7 +437,8 @@ bool CGUIWindowVideoNav::GetDirectory(const std::string &strDirectory, CFileItem
         }
         items.SetContent("movies");
       }
-      else if (node == NODE_TYPE_TITLE_TVSHOWS)
+      else if (node == NODE_TYPE_TITLE_TVSHOWS ||
+               node == NODE_TYPE_INPROGRESS_TVSHOWS)
         items.SetContent("tvshows");
       else if (node == NODE_TYPE_TITLE_MUSICVIDEOS ||
                node == NODE_TYPE_RECENTLY_ADDED_MUSICVIDEOS)
@@ -508,7 +511,7 @@ void CGUIWindowVideoNav::LoadVideoInfo(CFileItemList &items, CVideoDatabase &dat
   if (content.empty())
   {
     content = database.GetContentForPath(items.GetPath());
-    items.SetContent(content.empty() ? "files" : content);
+    items.SetContent((content.empty() && !items.IsPlugin()) ? "files" : content);
   }
 
   /*
@@ -876,16 +879,16 @@ void CGUIWindowVideoNav::GetContextButtons(int itemNumber, CContextButtons &butt
       if (database.GetArtistByName(StringUtils::Join(item->GetVideoInfoTag()->m_artist, g_advancedSettings.m_videoItemSeparator)) > -1)
         buttons.Add(CONTEXT_BUTTON_GO_TO_ARTIST, 20396);
     }
-    if (item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_strAlbum.size() > 0)
+    if (item->HasVideoInfoTag() && !item->GetVideoInfoTag()->m_strAlbum.empty())
     {
       CMusicDatabase database;
       database.Open();
       if (database.GetAlbumByName(item->GetVideoInfoTag()->m_strAlbum) > -1)
         buttons.Add(CONTEXT_BUTTON_GO_TO_ALBUM, 20397);
     }
-    if (item->HasVideoInfoTag() && item->GetVideoInfoTag()->m_strAlbum.size() > 0 &&
-        item->GetVideoInfoTag()->m_artist.size() > 0                              &&
-        item->GetVideoInfoTag()->m_strTitle.size() > 0)
+    if (item->HasVideoInfoTag() && !item->GetVideoInfoTag()->m_strAlbum.empty() &&
+        !item->GetVideoInfoTag()->m_artist.empty()                              &&
+        !item->GetVideoInfoTag()->m_strTitle.empty())
     {
       CMusicDatabase database;
       database.Open();
@@ -1083,7 +1086,7 @@ bool CGUIWindowVideoNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
   return CGUIWindowVideoBase::OnContextButton(itemNumber, button);
 }
 
-bool CGUIWindowVideoNav::OnClick(int iItem)
+bool CGUIWindowVideoNav::OnClick(int iItem, const std::string &player)
 {
   CFileItemPtr item = m_vecItems->Get(iItem);
   if (!item->m_bIsFolder && item->IsVideoDb() && !item->Exists())
@@ -1155,7 +1158,7 @@ bool CGUIWindowVideoNav::OnClick(int iItem)
     return true;
   }
 
-  return CGUIWindowVideoBase::OnClick(iItem);
+  return CGUIWindowVideoBase::OnClick(iItem, player);
 }
 
 std::string CGUIWindowVideoNav::GetStartFolder(const std::string &dir)
@@ -1219,6 +1222,8 @@ std::string CGUIWindowVideoNav::GetStartFolder(const std::string &dir)
     return "videodb://recentlyaddedepisodes/";
   else if (lower == "recentlyaddedmusicvideos")
     return "videodb://recentlyaddedmusicvideos/";
+  else if (lower == "inprogresstvshows")
+    return "videodb://inprogresstvshows/";
   else if (lower == "files")
     return "sources://video/";
   return CGUIWindowVideoBase::GetStartFolder(dir);

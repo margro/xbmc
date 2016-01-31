@@ -20,8 +20,11 @@
  *
  */
 
-#if defined(HAVE_CONFIG_H) && !defined(TARGET_WINDOWS)
+#if defined(HAVE_CONFIG_H)
 #include "config.h"
+#endif
+
+#if !defined(TARGET_WINDOWS)
 #define DECLARE_UNUSED(a,b) a __attribute__((unused)) b;
 #endif
 
@@ -29,7 +32,7 @@
  * All platforms
  *****************/
 #define HAS_DVD_SWSCALE
-#define HAS_DVDPLAYER
+#define HAS_VideoPlayer
 #define HAS_EVENT_SERVER
 #define HAS_SCREENSAVER
 #define HAS_PYTHON
@@ -45,13 +48,8 @@
 
 #define HAS_JSONRPC
 
-#ifdef USE_ASAP_CODEC
-#define HAS_ASAP_CODEC
-#endif
-
 #define HAS_FILESYSTEM
 #define HAS_FILESYSTEM_CDDA
-#define HAS_FILESYSTEM_SAP
 
 #ifdef HAVE_LIBSMBCLIENT
   #define HAS_FILESYSTEM_SMB
@@ -114,7 +112,6 @@
 #define HAVE_LIBSSH
 #define HAS_LIBRTMP
 #define HAVE_LIBBLURAY
-#define HAS_ASAP_CODEC
 #define HAS_FILESYSTEM_SMB
 #define HAS_FILESYSTEM_NFS
 #define HAS_ZEROCONF
@@ -160,7 +157,6 @@
 #endif
 #define HAS_GL
 #ifdef HAVE_X11
-#define HAS_GLX
 #define HAS_X11_WIN_EVENTS
 #endif
 #ifdef HAVE_SDL
@@ -187,6 +183,13 @@
 
 #ifdef HAVE_LIBSSH
 #define HAS_FILESYSTEM_SFTP
+#endif
+
+#if defined(HAVE_X11)
+#define HAS_EGL
+#if !defined(HAVE_LIBGLESV2)
+#define HAS_GLX
+#endif
 #endif
 
 /****************************************
@@ -230,9 +233,7 @@
 #undef HAS_LIRC
 #endif
 
-// EGL detected. Dont use GLX!
 #ifdef HAVE_LIBEGL
-#undef HAS_GLX
 #define HAS_EGL
 #endif
 

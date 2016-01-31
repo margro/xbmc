@@ -539,9 +539,10 @@ bool CGUIWindowMusicBase::ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo /
         continue;
       }
       else if (pDlgAlbumInfo->HasUpdatedThumb())
-      {
         UpdateThumb(album, album.strPath);
-      }
+      else if (pDlgAlbumInfo->NeedsUpdate())
+        Refresh(true); // update our file list
+
     }
     break;
   }
@@ -667,7 +668,7 @@ void CGUIWindowMusicBase::OnQueueItem(int iItem)
 
     g_playlistPlayer.Reset();
     g_playlistPlayer.SetCurrentPlaylist(playlist);
-    g_playlistPlayer.Play(iOldSize); // start playing at the first new item
+    g_playlistPlayer.Play(iOldSize, ""); // start playing at the first new item
   }
 }
 
@@ -850,9 +851,9 @@ void CGUIWindowMusicBase::GetContextButtons(int itemNumber, CContextButtons &but
         }
         else
         { // check what players we have, if we have multiple display play with option
-          VECPLAYERCORES vecCores;
-          CPlayerCoreFactory::GetInstance().GetPlayers(*item, vecCores);
-          if (vecCores.size() >= 1)
+          std::vector<std::string> players;
+          CPlayerCoreFactory::GetInstance().GetPlayers(*item, players);
+          if (players.size() >= 1)
             buttons.Add(CONTEXT_BUTTON_PLAY_WITH, 15213); // Play With...
         }
         if (item->IsSmartPlayList())
@@ -961,11 +962,11 @@ bool CGUIWindowMusicBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
 
   case CONTEXT_BUTTON_PLAY_WITH:
     {
-      VECPLAYERCORES vecCores;  // base class?
-      CPlayerCoreFactory::GetInstance().GetPlayers(*item, vecCores);
-      g_application.m_eForcedNextPlayer = CPlayerCoreFactory::GetInstance().SelectPlayerDialog(vecCores);
-      if( g_application.m_eForcedNextPlayer != EPC_NONE )
-        OnClick(itemNumber);
+      std::vector<std::string> players;
+      CPlayerCoreFactory::GetInstance().GetPlayers(*item, players);
+      std::string player = CPlayerCoreFactory::GetInstance().SelectPlayerDialog(players);
+      if (!player.empty())
+        OnClick(itemNumber, player);
       return true;
     }
 
@@ -1144,7 +1145,7 @@ void CGUIWindowMusicBase::LoadPlayList(const std::string& strPlayList)
   }
 }
 
-bool CGUIWindowMusicBase::OnPlayMedia(int iItem)
+bool CGUIWindowMusicBase::OnPlayMedia(int iItem, const std::string &player)
 {
   CFileItemPtr pItem = m_vecItems->Get(iItem);
 
@@ -1173,7 +1174,7 @@ bool CGUIWindowMusicBase::OnPlayMedia(int iItem)
     g_playlistPlayer.Play();
     return true;
   }
-  return CGUIMediaWindow::OnPlayMedia(iItem);
+  return CGUIMediaWindow::OnPlayMedia(iItem, player);
 }
 
 void CGUIWindowMusicBase::UpdateThumb(const CAlbum &album, const std::string &path)

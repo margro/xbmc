@@ -29,7 +29,7 @@
 #if defined(TARGET_DARWIN_IOS)
 #include <ImageIO/ImageIO.h>
 #include "filesystem/File.h"
-#include "osx/DarwinUtils.h"
+#include "platform/darwin/DarwinUtils.h"
 #endif
 #if defined(TARGET_ANDROID)
 #include "URL.h"
@@ -267,14 +267,9 @@ bool CBaseTexture::LoadFromFileInternal(const std::string& texturePath, unsigned
 
   if (!LoadIImage(pImage, (unsigned char *)buf.get(), buf.size(), width, height))
   {
+    CLog::Log(LOGDEBUG, "%s - Load of %s failed.", __FUNCTION__, CURL::GetRedacted(texturePath).c_str());
     delete pImage;
-    pImage = ImageFactory::CreateFallbackLoader(texturePath);
-    if (!LoadIImage(pImage, (unsigned char *)buf.get(), buf.size(), width, height))
-    {
-      CLog::Log(LOGDEBUG, "%s - Load of %s failed.", __FUNCTION__, CURL::GetRedacted(texturePath).c_str());
-      delete pImage;
-      return false;
-    }
+    return false;
   }
   delete pImage;
 
@@ -293,12 +288,7 @@ bool CBaseTexture::LoadFromFileInMem(unsigned char* buffer, size_t size, const s
   if(!LoadIImage(pImage, buffer, size, width, height))
   {
     delete pImage;
-    pImage = ImageFactory::CreateFallbackLoader(mimeType);
-    if(!LoadIImage(pImage, buffer, size, width, height))
-    {
-      delete pImage;
-      return false;
-    }
+    return false;
   }
   delete pImage;
   return true;
@@ -318,6 +308,8 @@ bool CBaseTexture::LoadIImage(IImage *pImage, unsigned char* buffer, unsigned in
         m_hasAlpha = pImage->hasAlpha();
         m_originalWidth = pImage->originalWidth();
         m_originalHeight = pImage->originalHeight();
+        m_imageWidth = pImage->Width();
+        m_imageHeight = pImage->Height();
         ClampToEdge();
         return true;
       }

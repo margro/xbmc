@@ -83,7 +83,7 @@
 #endif // HAS_WEB_SERVER
 
 #if defined(TARGET_DARWIN_OSX)
-#include "osx/XBMCHelper.h"
+#include "platform/darwin/osx/XBMCHelper.h"
 #endif
 
 using namespace KODI::MESSAGING;
@@ -453,6 +453,13 @@ bool CNetworkServices::OnSettingUpdate(CSetting* &setting, const char *oldSettin
     // and don't change the username to kodi - part of rebrand
     if (CSettings::GetInstance().GetString(CSettings::SETTING_SERVICES_WEBSERVERUSERNAME) == "xbmc" &&
         !CSettings::GetInstance().GetString(CSettings::SETTING_SERVICES_WEBSERVERPASSWORD).empty())
+      return true;
+  }
+  if (settingId == CSettings::SETTING_SERVICES_WEBSERVERPORT)
+  {
+    // if webserverport is default but webserver is activated then treat it as altered
+    // and don't change the port to new value
+    if (CSettings::GetInstance().GetBool(CSettings::SETTING_SERVICES_WEBSERVER))
       return true;
   }
   return false;

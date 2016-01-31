@@ -58,7 +58,8 @@ using namespace PVR;
 using namespace EPG;
 using namespace KODI::MESSAGING;
 
-std::map<bool, std::string> CGUIWindowPVRBase::m_selectedItemPaths;
+CCriticalSection CGUIWindowPVRBase::m_selectedItemPathsLock;
+std::string CGUIWindowPVRBase::m_selectedItemPaths[2];
 
 CGUIWindowPVRBase::CGUIWindowPVRBase(bool bRadio, int id, const std::string &xmlFile) :
   CGUIMediaWindow(id, xmlFile.c_str()),
@@ -74,17 +75,14 @@ CGUIWindowPVRBase::~CGUIWindowPVRBase(void)
 
 void CGUIWindowPVRBase::SetSelectedItemPath(bool bRadio, const std::string &path)
 {
-  m_selectedItemPaths.at(bRadio) = path;
+  CSingleLock lock(m_selectedItemPathsLock);
+  m_selectedItemPaths[bRadio] = path;
 }
 
 std::string CGUIWindowPVRBase::GetSelectedItemPath(bool bRadio)
 {
-  if (!m_selectedItemPaths.at(bRadio).empty())
-    return m_selectedItemPaths.at(bRadio);
-  else if (g_PVRManager.IsPlaying())
-    return g_application.CurrentFile();
-
-  return "";
+  CSingleLock lock(m_selectedItemPathsLock);
+  return m_selectedItemPaths[bRadio];
 }
 
 void CGUIWindowPVRBase::Notify(const Observable &obs, const ObservableMessage msg)
@@ -287,6 +285,35 @@ bool CGUIWindowPVRBase::OnContextButtonActiveAEDSPSettings(CFileItem *item, CONT
   return bReturn;
 }
 
+bool CGUIWindowPVRBase::OnContextButtonEditTimer(CFileItem *item, CONTEXT_BUTTON button)
+{
+  bool bReturn = false;
+
+  if (button == CONTEXT_BUTTON_EDIT_TIMER)
+  {
+    EditTimer(item);
+    bReturn = true;
+  }
+
+  return bReturn;
+}
+
+bool CGUIWindowPVRBase::OnContextButtonEditTimerRule(CFileItem *item, CONTEXT_BUTTON button)
+{
+  bool bReturn = false;
+
+  if (button == CONTEXT_BUTTON_EDIT_TIMER_RULE)
+  {
+    CFileItemPtr parentTimer(g_PVRTimers->GetTimerRule(item));
+    if (parentTimer)
+      EditTimer(parentTimer.get());
+
+    bReturn = true;
+  }
+
+  return bReturn;
+}
+
 void CGUIWindowPVRBase::SetInvalid()
 {
   if (m_refreshTimeout.IsTimePast())
@@ -324,7 +351,7 @@ bool CGUIWindowPVRBase::OpenGroupSelectionDialog(void)
   if (!dialog->IsConfirmed())
     return false;
 
-  const CFileItemPtr item = dialog->GetSelectedItem();
+  const CFileItemPtr item = dialog->GetSelectedFileItem();
   if (!item)
     return false;
 
@@ -514,6 +541,28 @@ bool CGUIWindowPVRBase::AddTimer(CFileItem *item, bool bAdvanced)
   return bReturn;
 }
 
+bool CGUIWindowPVRBase::EditTimer(CFileItem *item)
+{
+  CFileItemPtr timer;
+
+  if (item->IsPVRTimer())
+  {
+    timer.reset(new CFileItem(*item));
+  }
+  else if (item->IsEPG())
+  {
+    timer = g_PVRTimers->GetTimerForEpgTag(item);
+  }
+
+  if (!timer || !timer->HasPVRTimerInfoTag())
+    return false;
+
+  if (ShowTimerSettings(timer.get()) && !timer->GetPVRTimerInfoTag()->GetTimerType()->IsReadOnly())
+    return g_PVRTimers->UpdateTimer(*timer);
+
+  return false;
+}
+
 bool CGUIWindowPVRBase::DeleteTimer(CFileItem *item)
 {
   return DeleteTimer(item, false);
@@ -549,20 +598,21 @@ bool CGUIWindowPVRBase::DeleteTimer(CFileItem *item, bool bIsRecording)
   if (!timer || !timer->HasPVRTimerInfoTag())
     return false;
 
-  if (timer->GetPVRTimerInfoTag()->HasTimerType() &&
-      timer->GetPVRTimerInfoTag()->GetTimerType()->IsReadOnly())
-    return false;
-
   if (bIsRecording)
   {
     if (ConfirmStopRecording(timer.get()))
       return CPVRTimers::DeleteTimer(*timer, true, false);
   }
+  else if (timer->GetPVRTimerInfoTag()->HasTimerType() &&
+           timer->GetPVRTimerInfoTag()->GetTimerType()->IsReadOnly())
+  {
+    return false;
+  }
   else
   {
-    bool bDeleteSchedule(false);
-    if (ConfirmDeleteTimer(timer.get(), bDeleteSchedule))
-      return CPVRTimers::DeleteTimer(*timer, false, bDeleteSchedule);
+    bool bDeleteRule(false);
+    if (ConfirmDeleteTimer(timer.get(), bDeleteRule))
+      return CPVRTimers::DeleteTimer(*timer, false, bDeleteRule);
   }
   return false;
 }
@@ -838,20 +888,23 @@ void CGUIWindowPVRBase::UpdateButtons(void)
 
 void CGUIWindowPVRBase::UpdateSelectedItemPath()
 {
-  m_selectedItemPaths.at(m_bRadio) = m_viewControl.GetSelectedItemPath();
+  if (!m_viewControl.GetSelectedItemPath().empty()) {
+    CSingleLock lock(m_selectedItemPathsLock);
+    m_selectedItemPaths[m_bRadio] = m_viewControl.GetSelectedItemPath();
+  }
 }
 
-bool CGUIWindowPVRBase::ConfirmDeleteTimer(CFileItem *item, bool &bDeleteSchedule)
+bool CGUIWindowPVRBase::ConfirmDeleteTimer(CFileItem *item, bool &bDeleteRule)
 {
   bool bConfirmed(false);
 
-  if (item->GetPVRTimerInfoTag()->GetTimerScheduleId() != PVR_TIMER_NO_PARENT)
+  if (item->GetPVRTimerInfoTag()->GetTimerRuleId() != PVR_TIMER_NO_PARENT)
   {
-    // timer was scheduled by a repeating timer. prompt user for confirmation for deleting the complete repeating timer, including scheduled timers.
+    // timer was scheduled by a timer rule. prompt user for confirmation for deleting the timer rule, including scheduled timers.
     bool bCancel(false);
-    bDeleteSchedule = CGUIDialogYesNo::ShowAndGetInput(
+    bDeleteRule = CGUIDialogYesNo::ShowAndGetInput(
                         CVariant{122}, // "Confirm delete"
-                        CVariant{840}, // "Do you only want to delete this timer or also the repeating timer that has scheduled it?"
+                        CVariant{840}, // "Do you want to delete only this timer or also the timer rule that has scheduled it?"
                         CVariant{""},
                         CVariant{item->GetPVRTimerInfoTag()->Title()},
                         bCancel,
@@ -862,13 +915,13 @@ bool CGUIWindowPVRBase::ConfirmDeleteTimer(CFileItem *item, bool &bDeleteSchedul
   }
   else
   {
-    bDeleteSchedule = false;
+    bDeleteRule = false;
 
     // prompt user for confirmation for deleting the timer
     bConfirmed = CGUIDialogYesNo::ShowAndGetInput(
                         CVariant{122}, // "Confirm delete"
                         item->GetPVRTimerInfoTag()->IsRepeating()
-                          ? CVariant{845}  // "Are you sure you want to delete this repeating timer and all timers it has scheduled?"
+                          ? CVariant{845}  // "Are you sure you want to delete this timer rule and all timers it has scheduled?"
                           : CVariant{846}, // "Are you sure you want to delete this timer?"
                         CVariant{""},
                         CVariant{item->GetPVRTimerInfoTag()->Title()});

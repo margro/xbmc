@@ -13,20 +13,16 @@ DVDPCODECS_DIRS= \
 	lib \
 	lib/libdvd 
 
-ifeq (@USE_LIBSTAGEFRIGHT@,1)
-DVDPCODECS_DIRS += xbmc/cores/dvdplayer/DVDCodecs/Video/libstagefrightICS
-endif
+VideoPlayer_ARCHIVES=xbmc/cores/VideoPlayer/VideoPlayer.a \
+                   xbmc/cores/VideoPlayer/DVDCodecs/DVDCodecs.a \
+                   xbmc/cores/VideoPlayer/DVDCodecs/Audio/Audio.a \
+                   xbmc/cores/VideoPlayer/DVDCodecs/Overlay/Overlay.a \
+                   xbmc/cores/VideoPlayer/DVDCodecs/Video/Video.a \
+                   xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxers.a \
+                   xbmc/cores/VideoPlayer/DVDInputStreams/DVDInputStreams.a \
+                   xbmc/cores/VideoPlayer/DVDSubtitles/DVDSubtitles.a
 
-DVDPLAYER_ARCHIVES=xbmc/cores/dvdplayer/DVDPlayer.a \
-                   xbmc/cores/dvdplayer/DVDCodecs/DVDCodecs.a \
-                   xbmc/cores/dvdplayer/DVDCodecs/Audio/Audio.a \
-                   xbmc/cores/dvdplayer/DVDCodecs/Overlay/Overlay.a \
-                   xbmc/cores/dvdplayer/DVDCodecs/Video/Video.a \
-                   xbmc/cores/dvdplayer/DVDDemuxers/DVDDemuxers.a \
-                   xbmc/cores/dvdplayer/DVDInputStreams/DVDInputStreams.a \
-                   xbmc/cores/dvdplayer/DVDSubtitles/DVDSubtitles.a
-
-DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
+DIRECTORY_ARCHIVES=$(VideoPlayer_ARCHIVES) \
                    xbmc/addons/addons.a \
                    xbmc/cdrip/cdrip.a \
                    xbmc/contrib/kissfft/kissfft.a \
@@ -35,8 +31,9 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    xbmc/cores/DllLoader/exports/exports.a \
                    xbmc/cores/DllLoader/exports/util/exports_utils.a \
                    xbmc/cores/ExternalPlayer/ExternalPlayer.a \
-                   xbmc/cores/VideoRenderers/VideoRenderer.a \
-                   xbmc/cores/VideoRenderers/VideoShaders/VideoShaders.a \
+                   xbmc/cores/VideoPlayer/VideoRenderers/VideoRenderer.a \
+                   xbmc/cores/VideoPlayer/VideoRenderers/VideoShaders/VideoShaders.a \
+                   xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/HwDecRender.a \
                    xbmc/cores/cores.a \
                    xbmc/cores/paplayer/paplayer.a \
                    xbmc/cores/playercorefactory/playercorefactory.a \
@@ -58,7 +55,7 @@ DIRECTORY_ARCHIVES=$(DVDPLAYER_ARCHIVES) \
                    xbmc/interfaces/python/python_binding.a \
                    xbmc/linux/linux.a \
                    xbmc/listproviders/listproviders.a \
-                   xbmc/main/posix/MessagePrinter.a \
+                   xbmc/platform/platform.a \
                    xbmc/media/media.a \
                    xbmc/messaging/messaging.a \
                    xbmc/messaging/helpers/messagingHelpers.a \
@@ -134,7 +131,6 @@ DIRECTORY_ARCHIVES += xbmc/network/mdns/mdns.a
 endif
 
 ifeq ($(findstring osx,@ARCH@),osx)
-DIRECTORY_ARCHIVES += xbmc/osx/osx.a
 DIRECTORY_ARCHIVES += xbmc/network/osx/network.a
 DIRECTORY_ARCHIVES += xbmc/network/linux/network_linux.a
 DIRECTORY_ARCHIVES += xbmc/powermanagement/osx/powermanagement.a
@@ -176,10 +172,10 @@ DIRECTORY_ARCHIVES += lib/UnrarXLib/UnrarXLib.a
 endif
 
 ifeq (@USE_ANDROID@,1)
-DIRECTORY_ARCHIVES += xbmc/android/loader/AndroidDyload.a
+DIRECTORY_ARCHIVES += xbmc/platform/android/loader/AndroidDyload.a
 DIRECTORY_ARCHIVES += xbmc/windowing/android/windowing_android.a
-DIRECTORY_ARCHIVES += xbmc/android/bionic_supplement/bionic_supplement.a
-DIRECTORY_ARCHIVES += xbmc/android/jni/jni.a
+DIRECTORY_ARCHIVES += xbmc/platform/android/bionic_supplement/bionic_supplement.a
+DIRECTORY_ARCHIVES += xbmc/platform/android/jni/jni.a
 endif
 
 ifeq (@USE_OMXPLAYER@,1)
@@ -187,7 +183,6 @@ DIRECTORY_ARCHIVES += xbmc/cores/omxplayer/omxplayer.a
 endif
 
 LIB_DIRS=\
-	lib/cximage-6.0 \
 	lib/libexif \
 	lib/cpluff \
 	lib/xbmc-dll-symbols
@@ -216,8 +211,8 @@ INCLUDES=$(sort @INCLUDES@)
 
 CLEAN_FILES=@APP_NAME_LC@.bin @APP_NAME_LC@-xrandr lib@APP_NAME_LC@.so
 
-DISTCLEAN_FILES=config.h config.log config.status tools/Linux/@APP_NAME_LC@.sh \
-        tools/Linux/@APP_NAME_LC@-standalone.sh autom4te.cache config.h.in~ \
+DISTCLEAN_FILES=config.h config.log config.status tools/Linux/kodi.sh \
+        tools/Linux/kodi-standalone.sh autom4te.cache config.h.in~ \
         system/libcpluff-@ARCH@.so
 
 ifeq (@USE_LIBXBMC@,1)
@@ -255,18 +250,6 @@ CHECK_LIBS = xbmc/addons/test/addonsTest.a \
              xbmc/cores/AudioEngine/Sinks/test/AESinkTest.a \
              xbmc/test/xbmc-test.a
 
-ifeq (@USE_WAYLAND@,1)
-CHECK_LIBS += xbmc/windowing/tests/wayland/test_wayland.a
-
-ifeq (@USE_WAYLAND_TEST_EXTENSION@,1)
-WAYLAND_TEST_MODULE = xbmc/windowing/tests/wayland/xbmc-wayland-test-extension.so
-$(WAYLAND_TEST_MODULE): force
-	$(MAKE) -C $(@D) $(@F)
-CHECK_EXTENSIONS = $(WAYLAND_TEST_MODULE)
-CHECK_LIBADD=@WAYLAND_TEST_LIBS@
-endif
-endif
-
 ifeq (@USE_SSE4@,1)
 LIBSSE4+=sse4
 sse4 : force
@@ -285,7 +268,7 @@ all : $(FINAL_TARGETS)
 include Makefile.include
 
 .PHONY : dllloader exports eventclients \
-	dvdpcodecs dvdpextcodecs imagelib codecs externals force skins libaddon check \
+	dvdpcodecs dvdpextcodecs codecs externals force skins libaddon check \
 	testframework testsuite
 
 # hack targets to keep build system up to date
@@ -309,7 +292,7 @@ endif
 
 # Setup some dependencies for subdir makes
 xbmc/cores/paplayer/paplayer.a:
-$(DVDPLAYER_ARCHIVES)         : dvdpcodecs
+$(VideoPlayer_ARCHIVES)         : dvdpcodecs
 
 lib/cpluff/libcpluff/.libs/libcpluff.a: force
 	$(MAKE) -C lib/cpluff/libcpluff
@@ -340,12 +323,7 @@ libaddon: exports
 dvdpcodecs: dllloader
 	$(MAKE) -C lib/libdvd
 
-ifeq (@USE_LIBSTAGEFRIGHT@,1)
-dvdpextcodecs: lib@APP_NAME_LC@.so
-	$(MAKE) -C xbmc/cores/dvdplayer/DVDCodecs/Video/libstagefrightICS
-else
 dvdpextcodecs:
-endif
 
 eventclients:
 ifeq ($(findstring osx,@ARCH@), osx)
@@ -358,12 +336,9 @@ endif
 libexif: dllloader
 	$(MAKE) -C lib/libexif
 
-imagelib: dllloader
-	$(MAKE) -C lib/cximage-6.0
-
 codecs: dvdpcodecs dvdpextcodecs
 
-libs: $(LIBSSE4) imagelib libexif system/libcpluff-@ARCH@.so
+libs: $(LIBSSE4) libexif system/libcpluff-@ARCH@.so
 
 externals: codecs libs libaddon
 
@@ -402,9 +377,12 @@ $(FFMPEGOBJS): dvdpcodecs
 endif
 
 ifeq (@USE_ANDROID@,1)
-MAINOBJS+=xbmc/android/activity/activity.a
+MAINOBJS+=xbmc/platform/android/activity/activity.a
 else
-MAINOBJS+=xbmc/main/main.a
+MAINOBJS+=xbmc/platform/posix/posix.a
+ifeq ($(findstring osx,@ARCH@), osx)
+MAINOBJS+=xbmc/platform/darwin/osx/sdlmain.a
+endif
 endif # USE_ANDROID
 
 
@@ -414,7 +392,7 @@ OBJSXBMC:=$(filter-out $(DYNOBJSXBMC), $(OBJSXBMC))
 BIN_DIRS = $(dir $(DIRECTORY_ARCHIVES)) $(dir $(NWAOBJSXBMC)) $(dir $(MAINOBJS))
 
 DIRS= $(BIN_DIRS) $(EC_DIRS) $(DVDPCODECS_DIRS) \
-	$(LIB_DIRS) $(LIBADDON_DIRS) $(SKIN_DIRS) xbmc/main
+	$(LIB_DIRS) $(LIBADDON_DIRS) $(SKIN_DIRS) xbmc/platform xbmc/platform/darwin/osx
 
 $(NWAOBJSXBMC) $(DIRECTORY_ARCHIVES) $(MAINOBJS): force
 	@$(MAKE) $(if $(V),,-s) -C $(@D)
@@ -501,14 +479,14 @@ endif
 
 install-scripts:
 	@install -d $(DESTDIR)$(bindir)
-	@install tools/Linux/@APP_NAME_LC@.sh $(DESTDIR)$(bindir)/@APP_NAME_LC@
+	@install tools/Linux/kodi.sh $(DESTDIR)$(bindir)/@APP_NAME_LC@
 	@cd $(DESTDIR)$(bindir); [ -L xbmc ] || [ -f xbmc ] || ln -s @APP_NAME_LC@ xbmc
-	@install tools/Linux/@APP_NAME_LC@-standalone.sh $(DESTDIR)$(bindir)/@APP_NAME_LC@-standalone
+	@install tools/Linux/kodi-standalone.sh $(DESTDIR)$(bindir)/@APP_NAME_LC@-standalone
 	@cd $(DESTDIR)$(bindir); [ -L xbmc-standalone ] || [ -f xbmc-standalone ] ||  ln -s @APP_NAME_LC@-standalone xbmc-standalone
 	@install -d $(DESTDIR)$(datarootdir)/@APP_NAME_LC@
 	@cd $(DESTDIR)$(datarootdir); [ -L xbmc ] || [ -d xbmc ] || ln -s @APP_NAME_LC@ xbmc
 	@install -d $(DESTDIR)$(datarootdir)/xsessions
-	@install -m 0644 tools/Linux/@APP_NAME_LC@-xsession.desktop $(DESTDIR)$(datarootdir)/xsessions/@APP_NAME_LC@.desktop
+	@install -m 0644 tools/Linux/kodi-xsession.desktop $(DESTDIR)$(datarootdir)/xsessions/@APP_NAME_LC@.desktop
 	@cd $(DESTDIR)$(datarootdir)/xsessions; [ -L xbmc.desktop ] || [ -f xbmc.desktop ] || ln -s @APP_NAME_LC@.desktop xbmc.desktop
 
 install-datas: install-scripts
@@ -542,7 +520,7 @@ endif
 endif
 	@# Icons and links
 	@install -d $(DESTDIR)$(datarootdir)/applications
-	@install -m 0644 tools/Linux/@APP_NAME_LC@.desktop $(DESTDIR)$(datarootdir)/applications/@APP_NAME_LC@.desktop
+	@install -m 0644 tools/Linux/kodi.desktop $(DESTDIR)$(datarootdir)/applications/@APP_NAME_LC@.desktop
 
 	@install -d $(DESTDIR)$(datadir)/icons/hicolor/16x16/apps
 	@install -m 0644 tools/Linux/packaging/media/icon16x16.png $(DESTDIR)$(datadir)/icons/hicolor/16x16/apps/@APP_NAME_LC@.png

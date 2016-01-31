@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -118,34 +118,36 @@ void MysqlDatabase::configure_connection() {
   if ((ret = mysql_real_query(conn, sqlcmd, strlen(sqlcmd))) != MYSQL_OK)
     throw DbErrors("Can't disable sql_mode ONLY_FULL_GROUP_BY: '%s' (%d)", db.c_str(), ret);
 
-  // MySQL 5.7.6+: See #8393
+  // MySQL 5.7.6+: See #8393. Non-fatal if error, as not supported by MySQL 5.0.x
   strcpy(sqlcmd, "SELECT @@SESSION.optimizer_switch");
-  if ((ret = mysql_real_query(conn, sqlcmd, strlen(sqlcmd))) != MYSQL_OK)
-    throw DbErrors("Can't query optimizer_switch: '%s' (%d)", db.c_str(), ret);
-
-  MYSQL_RES* res = mysql_store_result(conn);
-  MYSQL_ROW row;
-
-  if (res)
+  if ((ret = mysql_real_query(conn, sqlcmd, strlen(sqlcmd))) == MYSQL_OK)
   {
-    if ((row = mysql_fetch_row(res)) != NULL)
-    {
-      std::string column = row[0];
-      std::vector<std::string> split = StringUtils::Split(column, ',');
+    MYSQL_RES* res = mysql_store_result(conn);
+    MYSQL_ROW row;
 
-      for (std::vector<std::string>::iterator itIn = split.begin(); itIn != split.end(); ++itIn)
+    if (res)
+    {
+      if ((row = mysql_fetch_row(res)) != NULL)
       {
-        if (StringUtils::Trim(*itIn) == "derived_merge=on")
+        std::string column = row[0];
+        std::vector<std::string> split = StringUtils::Split(column, ',');
+
+        for (std::vector<std::string>::iterator itIn = split.begin(); itIn != split.end(); ++itIn)
         {
-          strcpy(sqlcmd, "SET SESSION optimizer_switch = 'derived_merge=off'");
-          if ((ret = mysql_real_query(conn, sqlcmd, strlen(sqlcmd))) != MYSQL_OK)
-            throw DbErrors("Can't set optimizer_switch = '%s': '%s' (%d)", StringUtils::Trim(*itIn).c_str(), db.c_str(), ret);
-          break;
+          if (StringUtils::Trim(*itIn) == "derived_merge=on")
+          {
+            strcpy(sqlcmd, "SET SESSION optimizer_switch = 'derived_merge=off'");
+            if ((ret = mysql_real_query(conn, sqlcmd, strlen(sqlcmd))) != MYSQL_OK)
+              throw DbErrors("Can't set optimizer_switch = '%s': '%s' (%d)", StringUtils::Trim(*itIn).c_str(), db.c_str(), ret);
+            break;
+          }
         }
       }
+      mysql_free_result(res);
     }
-    mysql_free_result(res);
   }
+  else
+    CLog::Log(LOGWARNING, "Unable to query optimizer_switch: '%s' (%d)", db.c_str(), ret);
 }
 
 int MysqlDatabase::connect(bool create_new) {
@@ -1414,7 +1416,7 @@ void MysqlDataset::make_deletion() {
 }
 
 void MysqlDataset::fill_fields() {
-  if ((db == NULL) || (result.record_header.size() == 0) || (result.records.size() < (unsigned int)frecno)) return;
+  if ((db == NULL) || (result.record_header.empty()) || (result.records.size() < (unsigned int)frecno)) return;
 
   if (fields_object->size() == 0) // Filling columns name
   {

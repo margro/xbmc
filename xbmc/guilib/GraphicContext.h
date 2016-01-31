@@ -23,9 +23,6 @@
 \brief
 */
 
-#ifndef GUILIB_GRAPHICCONTEXT_H
-#define GUILIB_GRAPHICCONTEXT_H
-
 #pragma once
 
 #ifdef __GNUC__
@@ -66,7 +63,7 @@ enum VIEW_TYPE { VIEW_TYPE_NONE = 0,
 
 enum AdjustRefreshRate
 {
-  ADJUST_REFRESHRATE_OFF          = 0,
+  ADJUST_REFRESHRATE_OFF = 0,
   ADJUST_REFRESHRATE_ALWAYS,
   ADJUST_REFRESHRATE_ON_STARTSTOP
 };
@@ -79,11 +76,6 @@ public:
   virtual ~CGraphicContext(void);
 
   virtual void OnSettingChanged(const CSetting *setting) override;
-
-  // the following two functions should wrap any
-  // GL calls to maintain thread safety
-  void BeginPaint(bool lock=true);
-  void EndPaint(bool lock=true);
 
   int GetWidth() const { return m_iScreenWidth; }
   int GetHeight() const { return m_iScreenHeight; }
@@ -100,7 +92,7 @@ public:
   const CRect GetViewWindow() const;
   void SetViewWindow(float left, float top, float right, float bottom);
   bool IsFullScreenRoot() const;
-  bool ToggleFullScreenRoot();
+  void ToggleFullScreen();
   void SetFullScreenVideo(bool bOnOff);
   bool IsFullScreenVideo() const;
   bool IsCalibrating() const;
@@ -298,4 +290,3 @@ private:
 
 XBMC_GLOBAL_REF(CGraphicContext,g_graphicsContext);
 #define g_graphicsContext XBMC_GLOBAL_USE(CGraphicContext)
-#endif

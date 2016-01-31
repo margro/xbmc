@@ -114,7 +114,22 @@ namespace PVR
     std::string ChannelIcon(void) const;
     CPVRChannelPtr ChannelTag(void) const;
 
+    /*!
+     * @brief updates this timer excluding the state of any children. See UpdateChildState/ResetChildState.
+     * @return true if the timer was updated successfully
+     */
     bool UpdateEntry(const CPVRTimerInfoTagPtr &tag);
+
+    /*!
+     * @brief merge in the state of this child timer. Run for each child after using ResetChildState.
+     * @return true if the child timer's state was merged successfully
+     */
+    bool UpdateChildState(const CPVRTimerInfoTagPtr &childTimer);
+
+    /*!
+     * @brief reset the state of children related to this timer. Run UpdateChildState for all children afterwards.
+     */
+    void ResetChildState();
 
     void UpdateEpgEvent(bool bClear = false);
 
@@ -190,11 +205,6 @@ namespace PVR
     void SetMarginEnd(unsigned int iMinutes) { m_iMarginEnd = iMinutes; }
 
     /*!
-     * @brief Show a notification for this timer in the UI
-     */
-    void QueueNotification(void) const;
-
-    /*!
      * @brief Get the text for the notification.
      * @param strText The notification.
      */
@@ -230,10 +240,10 @@ namespace PVR
     static std::string GetWeekdaysString(unsigned int iWeekdays, bool bEpgBased, bool bLongMultiDaysFormat);
 
     /*!
-     * @brief For timers scheduled by repeated timers, return the id of the parent.
-     * @return the id of the timer schedule or 0 in case the timer was not scheduled by a repeating timer.
+     * @brief For timers scheduled by a timer rule, return the id of the rule (aka the id of the "parent" of the timer).
+     * @return the id of the timer rule or PVR_TIMER_NO_PARENT in case the timer was not scheduled by a timer rule.
      */
-    unsigned int GetTimerScheduleId() const { return m_iParentClientIndex; }
+    unsigned int GetTimerRuleId() const { return m_iParentClientIndex; }
 
     std::string           m_strTitle;            /*!< @brief name of this timer */
     std::string           m_strEpgSearchString;  /*!< @brief a epg data match string for repeating epg-based timers. Format is backend-dependent, for example regexp */
@@ -243,7 +253,7 @@ namespace PVR
     PVR_TIMER_STATE       m_state;               /*!< @brief the state of this timer */
     int                   m_iClientId;           /*!< @brief ID of the backend */
     unsigned int          m_iClientIndex;        /*!< @brief index number of the tag, given by the backend, PVR_TIMER_NO_CLIENT_INDEX for new */
-    unsigned int          m_iParentClientIndex;  /*!< @brief for timers scheduled by repeated timers, the index number of the parent, given by the backend, PVR_TIMER_NO_PARENT for no parent */
+    unsigned int          m_iParentClientIndex;  /*!< @brief for timers scheduled by a timer rule, the index number of the parent, given by the backend, PVR_TIMER_NO_PARENT for no parent */
     int                   m_iClientChannelUid;   /*!< @brief channel uid */
     bool                  m_bStartAnyTime;       /*!< @brief Ignore start date and time clock. Record at 'Any Time' */
     bool                  m_bEndAnyTime;         /*!< @brief Ignore end date and time clock. Record at 'Any Time' */
@@ -274,5 +284,10 @@ namespace PVR
     CDateTime             m_StopTime;  /*!< stop time */
     CDateTime             m_FirstDay;  /*!< if it is a manual repeating timer the first date it starts */
     CPVRTimerTypePtr      m_timerType; /*!< the type of this timer */
+
+    unsigned int          m_iActiveChildTimers;   /*!< @brief Number of active timers which have this timer as their m_iParentClientIndex */
+    bool                  m_bHasChildConflictNOK; /*!< @brief Has at least one child timer with status PVR_TIMER_STATE_CONFLICT_NOK */
+    bool                  m_bHasChildRecording;   /*!< @brief Has at least one child timer with status PVR_TIMER_STATE_RECORDING */
+    bool                  m_bHasChildErrors;      /*!< @brief Has at least one child timer with status PVR_TIMER_STATE_ERROR */
   };
 }

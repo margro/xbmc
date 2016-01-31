@@ -24,7 +24,7 @@
 #include <DirectXPackedVector.h>
 #include "Application.h"
 #include "RenderSystemDX.h"
-#include "cores/VideoRenderers/RenderManager.h"
+#include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
 #include "guilib/D3DResource.h"
 #include "guilib/GUIShaderDX.h"
 #include "guilib/GUITextureD3D.h"
@@ -307,7 +307,7 @@ void CRenderSystemDX::SetFullScreenInternal()
   if (!m_bRenderCreated)
     return;
 
-  HRESULT hr;
+  HRESULT hr = S_OK;
   BOOL bFullScreen;
   m_pSwapChain->GetFullscreenState(&bFullScreen, NULL);
 
@@ -315,18 +315,15 @@ void CRenderSystemDX::SetFullScreenInternal()
   if (!!bFullScreen && m_useWindowedDX)
   {
     CLog::Log(LOGDEBUG, "%s - Switching swap chain to windowed mode.", __FUNCTION__);
+
     hr = m_pSwapChain->SetFullscreenState(false, NULL);
-    m_bResizeRequred = S_OK == hr;
-
-    if (S_OK != hr)
+    if (SUCCEEDED(hr))
+      m_bResizeRequred = true;
+    else
       CLog::Log(LOGERROR, "%s - Failed switch full screen state: %s.", __FUNCTION__, GetErrorDescription(hr).c_str());
-    // wait until switching screen state is done
-    DXWait(m_pD3DDev, m_pImdContext);
-    return;
   }
-
   // true full-screen
-  if (m_bFullScreenDevice && !m_useWindowedDX)
+  else if (m_bFullScreenDevice && !m_useWindowedDX)
   {
     IDXGIOutput* pOutput = NULL;
     m_pSwapChain->GetContainingOutput(&pOutput);
@@ -339,10 +336,11 @@ void CRenderSystemDX::SetFullScreenInternal()
     {
       // swap chain requires to change FS mode after resize or transition from windowed to full-screen.
       CLog::Log(LOGDEBUG, "%s - Switching swap chain to fullscreen state.", __FUNCTION__);
-      hr = m_pSwapChain->SetFullscreenState(true, m_pOutput);
-      m_bResizeRequred = S_OK == hr;
 
-      if (S_OK != hr)
+      hr = m_pSwapChain->SetFullscreenState(true, m_pOutput);
+      if (SUCCEEDED(hr))
+        m_bResizeRequred = true;
+      else
         CLog::Log(LOGERROR, "%s - Failed switch full screen state: %s.", __FUNCTION__, GetErrorDescription(hr).c_str());
     }
     SAFE_RELEASE(pOutput);
@@ -385,18 +383,23 @@ void CRenderSystemDX::SetFullScreenInternal()
       || currentMode.Height != matchedMode.Height
       || currentRefreshRate != matchedRefreshRate)
     {
+      // change monitor resolution (in fullscreen mode) to required mode
       CLog::Log(LOGDEBUG, "%s - Switching mode to %dx%d@%0.3f.", __FUNCTION__, matchedMode.Width, matchedMode.Height, matchedRefreshRate);
 
-      // resize window (in windowed mode) or monitor resolution (in fullscreen mode) to required mode
       hr = m_pSwapChain->ResizeTarget(&matchedMode);
-      m_bResizeRequred = S_OK == hr;
-
-      if (FAILED(hr))
+      if (SUCCEEDED(hr))
+        m_bResizeRequred = true;
+      else
         CLog::Log(LOGERROR, "%s - Failed to switch output mode: %s", __FUNCTION__, GetErrorDescription(hr).c_str());
     }
+  }
 
-    // wait until switching screen state is done
+  // wait until switching screen state is done
+  if (m_bResizeRequred)
+  {
+    OnDisplayLost();
     DXWait(m_pD3DDev, m_pImdContext);
+    OnDisplayReset();
   }
 }
 
@@ -474,6 +477,8 @@ void CRenderSystemDX::OnDeviceLost()
   CSingleLock lock(m_resourceSection);
   g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_RENDERER_LOST);
 
+  OnDisplayLost();
+
   if (m_needNewDevice)
     DeleteDevice();
   else
@@ -497,9 +502,10 @@ void CRenderSystemDX::OnDeviceReset()
     for (std::vector<ID3DResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
       (*i)->OnResetDevice();
 
-    g_renderManager.Flush();
     g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_RENDERER_RESET);
   }
+
+  OnDisplayReset();
 }
 
 bool CRenderSystemDX::CreateDevice()
@@ -830,6 +836,13 @@ bool CRenderSystemDX::CreateWindowSizeDependentResources()
 
         Sleep(100);
       }
+
+      // when transition from/to stereo mode trigger display reset event
+      if (bNeedRecreate)
+      {
+        OnDisplayLost();
+        OnDeviceReset();
+      }
     }
     else
     {
@@ -1099,11 +1112,16 @@ bool CRenderSystemDX::PresentRenderImpl(const CDirtyRegionList &dirty)
 {
   HRESULT hr;
 
-  if (!m_bRenderCreated)
+  if (!m_bRenderCreated || m_resizeInProgress)
     return false;
 
   if (m_nDeviceStatus != S_OK)
+  {
+    // if DXGI_STATUS_OCCLUDED occurred we just clear command queue and return
+    if (m_nDeviceStatus == DXGI_STATUS_OCCLUDED)
+      FinishCommandList(false);
     return false;
+  }
 
   if ( m_stereoMode == RENDER_STEREO_MODE_INTERLACED
     || m_stereoMode == RENDER_STEREO_MODE_CHECKERBOARD)
@@ -1201,8 +1219,7 @@ bool CRenderSystemDX::BeginRender()
     if (m_nDeviceStatus != oldStatus)
       CLog::Log(LOGDEBUG, "DXGI_STATUS_OCCLUDED");
     // Status OCCLUDED is not an error and not handled by FAILED macro, 
-    // but if it occurs we should not render anything, so just return false
-    return false;
+    // but if it occurs we should not render anything, this status will be accounted on present stage
   }
 
   if (FAILED(m_nDeviceStatus))
@@ -1297,16 +1314,6 @@ bool CRenderSystemDX::ClearBuffers(color_t color)
 bool CRenderSystemDX::IsExtSupported(const char* extension)
 {
   return false;
-}
-
-bool CRenderSystemDX::PresentRender(const CDirtyRegionList &dirty)
-{
-  if (!m_bRenderCreated || m_resizeInProgress)
-    return false;
-
-  bool result = PresentRenderImpl(dirty);
-
-  return result;
 }
 
 void CRenderSystemDX::SetVSync(bool enable)

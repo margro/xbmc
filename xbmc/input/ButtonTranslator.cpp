@@ -335,11 +335,11 @@ static const ActionMapping windows[] =
     { "submenu"                  , WINDOW_DIALOG_SUB_MENU },
     { "favourites"               , WINDOW_DIALOG_FAVOURITES },
     { "contextmenu"              , WINDOW_DIALOG_CONTEXT_MENU },
-    { "infodialog"               , WINDOW_DIALOG_KAI_TOAST },
+    { "notification"             , WINDOW_DIALOG_KAI_TOAST },
+    { "infodialog"               , WINDOW_DIALOG_KAI_TOAST },          // backward compat
     { "numericinput"             , WINDOW_DIALOG_NUMERIC },
     { "gamepadinput"             , WINDOW_DIALOG_GAMEPAD },
     { "shutdownmenu"             , WINDOW_DIALOG_BUTTON_MENU },
-    { "mutebug"                  , WINDOW_DIALOG_MUTE_BUG },
     { "playercontrols"           , WINDOW_DIALOG_PLAYER_CONTROLS },
     { "seekbar"                  , WINDOW_DIALOG_SEEK_BAR },
     { "musicosd"                 , WINDOW_DIALOG_MUSIC_OSD },
@@ -393,7 +393,9 @@ static const ActionMapping windows[] =
     { "extendedprogressdialog"   , WINDOW_DIALOG_EXT_PROGRESS },
     { "mediafilter"              , WINDOW_DIALOG_MEDIA_FILTER },
     { "addon"                    , WINDOW_ADDON_START },
-    { "eventlog"                 , WINDOW_EVENT_LOG}
+    { "eventlog"                 , WINDOW_EVENT_LOG},
+    { "tvtimerrules"             , WINDOW_TV_TIMER_RULES},
+    { "radiotimerrules"          , WINDOW_RADIO_TIMER_RULES}
 };
 
 static const ActionMapping mousekeys[] =

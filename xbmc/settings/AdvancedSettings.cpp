@@ -47,7 +47,7 @@
 #include "utils/XMLUtils.h"
 
 #if defined(TARGET_DARWIN_IOS)
-#include "osx/DarwinUtils.h"
+#include "platform/darwin/DarwinUtils.h"
 #endif
 
 using namespace ADDON;
@@ -65,7 +65,6 @@ void CAdvancedSettings::OnSettingsLoaded()
   Load();
 
   // default players?
-  CLog::Log(LOGNOTICE, "Default DVD Player: %s", m_videoDefaultDVDPlayer.c_str());
   CLog::Log(LOGNOTICE, "Default Video Player: %s", m_videoDefaultPlayer.c_str());
   CLog::Log(LOGNOTICE, "Default Audio Player: %s", m_audioDefaultPlayer.c_str());
 
@@ -113,7 +112,7 @@ void CAdvancedSettings::Initialize()
   m_audioHeadRoom = 0;
   m_ac3Gain = 12.0f;
   m_audioApplyDrc = -1.0f;
-  m_dvdplayerIgnoreDTSinWAV = false;
+  m_VideoPlayerIgnoreDTSinWAV = false;
 
   //default hold time of 25 ms, this allows a 20 hertz sine to pass undistorted
   m_limiterHold = 0.025f;
@@ -121,7 +120,6 @@ void CAdvancedSettings::Initialize()
 
   m_seekSteps = { 10, 30, 60, 180, 300, 600, 1800 };
 
-  m_omxHWAudioDecode = false;
   m_omxDecodeStartWithValidFrame = true;
 
   m_audioDefaultPlayer = "paplayer";
@@ -139,11 +137,9 @@ void CAdvancedSettings::Initialize()
   m_videoPercentSeekForwardBig = 10;
   m_videoPercentSeekBackwardBig = -10;
 
-  m_videoBlackBarColour = 0;
   m_videoPPFFmpegDeint = "linblenddeint";
   m_videoPPFFmpegPostProc = "ha:128:7,va,dr";
-  m_videoDefaultPlayer = "dvdplayer";
-  m_videoDefaultDVDPlayer = "dvdplayer";
+  m_videoDefaultPlayer = "VideoPlayer";
   m_videoIgnoreSecondsAtStart = 3*60;
   m_videoIgnorePercentAtEnd   = 8.0f;
   m_videoPlayCountMinimumPercent = 90.0f;
@@ -164,14 +160,6 @@ void CAdvancedSettings::Initialize()
   m_DXVAAllowHqScaling = true;
   m_videoFpsDetect = 1;
   m_videoBusyDialogDelay_ms = 500;
-  m_stagefrightConfig.useAVCcodec = -1;
-  m_stagefrightConfig.useHEVCcodec = -1;
-  m_stagefrightConfig.useVC1codec = -1;
-  m_stagefrightConfig.useVPXcodec = -1;
-  m_stagefrightConfig.useMP4codec = -1;
-  m_stagefrightConfig.useMPEG2codec = -1;
-  m_stagefrightConfig.useSwRenderer = false;
-  m_stagefrightConfig.useInputDTS = false;
 
   m_mediacodecForceSoftwareRendring = false;
 
@@ -206,11 +194,35 @@ void CAdvancedSettings::Initialize()
   m_videoCleanStringRegExps.push_back("[ _\\,\\.\\(\\)\\[\\]\\-](ac3|dts|custom|dc|remastered|divx|divx5|dsr|dsrip|dutch|dvd|dvd5|dvd9|dvdrip|dvdscr|dvdscreener|screener|dvdivx|cam|fragment|fs|hdtv|hdrip|hdtvrip|internal|limited|multisubs|ntsc|ogg|ogm|pal|pdtv|proper|repack|rerip|retail|r3|r5|bd5|se|svcd|swedish|german|read.nfo|nfofix|unrated|extended|ws|telesync|ts|telecine|tc|brrip|bdrip|480p|480i|576p|576i|720p|720i|1080p|1080i|3d|hrhd|hrhdtv|hddvd|bluray|x264|h264|xvid|xvidvd|xxx|www.www|cd[1-9]|\\[.*\\])([ _\\,\\.\\(\\)\\[\\]\\-]|$)");
   m_videoCleanStringRegExps.push_back("(\\[.*\\])");
 
+  // this vector will be inserted at the end to
+  // m_moviesExcludeFromScanRegExps, m_tvshowExcludeFromScanRegExps and
+  // m_audioExcludeFromScanRegExps
+  m_allExcludeFromScanRegExps.clear();
+  m_allExcludeFromScanRegExps.push_back(".+\\.ite$");  // ignore itunes extras dir
+  m_allExcludeFromScanRegExps.push_back("[\\/]\\.\\_");
+  m_allExcludeFromScanRegExps.push_back("\\.DS_Store");
+  m_allExcludeFromScanRegExps.push_back("\\.AppleDouble");
+  
   m_moviesExcludeFromScanRegExps.clear();
   m_moviesExcludeFromScanRegExps.push_back("-trailer");
   m_moviesExcludeFromScanRegExps.push_back("[!-._ \\\\/]sample[-._ \\\\/]");
   m_moviesExcludeFromScanRegExps.push_back("[\\/](proof|subs)[\\/]");
+  m_moviesExcludeFromScanRegExps.insert(m_moviesExcludeFromScanRegExps.end(),
+                                        m_allExcludeFromScanRegExps.begin(),
+                                        m_allExcludeFromScanRegExps.end());
+
+  
+  m_tvshowExcludeFromScanRegExps.clear();
   m_tvshowExcludeFromScanRegExps.push_back("[!-._ \\\\/]sample[-._ \\\\/]");
+  m_tvshowExcludeFromScanRegExps.insert(m_tvshowExcludeFromScanRegExps.end(),
+                                        m_allExcludeFromScanRegExps.begin(),
+                                        m_allExcludeFromScanRegExps.end());
+
+  
+  m_audioExcludeFromScanRegExps.clear();
+  m_audioExcludeFromScanRegExps.insert(m_audioExcludeFromScanRegExps.end(),
+                                        m_allExcludeFromScanRegExps.begin(),
+                                        m_allExcludeFromScanRegExps.end());
 
   m_folderStackRegExps.clear();
   m_folderStackRegExps.push_back("((cd|dvd|dis[ck])[0-9]+)$");
@@ -224,8 +236,8 @@ void CAdvancedSettings::Initialize()
   //m_videoStackRegExps.push_back("(.*?)([ ._-]*[0-9])(.*?)(\\.[^.]+)$");
 
   m_tvshowEnumRegExps.clear();
-  // foo.s01.e01, foo.s01_e01, S01E02 foo, S01 - E02
-  m_tvshowEnumRegExps.push_back(TVShowRegexp(false,"s([0-9]+)[ ._-]*e([0-9]+(?:(?:[a-i]|\\.[1-9])(?![0-9]))?)([^\\\\/]*)$"));
+  // foo.s01.e01, foo.s01_e01, S01E02 foo, S01 - E02, S01xE02
+  m_tvshowEnumRegExps.push_back(TVShowRegexp(false,"s([0-9]+)[ ._x-]*e([0-9]+(?:(?:[a-i]|\\.[1-9])(?![0-9]))?)([^\\\\/]*)$"));
   // foo.ep01, foo.EP_01, foo.E01
   m_tvshowEnumRegExps.push_back(TVShowRegexp(false,"[\\._ -]()e(?:p[ ._-]?)?([0-9]+(?:(?:[a-i]|\\.[1-9])(?![0-9]))?)([^\\\\/]*)$"));
   // foo.yyyy.mm.dd.* (byDate=true)
@@ -299,13 +311,23 @@ void CAdvancedSettings::Initialize()
   m_iEdlCommBreakAutowait = 0;             // Off by default
   m_iEdlCommBreakAutowind = 0;             // Off by default
 
+  // Touchscreen  default values if no adjustment is necessarry
+  m_screenAlign_xOffset = 0;
+  m_screenAlign_yOffset= 0;
+  m_screenAlign_xStretchFactor = 1.0;
+  m_screenAlign_yStretchFactor = 1.0;
+
   m_curlconnecttimeout = 10;
   m_curllowspeedtime = 20;
   m_curlretries = 2;
   m_curlDisableIPV6 = false;      //Certain hardware/OS combinations have trouble
                                   //with ipv6.
 
+#if defined(TARGET_DARWIN_IOS)
+  m_startFullScreen = true;
+#else
   m_startFullScreen = false;
+#endif
   m_showExitButton = true;
   m_splashImage = true;
 
@@ -337,9 +359,6 @@ void CAdvancedSettings::Initialize()
 
   m_iPVRTimeCorrection             = 0;
   m_iPVRInfoToggleInterval         = 3000;
-  m_iPVRMinVideoCacheLevel         = 5;
-  m_iPVRMinAudioCacheLevel         = 10;
-  m_bPVRCacheInDvdPlayer           = true;
   m_bPVRChannelIconsAutoScan       = true;
   m_bPVRAutoScanIconsUserSet       = false;
   m_iPVRNumericChannelSwitchTimeout = 1000;
@@ -356,7 +375,11 @@ void CAdvancedSettings::Initialize()
 
   m_enableMultimediaKeys = false;
 
+#if defined(TARGET_DARWIN_IOS)
+  m_canWindowed = false;
+#else
   m_canWindowed = true;
+#endif
   m_guiVisualizeDirtyRegions = false;
   m_guiAlgorithmDirtyRegions = 3;
   m_guiDirtyRegionNoFlipTimeout = 0;
@@ -366,7 +389,7 @@ void CAdvancedSettings::Initialize()
   m_databaseMusic.Reset();
   m_databaseVideo.Reset();
 
-  m_pictureExtensions = ".png|.jpg|.jpeg|.bmp|.gif|.ico|.tif|.tiff|.tga|.pcx|.cbz|.zip|.cbr|.rar|.dng|.nef|.cr2|.crw|.orf|.arw|.erf|.3fr|.dcr|.x3f|.mef|.raf|.mrw|.pef|.sr2|.rss";
+  m_pictureExtensions = ".png|.jpg|.jpeg|.bmp|.gif|.ico|.tif|.tiff|.tga|.pcx|.cbz|.zip|.cbr|.rar|.dng|.nef|.cr2|.crw|.orf|.arw|.erf|.3fr|.dcr|.x3f|.mef|.raf|.mrw|.pef|.sr2|.rss|.webp|.jp2";
   m_musicExtensions = ".nsv|.m4a|.flac|.aac|.strm|.pls|.rm|.rma|.mpa|.wav|.wma|.ogg|.mp3|.mp2|.m3u|.gdm|.imf|.m15|.sfx|.uni|.ac3|.dts|.cue|.aif|.aiff|.wpl|.ape|.mac|.mpc|.mp+|.mpp|.shn|.zip|.rar|.wv|.dsp|.xsp|.xwav|.waa|.wvs|.wam|.gcm|.idsp|.mpdsp|.mss|.spt|.rsd|.sap|.cmc|.cmr|.dmc|.mpt|.mpd|.rmt|.tmc|.tm8|.tm2|.oga|.url|.pxml|.tta|.rss|.wtv|.mka|.tak|.opus|.dff|.dsf";
   m_videoExtensions = ".m4v|.3g2|.3gp|.nsv|.tp|.ts|.ty|.strm|.pls|.rm|.rmvb|.m3u|.m3u8|.ifo|.mov|.qt|.divx|.xvid|.bivx|.vob|.nrg|.img|.iso|.pva|.wmv|.asf|.asx|.ogm|.m2v|.avi|.bin|.dat|.mpg|.mpeg|.mp4|.mkv|.mk3d|.avc|.vp3|.svq3|.nuv|.viv|.dv|.fli|.flv|.rar|.001|.wpl|.zip|.vdr|.dvr-ms|.xsp|.mts|.m2t|.m2ts|.evo|.ogv|.sdp|.avs|.rec|.url|.pxml|.vc1|.h264|.rcv|.rss|.mpls|.webm|.bdmv|.wtv";
   m_subtitlesExtensions = ".utf|.utf8|.utf-8|.sub|.srt|.smi|.rt|.txt|.ssa|.text|.ssa|.aqt|.jss|.ass|.idx|.ifo|.rar|.zip";
@@ -385,18 +408,6 @@ void CAdvancedSettings::Initialize()
   m_logLevelHint = m_logLevel = LOG_LEVEL_NORMAL;
   m_extraLogEnabled = false;
   m_extraLogLevels = 0;
-
-  #if defined(TARGET_DARWIN)
-    std::string logDir = getenv("HOME");
-    #if defined(TARGET_DARWIN_OSX)
-    logDir += "/Library/Logs/";
-    #else // ios
-    logDir += "/" + std::string(CDarwinUtils::GetAppRootFolder()) + "/";
-    #endif
-    m_logFolder = logDir;
-  #else
-    m_logFolder = "special://home/";              // log file location
-  #endif
 
   m_userAgent = g_sysinfo.GetUserAgent();
 
@@ -482,7 +493,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
       GetCustomRegexps(pAudioExcludes, m_audioExcludeFromScanRegExps);
 
     XMLUtils::GetFloat(pElement, "applydrc", m_audioApplyDrc);
-    XMLUtils::GetBoolean(pElement, "dvdplayerignoredtsinwav", m_dvdplayerIgnoreDTSinWAV);
+    XMLUtils::GetBoolean(pElement, "VideoPlayerignoredtsinwav", m_VideoPlayerIgnoreDTSinWAV);
 
     XMLUtils::GetFloat(pElement, "limiterhold", m_limiterHold, 0.0f, 100.0f);
     XMLUtils::GetFloat(pElement, "limiterrelease", m_limiterRelease, 0.001f, 100.0f);
@@ -491,7 +502,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   pElement = pRootElement->FirstChildElement("omx");
   if (pElement)
   {
-    XMLUtils::GetBoolean(pElement, "omxhwaudiodecode", m_omxHWAudioDecode);
     XMLUtils::GetBoolean(pElement, "omxdecodestartwithvalidframe", m_omxDecodeStartWithValidFrame);
   }
 
@@ -504,9 +514,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetString(pElement, "stereoscopicregextab", m_stereoscopicregex_tab);
     XMLUtils::GetFloat(pElement, "subsdelayrange", m_videoSubsDelayRange, 10, 600);
     XMLUtils::GetFloat(pElement, "audiodelayrange", m_videoAudioDelayRange, 10, 600);
-    XMLUtils::GetInt(pElement, "blackbarcolour", m_videoBlackBarColour, 0, 255);
     XMLUtils::GetString(pElement, "defaultplayer", m_videoDefaultPlayer);
-    XMLUtils::GetString(pElement, "defaultdvdplayer", m_videoDefaultDVDPlayer);
     XMLUtils::GetBoolean(pElement, "fullscreenonmoviestart", m_fullScreenOnMovieStart);
     // 101 on purpose - can be used to never automark as watched
     XMLUtils::GetFloat(pElement, "playcountminimumpercent", m_videoPlayCountMinimumPercent, 0.0f, 101.0f);
@@ -555,19 +563,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetBoolean(pElement,"vdpauInvTelecine",m_videoVDPAUtelecine);
     XMLUtils::GetBoolean(pElement,"vdpauHDdeintSkipChroma",m_videoVDPAUdeintSkipChromaHD);
     XMLUtils::GetBoolean(pElement,"useffmpegvda", m_useFfmpegVda);
-
-    TiXmlElement* pStagefrightElem = pElement->FirstChildElement("stagefright");
-    if (pStagefrightElem)
-    {
-      XMLUtils::GetInt(pStagefrightElem,"useavccodec",m_stagefrightConfig.useAVCcodec, -1, 1);
-      XMLUtils::GetInt(pStagefrightElem,"usehevccodec",m_stagefrightConfig.useHEVCcodec, -1, 1);
-      XMLUtils::GetInt(pStagefrightElem,"usevc1codec",m_stagefrightConfig.useVC1codec, -1, 1);
-      XMLUtils::GetInt(pStagefrightElem,"usevpxcodec",m_stagefrightConfig.useVPXcodec, -1, 1);
-      XMLUtils::GetInt(pStagefrightElem,"usemp4codec",m_stagefrightConfig.useMP4codec, -1, 1);
-      XMLUtils::GetInt(pStagefrightElem,"usempeg2codec",m_stagefrightConfig.useMPEG2codec, -1, 1);
-      XMLUtils::GetBoolean(pStagefrightElem,"useswrenderer",m_stagefrightConfig.useSwRenderer);
-      XMLUtils::GetBoolean(pStagefrightElem,"useinputdts",m_stagefrightConfig.useInputDTS);
-    }
 
     XMLUtils::GetBoolean(pElement,"mediacodecforcesoftwarerendering",m_mediacodecForceSoftwareRendring);
 
@@ -857,6 +852,16 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetInt(pElement, "commbreakautowind", m_iEdlCommBreakAutowind, 0, 10);        // Between 0 and 10 seconds
   }
 
+  // Touchscreen
+  pElement = pRootElement->FirstChildElement("touchscreen");
+  if (pElement)
+  {
+    XMLUtils::GetInt(pElement, "x_offset", m_screenAlign_xOffset );
+    XMLUtils::GetInt(pElement, "y_offset", m_screenAlign_yOffset );
+    XMLUtils::GetFloat(pElement, "x_stretch_factor", m_screenAlign_xStretchFactor );
+    XMLUtils::GetFloat(pElement, "y_stretch_factor", m_screenAlign_yStretchFactor );
+  }
+
   // picture exclude regexps
   TiXmlElement* pPictureExcludes = pRootElement->FirstChildElement("pictureexcludes");
   if (pPictureExcludes)
@@ -1022,9 +1027,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   {
     XMLUtils::GetInt(pPVR, "timecorrection", m_iPVRTimeCorrection, 0, 1440);
     XMLUtils::GetInt(pPVR, "infotoggleinterval", m_iPVRInfoToggleInterval, 0, 30000);
-    XMLUtils::GetInt(pPVR, "minvideocachelevel", m_iPVRMinVideoCacheLevel, 0, 100);
-    XMLUtils::GetInt(pPVR, "minaudiocachelevel", m_iPVRMinAudioCacheLevel, 0, 100);
-    XMLUtils::GetBoolean(pPVR, "cacheindvdplayer", m_bPVRCacheInDvdPlayer);
     XMLUtils::GetBoolean(pPVR, "channeliconsautoscan", m_bPVRChannelIconsAutoScan);
     XMLUtils::GetBoolean(pPVR, "autoscaniconsuserset", m_bPVRAutoScanIconsUserSet);
     XMLUtils::GetInt(pPVR, "numericchannelswitchtimeout", m_iPVRNumericChannelSwitchTimeout, 50, 60000);
@@ -1151,6 +1153,7 @@ void CAdvancedSettings::Clear()
   m_videoExcludeFromListingRegExps.clear();
   m_videoStackRegExps.clear();
   m_folderStackRegExps.clear();
+  m_allExcludeFromScanRegExps.clear();
   m_audioExcludeFromScanRegExps.clear();
   m_audioExcludeFromListingRegExps.clear();
   m_pictureExcludeFromListingRegExps.clear();
@@ -1160,7 +1163,6 @@ void CAdvancedSettings::Clear()
   m_videoExtensions.clear();
   m_discStubExtensions.clear();
 
-  m_logFolder.clear();
   m_userAgent.clear();
 }
 
@@ -1366,7 +1368,7 @@ std::string CAdvancedSettings::GetMusicExtensions() const
   std::string result(m_musicExtensions);
 
   VECADDONS codecs;
-  CAddonMgr::GetInstance().GetAddons(ADDON_AUDIODECODER, codecs);
+  CAddonMgr::GetInstance().GetAddons(codecs, ADDON_AUDIODECODER);
   for (size_t i=0;i<codecs.size();++i)
   {
     std::shared_ptr<CAudioDecoder> dec(std::static_pointer_cast<CAudioDecoder>(codecs[i]));

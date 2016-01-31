@@ -320,7 +320,7 @@ public class Splash extends Activity {
 
           if (! (sName.startsWith("assets/") || (mInstallLibs && sName.startsWith("lib/"))) )
             continue;
-          if (sName.startsWith("assets/python2.6"))
+          if (sName.startsWith("assets/python2.7"))
             continue;
 
           String sFullPath = null;
@@ -505,7 +505,7 @@ public class Splash extends Activity {
       }
 
       fPackagePath = new File(sPackagePath);
-      if (fPackagePath.length() < 20 * 1024 * 1024)
+      if (fPackagePath.length() < 10 * 1024 * 1024)
         fPackagePath.delete();  // borked download
       if (!fPackagePath.exists())
       {
@@ -737,7 +737,7 @@ public class Splash extends Activity {
           Log.e(TAG, mErrorMsg);
           mState = InError;
         } else {
-          ret = CheckCpuFeature("neon") || CheckCpuFeature("aarch64");  //aarch64 is always neon
+          ret = CheckCpuFeature("neon") || CheckCpuFeature("aarch64") || CheckCpuFeature("asimd");  // aarch64 is always neon; asimd feature also represents neon
           if (!ret) {
             mErrorMsg = "This @APP_NAME@ package is not compatible with your device (NEON).\nPlease check the <a href=\"http://wiki.kodi.tv/index.php?title=XBMC_for_Android_specific_FAQ\">Kodi Android wiki</a> for more information.";
             Log.e(TAG, mErrorMsg);

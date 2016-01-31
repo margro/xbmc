@@ -102,18 +102,6 @@ struct RefreshVideoLatency
   float delay;
 };
 
-struct StagefrightConfig
-{
-  int useAVCcodec;
-  int useHEVCcodec;
-  int useVC1codec;
-  int useVPXcodec;
-  int useMP4codec;
-  int useMPEG2codec;
-  bool useSwRenderer;
-  bool useInputDTS;
-};
-
 typedef std::vector<TVShowRegexp> SETTINGS_TVSHOWLIST;
 
 class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
@@ -145,11 +133,10 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     float m_ac3Gain;
     std::string m_audioDefaultPlayer;
     float m_audioPlayCountMinimumPercent;
-    bool m_dvdplayerIgnoreDTSinWAV;
+    bool m_VideoPlayerIgnoreDTSinWAV;
     float m_limiterHold;
     float m_limiterRelease;
 
-    bool  m_omxHWAudioDecode;
     bool  m_omxDecodeStartWithValidFrame;
 
     float m_videoSubsDelayRange;
@@ -177,7 +164,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     int m_musicPercentSeekBackward;
     int m_musicPercentSeekForwardBig;
     int m_musicPercentSeekBackwardBig;
-    int m_videoBlackBarColour;
     int m_videoIgnoreSecondsAtStart;
     float m_videoIgnorePercentAtEnd;
     float m_audioApplyDrc;
@@ -200,11 +186,9 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     bool m_DXVAAllowHqScaling;
     int  m_videoFpsDetect;
     int  m_videoBusyDialogDelay_ms;
-    StagefrightConfig m_stagefrightConfig;
     bool m_mediacodecForceSoftwareRendring;
 
     std::string m_videoDefaultPlayer;
-    std::string m_videoDefaultDVDPlayer;
     float m_videoPlayCountMinimumPercent;
 
     float m_slideshowBlackBarCompensation;
@@ -229,6 +213,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     std::string m_videoCleanDateTimeRegExp;
     std::vector<std::string> m_videoCleanStringRegExps;
     std::vector<std::string> m_videoExcludeFromListingRegExps;
+    std::vector<std::string> m_allExcludeFromScanRegExps;
     std::vector<std::string> m_moviesExcludeFromScanRegExps;
     std::vector<std::string> m_tvshowExcludeFromScanRegExps;
     std::vector<std::string> m_audioExcludeFromListingRegExps;
@@ -333,12 +318,15 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     std::string m_cpuTempCmd;
     std::string m_gpuTempCmd;
 
+    // Touchscreen
+    int m_screenAlign_xOffset;
+    int m_screenAlign_yOffset;
+    float m_screenAlign_xStretchFactor;
+    float m_screenAlign_yStretchFactor;
+
     /* PVR/TV related advanced settings */
     int m_iPVRTimeCorrection;     /*!< @brief correct all times (epg tags, timer tags, recording tags) by this amount of minutes. defaults to 0. */
     int m_iPVRInfoToggleInterval; /*!< @brief if there are more than 1 pvr gui info item available (e.g. multiple recordings active at the same time), use this toggle delay in milliseconds. defaults to 3000. */
-    int m_iPVRMinVideoCacheLevel;      /*!< @brief cache up to this level in the video buffer buffer before resuming playback if the buffers run dry */
-    int m_iPVRMinAudioCacheLevel;      /*!< @brief cache up to this level in the audio buffer before resuming playback if the buffers run dry */
-    bool m_bPVRCacheInDvdPlayer; /*!< @brief true to use "CACHESTATE_PVR" in CDVDPlayer (default) */
     bool m_bPVRChannelIconsAutoScan; /*!< @brief automatically scan user defined folder for channel icons when loading internal channel groups */
     bool m_bPVRAutoScanIconsUserSet; /*!< @brief mark channel icons populated by auto scan as "user set" */
     int m_iPVRNumericChannelSwitchTimeout; /*!< @brief time in ms before the numeric dialog auto closes when confirmchannelswitch is disabled */
@@ -390,8 +378,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     True to show at the fixed position set in video calibration
     False to show at the bottom of video (default) */
     bool m_videoAssFixedWorks;
-
-    std::string m_logFolder;
 
     std::string m_userAgent;
 

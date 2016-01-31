@@ -22,6 +22,7 @@
 
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
+#include "addons/AddonSystemSettings.h"
 #include "AddonDatabase.h"
 #include "FileItem.h"
 #include "filesystem/Directory.h"
@@ -61,6 +62,7 @@ using namespace XFILE;
 CGUIDialogAddonInfo::CGUIDialogAddonInfo(void)
   : CGUIDialog(WINDOW_DIALOG_ADDON_INFO, "DialogAddonInfo.xml"),
   m_jobid(0),
+  m_addonEnabled(false),
   m_changelog(false)
 {
   m_item = CFileItemPtr(new CFileItem);
@@ -119,6 +121,7 @@ bool CGUIDialogAddonInfo::OnMessage(CGUIMessage& message)
       }
       else if (iControl == CONTROL_BTN_ENABLE)
       {
+        //FIXME: should be moved to somewhere appropriate (e.g CAddonMgs::CanAddonBeDisabled or IsInUse) and button should be disabled
         if (m_localAddon)
         {
           if (m_localAddon->Type() == ADDON_ADSPDLL && ActiveAE::CActiveAEDSP::GetInstance().IsProcessing())
@@ -128,7 +131,7 @@ bool CGUIDialogAddonInfo::OnMessage(CGUIMessage& message)
           }
         }
 
-        OnEnable(!m_item->GetProperty("Addon.Enabled").asBoolean());
+        OnEnableDisable();
         return true;
       }
       else if (iControl == CONTROL_BTN_SETTINGS)
@@ -175,7 +178,7 @@ void CGUIDialogAddonInfo::OnInitWindow()
 void CGUIDialogAddonInfo::UpdateControls()
 {
   bool isInstalled = NULL != m_localAddon.get();
-  bool isEnabled = isInstalled && m_item->GetProperty("Addon.Enabled").asBoolean();
+  m_addonEnabled = m_localAddon && !CAddonMgr::GetInstance().IsAddonDisabled(m_localAddon->ID());
   bool canDisable = isInstalled && CAddonMgr::GetInstance().CanAddonBeDisabled(m_localAddon->ID());
   bool canInstall = !isInstalled && m_item->GetProperty("Addon.Broken").empty();
   bool isRepo = (isInstalled && m_localAddon->Type() == ADDON_REPOSITORY) || (m_addon && m_addon->Type() == ADDON_REPOSITORY);
@@ -184,17 +187,17 @@ void CGUIDialogAddonInfo::UpdateControls()
   SET_CONTROL_LABEL(CONTROL_BTN_INSTALL, isInstalled ? 24037 : 24038);
 
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_ENABLE, canDisable);
-  SET_CONTROL_LABEL(CONTROL_BTN_ENABLE, isEnabled ? 24021 : 24022);
+  SET_CONTROL_LABEL(CONTROL_BTN_ENABLE, m_addonEnabled ? 24021 : 24022);
 
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_UPDATE, isInstalled);
 
-  bool autoUpdatesOn = CSettings::GetInstance().GetInt(CSettings::SETTING_GENERAL_ADDONUPDATES) == AUTO_UPDATES_ON;
+  bool autoUpdatesOn = CSettings::GetInstance().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_ON;
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_AUTOUPDATE, isInstalled && autoUpdatesOn);
   SET_CONTROL_SELECTED(GetID(), CONTROL_BTN_AUTOUPDATE, isInstalled && autoUpdatesOn &&
       !CAddonMgr::GetInstance().IsBlacklisted(m_localAddon->ID()));
   SET_CONTROL_LABEL(CONTROL_BTN_AUTOUPDATE, 21340);
 
-  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_SELECT, isEnabled && (CanOpen() ||
+  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_SELECT, m_addonEnabled && (CanOpen() ||
       CanRun() || (CanUse() && !m_localAddon->IsInUse())));
   SET_CONTROL_LABEL(CONTROL_BTN_SELECT, CanUse() ? 21480 : (CanOpen() ? 21478 : 21479));
 
@@ -285,7 +288,7 @@ void CGUIDialogAddonInfo::OnUpdate()
   {
     Close();
 
-    auto selected = versions.at(dialog->GetSelectedLabel());
+    auto selected = versions.at(dialog->GetSelectedItem());
 
     //turn auto updating off if downgrading
     if (selected.first < m_localAddon->Version())
@@ -365,7 +368,7 @@ bool CGUIDialogAddonInfo::PromptIfDependency(int heading, int line2)
 
   VECADDONS addons;
   std::vector<std::string> deps;
-  CAddonMgr::GetInstance().GetAllAddons(addons);
+  CAddonMgr::GetInstance().GetAddons(addons);
   for (VECADDONS::const_iterator it  = addons.begin();
        it != addons.end();++it)
   {
@@ -405,22 +408,24 @@ void CGUIDialogAddonInfo::OnUninstall()
   Close();
 }
 
-void CGUIDialogAddonInfo::OnEnable(bool enable)
+void CGUIDialogAddonInfo::OnEnableDisable()
 {
-  if (!m_localAddon.get())
+  if (!m_localAddon)
     return;
 
   if (!g_passwordManager.CheckMenuLock(WINDOW_ADDON_BROWSER))
     return;
 
-  if (!enable && PromptIfDependency(24075, 24091))
-    return;
+  if (m_addonEnabled)
+  {
+    if (PromptIfDependency(24075, 24091))
+      return; //required. can't disable
 
-  if (enable)
-    CAddonMgr::GetInstance().EnableAddon(m_localAddon->ID());
-  else
     CAddonMgr::GetInstance().DisableAddon(m_localAddon->ID());
-  SetItem(m_item);
+  }
+  else
+    CAddonMgr::GetInstance().EnableAddon(m_localAddon->ID());
+
   UpdateControls();
   g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE);
 }
@@ -443,8 +448,7 @@ void CGUIDialogAddonInfo::OnChangeLog()
   {
     pDlgInfo->SetText(g_localizeStrings.Get(13413));
     CFileItemList items;
-    if (m_localAddon && 
-        !m_item->GetProperty("Addon.UpdateAvail").asBoolean())
+    if (m_localAddon && !m_item->GetProperty("Addon.HasUpdate").asBoolean())
     {
       items.Add(CFileItemPtr(new CFileItem(m_localAddon->ChangeLog(),false)));
     }
@@ -478,43 +482,14 @@ bool CGUIDialogAddonInfo::ShowForItem(const CFileItemPtr& item)
 bool CGUIDialogAddonInfo::SetItem(const CFileItemPtr& item)
 {
   *m_item = *item;
-
-  // grab the local addon, if it's available
   m_localAddon.reset();
   m_addon.reset();
-  if (CAddonMgr::GetInstance().GetAddon(item->GetProperty("Addon.ID").asString(), m_localAddon)) // sets m_localAddon if installed regardless of enabled state
-    m_item->SetProperty("Addon.Enabled", "true");
-  else
-    m_item->SetProperty("Addon.Enabled", "false");
-  m_item->SetProperty("Addon.Installed", m_localAddon ? "true" : "false");
+
+  CAddonMgr::GetInstance().GetAddon(item->GetProperty("Addon.ID").asString(), m_localAddon, ADDON_UNKNOWN, false);
 
   CAddonDatabase database;
   database.Open();
-  database.GetAddon(item->GetProperty("Addon.ID").asString(),m_addon);
-
-  if (TranslateType(item->GetProperty("Addon.intType").asString()) == ADDON_REPOSITORY)
-  {
-    CAddonDatabase database;
-    database.Open();
-    VECADDONS addons;
-    if (m_addon)
-      database.GetRepositoryContent(m_addon->ID(), addons);
-    else if (m_localAddon) // sanity
-      database.GetRepositoryContent(m_localAddon->ID(), addons);
-    int tot=0;
-    for (int i = ADDON_UNKNOWN+1;i<ADDON_MAX;++i)
-    {
-      int num=0;
-      for (unsigned int j=0;j<addons.size();++j)
-      {
-        if (addons[j]->Type() == (TYPE)i)
-          ++num;
-      }
-      m_item->SetProperty("Repo." + TranslateType((TYPE)i), num);
-      tot += num;
-    }
-    m_item->SetProperty("Repo.Addons", tot);
-  }
+  database.GetAddon(item->GetProperty("Addon.ID").asString(), m_addon);
   return true;
 }
 

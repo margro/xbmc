@@ -1,6 +1,8 @@
+#pragma once
+
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,13 +15,10 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
-
-#ifndef __XBMC_PVR_H__
-#define __XBMC_PVR_H__
 
 #include "xbmc_addon_dll.h"
 #include "xbmc_pvr_types.h"
@@ -636,6 +635,12 @@ extern "C"
   bool IsTimeshifting();
 
   /*!
+   *  Check for real-time streaming
+   *  @return true if current stream is real-time
+   */
+  bool IsRealTimeStream();
+
+  /*!
    * Called by XBMC to assign the function pointers of this add-on to pClient.
    * @param pClient The struct to assign the function pointers to.
    */
@@ -722,7 +727,7 @@ extern "C"
     pClient->GetBackendHostname             = GetBackendHostname;
 
     pClient->IsTimeshifting                 = IsTimeshifting;
+    pClient->IsRealTimeStream               = IsRealTimeStream;
   };
 };
 
-#endif

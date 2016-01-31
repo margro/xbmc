@@ -19,8 +19,7 @@
  */
 
 #include "imagefactory.h"
-#include "guilib/JpegIO.h"
-#include "guilib/cximage.h"
+#include "guilib/FFmpegImage.h"
 #include "utils/Mime.h"
 #if defined(HAS_GIFLIB)
 #include "guilib/Gif.h"
@@ -42,17 +41,10 @@ IImage* ImageFactory::CreateLoader(const CURL& url)
 
 IImage* ImageFactory::CreateLoaderFromMimeType(const std::string& strMimeType)
 {
-  if(strMimeType == "image/jpeg" || strMimeType == "image/tbn" || strMimeType == "image/jpg")
-    return new CJpegIO();
 #if defined(HAS_GIFLIB)
-  else if (strMimeType == "image/gif")
+  if (strMimeType == "image/gif")
     return new Gif();
 #endif//HAS_GIFLIB
 
-  return new CXImage(strMimeType);
-}
-
-IImage* ImageFactory::CreateFallbackLoader(const std::string& strMimeType)
-{
-  return new CXImage(strMimeType);
+  return new CFFmpegImage(strMimeType);
 }

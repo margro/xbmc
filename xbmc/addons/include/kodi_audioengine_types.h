@@ -1,5 +1,7 @@
+#pragma once
+
 /*
- *      Copyright (C) 2005-2015 Team KODI
+ *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -13,7 +15,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with KODI; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -21,9 +23,6 @@
 /*!
  * Common data structures shared between KODI and KODI's binary add-ons
  */
-
-#ifndef __AUDIOENGINE_TYPES_H__
-#define __AUDIOENGINE_TYPES_H__
 
 #ifdef TARGET_WINDOWS
 #include <windows.h>
@@ -106,11 +105,6 @@ extern "C" {
     unsigned int m_frames;
 
     /**
-     * The number of samples in one frame
-     */
-    unsigned int m_frameSamples;
-
-    /**
      * The size of one frame in bytes
      */
     unsigned int m_frameSize;
@@ -121,7 +115,6 @@ extern "C" {
       m_sampleRate = 0;
       m_encodedRate = 0;
       m_frames = 0;
-      m_frameSamples = 0;
       m_frameSize = 0;
       m_channelCount = 0;
 
@@ -142,7 +135,6 @@ extern "C" {
           m_sampleRate    != fmt->m_sampleRate    ||
           m_encodedRate   != fmt->m_encodedRate   ||
           m_frames        != fmt->m_frames        ||
-          m_frameSamples  != fmt->m_frameSamples  ||
           m_frameSize     != fmt->m_frameSize     ||
           m_channelCount  != fmt->m_channelCount)
       {
@@ -165,4 +157,3 @@ extern "C" {
 }
 #endif
 
-#endif //__AUDIOENGINE_TYPES_H__

@@ -71,7 +71,6 @@
 #define WINDOW_DIALOG_NUMERIC             10109
 #define WINDOW_DIALOG_GAMEPAD             10110
 #define WINDOW_DIALOG_BUTTON_MENU         10111
-#define WINDOW_DIALOG_MUTE_BUG            10113
 #define WINDOW_DIALOG_PLAYER_CONTROLS     10114
 #define WINDOW_DIALOG_SEEK_BAR            10115
 #define WINDOW_DIALOG_MUSIC_OSD           10120
@@ -137,6 +136,8 @@
 #define WINDOW_RADIO_SEARCH               10624
 #define WINDOW_FULLSCREEN_RADIO           10625 // virtual window for PVR radio specific keymaps with fallback to WINDOW_VISUALISATION
 #define WINDOW_DIALOG_PVR_RADIO_RDS_INFO  10626
+#define WINDOW_TV_TIMER_RULES             10627
+#define WINDOW_RADIO_TIMER_RULES          10628
 
 //#define WINDOW_VIRTUAL_KEYBOARD           11000
 // WINDOW_ID's from 11100 to 11199 reserved for Skins

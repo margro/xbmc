@@ -26,10 +26,10 @@
 #include "addons/AddonManager.h"
 #include "addons/Skin.h"
 #if defined(TARGET_ANDROID)
-#include "android/activity/AndroidFeatures.h"
+#include "platform/android/activity/AndroidFeatures.h"
 #endif // defined(TARGET_ANDROID)
 #include "cores/AudioEngine/AEFactory.h"
-#include "cores/dvdplayer/DVDCodecs/Video/DVDVideoCodec.h"
+#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 #include "guilib/LocalizeStrings.h"
 #include "peripherals/Peripherals.h"
 #include "profiles/ProfilesManager.h"
@@ -41,7 +41,7 @@
 #include "utils/SystemInfo.h"
 #include "windowing/WindowingFactory.h"
 #if defined(TARGET_DARWIN_OSX)
-#include "osx/DarwinUtils.h"
+#include "platform/darwin/DarwinUtils.h"
 #endif// defined(TARGET_DARWIN_OSX)
 
 bool AddonHasSettings(const std::string &condition, const std::string &value, const CSetting *setting, void *data)
@@ -235,9 +235,6 @@ void CSettingConditions::Initialize()
 #endif
 #ifdef TARGET_ANDROID
   m_simpleConditions.insert("has_mediacodec");
-#endif
-#ifdef HAS_LIBSTAGEFRIGHT
-  m_simpleConditions.insert("have_libstagefrightdecoder");
 #endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   m_simpleConditions.insert("have_videotoolboxdecoder");

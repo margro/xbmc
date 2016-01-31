@@ -32,7 +32,7 @@
 #include <mach-o/arch.h>
 #endif // defined(__ppc__) || defined (TARGET_DARWIN_IOS)
 #ifdef TARGET_DARWIN_OSX
-#include "osx/smc.h"
+#include "platform/darwin/osx/smc.h"
 #endif
 #endif
 
@@ -51,7 +51,7 @@
 #endif
 
 #if defined(TARGET_ANDROID)
-#include "android/activity/AndroidFeatures.h"
+#include "platform/android/activity/AndroidFeatures.h"
 #endif
 
 #ifdef TARGET_WINDOWS
@@ -912,7 +912,7 @@ void CCPUInfo::ReadCPUFeatures()
   #endif
 #elif defined(LINUX)
 // empty on purpose, the implementation is in the constructor
-#elif !defined(__powerpc__) && !defined(__ppc__) && !defined(__arm__)
+#elif !defined(__powerpc__) && !defined(__ppc__) && !defined(__arm__) && !defined(__aarch64__)
   m_cpuFeatures |= CPU_FEATURE_MMX;
 #elif defined(__powerpc__) || defined(__ppc__)
   m_cpuFeatures |= CPU_FEATURE_ALTIVEC;

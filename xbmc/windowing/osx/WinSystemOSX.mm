@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
+ *  along with Kodi; see the file COPYING.  If not, see
  *  <http://www.gnu.org/licenses/>.
  *
  */
@@ -37,10 +37,11 @@
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
-#include "osx/XBMCHelper.h"
+#include "platform/darwin/osx/XBMCHelper.h"
 #include "utils/SystemInfo.h"
-#include "osx/CocoaInterface.h"
-#include "osx/DarwinUtils.h"
+#include "platform/darwin/osx/CocoaInterface.h"
+#include "platform/darwin/DictionaryUtils.h"
+#include "platform/darwin/DarwinUtils.h"
 #undef BOOL
 
 #import <SDL/SDL_video.h>
@@ -50,7 +51,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import <IOKit/pwr_mgt/IOPMLib.h>
 #import <IOKit/graphics/IOGraphicsLib.h>
-#import "osx/OSXTextInputResponder.h"
+#import "platform/darwin/osx/OSXTextInputResponder.h"
 
 // turn off deprecated warning spew.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -200,63 +201,6 @@ CRect CGRectToCRect(CGRect cgrect)
     cgrect.origin.y + cgrect.size.height);
   return crect;
 }
-
-//------------------------------------------------------------------------------------------
-Boolean GetDictionaryBoolean(CFDictionaryRef theDict, const void* key)
-{
-        // get a boolean from the dictionary
-        Boolean value = false;
-        CFBooleanRef boolRef;
-        boolRef = (CFBooleanRef)CFDictionaryGetValue(theDict, key);
-        if (boolRef != NULL)
-                value = CFBooleanGetValue(boolRef);
-        return value;
-}
-//------------------------------------------------------------------------------------------
-long GetDictionaryLong(CFDictionaryRef theDict, const void* key)
-{
-        // get a long from the dictionary
-        long value = 0;
-        CFNumberRef numRef;
-        numRef = (CFNumberRef)CFDictionaryGetValue(theDict, key);
-        if (numRef != NULL)
-                CFNumberGetValue(numRef, kCFNumberLongType, &value);
-        return value;
-}
-//------------------------------------------------------------------------------------------
-int GetDictionaryInt(CFDictionaryRef theDict, const void* key)
-{
-        // get a long from the dictionary
-        int value = 0;
-        CFNumberRef numRef;
-        numRef = (CFNumberRef)CFDictionaryGetValue(theDict, key);
-        if (numRef != NULL)
-                CFNumberGetValue(numRef, kCFNumberIntType, &value);
-        return value;
-}
-//------------------------------------------------------------------------------------------
-float GetDictionaryFloat(CFDictionaryRef theDict, const void* key)
-{
-        // get a long from the dictionary
-        int value = 0;
-        CFNumberRef numRef;
-        numRef = (CFNumberRef)CFDictionaryGetValue(theDict, key);
-        if (numRef != NULL)
-                CFNumberGetValue(numRef, kCFNumberFloatType, &value);
-        return value;
-}
-//------------------------------------------------------------------------------------------
-double GetDictionaryDouble(CFDictionaryRef theDict, const void* key)
-{
-        // get a long from the dictionary
-        double value = 0.0;
-        CFNumberRef numRef;
-        numRef = (CFNumberRef)CFDictionaryGetValue(theDict, key);
-        if (numRef != NULL)
-                CFNumberGetValue(numRef, kCFNumberDoubleType, &value);
-        return value;
-}
-
 //---------------------------------------------------------------------------------
 void SetMenuBarVisible(bool visible)
 {
@@ -1529,7 +1473,7 @@ bool CWinSystemOSX::IsObscured(void)
       obscureLogged = false;
     std::vector<CRect> rects = ourBounds.SubtractRects(partialOverlaps);
     // they got us covered
-    if (rects.size() == 0)
+    if (rects.empty())
       m_obscured = true;
   }
 
@@ -1794,7 +1738,7 @@ void CWinSystemOSX::AnnounceOnLostDevice()
   // tell any shared resources
   CLog::Log(LOGDEBUG, "CWinSystemOSX::AnnounceOnLostDevice");
   for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
-    (*i)->OnLostDevice();
+    (*i)->OnLostDisplay();
 }
 
 void CWinSystemOSX::AnnounceOnResetDevice()
@@ -1803,7 +1747,7 @@ void CWinSystemOSX::AnnounceOnResetDevice()
   // tell any shared resources
   CLog::Log(LOGDEBUG, "CWinSystemOSX::AnnounceOnResetDevice");
   for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
-    (*i)->OnResetDevice();
+    (*i)->OnResetDisplay();
 }
 
 void* CWinSystemOSX::GetCGLContextObj()

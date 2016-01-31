@@ -27,6 +27,8 @@
 #include <stdint.h>
 #include <stdarg.h>
 
+struct VFSDirEntry;
+
 #ifdef _WIN32                   // windows
 #ifndef _SSIZE_T_DEFINED
 typedef intptr_t      ssize_t;
@@ -34,7 +36,7 @@ typedef intptr_t      ssize_t;
 #endif // !_SSIZE_T_DEFINED
 
 #if defined(BUILD_KODI_ADDON)
-	#include "platform/windows/dlfcn-win32.h"
+	#include "p8-platform/windows/dlfcn-win32.h"
 #else
 	#include "dlfcn-win32.h"
 #endif
@@ -42,16 +44,16 @@ typedef intptr_t      ssize_t;
 #define ADDON_DLL               "\\library.xbmc.addon\\libXBMC_addon" ADDON_HELPER_EXT
 #define ADDON_HELPER_EXT        ".dll"
 #else
+// the ADDON_HELPER_ARCH is the platform dependend name which is used
+// as part of the name of dynamic addon libraries. It has to match the 
+// strings which are set in configure.ac for the "ARCH" variable.
 #if defined(__APPLE__)          // osx
-#if defined(__POWERPC__)
-#define ADDON_HELPER_ARCH       "powerpc-osx"
-#elif defined(__arm__)
+#if defined(__arm__) || defined(__aarch64__)
 #define ADDON_HELPER_ARCH       "arm-osx"
-#elif defined(__x86_64__)
-#define ADDON_HELPER_ARCH       "x86-osx"
 #else
 #define ADDON_HELPER_ARCH       "x86-osx"
 #endif
+#define ADDON_HELPER_EXT        ".dylib"
 #else                           // linux
 #if defined(__x86_64__)
 #define ADDON_HELPER_ARCH       "x86_64-linux"
@@ -66,9 +68,9 @@ typedef intptr_t      ssize_t;
 #else
 #define ADDON_HELPER_ARCH       "i486-linux"
 #endif
+#define ADDON_HELPER_EXT        ".so"
 #endif
 #include <dlfcn.h>              // linux+osx
-#define ADDON_HELPER_EXT        ".so"
 #define ADDON_DLL_NAME "libXBMC_addon-" ADDON_HELPER_ARCH ADDON_HELPER_EXT
 #define ADDON_DLL "/library.xbmc.addon/" ADDON_DLL_NAME
 #endif
@@ -263,6 +265,14 @@ namespace ADDON
       XBMC_remove_directory = (bool (*)(void* HANDLE, void* CB, const char* strPath))
         dlsym(m_libXBMC_addon, "XBMC_remove_directory");
       if (XBMC_remove_directory == NULL) { fprintf(stderr, "Unable to assign function %s\n", dlerror()); return false; }
+
+      XBMC_get_directory = (bool (*)(void* HANDLE, void* CB, const char* strPath, const char* mask, VFSDirEntry** items, unsigned int* num_items))
+        dlsym(m_libXBMC_addon, "XBMC_get_directory");
+      if (XBMC_get_directory == NULL) { fprintf(stderr, "Unable to assign function %s\n", dlerror()); return false; }
+
+      XBMC_free_directory = (void (*)(void* HANDLE, void* CB, VFSDirEntry* items, unsigned int num_items))
+        dlsym(m_libXBMC_addon, "XBMC_free_directory");
+      if (XBMC_free_directory == NULL) { fprintf(stderr, "Unable to assign function %s\n", dlerror()); return false; }
 
       m_Callbacks = XBMC_register_me(m_Handle);
       return m_Callbacks != NULL;
@@ -563,6 +573,29 @@ namespace ADDON
       return XBMC_remove_directory(m_Handle, m_Callbacks, strPath);
     }
 
+    /*!
+     * @brief Lists a directory.
+     * @param strPath Path to the directory.
+     * @param mask File mask
+     * @param items The directory entries
+     * @param num_items Number of entries in directory
+     * @return True if listing was successful, false otherwise.
+     */
+    bool GetDirectory(const char *strPath, const char* mask, VFSDirEntry** items, unsigned int* num_items)
+    {
+      return XBMC_get_directory(m_Handle, m_Callbacks, strPath, mask, items, num_items);
+    }
+
+    /*!
+     * @brief Free a directory list
+     * @param items The directory entries
+     * @param num_items Number of entries in directory
+     */
+    void FreeDirectory(VFSDirEntry* items, unsigned int num_items)
+    {
+      return XBMC_free_directory(m_Handle, m_Callbacks, items, num_items);
+    }
+
   protected:
     void* (*XBMC_register_me)(void *HANDLE);
     void (*XBMC_unregister_me)(void *HANDLE, void* CB);
@@ -593,7 +626,8 @@ namespace ADDON
     bool (*XBMC_create_directory)(void *HANDLE, void* CB, const char* strPath);
     bool (*XBMC_directory_exists)(void *HANDLE, void* CB, const char* strPath);
     bool (*XBMC_remove_directory)(void *HANDLE, void* CB, const char* strPath);
-
+    bool (*XBMC_get_directory)(void *HANDLE, void* CB, const char* strPath, const char* mask, VFSDirEntry** items, unsigned int* num_items);
+    void (*XBMC_free_directory)(void *HANDLE, void* CB, VFSDirEntry* items, unsigned int num_items);
   private:
     void *m_libXBMC_addon;
     void *m_Handle;
