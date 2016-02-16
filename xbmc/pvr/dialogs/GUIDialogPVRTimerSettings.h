@@ -19,7 +19,7 @@
  *
  */
 
-#include "pvr/channels/PVRChannel.h" // PVR_INVALID_CHANNEL_UID
+#include "pvr/channels/PVRChannel.h" // PVR_CHANNEL_INVALID_UID
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
 
 #include <map>
@@ -43,6 +43,8 @@ namespace PVR
   public:
     CGUIDialogPVRTimerSettings();
     virtual ~CGUIDialogPVRTimerSettings();
+
+    virtual bool CanBeActivated() const;
 
     void SetTimer(CFileItem *item);
 
@@ -120,7 +122,7 @@ namespace PVR
       int         clientId;
       std::string description;
 
-      ChannelDescriptor(int _channelUid = PVR_INVALID_CHANNEL_UID,
+      ChannelDescriptor(int _channelUid = PVR_CHANNEL_INVALID_UID,
                         int _clientId   = -1,
                         const std::string& _description = "")
       : channelUid(_channelUid),

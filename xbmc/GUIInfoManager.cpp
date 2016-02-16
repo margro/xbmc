@@ -648,7 +648,22 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "imdbnumber",       LISTITEM_IMDBNUMBER },
                                   { "episodename",      LISTITEM_EPISODENAME },
                                   { "timertype",        LISTITEM_TIMERTYPE },
-                                  { "epgeventtitle",    LISTITEM_EPG_EVENT_TITLE }};
+                                  { "epgeventtitle",    LISTITEM_EPG_EVENT_TITLE },
+                                  { "timerisactive",    LISTITEM_TIMERISACTIVE },
+                                  { "timerhaserror",    LISTITEM_TIMERHASERROR },
+                                  { "timerhasconflict", LISTITEM_TIMERHASCONFLICT },
+                                  { "addonname",        LISTITEM_ADDON_NAME },
+                                  { "addonversion",     LISTITEM_ADDON_VERSION },
+                                  { "addoncreator",     LISTITEM_ADDON_CREATOR },
+                                  { "addonsummary",     LISTITEM_ADDON_SUMMARY },
+                                  { "addondescription", LISTITEM_ADDON_DESCRIPTION },
+                                  { "addondisclaimer",  LISTITEM_ADDON_DISCLAIMER },
+                                  { "addonbroken",      LISTITEM_ADDON_BROKEN },
+                                  { "addontype",        LISTITEM_ADDON_TYPE },
+                                  { "addoninstalldate", LISTITEM_ADDON_INSTALL_DATE },
+                                  { "addonlastupdated", LISTITEM_ADDON_LAST_UPDATED },
+                                  { "addonlastused",    LISTITEM_ADDON_LAST_USED },
+};
 
 const infomap visualisation[] =  {{ "locked",           VISUALISATION_LOCKED },
                                   { "preset",           VISUALISATION_PRESET },
@@ -666,6 +681,7 @@ const infomap skin_labels[] =    {{ "currenttheme",     SKIN_THEME },
                                   {"aspectratio",       SKIN_ASPECT_RATIO}};
 
 const infomap window_bools[] =   {{ "ismedia",          WINDOW_IS_MEDIA },
+                                  { "is",               WINDOW_IS },
                                   { "isactive",         WINDOW_IS_ACTIVE },
                                   { "istopmost",        WINDOW_IS_TOPMOST },
                                   { "isvisible",        WINDOW_IS_VISIBLE },
@@ -726,9 +742,6 @@ const infomap pvr[] =            {{ "isrecording",              PVR_IS_RECORDING
                                   { "actstreamsnr",             PVR_ACTUAL_STREAM_SNR },
                                   { "actstreamber",             PVR_ACTUAL_STREAM_BER },
                                   { "actstreamunc",             PVR_ACTUAL_STREAM_UNC },
-                                  { "actstreamvideobitrate",    PVR_ACTUAL_STREAM_VIDEO_BR },
-                                  { "actstreamaudiobitrate",    PVR_ACTUAL_STREAM_AUDIO_BR },
-                                  { "actstreamdolbybitrate",    PVR_ACTUAL_STREAM_DOLBY_BR },
                                   { "actstreamprogrsignal",     PVR_ACTUAL_STREAM_SIG_PROGR },
                                   { "actstreamprogrsnr",        PVR_ACTUAL_STREAM_SNR_PROGR },
                                   { "actstreamisencrypted",     PVR_ACTUAL_STREAM_ENCRYPTED },
@@ -1588,9 +1601,6 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
   case PVR_ACTUAL_STREAM_SNR_PROGR:
   case PVR_ACTUAL_STREAM_BER:
   case PVR_ACTUAL_STREAM_UNC:
-  case PVR_ACTUAL_STREAM_VIDEO_BR:
-  case PVR_ACTUAL_STREAM_AUDIO_BR:
-  case PVR_ACTUAL_STREAM_DOLBY_BR:
   case PVR_ACTUAL_STREAM_CRYPTION:
   case PVR_ACTUAL_STREAM_SERVICE:
   case PVR_ACTUAL_STREAM_MUX:
@@ -2909,7 +2919,7 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
     case VIDEOPLAYER_CAN_RESUME_LIVE_TV:
       if (m_currentFile->HasPVRRecordingInfoTag())
       {
-        EPG::CEpgInfoTagPtr epgTag = EPG::CEpgContainer::GetInstance().GetTagById(m_currentFile->GetPVRRecordingInfoTag()->EpgEvent());
+        EPG::CEpgInfoTagPtr epgTag = EPG::CEpgContainer::GetInstance().GetTagById(m_currentFile->GetPVRRecordingInfoTag()->Channel(), m_currentFile->GetPVRRecordingInfoTag()->BroadcastUid());
         bReturn = (epgTag && epgTag->IsActive() && epgTag->ChannelTag());
       }
       break;
@@ -3162,6 +3172,15 @@ bool CGUIInfoManager::GetMultiInfoBool(const GUIInfo &info, int contextWindow, c
           if (window && StringUtils::EqualsNoCase(URIUtils::GetFileName(window->GetProperty("xmlfile").asString()), m_stringParameters[info.GetData2()]))
             bReturn = true;
         }
+        break;
+      case WINDOW_IS:
+        if (info.GetData1())
+        {
+          CGUIWindow *window = g_windowManager.GetWindow(contextWindow);
+          bReturn = (window && window->GetID() == static_cast<int>(info.GetData1()));
+        }
+        else
+          CLog::Log(LOGERROR, "The window id is required.");
         break;
       case WINDOW_IS_VISIBLE:
         if (info.GetData1())
@@ -5976,7 +5995,56 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
         return item->GetPVRTimerInfoTag()->GetTypeAsString();
     }
     break;
+  case LISTITEM_ADDON_NAME:
+    if (item->HasAddonInfo())
+      return item->GetAddonInfo()->Name();
+    break;
+  case LISTITEM_ADDON_VERSION:
+    if (item->HasAddonInfo())
+      return item->GetAddonInfo()->Version().asString();
+    break;
+  case LISTITEM_ADDON_CREATOR:
+    if (item->HasAddonInfo())
+      return item->GetAddonInfo()->Author();
+    break;
+  case LISTITEM_ADDON_SUMMARY:
+    if (item->HasAddonInfo())
+      return item->GetAddonInfo()->Summary();
+    break;
+  case LISTITEM_ADDON_DESCRIPTION:
+    if (item->HasAddonInfo())
+      return item->GetAddonInfo()->Description();
+    break;
+  case LISTITEM_ADDON_DISCLAIMER:
+    if (item->HasAddonInfo())
+      return item->GetAddonInfo()->Disclaimer();
+    break;
+  case LISTITEM_ADDON_BROKEN:
+    if (item->HasAddonInfo())
+    {
+      if (item->GetAddonInfo()->Broken() == "DEPSNOTMET")
+        return g_localizeStrings.Get(24044);
+      return item->GetAddonInfo()->Broken();
+    }
+    break;
+  case LISTITEM_ADDON_TYPE:
+    if (item->HasAddonInfo())
+      return ADDON::TranslateType(item->GetAddonInfo()->Type(),true);
+    break;
+  case LISTITEM_ADDON_INSTALL_DATE:
+    if (item->HasAddonInfo())
+      return item->GetAddonInfo()->InstallDate().GetAsLocalizedDateTime();
+    break;
+  case LISTITEM_ADDON_LAST_UPDATED:
+    if (item->HasAddonInfo() && item->GetAddonInfo()->LastUpdated().IsValid())
+      return item->GetAddonInfo()->LastUpdated().GetAsLocalizedDateTime();
+    break;
+  case LISTITEM_ADDON_LAST_USED:
+    if (item->HasAddonInfo() && item->GetAddonInfo()->LastUsed().IsValid())
+      return item->GetAddonInfo()->LastUsed().GetAsLocalizedDateTime();
+    break;
   }
+
   return "";
 }
 
@@ -6077,8 +6145,7 @@ bool CGUIInfoManager::GetItemBool(const CGUIListItem *item, int condition) const
       if (pItem->HasEPGInfoTag())
       {
         CFileItemPtr timer = g_PVRTimers->GetTimerForEpgTag(pItem);
-        if (timer && timer->HasPVRTimerInfoTag())
-          return timer->GetPVRTimerInfoTag()->IsActive();
+        return (timer && timer->HasPVRTimerInfoTag());
       }
     }
     else if (condition == LISTITEM_HASTIMERSCHEDULE)
@@ -6086,8 +6153,35 @@ bool CGUIInfoManager::GetItemBool(const CGUIListItem *item, int condition) const
       if (pItem->HasEPGInfoTag())
       {
         CFileItemPtr timer = g_PVRTimers->GetTimerForEpgTag(pItem);
-        if (timer && timer->HasPVRTimerInfoTag() && timer->GetPVRTimerInfoTag()->GetTimerRuleId() != PVR_TIMER_NO_PARENT)
+        if (timer && timer->HasPVRTimerInfoTag())
+          return timer->GetPVRTimerInfoTag()->GetTimerRuleId() != PVR_TIMER_NO_PARENT;
+      }
+    }
+    else if (condition == LISTITEM_TIMERISACTIVE)
+    {
+      if (pItem->HasEPGInfoTag())
+      {
+        CFileItemPtr timer = g_PVRTimers->GetTimerForEpgTag(pItem);
+        if (timer && timer->HasPVRTimerInfoTag())
           return timer->GetPVRTimerInfoTag()->IsActive();
+      }
+    }
+    else if (condition == LISTITEM_TIMERHASCONFLICT)
+    {
+      if (pItem->HasEPGInfoTag())
+      {
+        CFileItemPtr timer = g_PVRTimers->GetTimerForEpgTag(pItem);
+        if (timer && timer->HasPVRTimerInfoTag())
+          return timer->GetPVRTimerInfoTag()->HasConflict();
+      }
+    }
+    else if (condition == LISTITEM_TIMERHASERROR)
+    {
+      if (pItem->HasEPGInfoTag())
+      {
+        CFileItemPtr timer = g_PVRTimers->GetTimerForEpgTag(pItem);
+        if (timer && timer->HasPVRTimerInfoTag())
+          return (timer->GetPVRTimerInfoTag()->IsBroken() && !timer->GetPVRTimerInfoTag()->HasConflict());
       }
     }
     else if (condition == LISTITEM_HASRECORDING)

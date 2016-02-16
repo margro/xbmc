@@ -194,8 +194,6 @@ librtmp_not_found="== Could not find libRTMP. RTMP support disabled. =="
 librtmp_disabled="== RTMP support disabled. =="
 libnfs_not_found="== Could not find libnfs. NFS client support disabled. =="
 libnfs_disabled="== NFS support disabled. =="
-libgif_not_found="== Could not find libgif. libgif support disabled. =="
-libgif_disabled="== libgif support disabled. =="
 libshairplay_not_found="== Could not find libshairplay. =="
 samba_disabled="== SAMBA support disabled. =="
 libplist_not_found="== Could not find libplist. AirPlay support disabled. =="
@@ -359,12 +357,6 @@ AC_ARG_ENABLE([nfs],
   [enable NFS support via libnfs (default is auto)])],
   [use_libnfs=$enableval],
   [use_libnfs=auto])
-
-AC_ARG_ENABLE([gif],
-  [AS_HELP_STRING([--enable-gif],
-  [enable gif support via libgif (default is auto)])],
-  [use_libgif=$enableval],
-  [use_libgif=auto])
 
 AC_ARG_ENABLE([airplay],
   [AS_HELP_STRING([--enable-airplay],
@@ -912,11 +904,6 @@ AC_LANG_POP([C++])
 # Check inotify availability
 AC_CHECK_HEADER([sys/inotify.h], AC_DEFINE([HAVE_INOTIFY],[1],[Define if we have inotify]),)
 
-# Checks for boost headers using CXX instead of CC
-AC_LANG_PUSH([C++])
-AC_CHECK_HEADER([boost/circular_buffer.hpp],, AC_MSG_ERROR($missing_library))
-AC_LANG_POP([C++])
-
 # Python
 if test -z "$PYTHON_NOVERSIONCHECK"; then
   AX_PYTHON_DEVEL([>= '2.6'])
@@ -1397,30 +1384,6 @@ if test "$use_libnfs" != "no"; then
 else
   USE_LIBNFS=0
   AC_MSG_NOTICE($libnfs_disabled)
-fi
-
-# libgif
-if test "$use_libgif" != "no"; then
-  AC_CHECK_HEADERS([gif_lib.h],,
-   [if test "$use_libgif" = "yes"; then
-      AC_MSG_ERROR($libgif_not_found)
-      USE_LIBGIF=0
-    elif test "$use_libgif" != "no"; then
-      AC_MSG_NOTICE($libgif_not_found)
-      use_libgif="no"
-      USE_LIBGIF=0
-    fi
-   ])
-  if test "$use_libgif" != "no"; then
-    XB_FIND_SONAME([GIF], [gif], [use_libgif])
-  fi
-  if test "$use_libgif" != "no"; then
-    AC_DEFINE([HAVE_LIBGIF], [1], [Whether to use libgif library.])
-    USE_LIBGIF=1
-  fi
-else
-  USE_LIBGIF=0
-  AC_MSG_NOTICE($libgif_disabled)
 fi
 
 # libplist for airplay feature
@@ -1999,16 +1962,6 @@ else
   final_message="$final_message\n  Bluray:\tNo"
 fi
 
-# we don't compile with default upstream squish, so we use our own one
-# even on non unified deps platforms
-if test "$cross_compiling" != "yes"; then
-  make -C ${abs_top_srcdir}/tools/depends/native/libsquish-native CXX=${CXX}
-  export PKG_CONFIG_PATH="${abs_top_srcdir}/tools/depends/native/libsquish-native/squish-install/lib/pkgconfig:$PKG_CONFIG_PATH"
-fi
-PKG_CHECK_MODULES([SQUISH], [squish],
- [INCLUDES="$INCLUDES $SQUISH_CFLAGS" LIBS="$LIBS $SQUISH_LIBS"],
- AC_MSG_ERROR("squish not found"))
-
 if test "x$use_texturepacker" != "xno"; then
   AC_PATH_PROG([TEXTUREPACKER], [TexturePacker], ["none"],
     [$PATH$PATH_SEPARATOR${abs_top_srcdir}/tools/depends/native/TexturePacker/bin])
@@ -2179,12 +2132,6 @@ if test "$use_libnfs" != "no"; then
   final_message="$final_message\n  libnfs client support:Yes"
 else
   final_message="$final_message\n  libnfs client support:No"
-fi
-
-if test "$use_libgif" != "no"; then
-  final_message="$final_message\n  libgif support:\tYes"
-else
-  final_message="$final_message\n  libgif support:\tNo"
 fi
 
 if test "$use_airplay" != "no"; then
@@ -2426,7 +2373,6 @@ AC_SUBST(USE_VDPAU)
 AC_SUBST(USE_VAAPI)
 AC_SUBST(USE_LIBSMBCLIENT)
 AC_SUBST(USE_LIBNFS)
-AC_SUBST(USE_LIBGIF)
 AC_SUBST(USE_AIRPLAY)
 AC_SUBST(USE_OPENMAX)
 AC_SUBST(USE_PULSE)

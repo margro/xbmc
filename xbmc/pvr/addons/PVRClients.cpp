@@ -795,6 +795,26 @@ PVR_ERROR CPVRClients::GetEPGForChannel(const CPVRChannelPtr &channel, CEpg *epg
   return error;
 }
 
+PVR_ERROR CPVRClients::SetEPGTimeFrame(int iDays)
+{
+  PVR_ERROR error(PVR_ERROR_NO_ERROR);
+  PVR_CLIENTMAP clients;
+  GetConnectedClients(clients);
+
+  for (const auto &client : clients)
+  {
+    PVR_ERROR currentError = client.second->SetEPGTimeFrame(iDays);
+    if (currentError != PVR_ERROR_NOT_IMPLEMENTED &&
+        currentError != PVR_ERROR_NO_ERROR)
+    {
+      error = currentError;
+      CLog::Log(LOGERROR, "PVR - %s - cannot set epg time frame for client '%d': %s",__FUNCTION__, client.first, CPVRClient::ToString(error));
+    }
+  }
+
+  return error;
+}
+
 PVR_ERROR CPVRClients::GetChannels(CPVRChannelGroupInternal *group)
 {
   PVR_ERROR error(PVR_ERROR_NO_ERROR);
@@ -937,7 +957,7 @@ void CPVRClients::ProcessMenuHooks(int iClientID, PVR_MENUHOOK_CAT cat, const CF
     for (unsigned int i = 0; i < hooks->size(); i++)
       if (hooks->at(i).category == cat || hooks->at(i).category == PVR_MENUHOOK_ALL)
       {
-        pDialog->Add(client->GetString(hooks->at(i).iLocalizedStringId));
+        pDialog->Add(g_localizeStrings.GetAddonString(client->ID(), hooks->at(i).iLocalizedStringId));
         hookIDs.push_back(i);
       }
     if (hookIDs.size() > 1)
@@ -1302,13 +1322,13 @@ bool CPVRClients::AutoconfigureClients(void)
   bool bReturn(false);
   std::vector<PVR_CLIENT> autoConfigAddons;
   PVR_CLIENT addon;
-  VECADDONS map;
-  CAddonMgr::GetInstance().GetInstalledAddons(map, ADDON_PVRDLL);
 
-  /** get the auto-configurable add-ons */
-  for (VECADDONS::iterator it = map.begin(); it != map.end(); ++it)
   {
-    if (CAddonMgr::GetInstance().IsAddonDisabled((*it)->ID()))
+    VECADDONS map;
+    CAddonMgr::GetInstance().GetDisabledAddons(map, ADDON_PVRDLL);
+
+    /** get the auto-configurable add-ons */
+    for (VECADDONS::iterator it = map.begin(); it != map.end(); ++it)
     {
       addon = std::dynamic_pointer_cast<CPVRClient>(*it);
       if (addon->CanAutoconfigure())

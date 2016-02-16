@@ -65,6 +65,11 @@ void CEngineStats::AddSamples(int samples, std::list<CActiveAEStream*> &streams)
 {
   CSingleLock lock(m_lock);
   m_bufferedSamples += samples;
+
+  for (auto stream : streams)
+  {
+    UpdateStream(stream);
+  }
 }
 
 void CEngineStats::GetDelay(AEDelayStatus& status)
@@ -1098,6 +1103,7 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
       m_currDevice.compare(device) != 0 ||
       m_settings.driver.compare(driver) != 0)
   {
+    FlushEngine();
     if (!InitSink())
       return;
     m_settings.driver = driver;
@@ -1207,6 +1213,7 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
         format.m_streamInfo.m_type = CAEStreamInfo::STREAM_TYPE_AC3;
         format.m_streamInfo.m_channels = 2;
         format.m_streamInfo.m_sampleRate = 48000;
+        format.m_streamInfo.m_ac3FrameSize = m_encoderFormat.m_frames;
         // TODO
         if (m_encoderBuffers && initSink)
         {
@@ -1858,9 +1865,6 @@ bool CActiveAE::RunStages()
       float buftime = (float)(*it)->m_inputBuffers->m_format.m_frames / (*it)->m_inputBuffers->m_format.m_sampleRate;
       if ((*it)->m_inputBuffers->m_format.m_dataFormat == AE_FMT_RAW)
         buftime = (*it)->m_inputBuffers->m_format.m_streamInfo.GetDuration() / 1000;
-      time += buftime * (*it)->m_processingSamples.size();
-      if ((*it)->m_resampleBuffers)
-        time += (*it)->m_resampleBuffers->m_inputSamples.size() * buftime;
       while ((time < MAX_CACHE_LEVEL || (*it)->m_streamIsBuffering) && !(*it)->m_inputBuffers->m_freeSamples.empty())
       {
         buffer = (*it)->m_inputBuffers->GetFreeBuffer();
@@ -2318,7 +2322,7 @@ CSampleBuffer* CActiveAE::SyncStream(CActiveAEStream *stream)
       threshold *= 2;
   }
 
-  int timeout = (stream->m_syncState == CAESyncInfo::AESyncState::SYNC_INSYNC) ? 100 : 1000;
+  int timeout = (stream->m_syncState != CAESyncInfo::AESyncState::SYNC_INSYNC) ? 100 : (int)stream->m_errorInterval;
   bool newerror = stream->m_syncError.Get(error, timeout);
 
   if (newerror && fabs(error) > threshold && stream->m_syncState == CAESyncInfo::AESyncState::SYNC_INSYNC)
@@ -2708,6 +2712,7 @@ bool CActiveAE::IsSettingVisible(const std::string &settingId)
     AEAudioFormat format;
     format.m_dataFormat = AE_FMT_RAW;
     format.m_streamInfo.m_type = CAEStreamInfo::STREAM_TYPE_TRUEHD;
+    format.m_streamInfo.m_sampleRate = 192000;
     if (m_sink.SupportsFormat(CSettings::GetInstance().GetString(CSettings::SETTING_AUDIOOUTPUT_PASSTHROUGHDEVICE), format) &&
         CSettings::GetInstance().GetInt(CSettings::SETTING_AUDIOOUTPUT_CONFIG) != AE_CONFIG_FIXED)
       return true;

@@ -347,7 +347,7 @@ bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory, CFile
       {
         for (int i = items.Size() - 1; i >= 0; i--)
         {
-          if (!items[i]->GetProperty("Addon.Broken").empty())
+          if (items[i]->GetAddonInfo() && !items[i]->GetAddonInfo()->Broken().empty())
           {
             //check if it's installed
             AddonPtr addon;
@@ -435,7 +435,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
 {
   // if we shouldn't show neither installed nor installable addons the list will be empty
   if (!showInstalled && !showInstallable)
-    return 0;
+    return -1;
 
   // can't show the "Get More" button if we already show installable addons
   if (showInstallable)
@@ -443,14 +443,14 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
 
   CGUIDialogSelect *dialog = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
   if (!dialog)
-    return 0;
+    return -1;
 
   // get rid of any invalid addon types
   std::vector<ADDON::TYPE> validTypes(types.size());
   std::copy_if(types.begin(), types.end(), validTypes.begin(), [](ADDON::TYPE type) { return type != ADDON_UNKNOWN; });
 
   if (validTypes.empty())
-    return 0;
+    return -1;
 
   // get all addons to show
   VECADDONS addons;
@@ -478,7 +478,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
   {
     VECADDONS installableAddons;
     CAddonDatabase database;
-    if (database.Open() && database.GetAddons(installableAddons))
+    if (database.Open() && database.GetRepositoryContent(installableAddons))
     {
       for (ADDON::IVECADDONS addon = installableAddons.begin(); addon != installableAddons.end();)
       {
@@ -520,7 +520,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
   }
 
   if (addons.empty() && !showNone)
-    return 0;
+    return -1;
 
   // turn the addons into items
   std::map<std::string, AddonPtr> addonMap;
@@ -536,7 +536,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
   }
 
   if (items.IsEmpty() && !showNone)
-    return 0;
+    return -1;
 
   std::string heading;
   for (std::vector<ADDON::TYPE>::const_iterator type = validTypes.begin(); type != validTypes.end(); ++type)

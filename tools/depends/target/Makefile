@@ -10,13 +10,13 @@ DEPENDS = \
 	openssl gmp nettle gnutls curl \
 	libjpeg-turbo libpng \
 	libogg libvorbis libflac fribidi \
-	libass libsquish \
+	libass \
 	libmodplug librtmp libxml2 yajl libmicrohttpd mysql libffi \
 	python27 libshairplay \
-	libplist libcec libbluray boost tinyxml dummy-libxbmc \
+	libplist libcec libbluray tinyxml dummy-libxbmc \
 	libamplayer libssh taglib libusb libnfs \
 	pythonmodule-pil pythonmodule-setuptools \
-	libxslt ffmpeg platform crossguid libdcadec giflib
+	libxslt ffmpeg platform crossguid libdcadec
 
 FFMPEG_DEPENDS = gnutls libdcadec
 

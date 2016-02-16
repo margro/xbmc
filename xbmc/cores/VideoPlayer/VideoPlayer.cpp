@@ -441,8 +441,7 @@ void CSelectionStreams::Update(CDVDInputStream* input, CDVDDemux* demuxer, std::
       s.flags    = CDemuxStream::FLAG_NONE;
       s.filename = filename;
 
-      DVDNavStreamInfo info;
-      nav->GetAudioStreamInfo(i, info);
+      DVDNavAudioStreamInfo info = nav->GetAudioStreamInfo(i);
       s.name     = info.name;
       s.language = g_LangCodeExpander.ConvertToISO6392T(info.language);
       s.channels = info.channels;
@@ -456,23 +455,18 @@ void CSelectionStreams::Update(CDVDInputStream* input, CDVDDemux* demuxer, std::
       s.source   = source;
       s.type     = STREAM_SUBTITLE;
       s.id       = i;
-      s.flags    = CDemuxStream::FLAG_NONE;
       s.filename = filename;
       s.channels = 0;
 
-      DVDNavStreamInfo info;
-      nav->GetSubtitleStreamInfo(i, info);
+      DVDNavSubtitleStreamInfo info = nav->GetSubtitleStreamInfo(i);
       s.name     = info.name;
+      s.flags = info.flags;
       s.language = g_LangCodeExpander.ConvertToISO6392T(info.language);
       Update(s);
     }
 
-    count = nav->GetAngleCount();
-    uint32_t width = 0;
-    uint32_t height = 0;
-    int aspect = nav->GetVideoAspectRatio();
-    nav->GetVideoResolution(&width, &height);
-    for (int i = 1; i <= count; i++)
+    DVDNavVideoStreamInfo info = nav->GetVideoStreamInfo();
+    for (int i = 1; i <= info.angles; i++)
     {
       SelectionStream s;
       s.source = source;
@@ -481,9 +475,10 @@ void CSelectionStreams::Update(CDVDInputStream* input, CDVDDemux* demuxer, std::
       s.flags = CDemuxStream::FLAG_NONE;
       s.filename = filename;
       s.channels = 0;
-      s.aspect_ratio = aspect;
-      s.width = (int)width;
-      s.height = (int)height;
+      s.aspect_ratio = info.aspectRatio;
+      s.width = (int)info.width;
+      s.height = (int)info.height;
+      s.codec = info.codec;
       s.name = StringUtils::Format("%s %i", g_localizeStrings.Get(38032).c_str(), i);
       Update(s);
     }
@@ -1290,13 +1285,10 @@ void CVideoPlayer::Process()
 #endif
 
     // check display lost
+    if (m_displayLost)
     {
-      CSingleLock lock(m_StateSection);
-      if (m_displayLost)
-      {
-        Sleep(50);
-        continue;
-      }
+      Sleep(50);
+      continue;
     }
 
     // handle messages send to this thread, like seek or demuxer reset requests
@@ -3231,6 +3223,9 @@ int CVideoPlayer::GetSubtitle()
 
 void CVideoPlayer::UpdateStreamInfos()
 {
+  if (!m_pDemuxer)
+    return;
+
   CSingleLock lock(m_SelectionStreams.m_section);
   int streamId;
   std::string retVal;
@@ -3248,6 +3243,13 @@ void CVideoPlayer::UpdateStreamInfos()
     s.stereo_mode = m_VideoPlayerVideo->GetStereoMode();
     if (s.stereo_mode == "mono")
       s.stereo_mode = "";
+
+    CDemuxStream* stream = m_pDemuxer->GetStream(m_CurrentVideo.id);
+    if (stream && stream->type == STREAM_VIDEO)
+    {
+      s.width = ((CDemuxStreamVideo*)stream)->iWidth;
+      s.height = ((CDemuxStreamVideo*)stream)->iHeight;
+    }
   }
 
   // audio
@@ -3258,6 +3260,12 @@ void CVideoPlayer::UpdateStreamInfos()
     SelectionStream& s = m_SelectionStreams.Get(STREAM_AUDIO, streamId);
     s.bitrate = m_VideoPlayerAudio->GetAudioBitrate();
     s.channels = m_VideoPlayerAudio->GetAudioChannels();
+
+    CDemuxStream* stream = m_pDemuxer->GetStream(m_CurrentAudio.id);
+    if (stream && stream->type == STREAM_AUDIO)
+    {
+      s.codec = m_pDemuxer->GetStreamCodecName(stream->iId);
+    }
   }
 }
 
@@ -4978,13 +4986,11 @@ void CVideoPlayer::VideoParamsChange()
 void CVideoPlayer::OnLostDisplay()
 {
   CLog::Log(LOGNOTICE, "VideoPlayer: OnLostDisplay received");
-  CSingleLock lock(m_StateSection);
   m_displayLost = true;
 }
 
 void CVideoPlayer::OnResetDisplay()
 {
   CLog::Log(LOGNOTICE, "VideoPlayer: OnResetDisplay received");
-  CSingleLock lock(m_StateSection);
   m_displayLost = false;
 }

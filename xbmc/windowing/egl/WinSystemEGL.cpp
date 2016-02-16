@@ -299,13 +299,15 @@ bool CWinSystemEGL::CreateNewWindow(const std::string& name, bool fullScreen, RE
     CLog::Log(LOGERROR, "%s: Could not create new window",__FUNCTION__);
     return false;
   }
+
+  {
+    CSingleLock lock(m_resourceSection);
+    // tell any shared resources
+    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
+      (*i)->OnResetDisplay();
+  }
+
   Show();
-
-  CSingleLock lock(m_resourceSection);
-  // tell any shared resources
-  for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
-    (*i)->OnResetDisplay();
-
   return true;
 }
 
@@ -441,10 +443,11 @@ bool CWinSystemEGL::IsExtSupported(const char* extension)
   return (m_extensions.find(name) != std::string::npos || CRenderSystemGLES::IsExtSupported(extension));
 }
 
-bool CWinSystemEGL::PresentRenderImpl(const CDirtyRegionList &dirty)
+void CWinSystemEGL::PresentRenderImpl(bool rendered)
 {
+  if (!rendered)
+    return;
   m_egl->SwapBuffers(m_display, m_surface);
-  return true;
 }
 
 void CWinSystemEGL::SetVSyncImpl(bool enable)
