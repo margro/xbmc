@@ -19,7 +19,7 @@
  *
  */
 
-#include "addons/include/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "pvr/addons/PVRClients.h"
 #include "threads/CriticalSection.h"
 #include "threads/SystemClock.h"
@@ -155,7 +155,8 @@ namespace PVR
     std::string                     m_strNextRecordingChannelName;
     std::string                     m_strNextRecordingChannelIcon;
     std::string                     m_strNextRecordingTime;
-    bool                            m_bHasRecordings;
+    bool                            m_bHasTVRecordings;
+    bool                            m_bHasRadioRecordings;
     unsigned int                    m_iTimerAmount;
     unsigned int                    m_iRecordingTimerAmount;
     unsigned int                    m_iCurrentActiveClient;

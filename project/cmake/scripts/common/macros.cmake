@@ -53,12 +53,15 @@ endfunction()
 # Arguments:
 #   file     full path to file to mirror
 #   relative the relative base of file path in the build/install tree
-#   give another parameter to exclude from install target
+# Optional Arguments:
+#   NO_INSTALL: exclude file from installation target
 # Implicit arguments:
 #   CORE_SOURCE_DIR - root of source tree
 # On return:
-#   file is added to ${install_data} and mirrored in build tree
+#   Files is mirrored to the build tree and added to ${install_data}
+#   (if NO_INSTALL is not given).
 function(copy_file_to_buildtree file relative)
+  cmake_parse_arguments(arg "NO_INSTALL" "" "" ${ARGN})
   if(NOT WIN32)
     string(REPLACE "\(" "\\(" file ${file})
     string(REPLACE "\)" "\\)" file ${file})
@@ -74,27 +77,28 @@ function(copy_file_to_buildtree file relative)
     endif()
     add_custom_command(TARGET export-files COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${CMAKE_CURRENT_BINARY_DIR}/${outfile}")
   endif()
-  if(NOT ARGN)
+  if(NOT arg_NO_INSTALL)
     list(APPEND install_data ${outfile})
     set(install_data ${install_data} PARENT_SCOPE)
   endif()
 endfunction()
 
-# add data files to installation list with a mirror in build tree.
+# Add data files to installation list with a mirror in build tree.
 # reads list of files to install from a given list of text files.
 # Arguments:
 #   pattern globbing pattern for text files to read
-#   give another parameter to exclude from installation target
+# Optional Arguments:
+#   NO_INSTALL: exclude files from installation target
 # Implicit arguments:
 #   CORE_SOURCE_DIR - root of source tree
 # On return:
-#   files are added to ${install_data} and mirrored in build tree
+#   Files are mirrored to the build tree and added to ${install_data}
+#   (if NO_INSTALL is not given).
 function(copy_files_from_filelist_to_buildtree pattern)
-  foreach(arg ${ARGN})
-    list(APPEND pattern ${arg})
-  endforeach()
   # copies files listed in text files to the buildtree
   # Input: [glob pattern: filepattern]
+  cmake_parse_arguments(arg "NO_INSTALL" "" "" ${ARGN})
+  list(APPEND pattern ${ARGN})
   list(SORT pattern)
   if(VERBOSE)
     message(STATUS "copy_files_from_filelist_to_buildtree - got pattern: ${pattern}")
@@ -107,8 +111,8 @@ function(copy_files_from_filelist_to_buildtree pattern)
       foreach(dir ${fstrings})
         file(GLOB_RECURSE files RELATIVE ${CORE_SOURCE_DIR} ${CORE_SOURCE_DIR}/${dir})
         foreach(file ${files})
-          if(ARGN)
-            copy_file_to_buildtree(${CORE_SOURCE_DIR}/${file} ${CORE_SOURCE_DIR} 1)
+          if(arg_NO_INSTALL)
+            copy_file_to_buildtree(${CORE_SOURCE_DIR}/${file} ${CORE_SOURCE_DIR} NO_INSTALL)
           else()
             copy_file_to_buildtree(${CORE_SOURCE_DIR}/${file} ${CORE_SOURCE_DIR})
           endif()
@@ -366,8 +370,8 @@ macro(core_find_versions)
   endif()
   string(REPLACE "." "," FILE_VERSION ${APP_ADDON_API}.0)
   string(TOLOWER ${APP_VERSION_TAG} APP_VERSION_TAG_LC)
-  file(STRINGS ${CORE_SOURCE_DIR}/addons/library.kodi.guilib/libKODI_guilib.h guilib_version REGEX "^.*GUILIB_API_VERSION (.*)$")
+  file(STRINGS ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_guilib.h guilib_version REGEX "^.*GUILIB_API_VERSION (.*)$")
   string(REGEX REPLACE ".*\"(.*)\"" "\\1" guilib_version ${guilib_version})
-  file(STRINGS ${CORE_SOURCE_DIR}/addons/library.kodi.guilib/libKODI_guilib.h guilib_version_min REGEX "^.*GUILIB_MIN_API_VERSION (.*)$")
+  file(STRINGS ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_guilib.h guilib_version_min REGEX "^.*GUILIB_MIN_API_VERSION (.*)$")
   string(REGEX REPLACE ".*\"(.*)\"" "\\1" guilib_version_min ${guilib_version_min})
 endmacro()

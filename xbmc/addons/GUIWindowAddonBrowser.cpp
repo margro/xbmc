@@ -77,12 +77,6 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
     break;
   case GUI_MSG_WINDOW_INIT:
     {
-      m_rootDir.AllowNonLocalSources(false);
-
-      // is this the first time the window is opened?
-      if (m_vecItems->GetPath() == "?" && message.GetStringParam().empty())
-        m_vecItems->SetPath("");
-
       SetProperties();
     }
     break;
@@ -139,6 +133,7 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
           if (item->GetProperty("Addon.ID") == message.GetStringParam())
           {
             UpdateStatus(item);
+            FormatAndSort(*m_vecItems);
             return true;
           }
         }
@@ -158,55 +153,6 @@ void CGUIWindowAddonBrowser::SetProperties()
   auto lastUpdated = CRepositoryUpdater::GetInstance().LastUpdated();
   SetProperty("Updated", lastUpdated.IsValid() ?
     lastUpdated.GetAsLocalizedDateTime() : g_localizeStrings.Get(21337));
-}
-
-void CGUIWindowAddonBrowser::GetContextButtons(int itemNumber, CContextButtons& buttons)
-{
-  if (itemNumber < 0 || itemNumber >= m_vecItems->Size())
-    return;
-
-  CFileItemPtr pItem = m_vecItems->Get(itemNumber);
-  std::string addonId = pItem->GetProperty("Addon.ID").asString();
-  if (!addonId.empty())
-  {
-    buttons.Add(CONTEXT_BUTTON_INFO, 24003);
-
-    AddonPtr addon;
-    if (CAddonMgr::GetInstance().GetAddon(addonId, addon, ADDON_UNKNOWN, false) && addon->HasSettings())
-      buttons.Add(CONTEXT_BUTTON_SETTINGS, 24020);
-    if (CAddonMgr::GetInstance().GetAddon(addonId, addon, ADDON_REPOSITORY))
-      buttons.Add(CONTEXT_BUTTON_CHECK_FOR_UPDATES, 24034);
-  }
-
-  CContextMenuManager::GetInstance().AddVisibleItems(pItem, buttons);
-}
-
-bool CGUIWindowAddonBrowser::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
-{
-  CFileItemPtr pItem = m_vecItems->Get(itemNumber);
-
-  std::string addonId = pItem->GetProperty("Addon.ID").asString();
-  if (!addonId.empty())
-  {
-    if (button == CONTEXT_BUTTON_INFO)
-    {
-      return CGUIDialogAddonInfo::ShowForItem(pItem);
-    }
-    else if (button == CONTEXT_BUTTON_SETTINGS)
-    {
-      AddonPtr addon;
-      if (CAddonMgr::GetInstance().GetAddon(addonId, addon, ADDON_UNKNOWN, false))
-        return CGUIDialogAddonSettings::ShowAndGetInput(addon);
-    }
-    else if (button == CONTEXT_BUTTON_CHECK_FOR_UPDATES)
-    {
-      AddonPtr addon;
-      if (CAddonMgr::GetInstance().GetAddon(addonId, addon, ADDON_REPOSITORY))
-        CRepositoryUpdater::GetInstance().CheckForUpdates(std::static_pointer_cast<CRepository>(addon), true);
-    }
-  }
-
-  return CGUIMediaWindow::OnContextButton(itemNumber, button);
 }
 
 class UpdateAddons : public IRunnable
@@ -304,68 +250,35 @@ static bool IsForeign(const std::string& languages)
 
 bool CGUIWindowAddonBrowser::GetDirectory(const std::string& strDirectory, CFileItemList& items)
 {
-  bool result;
-  if (URIUtils::PathEquals(strDirectory, "addons://downloading/"))
+  bool result = CGUIMediaWindow::GetDirectory(strDirectory, items);
+
+  if (result && CAddonsDirectory::IsRepoDirectory(CURL(strDirectory)))
   {
-    VECADDONS addons;
-    CAddonInstaller::GetInstance().GetInstallList(addons);
-
-    CURL url(strDirectory);
-    CAddonsDirectory::GenerateAddonListing(url, addons, items, g_localizeStrings.Get(24067));
-    result = true;
-    items.SetPath(strDirectory);
-
-    if (m_guiState.get() && !m_guiState->HideParentDirItems())
+    if (CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER))
     {
-      CFileItemPtr pItem(new CFileItem(".."));
-      pItem->SetPath(m_history.GetParentPath());
-      pItem->m_bIsFolder = true;
-      pItem->m_bIsShareOrDrive = false;
-      items.AddFront(pItem, 0);
-    }
-
-  }
-  else
-  {
-    result = CGUIMediaWindow::GetDirectory(strDirectory, items);
-
-    if (result && CAddonsDirectory::IsRepoDirectory(CURL(strDirectory)))
-    {
-      if (CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER))
+      int i = 0;
+      while (i < items.Size())
       {
-        int i = 0;
-        while (i < items.Size())
+        auto prop = items[i]->GetProperty("Addon.Language");
+        if (!prop.isNull() && IsForeign(prop.asString()))
+          items.Remove(i);
+        else
+          ++i;
+      }
+    }
+    if (CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER))
+    {
+      for (int i = items.Size() - 1; i >= 0; i--)
+      {
+        if (items[i]->GetAddonInfo() && !items[i]->GetAddonInfo()->Broken().empty())
         {
-          auto prop = items[i]->GetProperty("Addon.Language");
-          if (!prop.isNull() && IsForeign(prop.asString()))
+          //check if it's installed
+          AddonPtr addon;
+          if (!CAddonMgr::GetInstance().GetAddon(items[i]->GetProperty("Addon.ID").asString(), addon))
             items.Remove(i);
-          else
-            ++i;
-        }
-      }
-      if (CSettings::GetInstance().GetBool(CSettings::SETTING_GENERAL_ADDONBROKENFILTER))
-      {
-        for (int i = items.Size() - 1; i >= 0; i--)
-        {
-          if (items[i]->GetAddonInfo() && !items[i]->GetAddonInfo()->Broken().empty())
-          {
-            //check if it's installed
-            AddonPtr addon;
-            if (!CAddonMgr::GetInstance().GetAddon(items[i]->GetProperty("Addon.ID").asString(), addon))
-              items.Remove(i);
-          }
         }
       }
     }
-  }
-
-  if (strDirectory.empty() && CAddonInstaller::GetInstance().IsDownloading())
-  {
-    CFileItemPtr item(new CFileItem("addons://downloading/", true));
-    item->SetLabel(g_localizeStrings.Get(24067));
-    item->SetLabelPreformated(true);
-    item->SetIconImage("DefaultNetwork.png");
-    items.Add(item);
   }
 
   for (int i = 0; i < items.Size(); ++i)

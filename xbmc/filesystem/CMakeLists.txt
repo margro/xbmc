@@ -48,7 +48,6 @@ set(SOURCES AddonsDirectory.cpp
             PlaylistFileDirectory.cpp
             PluginDirectory.cpp
             PVRDirectory.cpp
-            PVRFile.cpp
             RarDirectory.cpp
             RarFile.cpp
             RarManager.cpp
@@ -110,7 +109,6 @@ set(HEADERS AddonsDirectory.h
             IFile.h
             IFileDirectory.h
             IFileTypes.h
-            ILiveTV.h
             ImageFile.h
             ISO9660Directory.h
             ISOFile.h
@@ -128,7 +126,6 @@ set(HEADERS AddonsDirectory.h
             OverrideDirectory.h
             OverrideFile.h
             PVRDirectory.h
-            PVRFile.h
             PipeFile.h
             PipesManager.h
             PlaylistDirectory.h

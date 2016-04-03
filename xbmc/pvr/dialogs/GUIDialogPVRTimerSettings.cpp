@@ -20,12 +20,12 @@
 
 #include "GUIDialogPVRTimerSettings.h"
 
-#include "addons/include/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "FileItem.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "pvr/addons/PVRClient.h"
+#include "addons/PVRClient.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/PVRManager.h"
 #include "pvr/PVRSettings.h"
@@ -72,7 +72,7 @@ using namespace PVR;
 #define ENTRY_ANY_CHANNEL (-1)
 
 CGUIDialogPVRTimerSettings::CGUIDialogPVRTimerSettings() :
-  CGUIDialogSettingsManualBase(WINDOW_DIALOG_PVR_TIMER_SETTING, "DialogPVRTimerSettings.xml"),
+  CGUIDialogSettingsManualBase(WINDOW_DIALOG_PVR_TIMER_SETTING, "DialogSettings.xml"),
   m_bIsRadio(false),
   m_bIsNewTimer(true),
   m_bTimerActive(false),
@@ -105,15 +105,15 @@ bool CGUIDialogPVRTimerSettings::CanBeActivated() const
   return true;
 }
 
-void CGUIDialogPVRTimerSettings::SetTimer(CFileItem *item)
+void CGUIDialogPVRTimerSettings::SetTimer(const CPVRTimerInfoTagPtr &timer)
 {
-  if (item == NULL)
+  if (!timer)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::SetTimer - No item");
+    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::SetTimer - no timer given");
     return;
   }
 
-  m_timerInfoTag = item->GetPVRTimerInfoTag();
+  m_timerInfoTag = timer;
 
   if (!m_timerInfoTag)
   {
@@ -219,6 +219,10 @@ void CGUIDialogPVRTimerSettings::SetTimer(CFileItem *item)
 void CGUIDialogPVRTimerSettings::SetupView()
 {
   CGUIDialogSettingsManualBase::SetupView();
+  SetHeading(19065);
+  SET_CONTROL_HIDDEN(CONTROL_SETTINGS_CUSTOM_BUTTON);
+  SET_CONTROL_LABEL(CONTROL_SETTINGS_OKAY_BUTTON, 186);
+  SET_CONTROL_LABEL(CONTROL_SETTINGS_CANCEL_BUTTON, 222);
   SetButtonLabels();
 }
 

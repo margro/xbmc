@@ -39,6 +39,8 @@ namespace ADDON
     ADDON_SKIN,
     ADDON_PVRDLL,
     ADDON_ADSPDLL,
+    ADDON_INPUTSTREAM,
+    ADDON_PERIPHERALDLL,
     ADDON_SCRIPT,
     ADDON_SCRIPT_WEATHER,
     ADDON_SUBTITLE_MODULE,
@@ -67,6 +69,7 @@ namespace ADDON
     ADDON_SCRAPER_LIBRARY,
     ADDON_SCRIPT_LIBRARY,
     ADDON_SCRIPT_MODULE,
+    ADDON_GAME_CONTROLLER,
     ADDON_MAX
   } TYPE;
 
@@ -133,9 +136,6 @@ namespace ADDON
 
   protected:
     virtual bool LoadSettings(bool bForce = false) =0;
-
-  private:
-    friend class CAddonMgr;
   };
 };
 

@@ -1,0 +1,16 @@
+TARGET=Textures.xbt
+TARGET_CURIAL=curial.xbt
+
+all: TEXTURES
+
+.PHONY: force
+
+TEXTURES:
+	@TEXTUREPACKER@ -dupecheck -input . -output $(TARGET)
+	@TEXTUREPACKER@ -dupecheck -input ../themes/curial -output $(TARGET_CURIAL)
+
+clean:
+	rm -f $(TARGET)
+	rm -f $(TARGET_CURIAL)
+
+distclean: clean

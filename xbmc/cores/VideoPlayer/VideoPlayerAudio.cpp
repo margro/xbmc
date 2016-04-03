@@ -22,6 +22,7 @@
 #include "VideoPlayerAudio.h"
 #include "DVDCodecs/Audio/DVDAudioCodec.h"
 #include "DVDCodecs/DVDFactoryCodec.h"
+#include "DVDDemuxers/DVDDemuxPacket.h"
 #include "settings/Settings.h"
 #include "video/VideoReferenceClock.h"
 #include "utils/log.h"
@@ -56,8 +57,8 @@ public:
 };
 
 
-CVideoPlayerAudio::CVideoPlayerAudio(CDVDClock* pClock, CDVDMessageQueue& parent)
-: CThread("VideoPlayerAudio")
+CVideoPlayerAudio::CVideoPlayerAudio(CDVDClock* pClock, CDVDMessageQueue& parent, CProcessInfo &processInfo)
+: CThread("VideoPlayerAudio"), IDVDStreamPlayerAudio(processInfo)
 , m_messageQueue("audio")
 , m_messageParent(parent)
 , m_dvdAudio(pClock)
@@ -87,22 +88,13 @@ CVideoPlayerAudio::~CVideoPlayerAudio()
   // CloseStream(true);
 }
 
-bool CVideoPlayerAudio::AllowDTSHDDecode()
-{
-#ifdef TARGET_RASPBERRY_PI
-  if (g_RBP.RasberryPiVersion() == 1)
-    return false;
-#endif
-  return true;
-}
-
 bool CVideoPlayerAudio::OpenStream(CDVDStreamInfo &hints)
 {
   CLog::Log(LOGNOTICE, "Finding audio codec for: %i", hints.codec);
   bool allowpassthrough = !CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK);
   if (hints.realtime)
     allowpassthrough = false;
-  CDVDAudioCodec* codec = CDVDFactoryCodec::CreateAudioCodec(hints, allowpassthrough, AllowDTSHDDecode());
+  CDVDAudioCodec* codec = CDVDFactoryCodec::CreateAudioCodec(hints, allowpassthrough, m_processInfo.AllowDTSHDDecode());
   if(!codec)
   {
     CLog::Log(LOGERROR, "Unsupported audio codec");
@@ -209,11 +201,6 @@ void CVideoPlayerAudio::CloseStream(bool bWaitForBuffers)
 
 void CVideoPlayerAudio::OnStartup()
 {
-  m_decode.Release();
-
-#ifdef TARGET_WINDOWS
-  CoInitializeEx(NULL, COINIT_MULTITHREADED);
-#endif
 }
 
 void CVideoPlayerAudio::UpdatePlayerInfo()
@@ -317,7 +304,7 @@ void CVideoPlayerAudio::Process()
     {
       if (m_pAudioCodec)
         m_pAudioCodec->Reset();
-      m_decode.Release();
+      m_syncState = IDVDStreamPlayer::SYNC_STARTING;
     }
     else if (pMsg->IsType(CDVDMsg::GENERAL_FLUSH))
     {
@@ -334,8 +321,6 @@ void CVideoPlayerAudio::Process()
 
       if (m_pAudioCodec)
         m_pAudioCodec->Reset();
-
-      m_decode.Release();
     }
     else if (pMsg->IsType(CDVDMsg::GENERAL_EOF))
     {
@@ -403,7 +388,6 @@ void CVideoPlayerAudio::Process()
           {
             CLog::Log(LOGERROR, "CVideoPlayerAudio::DecodeFrame - Decode Error. Skipping audio packet (%d)", ret);
             m_pAudioCodec->Reset();
-            pMsg->Release();
             break;
           }
           consumed += ret;
@@ -611,7 +595,7 @@ bool CVideoPlayerAudio::SwitchCodecIfNeeded()
   bool allowpassthrough = !CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK);
   if (m_streaminfo.realtime)
     allowpassthrough = false;
-  CDVDAudioCodec *codec = CDVDFactoryCodec::CreateAudioCodec(m_streaminfo, allowpassthrough, AllowDTSHDDecode());
+  CDVDAudioCodec *codec = CDVDFactoryCodec::CreateAudioCodec(m_streaminfo, allowpassthrough, m_processInfo.AllowDTSHDDecode());
   if (!codec || codec->NeedPassthrough() == m_pAudioCodec->NeedPassthrough()) {
     // passthrough state has not changed
     delete codec;

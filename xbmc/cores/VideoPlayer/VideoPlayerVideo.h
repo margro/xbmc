@@ -23,14 +23,14 @@
 #include "threads/Thread.h"
 #include "IVideoPlayer.h"
 #include "DVDMessageQueue.h"
+#include "DVDStreamInfo.h"
 #include "DVDCodecs/Video/DVDVideoCodec.h"
 #include "DVDClock.h"
 #include "DVDOverlayContainer.h"
 #include "DVDTSCorrection.h"
-#ifdef HAS_VIDEO_PLAYBACK
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
-#endif
 #include "utils/BitstreamStats.h"
+#include <atomic>
 
 class CDemuxStreamVideo;
 
@@ -53,7 +53,6 @@ public:
   };
   std::deque<CGain> m_gain;
   double m_totalGain;
-  double m_lastDecoderPts;
   double m_lastPts;
   unsigned int m_lateFrames;
   unsigned int m_dropRequests;
@@ -65,7 +64,8 @@ public:
   CVideoPlayerVideo(CDVDClock* pClock
                  ,CDVDOverlayContainer* pOverlayContainer
                  ,CDVDMessageQueue& parent
-                 ,CRenderManager& renderManager);
+                 ,CRenderManager& renderManager,
+                 CProcessInfo &processInfo);
   virtual ~CVideoPlayerVideo();
 
   bool OpenStream(CDVDStreamInfo &hint);
@@ -118,7 +118,7 @@ protected:
 
   void ResetFrameRateCalc();
   void CalcFrameRate();
-  int CalcDropRequirement(double pts, bool updateOnly);
+  int CalcDropRequirement(double pts);
 
   double m_iVideoDelay;
   double m_iSubtitleDelay;
@@ -142,11 +142,10 @@ protected:
   bool m_bAllowFullscreen;
   bool m_bRenderSubs;
   float m_fForcedAspectRatio;
-  int m_iNrOfPicturesNotToSkip;
   int m_speed;
   bool m_stalled;
   IDVDStreamPlayer::ESyncState m_syncState;
-  std::string m_codecname;
+  std::atomic_bool m_bAbortOutput;
 
   BitstreamStats m_videoStats;
 

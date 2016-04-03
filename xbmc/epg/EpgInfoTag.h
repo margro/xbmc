@@ -23,7 +23,7 @@
 #include <string>
 
 #include "XBDateTime.h"
-#include "addons/include/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "utils/ISerializable.h"
@@ -321,9 +321,9 @@ namespace EPG
 
     /*!
      * @brief Set a timer for this event.
-     * @param iTimerId The id of the new timer.
+     * @param timer The timer.
      */
-    void SetTimer(unsigned int iTimerId);
+    void SetTimer(const PVR::CPVRTimerInfoTagPtr &timer);
 
     /*!
      * @brief Clear the timer for this event.

@@ -22,12 +22,13 @@
 
 #include <utility>
 
-#include "addons/include/xbmc_epg_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_epg_types.h"
 #include "EpgContainer.h"
 #include "EpgDatabase.h"
 #include "guilib/LocalizeStrings.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/PVRManager.h"
+#include "pvr/timers/PVRTimers.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
@@ -320,6 +321,7 @@ void CEpg::AddEntry(const CEpgInfoTag &tag)
     newTag->Update(tag);
     newTag->SetPVRChannel(m_pvrChannel);
     newTag->SetEpg(this);
+    newTag->SetTimer(g_PVRTimers->GetTimerForEpgTag(newTag));
   }
 }
 
@@ -329,22 +331,40 @@ bool CEpg::UpdateEntry(const EPG_TAG *data, bool bUpdateDatabase /* = false */)
     return false;
 
   CEpgInfoTagPtr tag(new CEpgInfoTag(*data));
-  return UpdateEntry(tag, bUpdateDatabase);
+  return UpdateEntry(tag, false, bUpdateDatabase);
 }
 
-bool CEpg::UpdateEntry(const CEpgInfoTagPtr &tag, bool bUpdateDatabase /* = false */)
+bool CEpg::UpdateEntry(const CEpgInfoTagPtr &tag, bool bNotifyObservers, bool bUpdateDatabase /* = false */)
 {
   CSingleLock lock(m_critSection);
   auto it = m_tags.find(tag->StartAsUTC());
   EPG_EVENT_STATE state = (it == m_tags.end()) ? EPG_EVENT_CREATED : EPG_EVENT_UPDATED;
-  return UpdateEntry(tag, state, it, bUpdateDatabase);
+
+  if (UpdateEntry(tag, state, it, bUpdateDatabase))
+  {
+    if (bNotifyObservers)
+    {
+      SetChanged();
+      lock.Leave();
+      NotifyObservers(ObservableMessageEpg);
+    }
+    return true;
+  }
+  return false;
 }
 
 bool CEpg::UpdateEntry(const CEpgInfoTagPtr &tag, EPG_EVENT_STATE newState, bool bUpdateDatabase /* = false */)
 {
   CSingleLock lock(m_critSection);
   auto it = m_tags.end();
-  return UpdateEntry(tag, newState, it, bUpdateDatabase);
+  if (UpdateEntry(tag, newState, it, bUpdateDatabase))
+  {
+    SetChanged();
+    lock.Leave();
+    NotifyObservers(ObservableMessageEpg);
+    return true;
+  }
+  return false;
 }
 
 bool CEpg::UpdateEntry(const CEpgInfoTagPtr &tag, EPG_EVENT_STATE newState, std::map<CDateTime, CEpgInfoTagPtr>::iterator &eit, bool bUpdateDatabase /* = false */)
@@ -403,6 +423,7 @@ bool CEpg::UpdateEntry(const CEpgInfoTagPtr &tag, EPG_EVENT_STATE newState, std:
       CLog::Log(LOGERROR, "EPG - %s - Error: EPG_EVENT_DELETED: uid %d not found.", __FUNCTION__, tag->UniqueBroadcastID());
       return false;
     }
+
     return true;
   }
   else
@@ -414,6 +435,7 @@ bool CEpg::UpdateEntry(const CEpgInfoTagPtr &tag, EPG_EVENT_STATE newState, std:
   infoTag->Update(*tag, bNewTag);
   infoTag->SetEpg(this);
   infoTag->SetPVRChannel(m_pvrChannel);
+  infoTag->SetTimer(g_PVRTimers->GetTimerForEpgTag(infoTag));
 
   if (bUpdateDatabase)
     m_changedTags.insert(std::make_pair(infoTag->UniqueBroadcastID(), infoTag));
@@ -460,7 +482,7 @@ bool CEpg::UpdateEntries(const CEpg &epg, bool bStoreInDb /* = true */)
 #endif
   /* copy over tags */
   for (std::map<CDateTime, CEpgInfoTagPtr>::const_iterator it = epg.m_tags.begin(); it != epg.m_tags.end(); ++it)
-    UpdateEntry(it->second, bStoreInDb);
+    UpdateEntry(it->second, false, bStoreInDb);
 
 #if EPG_DEBUGGING
   CLog::Log(LOGDEBUG, "EPG - %s - %" PRIuS" entries in memory after merging and before fixing", __FUNCTION__, m_tags.size());

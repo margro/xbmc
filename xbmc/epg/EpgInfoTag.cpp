@@ -18,7 +18,7 @@
  *
  */
 
-#include "addons/include/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "guilib/LocalizeStrings.h"
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
@@ -264,9 +264,9 @@ float CEpgInfoTag::ProgressPercentage(void) const
   iDuration = endTime - startTime > 0 ? endTime - startTime : 3600;
 
   if (currentTime >= startTime && currentTime <= endTime)
-    fReturn = ((float) currentTime - startTime) / iDuration * 100;
+    fReturn = static_cast<float>(currentTime - startTime) * 100.0f / iDuration;
   else if (currentTime > endTime)
-    fReturn = 100;
+    fReturn = 100.0f;
 
   return fReturn;
 }
@@ -713,9 +713,9 @@ const int CEpgInfoTag::EpgID(void) const
   return m_epg ? m_epg->EpgID() : -1;
 }
 
-void CEpgInfoTag::SetTimer(unsigned int iTimerId)
+void CEpgInfoTag::SetTimer(const CPVRTimerInfoTagPtr &timer)
 {
-  m_timer = g_PVRTimers->GetById(iTimerId);
+  m_timer = timer;
 }
 
 void CEpgInfoTag::ClearTimer(void)
