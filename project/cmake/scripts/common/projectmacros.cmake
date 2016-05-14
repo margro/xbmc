@@ -35,10 +35,13 @@ function(copy_skin_to_buildtree skin relative)
   endforeach()
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/${dest}/media)
   string(REPLACE "${relative}/" "" dest ${skin})
-  pack_xbt(${skin}/media
-           ${CMAKE_BINARY_DIR}/${dest}/media/Textures.xbt
-           ${CMAKE_BINARY_DIR})
-                
+  pack_xbt(${skin}/media ${CMAKE_BINARY_DIR}/${dest}/media/Textures.xbt)
+
+  file(GLOB THEMES RELATIVE ${skin}/themes ${skin}/themes/*)
+  foreach(theme ${THEMES})
+    pack_xbt(${skin}/themes/${theme} ${CMAKE_BINARY_DIR}/${dest}/media/${theme}.xbt)
+  endforeach()
+
   set(XBT_FILES ${XBT_FILES} PARENT_SCOPE)
   set(install_data ${install_data} PARENT_SCOPE)
 endfunction()
@@ -51,6 +54,9 @@ function(GTEST_ADD_TESTS executable extra_args)
         message(FATAL_ERROR "Missing ARGN: Read the documentation for GTEST_ADD_TESTS")
     endif()
     foreach(source ${ARGN})
+        # This assumes that every source file passed in exists. Consider using
+        # SUPPORT_SOURCES for source files which do not contain tests and might
+        # have to be generated.
         file(READ "${source}" contents)
         string(REGEX MATCHALL "TEST_?[F]?\\(([A-Za-z_0-9 ,]+)\\)" found_tests ${contents})
         foreach(hit ${found_tests})

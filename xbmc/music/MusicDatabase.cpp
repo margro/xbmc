@@ -769,7 +769,7 @@ bool CMusicDatabase::GetSong(int idSong, CSong& song)
 
       int idSongArtistRole = record->at(songArtistOffset + artistCredit_idRole).get_asInt();
       if (idSongArtistRole == ROLE_ARTIST)
-        song.artistCredits.push_back(GetArtistCreditFromDataset(record, songArtistOffset));
+        song.artistCredits.emplace_back(GetArtistCreditFromDataset(record, songArtistOffset));
       else 
         song.AppendArtistRole(GetArtistRoleFromDataset(record, songArtistOffset));
 
@@ -1052,14 +1052,14 @@ bool CMusicDatabase::GetAlbum(int idAlbum, CAlbum& album, bool getSongs /* = tru
         int idSong = record->at(song_idSong).get_asInt();  //Same as songartist.idSong by join
         if (songs.find(idSong) == songs.end())
         {
-          album.songs.push_back(GetSongFromDataset(record));
+          album.songs.emplace_back(GetSongFromDataset(record));
           songs.insert(idSong);
         }
 
         int idSongArtistRole = record->at(songArtistOffset + artistCredit_idRole).get_asInt();
         //By query order song is the last one appened to the album song vector.                
         if (idSongArtistRole == ROLE_ARTIST)
-          album.songs.back().artistCredits.push_back(GetArtistCreditFromDataset(record, songArtistOffset));
+          album.songs.back().artistCredits.emplace_back(GetArtistCreditFromDataset(record, songArtistOffset));
         else 
           album.songs.back().AppendArtistRole(GetArtistRoleFromDataset(record, songArtistOffset));
 
@@ -1342,7 +1342,7 @@ bool CMusicDatabase::GetArtist(int idArtist, CArtist &artist, bool fetchAll /* =
       {
         const dbiplus::sql_record* const record = m_pDS.get()->get_sql_record();
 
-        artist.discography.push_back(std::make_pair(record->at(discographyOffset + 1).get_asString(), record->at(discographyOffset + 2).get_asString()));
+        artist.discography.emplace_back(record->at(discographyOffset + 1).get_asString(), record->at(discographyOffset + 2).get_asString());
         m_pDS->next();
       }
     }
@@ -1660,7 +1660,7 @@ bool CMusicDatabase::GetArtistsByAlbum(int idAlbum, CFileItem* item)
     VECARTISTCREDITS artistCredits;
     while (!m_pDS->eof())
     {
-      artistCredits.push_back(GetArtistCreditFromDataset(m_pDS->get_sql_record(), 0));
+      artistCredits.emplace_back(GetArtistCreditFromDataset(m_pDS->get_sql_record(), 0));
       m_pDS->next();
     }
     m_pDS->close();
@@ -1672,9 +1672,9 @@ bool CMusicDatabase::GetArtistsByAlbum(int idAlbum, CFileItem* item)
     for (VECARTISTCREDITS::const_iterator artistCredit = artistCredits.begin(); artistCredit != artistCredits.end(); ++artistCredit)
     {
       artistidObj.push_back(artistCredit->GetArtistId());
-      albumartists.push_back(artistCredit->GetArtist());
+      albumartists.emplace_back(artistCredit->GetArtist());
       if (!artistCredit->GetMusicBrainzArtistID().empty())
-        musicBrainzID.push_back(artistCredit->GetMusicBrainzArtistID());
+        musicBrainzID.emplace_back(artistCredit->GetMusicBrainzArtistID());
     }
     item->GetMusicInfoTag()->SetAlbumArtist(albumartists);
     item->GetMusicInfoTag()->SetMusicBrainzAlbumArtistID(musicBrainzID);
@@ -3600,8 +3600,8 @@ bool CMusicDatabase::GetRolesNav(const std::string& strBaseDir, CFileItemList& i
       return false;
 
     // get roles with artists having that role
-    std::string strSQL = "SELECT idRole, strRole FROM role WHERE EXISTS "
-                         "(SELECT 1 FROM song_artist WHERE song_artist.idRole = role.idRole)";
+    std::string strSQL = "SELECT DISTINCT role.idRole, role.strRole FROM role "
+                         "JOIN song_artist ON song_artist.idRole = role.idRole ";
 
     if (!BuildSQL(strSQL, extFilter, strSQL))
       return false;
@@ -3625,10 +3625,8 @@ bool CMusicDatabase::GetRolesNav(const std::string& strBaseDir, CFileItemList& i
       pItem->GetMusicInfoTag()->SetTitle(labelValue);
       pItem->GetMusicInfoTag()->SetDatabaseId(m_pDS->fv("role.idRole").get_asInt(), "role");
 
-      CMusicDbUrl itemUrl = musicUrl;
-      std::string strDir = StringUtils::Format("%s/", labelValue.c_str());
-      itemUrl.AppendPath(strDir);
-      pItem->SetPath(itemUrl.ToString());
+      std::string artistrolepath = StringUtils::Format("musicdb://artists/?roleid=%i", m_pDS->fv("role.idRole").get_asInt());
+      pItem->SetPath(artistrolepath);
 
       pItem->m_bIsFolder = true;
       items.Add(pItem);

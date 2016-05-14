@@ -40,6 +40,8 @@
 #include "utils/GlobalsHandling.h"
 
 class CGUIDialog;
+class CGUIMediaWindow;
+
 enum class DialogModalityType;
 
 namespace KODI
@@ -58,6 +60,8 @@ namespace KODI
  */
 class CGUIWindowManager : public KODI::MESSAGING::IMessageTarget
 {
+  friend CGUIDialog;
+  friend CGUIMediaWindow;
 public:
   CGUIWindowManager(void);
   virtual ~CGUIWindowManager(void);
@@ -140,7 +144,6 @@ public:
   bool DestroyWindows();
 
   CGUIWindow* GetWindow(int id) const;
-  void ProcessRenderLoop(bool renderOnly = false);
   void SetCallback(IWindowManagerCallback& callback);
   void DeInitialize();
 
@@ -204,6 +207,8 @@ private:
    */
   void ActivateWindow_Internal(int windowID, const std::vector<std::string> &params, bool swappingWindows, bool force = false);
 
+  void ProcessRenderLoop(bool renderOnly = false);
+
   typedef std::map<int, CGUIWindow *> WindowMap;
   WindowMap m_mapWindows;
   std::vector <CGUIWindow*> m_vecCustomWindows;
@@ -230,7 +235,7 @@ private:
   class CGUIWindowManagerIdCache
   {
   public:
-    CGUIWindowManagerIdCache(void) : m_id(WINDOW_INVALID) {}
+    CGUIWindowManagerIdCache(void) : m_id(WINDOW_INVALID), m_window(nullptr) {}
     CGUIWindow *Get(int id)
     {
       if (id == m_id)

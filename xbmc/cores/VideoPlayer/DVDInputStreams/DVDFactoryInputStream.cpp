@@ -54,6 +54,7 @@ CDVDInputStream* CDVDFactoryInputStream::CreateInputStream(IVideoPlayer* pPlayer
     std::vector<std::string> filenames;
     filenames.push_back(file);
     CUtil::ScanForExternalAudio(file, filenames);
+    CUtil::ScanForExternalDemuxSub(file, filenames);
     if (filenames.size() >= 2)
     {
       return CreateInputStream(pPlayer, fileitem, filenames);
@@ -66,16 +67,19 @@ CDVDInputStream* CDVDFactoryInputStream::CreateInputStream(IVideoPlayer* pPlayer
   for (size_t i=0; i<addons.size(); ++i)
   {
     std::shared_ptr<ADDON::CInputStream> input(std::static_pointer_cast<ADDON::CInputStream>(addons[i]));
-    ADDON::CInputStream* clone = new ADDON::CInputStream(*input);
-    ADDON_STATUS status = clone->Supports(fileitem) ? clone->Create() : ADDON_STATUS_PERMANENT_FAILURE;
-    if (status == ADDON_STATUS_OK)
+
+    if (input->Supports(fileitem))
     {
-      if (clone->Supports(fileitem))
+      std::shared_ptr<ADDON::CInputStream> addon = input;
+      if (!input->UseParent())
+        addon = std::shared_ptr<ADDON::CInputStream>(new ADDON::CInputStream(*input));
+
+      ADDON_STATUS status = addon->Create();
+      if (status == ADDON_STATUS_OK)
       {
-        return new CInputStreamAddon(fileitem, clone);
+        return new CInputStreamAddon(fileitem, addon);
       }
     }
-    delete clone;
   }
 
   if (fileitem.IsDiscImage())

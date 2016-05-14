@@ -24,7 +24,6 @@
 #include "DVDCodecs/DVDFactoryCodec.h"
 #include "DVDDemuxers/DVDDemuxPacket.h"
 #include "settings/Settings.h"
-#include "video/VideoReferenceClock.h"
 #include "utils/log.h"
 #include "utils/MathUtils.h"
 #include "cores/AudioEngine/AEFactory.h"
@@ -530,15 +529,11 @@ bool CVideoPlayerAudio::OutputPacket(DVDAudioFrame &audioframe)
 
   if (m_synctype == SYNC_DISCON)
   {
-    double limit, error;
-    limit = DVD_MSEC_TO_TIME(10);
-    error = syncerror;
-
-    double absolute;
-    double clock = m_pClock->GetClock(absolute);
-    if (m_pClock->Update(clock + error, absolute, limit - 0.001, "CVideoPlayerAudio::OutputPacket"))
+    double error = syncerror;
+    double correction = m_pClock->ErrorAdjust(error, "CVideoPlayerAudio::OutputPacket");
+    if (correction != 0)
     {
-      m_dvdAudio.SetSyncErrorCorrection(-error);
+      m_dvdAudio.SetSyncErrorCorrection(-correction);
     }
   }
   m_dvdAudio.AddPackets(audioframe);
@@ -569,18 +564,6 @@ void CVideoPlayerAudio::Flush(bool sync)
   m_messageQueue.Put( new CDVDMsgBool(CDVDMsg::GENERAL_FLUSH, sync), 1);
 
   m_dvdAudio.AbortAddPackets();
-}
-
-void CVideoPlayerAudio::WaitForBuffers()
-{
-  // make sure there are no more packets available
-  m_messageQueue.WaitUntilEmpty();
-
-  // make sure almost all has been rendered
-  // leave 500ms to avound buffer underruns
-  double delay = m_dvdAudio.GetCacheTime();
-  if(delay > 0.5)
-    Sleep((int)(1000 * (delay - 0.5)));
 }
 
 bool CVideoPlayerAudio::AcceptsData() const

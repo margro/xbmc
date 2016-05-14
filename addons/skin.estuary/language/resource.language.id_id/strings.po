@@ -21,8 +21,8 @@ msgid "Now playing"
 msgstr "Sedang dimainkan"
 
 msgctxt "#31001"
-msgid "Search"
-msgstr "Cari"
+msgid "Search..."
+msgstr "Cari..."
 
 msgctxt "#31004"
 msgid "Change mode"

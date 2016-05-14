@@ -17,8 +17,8 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 msgctxt "#31001"
-msgid "Search"
-msgstr "Qidirish"
+msgid "Search..."
+msgstr "Qidirish..."
 
 msgctxt "#31081"
 msgid "Album info"

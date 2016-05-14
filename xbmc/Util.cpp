@@ -172,11 +172,11 @@ std::string CUtil::GetTitleFromPath(const CURL& url, bool bIsFolder /* = false *
     strFilename = g_localizeStrings.Get(744);
 
   // Music Playlists
-  else if (URIUtils::PathStarts(path, "special://musicplaylists"))
+  else if (StringUtils::StartsWith(path, "special://musicplaylists"))
     strFilename = g_localizeStrings.Get(136);
 
   // Video Playlists
-  else if (URIUtils::PathStarts(path, "special://videoplaylists"))
+  else if (StringUtils::StartsWith(path, "special://videoplaylists"))
     strFilename = g_localizeStrings.Get(136);
 
   else if (URIUtils::HasParentInHostname(url) && strFilename.empty())
@@ -2145,6 +2145,29 @@ std::string CUtil::GetVobSubIdxFromSub(const std::string& vobSub)
   return std::string();
 }
 
+void CUtil::ScanForExternalDemuxSub(const std::string& videoPath, std::vector<std::string>& vecSubtitles)
+{
+  CFileItem item(videoPath, false);
+  if (item.IsInternetStream()
+    || item.IsPlayList()
+    || item.IsLiveTV()
+    || item.IsPVR()
+    || !item.IsVideo())
+    return;
+
+  std::string strBasePath;
+  std::string strSubtitle;
+
+  GetVideoBasePathAndFileName(videoPath, strBasePath, strSubtitle);
+
+  CFileItemList items;
+  const std::vector<std::string> common_sub_dirs = { "subs", "subtitles", "vobsubs", "sub", "vobsub", "subtitle" };
+  const std::string DemuxSubExtensions = ".sup";
+  GetItemsToScan(strBasePath, DemuxSubExtensions, common_sub_dirs, items);
+
+  std::vector<std::string> exts = StringUtils::Split(DemuxSubExtensions, "|");
+  ScanPathsForAssociatedItems(strSubtitle, items, exts, vecSubtitles);
+}
 
 void CUtil::ScanForExternalAudio(const std::string& videoPath, std::vector<std::string>& vecAudio)
 {

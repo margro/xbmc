@@ -21,7 +21,7 @@ msgid "Now playing"
 msgstr "Відтворюється"
 
 msgctxt "#31001"
-msgid "Search"
+msgid "Search..."
 msgstr "Пошук"
 
 msgctxt "#31004"

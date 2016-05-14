@@ -131,7 +131,7 @@ std::string CRepository::GetAddonHash(const AddonPtr& addon) const
   std::string checksum;
   DirList::const_iterator it;
   for (it = m_dirs.begin();it != m_dirs.end(); ++it)
-    if (URIUtils::IsInPath(addon->Path(), it->datadir))
+    if (URIUtils::PathHasParent(addon->Path(), it->datadir, true))
       break;
   if (it != m_dirs.end() && it->hashes)
   {
@@ -261,7 +261,7 @@ bool CRepositoryUpdateJob::DoWork()
     textureDB.CommitMultipleExecute();
   }
 
-  database.AddRepository(m_repo->ID(), addons, newChecksum, m_repo->Version());
+  database.UpdateRepositoryContent(m_repo->ID(), addons, newChecksum, m_repo->Version());
 
   //Update broken status
   database.BeginMultipleExecute();

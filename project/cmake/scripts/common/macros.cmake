@@ -16,6 +16,12 @@ include(${CORE_SOURCE_DIR}/project/cmake/scripts/${CORE_SYSTEM_NAME}/macros.cmak
 #   Library will be built, optionally added to ${core_DEPENDS}
 function(core_add_library name)
   cmake_parse_arguments(arg "NO_MAIN_DEPENDS" "" "" ${ARGN})
+
+  if(NOT SOURCES)
+      message(STATUS "No sources added to ${name} skipping")
+      return()
+  endif()
+
   add_library(${name} STATIC ${SOURCES} ${HEADERS} ${OTHERS})
   set_target_properties(${name} PROPERTIES PREFIX "")
   if(NOT arg_NO_MAIN_DEPENDS)
@@ -41,10 +47,16 @@ endfunction()
 
 # Add a test library, and add sources to list for gtest integration macros
 function(core_add_test_library name)
+  # Backup the old SOURCES variable, since we'll append SUPPORT_SOURCES to it
+  set(TEST_ONLY_SOURCES ${SOURCES})
+  set(SOURCES ${SOURCES} ${SUPPORT_SOURCES})
   core_add_library(${name} NO_MAIN_DEPENDS)
   set_target_properties(${name} PROPERTIES EXCLUDE_FROM_ALL 1)
-  foreach(src ${SOURCES})
-    set(test_sources ${CMAKE_CURRENT_SOURCE_DIR}/${src} ${test_sources} CACHE STRING "" FORCE)
+  foreach(src ${TEST_ONLY_SOURCES})
+    # This will prepend CMAKE_CURRENT_SOURCE_DIR if the path is relative,
+    # otherwise use the absolute path.
+    get_filename_component(src_path "${src}" ABSOLUTE)
+    set(test_sources "${src_path}" ${test_sources} CACHE STRING "" FORCE)
   endforeach()
   set(test_archives ${test_archives} ${name} CACHE STRING "" FORCE)
 endfunction()
@@ -62,20 +74,20 @@ endfunction()
 #   (if NO_INSTALL is not given).
 function(copy_file_to_buildtree file relative)
   cmake_parse_arguments(arg "NO_INSTALL" "" "" ${ARGN})
-  if(NOT WIN32)
-    string(REPLACE "\(" "\\(" file ${file})
-    string(REPLACE "\)" "\\)" file ${file})
-  endif()
   string(REPLACE "${relative}/" "" outfile ${file})
+  get_filename_component(outdir ${outfile} DIRECTORY)
 
   if(NOT TARGET export-files)
-    add_custom_target(export-files ALL COMMENT "Copying files into build tree")
+    file(REMOVE ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/ExportFiles.cmake)
+    add_custom_target(export-files ALL COMMENT "Copying files into build tree"
+                      COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/ExportFiles.cmake)
   endif()
   if(NOT ${CORE_SOURCE_DIR} MATCHES ${CMAKE_BINARY_DIR})
     if(VERBOSE)
-      message(STATUS "copy_file_to_buildtree - copying file: ${file} -> ${CMAKE_CURRENT_BINARY_DIR}/${outfile}")
+      message(STATUS "copy_file_to_buildtree - copying file: ${file} -> ${CMAKE_BINARY_DIR}/${outfile}")
     endif()
-    add_custom_command(TARGET export-files COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${CMAKE_CURRENT_BINARY_DIR}/${outfile}")
+    file(APPEND ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/ExportFiles.cmake
+         "file(COPY \"${file}\" DESTINATION \"${CMAKE_BINARY_DIR}/${outdir}\")\n")
   endif()
   if(NOT arg_NO_INSTALL)
     list(APPEND install_data ${outfile})
@@ -319,37 +331,37 @@ macro(today RESULT)
 endmacro()
 
 function(core_find_git_rev)
-  if(EXISTS ${CORE_SOURCE_DIR}/VERSION)
-    file(STRINGS ${CORE_SOURCE_DIR}/VERSION VERSION_FILE)
-    string(SUBSTRING "${VERSION_FILE}" 1 16 GIT_REV)
-  else()
-    find_package(Git)
-    if(GIT_FOUND AND EXISTS ${CORE_SOURCE_DIR}/.git)
-      execute_process(COMMAND ${GIT_EXECUTABLE} diff-files --ignore-submodules --quiet --
+  find_package(Git)
+  if(GIT_FOUND AND EXISTS ${CORE_SOURCE_DIR}/.git)
+    execute_process(COMMAND ${GIT_EXECUTABLE} diff-files --ignore-submodules --quiet --
+                    RESULT_VARIABLE status_code
+                    WORKING_DIRECTORY ${CORE_SOURCE_DIR})
+      if (NOT status_code)
+        execute_process(COMMAND ${GIT_EXECUTABLE} diff-index --ignore-submodules --quiet HEAD --
                       RESULT_VARIABLE status_code
                       WORKING_DIRECTORY ${CORE_SOURCE_DIR})
-      if (NOT status_code)
-        execute_process(COMMAND ${GIT_EXECUTABLE} diff-index --cached --ignore-submodules --quiet HEAD --
-                        RESULT_VARIABLE status_code
-                        WORKING_DIRECTORY ${CORE_SOURCE_DIR})
       endif()
-      today(DATE)
-      execute_process(COMMAND ${GIT_EXECUTABLE} --no-pager log --abbrev=7 -n 1
-                                                --pretty=format:"%h-dirty" HEAD
-                      OUTPUT_VARIABLE LOG_UNFORMATTED
-                      WORKING_DIRECTORY ${CORE_SOURCE_DIR})
-      string(SUBSTRING ${LOG_UNFORMATTED} 1 7 HASH)
-    else()
-      execute_process(COMMAND ${GIT_EXECUTABLE} --no-pager log --abbrev=7 -n 1
-                                                --pretty=format:"%h %cd" HEAD
-                      OUTPUT_VARIABLE LOG_UNFORMATTED
-                      WORKING_DIRECTORY ${CORE_SOURCE_DIR})
-      string(SUBSTRING ${LOG_UNFORMATTED} 1 7 HASH)
-      string(SUBSTRING ${LOG_UNFORMATTED} 9 10 DATE)
-      string(REPLACE "-" "" DATE ${DATE})
-    endif()
-    set(GIT_REV "${DATE}-${HASH}")
+      if (status_code)
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -n 1 --pretty=format:"%h-dirty" HEAD
+                        OUTPUT_VARIABLE HASH
+                        WORKING_DIRECTORY ${CORE_SOURCE_DIR})
+        string(SUBSTRING ${HASH} 1 13 HASH)
+      else()
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -n 1 --pretty=format:"%h" HEAD
+                        OUTPUT_VARIABLE HASH
+                        WORKING_DIRECTORY ${CORE_SOURCE_DIR})
+        string(SUBSTRING ${HASH} 1 7 HASH)
+      endif()
+    execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:"%cd" --date=short HEAD
+                    OUTPUT_VARIABLE DATE
+                    WORKING_DIRECTORY ${CORE_SOURCE_DIR})
+    string(SUBSTRING ${DATE} 1 10 DATE)
+  else()
+    today(DATE)
+    set(HASH "nogitfound")
   endif()
+  string(REPLACE "-" "" DATE ${DATE})
+  set(GIT_REV "${DATE}-${HASH}")
   if(GIT_REV)
     set(APP_SCMID ${GIT_REV} PARENT_SCOPE)
   endif()
@@ -363,6 +375,7 @@ macro(core_find_versions)
 
   set(APP_NAME ${APP_APP_NAME}) # inconsistency in upstream
   string(TOLOWER ${APP_APP_NAME} APP_NAME_LC)
+  string(TOUPPER ${APP_APP_NAME} APP_NAME_UC)
   set(COMPANY_NAME ${APP_COMPANY_NAME})
   set(APP_VERSION ${APP_VERSION_MAJOR}.${APP_VERSION_MINOR})
   if(APP_VERSION_TAG)

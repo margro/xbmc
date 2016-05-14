@@ -21,8 +21,8 @@ msgid "Now playing"
 msgstr "Kini dimainkan"
 
 msgctxt "#31001"
-msgid "Search"
-msgstr "Gelintar"
+msgid "Search..."
+msgstr "Gelintar..."
 
 msgctxt "#31002"
 msgid "Show media fanart as background"
@@ -47,6 +47,10 @@ msgstr "Cereka rawak"
 msgctxt "#31007"
 msgid "Unwatched movies"
 msgstr "Cereka belum ditonton"
+
+msgctxt "#31008"
+msgid "No disclaimer"
+msgstr "Tiada penolak tuntutan"
 
 msgctxt "#31009"
 msgid "Download icons"
@@ -79,6 +83,10 @@ msgstr "Rakaman baru-baru ini"
 msgctxt "#31016"
 msgid "Recently played channels"
 msgstr "Saluran dimainkan baru-baru ini"
+
+msgctxt "#31017"
+msgid "Rated"
+msgstr "Ditarafkan"
 
 msgctxt "#31018"
 msgid "Most played channels"
@@ -535,3 +543,7 @@ msgstr "Tetapan berkaitan-menu utama: Konfigur skrin rumah mengikut citarasa and
 msgctxt "#31131"
 msgid "Choose home fanart pack"
 msgstr "Pilih pek seni peminat rumah"
+
+msgctxt "#31132"
+msgid "min"
+msgstr "min"

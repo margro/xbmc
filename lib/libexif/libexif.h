@@ -81,13 +81,13 @@ typedef struct {
 #define EXIF_COMMENT_CHARSET_UNICODE    3 // Exif: Unicode (UTF-16)
 #define EXIF_COMMENT_CHARSET_JIS        4 // Exif: JIS X208-1990
 
-#define MAX_COMMENT 65533 // 2 bytes - 2 for the length param
+#define MAX_COMMENT 2000
 #define MAX_DATE_COPIES 10
 
 typedef struct {
-    char  CameraMake   [32];
-    char  CameraModel  [40];
-    char  DateTime     [20];
+    char  CameraMake   [33];
+    char  CameraModel  [41];
+    char  DateTime     [21];
     int   Height, Width;
     int   Orientation;
     int   IsColor;

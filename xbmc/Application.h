@@ -32,6 +32,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <atomic>
 
 class CAction;
 class CFileItem;
@@ -93,7 +94,6 @@ namespace MUSIC_INFO
 #define VOLUME_MINIMUM 0.0f        // -60dB
 #define VOLUME_MAXIMUM 1.0f        // 0dB
 #define VOLUME_DYNAMIC_RANGE 90.0f // 60dB
-#define VOLUME_CONTROL_STEPS 90    // 90 steps
 
 // replay gain settings struct for quick access by the player multiple
 // times per second (saves doing settings lookup)
@@ -391,6 +391,16 @@ public:
 
   std::unique_ptr<CServiceManager> m_ServiceManager;
 
+  /*!
+  \brief Locks calls from outside kodi (e.g. python) until framemove is processed.
+  */
+  void LockFrameMoveGuard();
+
+  /*!
+  \brief Unlocks calls from outside kodi (e.g. python).
+  */
+  void UnlockFrameMoveGuard();
+
 protected:
   virtual bool OnSettingsSaving() const override;
 
@@ -463,8 +473,6 @@ protected:
   int m_currentStackPosition;
   int m_nextPlaylistItem;
 
-  bool m_bPresentFrame;
-  unsigned int m_lastFrameTime;
   unsigned int m_lastRenderTime;
   bool m_skipGuiRender;
 
@@ -512,7 +520,11 @@ protected:
   bool m_fallbackLanguageLoaded;
   
 private:
-  CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
+  CCriticalSection m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
+
+  CCriticalSection m_frameMoveGuard;              /*!< critical section for synchronizing GUI actions from inside and outside (python) */
+  std::atomic_uint m_WaitingExternalCalls;        /*!< counts threads wich are waiting to be processed in FrameMove */
+  unsigned int m_ProcessedExternalCalls;          /*!< counts calls wich are processed during one "door open" cycle in FrameMove */
 };
 
 XBMC_GLOBAL_REF(CApplication,g_application);

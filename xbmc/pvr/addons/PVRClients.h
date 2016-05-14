@@ -100,14 +100,14 @@ namespace PVR
      * @param bDataChanged True if the client's data changed, false otherwise (unused).
      * @return True if the client was found and restarted, false otherwise.
      */
-    bool RequestRestart(ADDON::AddonPtr addon, bool bDataChanged);
+    virtual bool RequestRestart(ADDON::AddonPtr addon, bool bDataChanged) override;
 
     /*!
      * @brief Remove a single client add-on.
      * @param addon The add-on to remove.
      * @return True if the client was found and removed, false otherwise.
      */
-    bool RequestRemoval(ADDON::AddonPtr addon);
+    virtual bool RequestRemoval(ADDON::AddonPtr addon) override;
 
     /*!
      * @brief Unload all loaded add-ons and reset all class properties.
@@ -348,9 +348,10 @@ namespace PVR
     /*!
      * @brief Get all timers from clients
      * @param timers Store the timers in this container.
-     * @return The amount of timers that were added.
+     * @param failedClients in case of errors will contain the ids of the clients for which the timers could not be obtained.
+     * @return true on success for all clients, false in case of error for at least one client.
      */
-    PVR_ERROR GetTimers(CPVRTimers *timers);
+    bool GetTimers(CPVRTimers *timers, std::vector<int> &failedClients);
 
     /*!
      * @brief Add a new timer to a backend.
@@ -678,6 +679,14 @@ namespace PVR
 
     void ConnectionStateChange(int clientId, std::string &strConnectionString, PVR_CONNECTION_STATE newState,
                                std::string &strMessage);
+
+    /*!
+     * @brief Propagate event to clients
+     */
+    void OnSystemSleep();
+    void OnSystemWake();
+    void OnPowerSavingActivated();
+    void OnPowerSavingDeactivated();
 
   private:
     /*!

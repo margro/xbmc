@@ -60,11 +60,15 @@ void CPeripheralBus::OnDeviceRemoved(const std::string &strLocation)
 
 void CPeripheralBus::Clear(void)
 {
-  if (m_bNeedsPolling)
   {
-    m_bStop = true;
-    m_triggerEvent.Set();
-    StopThread(true);
+    CSingleLock lock(m_critSection);
+    if (m_bNeedsPolling)
+    {
+      m_bStop = true;
+      lock.Leave();
+      m_triggerEvent.Set();
+      StopThread(true);
+    }
   }
 
   CSingleLock lock(m_critSection);
@@ -134,6 +138,7 @@ bool CPeripheralBus::ScanForDevices(void)
     bReturn = true;
   }
 
+  CSingleLock lock(m_critSection);
   m_bInitialised = true;
   return bReturn;
 }
@@ -214,10 +219,18 @@ void CPeripheralBus::Process(void)
     if (!ScanForDevices())
       break;
 
+    // depending on bus implementation
+    // needsPolling can be set properly
+    // only after unitial scan.
+    // if this is the case, bail out.
+    if (!m_bNeedsPolling)
+      break;
+
     if (!m_bStop)
       m_triggerEvent.WaitMSec(m_iRescanTime);
   }
 
+  CSingleLock lock(m_critSection);
   m_bIsStarted = false;
 }
 
@@ -301,7 +314,7 @@ void CPeripheralBus::GetDirectory(const std::string &strPath, CFileItemList &ite
       strDetails = StringUtils::Format("%s: %s", g_localizeStrings.Get(126).c_str(), g_localizeStrings.Get(13106).c_str());
 
     peripheralFile->SetProperty("version", strVersion);
-    peripheralFile->SetProperty("Addon.Summary", strDetails);
+    peripheralFile->SetLabel2(strDetails);
     peripheralFile->SetIconImage("DefaultAddon.png");
     items.Add(peripheralFile);
   }
@@ -322,5 +335,6 @@ CPeripheral *CPeripheralBus::GetByPath(const std::string &strPath) const
 
 size_t CPeripheralBus::GetNumberOfPeripherals() const
 {
+  CSingleLock lock(m_critSection);
   return m_peripherals.size();
 }

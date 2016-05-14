@@ -14,10 +14,8 @@ set(CMAKE_SYSTEM_NAME Darwin)
 if(WITH_ARCH)
   set(ARCH ${WITH_ARCH})
 else()
-  if(CPU STREQUAL x86_64)
-    set(ARCH x86_64-apple-darwin)
-  elseif(CPU STREQUAL i386)
-    set(ARCH i386-apple-darwin)
+  if(CPU STREQUAL x86_64 OR CPU STREQUAL i386)
+    set(ARCH x86-osx)
   else()
     message(SEND_ERROR "Unknown CPU: ${CPU}")
   endif()
@@ -31,4 +29,5 @@ list(APPEND DEPLIBS "-framework DiskArbitration" "-framework IOKit"
                     "-framework IOSurface" "-framework SystemConfiguration"
                     "-framework ApplicationServices" "-framework AppKit"
                     "-framework CoreAudio" "-framework AudioToolbox"
-                    "-framework CoreGraphics")
+                    "-framework CoreGraphics" "-framework CoreMedia"
+                    "-framework VideoToolbox")

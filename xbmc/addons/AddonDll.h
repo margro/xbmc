@@ -26,13 +26,14 @@
 #include "AddonManager.h"
 #include "AddonStatusHandler.h"
 #include "addons/binary/interfaces/AddonInterfaces.h"
+#include "guilib/GUIWindowManager.h"
+#include "dialogs/GUIDialogOK.h"
 #include "utils/URIUtils.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/Directory.h"
 #include "utils/log.h"
-#include "interfaces/IAnnouncer.h"
-#include "interfaces/AnnouncementManager.h"
+#include "utils/StringUtils.h"
 #include "utils/XMLUtils.h"
 #include "utils/Variant.h"
 #include "Util.h"
@@ -40,7 +41,7 @@
 namespace ADDON
 {
   template<class TheDll, typename TheStruct, typename TheProps>
-  class CAddonDll : public CAddon, public ANNOUNCEMENT::IAnnouncer
+  class CAddonDll : public CAddon
   {
   public:
     CAddonDll(AddonProps props);
@@ -60,8 +61,6 @@ namespace ADDON
     void Destroy();
 
     bool DllLoaded(void) const;
-
-    void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data);
 
   protected:
     void HandleException(std::exception &e, const char* context);
@@ -195,7 +194,18 @@ bool CAddonDll<TheDll, TheStruct, TheProps>::LoadDll()
   {
     delete m_pDll;
     m_pDll = NULL;
-    new CAddonStatusHandler(ID(), ADDON_STATUS_UNKNOWN, "Can't load Dll", false);
+
+    CGUIDialogOK* pDialog = (CGUIDialogOK*)g_windowManager.GetWindow(WINDOW_DIALOG_OK);
+    if (pDialog)
+    {
+      std::string heading = StringUtils::Format("%s: %s", TranslateType(Type(), true).c_str(), Name().c_str());
+      pDialog->SetHeading(CVariant{heading});
+      pDialog->SetLine(1, CVariant{24070});
+      pDialog->SetLine(2, CVariant{24071});
+      pDialog->SetLine(2, CVariant{"Can't load shared library"});
+      pDialog->Open();
+    }
+
     return false;
   }
 
@@ -235,7 +245,6 @@ ADDON_STATUS CAddonDll<TheDll, TheStruct, TheProps>::Create()
     if (status == ADDON_STATUS_OK)
     {
       m_initialized = true;
-      ANNOUNCEMENT::CAnnouncementManager::GetInstance().AddAnnouncer(this);
     }
     else if ((status == ADDON_STATUS_NEED_SETTINGS) || (status == ADDON_STATUS_NEED_SAVEDSETTINGS))
     {
@@ -248,7 +257,16 @@ ADDON_STATUS CAddonDll<TheDll, TheStruct, TheProps>::Create()
     else
     { // Addon failed initialization
       CLog::Log(LOGERROR, "ADDON: Dll %s - Client returned bad status (%i) from Create and is not usable", Name().c_str(), status);
-      new CAddonStatusHandler(ID(), status, "", false);
+      
+      CGUIDialogOK* pDialog = (CGUIDialogOK*)g_windowManager.GetWindow(WINDOW_DIALOG_OK);
+      if (pDialog)
+      {
+        std::string heading = StringUtils::Format("%s: %s", TranslateType(Type(), true).c_str(), Name().c_str());
+        pDialog->SetHeading(CVariant{heading});
+        pDialog->SetLine(1, CVariant{24070});
+        pDialog->SetLine(2, CVariant{24071});
+        pDialog->Open();
+      }
     }
   }
   catch (std::exception &e)
@@ -298,8 +316,6 @@ void CAddonDll<TheDll, TheStruct, TheProps>::Stop()
 template<class TheDll, typename TheStruct, typename TheProps>
 void CAddonDll<TheDll, TheStruct, TheProps>::Destroy()
 {
-  ANNOUNCEMENT::CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
-
   /* Unload library file */
   try
   {
@@ -535,19 +551,6 @@ ADDON_STATUS CAddonDll<TheDll, TheStruct, TheProps>::TransferSettings()
   }
 
   return ADDON_STATUS_OK;
-}
-
-template<class TheDll, typename TheStruct, typename TheProps>
-void CAddonDll<TheDll, TheStruct, TheProps>::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
-{
-  try
-  {
-    m_pDll->Announce(ANNOUNCEMENT::AnnouncementFlagToString(flag), sender, message, &data);
-  }
-  catch (std::exception &e)
-  {
-    HandleException(e, "m_pDll->Announce()");
-  }
 }
 
 template<class TheDll, typename TheStruct, typename TheProps>

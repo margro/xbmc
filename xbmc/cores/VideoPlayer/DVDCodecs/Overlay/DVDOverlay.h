@@ -46,6 +46,7 @@ public:
     bForced = false;
     replace = false;
     m_references = 1;
+    m_textureid = 0;
   }
 
   CDVDOverlay(const CDVDOverlay& src)
@@ -56,6 +57,7 @@ public:
     bForced       = src.bForced;
     replace       = src.replace;
     m_references  = 1;
+    m_textureid = 0;
   }
 
   virtual ~CDVDOverlay()
@@ -75,12 +77,13 @@ public:
   /**
   * decrease the reference counter by one.
   */
-  long Release()
+  int Release()
   {
-    long count = m_references--;
-    if (count == 0)
+    m_references--;
+    int ret = m_references;
+    if (m_references == 0)
       delete this;
-    return count;
+    return ret;
   }
 
   /**

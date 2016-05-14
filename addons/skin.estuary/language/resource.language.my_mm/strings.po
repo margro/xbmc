@@ -17,8 +17,8 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 msgctxt "#31001"
-msgid "Search"
-msgstr "ရှာဖွေမည်"
+msgid "Search..."
+msgstr "ရှာဖွေမည် ..."
 
 msgctxt "#31019"
 msgid "Forecast"

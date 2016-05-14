@@ -20,6 +20,7 @@
 
 #include "TestBasicEnvironment.h"
 #include "TestUtils.h"
+#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
@@ -68,9 +69,6 @@ void TestBasicEnvironment::SetUp()
   g_powerManager.Initialize();
   CSettings::GetInstance().Initialize();
 
-  if (!g_application.m_ServiceManager->Init2())
-    exit(1);
-
   /* Create a temporary directory and set it to be used throughout the
    * test suite run.
    */
@@ -94,6 +92,9 @@ void TestBasicEnvironment::SetUp()
     SetUpError();
   CSpecialProtocol::SetTempPath(tmp);
 #endif
+
+  if (!g_application.m_ServiceManager->Init2())
+	  exit(1);
 
   /* Create and delete a tempfile to initialize the VFS (really to initialize
    * CLibcdio). This is done so that the initialization of the VFS does not

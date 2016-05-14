@@ -57,7 +57,7 @@ as these steps are covered already by the CMake project.
 ### Android
 
 The dependencies needed to compile for Android can be found in
-[docs/README.osx](https://github.com/xbmc/xbmc/tree/master/docs/README.android)
+[docs/README.android](https://github.com/xbmc/xbmc/tree/master/docs/README.android)
 . All described steps have to be executed (except 5.2 which is replaced by the
 respective CMake command below).
 
@@ -134,6 +134,17 @@ KODI_HOME=$(pwd) ./Release/kodi.bin
 cmake -DCMAKE_TOOLCHAIN_FILE=<KODI_SRC>/tools/depends/target/Toolchain.cmake <KODI_SRC>/project/cmake/
 cmake --build . -- VERBOSE=1 -j$(nproc)  # or: make VERBOSE=1 -j$(nproc)
 ```
+
+## Tests
+
+Kodi uses Google Test as its testing framework. Each test file is scanned for tests and these
+are added to CTest, which is the native test driver for CMake.
+
+This scanning happens at configuration time. If tests depend on generated support files which
+should not be scanned, then those support files should be added to the SUPPORT_SOURCES
+variable as opposed to SOURCES before calling core_add_test. You might want to do this where
+the generated support files would not exist at configure time, or if they are so large that
+scanning them would take up an unreasonable amount of configure time.
 
 ## Extra targets
 

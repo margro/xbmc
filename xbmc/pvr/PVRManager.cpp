@@ -23,8 +23,6 @@
 #include <cassert>
 #include <utility>
 
-#include "addons/AddonInstaller.h"
-#include "addons/AddonSystemSettings.h"
 #include "Application.h"
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "dialogs/GUIDialogKaiToast.h"
@@ -96,6 +94,7 @@ CPVRManager::CPVRManager(void) :
     m_currentFile(NULL),
     m_database(NULL),
     m_bFirstStart(true),
+    m_bIsSwitchingChannels(false),
     m_bEpgsCreated(false),
     m_progressHandle(NULL),
     m_managerState(ManagerStateStopped)
@@ -115,23 +114,34 @@ CPVRManager::~CPVRManager(void)
 
 void CPVRManager::Announce(AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
 {
-  if (!IsStarted() || (flag & (System)) == 0)
-   return;
+  if (!IsStarted())
+    return;
 
-  if (strcmp(message, "OnWake") == 0)
+  if ((flag & (ANNOUNCEMENT::System)))
   {
-    /* start job to search for missing channel icons */
-    TriggerSearchMissingChannelIcons();
+    if (strcmp(message, "OnWake") == 0)
+    {
+      /* start job to search for missing channel icons */
+      TriggerSearchMissingChannelIcons();
 
-    /* continue last watched channel */
-    ContinueLastChannel();
+      /* continue last watched channel */
+      ContinueLastChannel();
 
-    /* trigger PVR data updates */
-    TriggerChannelGroupsUpdate();
-    TriggerChannelsUpdate();
-    TriggerRecordingsUpdate();
-    TriggerEpgsCreate();
-    TriggerTimersUpdate();
+      /* trigger PVR data updates */
+      TriggerChannelGroupsUpdate();
+      TriggerChannelsUpdate();
+      TriggerRecordingsUpdate();
+      TriggerEpgsCreate();
+      TriggerTimersUpdate();
+    }
+  }
+
+  if ((flag & (ANNOUNCEMENT::GUI)))
+  {
+    if (strcmp(message, "OnScreensaverActivated") == 0)
+      g_PVRClients->OnPowerSavingActivated();
+    else if (strcmp(message, "OnScreensaverDeactivated") == 0)
+      g_PVRClients->OnPowerSavingDeactivated();
   }
 }
 
@@ -225,125 +235,12 @@ void CPVRManager::OnSettingAction(const CSetting *setting)
 
 bool CPVRManager::IsPVRWindowActive(void) const
 {
-  return g_windowManager.IsWindowActive(WINDOW_TV_CHANNELS) ||
-      g_windowManager.IsWindowActive(WINDOW_TV_GUIDE) ||
-      g_windowManager.IsWindowActive(WINDOW_TV_RECORDINGS) ||
-      g_windowManager.IsWindowActive(WINDOW_TV_TIMERS) ||
-      g_windowManager.IsWindowActive(WINDOW_TV_TIMER_RULES) ||
-      g_windowManager.IsWindowActive(WINDOW_TV_SEARCH) ||
-      g_windowManager.IsWindowActive(WINDOW_RADIO_CHANNELS) ||
-      g_windowManager.IsWindowActive(WINDOW_RADIO_GUIDE) ||
-      g_windowManager.IsWindowActive(WINDOW_RADIO_RECORDINGS) ||
-      g_windowManager.IsWindowActive(WINDOW_RADIO_TIMERS) ||
-      g_windowManager.IsWindowActive(WINDOW_RADIO_TIMER_RULES) ||
-      g_windowManager.IsWindowActive(WINDOW_RADIO_SEARCH) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_CHANNEL_MANAGER) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_OSD_CHANNELS) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_GROUP_MANAGER) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_GUIDE_INFO) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_OSD_GUIDE) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_GUIDE_SEARCH) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_RECORDING_INFO) ||
-      g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_TIMER_SETTING);
+  return (IsPVRWindow(g_windowManager.GetActiveWindow() & WINDOW_ID_MASK)) ? true : false;
 }
 
 bool CPVRManager::IsPVRWindow(int windowId)
 {
-  return (windowId == WINDOW_TV_CHANNELS ||
-          windowId == WINDOW_TV_GUIDE ||
-          windowId == WINDOW_TV_RECORDINGS ||
-          windowId == WINDOW_TV_SEARCH ||
-          windowId == WINDOW_TV_TIMERS ||
-          windowId == WINDOW_TV_TIMER_RULES ||
-          windowId == WINDOW_RADIO_CHANNELS ||
-          windowId == WINDOW_RADIO_GUIDE ||
-          windowId == WINDOW_RADIO_RECORDINGS ||
-          windowId == WINDOW_RADIO_SEARCH ||
-          windowId == WINDOW_RADIO_TIMERS ||
-          windowId == WINDOW_RADIO_TIMER_RULES);
-}
-
-bool CPVRManager::InstallAddonAllowed(const std::string& strAddonId) const
-{
-  return !IsStarted() ||
-      !m_addons->IsInUse(strAddonId) ||
-      (!IsPVRWindowActive() && !IsPlaying());
-}
-
-void CPVRManager::MarkAsOutdated(const std::string& strAddonId)
-{
-  if (IsStarted() && CSettings::GetInstance().GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == ADDON::AUTO_UPDATES_ON)
-  {
-    CSingleLock lock(m_critSection);
-    m_outdatedAddons.push_back(strAddonId);
-  }
-}
-
-bool CPVRManager::UpgradeOutdatedAddons(void)
-{
-  CSingleLock lock(m_critSection);
-  if (m_outdatedAddons.empty())
-    return true;
-
-  // there's add-ons that couldn't be updated
-  for (auto it = m_outdatedAddons.begin(); it != m_outdatedAddons.end(); ++it)
-  {
-    if (!InstallAddonAllowed(*it))
-    {
-      // we can't upgrade right now
-      return true;
-    }
-  }
-
-  // all outdated add-ons can be upgraded now
-  CLog::Log(LOGINFO, "PVR - upgrading outdated add-ons");
-
-  auto outdatedAddons = m_outdatedAddons;
-  // stop threads and unload
-  SetState(ManagerStateInterrupted);
-
-  {
-    CSingleExit exit(m_critSection);
-    g_EpgContainer.Stop();
-  }
-
-  m_guiInfo->Stop();
-  Cleanup();
-
-  // upgrade all add-ons
-  for (auto it = outdatedAddons.begin(); it != outdatedAddons.end(); ++it)
-  {
-    CLog::Log(LOGINFO, "PVR - updating add-on '%s'", (*it).c_str());
-    CAddonInstaller::GetInstance().InstallOrUpdate(*it, false);
-  }
-
-  // reload
-  CLog::Log(LOGINFO, "PVRManager - %s - restarting the PVR manager", __FUNCTION__);
-  SetState(ManagerStateStarting);
-  ResetProperties();
-
-  const unsigned int MAX_PROGRESS_DISPLAY_TIME = 30000; // 30 secs
-  XbmcThreads::EndTime progressTimeout(MAX_PROGRESS_DISPLAY_TIME);
-  while (!Load(!progressTimeout.IsTimePast()) && IsInitialising())
-  {
-    CLog::Log(LOGERROR, "PVRManager - %s - failed to load PVR data, retrying", __FUNCTION__);
-    Sleep(1000);
-  }
-
-  if (IsInitialising())
-  {
-    SetState(ManagerStateStarted);
-
-    {
-      CSingleExit exit(m_critSection);
-      g_EpgContainer.Start(true);
-    }
-
-    CLog::Log(LOGDEBUG, "PVRManager - %s - restarted", __FUNCTION__);
-    return true;
-  }
-
-  return false;
+  return (windowId >= WINDOW_PVR_ID_START && windowId <= WINDOW_PVR_ID_END) ? true : false;
 }
 
 void CPVRManager::Cleanup(void)
@@ -360,7 +257,6 @@ void CPVRManager::Cleanup(void)
 
   m_currentFile           = NULL;
   m_bIsSwitchingChannels  = false;
-  m_outdatedAddons.clear();
   m_bEpgsCreated = false;
 
   for (unsigned int iJobPtr = 0; iJobPtr < m_pendingUpdates.size(); iJobPtr++)
@@ -544,12 +440,7 @@ void CPVRManager::Process(void)
       bRestart = true;
     }
 
-    if (!UpgradeOutdatedAddons())
-    {
-      // failed to load after upgrading
-      CLog::Log(LOGERROR, "PVRManager - %s - could not load pvr data after upgrading. stopping the pvrmanager", __FUNCTION__);
-    }
-    else if (IsStarted() && !bRestart)
+    if (IsStarted() && !bRestart)
       m_triggerEvent.WaitMSec(1000);
   }
 
@@ -585,6 +476,16 @@ bool CPVRManager::SetWakeupCommand(void)
   }
 
   return false;
+}
+
+void CPVRManager::OnSleep()
+{
+  g_PVRClients->OnSystemSleep();
+}
+
+void CPVRManager::OnWake()
+{
+  g_PVRClients->OnSystemWake();
 }
 
 bool CPVRManager::Load(bool bShowProgress)

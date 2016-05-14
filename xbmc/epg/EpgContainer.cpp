@@ -50,7 +50,6 @@ CEpgContainer::CEpgContainer(void) :
   m_bIsInitialising = true;
   m_iNextEpgId = 0;
   m_bPreventUpdates = false;
-  m_bMarkForPersist = false;
   m_updateEvent.Reset();
   m_bStarted = false;
   m_bLoaded = false;
@@ -127,7 +126,10 @@ void CEpgContainer::Clear(bool bClearDb /* = false */)
   }
 
   SetChanged();
-  NotifyObservers(ObservableMessageEpgContainer);
+  {
+    CSingleExit ex(m_critSection);
+    NotifyObservers(ObservableMessageEpgContainer);
+  }
 
   if (bThreadRunning)
     Start(true);
@@ -205,6 +207,7 @@ bool CEpgContainer::Stop(void)
 void CEpgContainer::Notify(const Observable &obs, const ObservableMessage msg)
 {
   SetChanged();
+  CSingleExit ex(m_critSection);
   NotifyObservers(msg);
 }
 
@@ -264,14 +267,6 @@ void CEpgContainer::LoadFromDB(void)
   }
 
   m_bLoaded = bLoaded;
-}
-
-bool CEpgContainer::MarkTablesForPersist(void)
-{
-  /* Set m_bMarkForPersist to persist tables on the next Process() run but only
-  if epg.ignoredbforclient is set, otherwise persistAll does already persisting. */
-  CSingleLock lock(m_critSection);
-  return m_bMarkForPersist = CSettings::GetInstance().GetBool(CSettings::SETTING_EPG_IGNOREDBFORCLIENT);
 }
 
 bool CEpgContainer::PersistTables(void)
@@ -364,13 +359,6 @@ void CEpgContainer::Process(void)
     if (!m_bStop)
       CheckPlayingEvents();
 
-    /* Check if PVR requests an update of Epg Channels */
-    if (m_bMarkForPersist)
-    {
-      PersistTables();
-      m_bMarkForPersist = false;
-    }
-
     /* check for changes that need to be saved every 60 seconds */
     if (iNow - iLastSave > 60)
     {
@@ -385,11 +373,11 @@ void CEpgContainer::Process(void)
 CEpgPtr CEpgContainer::GetById(int iEpgId) const
 {
   if (iEpgId < 0)
-    return NULL;
+    return CEpgPtr();
 
   CSingleLock lock(m_critSection);
   const auto &epgEntry = m_epgs.find((unsigned int) iEpgId);
-  return epgEntry != m_epgs.end() ? epgEntry->second : NULL;
+  return epgEntry != m_epgs.end() ? epgEntry->second : CEpgPtr();
 }
 
 CEpgInfoTagPtr CEpgContainer::GetTagById(const CPVRChannelPtr &channel, unsigned int iBroadcastId) const
@@ -415,7 +403,7 @@ CEpgPtr CEpgContainer::GetByChannel(const CPVRChannel &channel) const
       return epgEntry.second;
   }
 
-  return NULL;
+  return CEpgPtr();
 }
 
 void CEpgContainer::InsertFromDatabase(int iEpgID, const std::string &strName, const std::string &strScraperName)
@@ -447,7 +435,7 @@ void CEpgContainer::InsertFromDatabase(int iEpgID, const std::string &strName, c
 CEpgPtr CEpgContainer::CreateChannelEpg(CPVRChannelPtr channel)
 {
   if (!channel)
-    return NULL;
+    return CEpgPtr();
 
   WaitForUpdateFinish(true);
   LoadFromDB();
@@ -475,6 +463,7 @@ CEpgPtr CEpgContainer::CreateChannelEpg(CPVRChannelPtr channel)
     CDateTime::GetCurrentDateTime().GetAsUTCDateTime().GetAsTime(m_iNextEpgUpdate);
   }
 
+  CSingleExit ex(m_critSection);
   NotifyObservers(ObservableMessageEpgContainer);
 
   return epg;
@@ -696,6 +685,7 @@ bool CEpgContainer::UpdateEPG(bool bOnlyPending /* = false */)
   if (iUpdatedTables > 0)
   {
     SetChanged();
+    CSingleExit ex(m_critSection);
     NotifyObservers(ObservableMessageEpgContainer);
   }
 
@@ -796,6 +786,7 @@ bool CEpgContainer::CheckPlayingEvents(void)
   if (bFoundChanges)
   {
     SetChanged();
+    CSingleExit ex(m_critSection);
     NotifyObservers(ObservableMessageEpgActiveItem);
   }
   return bReturn;

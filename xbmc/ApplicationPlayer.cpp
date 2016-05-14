@@ -774,13 +774,6 @@ void CApplicationPlayer::FrameMove()
     player->FrameMove();
 }
 
-void CApplicationPlayer::FrameWait(int ms)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-    player->FrameWait(ms);
-}
-
 bool CApplicationPlayer::HasFrame()
 {
   std::shared_ptr<IPlayer> player = GetInternal();
@@ -795,13 +788,6 @@ void CApplicationPlayer::Render(bool clear, uint32_t alpha, bool gui)
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
     player->Render(clear, alpha, gui);
-}
-
-void CApplicationPlayer::AfterRender()
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-    player->AfterRender();
 }
 
 void CApplicationPlayer::FlushRenderer()

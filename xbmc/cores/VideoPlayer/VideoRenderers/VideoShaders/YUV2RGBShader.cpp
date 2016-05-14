@@ -24,7 +24,6 @@
 #include "YUV2RGBShader.h"
 #include "settings/AdvancedSettings.h"
 #include "guilib/TransformMatrix.h"
-#include "windowing/WindowingFactory.h"
 #include "utils/log.h"
 #if defined(HAS_GL) || defined(HAS_GLES)
 #include "utils/GLUtils.h"
@@ -108,7 +107,7 @@ void CalculateYUVMatrix(TransformMatrix &matrix
       coef.m[row][col] = conv[col][row];
   coef.identity = false;
 
-  if(g_Windowing.UseLimitedColor() || limited)
+  if (limited)
   {
     matrix *= TransformMatrix::CreateTranslation(+ 16.0f / 255
                                                , + 16.0f / 255
@@ -220,12 +219,14 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
     m_defines += "#define XBMC_NV12\n";
   else if (m_format == RENDER_FMT_YUYV422)
     m_defines += "#define XBMC_YUY2\n";
-  else if (m_format == RENDER_FMT_UYVY422 || m_format == RENDER_FMT_CVBREF)
+  else if (m_format == RENDER_FMT_UYVY422)
     m_defines += "#define XBMC_UYVY\n";
   else if (m_format == RENDER_FMT_VDPAU_420)
     m_defines += "#define XBMC_NV12_RRG\n";
   else if (m_format == RENDER_FMT_VAAPI)
     m_defines += "#define XBMC_NV12_RRG\n";
+  else if (m_format == RENDER_FMT_CVBREF)
+    m_defines += "#define XBMC_YV12\n";
   else
     CLog::Log(LOGERROR, "GL: BaseYUV2RGBGLSLShader - unsupported format %d", m_format);
 
@@ -242,6 +243,8 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
     m_defines += "#define XBMC_YV12\n";
   else if (m_format == RENDER_FMT_NV12)
     m_defines += "#define XBMC_NV12\n";
+  else if (m_format == RENDER_FMT_CVBREF)
+    m_defines += "#define XBMC_YV12\n";
   else
     CLog::Log(LOGERROR, "GL: BaseYUV2RGBGLSLShader - unsupported format %d", m_format);
 
@@ -289,7 +292,7 @@ bool BaseYUV2RGBGLSLShader::OnEnabled()
 
   GLfloat matrix[4][4];
   // keep video levels
-  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, m_forceLimitedColorRange);
+  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, !m_convertFullRange);
 
   glUniformMatrix4fv(m_hMatrix, 1, GL_FALSE, (GLfloat*)matrix);
 #if HAS_GLES == 2
@@ -405,7 +408,7 @@ YUV2RGBProgressiveShaderARB::YUV2RGBProgressiveShaderARB(bool rect, unsigned fla
     else
       shaderfile = "yuv2rgb_basic_2d_YUY2.arb";
   }
-  else if (m_format == RENDER_FMT_UYVY422 || m_format == RENDER_FMT_CVBREF)
+  else if (m_format == RENDER_FMT_UYVY422)
   {
     if(rect)
       shaderfile = "yuv2rgb_basic_rect_UYVY.arb";
@@ -432,7 +435,7 @@ void YUV2RGBProgressiveShaderARB::OnCompiledAndLinked()
 bool YUV2RGBProgressiveShaderARB::OnEnabled()
 {
   GLfloat matrix[4][4];
-  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, false);
+  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, !m_convertFullRange);
 
   for(int i=0;i<4;i++)
     glProgramLocalParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, i

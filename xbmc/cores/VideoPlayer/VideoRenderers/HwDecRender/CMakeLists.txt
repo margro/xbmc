@@ -14,13 +14,13 @@ if(VDPAU_FOUND)
 endif()
 
 if(CORE_SYSTEM_NAME STREQUAL darwin)
-  list(APPEND SOURCES RendererVDA.cpp)
-  list(APPEND HEADERS RendererVDA.h)
+  list(APPEND SOURCES RendererVTBGL.cpp)
+  list(APPEND HEADERS RendererVTBGL.h)
 endif()
 
 if(CORE_SYSTEM_NAME STREQUAL ios)
-  list(APPEND SOURCES RendererVTB.cpp)
-  list(APPEND HEADERS RendererVTB.h)
+  list(APPEND SOURCES RendererVTBGLES.cpp)
+  list(APPEND HEADERS RendererVTBGLES.h)
 endif()
 
 if(MMAL_FOUND)
@@ -52,6 +52,6 @@ endif()
 
 core_add_library(videorenderers_hwdec)
 
-if(ENABLE_INTERNAL_FFMPEG)
+if(ENABLE_INTERNAL_FFMPEG AND SOURCES)
   add_dependencies(videorenderers_hwdec ffmpeg)
 endif()

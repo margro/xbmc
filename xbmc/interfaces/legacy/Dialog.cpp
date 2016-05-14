@@ -22,6 +22,7 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "dialogs/GUIDialogSelect.h"
+#include "dialogs/GUIDialogContextMenu.h"
 #include "dialogs/GUIDialogTextViewer.h"
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogFileBrowser.h"
@@ -35,6 +36,9 @@
 #include "WindowException.h"
 #include "messaging/ApplicationMessenger.h"
 #include "Dialog.h"
+#ifdef TARGET_POSIX
+#include "linux/XTimeUtils.h"
+#endif
 
 using namespace KODI::MESSAGING;
 
@@ -81,7 +85,23 @@ namespace XBMCAddon
       return pDialog->IsConfirmed();
     }
 
-    int Dialog::select(const String& heading, const std::vector<String>& list, int autoclose)
+    int Dialog::contextmenu(const std::vector<String>& list)
+    {
+      DelayedCallGuard dcguard(languageHook);
+      CGUIDialogContextMenu* pDialog= (CGUIDialogContextMenu*)g_windowManager.GetWindow(WINDOW_DIALOG_CONTEXT_MENU);
+      if (pDialog == NULL)
+        throw WindowException("Error: Window is NULL, this is not possible :-)");
+
+      CContextButtons choices;
+      for(unsigned int i = 0; i < list.size(); i++)
+      {
+        choices.Add(i, list[i]);
+      }
+      return pDialog->Show(choices);
+    }
+
+
+    int Dialog::select(const String& heading, const std::vector<String>& list, int autoclose, int preselect)
     {
       DelayedCallGuard dcguard(languageHook);
       CGUIDialogSelect* pDialog= (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
@@ -98,6 +118,8 @@ namespace XBMCAddon
         listLine = list[i];
           pDialog->Add(listLine);
       }
+      if (preselect > -1)
+        pDialog->SetSelected(preselect);
       if (autoclose > 0)
         pDialog->SetAutoClose(autoclose);
 
@@ -108,7 +130,7 @@ namespace XBMCAddon
 
 
     std::unique_ptr<std::vector<int>> Dialog::multiselect(const String& heading,
-        const std::vector<String>& options, int autoclose)
+        const std::vector<String>& options, int autoclose, const std::vector<int>& preselect)
     {
       DelayedCallGuard dcguard(languageHook);
       CGUIDialogSelect* pDialog = (CGUIDialogSelect*)g_windowManager.GetWindow(WINDOW_DIALOG_SELECT);
@@ -125,6 +147,7 @@ namespace XBMCAddon
       if (autoclose > 0)
         pDialog->SetAutoClose(autoclose);
 
+      pDialog->SetSelected(preselect);
       pDialog->Open();
 
       if (pDialog->IsConfirmed())

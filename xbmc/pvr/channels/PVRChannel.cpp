@@ -18,7 +18,7 @@
  *
  */
 
-#include "FileItem.h"
+#include "PVRChannel.h"
 #include "epg/EpgContainer.h"
 #include "filesystem/File.h"
 #include "guilib/LocalizeStrings.h"
@@ -28,11 +28,9 @@
 #include "utils/Variant.h"
 
 #include "pvr/PVRDatabase.h"
-#include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/timers/PVRTimers.h"
 
-#include "PVRChannel.h"
 #include "PVRChannelGroupInternal.h"
 
 #include <assert.h>
@@ -172,7 +170,7 @@ CEpgPtr CPVRChannel::GetEPG(void) const
       iEpgId = m_iEpgId;
   }
 
-  return iEpgId > 0 ? g_EpgContainer.GetById(iEpgId) : NULL;
+  return iEpgId > 0 ? g_EpgContainer.GetById(iEpgId) : CEpgPtr();
 }
 
 bool CPVRChannel::UpdateFromClient(const CPVRChannelPtr &channel)

@@ -22,11 +22,11 @@
 #include "RenderManager.h"
 #include "RenderFlags.h"
 #include "guilib/GraphicContext.h"
-#include "video/VideoReferenceClock.h"
 #include "utils/MathUtils.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "windowing/WindowingFactory.h"
 
 #include "Application.h"
 #include "messaging/ApplicationMessenger.h"
@@ -39,15 +39,15 @@
 #include "HwDecRender/RendererVAAPI.h"
 #include "HwDecRender/RendererVDPAU.h"
 #if defined(TARGET_DARWIN_OSX)
-#include "HwDecRender/RendererVDA.h"
+#include "HwDecRender/RendererVTBGL.h"
 #endif
 #elif HAS_GLES == 2
   #include "LinuxRendererGLES.h"
 #if defined(HAS_MMAL)
 #include "HwDecRender/MMALRenderer.h"
 #endif
-#if defined(HAVE_VIDEOTOOLBOXDECODER)
-#include "HwDecRender/RendererVTB.h"
+#if defined(TARGET_DARWIN_IOS)
+#include "HwDecRender/RendererVTBGLES.h"
 #endif
 #if defined(HAS_IMXVPU)
 #include "HwDecRender/RendererIMX.h"
@@ -69,6 +69,10 @@
 #include "HwDecRender/RendererMediaCodecSurface.h"
 #endif
 
+#if defined(TARGET_POSIX)
+#include "linux/XTimeUtils.h"
+#endif
+
 #include "RenderCapture.h"
 
 /* to use the same as player */
@@ -77,8 +81,6 @@
 #include "../VideoPlayer/DVDCodecs/DVDCodecUtils.h"
 
 using namespace KODI::MESSAGING;
-
-#define MAXPRESENTDELAY 0.500
 
 static void requeue(std::deque<int> &trg, std::deque<int> &src)
 {
@@ -114,30 +116,47 @@ static std::string GetRenderFormatName(ERenderFormat format)
   return "UNKNOWN";
 }
 
+void CRenderManager::CClockSync::Reset()
+{
+  m_error = 0;
+  m_errCount = 0;
+  m_syncOffset = 0;
+  m_enabled = false;
+}
+
 unsigned int CRenderManager::m_nextCaptureId = 0;
 
-CRenderManager::CRenderManager(CDVDClock &clock, IRenderMsg *player) : m_dvdClock(clock)
+CRenderManager::CRenderManager(CDVDClock &clock, IRenderMsg *player) :
+  m_pRenderer(nullptr),
+  m_bTriggerUpdateResolution(false),
+  m_bRenderGUI(true),
+  m_waitForBufferCount(0),
+  m_rendermethod(0),
+  m_renderedOverlay(false),
+  m_renderDebug(false),
+  m_renderState(STATE_UNCONFIGURED),
+  m_displayLatency(0.0),
+  m_videoDelay(0),
+  m_QueueSize(2),
+  m_QueueSkip(0),
+  m_format(RENDER_FMT_NONE),
+  m_width(0),
+  m_height(0),
+  m_dwidth(0),
+  m_dheight(0),
+  m_fps(0.0f),
+  m_extended_format(0),
+  m_orientation(0),
+  m_NumberBuffers(0),
+  m_lateframes(-1),
+  m_presentpts(0.0),
+  m_presentstep(PRESENT_IDLE),
+  m_presentsource(0),
+  m_dvdClock(clock),
+  m_playerPort(player),
+  m_captureWaitCounter(0),
+  m_hasCaptures(false)
 {
-  m_pRenderer = nullptr;
-  m_renderState = STATE_UNCONFIGURED;
-
-  m_presentstep = PRESENT_IDLE;
-  m_rendermethod = 0;
-  m_presentsource = 0;
-  m_bTriggerUpdateResolution = false;
-  m_hasCaptures = false;
-  m_displayLatency = 0.0f;
-  m_presentcorr = 0.0;
-  m_presenterr = 0.0;
-  memset(&m_errorbuff, 0, ERRORBUFFSIZE);
-  m_errorindex = 0;
-  m_QueueSize   = 2;
-  m_QueueSkip   = 0;
-  m_format      = RENDER_FMT_NONE;
-  m_renderedOverlay = false;
-  m_captureWaitCounter = 0;
-  m_playerPort = player;
-  m_renderDebug = false;
 }
 
 CRenderManager::~CRenderManager()
@@ -161,119 +180,27 @@ float CRenderManager::GetAspectRatio()
     return 1.0f;
 }
 
-/* These is based on CurrentHostCounter() */
-double CRenderManager::GetPresentTime()
-{
-  return CDVDClock::GetAbsoluteClock(false) / DVD_TIME_BASE;
-}
-
-static double wrap(double x, double minimum, double maximum)
-{
-  if(x >= minimum
-  && x <= maximum)
-    return x;
-  x = fmod(x - minimum, maximum - minimum) + minimum;
-  if(x < minimum)
-    x += maximum - minimum;
-  if(x > maximum)
-    x -= maximum - minimum;
-  return x;
-}
-
-void CRenderManager::WaitPresentTime(double presenttime)
-{
-  double frametime;
-  double fps = g_VideoReferenceClock.GetRefreshRate(&frametime);
-  if(fps <= 0)
-  {
-    /* smooth video not enabled */
-    CDVDClock::WaitAbsoluteClock(presenttime * DVD_TIME_BASE);
-    return;
-  }
-
-  if(m_dvdClock.GetSpeedAdjust() != 0.0)
-  {
-    CDVDClock::WaitAbsoluteClock(presenttime * DVD_TIME_BASE);
-    m_presenterr = 0;
-    m_presentcorr = 0;
-    return;
-  }
-
-  double clock     = CDVDClock::WaitAbsoluteClock(presenttime * DVD_TIME_BASE) / DVD_TIME_BASE;
-  double target    = 0.5;
-  double error     = ( clock - presenttime ) / frametime - target;
-
-  m_presenterr     = error;
-
-  // correct error so it targets the closest vblank
-  error = wrap(error, 0.0 - target, 1.0 - target);
-
-  // scale the error used for correction,
-  // based on how much buffer we have on
-  // that side of the target
-  if(error > 0)
-    error /= 2.0 * (1.0 - target);
-  if(error < 0)
-    error /= 2.0 * (0.0 + target);
-
-  //save error in the buffer
-  m_errorindex = (m_errorindex + 1) % ERRORBUFFSIZE;
-  m_errorbuff[m_errorindex] = error;
-
-  //get the average error from the buffer
-  double avgerror = 0.0;
-  for (int i = 0; i < ERRORBUFFSIZE; i++)
-    avgerror += m_errorbuff[i];
-
-  avgerror /= ERRORBUFFSIZE;
-
-  //we change the clock speed slightly
-  //to make every frame's presenttime end up in the middle of two vblanks
-  //integral correction, clamp to -0.5:0.5 range
-  m_presentcorr = std::max(std::min(m_presentcorr + avgerror * 0.01, 0.1), -0.1);
-  g_VideoReferenceClock.SetFineAdjust(1.0 - avgerror * 0.01 - m_presentcorr * 0.01);
-}
-
-std::string CRenderManager::GetVSyncState()
-{
-  double avgerror = 0.0;
-  for (int i = 0; i < ERRORBUFFSIZE; i++)
-    avgerror += m_errorbuff[i];
-  avgerror /= ERRORBUFFSIZE;
-
-  std::string state = StringUtils::Format("sync:%+3d%% avg:%3d%% error:%2d%%"
-                                         ,     MathUtils::round_int(m_presentcorr * 100)
-                                         ,     MathUtils::round_int(avgerror      * 100)
-                                         , abs(MathUtils::round_int(m_presenterr  * 100)));
-  return state;
-}
-
 bool CRenderManager::Configure(DVDVideoPicture& picture, float fps, unsigned flags, unsigned int orientation, int buffers)
 {
 
   // check if something has changed
   {
-    float config_framerate = fps;
-    float render_framerate = g_graphicsContext.GetFPS();
-    if (CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) == ADJUST_REFRESHRATE_OFF)
-      render_framerate = config_framerate;
-    bool changerefresh = (fps != 0) &&
-                         (m_fps == 0.0 || fmod(m_fps, fps) != 0.0) &&
-                         (render_framerate != config_framerate);
-
     CSingleLock lock(m_statelock);
+
     if (m_width == picture.iWidth &&
         m_height == picture.iHeight &&
         m_dwidth == picture.iDisplayWidth &&
         m_dheight == picture.iDisplayHeight &&
-        !changerefresh &&
+        m_fps == fps &&
         (m_flags & ~CONF_FLAGS_FULLSCREEN) == (flags & ~CONF_FLAGS_FULLSCREEN) &&
         m_format == picture.format &&
         m_extended_format == picture.extended_format &&
         m_orientation == orientation &&
         m_NumberBuffers == buffers &&
         m_pRenderer != NULL)
+    {
       return true;
+    }
   }
 
   std::string formatstr = GetRenderFormatName(picture.format);
@@ -308,6 +235,8 @@ bool CRenderManager::Configure(DVDVideoPicture& picture, float fps, unsigned fla
     m_NumberBuffers  = buffers;
     m_renderState = STATE_CONFIGURING;
     m_stateEvent.Reset();
+
+    CheckEnableClockSync();
 
     CSingleLock lock2(m_presentlock);
     m_presentstep = PRESENT_READY;
@@ -381,10 +310,11 @@ bool CRenderManager::Configure()
     m_bTriggerUpdateResolution = true;
     m_presentstep = PRESENT_IDLE;
     m_presentpts = DVD_NOPTS_VALUE;
-    m_sleeptime = 1.0;
+    m_lateframes = -1.0;
     m_presentevent.notifyAll();
     m_renderedOverlay = false;
     m_renderDebug = false;
+    m_clockSync.Reset();
 
     m_renderState = STATE_CONFIGURED;
 
@@ -452,14 +382,8 @@ void CRenderManager::FrameMove()
     {
       if (!m_queued.empty())
       {
-        double timestamp = GetPresentTime();
-        SPresent& m = m_Queue[m_presentsource];
-        SPresent& q = m_Queue[m_queued.front()];
-        if(timestamp > m.timestamp + (q.timestamp - m.timestamp) * 0.5)
-        {
-          m_presentstep = PRESENT_READY;
-          m_presentevent.notifyAll();
-        }
+        m_presentstep = PRESENT_READY;
+        m_presentevent.notifyAll();
       }
     }
 
@@ -495,49 +419,6 @@ void CRenderManager::FrameMove()
   ManageCaptures();
 }
 
-void CRenderManager::FrameFinish()
-{
-  {
-    CSingleLock lock(m_statelock);
-    if (m_renderState != STATE_CONFIGURED)
-      return;
-  }
-
-  /* wait for this present to be valid */
-  SPresent& m = m_Queue[m_presentsource];
-
-  if(g_graphicsContext.IsFullScreenVideo() &&
-     (m_presentstep == PRESENT_FRAME || m_presentstep == PRESENT_FRAME2))
-  {
-    CSingleExit lock(g_graphicsContext);
-    WaitPresentTime(m.timestamp);
-  }
-
-  m_clock_framefinish = GetPresentTime();
-
-  { CSingleLock lock(m_presentlock);
-
-    if(m_presentstep == PRESENT_FRAME)
-    {
-      if( m.presentmethod == PRESENT_METHOD_BOB
-      ||  m.presentmethod == PRESENT_METHOD_WEAVE)
-        m_presentstep = PRESENT_FRAME2;
-      else
-        m_presentstep = PRESENT_IDLE;
-    }
-    else if(m_presentstep == PRESENT_FRAME2)
-      m_presentstep = PRESENT_IDLE;
-
-    if(m_presentstep == PRESENT_IDLE)
-    {
-      if(!m_queued.empty())
-        m_presentstep = PRESENT_READY;
-    }
-
-    m_presentevent.notifyAll();
-  }
-}
-
 void CRenderManager::PreInit()
 {
   if (!g_application.IsCurrentThread())
@@ -547,11 +428,6 @@ void CRenderManager::PreInit()
   }
 
   CSingleLock lock(m_statelock);
-
-  m_presentcorr = 0.0;
-  m_presenterr  = 0.0;
-  m_errorindex  = 0;
-  memset(m_errorbuff, 0, sizeof(m_errorbuff));
 
   if (!m_pRenderer)
   {
@@ -651,9 +527,7 @@ void CRenderManager::CreateRenderer()
     }
     else if (m_format == RENDER_FMT_CVBREF)
     {
-#if defined(TARGET_DARWIN_OSX)
-      m_pRenderer = new CRendererVDA;
-#elif defined(HAVE_VIDEOTOOLBOXDECODER)
+#if defined(TARGET_DARWIN)
       m_pRenderer = new CRendererVTB;
 #endif
     }
@@ -909,7 +783,7 @@ void CRenderManager::SetViewMode(int iViewMode)
   m_playerPort->VideoParamsChange();
 }
 
-void CRenderManager::FlipPage(volatile std::atomic_bool& bStop, double timestamp /* = 0LL*/, double pts /* = 0 */, int source /*= -1*/, EFIELDSYNC sync /*= FS_NONE*/)
+void CRenderManager::FlipPage(volatile std::atomic_bool& bStop, double pts /* = 0 */, int source /*= -1*/, EFIELDSYNC sync /*= FS_NONE*/)
 {
   { CSingleLock lock(m_statelock);
 
@@ -966,10 +840,6 @@ void CRenderManager::FlipPage(volatile std::atomic_bool& bStop, double timestamp
     }
   }
 
-  /* failsafe for invalid timestamps, to make sure queue always empties */
-  if(timestamp > GetPresentTime() + 5.0)
-    timestamp = GetPresentTime() + 5.0;
-
   CSingleLock lock(m_presentlock);
 
   if(m_free.empty())
@@ -979,7 +849,6 @@ void CRenderManager::FlipPage(volatile std::atomic_bool& bStop, double timestamp
     source = m_free.front();
 
   SPresent& m = m_Queue[source];
-  m.timestamp     = timestamp;
   m.presentfield  = sync;
   m.presentmethod = presentmethod;
   m.pts           = pts;
@@ -1011,13 +880,9 @@ float CRenderManager::GetMaximumFPS()
 {
   float fps;
 
-  if (CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOSCREEN_VSYNC) != VSYNC_DISABLED)
-  {
-    fps = (float)g_VideoReferenceClock.GetRefreshRate();
-    if (fps <= 0) fps = g_graphicsContext.GetFPS();
-  }
-  else
-    fps = 1000.0f;
+  fps = (float)m_dvdClock.GetRefreshRate();
+  if (fps <= 0)
+    fps = g_graphicsContext.GetFPS();
 
   return fps;
 }
@@ -1053,6 +918,7 @@ void CRenderManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
   {
     if (!m_pRenderer->IsGuiLayer())
       m_pRenderer->Update();
+
     m_renderedOverlay = m_overlays.HasOverlay(m_presentsource);
     CRect src, dst, view;
     m_pRenderer->GetVideoRect(src, dst, view);
@@ -1067,13 +933,13 @@ void CRenderManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
 
       double refreshrate, clockspeed;
       int missedvblanks;
-      if (g_VideoReferenceClock.GetClockInfo(missedvblanks, clockspeed, refreshrate))
+      vsync = StringUtils::Format("VSyncOff: %.1f  ", m_clockSync.m_syncOffset / 1000);
+      if (m_dvdClock.GetClockInfo(missedvblanks, clockspeed, refreshrate))
       {
-        vsync = StringUtils::Format("VSync: refresh:%.3f missed:%i speed:%+.3f%% %s",
+        vsync += StringUtils::Format("VSync: refresh:%.3f missed:%i speed:%+.3f%%",
                                      refreshrate,
                                      missedvblanks,
-                                     clockspeed - 100.0,
-                                     GetVSyncState().c_str());
+                                     clockspeed - 100.0);
       }
 
       m_debugRenderer.SetInfo(audio, video, player, vsync);
@@ -1082,6 +948,31 @@ void CRenderManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
       m_debugTimer.Set(1000);
       m_renderedOverlay = true;
     }
+  }
+
+
+  SPresent& m = m_Queue[m_presentsource];
+
+  { CSingleLock lock(m_presentlock);
+
+    if(m_presentstep == PRESENT_FRAME)
+    {
+      if( m.presentmethod == PRESENT_METHOD_BOB
+         ||  m.presentmethod == PRESENT_METHOD_WEAVE)
+        m_presentstep = PRESENT_FRAME2;
+      else
+        m_presentstep = PRESENT_IDLE;
+    }
+    else if(m_presentstep == PRESENT_FRAME2)
+      m_presentstep = PRESENT_IDLE;
+
+    if(m_presentstep == PRESENT_IDLE)
+    {
+      if(!m_queued.empty())
+        m_presentstep = PRESENT_READY;
+    }
+
+    m_presentevent.notifyAll();
   }
 }
 
@@ -1167,11 +1058,15 @@ void CRenderManager::PresentBlend(bool clear, DWORD flags, DWORD alpha)
 
 void CRenderManager::UpdateDisplayLatency()
 {
-  float refresh = g_graphicsContext.GetFPS();
+  float fps = g_graphicsContext.GetFPS();
+  float refresh = fps;
   if (g_graphicsContext.GetVideoResolution() == RES_WINDOW)
     refresh = 0; // No idea about refresh rate when windowed, just get the default latency
   m_displayLatency = (double) g_advancedSettings.GetDisplayLatency(refresh);
-  //CLog::Log(LOGDEBUG, "CRenderManager::UpdateDisplayLatency - Latency set to %1.0f msec", m_displayLatency * 1000.0f);
+
+  int buffers = g_Windowing.NoOfBuffers();
+  m_displayLatency += (buffers - 1) / fps;
+
 }
 
 void CRenderManager::UpdateResolution()
@@ -1185,6 +1080,8 @@ void CRenderManager::UpdateResolution()
         RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags));
         g_graphicsContext.SetVideoResolution(res);
         UpdateDisplayLatency();
+
+        CheckEnableClockSync();
       }
       m_bTriggerUpdateResolution = false;
       m_playerPort->VideoParamsChange();
@@ -1354,11 +1251,11 @@ int CRenderManager::WaitForBuffer(volatile std::atomic_bool&bStop, int timeout)
   {
     m_bRenderGUI = false;
     double presenttime = 0;
-    double clock = GetPresentTime();
+    double clock = m_dvdClock.GetClock();
     if (!m_queued.empty())
     {
       int idx = m_queued.front();
-      presenttime = m_Queue[idx].timestamp;
+      presenttime = m_Queue[idx].pts;
     }
     else
       presenttime = clock + 0.02;
@@ -1410,52 +1307,69 @@ void CRenderManager::PrepareNextRender()
     return;
   }
 
-  double clocktime = GetPresentTime();
-  double frametime = 1.0 / GetMaximumFPS();
-  double correction = 0.0;
-  int fps = g_VideoReferenceClock.GetRefreshRate();
-  if((fps > 0) && g_graphicsContext.IsFullScreenVideo() && (clocktime != m_clock_framefinish))
+  double frameOnScreen = m_dvdClock.GetClock();
+  double frametime = 1.0 / GetMaximumFPS() * DVD_TIME_BASE;
+
+  // correct display latency
+  // internal buffers of driver, assume that driver lets us go one frame in advance
+  double totalLatency = DVD_SEC_TO_TIME(m_displayLatency) - DVD_MSEC_TO_TIME(m_videoDelay) + 2* frametime;
+
+  double renderPts = frameOnScreen + totalLatency;
+
+  double nextFramePts = m_Queue[m_queued.front()].pts;
+
+  if (m_clockSync.m_enabled)
   {
-    correction = frametime;
+    double err = fmod(renderPts - nextFramePts, frametime);
+    m_clockSync.m_error += err;
+    m_clockSync.m_errCount ++;
+    if (m_clockSync.m_errCount > 30)
+    {
+      double average = m_clockSync.m_error / m_clockSync.m_errCount;
+      m_clockSync.m_syncOffset = average;
+      m_clockSync.m_error = 0;
+      m_clockSync.m_errCount = 0;
+
+      m_dvdClock.SetVsyncAdjust(-average);
+    }
+    renderPts += frametime / 2 - m_clockSync.m_syncOffset;
   }
 
-  /* see if any future queued frames are already due */
-  std::deque<int>::reverse_iterator curr, prev;
-  int idx;
-  curr = prev = m_queued.rbegin();
-  ++prev;
-  while (prev != m_queued.rend())
+  if (renderPts >= nextFramePts)
   {
-    if(clocktime > m_Queue[*prev].timestamp + correction                 /* previous frame is late */
-    && clocktime > m_Queue[*curr].timestamp - frametime + correction)    /* selected frame is close to it's display time */
-      break;
-    ++curr;
-    ++prev;
-  }
-  idx = *curr;
+    // see if any future queued frames are already due
+    auto iter = m_queued.begin();
+    int idx = *iter;
+    ++iter;
+    while (iter != m_queued.end())
+    {
+      // the slot for rendering in time is [pts .. (pts + frametime)]
+      // renderer/drivers have internal queues, being slightliy late here does not mean that
+      // we are really late. If we don't recover here, player will take action
+      if (renderPts < m_Queue[*iter].pts + 0.98 * frametime)
+        break;
+      idx = *iter;
+      ++iter;
+    }
 
-  /* in fullscreen we will block after render, but only for MAXPRESENTDELAY */
-  bool next;
-  if(g_graphicsContext.IsFullScreenVideo())
-    next = (m_Queue[idx].timestamp <= clocktime + MAXPRESENTDELAY);
-  else
-    next = (m_Queue[idx].timestamp <= clocktime + frametime);
-
-  if (next)
-  {
-    /* skip late frames */
+    // skip late frames
     while(m_queued.front() != idx)
     {
       requeue(m_discard, m_queued);
       m_QueueSkip++;
     }
 
-    m_presentstep   = PRESENT_FLIP;
+    int lateframes = (renderPts - m_Queue[idx].pts) / frametime;
+    if (lateframes)
+      m_lateframes += lateframes;
+    else
+      m_lateframes = 0;
+    
+    m_presentstep = PRESENT_FLIP;
     m_discard.push_back(m_presentsource);
     m_presentsource = idx;
     m_queued.pop_front();
-    m_sleeptime = m_Queue[idx].timestamp - clocktime;
-    m_presentpts = m_Queue[idx].pts;
+    m_presentpts = m_Queue[idx].pts - totalLatency;
     m_presentevent.notifyAll();
   }
 }
@@ -1467,19 +1381,30 @@ void CRenderManager::DiscardBuffer()
   while(!m_queued.empty())
     requeue(m_discard, m_queued);
 
-  m_Queue[m_presentsource].timestamp = GetPresentTime();
-
   if(m_presentstep == PRESENT_READY)
     m_presentstep = PRESENT_IDLE;
   m_presentevent.notifyAll();
 }
 
-bool CRenderManager::GetStats(double &sleeptime, double &pts, int &queued, int &discard)
+bool CRenderManager::GetStats(int &lateframes, double &pts, int &queued, int &discard)
 {
   CSingleLock lock(m_presentlock);
-  sleeptime = m_sleeptime;
+  lateframes = m_lateframes / 10;;
   pts = m_presentpts;
   queued = m_queued.size();
   discard  = m_discard.size();
   return true;
+}
+
+void CRenderManager::CheckEnableClockSync()
+{
+  if (fabs(m_fps - g_graphicsContext.GetFPS()) < 0.01)
+  {
+    m_clockSync.m_enabled = true;
+  }
+  else
+  {
+    m_clockSync.m_enabled = false;
+    m_dvdClock.SetSpeedAdjust(0);
+  }
 }

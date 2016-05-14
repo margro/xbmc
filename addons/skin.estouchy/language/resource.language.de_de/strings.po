@@ -44,6 +44,10 @@ msgctxt "#31009"
 msgid "Working..."
 msgstr "Verarbeitung..."
 
+msgctxt "#31011"
+msgid "Recent"
+msgstr "Kürzlich"
+
 msgctxt "#31013"
 msgid "Movies"
 msgstr "Filme"
@@ -172,25 +176,37 @@ msgctxt "#31400"
 msgid "Change the skin · Set language and region · Change file listing options · Set up a screensaver"
 msgstr "Skin ändern - Sprache und Region festlegen - Dateiauflistungsoptionen ändern - Bildschirmschoner einrichten"
 
-msgctxt "#31401"
-msgid "Manage your video library · Set video playback options · Change video listing options · Set subtitle fonts"
-msgstr "Verwalten Sie Ihre Videobibliothek - Videowiedergabeoptionen festlegen - Videoauflistungsoptionen ändern - Untertitelschriftarten festlegen"
-
-msgctxt "#31403"
-msgid "Set picture listing options · Configure slideshows"
-msgstr "Bildauflistungsoptionen festlegen - Bildvorführungen konfigurieren"
-
-msgctxt "#31404"
-msgid "Set three cities to collect weather information"
-msgstr "Legen Sie drei Städte zum Sammeln der Wetterinformationen fest"
-
 msgctxt "#31405"
-msgid "Setup control of Kodi via UPnP and HTTP · Configure file sharing · Set internet access options"
-msgstr "Steuerung von Kodi über UPnP und HTTP einrichten - Dateiaustausch konfigurieren - Internetzugangsoptionen festlegen"
+msgid "Configure & manage media sharing services · Configure & manage the weather service"
+msgstr "Konfiguriere und verwalte die Medienfreigabedienste · Konfiguriere und verwalte den Wetterdienst"
 
 msgctxt "#31406"
-msgid "Setup and calibrate displays · Configure audio output · Setup remote controls · Set power saving options · Enable debugging · Setup master lock"
-msgstr "Bildschirm einrichten und kalibrieren - Audioausgabe konfigurieren - Fernbedienungen einrichten - Energiesparoptionen festlegen - Fehlersuche aktivieren - Hauptsperre einrichten"
+msgid "Configure display · Configure audio · Configure internet access · Configure power saving· Configure logging"
+msgstr "Anzeige einstellen · Audio konfigurieren · Internetzugriff konfigurieren · Stromsparfunktion konfigurieren · Protokollierung konfigurieren"
+
+msgctxt "#31407"
+msgid "Manage your installed add-ons · Browse for and install add-ons from kodi.tv · Modify add-on settings"
+msgstr "Verwalte deine installierten Addons · Suche und installiere Addons von kodi.tv · Ändere die Einstellungen der Addons "
+
+msgctxt "#31408"
+msgid "Configure actions that can be used during playback · Configure how media content is played"
+msgstr "Konfiguriere Aktionen, um sie während der Wiedergabe zu nutzen · Konfiguriere wie Medieninhalten abgespielt werden"
+
+msgctxt "#31409"
+msgid "Configure how the media lists display content ·  Configure how library lists are navigated · Configure database options"
+msgstr "Konfiguriere wie die Medienlisten Inhalte anzeigen · Konfiguriere wie in Bibliothekslisten navigiert wird · Konfiguriere die Datenbank-Optionen"
+
+msgctxt "#31410"
+msgid "Configure skin · Configure region · Configure control · Configure screensaver · Configure master lock"
+msgstr "Skin konfigurieren · Region einstellen · Steuerung konfigurieren · Bildschirmschoner konfigurieren · Mastersperre konfigurieren"
+
+msgctxt "#31411"
+msgid "Configure your profiles · Set locking options · Enable login screen"
+msgstr "Deine Profile konfigurieren · Sperren-Optionen einstellen · Anmeldebildschirm aktivieren"
+
+msgctxt "#31412"
+msgid "Display system information · Hardware statistics · Check storage availability · View network configuration"
+msgstr "Systeminformation anzeigen · Hardware Statistiken · Speicherkapazität prüfen · Netzwerkkonfiguration anzeigen"
 
 msgctxt "#31421"
 msgid "Select your Kodi user Profile[CR]to login and continue"
@@ -271,3 +287,23 @@ msgstr "Verborgene anzeigen"
 msgctxt "#31565"
 msgid "Show deleted"
 msgstr "Gelöschte anzeigen"
+
+msgctxt "#31900"
+msgid "First Run"
+msgstr "Erster Start"
+
+msgctxt "#31901"
+msgid "There are two things to know about navigating Estouchy"
+msgstr "Zwei Dinge über das Navigieren mit Estouchy"
+
+msgctxt "#31902"
+msgid "The Kodi logo functions as a 'HOME' button. Whenever you touch it, you will be taken back to the home screen."
+msgstr "Das Kodi-Logo fungiert als 'Home'-Knopf. Das Drücken bringt dich zurück zum Hauptbildschirm."
+
+msgctxt "#31903"
+msgid "When you are playing audio or video, the item title will appear at the top of the screen. Touching it will take you to the fullscreen visualization or video window."
+msgstr "Während Musik oder ein Video spielt, erscheint der Titel am oberen Bildschirmrand. Das Tippen des Titels aktiviert die Vollbild-Wiedergabe."
+
+msgctxt "#31904"
+msgid "Now Playing Title..."
+msgstr "Laufender Titel..."

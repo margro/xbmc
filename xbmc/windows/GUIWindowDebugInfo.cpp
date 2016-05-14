@@ -35,6 +35,10 @@
 #include "utils/Variant.h"
 #include "utils/StringUtils.h"
 
+#ifdef TARGET_POSIX
+#include "linux/XMemUtils.h"
+#endif
+
 CGUIWindowDebugInfo::CGUIWindowDebugInfo(void)
   : CGUIDialog(WINDOW_DEBUG_INFO, "", DialogModalityType::MODELESS)
 {
@@ -137,7 +141,7 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
         windowName += " (" + std::string(window->GetProperty("xmlfile").asString()) + ")";
       else
         windowName = window->GetProperty("xmlfile").asString();
-      info += "Window: " + windowName + "  ";
+      info += "Window: " + windowName + "\n";
       // transform the mouse coordinates to this window's coordinates
       g_graphicsContext.SetScalingResolution(window->GetCoordsRes(), true);
       point.x *= g_graphicsContext.GetGUIScaleX();

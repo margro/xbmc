@@ -37,6 +37,7 @@
 #endif
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogMediaFilter.h"
+#include "dialogs/GUIDialogMediaSource.h"
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogSmartPlaylistEditor.h"
@@ -68,6 +69,7 @@
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
 #include "video/VideoLibraryQueue.h"
+#include "view/GUIViewState.h"
 
 #define CONTROL_BTNVIEWASICONS       2
 #define CONTROL_BTNSORTBY            3
@@ -82,6 +84,8 @@
 #define PROPERTY_PATH_DB            "path.db"
 #define PROPERTY_SORT_ORDER         "sort.order"
 #define PROPERTY_SORT_ASCENDING     "sort.ascending"
+
+#define PLUGIN_REFRESH_DELAY 200
 
 using namespace ADDON;
 using namespace KODI::MESSAGING;
@@ -280,9 +284,8 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
       }
       else if (iControl == CONTROL_BTNSORTBY) // sort by
       {
-        if (m_guiState.get())
-          m_guiState->SetNextSortMethod();
-        UpdateFileList();
+        if (m_guiState.get() && m_guiState->ChooseSortMethod())
+          UpdateFileList();
         return true;
       }
       else if (iControl == CONTROL_BTN_FILTER)
@@ -505,6 +508,11 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
       if (message.GetParam1() != WINDOW_INVALID)
       { // first time to this window - make sure we set the root path
         m_startDirectory = returning ? dir : GetRootPath();
+      }
+      if (message.GetParam2() == PLUGIN_REFRESH_DELAY)
+      {
+        Refresh();
+        return true;
       }
     }
     break;
@@ -890,7 +898,17 @@ bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
   }
   if (pItem->GetPath() == "add" || pItem->GetPath() == "sources://add/") // 'add source button' in empty root
   {
-    OnContextButton(iItem, CONTEXT_BUTTON_ADD_SOURCE);
+    if (CProfilesManager::GetInstance().IsMasterProfile())
+    {
+      if (!g_passwordManager.IsMasterLockUnlocked(true))
+        return false;
+    }
+    else if (!CProfilesManager::GetInstance().GetCurrentProfile().canWriteSources() && !g_passwordManager.IsProfileLockUnlocked())
+      return false;
+
+    if (OnAddMediaSource())
+      Refresh(true);
+
     return true;
   }
 
@@ -1475,7 +1493,21 @@ void CGUIMediaWindow::OnInitWindow()
 
   // the start directory may change during Refresh
   bool updateStartDirectory = URIUtils::PathEquals(m_vecItems->GetPath(), m_startDirectory, true);
-  Refresh();
+
+  // we have python scripts hooked in everywhere :(
+  // those scripts may open windows and we can't open a window
+  // while opening this one.
+  // for plugin sources delay call to Refresh
+  if (!URIUtils::IsPlugin(m_vecItems->GetPath()))
+  {
+    Refresh();
+  }
+  else
+  {
+    CGUIMessage msg(GUI_MSG_WINDOW_INIT, 0, 0, 0, PLUGIN_REFRESH_DELAY);
+    g_windowManager.SendThreadMessage(msg, m_controlID);
+  }
+
   if (updateStartDirectory)
   {
     // reset the start directory to the path of the items
@@ -1524,6 +1556,8 @@ void CGUIMediaWindow::SetupShares()
 
 bool CGUIMediaWindow::OnPopupMenu(int itemIdx)
 {
+  auto InRange = [](int i, std::pair<int, int> range){ return i >= range.first && i < range.second; };
+
   if (itemIdx < 0 || itemIdx >= m_vecItems->Size())
     return false;
 
@@ -1531,71 +1565,71 @@ bool CGUIMediaWindow::OnPopupMenu(int itemIdx)
   if (!item)
     return false;
 
-  //Construct the list with core menu on top, legacy menu in the middle and addons on bottom.
   CContextButtons buttons;
-  auto menuItems = CContextMenuManager::GetInstance().GetItems(*item, CContextMenuManager::MAIN);
-  for (const auto& menu : menuItems)
+
+  //Add items from plugin
+  {
+    int i = 0;
+    while (item->HasProperty(StringUtils::Format("contextmenulabel(%i)", i)))
+    {
+      buttons.emplace_back(-buttons.size(), item->GetProperty(StringUtils::Format("contextmenulabel(%i)", i)).asString());
+      ++i;
+    }
+  }
+  auto pluginMenuRange = std::make_pair(0, buttons.size());
+
+  //Add the global menu
+  auto globalMenu = CContextMenuManager::GetInstance().GetItems(*item, CContextMenuManager::MAIN);
+  auto globalMenuRange = std::make_pair(buttons.size(), buttons.size() + globalMenu.size());
+  for (const auto& menu : globalMenu)
     buttons.emplace_back(-buttons.size(), menu->GetLabel(*item));
 
-  int legacyMenuStart = buttons.size();
+  //Add legacy items from windows
+  auto windowMenuRange = std::make_pair(buttons.size(), -1);
   GetContextButtons(itemIdx, buttons);
+  windowMenuRange.second = buttons.size();
 
-  int addonMenuStart = buttons.size();
-  auto addonItems = CContextMenuManager::GetInstance().GetAddonItems(*item, CContextMenuManager::MAIN);
-  for (const auto& menu : addonItems)
+  //Add addon menus
+  auto addonMenu = CContextMenuManager::GetInstance().GetAddonItems(*item, CContextMenuManager::MAIN);
+  auto addonMenuRange = std::make_pair(buttons.size(), buttons.size() + addonMenu.size());
+  for (const auto& menu : addonMenu)
     buttons.emplace_back(-buttons.size(), menu->GetLabel(*item));
 
   if (buttons.empty())
     return true;
 
   int idx = CGUIDialogContextMenu::Show(buttons);
-  if (idx < 0 || idx >= buttons.size())
+  if (idx < 0 || idx >= static_cast<int>(buttons.size()))
     return false;
 
-  if (idx < legacyMenuStart)
-    return CONTEXTMENU::LoopFrom(*menuItems[idx], item);
+  if (InRange(idx, pluginMenuRange))
+  {
+    CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr,
+        item->GetProperty(StringUtils::Format("contextmenuaction(%i)", idx - pluginMenuRange.first)).asString());
+    return true;
+  }
 
-  if (idx >= addonMenuStart)
-    return CONTEXTMENU::LoopFrom(*addonItems[idx - addonMenuStart], item);
+  if (InRange(idx, windowMenuRange))
+    return OnContextButton(itemIdx, static_cast<CONTEXT_BUTTON>(buttons[idx].first));
 
-  return OnContextButton(itemIdx, static_cast<CONTEXT_BUTTON>(buttons[idx].first));
+  if (InRange(idx, globalMenuRange))
+    return CONTEXTMENU::LoopFrom(*globalMenu[idx - globalMenuRange.first], item);
+
+  return CONTEXTMENU::LoopFrom(*addonMenu[idx - addonMenuRange.first], item);
 }
 
 void CGUIMediaWindow::GetContextButtons(int itemNumber, CContextButtons &buttons)
 {
   CFileItemPtr item = (itemNumber >= 0 && itemNumber < m_vecItems->Size()) ? m_vecItems->Get(itemNumber) : CFileItemPtr();
 
-  // ensure that the "go to parent" item doesn't have any context menu items
   if (!item || item->IsParentFolder())
-  {
-    buttons.clear();
-    return;
-  }
-
-  // user added buttons
-  std::string label;
-  std::string action;
-  for (int i = CONTEXT_BUTTON_USER1; i <= CONTEXT_BUTTON_USER10; i++)
-  {
-    label = StringUtils::Format("contextmenulabel(%i)", i - CONTEXT_BUTTON_USER1);
-    if (item->GetProperty(label).empty())
-      break;
-
-    action = StringUtils::Format("contextmenuaction(%i)", i - CONTEXT_BUTTON_USER1);
-    if (item->GetProperty(action).empty())
-      break;
-
-    buttons.Add((CONTEXT_BUTTON)i, item->GetProperty(label).asString());
-  }
-
-  if (item->GetProperty("pluginreplacecontextitems").asBoolean())
     return;
 
   // TODO: FAVOURITES Conditions on masterlock and localisation
   if (!item->IsParentFolder() && !item->IsPath("add") && !item->IsPath("newplaylist://") &&
       !URIUtils::IsProtocol(item->GetPath(), "newsmartplaylist") && !URIUtils::IsProtocol(item->GetPath(), "newtag") &&
       !URIUtils::IsProtocol(item->GetPath(), "musicsearch") &&
-      !URIUtils::PathStarts(item->GetPath(), "pvr://guide/") && !URIUtils::PathStarts(item->GetPath(), "pvr://timers/"))
+      !StringUtils::StartsWith(item->GetPath(), "pvr://guide/") && !StringUtils::StartsWith(item->GetPath(), "pvr://timers/"))
   {
     if (XFILE::CFavouritesDirectory::IsFavourite(item.get(), GetID()))
       buttons.Add(CONTEXT_BUTTON_ADD_FAVOURITE, 14077);     // Remove Favourite
@@ -1622,21 +1656,6 @@ bool CGUIMediaWindow::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     {
       CFileItemPtr item = m_vecItems->Get(itemNumber);
       Update(item->GetPath());
-      return true;
-    }
-  case CONTEXT_BUTTON_USER1:
-  case CONTEXT_BUTTON_USER2:
-  case CONTEXT_BUTTON_USER3:
-  case CONTEXT_BUTTON_USER4:
-  case CONTEXT_BUTTON_USER5:
-  case CONTEXT_BUTTON_USER6:
-  case CONTEXT_BUTTON_USER7:
-  case CONTEXT_BUTTON_USER8:
-  case CONTEXT_BUTTON_USER9:
-  case CONTEXT_BUTTON_USER10:
-    {
-      std::string action = StringUtils::Format("contextmenuaction(%i)", button - CONTEXT_BUTTON_USER1);
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, m_vecItems->Get(itemNumber)->GetProperty(action).asString());
       return true;
     }
   default:
@@ -1951,7 +1970,7 @@ bool CGUIMediaWindow::IsFiltered()
 bool CGUIMediaWindow::IsSameStartFolder(const std::string &dir)
 {
   const std::string startFolder = GetStartFolder(dir);
-  return StringUtils::StartsWith(m_vecItems->GetPath(), startFolder);
+  return URIUtils::PathHasParent(m_vecItems->GetPath(), startFolder);
 }
 
 bool CGUIMediaWindow::Filter(bool advanced /* = true */)
@@ -2005,4 +2024,9 @@ std::string CGUIMediaWindow::RemoveParameterFromPath(const std::string &strDirec
   }
 
   return strDirectory;
+}
+
+void CGUIMediaWindow::ProcessRenderLoop(bool renderOnly)
+{
+  g_windowManager.ProcessRenderLoop(renderOnly);
 }

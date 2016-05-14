@@ -34,6 +34,9 @@
 #include "utils/SystemInfo.h"
 #include "utils/MathUtils.h"
 #include "utils/StringUtils.h"
+#ifdef TARGET_POSIX
+#include "linux/XTimeUtils.h"
+#endif
 
 CRenderSystemGL::CRenderSystemGL() : CRenderSystemBase()
 {
@@ -289,11 +292,16 @@ bool CRenderSystemGL::IsExtSupported(const char* extension)
 
 void CRenderSystemGL::PresentRender(bool rendered)
 {
+  SetVSync(true);
+
   if (!m_bRenderCreated)
     return;
 
   PresentRenderImpl(rendered);
   m_latencyCounter++;
+
+  if (!rendered)
+    Sleep(40);
 }
 
 void CRenderSystemGL::SetVSync(bool enable)

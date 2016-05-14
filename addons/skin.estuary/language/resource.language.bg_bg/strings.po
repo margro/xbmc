@@ -21,7 +21,7 @@ msgid "Now playing"
 msgstr "Сега се възпроизвежда"
 
 msgctxt "#31001"
-msgid "Search"
+msgid "Search..."
 msgstr "Търсене"
 
 msgctxt "#31002"
@@ -47,6 +47,10 @@ msgstr "Произволни филми"
 msgctxt "#31007"
 msgid "Unwatched movies"
 msgstr "Негледани филми"
+
+msgctxt "#31008"
+msgid "No disclaimer"
+msgstr "Няма опровержение"
 
 msgctxt "#31010"
 msgid "In progress movies"
@@ -114,7 +118,7 @@ msgstr "Последно влизане"
 
 msgctxt "#31030"
 msgid "Memory used"
-msgstr "Памет в употреба:"
+msgstr "Памет в употреба"
 
 msgctxt "#31031"
 msgid "Version info"
@@ -244,6 +248,10 @@ msgctxt "#31067"
 msgid "Event log"
 msgstr "Журнал за събития"
 
+msgctxt "#31068"
+msgid "Choose presets"
+msgstr "Избор на шаблон"
+
 msgctxt "#31069"
 msgid "Last Updated"
 msgstr "Последно обновяване"
@@ -251,6 +259,10 @@ msgstr "Последно обновяване"
 msgctxt "#31070"
 msgid "Add media sources"
 msgstr "Добавяне на медиен източик"
+
+msgctxt "#31071"
+msgid "by"
+msgstr "от"
 
 msgctxt "#31072"
 msgid "Power Options"
@@ -287,6 +299,10 @@ msgstr "Инф. за албума"
 msgctxt "#31082"
 msgid "Lyrics add-on"
 msgstr "Добавка за лирики"
+
+msgctxt "#31083"
+msgid "Lyrics add-on settings"
+msgstr "Настройки на лириките"
 
 msgctxt "#31084"
 msgid "Visualisation settings"
@@ -348,6 +364,10 @@ msgctxt "#31103"
 msgid "Enter text here..."
 msgstr "Въведете текст тук..."
 
+msgctxt "#31104"
+msgid "Your library is currently empty. In order to populate it with your personal media, enter \"Files\" section, add a media source and configure it. After the source has been added and indexed you will be able to browse your library."
+msgstr "Библиотеката е празна. За да добавите медийните си файлове влезте в раздела \"Файлове\", от където можете да настроите източниците с медийно съдържание. След като добавите източниците и те бъдат сканирани библиотеката ще бъде попълнена."
+
 msgctxt "#31106"
 msgid "Teletext"
 msgstr "Телетекст"
@@ -366,7 +386,7 @@ msgstr "Път до катината"
 
 msgctxt "#31110"
 msgid "Enter files section"
-msgstr "Секция Файлове"
+msgstr "Раздел Файлове"
 
 msgctxt "#31111"
 msgid "View your personal pictures or download one of the many image add-ons from the official repository."
@@ -414,7 +434,7 @@ msgstr "Негледани ТВ Сериали"
 
 msgctxt "#31123"
 msgid "Same director"
-msgstr "От същия режисьор"
+msgstr "Още от режисьора"
 
 msgctxt "#31125"
 msgid "Press up for actor info"
@@ -423,3 +443,15 @@ msgstr "Натиснете [B]Нагоре[/B] за информация за а
 msgctxt "#31126"
 msgid "Press OK to read plot"
 msgstr "Натиснете [B]ОК[/B] за да прочетете сюжета"
+
+msgctxt "#31129"
+msgid "General settings applying to all areas of the skin."
+msgstr "Основни настройки, прилагани из всяка част на облика."
+
+msgctxt "#31130"
+msgid "Main menu-related settings: Configure the home screen to your likings."
+msgstr "Настройки свързани с началния екран."
+
+msgctxt "#31132"
+msgid "min"
+msgstr "мин"

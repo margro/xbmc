@@ -170,7 +170,7 @@ CLinuxRendererGL::~CLinuxRendererGL()
   }
   else
   {
-    delete [] m_rgbBuffer;
+    av_free(m_rgbBuffer);
     m_rgbBuffer = NULL;
   }
 
@@ -234,6 +234,8 @@ bool CLinuxRendererGL::ValidateRenderTarget()
 
      // create the yuv textures
     LoadShaders();
+    if (m_renderMethod < 0)
+      return false;
 
     if (m_textureTarget == GL_TEXTURE_RECTANGLE_ARB)
       CLog::Log(LOGNOTICE,"Using GL_TEXTURE_RECTANGLE_ARB");
@@ -690,27 +692,13 @@ void CLinuxRendererGL::PreInit()
   GLint size;
   glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_LUMINANCE16, NP2(1920), NP2(1080), 0, GL_LUMINANCE, GL_UNSIGNED_SHORT, NULL);
   glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_LUMINANCE_SIZE, &size);
-#ifdef TARGET_DARWIN_OSX
-  /* From VLC commit 701d1347faa29f52b0a04c587724deb6de1ae28e
-   * OpenGL 1.x on OS X does _not_ support 16bit shaders, but pretends to.
-   * That's why we enforce return false here, even though the actual code below
-   * would return true.
-   * This fixes playback of 10bit content on the Intel GMA 950 chipset, which is
-   * the only "GPU" supported by 10.6 and 10.7 with just an OpenGL 1.4 driver.
-   *
-   * Presumely, this also improves playback on the GMA 3100, GeForce FX 5200,
-   * GeForce4 Ti, GeForce3, GeForce2 MX/4 MX and the Radeon 8500 when
-   * running OS X 10.5. */
-  unsigned int maj, min;
-  g_Windowing.GetRenderVersion(maj, min);
-  if (maj < 2)
-    size = 8;
-#endif
+
   if(size >= 16)
   {
     m_formats.push_back(RENDER_FMT_YUV420P10);
     m_formats.push_back(RENDER_FMT_YUV420P16);
   }
+
   CLog::Log(LOGDEBUG, "CLinuxRendererGL::PreInit - precision of luminance 16 is %d", size);
   m_formats.push_back(RENDER_FMT_NV12);
   m_formats.push_back(RENDER_FMT_YUYV422);
@@ -825,7 +813,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
         break;
       }
 
-      if (!m_fbo.fbo.CreateAndBindToTexture(GL_TEXTURE_2D, m_sourceWidth, m_sourceHeight, GL_RGBA))
+      if (!m_fbo.fbo.CreateAndBindToTexture(GL_TEXTURE_2D, m_sourceWidth, m_sourceHeight, GL_RGBA16, GL_SHORT))
       {
         CLog::Log(LOGERROR, "GL: Error creating texture and binding to FBO");
         break;
@@ -833,7 +821,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
     }
 
     GLSLOutput *out;
-    out = new GLSLOutput(3, m_useDithering, m_ditherDepth, m_fullRange);
+    out = new GLSLOutput(3, m_useDithering, m_ditherDepth, false);
     m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod, m_nonLinStretch, out);
     if (!m_pVideoFilterShader->CompileAndLink())
     {
@@ -902,10 +890,11 @@ void CLinuxRendererGL::LoadShaders(int field)
         // if single pass, create GLSLOutput helper and pass it to YUV2RGB shader
         GLSLOutput *out = nullptr;
         if (m_renderQuality == RQ_SINGLEPASS)
-          out = new GLSLOutput(3, m_useDithering, m_ditherDepth, m_fullRange);
+          out = new GLSLOutput(3, m_useDithering, m_ditherDepth, false);
         m_pYUVShader = new YUV2RGBProgressiveShader(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format,
                                                     m_nonLinStretch && m_renderQuality == RQ_SINGLEPASS,
                                                     out);
+        m_pYUVShader->SetConvertFullColorRange(m_fullRange);
 
         CLog::Log(LOGNOTICE, "GL: Selecting Single Pass YUV 2 RGB shader");
 
@@ -933,6 +922,7 @@ void CLinuxRendererGL::LoadShaders(int field)
 
         // create regular progressive scan shader
         m_pYUVShader = new YUV2RGBProgressiveShaderARB(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format);
+        m_pYUVShader->SetConvertFullColorRange(m_fullRange);
         CLog::Log(LOGNOTICE, "GL: Selecting Single Pass ARB YUV2RGB shader");
 
         if (m_pYUVShader && m_pYUVShader->CompileAndLink())
@@ -948,14 +938,13 @@ void CLinuxRendererGL::LoadShaders(int field)
           m_pYUVShader = NULL;
         }
         CLog::Log(LOGERROR, "GL: Error enabling YUV2RGB ARB shader");
-        // drop through and use SW
+        m_renderMethod = -1;
+        break;
       }
-      case RENDER_METHOD_SOFTWARE:
       default:
-      // Use software YUV 2 RGB conversion if user requested it or GLSL and/or ARB shaders failed
       {
-        m_renderMethod = RENDER_SW ;
-        CLog::Log(LOGNOTICE, "GL: Shaders support not present, falling back to SW mode");
+        m_renderMethod = -1;
+        CLog::Log(LOGERROR, "GL: Shaders support not present");
         break;
       }
     }
@@ -977,9 +966,7 @@ void CLinuxRendererGL::LoadShaders(int field)
     CLog::Log(LOGNOTICE, "GL: NPOT texture support detected");
 
   
-  if (m_pboSupported &&
-    !(m_renderMethod & RENDER_SW) && 
-    !(m_renderMethod & RENDER_CVREF))
+  if (m_pboSupported)
   {
     CLog::Log(LOGNOTICE, "GL: Using GL_ARB_pixel_buffer_object");
     m_pboUsed = true;
@@ -1003,7 +990,7 @@ void CLinuxRendererGL::UnInit()
   }
   else
   {
-    delete [] m_rgbBuffer;
+    av_free(m_rgbBuffer);
     m_rgbBuffer = NULL;
   }
   m_rgbBufferSize = 0;
@@ -1184,7 +1171,7 @@ void CLinuxRendererGL::RenderToFBO(int index, int field, bool weave /*= false*/)
       return;
     }
 
-    if (!m_fbo.fbo.CreateAndBindToTexture(GL_TEXTURE_2D, m_sourceWidth, m_sourceHeight, GL_RGBA))
+    if (!m_fbo.fbo.CreateAndBindToTexture(GL_TEXTURE_2D, m_sourceWidth, m_sourceHeight, GL_RGBA16, GL_SHORT))
     {
       CLog::Log(LOGERROR, "GL: Error creating texture and binding to FBO");
       return;
@@ -1610,9 +1597,6 @@ bool CLinuxRendererGL::UploadTexture(int index)
   else if (m_format == RENDER_FMT_YUYV422 ||
            m_format == RENDER_FMT_UYVY422)
     return UploadYUV422PackedTexture(index);
-  //in case of software colorspace conversion, all formats are handled by the same method
-  else if (m_renderMethod & RENDER_SW)
-    return UploadRGBTexture(index);
   else
     return UploadYV12Texture(index);
 
@@ -1721,20 +1705,10 @@ bool CLinuxRendererGL::CreateYV12Texture(int index)
     planes[0].texwidth  = im.width;
     planes[0].texheight = im.height >> fieldshift;
 
-    if (m_renderMethod & RENDER_SW)
-    {
-      planes[1].texwidth  = 0;
-      planes[1].texheight = 0;
-      planes[2].texwidth  = 0;
-      planes[2].texheight = 0;
-    }
-    else
-    {
-      planes[1].texwidth  = planes[0].texwidth  >> im.cshift_x;
-      planes[1].texheight = planes[0].texheight >> im.cshift_y;
-      planes[2].texwidth  = planes[0].texwidth  >> im.cshift_x;
-      planes[2].texheight = planes[0].texheight >> im.cshift_y;
-    }
+    planes[1].texwidth  = planes[0].texwidth  >> im.cshift_x;
+    planes[1].texheight = planes[0].texheight >> im.cshift_y;
+    planes[2].texwidth  = planes[0].texwidth  >> im.cshift_x;
+    planes[2].texheight = planes[0].texheight >> im.cshift_y;
 
     for (int p = 0; p < 3; p++)
     {
@@ -1758,22 +1732,14 @@ bool CLinuxRendererGL::CreateYV12Texture(int index)
         continue;
 
       glBindTexture(m_textureTarget, plane.id);
-      if (m_renderMethod & RENDER_SW)
-      {
-        glTexImage2D(m_textureTarget, 0, GL_RGBA, plane.texwidth, plane.texheight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
-      }
+      GLenum format;
+      GLint internalformat;
+      if (p == 2) //V plane needs an alpha texture
+        format = GL_ALPHA;
       else
-      {
-        GLenum format;
-        GLint internalformat;
-        if (p == 2) //V plane needs an alpha texture
-          format = GL_ALPHA;
-        else
-          format = GL_LUMINANCE;
-        internalformat = GetInternalFormat(format, im.bpp);
-
-        glTexImage2D(m_textureTarget, 0, internalformat, plane.texwidth, plane.texheight, 0, format, GL_UNSIGNED_BYTE, NULL);
-      }
+        format = GL_LUMINANCE;
+      internalformat = GetInternalFormat(format, im.bpp);
+      glTexImage2D(m_textureTarget, 0, internalformat, plane.texwidth, plane.texheight, 0, format, GL_UNSIGNED_BYTE, NULL);
 
       glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
       glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -2073,20 +2039,10 @@ bool CLinuxRendererGL::CreateNV12Texture(int index)
     planes[0].texwidth  = im.width;
     planes[0].texheight = im.height >> fieldshift;
 
-    if (m_renderMethod & RENDER_SW)
-    {
-      planes[1].texwidth  = 0;
-      planes[1].texheight = 0;
-      planes[2].texwidth  = 0;
-      planes[2].texheight = 0;
-    }
-    else
-    {
-      planes[1].texwidth  = planes[0].texwidth  >> im.cshift_x;
-      planes[1].texheight = planes[0].texheight >> im.cshift_y;
-      planes[2].texwidth  = planes[1].texwidth;
-      planes[2].texheight = planes[1].texheight;
-    }
+    planes[1].texwidth  = planes[0].texwidth  >> im.cshift_x;
+    planes[1].texheight = planes[0].texheight >> im.cshift_y;
+    planes[2].texwidth  = planes[1].texwidth;
+    planes[2].texheight = planes[1].texheight;
 
     for (int p = 0; p < 3; p++)
     {
@@ -2110,17 +2066,10 @@ bool CLinuxRendererGL::CreateNV12Texture(int index)
         continue;
 
       glBindTexture(m_textureTarget, plane.id);
-      if (m_renderMethod & RENDER_SW)
-      {
-        glTexImage2D(m_textureTarget, 0, GL_RGBA, plane.texwidth, plane.texheight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
-      }
+      if (p == 1)
+        glTexImage2D(m_textureTarget, 0, GL_LUMINANCE_ALPHA, plane.texwidth, plane.texheight, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, NULL);
       else
-      {
-        if (p == 1)
-          glTexImage2D(m_textureTarget, 0, GL_LUMINANCE_ALPHA, plane.texwidth, plane.texheight, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, NULL);
-        else
-          glTexImage2D(m_textureTarget, 0, GL_LUMINANCE, plane.texwidth, plane.texheight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
-      }
+        glTexImage2D(m_textureTarget, 0, GL_LUMINANCE, plane.texwidth, plane.texheight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
 
       glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
       glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -2361,35 +2310,17 @@ bool CLinuxRendererGL::CreateYUV422PackedTexture(int index)
     int fieldshift = (f==FIELD_FULL) ? 0 : 1;
     YUVPLANES &planes = fields[f];
 
-    if (m_renderMethod & RENDER_SW)
-    {
-      planes[0].texwidth  = im.width;
-      planes[0].texheight = im.height >> fieldshift;
-      planes[1].texwidth  = 0;
-      planes[1].texheight = 0;
-      planes[2].texwidth  = 0;
-      planes[2].texheight = 0;
+    planes[0].texwidth  = im.width / 2;
+    planes[0].texheight = im.height >> fieldshift;
+    planes[1].texwidth  = planes[0].texwidth;
+    planes[1].texheight = planes[0].texheight;
+    planes[2].texwidth  = planes[1].texwidth;
+    planes[2].texheight = planes[1].texheight;
 
-      for (int p = 0; p < 3; p++)
-      {
-        planes[p].pixpertex_x = 1;
-        planes[p].pixpertex_y = 1;
-      }
-    }
-    else
+    for (int p = 0; p < 3; p++)
     {
-      planes[0].texwidth  = im.width / 2;
-      planes[0].texheight = im.height >> fieldshift;
-      planes[1].texwidth  = planes[0].texwidth;
-      planes[1].texheight = planes[0].texheight;
-      planes[2].texwidth  = planes[1].texwidth;
-      planes[2].texheight = planes[1].texheight;
-
-      for (int p = 0; p < 3; p++)
-      {
-        planes[p].pixpertex_x = 2;
-        planes[p].pixpertex_y = 1;
-      }
+      planes[p].pixpertex_x = 2;
+      planes[p].pixpertex_y = 1;
     }
 
     if(m_renderMethod & RENDER_POT)
@@ -2420,312 +2351,6 @@ bool CLinuxRendererGL::CreateYUV422PackedTexture(int index)
   return true;
 }
 
-void CLinuxRendererGL::ToRGBFrame(YV12Image* im, unsigned flipIndexPlane, unsigned flipIndexBuf)
-{
-  if(m_rgbBufferSize != m_sourceWidth * m_sourceHeight * 4)
-    SetupRGBBuffer();
-  else if(flipIndexPlane == flipIndexBuf)
-    return; //conversion already done on the previous iteration
-
-  uint8_t *src[4]       = {};
-  int      srcStride[4] = {};
-  int      srcFormat    = -1;
-
-  if (m_format == RENDER_FMT_YUV420P ||
-      m_format == RENDER_FMT_YUV420P10 ||
-      m_format == RENDER_FMT_YUV420P16)
-  {
-    srcFormat = CDVDCodecUtils::PixfmtFromEFormat(m_format);
-    for (int i = 0; i < 3; i++)
-    {
-      src[i]       = im->plane[i];
-      srcStride[i] = im->stride[i];
-    }
-  }
-  else if (m_format == RENDER_FMT_NV12)
-  {
-    srcFormat = AV_PIX_FMT_NV12;
-    for (int i = 0; i < 2; i++)
-    {
-      src[i]       = im->plane[i];
-      srcStride[i] = im->stride[i];
-    }
-  }
-  else if (m_format == RENDER_FMT_YUYV422)
-  {
-    srcFormat    = AV_PIX_FMT_YUYV422;
-    src[0]       = im->plane[0];
-    srcStride[0] = im->stride[0];
-  }
-  else if (m_format == RENDER_FMT_UYVY422)
-  {
-    srcFormat    = AV_PIX_FMT_UYVY422;
-    src[0]       = im->plane[0];
-    srcStride[0] = im->stride[0];
-  }
-  else //should never happen
-  {
-    CLog::Log(LOGERROR, "CLinuxRendererGL::ToRGBFrame: called with unsupported format %i", m_format);
-    return;
-  }
-
-  if (m_rgbPbo)
-  {
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_rgbPbo);
-    m_rgbBuffer = (BYTE*)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB) + PBO_OFFSET;
-  }
-
-  m_context = sws_getCachedContext(m_context,
-                                                 im->width, im->height, (AVPixelFormat)srcFormat,
-                                                 im->width, im->height, (AVPixelFormat)AV_PIX_FMT_BGRA,
-                                                 SWS_FAST_BILINEAR, NULL, NULL, NULL);
-
-  uint8_t *dst[]       = { m_rgbBuffer, 0, 0, 0 };
-  int      dstStride[] = { (int)m_sourceWidth * 4, 0, 0, 0 };
-  sws_scale(m_context, src, srcStride, 0, im->height, dst, dstStride);
-
-  if (m_rgbPbo)
-  {
-    glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-    m_rgbBuffer = (BYTE*)PBO_OFFSET;
-  }
-}
-
-void CLinuxRendererGL::ToRGBFields(YV12Image* im, unsigned flipIndexPlaneTop, unsigned flipIndexPlaneBot, unsigned flipIndexBuf)
-{
-  if(m_rgbBufferSize != m_sourceWidth * m_sourceHeight * 4)
-    SetupRGBBuffer();
-  else if(flipIndexPlaneTop == flipIndexBuf && flipIndexPlaneBot == flipIndexBuf)
-    return; //conversion already done on the previous iteration
-
-  uint8_t *srcTop[4]       = {};
-  int      srcStrideTop[4] = {};
-  uint8_t *srcBot[4]       = {};
-  int      srcStrideBot[4] = {};
-  int      srcFormat       = -1;
-
-  if (m_format == RENDER_FMT_YUV420P)
-  {
-    srcFormat = AV_PIX_FMT_YUV420P;
-    for (int i = 0; i < 3; i++)
-    {
-      srcTop[i]       = im->plane[i];
-      srcStrideTop[i] = im->stride[i] * 2;
-      srcBot[i]       = im->plane[i] + im->stride[i];
-      srcStrideBot[i] = im->stride[i] * 2;
-    }
-  }
-  else if (m_format == RENDER_FMT_NV12)
-  {
-    srcFormat = AV_PIX_FMT_NV12;
-    for (int i = 0; i < 2; i++)
-    {
-      srcTop[i]       = im->plane[i];
-      srcStrideTop[i] = im->stride[i] * 2;
-      srcBot[i]       = im->plane[i] + im->stride[i];
-      srcStrideBot[i] = im->stride[i] * 2;
-    }
-  }
-  else if (m_format == RENDER_FMT_YUYV422)
-  {
-    srcFormat       = AV_PIX_FMT_YUYV422;
-    srcTop[0]       = im->plane[0];
-    srcStrideTop[0] = im->stride[0] * 2;
-    srcBot[0]       = im->plane[0] + im->stride[0];
-    srcStrideBot[0] = im->stride[0] * 2;
-  }
-  else if (m_format == RENDER_FMT_UYVY422)
-  {
-    srcFormat       = AV_PIX_FMT_UYVY422;
-    srcTop[0]       = im->plane[0];
-    srcStrideTop[0] = im->stride[0] * 2;
-    srcBot[0]       = im->plane[0] + im->stride[0];
-    srcStrideBot[0] = im->stride[0] * 2;
-  }
-  else //should never happen
-  {
-    CLog::Log(LOGERROR, "CLinuxRendererGL::ToRGBFields: called with unsupported format %i", m_format);
-    return;
-  }
-
-  if (m_rgbPbo)
-  {
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_rgbPbo);
-    m_rgbBuffer = (BYTE*)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB) + PBO_OFFSET;
-  }
-
-  m_context = sws_getCachedContext(m_context,
-                                                 im->width, im->height >> 1, (AVPixelFormat)srcFormat,
-                                                 im->width, im->height >> 1, (AVPixelFormat)AV_PIX_FMT_BGRA,
-                                                 SWS_FAST_BILINEAR, NULL, NULL, NULL);
-  uint8_t *dstTop[]    = { m_rgbBuffer, 0, 0, 0 };
-  uint8_t *dstBot[]    = { m_rgbBuffer + m_sourceWidth * m_sourceHeight * 2, 0, 0, 0 };
-  int      dstStride[] = { (int)m_sourceWidth * 4, 0, 0, 0 };
-
-  //convert each YUV field to an RGB field, the top field is placed at the top of the rgb buffer
-  //the bottom field is placed at the bottom of the rgb buffer
-  sws_scale(m_context, srcTop, srcStrideTop, 0, im->height >> 1, dstTop, dstStride);
-  sws_scale(m_context, srcBot, srcStrideBot, 0, im->height >> 1, dstBot, dstStride);
-
-  if (m_rgbPbo)
-  {
-    glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-    m_rgbBuffer = (BYTE*)PBO_OFFSET;
-  }
-}
-
-void CLinuxRendererGL::SetupRGBBuffer()
-{
-  m_rgbBufferSize = m_sourceWidth * m_sourceHeight * 4;
-
-  if (!m_rgbPbo)
-    delete [] m_rgbBuffer;
-
-  if (m_pboSupported)
-  {
-    CLog::Log(LOGNOTICE, "GL: Using GL_ARB_pixel_buffer_object");
-
-    if (!m_rgbPbo)
-      glGenBuffersARB(1, &m_rgbPbo);
-
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_rgbPbo);
-    glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_rgbBufferSize + PBO_OFFSET, 0, GL_STREAM_DRAW_ARB);
-    m_rgbBuffer = (BYTE*)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB) + PBO_OFFSET;
-
-    if (!m_rgbBuffer)
-    {
-      CLog::Log(LOGWARNING,"GL: failed to set up pixel buffer object");
-      glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-      glDeleteBuffersARB(1, &m_rgbPbo);
-      m_rgbPbo = 0;
-    }
-    else
-    {
-      glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
-      glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-      m_rgbBuffer = (BYTE*)PBO_OFFSET;
-    }
-  }
-
-  if (!m_rgbPbo)
-    m_rgbBuffer = new BYTE[m_rgbBufferSize];
-}
-
-bool CLinuxRendererGL::UploadRGBTexture(int source)
-{
-  YUVBUFFER& buf    =  m_buffers[source];
-  YV12Image* im     = &buf.image;
-  YUVFIELDS& fields =  buf.fields;
-
-  if (!(im->flags&IMAGE_FLAG_READY))
-    return false;
-
-  bool deinterlacing;
-  if (m_currentField == FIELD_FULL)
-    deinterlacing = false;
-  else
-    deinterlacing = true;
-
-  glEnable(m_textureTarget);
-  VerifyGLState();
-
-  if (deinterlacing)
-    ToRGBFields(im, fields[FIELD_TOP][0].flipindex, fields[FIELD_BOT][0].flipindex, buf.flipindex);
-  else
-    ToRGBFrame(im, fields[FIELD_FULL][0].flipindex, buf.flipindex);
-
-  static int imaging = -1;
-  if (imaging==-1)
-  {
-    imaging = 0;
-    if (g_Windowing.IsExtSupported("GL_ARB_imaging"))
-    {
-      CLog::Log(LOGINFO, "GL: ARB Imaging extension supported");
-      imaging = 1;
-    }
-    else
-    {
-      unsigned int maj=0, min=0;
-      g_Windowing.GetRenderVersion(maj, min);
-      if (maj>=2)
-      {
-        imaging = 1;
-      }
-      else if (min>=2)
-      {
-        imaging = 1;
-      }
-    }
-  }
-
-  if (imaging==1 &&
-      ((CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness!=50) ||
-       (CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast!=50)))
-  {
-    GLfloat brightness = ((GLfloat)CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness - 50.0f)/100.0f;
-    GLfloat contrast   = ((GLfloat)CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast)/50.0f;
-
-    glPixelTransferf(GL_RED_SCALE  , contrast);
-    glPixelTransferf(GL_GREEN_SCALE, contrast);
-    glPixelTransferf(GL_BLUE_SCALE , contrast);
-    glPixelTransferf(GL_RED_BIAS   , brightness);
-    glPixelTransferf(GL_GREEN_BIAS , brightness);
-    glPixelTransferf(GL_BLUE_BIAS  , brightness);
-    VerifyGLState();
-    imaging++;
-  }
-
-  glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-
-  // Load RGB image
-  if (deinterlacing)
-  {
-    LoadPlane( fields[FIELD_TOP][0] , GL_BGRA, buf.flipindex
-             , im->width, im->height >> 1
-             , m_sourceWidth*4, 1, m_rgbBuffer, &m_rgbPbo );
-
-    LoadPlane( fields[FIELD_BOT][0], GL_BGRA, buf.flipindex
-             , im->width, im->height >> 1
-             , m_sourceWidth*4, 1, m_rgbBuffer + m_sourceWidth*m_sourceHeight*2, &m_rgbPbo );
-  }
-  else
-  {
-    LoadPlane( fields[FIELD_FULL][0], GL_BGRA, buf.flipindex
-             , im->width, im->height
-             , m_sourceWidth*4, 1, m_rgbBuffer, &m_rgbPbo );
-  }
-
-  //after using the pbo to upload, allocate a new buffer so we don't have to wait
-  //for the upload to finish when mapping the buffer 
-  if (m_rgbPbo)
-  {
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_rgbPbo);
-    glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_rgbBufferSize + PBO_OFFSET, 0, GL_STREAM_DRAW_ARB);
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-  }
-
-  if (imaging==2)
-  {
-    imaging--;
-    glPixelTransferf(GL_RED_SCALE, 1.0);
-    glPixelTransferf(GL_GREEN_SCALE, 1.0);
-    glPixelTransferf(GL_BLUE_SCALE, 1.0);
-    glPixelTransferf(GL_RED_BIAS, 0.0);
-    glPixelTransferf(GL_GREEN_BIAS, 0.0);
-    glPixelTransferf(GL_BLUE_BIAS, 0.0);
-    VerifyGLState();
-  }
-
-  VerifyGLState();
-
-  CalculateTextureSourceRects(source, 3);
-
-  glDisable(m_textureTarget);
-  return true;
-}
-
 void CLinuxRendererGL::SetTextureFilter(GLenum method)
 {
   for (int i = 0 ; i<m_NumYV12Buffers ; i++)
@@ -2752,16 +2377,14 @@ bool CLinuxRendererGL::Supports(ERENDERFEATURE feature)
 {
   if(feature == RENDERFEATURE_BRIGHTNESS)
   {
-    return (m_renderMethod & RENDER_GLSL)
-        || (m_renderMethod & RENDER_ARB)
-        || ((m_renderMethod & RENDER_SW) && g_Windowing.IsExtSupported("GL_ARB_imaging") == GL_TRUE);
+    return (m_renderMethod & RENDER_GLSL) ||
+           (m_renderMethod & RENDER_ARB);
   }
   
   if(feature == RENDERFEATURE_CONTRAST)
   {
-    return (m_renderMethod & RENDER_GLSL)
-        || (m_renderMethod & RENDER_ARB)
-        || ((m_renderMethod & RENDER_SW) && g_Windowing.IsExtSupported("GL_ARB_imaging") == GL_TRUE);
+    return (m_renderMethod & RENDER_GLSL) ||
+           (m_renderMethod & RENDER_ARB);
   }
 
   if(feature == RENDERFEATURE_GAMMA)
@@ -2919,7 +2542,7 @@ CRenderInfo CLinuxRendererGL::GetRenderInfo()
   CRenderInfo info;
   info.formats = m_formats;
   info.max_buffer_size = NUM_BUFFERS;
-  info.optimal_buffer_size = 3;
+  info.optimal_buffer_size = 4;
   return info;
 }
 

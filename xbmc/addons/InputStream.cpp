@@ -27,8 +27,7 @@
 namespace ADDON
 {
 
-bool CInputStream::m_hasConfig = false;
-std::vector<std::string> CInputStream::m_pathList;
+std::map<std::string, CInputStream::Config> CInputStream::m_configMap;
 CCriticalSection CInputStream::m_parentSection;
 
 std::unique_ptr<CInputStream> CInputStream::FromExtension(AddonProps props, const cp_extension_t* ext)
@@ -36,10 +35,12 @@ std::unique_ptr<CInputStream> CInputStream::FromExtension(AddonProps props, cons
   std::string listitemprops = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@listitemprops");
   std::string extensions = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@extension");
   std::string name(ext->plugin->identifier);
-  return std::unique_ptr<CInputStream>(new CInputStream(std::move(props),
-                                                        std::move(name),
-                                                        std::move(listitemprops),
-                                                        std::move(extensions)));
+  std::unique_ptr<CInputStream> istr(new CInputStream(std::move(props),
+                                                      std::move(name),
+                                                      std::move(listitemprops),
+                                                      std::move(extensions)));
+  istr->CheckConfig();
+  return istr;
 }
 
 CInputStream::CInputStream(AddonProps props, std::string name, std::string listitemprops, std::string extensions)
@@ -57,9 +58,6 @@ CInputStream::CInputStream(AddonProps props, std::string name, std::string listi
   {
     StringUtils::Trim(ext);
   }
-
-  if (!m_bIsChild && !m_hasConfig)
-    UpdateConfig();
 }
 
 void CInputStream::SaveSettings()
@@ -69,31 +67,85 @@ void CInputStream::SaveSettings()
     UpdateConfig();
 }
 
+void CInputStream::CheckConfig()
+{
+  bool hasConfig = false;
+
+  {
+    CSingleLock lock(m_parentSection);
+    auto it = m_configMap.find(ID());
+    hasConfig = it != m_configMap.end();
+  }
+
+  if (!m_bIsChild && !hasConfig)
+    UpdateConfig();
+}
+
 void CInputStream::UpdateConfig()
 {
   std::string pathList;
-  Create();
-  try
-  {
-    pathList = m_pStruct->GetPathList();
-  }
-  catch (std::exception &e)
-  {
-    CLog::Log(LOGERROR, "CInputStream::Supports - could not get a list of paths. Reason: %s", e.what());
-  }
-  Destroy();
+  ADDON_STATUS status = Create();
 
-  CSingleLock lock(m_parentSection);
-  m_pathList = StringUtils::Tokenize(pathList, "|");
-  for (auto &path : m_pathList)
+  if (status != ADDON_STATUS_PERMANENT_FAILURE)
+  {
+    try
+    {
+      pathList = m_pStruct->GetPathList();
+    }
+    catch (std::exception &e)
+    {
+      CLog::Log(LOGERROR, "CInputStream::Supports - could not get a list of paths. Reason: %s", e.what());
+    }
+    Destroy();
+  }
+
+  Config config;
+  config.m_pathList = StringUtils::Tokenize(pathList, "|");
+  for (auto &path : config.m_pathList)
   {
     StringUtils::Trim(path);
   }
-  m_hasConfig = true;
+
+  CSingleLock lock(m_parentSection);
+  auto it = m_configMap.find(ID());
+  if (it == m_configMap.end())
+    config.m_parentBusy = false;
+  else
+    config.m_parentBusy = it->second.m_parentBusy;
+
+  config.m_ready = true;
+  if (status == ADDON_STATUS_PERMANENT_FAILURE)
+    config.m_ready = false;
+
+  m_configMap[ID()] = config;
+}
+
+bool CInputStream::UseParent()
+{
+  CSingleLock lock(m_parentSection);
+
+  auto it = m_configMap.find(ID());
+  if (it == m_configMap.end())
+    return false;
+  if (it->second.m_parentBusy)
+    return false;
+
+  it->second.m_parentBusy = true;
+  return true;
 }
 
 bool CInputStream::Supports(const CFileItem &fileitem)
 {
+  {
+    CSingleLock lock(m_parentSection);
+
+    auto it = m_configMap.find(ID());
+    if (it == m_configMap.end())
+      return false;
+    if (!it->second.m_ready)
+      return false;
+  }
+
   // check if a specific inputstream addon is requested
   CVariant addon = fileitem.GetProperty("inputstreamaddon");
   if (!addon.isNull())
@@ -106,9 +158,12 @@ bool CInputStream::Supports(const CFileItem &fileitem)
 
   // check paths
   CSingleLock lock(m_parentSection);
+  auto it = m_configMap.find(ID());
+  if (it == m_configMap.end())
+    return false;
 
   bool match = false;
-  for (auto &path : m_pathList)
+  for (auto &path : it->second.m_pathList)
   {
     if (path.empty())
       continue;
@@ -175,6 +230,14 @@ void CInputStream::Close()
   catch (std::exception &e)
   {
     CLog::Log(LOGERROR, "CInputStream::Close - could not close stream. Reason: %s", e.what());
+  }
+
+  if (!m_bIsChild)
+  {
+    CSingleLock lock(m_parentSection);
+    auto it = m_configMap.find(ID());
+    if (it != m_configMap.end())
+      it->second.m_parentBusy = false;
   }
 }
 

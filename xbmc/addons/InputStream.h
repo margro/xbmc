@@ -47,6 +47,7 @@ namespace ADDON
 
     virtual void SaveSettings() override;
 
+    bool UseParent();
     bool Supports(const CFileItem &fileitem);
     bool Open(CFileItem &fileitem);
     void Close();
@@ -90,6 +91,7 @@ namespace ADDON
     void UpdateStreams();
     void DisposeStreams();
     void UpdateConfig();
+    void CheckConfig();
 
     std::vector<std::string> m_fileItemProps;
     std::vector<std::string> m_extensionsList;
@@ -97,8 +99,14 @@ namespace ADDON
     std::map<int, CDemuxStream*> m_streams;
 
     static CCriticalSection m_parentSection;
-    static bool m_hasConfig;
-    static std::vector<std::string> m_pathList;
+
+    struct Config
+    {
+      std::vector<std::string> m_pathList;
+      bool m_parentBusy;
+      bool m_ready;
+    };
+    static std::map<std::string, Config> m_configMap;
   };
 
 } /*namespace ADDON*/

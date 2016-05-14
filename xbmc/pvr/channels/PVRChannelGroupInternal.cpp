@@ -91,7 +91,7 @@ void CPVRChannelGroupInternal::UpdateChannelPaths(void)
   for (PVR_CHANNEL_GROUP_MEMBERS::iterator it = m_members.begin(); it != m_members.end(); ++it)
   {
     if (it->second.channel->IsHidden())
-      m_iHiddenChannels++;
+      ++m_iHiddenChannels;
     else
       it->second.channel->UpdatePath(this);
   }
@@ -342,7 +342,6 @@ bool CPVRChannelGroupInternal::CreateChannelEpgs(bool bForce /* = false */)
 
   if (HasChangedChannels())
   {
-    g_EpgContainer.MarkTablesForPersist();
     return Persist();
   }
 

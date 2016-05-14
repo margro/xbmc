@@ -21,8 +21,8 @@ msgid "Now playing"
 msgstr "En lecture"
 
 msgctxt "#31001"
-msgid "Search"
-msgstr "Rechercher"
+msgid "Search..."
+msgstr "Rechercher…"
 
 msgctxt "#31002"
 msgid "Show media fanart as background"
@@ -47,6 +47,10 @@ msgstr "Films aléatoires"
 msgctxt "#31007"
 msgid "Unwatched movies"
 msgstr "Films non vus"
+
+msgctxt "#31008"
+msgid "No disclaimer"
+msgstr "Pas d'avertissement"
 
 msgctxt "#31009"
 msgid "Download icons"
@@ -79,6 +83,10 @@ msgstr "Enregistrements récents"
 msgctxt "#31016"
 msgid "Recently played channels"
 msgstr "Chaînes vues récemment"
+
+msgctxt "#31017"
+msgid "Rated"
+msgstr "Noté"
 
 msgctxt "#31018"
 msgid "Most played channels"
@@ -535,3 +543,7 @@ msgstr "Paramètres relatifs au menu principal : configurer l'écran d'accueil c
 msgctxt "#31131"
 msgid "Choose home fanart pack"
 msgstr "Choisir le paquet de FanArt pour l'accueil"
+
+msgctxt "#31132"
+msgid "min"
+msgstr "min"

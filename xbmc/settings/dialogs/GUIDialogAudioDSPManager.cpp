@@ -55,15 +55,17 @@ typedef struct
 {
   const char* sModeType;
   int iModeType;
+  int iName;
+  int iDescription;
 } DSP_MODE_TYPES;
 
 static const DSP_MODE_TYPES dsp_mode_types[] = {
-  { "preprocessing",    AE_DSP_MODE_TYPE_PRE_PROCESS },
-  { "inputresampling",  AE_DSP_MODE_TYPE_INPUT_RESAMPLE },
-  { "masterprocessing", AE_DSP_MODE_TYPE_MASTER_PROCESS },
-  { "outputresampling", AE_DSP_MODE_TYPE_OUTPUT_RESAMPLE },
-  { "postprocessing",   AE_DSP_MODE_TYPE_POST_PROCESS },
-  { "undefined",        AE_DSP_MODE_TYPE_UNDEFINED }
+  { "inputresampling",  AE_DSP_MODE_TYPE_INPUT_RESAMPLE,  15057, 15114 },
+  { "preprocessing",    AE_DSP_MODE_TYPE_PRE_PROCESS,     15058, 15113 },
+  { "masterprocessing", AE_DSP_MODE_TYPE_MASTER_PROCESS,  15059, 15115 },
+  { "postprocessing",   AE_DSP_MODE_TYPE_POST_PROCESS,    15060, 15117 },
+  { "outputresampling", AE_DSP_MODE_TYPE_OUTPUT_RESAMPLE, 15061, 15116 },
+  { "undefined",        AE_DSP_MODE_TYPE_UNDEFINED,       0,     0 }
 };
 
 CGUIDialogAudioDSPManager::CGUIDialogAudioDSPManager(void)
@@ -559,7 +561,7 @@ bool CGUIDialogAudioDSPManager::OnContextButton(int itemNumber, CONTEXT_BUTTON b
     * Open audio dsp addon mode help text dialog
     */
     AE_DSP_ADDON addon;
-    if (CActiveAEDSP::GetInstance().GetAudioDSPAddon((int)pItem->GetProperty("AddonId").asInteger(), addon))
+    if (CServiceBroker::GetADSP().GetAudioDSPAddon((int)pItem->GetProperty("AddonId").asInteger(), addon))
     {
       CGUIDialogTextViewer* pDlgInfo = (CGUIDialogTextViewer*)g_windowManager.GetWindow(WINDOW_DIALOG_TEXT_VIEWER);
       pDlgInfo->SetHeading(g_localizeStrings.Get(15062) + " - " + pItem->GetProperty("Name").asString());
@@ -655,7 +657,7 @@ bool CGUIDialogAudioDSPManager::OnContextButton(int itemNumber, CONTEXT_BUTTON b
     if (hookId > 0)
     {
       AE_DSP_ADDON addon;
-      if (CActiveAEDSP::GetInstance().GetAudioDSPAddon((int)pItem->GetProperty("AddonId").asInteger(), addon))
+      if (CServiceBroker::GetADSP().GetAudioDSPAddon((int)pItem->GetProperty("AddonId").asInteger(), addon))
       {
         AE_DSP_MENUHOOK       hook;
         AE_DSP_MENUHOOK_DATA  hookData;
@@ -704,14 +706,24 @@ void CGUIDialogAudioDSPManager::Update()
     return;
   }
 
-  for (int iModeType = 0; iModeType < AE_DSP_MODE_TYPE_MAX; iModeType++)
+  // construct a CFileItemList to pass 'em on to the list
+  CFileItemList items;
+  for (int i = 0; i < AE_DSP_MODE_TYPE_MAX; ++i)
   {
+    int iModeType = dsp_mode_types[i].iModeType;
+
     modes.clear();
     db.GetModes(modes, iModeType);
 
     // No modes available, nothing to do.
     if (!modes.empty())
     {
+      CFileItemPtr item(new CFileItem());
+      item->SetLabel(g_localizeStrings.Get(dsp_mode_types[i].iName));
+      item->SetLabel2(g_localizeStrings.Get(dsp_mode_types[i].iDescription));
+      item->SetProperty("currentMode", dsp_mode_types[i].sModeType);
+      items.Add(item);
+
       AE_DSP_MENUHOOK_CAT menuHook = helper_GetMenuHookCategory(iModeType);
       int continuesNo = 1;
       for (unsigned int iModePtr = 0; iModePtr < modes.size(); iModePtr++)
@@ -730,7 +742,7 @@ void CGUIDialogAudioDSPManager::Update()
             m_availableItems[iModeType]->Add(pItem);
           }
         }
-        g_windowManager.ProcessRenderLoop(false);
+        ProcessRenderLoop(false);
       }
 
       m_availableItems[iModeType]->Sort(SortByLabel, SortOrderAscending);
@@ -741,6 +753,9 @@ void CGUIDialogAudioDSPManager::Update()
 
     }
   }
+
+  CGUIMessage msg(GUI_MSG_LABEL_BIND, GetID(), CONTROL_LIST_MODE_SELECTION, 0, 0, &items);
+  OnMessage(msg);
 
   db.Close();
 
@@ -792,7 +807,7 @@ void CGUIDialogAudioDSPManager::SaveList(void)
   /* persist all modes */
   if (UpdateDatabase(pDlgBusy))
   {
-    CActiveAEDSP::GetInstance().TriggerModeUpdate();
+    CServiceBroker::GetADSP().TriggerModeUpdate();
 
     m_bContainsChanges = false;
     SetItemsUnchanged();
@@ -850,7 +865,7 @@ bool CGUIDialogAudioDSPManager::UpdateDatabase(CGUIDialogBusy* pDlgBusy)
         }
       }
 
-      g_windowManager.ProcessRenderLoop(false);
+      ProcessRenderLoop(false);
     }
 
     for (int iListPtr = 0; iListPtr < m_availableItems[i]->Size(); iListPtr++)
@@ -883,7 +898,7 @@ bool CGUIDialogAudioDSPManager::UpdateDatabase(CGUIDialogBusy* pDlgBusy)
         }
       }
 
-      g_windowManager.ProcessRenderLoop(false);
+      ProcessRenderLoop(false);
     }
   }
   db.Close();
@@ -959,13 +974,13 @@ CFileItem *CGUIDialogAudioDSPManager::helper_CreateModeListItem(CActiveAEDSPMode
   const int AddonID = ModePointer->AddonID();
 
   std::string addonName;
-  if (!CActiveAEDSP::GetInstance().GetAudioDSPAddonName(AddonID, addonName))
+  if (!CServiceBroker::GetADSP().GetAudioDSPAddonName(AddonID, addonName))
   {
     return pItem;
   }
 
   AE_DSP_ADDON addon;
-  if (!CActiveAEDSP::GetInstance().GetAudioDSPAddon(AddonID, addon))
+  if (!CServiceBroker::GetADSP().GetAudioDSPAddon(AddonID, addon))
   {
     return pItem;
   }
@@ -1033,7 +1048,7 @@ int CGUIDialogAudioDSPManager::helper_GetDialogId(CActiveAEDSPModePtr &ModePoint
     AE_DSP_MENUHOOKS hooks;
 
     // Find first general settings dialog about mode
-    if (CActiveAEDSP::GetInstance().GetMenuHooks(ModePointer->AddonID(), AE_DSP_MENUHOOK_SETTING, hooks))
+    if (CServiceBroker::GetADSP().GetMenuHooks(ModePointer->AddonID(), AE_DSP_MENUHOOK_SETTING, hooks))
     {
       for (unsigned int i = 0; i < hooks.size() && dialogId == 0; i++)
       {
@@ -1045,7 +1060,7 @@ int CGUIDialogAudioDSPManager::helper_GetDialogId(CActiveAEDSPModePtr &ModePoint
     }
 
     // If nothing was present, check for playback settings
-    if (dialogId == 0 && CActiveAEDSP::GetInstance().GetMenuHooks(ModePointer->AddonID(), MenuHook, hooks))
+    if (dialogId == 0 && CServiceBroker::GetADSP().GetMenuHooks(ModePointer->AddonID(), MenuHook, hooks))
     {
       for (unsigned int i = 0; i < hooks.size() && (dialogId == 0 || dialogId != -1); i++)
       {

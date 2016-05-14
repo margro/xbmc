@@ -26,9 +26,9 @@
 #include "guilib/GUIWindow.h"
 #include "playlists/SmartPlayList.h"
 #include "view/GUIViewControl.h"
-#include "view/GUIViewState.h"
 
 class CFileItemList;
+class CGUIViewState;
 
 // base class for all media windows
 class CGUIMediaWindow : public CGUIWindow
@@ -83,6 +83,8 @@ protected:
 
   virtual void GetContextButtons(int itemNumber, CContextButtons &buttons);
   virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
+  virtual bool OnAddMediaSource() { return false; };
+
   virtual void FormatItemLabels(CFileItemList &items, const LABEL_MASKS &labelMasks);
   virtual void UpdateButtons();
   virtual void SaveControlStates() override;
@@ -176,6 +178,8 @@ protected:
    \return Path/URL without the given parameter
    */
   static std::string RemoveParameterFromPath(const std::string &strDirectory, const std::string &strParameter);
+
+  void ProcessRenderLoop(bool renderOnly = false);
 
   XFILE::CVirtualDirectory m_rootDir;
   CGUIViewControl m_viewControl;

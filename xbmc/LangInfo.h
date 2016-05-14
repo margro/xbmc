@@ -130,6 +130,8 @@ public:
 
   const std::string& GetRegionLocale() const;
 
+  const std::locale& GetOriginalLocale() const;
+
   /*!
   \brief Returns the full locale of the current language.
   */
@@ -214,6 +216,27 @@ protected:
     void SetTemperatureUnit(const std::string& strUnit);
     void SetSpeedUnit(const std::string& strUnit);
     void SetTimeZone(const std::string& strTimeZone);
+
+    class custom_numpunct : public std::numpunct<char>
+    {
+    public:
+      custom_numpunct(const char decimal_point, const char thousands_sep, const std::string grouping)
+        : cDecimalPoint(decimal_point), cThousandsSep(thousands_sep), sGroup(grouping) {}
+    protected:
+      virtual char do_decimal_point() const { return cDecimalPoint; }
+      virtual char do_thousands_sep() const { return cThousandsSep; }
+      virtual std::string do_grouping() const { return sGroup; }
+    private:
+      const char cDecimalPoint;
+      const char cThousandsSep;
+      const std::string sGroup;
+    };
+
+    /*! \brief Set the locale associated with this region global.
+
+    Set the locale associated with this region global. This affects string
+    sorting & transformations.
+    */
     void SetGlobalLocale();
     std::string m_strLangLocaleName;
     std::string m_strLangLocaleCodeTwoChar;
@@ -224,6 +247,9 @@ protected:
     std::string m_strTimeFormat;
     std::string m_strMeridiemSymbols[2];
     std::string m_strTimeZone;
+    std::string m_strGrouping;
+    char m_cDecimalSep;
+    char m_cThousandsSep;
 
     CTemperature::Unit m_tempUnit;
     CSpeed::Unit m_speedUnit;
@@ -237,6 +263,7 @@ protected:
   CRegion* m_currentRegion; // points to the current region
   CRegion m_defaultRegion; // default, will be used if no region available via langinfo.xml
   std::locale m_systemLocale;     // current locale, matching GUI settings
+  std::locale m_originalLocale; // original locale, without changes of collate
 
   LanguageResourcePtr m_languageAddon;
 

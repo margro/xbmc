@@ -18,6 +18,9 @@
  *
  */
 
+#include "GUIWindowPVRBase.h"
+#include "GUIWindowPVRRecordings.h"
+
 #include "Application.h"
 #include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
 #include "dialogs/GUIDialogKaiToast.h"
@@ -42,13 +45,12 @@
 
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
+#include "pvr/channels/PVRChannelGroup.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/dialogs/GUIDialogPVRGuideInfo.h"
 #include "pvr/dialogs/GUIDialogPVRRecordingInfo.h"
 #include "pvr/dialogs/GUIDialogPVRTimerSettings.h"
 #include "pvr/timers/PVRTimers.h"
-
-#include "GUIWindowPVRBase.h"
-#include "GUIWindowPVRRecordings.h"
 
 #include <utility>
 
@@ -139,37 +141,7 @@ void CGUIWindowPVRBase::OnInitWindow(void)
 {
   if (!g_PVRManager.IsStarted() || !g_PVRClients->HasCreatedClients())
   {
-    // wait until the PVR manager has been started
-    CGUIDialogProgress* dialog = static_cast<CGUIDialogProgress*>(g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS));
-    if (dialog)
-    {
-      dialog->SetHeading(CVariant{19235});
-      dialog->SetText(CVariant{19045});
-      dialog->ShowProgressBar(false);
-      dialog->Open();
-
-      // do not block the gfx context while waiting
-      CSingleExit exit(g_graphicsContext);
-
-      CEvent event(true);
-      while(!event.WaitMSec(1))
-      {
-        if (g_PVRManager.IsStarted() && g_PVRClients->HasCreatedClients())
-          event.Set();
-
-        if (dialog->IsCanceled())
-        {
-          // return to previous window if canceled
-          dialog->Close();
-          g_windowManager.PreviousWindow();
-          return;
-        }
-
-        g_windowManager.ProcessRenderLoop(false);
-      }
-
-      dialog->Close();
-    }
+    return;
   }
 
   {
@@ -295,7 +267,7 @@ bool CGUIWindowPVRBase::OnContextButtonActiveAEDSPSettings(CFileItem *item, CONT
   {
     bReturn = true;
 
-    if (ActiveAE::CActiveAEDSP::GetInstance().IsProcessing())
+    if (CServiceBroker::GetADSP().IsProcessing())
       g_windowManager.ActivateWindow(WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS);
   }
 
@@ -833,7 +805,7 @@ bool CGUIWindowPVRBase::ActionInputChannelNumber(int input)
             m_viewControl.SetSelectedItem(itemIndex);
           return true;
         }
-        itemIndex++;
+        ++itemIndex;
       }
     }
   }

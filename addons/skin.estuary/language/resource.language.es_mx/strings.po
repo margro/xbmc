@@ -17,8 +17,8 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgctxt "#31001"
-msgid "Search"
-msgstr "Buscar"
+msgid "Search..."
+msgstr "Buscar..."
 
 msgctxt "#31004"
 msgid "Change mode"

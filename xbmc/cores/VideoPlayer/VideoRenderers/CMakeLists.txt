@@ -29,16 +29,20 @@ endif()
 
 if(OPENGL_FOUND)
   list(APPEND SOURCES OverlayRendererGL.cpp
-                      LinuxRendererGL.cpp)
+                      LinuxRendererGL.cpp
+                      FrameBufferObject.cpp)
   list(APPEND HEADERS OverlayRendererGL.h
-                      LinuxRendererGL.h)
+                      LinuxRendererGL.h
+                      FrameBufferObject.h)
 endif()
 
 if(OPENGLES_FOUND)
   list(APPEND SOURCES LinuxRendererGLES.cpp
-                      OverlayRendererGL.cpp)
+                      OverlayRendererGL.cpp
+                      FrameBufferObject.cpp)
   list(APPEND HEADERS LinuxRendererGLES.h
-                      OverlayRendererGL.h)
+                      OverlayRendererGL.h
+                      FrameBufferObject.cpp)
 endif()
 
 if(ARCH MATCHES arm)
@@ -47,6 +51,7 @@ if(ARCH MATCHES arm)
 endif()
 
 core_add_library(videorenderers)
+add_dependencies(videorenderers libcpluff)
 
 if(ENABLE_INTERNAL_FFMPEG)
   add_dependencies(videorenderers ffmpeg)
