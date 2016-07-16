@@ -18,40 +18,62 @@
  *
  */
 
-#include "system.h"
 #include "TextureBundleXBT.h"
+
+#include "system.h"
 #include "Texture.h"
 #include "GraphicContext.h"
 #include "utils/log.h"
-#include "addons/Skin.h"
 #include "settings/Settings.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/XbtManager.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "XBTF.h"
+#include "XBTFReader.h"
 #include <lzo/lzo1x.h>
 
 #ifdef TARGET_WINDOWS
-#pragma comment(lib,"liblzo2.lib")
+#ifdef NDEBUG
+#pragma comment(lib,"lzo2.lib")
+#else
+#pragma comment(lib, "lzo2-no_idb.lib")
+#endif
 #endif
 
-CTextureBundleXBT::CTextureBundleXBT(void)
+CTextureBundleXBT::CTextureBundleXBT()
+  : m_TimeStamp{0}
+  , m_themeBundle{false}
 {
-  m_themeBundle = false;
-  m_TimeStamp = 0;
+}
+
+CTextureBundleXBT::CTextureBundleXBT(bool themeBundle)
+  : m_TimeStamp{0}
+  , m_themeBundle{themeBundle}
+{
 }
 
 CTextureBundleXBT::~CTextureBundleXBT(void)
 {
-  Cleanup();
+  if (m_XBTFReader != nullptr && m_XBTFReader->IsOpen())
+  {
+    XFILE::CXbtManager::GetInstance().Release(CURL(m_path));
+    CLog::Log(LOGDEBUG, "%s - Closed %sbundle", __FUNCTION__, m_themeBundle ? "theme " : "");
+  }
 }
 
 bool CTextureBundleXBT::OpenBundle()
 {
-  Cleanup();
-
   // Find the correct texture file (skin or theme)
+
+  auto mediaDir = g_graphicsContext.GetMediaDir();
+  if (mediaDir.empty())
+  {
+    mediaDir = CSpecialProtocol::TranslatePath(
+      URIUtils::AddFileToFolder("special://home/addons",
+        CSettings::GetInstance().GetString(CSettings::SETTING_LOOKANDFEEL_SKIN)));
+  }
+
   if (m_themeBundle)
   {
     // if we are the theme bundle, we only load if the user has chosen
@@ -60,7 +82,7 @@ bool CTextureBundleXBT::OpenBundle()
     if (!theme.empty() && !StringUtils::EqualsNoCase(theme, "SKINDEFAULT"))
     {
       std::string themeXBT(URIUtils::ReplaceExtension(theme, ".xbt"));
-      m_path = URIUtils::AddFileToFolder(g_graphicsContext.GetMediaDir(), "media");
+      m_path = URIUtils::AddFileToFolder(mediaDir, "media");
       m_path = URIUtils::AddFileToFolder(m_path, themeXBT);
     }
     else
@@ -70,7 +92,7 @@ bool CTextureBundleXBT::OpenBundle()
   }
   else
   {
-    m_path = URIUtils::AddFileToFolder(g_graphicsContext.GetMediaDir(), "media/Textures.xbt");
+    m_path = URIUtils::AddFileToFolder(mediaDir, "media/Textures.xbt");
   }
 
   m_path = CSpecialProtocol::TranslatePathConvertCase(m_path);
@@ -236,15 +258,6 @@ bool CTextureBundleXBT::ConvertFrameToTexture(const std::string& name, CXBTFFram
   delete[] buffer;
 
   return true;
-}
-
-void CTextureBundleXBT::Cleanup()
-{
-  if (m_XBTFReader != nullptr && m_XBTFReader->IsOpen())
-  {
-    XFILE::CXbtManager::GetInstance().Release(CURL(m_path));
-    CLog::Log(LOGDEBUG, "%s - Closed %sbundle", __FUNCTION__, m_themeBundle ? "theme " : "");
-  }
 }
 
 void CTextureBundleXBT::SetThemeBundle(bool themeBundle)

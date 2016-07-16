@@ -19,6 +19,10 @@
  *
  */
 
+#include <list>
+#include <string>
+#include <vector>
+
 #include "system.h"
 #include "threads/Thread.h"
 
@@ -216,11 +220,7 @@ protected:
   std::vector<StreamStats> m_streamStats;
 };
 
-#if defined(HAS_GLX) || defined(TARGET_DARWIN)
 class CActiveAE : public IAE, public IDispResource, private CThread
-#else
-class CActiveAE : public IAE, private CThread
-#endif
 {
 protected:
   friend class ::CAEFactory;

@@ -29,10 +29,11 @@
 #include "messaging/IMessageTarget.h"
 #include "ServiceManager.h"
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <string>
-#include <atomic>
+#include <vector>
 
 class CAction;
 class CFileItem;
@@ -52,9 +53,12 @@ namespace MEDIA_DETECT
   class CAutorun;
 }
 
+namespace PLAYLIST
+{
+  class CPlayList;
+}
+
 #include "cores/IPlayerCallback.h"
-#include "cores/playercorefactory/PlayerCoreFactory.h"
-#include "PlayListPlayer.h"
 #include "settings/lib/ISettingsHandler.h"
 #include "settings/lib/ISettingCallback.h"
 #include "settings/lib/ISubSettings.h"
@@ -72,7 +76,7 @@ namespace MEDIA_DETECT
 #include "threads/Thread.h"
 
 #include "ApplicationPlayer.h"
-#include "interfaces/IActionListener.h"
+#include "FileItem.h"
 
 class CSeekHandler;
 class CInertialScrollingHandler;
@@ -80,6 +84,7 @@ class DPMSSupport;
 class CSplash;
 class CBookmark;
 class CNetwork;
+class IActionListener;
 
 namespace VIDEO
 {
@@ -177,8 +182,8 @@ public:
   virtual int  GetMessageMask() override;
   virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
 
-  bool PlayMedia(const CFileItem& item, const std::string &player, int iPlaylist = PLAYLIST_MUSIC);
-  bool PlayMediaSync(const CFileItem& item, int iPlaylist = PLAYLIST_MUSIC);
+  bool PlayMedia(const CFileItem& item, const std::string &player, int iPlaylist);
+  bool PlayMediaSync(const CFileItem& item, int iPlaylist);
   bool ProcessAndStartPlaylist(const std::string& strPlayList, PLAYLIST::CPlayList& playlist, int iPlaylist, int track=0);
   PlayBackRet PlayFile(CFileItem item, const std::string& player, bool bRestart = false);
   void SaveFileState(bool bForeground = false);
@@ -198,7 +203,6 @@ public:
   bool IsIdleShutdownInhibited() const;
   // Checks whether the screensaver and / or DPMS should become active.
   void CheckScreenSaverAndDPMS();
-  void CheckPlayingProgress();
   void ActivateScreenSaver(bool forceType = false);
   bool SetupNetwork();
   void CloseNetworkShares();
@@ -501,7 +505,7 @@ protected:
   bool InitDirectoriesLinux();
   bool InitDirectoriesOSX();
   bool InitDirectoriesWin32();
-  void CreateUserDirs();
+  void CreateUserDirs() const;
 
   /*! \brief Helper method to determine how to handle TMSG_SHUTDOWN
   */

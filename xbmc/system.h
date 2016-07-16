@@ -105,7 +105,6 @@
 #define HAS_WEB_SERVER
 #define HAS_WEB_INTERFACE
 #define HAVE_LIBSSH
-#define HAS_LIBRTMP
 #define HAS_FILESYSTEM_SMB
 #define HAS_ZEROCONF
 #define HAS_MDNS
@@ -259,12 +258,3 @@
 #define GET_R(color)            ((color >> 16) & 0xFF)
 #define GET_G(color)            ((color >>  8) & 0xFF)
 #define GET_B(color)            ((color >>  0) & 0xFF)
-
-/****************
- * default skin
- ****************/
-#if defined(TARGET_DARWIN_IOS)
-#define DEFAULT_SKIN          "skin.estouchy"
-#else
-#define DEFAULT_SKIN          "skin.estuary"
-#endif

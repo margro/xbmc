@@ -168,7 +168,7 @@ bool CTextureCache::CacheImage(const std::string &image, CTextureDetails &detail
 
 void CTextureCache::ClearCachedImage(const std::string &url, bool deleteSource /*= false */)
 {
-  // TODO: This can be removed when the texture cache covers everything.
+  //! @todo This can be removed when the texture cache covers everything.
   std::string path = deleteSource ? url : "";
   std::string cachedFile;
   if (ClearCachedTexture(url, cachedFile))
@@ -241,9 +241,8 @@ bool CTextureCache::ClearCachedTexture(int id, std::string &cachedURL)
 
 std::string CTextureCache::GetCacheFile(const std::string &url)
 {
-  Crc32 crc;
-  crc.ComputeFromLowerCase(url);
-  std::string hex = StringUtils::Format("%08x", (unsigned int)crc);
+  auto crc = Crc32::ComputeFromLowerCase(url);
+  std::string hex = StringUtils::Format("%08x", crc);
   std::string hash = StringUtils::Format("%c/%s", hex[0], hex.c_str());
   return hash;
 }

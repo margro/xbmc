@@ -60,7 +60,6 @@ public:
   CDVDVideoCodecFFmpeg(CProcessInfo &processInfo);
   virtual ~CDVDVideoCodecFFmpeg();
   virtual bool Open(CDVDStreamInfo &hints, CDVDCodecOptions &options) override;
-  virtual void Dispose() override;
   virtual int Decode(uint8_t* pData, int iSize, double dts, double pts) override;
   virtual void Reset() override;
   virtual void Reopen() override;
@@ -77,6 +76,7 @@ public:
   void SetHardware(IHardwareDecoder* hardware);
 
 protected:
+  void Dispose();
   static enum AVPixelFormat GetFormat(struct AVCodecContext * avctx, const AVPixelFormat * fmt);
 
   int  FilterOpen(const std::string& filters, bool scale);
@@ -119,6 +119,7 @@ protected:
   bool   m_requestSkipDeint;
   int    m_codecControlFlags;
   bool m_interlaced;
+  double m_DAR;
   CDVDStreamInfo m_hints;
   CDVDCodecOptions m_options;
 };

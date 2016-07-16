@@ -128,7 +128,7 @@ void CPeripheralCecAdapter::ResetMembers(void)
   m_lastKeypress             = 0;
   m_lastChange               = VOLUME_CHANGE_NONE;
   m_iExitCode                = EXITCODE_QUIT;
-  m_bIsMuted                 = false; // TODO fetch the correct initial value when system audiostatus is implemented in libCEC
+  m_bIsMuted                 = false; //! @todo fetch the correct initial value when system audiostatus is implemented in libCEC
   m_bGoingToStandby          = false;
   m_bIsRunning               = false;
   m_bDeviceRemoved           = false;
@@ -594,6 +594,8 @@ void CPeripheralCecAdapter::SetMenuLanguage(const char *strLanguage)
   else if (!strcmp(strLanguage, "srp"))
     strGuiLanguage = "sr_rs@latin";
   else if (!strcmp(strLanguage, "slo"))
+    strGuiLanguage = "sk_sk";
+  else if (!strcmp(strLanguage, "slv"))
     strGuiLanguage = "sl_si";
   else if (!strcmp(strLanguage, "spa"))
     strGuiLanguage = "es_es";

@@ -19,6 +19,8 @@
  *
  */
 
+#include <vector>
+
 #include "dbwrappers/Database.h"
 #include "utils/log.h"
 
@@ -72,13 +74,6 @@ namespace PVR
      * @return True if all channels were removed, false otherwise.
      */
     bool DeleteChannels(void);
-
-    /*!
-     * @brief Remove all channels from a client from the database.
-     * @param client The client to delete the channels for.
-     * @return True if the channels were deleted, false otherwise.
-     */
-    bool DeleteClientChannels(const CPVRClient &client);
 
     /*!
      * @brief Add or update a channel entry in the database
@@ -173,7 +168,6 @@ namespace PVR
     void CreateTables();
     void CreateAnalytics();
 
-    bool DeleteChannelsFromGroup(const CPVRChannelGroup &group);
     bool DeleteChannelsFromGroup(const CPVRChannelGroup &group, const std::vector<int> &channelsToDelete);
 
     bool GetCurrentGroupMembers(const CPVRChannelGroup &group, std::vector<int> &members);

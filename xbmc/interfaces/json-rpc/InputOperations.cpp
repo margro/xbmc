@@ -26,6 +26,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "input/ButtonTranslator.h"
+#include "input/Key.h"
 #include "utils/Variant.h"
 #include "input/XBMC_keyboard.h"
 #include "input/XBMC_vkeys.h"
@@ -34,9 +35,9 @@
 using namespace JSONRPC;
 using namespace KODI::MESSAGING;
 
-//TODO the breakage of the screensaver should be refactored
-//to one central super duper place for getting rid of
-//1 million dupes
+//! @todo the breakage of the screensaver should be refactored
+//! to one central super duper place for getting rid of
+//! 1 million dupes
 bool CInputOperations::handleScreenSaver()
 {
   g_application.ResetScreenSaver();

@@ -19,6 +19,8 @@
  */
 #pragma once
 
+#include <vector>
+
 #include "EventScanRate.h"
 #include "threads/CriticalSection.h"
 #include "threads/Event.h"
@@ -58,7 +60,7 @@ namespace PERIPHERALS
     EventRateHandle SetRate(float rateHz);
 
     // implementation of IEventRateCallback
-    virtual void Release(CEventRateHandle* handle);
+    virtual void Release(CEventRateHandle* handle) override;
 
   protected:
     // implementation of CThread

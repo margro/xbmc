@@ -113,13 +113,13 @@ if(PACKAGE_ZIP)
   endif()
   list(APPEND BUILD_ARGS -DPACKAGE_DIR=${PACKAGE_DIR})
 
-  MESSAGE(STATUS "ZIP packaging enabled (destination: ${PACKAGE_DIR})")
+  message(STATUS "ZIP packaging enabled (destination: ${PACKAGE_DIR})")
 endif()
 
 if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND BUILD_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
-  MESSAGE(STATUS "Toolchain specified")
-  MESSAGE(STATUS ${BUILD_ARGS})
+  message(STATUS "Toolchain specified")
+  message(STATUS ${BUILD_ARGS})
 endif()
 
 if(NOT ADDONS_TO_BUILD)
@@ -138,7 +138,9 @@ endif()
 get_filename_component(ADDONS_DEFINITION_DIR "${ADDONS_DEFINITION_DIR}" ABSOLUTE)
 
 if(ADDON_SRC_PREFIX)
-  get_filename_component(ADDON_SRC_PREFIX "${ADDON_SRC_PREFIX}" ABSOLUTE)
+  if(NOT IS_ABSOLUTE ${ADDON_SRC_PREFIX})
+    get_filename_component(ADDON_SRC_PREFIX "${CMAKE_BINARY_DIR}/${ADDON_SRC_PREFIX}" ABSOLUTE)
+  endif()
   message(STATUS "Overriding addon source directory prefix: ${ADDON_SRC_PREFIX}")
 endif()
 
@@ -160,7 +162,7 @@ if(EXISTS ${PLATFORM_DIR}/defines.txt)
 endif()
 
 # include check_target_platform() function
-include(${CORE_SOURCE_DIR}/project/cmake/scripts/common/check_target_platform.cmake)
+include(${CORE_SOURCE_DIR}/project/cmake/scripts/common/CheckTargetPlatform.cmake)
 
 set(ADDON_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
 if(NOT WIN32)
@@ -174,16 +176,17 @@ if(NOT WIN32)
 endif()
 
 ### prepare the build environment for the binary addons
-# copy the prepare-env.cmake script to the depends path so that we can include it
-file(COPY ${CORE_SOURCE_DIR}/project/cmake/scripts/common/prepare-env.cmake DESTINATION ${APP_LIB_DIR})
+# copy the PrepareEnv.cmake script to the depends path so that we can include it
+file(COPY ${CORE_SOURCE_DIR}/project/cmake/scripts/common/PrepareEnv.cmake DESTINATION ${APP_LIB_DIR})
 
-# add the location of prepare-env.cmake to CMAKE_MODULE_PATH so that it is found
+# add the location of PrepareEnv.cmake to CMAKE_MODULE_PATH so that it is found
 list(APPEND CMAKE_MODULE_PATH ${APP_LIB_DIR})
 
-# include prepare-env.cmake which contains the logic to install the addon header bindings etc
-include(prepare-env)
+# include PrepareEnv.cmake which contains the logic to install the addon header bindings etc
+include(PrepareEnv)
 
 ### add the depends subdirectory for any general dependencies
+message(STATUS "\n-- ---- Preparing general dependencies ----")
 add_subdirectory(depends)
 
 # add a custom target "package-addons" which will package and install all addons
@@ -203,7 +206,7 @@ if(NOT addons)
     file(MAKE_DIRECTORY ${BOOTSTRAP_BUILD_DIR})
   endif()
 
-  string (REPLACE ";" " " ADDONS_TO_BUILD_STR "${ADDONS_TO_BUILD}")
+  string(REPLACE ";" " " ADDONS_TO_BUILD_STR "${ADDONS_TO_BUILD}")
   # generate the bootstrap buildsystem
   execute_process(COMMAND ${CMAKE_COMMAND} ${PROJECT_SOURCE_DIR}/bootstrap
                                            -DCMAKE_INSTALL_PREFIX:PATH=${ADDONS_DEFINITION_DIR}
@@ -223,6 +226,10 @@ if(NOT addons)
   endif()
 endif()
 
+# Track if at least one addon has been found. Everything else is likely an
+# error either in ADDONS_TO_BUILD or in the directory configuration.
+set(SUPPORTED_ADDON_FOUND FALSE)
+
 foreach(addon ${addons})
   if(NOT (addon MATCHES platforms.txt))
     file(STRINGS ${addon} def)
@@ -241,13 +248,16 @@ foreach(addon ${addons})
     endif()
 
     if(ADDON_FOUND)
+      message(STATUS "\n-- ---- Configuring addon ${addon} ----")
+      set(SUPPORTED_ADDON_FOUND TRUE)
+
       get_filename_component(dir ${addon} PATH)
 
       # check if the addon has a platforms.txt
       set(platform_found FALSE)
       check_target_platform(${dir} ${CORE_SYSTEM_NAME} platform_found)
 
-      if (${platform_found})
+      if(${platform_found})
         # make sure the output directory is clean
         if(EXISTS "${CMAKE_INSTALL_PREFIX}/${id}")
           file(REMOVE_RECURSE "${CMAKE_INSTALL_PREFIX}/${id}/")
@@ -370,7 +380,7 @@ foreach(addon ${addons})
           set(${id}_DEPENDS_DIR ${SOURCE_DIR}/depends)
 
           if(EXISTS ${${id}_DEPENDS_DIR})
-            include(${CORE_SOURCE_DIR}/project/cmake/scripts/common/handle-depends.cmake)
+            include(${CORE_SOURCE_DIR}/project/cmake/scripts/common/HandleDepends.cmake)
             add_addon_depends(${id} ${${id}_DEPENDS_DIR})
             if(${id}_DEPS AND NOT "${${id}_DEPS}" STREQUAL "")
               message(STATUS "${id} DEPENDENCIES: ${${id}_DEPS}")
@@ -406,6 +416,7 @@ foreach(addon ${addons})
     endif()
   endif()
 endforeach()
+message(STATUS "")
 
 if(NEED_SUDO)
   add_custom_target(install
@@ -414,6 +425,12 @@ if(NEED_SUDO)
                     COMMAND sudo ${CMAKE_COMMAND} -E copy_directory ${ADDON_INSTALL_DIR}/ ${CMAKE_INSTALL_PREFIX}/
                     COMMAND sudo ${CMAKE_COMMAND} -E remove_directory ${ADDON_INSTALL_DIR}/
                     COMMAND sudo -k)
+endif()
+
+if(NOT SUPPORTED_ADDON_FOUND)
+  message(FATAL_ERROR "${ADDONS_TO_BUILD} did not match any of the supported addons. \
+                       A list of supported addons can be viewed by building the 'supported_addons' target. \
+                       Addon definitions are loaded from ADDONS_DEFINITION_DIR (${ADDONS_DEFINITION_DIR}).")
 endif()
 
 # add custom target "supported_addons" that returns all addons that are supported on this platform

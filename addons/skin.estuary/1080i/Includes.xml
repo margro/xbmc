@@ -16,8 +16,6 @@
 	<include file="View_501_Banner.xml" />
 	<include file="View_502_FanArt.xml" />
 	<include file="Variables.xml" />
-	<constant name="FanartCrossfadeTime">400</constant>
-	<constant name="IconCrossfadeTime">400</constant>
 	<constant name="DepthDialog">0.50</constant>
 	<constant name="DepthDialog+">0.52</constant>
 	<constant name="DepthDialog-">0.48</constant>
@@ -29,7 +27,7 @@
 	<constant name="DepthBackground">-0.80</constant>
 	<constant name="DepthSideBlade">0.10</constant>
 	<constant name="bg_alpha">79</constant>
-	<expression name="infodialog_active">Window.IsActive(musicinformation) | Window.IsActive(movieinformation) | Window.IsActive(addoninformation) | Window.IsActive(pvrguideinfo) | Window.IsActive(pvrrecordinginfo) | Window.IsActive(pictureinfo) | Window.IsVisible(script-ExtendedInfo Script-DialogVideoInfo.xml) | Window.IsVisible(script-ExtendedInfo Script-DialogInfo.xml) | Window.IsVisible(script-ExtendedInfo Script-VideoList.xml)</expression>
+	<expression name="infodialog_active">Window.IsActive(musicinformation) | Window.IsActive(movieinformation) | Window.IsActive(addoninformation) | Window.IsActive(pvrguideinfo) | Window.IsActive(pvrrecordinginfo) | Window.IsActive(pictureinfo) | Window.IsVisible(script-script.extendedinfo-DialogVideoInfo.xml) | Window.IsVisible(script-script.extendedinfo-DialogInfo.xml) | Window.IsVisible(script-script.extendedinfo-VideoList.xml)</expression>
 	<expression name="sidebar_focused">ControlGroup(9000).HasFocus | Control.HasFocus(6130)</expression>
 	<include name="CommonScrollbars">
 		<control type="group">
@@ -193,7 +191,7 @@
 					<top>8</top>
 					<width>64</width>
 					<height>64</height>
-					<texture fallback="DefaultAudioDSP.png">$INFO[ListItem.Property(Icon)]</texture>
+					<texture>$INFO[ListItem.Icon]</texture>
 					<aspectratio aligny="center" align="left">keep</aspectratio>
 				</control>
 				<control type="label">
@@ -203,7 +201,7 @@
 					<height>40</height>
 					<font>font12</font>
 					<aligny>center</aligny>
-					<label>$INFO[ListItem.Property(AddonName)]</label>
+					<label>$INFO[ListItem.Label]</label>
 				</control>
 				<control type="label">
 					<left>82</left>
@@ -213,7 +211,7 @@
 					<font>font10</font>
 					<aligny>center</aligny>
 					<textcolor>grey</textcolor>
-					<label>$INFO[ListItem.Property(Name)]</label>
+					<label>$INFO[ListItem.Label2]</label>
 				</control>
 			</itemlayout>
 			<focusedlayout height="80" width="470">
@@ -238,7 +236,7 @@
 					<top>8</top>
 					<width>64</width>
 					<height>64</height>
-					<texture fallback="DefaultAudioDSP.png">$INFO[ListItem.Property(Icon)]</texture>
+					<texture>$INFO[ListItem.Icon]</texture>
 					<aspectratio aligny="center" align="left">keep</aspectratio>
 				</control>
 				<control type="label">
@@ -248,7 +246,7 @@
 					<height>40</height>
 					<font>font12</font>
 					<aligny>center</aligny>
-					<label>$INFO[ListItem.Property(AddonName)]</label>
+					<label>$INFO[ListItem.Label]</label>
 				</control>
 				<control type="label">
 					<left>82</left>
@@ -258,7 +256,7 @@
 					<font>font10</font>
 					<aligny>center</aligny>
 					<textcolor>grey</textcolor>
-					<label>$INFO[ListItem.Property(Name)]</label>
+					<label>$INFO[ListItem.Label2]</label>
 				</control>
 			</focusedlayout>
 		</control>
@@ -608,7 +606,7 @@
 					</control>
 				</control>
 			</focusedlayout>
-			<content sortby="$PARAM[sortby]" sortorder="$PARAM[sortorder]" target="$PARAM[container_target]">$PARAM[container_path]</content>
+			<content sortby="lastused" sortorder="descending" target="$PARAM[container_target]">$PARAM[container_path]</content>
 		</control>
 	</include>
 	<include name="LeftAlignedInfo">
@@ -803,6 +801,7 @@
 			<top>-1080</top>
 			<width>5760</width>
 			<height>3240</height>
+			<animation effect="fade" time="300">VisibleChange</animation>
 			<animation effect="fade" start="0" end="100" time="300">WindowOpen</animation>
 			<animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
 			<texture colordiffuse="C2FFFFFF">colors/black.png</texture>
@@ -1040,7 +1039,7 @@
 			</control>
 			<control type="visualisation">
 				<include>FullScreenDimensions</include>
-				<visible>Player.HasAudio + String.IsEmpty(Window(videolibrary).Property(PlayingBackgroundMedia))</visible>
+				<visible>Player.HasAudio + String.IsEmpty(Window(Videos).Property(PlayingBackgroundMedia))</visible>
 			</control>
 			<control type="group">
 				<animation effect="zoom" center="960,540" end="102,102" time="0" condition="Integer.IsGreater(System.StereoscopicMode,0)">conditional</animation>
@@ -1048,7 +1047,7 @@
 					<depth>DepthBackground</depth>
 					<include>FullScreenDimensions</include>
 					<aspectratio>scale</aspectratio>
-					<animation effect="fade" start="100" end="bg_alpha" time="0" condition="Player.HasMedia + String.IsEmpty(Window(videolibrary).Property(PlayingBackgroundMedia))">Conditional</animation>
+					<animation effect="fade" start="100" end="bg_alpha" time="0" condition="Player.HasMedia + String.IsEmpty(Window(Videos).Property(PlayingBackgroundMedia))">Conditional</animation>
 					<animation effect="fade" start="0" end="100" time="300" condition="Window.Previous(fullscreenvideo) | Window.Previous(startup)">WindowOpen</animation>
 					<texture fallback="special://skin/extras/backgrounds/SKINDEFAULT.jpg">$VAR[GlobalFanartVar]</texture>
 				</control>
@@ -1061,7 +1060,7 @@
 					<animation effect="fade" start="100" end="0" time="300">WindowClose</animation>
 					<animation effect="fade" time="400">VisibleChange</animation>
 					<texture background="true" colordiffuse="35FFFFFF">$VAR[MediaFanartVar]</texture>
-					<visible>!Player.HasMedia | !String.IsEmpty(Window(videolibrary).Property(PlayingBackgroundMedia))</visible>
+					<visible>!Player.HasMedia | !String.IsEmpty(Window(Videos).Property(PlayingBackgroundMedia))</visible>
 				</control>
 			</control>
 		</definition>
@@ -1131,13 +1130,13 @@
 						<texture colordiffuse="button_focus">frame/menu-fo.png</texture>
 						<animation effect="fade" time="200">VisibleChange</animation>
 						<visible>$EXP[sidebar_focused]</visible>
-						<visible>!Player.HasMedia | !String.IsEmpty(Window(videolibrary).Property(PlayingBackgroundMedia))</visible>
+						<visible>!Player.HasMedia | !String.IsEmpty(Window(Videos).Property(PlayingBackgroundMedia))</visible>
 					</control>
 				</control>
 				<control type="group">
 					<left>450</left>
 					<top>1005</top>
-					<visible>Player.HasMedia + String.IsEmpty(Window(videolibrary).Property(PlayingBackgroundMedia))</visible>
+					<visible>Player.HasMedia + String.IsEmpty(Window(Videos).Property(PlayingBackgroundMedia))</visible>
 					<animation effect="fade" time="200">VisibleChange</animation>
 					<control type="grouplist">
 						<orientation>horizontal</orientation>

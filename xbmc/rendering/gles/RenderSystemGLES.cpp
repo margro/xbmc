@@ -151,7 +151,7 @@ bool CRenderSystemGLES::ResetRenderSystem(int width, int height, bool fullScreen
   glEnable(GL_SCISSOR_TEST); 
 
   glMatrixProject.Clear();
-  glMatrixModview->LoadIdentity();
+  glMatrixProject->LoadIdentity();
   glMatrixProject->Ortho(0.0f, width-1, height-1, 0.0f, -1.0f, 1.0f);
   glMatrixProject.Load();
 
@@ -274,7 +274,7 @@ static int64_t abs64(int64_t a)
   return a;
 }
 
-void CRenderSystemGLES::PresentRender(bool rendered)
+void CRenderSystemGLES::PresentRender(bool rendered, bool videoLayer)
 {
   SetVSync(true);
 
@@ -283,7 +283,8 @@ void CRenderSystemGLES::PresentRender(bool rendered)
 
   PresentRenderImpl(rendered);
 
-  if (!rendered)
+  // if video is rendered to a separate layer, we should not block this thread
+  if (!rendered && !videoLayer)
     Sleep(40);
 }
 
@@ -327,7 +328,7 @@ void CRenderSystemGLES::CaptureStateBlock()
 
   glDisable(GL_SCISSOR_TEST); // fixes FBO corruption on Macs
   glActiveTexture(GL_TEXTURE0);
-//TODO - NOTE: Only for Screensavers & Visualisations
+//! @todo - NOTE: Only for Screensavers & Visualisations
 //  glColor3f(1.0, 1.0, 1.0);
 }
 

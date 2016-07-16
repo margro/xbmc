@@ -20,6 +20,10 @@
  *
  */
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "DVDClock.h"
 
 #define VideoPlayer_AUDIO    1
@@ -103,6 +107,7 @@ class IVideoPlayer
 {
 public:
   virtual int OnDVDNavResult(void* pData, int iMessage) = 0;
+  virtual void GetVideoResolution(unsigned int &width, unsigned int &height) = 0;
   virtual ~IVideoPlayer() { }
 };
 
@@ -176,8 +181,8 @@ public:
   virtual int  GetLevel() const = 0;
   virtual bool IsInited() const = 0;
   virtual void SendMessage(CDVDMsg* pMsg, int priority = 0) = 0;
-  virtual void SetVolume(float fVolume) = 0;
-  virtual void SetMute(bool bOnOff) = 0;
+  virtual void SetVolume(float fVolume) {};
+  virtual void SetMute(bool bOnOff) {};
   virtual void SetDynamicRangeCompression(long drc) = 0;
   virtual std::string GetPlayerInfo() = 0;
   virtual int GetAudioBitrate() = 0;

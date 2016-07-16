@@ -21,6 +21,7 @@
 
 #include <map>
 #include <memory>
+#include <vector>
 
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "PVRTimerInfoTag.h"
@@ -40,8 +41,7 @@ namespace PVR
 {
   class CPVRTimersPath;
 
-  class CPVRTimers : public Observer,
-                     public Observable
+  class CPVRTimers : public Observer
   {
   public:
     CPVRTimers(void);
@@ -107,6 +107,13 @@ namespace PVR
     bool IsRecordingOnChannel(const CPVRChannel &channel) const;
 
     /*!
+     * @brief Obtain the active timer for a given channel.
+     * @param channel The channel to check.
+     * @return the timer, null otherwise.
+     */
+    CPVRTimerInfoTagPtr GetActiveTimerForChannel(const CPVRChannelPtr &channel) const;
+
+    /*!
      * @return The amount of timers that are currently recording
      */
     int AmountActiveRecordings(void) const;
@@ -122,18 +129,11 @@ namespace PVR
     /*!
      * @brief Delete all timers on a channel.
      * @param channel The channel to delete the timers for.
-     * @param bDeleteRepeating True to delete repeating events too, false otherwise.
+     * @param bDeleteTimerRules True to delete timer rules too, false otherwise.
      * @param bCurrentlyActiveOnly True to delete timers that are currently running only.
      * @return True if timers any were deleted, false otherwise.
      */
-    bool DeleteTimersOnChannel(const CPVRChannelPtr &channel, bool bDeleteRepeating = true, bool bCurrentlyActiveOnly = false);
-
-    /*!
-     * @brief Create a new instant timer on a channel.
-     * @param channel The channel to create the timer on.
-     * @return True if the timer was created, false otherwise.
-     */
-    bool InstantTimer(const CPVRChannelPtr &channel);
+    bool DeleteTimersOnChannel(const CPVRChannelPtr &channel, bool bDeleteTimerRules = true, bool bCurrentlyActiveOnly = false);
 
     /*!
      * @return Next event time (timer or daily wake up)
@@ -209,6 +209,8 @@ namespace PVR
     CPVRTimerInfoTagPtr GetByClient(int iClientId, unsigned int iClientTimerId) const;
     bool GetRootDirectory(const CPVRTimersPath &path, CFileItemList &items) const;
     bool GetSubDirectory(const CPVRTimersPath &path, CFileItemList &items) const;
+    bool SetEpgTagTimer(const CPVRTimerInfoTagPtr &timer);
+    bool ClearEpgTagTimer(const CPVRTimerInfoTagPtr &timer);
 
     CCriticalSection  m_critSection;
     bool              m_bIsUpdating;

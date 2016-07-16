@@ -35,8 +35,9 @@
 #include "cores/IPlayer.h"
 #include "cores/VideoPlayer/DVDFileInfo.h"
 #include "cores/AudioEngine/AEFactory.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
+#include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "PlayListPlayer.h"
 #include "Autorun.h"
 #include "video/Bookmark.h"
@@ -48,6 +49,7 @@
 #include "guilib/GUIFontManager.h"
 #include "guilib/GUIColorManager.h"
 #include "guilib/StereoscopicsManager.h"
+#include "addons/BinaryAddonCache.h"
 #include "addons/LanguageResource.h"
 #include "addons/Skin.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
@@ -598,6 +600,8 @@ bool CApplication::Create()
   av_register_all();
   // register avfilter
   avfilter_register_all();
+  // initialize network protocols
+  avformat_network_init();
   // set avutil callback
   av_log_set_callback(ff_avutil_log);
 
@@ -1044,7 +1048,7 @@ bool CApplication::InitDirectoriesWin32()
 #endif
 }
 
-void CApplication::CreateUserDirs()
+void CApplication::CreateUserDirs() const
 {
   CDirectory::Create("special://home/");
   CDirectory::Create("special://home/addons");
@@ -1055,6 +1059,12 @@ void CApplication::CreateUserDirs()
   CDirectory::Create("special://temp/");
   CDirectory::Create("special://logpath");
   CDirectory::Create("special://temp/temp"); // temp directory for python and dllGetTempPathA
+
+  //Let's clear our archive cache before starting up anything more
+  auto archiveCachePath = CSpecialProtocol::TranslatePath("special://temp/archive_cache/");
+  CDirectory::Remove(archiveCachePath);
+  CDirectory::Create(archiveCachePath);
+
 }
 
 bool CApplication::Initialize()
@@ -1064,9 +1074,9 @@ bool CApplication::Initialize()
   cdio_loglevel_default = CDIO_LOG_ERROR;
 #endif
 
-#ifdef TARGET_POSIX // TODO: Win32 has no special://home/ mapping by default, so we
-              //       must create these here. Ideally this should be using special://home/ and
-              //       be platform agnostic (i.e. unify the InitDirectories*() functions)
+#ifdef TARGET_POSIX //! @todo Win32 has no special://home/ mapping by default, so we
+              //!       must create these here. Ideally this should be using special://home/ and
+              //!      be platform agnostic (i.e. unify the InitDirectories*() functions)
   if (!m_bPlatformDirectories)
 #endif
   {
@@ -1152,6 +1162,11 @@ bool CApplication::Initialize()
       // activate the configured start window
       int firstWindow = g_SkinInfo->GetFirstWindow();
       g_windowManager.ActivateWindow(firstWindow);
+
+      if (g_windowManager.GetActiveWindowID() == WINDOW_STARTUP_ANIM)
+      {
+        CLog::Log(LOGWARNING, "CApplication::Initialize - startup.xml taints init process");
+      }
 
       // the startup window is considered part of the initialization as it most likely switches to the final window
       uiInitializationFinished = firstWindow != WINDOW_STARTUP_ANIM;
@@ -1886,10 +1901,7 @@ void CApplication::Render()
     g_infoManager.UpdateFPS();
   }
 
-  // TODO: find better solution
-  // if video is rendered to a separate layer, we should not block this thread
-  if (!m_pPlayer->IsRenderingVideoLayer() || hasRendered)
-    g_graphicsContext.Flip(hasRendered);
+  g_graphicsContext.Flip(hasRendered, m_pPlayer->IsRenderingVideoLayer());
 
   CTimeUtils::UpdateFrameTime(hasRendered);
 }
@@ -2133,7 +2145,7 @@ bool CApplication::OnAction(const CAction &action)
   if (action.GetID() == ACTION_PREV_ITEM && m_pPlayer->CanSeek())
   {
     SeekTime(0);
-    m_pPlayer->SetPlaySpeed(1, g_application.m_muted);
+    m_pPlayer->SetPlaySpeed(1);
     return true;
   }
 
@@ -2156,7 +2168,7 @@ bool CApplication::OnAction(const CAction &action)
       m_pPlayer->Pause();
       // go back to normal play speed on unpause
       if (!m_pPlayer->IsPaused() && m_pPlayer->GetPlaySpeed() != 1)
-        m_pPlayer->SetPlaySpeed(1, g_application.m_muted);
+        m_pPlayer->SetPlaySpeed(1);
 
       g_audioManager.Enable(m_pPlayer->IsPaused());
       return true;
@@ -2169,7 +2181,7 @@ bool CApplication::OnAction(const CAction &action)
         return OnAction(CAction(ACTION_PAUSE));
       // if we do a FF/RW then go back to normal speed
       if (m_pPlayer->GetPlaySpeed() != 1)
-        m_pPlayer->SetPlaySpeed(1, g_application.m_muted);
+        m_pPlayer->SetPlaySpeed(1);
       return true;
     }
     if (!m_pPlayer->IsPaused())
@@ -2191,7 +2203,7 @@ bool CApplication::OnAction(const CAction &action)
         if (iPlaySpeed > 32 || iPlaySpeed < -32)
           iPlaySpeed = 1;
 
-        m_pPlayer->SetPlaySpeed(iPlaySpeed, g_application.m_muted);
+        m_pPlayer->SetPlaySpeed(iPlaySpeed);
         return true;
       }
       else if ((action.GetAmount() || m_pPlayer->GetPlaySpeed() != 1) && (action.GetID() == ACTION_ANALOG_REWIND || action.GetID() == ACTION_ANALOG_FORWARD))
@@ -2204,7 +2216,7 @@ bool CApplication::OnAction(const CAction &action)
         int iSpeed = 1 << iPower;
         if (iSpeed != 1 && action.GetID() == ACTION_ANALOG_REWIND)
           iSpeed = -iSpeed;
-        g_application.m_pPlayer->SetPlaySpeed(iSpeed, g_application.m_muted);
+        g_application.m_pPlayer->SetPlaySpeed(iSpeed);
         if (iSpeed == 1)
           CLog::Log(LOGDEBUG,"Resetting playspeed");
         return true;
@@ -2219,7 +2231,7 @@ bool CApplication::OnAction(const CAction &action)
         m_pPlayer->Pause();
         g_audioManager.Enable(m_pPlayer->IsPaused());
 
-        g_application.m_pPlayer->SetPlaySpeed(1, g_application.m_muted);
+        g_application.m_pPlayer->SetPlaySpeed(1);
         return true;
       }
     }
@@ -2686,7 +2698,6 @@ void CApplication::FrameMove(bool processEvents, bool processGUI)
       unsigned int sleepTime = std::max(static_cast<unsigned int>(2), std::min(m_ProcessedExternalCalls >> 2, static_cast<unsigned int>(10)));
       Sleep(sleepTime);
       m_frameMoveGuard.lock();
-      CLog::Log(LOGDEBUG, "FrameMove ExternalCalls: %u, Sleep: %u", m_ProcessedExternalCalls, sleepTime);
     }
     else
       m_ProcessedExternalCalls = 0;
@@ -3059,11 +3070,11 @@ PlayBackRet CApplication::PlayStack(const CFileItem& item, bool bRestart)
     LoadVideoSettings(item);
     
     // see if we have the info in the database
-    // TODO: If user changes the time speed (FPS via framerate conversion stuff)
-    //       then these times will be wrong.
-    //       Also, this is really just a hack for the slow load up times we have
-    //       A much better solution is a fast reader of FPS and fileLength
-    //       that we can use on a file to get it's time.
+    //! @todo If user changes the time speed (FPS via framerate conversion stuff)
+    //!       then these times will be wrong.
+    //!       Also, this is really just a hack for the slow load up times we have
+    //!       A much better solution is a fast reader of FPS and fileLength
+    //!       that we can use on a file to get it's time.
     std::vector<int> times;
     bool haveTimes(false);
     CVideoDatabase dbs;
@@ -3161,8 +3172,7 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
     CMediaSettings::GetInstance().GetCurrentAudioSettings() = CMediaSettings::GetInstance().GetDefaultAudioSettings();
     // see if we have saved options in the database
 
-    m_pPlayer->SetPlaySpeed(1, g_application.m_muted);
-    m_pPlayer->m_iPlaySpeed = 1;     // Reset both CApp's & Player's speed else we'll get confused
+    m_pPlayer->SetPlaySpeed(1);
 
     m_itemCurrentFile.reset(new CFileItem(item));
 
@@ -3237,20 +3247,12 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
     options.startpercent = item.GetProperty("StartPercent").asDouble(fallback);
   }
 
-  std::string newPlayer;
   if (bRestart)
   {
     // have to be set here due to playstack using this for starting the file
     options.starttime = item.m_lStartOffset / 75.0;
     if (m_itemCurrentFile->IsStack() && m_currentStack->Size() > 0 && m_itemCurrentFile->m_lStartOffset != 0)
       m_itemCurrentFile->m_lStartOffset = STARTOFFSET_RESUME; // to force fullscreen switching
-
-    if (!player.empty() && player != "default")
-      newPlayer = player;
-    else if (m_pPlayer->GetCurrentPlayer().empty())
-      newPlayer = CPlayerCoreFactory::GetInstance().GetDefaultPlayer(item);
-    else
-      newPlayer = m_pPlayer->GetCurrentPlayer();
   }
   else
   {
@@ -3314,11 +3316,6 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
 
       dbs.Close();
     }
-
-    if (player.empty())
-      newPlayer = CPlayerCoreFactory::GetInstance().GetDefaultPlayer(item);
-    else
-      newPlayer = player;
   }
 
   // this really aught to be inside !bRestart, but since PlayStack
@@ -3331,7 +3328,7 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
   }
   else if(m_itemCurrentFile->IsStack() && m_currentStack->Size() > 0)
   {
-    // TODO - this will fail if user seeks back to first file in stack
+    //! @todo - this will fail if user seeks back to first file in stack
     if(m_currentStackPosition == 0 || m_itemCurrentFile->m_lStartOffset == STARTOFFSET_RESUME)
       options.fullscreen = g_advancedSettings.m_fullScreenOnMovieStart && !CMediaSettings::GetInstance().DoesVideoStartWindowed();
     else
@@ -3370,6 +3367,14 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
       CLog::LogF(LOGDEBUG,"Ignored %d playback thread messages", dMsgCount);
   }
 
+  std::string newPlayer;
+  if (!player.empty())
+    newPlayer = player;
+  else if (bRestart && !m_pPlayer->GetCurrentPlayer().empty())
+    newPlayer = m_pPlayer->GetCurrentPlayer();
+  else
+    newPlayer = CPlayerCoreFactory::GetInstance().GetDefaultPlayer(item);
+
   // We should restart the player, unless the previous and next tracks are using
   // one of the players that allows gapless playback (paplayer, VideoPlayer)
   m_pPlayer->ClosePlayerGapless(newPlayer);
@@ -3404,21 +3409,10 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
     iResult = PLAYBACK_FAIL;
   }
 
-  if(iResult == PLAYBACK_OK)
+  if (iResult == PLAYBACK_OK)
   {
-    if (m_pPlayer->GetPlaySpeed() != 1)
-    {
-      int iSpeed = m_pPlayer->GetPlaySpeed();
-      m_pPlayer->m_iPlaySpeed = 1;
-      m_pPlayer->SetPlaySpeed(iSpeed, g_application.m_muted);
-    }
-
-    // if player has volume control, set it.
-    if (m_pPlayer->ControlsVolume())
-    {
-      m_pPlayer->SetVolume(m_volumeLevel);
-      m_pPlayer->SetMute(m_muted);
-    }
+    m_pPlayer->SetVolume(m_volumeLevel);
+    m_pPlayer->SetMute(m_muted);
 
     if(m_pPlayer->IsPlayingAudio())
     {
@@ -3702,8 +3696,8 @@ void CApplication::UpdateFileState()
     // Ignore for PVR channels, PerformChannelSwitch takes care of this.
     // Also ignore video playlists containing multiple items: video settings have already been saved in PlayFile()
     // and we'd overwrite them with settings for the *previous* item.
-    // TODO: these "exceptions" should be removed and the whole logic of saving settings be revisited and
-    // possibly moved out of CApplication.  See PRs 5842, 5958, http://trac.kodi.tv/ticket/15704#comment:3
+    //! @todo these "exceptions" should be removed and the whole logic of saving settings be revisited and
+    //! possibly moved out of CApplication.  See PRs 5842, 5958, http://trac.kodi.tv/ticket/15704#comment:3
     int playlist = g_playlistPlayer.GetCurrentPlaylist();
     if (!m_progressTrackingItem->IsPVRChannel() && !(playlist == PLAYLIST_VIDEO && g_playlistPlayer.GetPlaylist(playlist).size() > 1))
       SaveFileState();
@@ -3872,8 +3866,8 @@ bool CApplication::WakeUpScreenSaverAndDPMS(bool bPowerOffKeyPressed /* = false 
   {
     if (m_dpmsIsManual)
       return false;
-    // TODO: if screensaver lock is specified but screensaver is not active
-    // (DPMS came first), activate screensaver now.
+    //! @todo if screensaver lock is specified but screensaver is not active
+    //! (DPMS came first), activate screensaver now.
     ToggleDPMS(false);
     ResetScreenSaverTimer();
     result = !m_bScreenSave || WakeUpScreenSaver(bPowerOffKeyPressed);
@@ -4245,9 +4239,6 @@ bool CApplication::OnMessage(CGUIMessage& message)
       else
       {
         m_pPlayer->ClosePlayer();
-
-        // Reset playspeed
-        m_pPlayer->m_iPlaySpeed = 1;
       }
 
       if (!m_pPlayer->IsPlaying())
@@ -4419,10 +4410,6 @@ void CApplication::Process()
   // process messages, even if a movie is playing
   CApplicationMessenger::GetInstance().ProcessMessages();
   if (g_application.m_bStop) return; //we're done, everything has been unloaded
-
-  // check how far we are through playing the current item
-  // and do anything that needs doing (playcount updates etc)
-  CheckPlayingProgress();
 
   // update sound
   m_pPlayer->DoAudioWork();
@@ -4714,11 +4701,8 @@ void CApplication::VolumeChanged() const
   CAnnouncementManager::GetInstance().Announce(Application, "xbmc", "OnVolumeChanged", data);
 
   // if player has volume control, set it.
-  if (m_pPlayer->ControlsVolume())
-  {
-     m_pPlayer->SetVolume(m_volumeLevel);
-     m_pPlayer->SetMute(m_muted);
-  }
+  m_pPlayer->SetVolume(m_volumeLevel);
+  m_pPlayer->SetMute(m_muted);
 }
 
 int CApplication::GetSubtitleDelay() const
@@ -5034,30 +5018,6 @@ void CApplication::StartMusicArtistScan(const std::string& strDirectory,
   m_musicInfoScanner->ShowDialog(true);
 
   m_musicInfoScanner->FetchArtistInfo(strDirectory,refresh);
-}
-
-void CApplication::CheckPlayingProgress()
-{
-  // check if we haven't rewound past the start of the file
-  if (m_pPlayer->IsPlaying())
-  {
-    int iSpeed = g_application.m_pPlayer->GetPlaySpeed();
-    if (iSpeed < 1)
-    {
-      iSpeed *= -1;
-      int iPower = 0;
-      while (iSpeed != 1)
-      {
-        iSpeed >>= 1;
-        iPower++;
-      }
-      if (g_infoManager.GetPlayTime() / 1000 < iPower)
-      {
-        g_application.m_pPlayer->SetPlaySpeed(1, g_application.m_muted);
-        g_application.SeekTime(0);
-      }
-    }
-  }
 }
 
 bool CApplication::ProcessAndStartPlaylist(const std::string& strPlayList, CPlayList& playlist, int iPlaylist, int track)

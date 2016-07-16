@@ -21,9 +21,12 @@
  */
 
 #include <memory>
+#include <string>
+#include <vector>
+
+#include "threads/CriticalSection.h"
 #include "threads/SystemClock.h"
 #include "guilib/Resolution.h"
-#include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "cores/IPlayer.h"
 
 typedef enum
@@ -62,11 +65,11 @@ class CApplicationPlayer
   int m_iVideoStream;
   XbmcThreads::EndTime m_subtitleStreamUpdate;
   int m_iSubtitleStream;
-  
+  XbmcThreads::EndTime m_speedUpdate;
+  int m_iPlaySpeed;
+
 public:
   CApplicationPlayer();
-
-  int m_iPlaySpeed;
 
   // player management
   void CloseFile(bool reopen = false);
@@ -74,10 +77,10 @@ public:
   void ClosePlayerGapless(std::string &playername);
   void CreatePlayer(const std::string &player, IPlayerCallback& callback);
   std::string GetCurrentPlayer();
-  int  GetPlaySpeed() const;
+  int  GetPlaySpeed();
   bool HasPlayer() const;
   PlayBackRet OpenFile(const CFileItem& item, const CPlayerOptions& options);
-  void SetPlaySpeed(int iSpeed, bool bApplicationMuted);
+  void SetPlaySpeed(int iSpeed);
 
   void FrameMove();
   bool HasFrame();
@@ -104,7 +107,6 @@ public:
   bool  CanPause();
   bool  CanRecord();
   bool  CanSeek();
-  bool  ControlsVolume() const;
   void  DoAudioWork();
   void  GetAudioCapabilities(std::vector<int> &audioCaps);
   int   GetAudioStream();
@@ -176,7 +178,7 @@ public:
   void  SetVideoStream(int iStream);
   void  SetVolume(float volume);
   bool  SwitchChannel(const PVR::CPVRChannelPtr &channel);
-  void  ToFFRW(int iSpeed = 0);
+  void  SetSpeed(int iSpeed);
   
   protected:
     std::shared_ptr<IPlayer> GetInternal() const;

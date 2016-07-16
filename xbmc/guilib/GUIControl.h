@@ -27,6 +27,8 @@
  *
  */
 
+#include <vector>
+
 #include "GraphicContext.h" // needed by any rendering operation (all controls)
 #include "GUIMessage.h"     // needed by practically all controls
 #include "VisibleEffect.h"  // needed for the CAnimation members
@@ -248,17 +250,14 @@ public:
   enum GUICONTROLTYPES {
     GUICONTROL_UNKNOWN,
     GUICONTROL_BUTTON,
-    GUICONTROL_CHECKMARK,
     GUICONTROL_FADELABEL,
     GUICONTROL_IMAGE,
     GUICONTROL_BORDEREDIMAGE,
-    GUICONTROL_LARGE_IMAGE,
     GUICONTROL_LABEL,
     GUICONTROL_LISTGROUP,
     GUICONTROL_PROGRESS,
     GUICONTROL_RADIO,
     GUICONTROL_RSS,
-    GUICONTROL_SELECTBUTTON,
     GUICONTROL_SLIDER,
     GUICONTROL_SETTINGS_SLIDER,
     GUICONTROL_SPIN,
@@ -276,7 +275,6 @@ public:
     GUICONTROL_GROUPLIST,
     GUICONTROL_SCROLLBAR,
     GUICONTROL_LISTLABEL,
-    GUICONTROL_MULTISELECT,
     GUICONTROL_GAMECONTROLLER,
     GUICONTAINER_LIST,
     GUICONTAINER_WRAPLIST,

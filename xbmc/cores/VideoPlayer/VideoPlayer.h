@@ -22,6 +22,7 @@
 
 #include <atomic>
 #include <utility>
+#include <vector>
 #include "cores/IPlayer.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
 #include "threads/Thread.h"
@@ -254,9 +255,9 @@ public:
   virtual float GetPercentage();
   virtual float GetCachePercentage();
 
-  virtual void SetVolume(float nVolume)                         { m_VideoPlayerAudio->SetVolume(nVolume); }
-  virtual void SetMute(bool bOnOff)                             { m_VideoPlayerAudio->SetMute(bOnOff); }
-  virtual void SetDynamicRangeCompression(long drc)             { m_VideoPlayerAudio->SetDynamicRangeCompression(drc); }
+  virtual void SetVolume(float nVolume) override;
+  virtual void SetMute(bool bOnOff) override;
+  virtual void SetDynamicRangeCompression(long drc) override;
   virtual bool CanRecord();
   virtual bool IsRecording();
   virtual bool CanPause();
@@ -300,7 +301,8 @@ public:
   virtual bool SeekTimeRelative(int64_t iTime);
   virtual int64_t GetTime();
   virtual int64_t GetTotalTime();
-  virtual void ToFFRW(int iSpeed);
+  virtual void SetSpeed(int iSpeed) override;
+  virtual int GetSpeed() override;
   virtual bool OnAction(const CAction &action);
 
   virtual int GetSourceBitrate();
@@ -349,9 +351,8 @@ public:
   virtual bool IsCaching() const { return m_caching > CACHESTATE_DONE && m_caching < CACHESTATE_PLAY; }
   virtual int GetCacheLevel() const ;
 
-  virtual int OnDVDNavResult(void* pData, int iMessage);
-
-  virtual bool ControlsVolume() {return m_omxplayer_mode;}
+  virtual int OnDVDNavResult(void* pData, int iMessage) override;
+  void GetVideoResolution(unsigned int &width, unsigned int &height) override;
 
 protected:
   friend class CSelectionStreams;
@@ -396,7 +397,7 @@ protected:
    * one of the DVD_PLAYSPEED defines
    */
   void SetPlaySpeed(int iSpeed);
-  int GetPlaySpeed()                                                { return m_playSpeed; }
+  int GetPlaySpeed() { return m_playSpeed; }
   void SetCaching(ECacheState state);
 
   int64_t GetTotalTimeInMsec();
@@ -457,7 +458,8 @@ protected:
 
   CSelectionStreams m_SelectionStreams;
 
-  int m_playSpeed;
+  std::atomic_int m_playSpeed;
+  std::atomic_int m_newPlaySpeed;
   int m_streamPlayerSpeed;
   struct SSpeedState
   {

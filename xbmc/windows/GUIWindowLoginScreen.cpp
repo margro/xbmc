@@ -28,7 +28,7 @@
 #include "GUIPassword.h"
 #include "addons/AddonManager.h"
 #include "addons/Skin.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "dialogs/GUIDialogContextMenu.h"
 #include "dialogs/GUIDialogOK.h"
 #include "guilib/GUIMessage.h"
@@ -42,6 +42,7 @@
 #endif
 #include "messaging/ApplicationMessenger.h"
 #include "network/Network.h"
+#include "PlayListPlayer.h"
 #include "profiles/Profile.h"
 #include "profiles/ProfilesManager.h"
 #include "profiles/dialogs/GUIDialogProfileSettings.h"

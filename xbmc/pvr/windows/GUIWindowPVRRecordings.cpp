@@ -20,13 +20,14 @@
 
 #include "ContextMenuManager.h"
 #include "GUIInfoManager.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIRadioButtonControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
+#include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -52,19 +53,17 @@ CGUIWindowPVRRecordings::CGUIWindowPVRRecordings(bool bRadio) :
 void CGUIWindowPVRRecordings::RegisterObservers(void)
 {
   CSingleLock lock(m_critSection);
-  g_PVRRecordings->RegisterObserver(this);
-  g_PVRTimers->RegisterObserver(this);
+  g_PVRManager.RegisterObserver(this);
   g_infoManager.RegisterObserver(this);
+  CGUIWindowPVRBase::RegisterObservers();
 }
 
 void CGUIWindowPVRRecordings::UnregisterObservers(void)
 {
   CSingleLock lock(m_critSection);
-  if (g_PVRRecordings)
-    g_PVRRecordings->UnregisterObserver(this);
-  if (g_PVRTimers)
-    g_PVRTimers->UnregisterObserver(this);
+  CGUIWindowPVRBase::UnregisterObservers();
   g_infoManager.UnregisterObserver(this);
+  g_PVRManager.UnregisterObserver(this);
 }
 
 void CGUIWindowPVRRecordings::OnWindowLoaded()
@@ -223,6 +222,8 @@ bool CGUIWindowPVRRecordings::Update(const std::string &strDirectory, bool updat
 
 void CGUIWindowPVRRecordings::UpdateButtons(void)
 {
+  SET_CONTROL_SELECTED(GetID(), CONTROL_BTNGROUPITEMS, CSettings::GetInstance().GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS));
+
   CGUIRadioButtonControl *btnShowDeleted = (CGUIRadioButtonControl*) GetControl(CONTROL_BTNSHOWDELETED);
   if (btnShowDeleted)
   {
@@ -278,8 +279,8 @@ bool CGUIWindowPVRRecordings::OnMessage(CGUIMessage &message)
       }
       else if (message.GetSenderId() == CONTROL_BTNGROUPITEMS)
       {
-        CGUIRadioButtonControl *radioButton = (CGUIRadioButtonControl*) GetControl(CONTROL_BTNGROUPITEMS);
-        g_PVRRecordings->SetGroupItems(radioButton->IsSelected());
+        CSettings::GetInstance().ToggleBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
+        CSettings::GetInstance().Save();
         Refresh(true);
       }
       else if (message.GetSenderId() == CONTROL_BTNSHOWDELETED)
@@ -303,14 +304,12 @@ bool CGUIWindowPVRRecordings::OnMessage(CGUIMessage &message)
         case ObservableMessageCurrentItem:
         {
           SetInvalid();
-          bReturn = true;
           break;
         }
         case ObservableMessageRecordings:
         case ObservableMessageTimersReset:
         {
           Refresh(true);
-          bReturn = true;
           break;
         }
       }

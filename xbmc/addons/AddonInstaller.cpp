@@ -220,7 +220,9 @@ void CAddonInstaller::Install(const std::string& addonId, const AddonVersion& ve
   if (!CAddonMgr::GetInstance().GetAddon(repoId, repo, ADDON_REPOSITORY))
     return;
 
-  std::string hash = std::static_pointer_cast<CRepository>(repo)->GetAddonHash(addon);
+  std::string hash;
+  if (!std::static_pointer_cast<CRepository>(repo)->GetAddonHash(addon, hash))
+    return;
   DoInstall(addon, std::static_pointer_cast<CRepository>(repo), hash, true, false);
 }
 
@@ -266,7 +268,7 @@ bool CAddonInstaller::InstallFromZip(const std::string &path)
 
   // grab the descriptive XML document from the zip, and read it in
   CFileItemList items;
-  // BUG: some zip files return a single item (root folder) that we think is stored, so we don't use the zip:// protocol
+  //! @bug some zip files return a single item (root folder) that we think is stored, so we don't use the zip:// protocol
   CURL pathToUrl(path);
   CURL zipDir = URIUtils::CreateArchivePath("zip", pathToUrl, "");
   if (!CDirectory::GetDirectory(zipDir, items) || items.Size() != 1 || !items[0]->m_bIsFolder)
@@ -277,20 +279,9 @@ bool CAddonInstaller::InstallFromZip(const std::string &path)
     return false;
   }
 
-  // TODO: possibly add support for github generated zips here?
-  std::string archive = URIUtils::AddFileToFolder(items[0]->GetPath(), "addon.xml");
-
-  CXBMCTinyXML xml;
   AddonPtr addon;
-  if (xml.LoadFile(archive) && CAddonMgr::GetInstance().LoadAddonDescriptionFromMemory(xml.RootElement(), addon))
-  {
-    // set the correct path
-    addon->Props().path = items[0]->GetPath();
-    addon->Props().icon = URIUtils::AddFileToFolder(items[0]->GetPath(), "icon.png");
-
-    // install the addon
+  if (CAddonMgr::GetInstance().LoadAddonDescription(items[0]->GetPath(), addon))
     return DoInstall(addon, RepositoryPtr());
-  }
 
   CEventLog::GetInstance().AddWithNotification(EventPtr(new CNotificationEvent(24045,
       StringUtils::Format(g_localizeStrings.Get(24143).c_str(), path.c_str()),
@@ -351,7 +342,7 @@ bool CAddonInstaller::CheckDependencies(const AddonPtr &addon,
     }
 
     // at this point we have our dep, or the dep is optional (and we don't have it) so check that it's OK as well
-    // TODO: should we assume that installed deps are OK?
+    //! @todo should we assume that installed deps are OK?
     if (dep && std::find(preDeps.begin(), preDeps.end(), dep->ID()) == preDeps.end())
     {
       if (!CheckDependencies(dep, preDeps, database, failedDep))
@@ -497,8 +488,7 @@ bool CAddonInstallJob::GetAddonWithHash(const std::string& addonID, const std::s
   if (!CAddonMgr::GetInstance().GetAddon(repoID, repo, ADDON_REPOSITORY))
     return false;
 
-  hash = std::static_pointer_cast<CRepository>(repo)->GetAddonHash(addon);
-  return true;
+  return std::static_pointer_cast<CRepository>(repo)->GetAddonHash(addon, hash);
 }
 
 bool CAddonInstallJob::DoWork()
@@ -574,7 +564,8 @@ bool CAddonInstallJob::DoWork()
         {
           CFile::Delete(package);
 
-          CLog::Log(LOGERROR, "CAddonInstallJob[%s]: MD5 mismatch after download %s", m_addon->ID().c_str(), package.c_str());
+          CLog::Log(LOGERROR, "CAddonInstallJob[%s]: MD5 mismatch after download. Expected %s, was %s",
+              m_addon->ID().c_str(), m_hash.c_str(), md5.c_str());
           ReportInstallError(m_addon->ID(), URIUtils::GetFileName(package));
           return false;
         }
@@ -627,15 +618,12 @@ bool CAddonInstallJob::DoWork()
   //Enable it if it was previously disabled
   CAddonMgr::GetInstance().EnableAddon(m_addon->ID());
 
-  if (m_update)
   {
-    auto& addon = m_addon;
-    auto time = CDateTime::GetCurrentDateTime();
-    CJobManager::GetInstance().Submit([addon, time](){
-      CAddonDatabase db;
-      if (db.Open())
-        db.SetLastUpdated(addon->ID(), time);
-    });
+    CAddonDatabase database;
+    database.Open();
+    database.SetOrigin(m_addon->ID(), m_repo ? m_repo->ID() : "");
+    if (m_update)
+      database.SetLastUpdated(m_addon->ID(), CDateTime::GetCurrentDateTime());
   }
 
   // notify any observers that add-ons have changed

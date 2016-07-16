@@ -21,6 +21,7 @@
 #pragma once
 
 #include <limits.h>
+#include <vector>
 
 #include "Window.h"
 #include "windows/GUIMediaWindow.h"
@@ -140,6 +141,31 @@ namespace XBMCAddon
       addItem(...);
 #else
       SWIGHIDDENVIRTUAL void addItem(const Alternative<String, const ListItem*>& item, int position = INT_MAX);
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_xbmcgui_window_xml
+      /// @brief \python_func{ addItems(items) }
+      ///-----------------------------------------------------------------------
+      /// Add a list of items to to the window list.
+      ///
+      ///
+      /// @param items                      List - list of strings, unicode objects or ListItems to add.
+      ///
+      ///
+      /// ----------------------------------------------------------------------
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ..
+      /// self.addItems(['Reboot Kodi', 'Restart Kodi'])
+      /// ..
+      /// ~~~~~~~~~~~~~
+      ///
+      addItems(...);
+#else
+      SWIGHIDDENVIRTUAL void addItems(const std::vector<Alternative<String, const XBMCAddon::xbmcgui::ListItem* > > & items);
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS

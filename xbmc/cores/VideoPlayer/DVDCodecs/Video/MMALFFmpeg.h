@@ -27,6 +27,7 @@
 #include "MMALCodec.h"
 
 class CMMALRenderer;
+class CMMALPool;
 struct MMAL_BUFFER_HEADER_T;
 class CGPUMEM;
 
@@ -69,12 +70,14 @@ public:
   CGPUMEM *AllocateBuffer(unsigned int numbytes);
   void ReleaseBuffer(CGPUMEM *gmem);
   unsigned sizeFree() { return m_freeBuffers.size(); }
+  enum AVPixelFormat m_fmt;
 protected:
   MMAL_BUFFER_HEADER_T *GetMmal();
   AVCodecContext *m_avctx;
   unsigned int m_shared;
   CCriticalSection m_section;
   CMMALRenderer *m_renderer;
+  std::shared_ptr<CMMALPool> m_pool;
   std::deque<CGPUMEM *> m_freeBuffers;
   bool m_closing;
 };

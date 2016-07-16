@@ -26,6 +26,7 @@
 
 #include "SmartPlayList.h"
 #include "Util.h"
+#include "dbwrappers/Database.h"
 #include "filesystem/File.h"
 #include "filesystem/SmartPlaylistDirectory.h"
 #include "guilib/LocalizeStrings.h"
@@ -33,12 +34,12 @@
 #include "utils/JSONVariantParser.h"
 #include "utils/JSONVariantWriter.h"
 #include "utils/log.h"
+#include "utils/StreamDetails.h"
 #include "utils/StringUtils.h"
 #include "utils/StringValidation.h"
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
 #include "utils/XMLUtils.h"
-#include "video/VideoDatabase.h"
 
 using namespace XFILE;
 
@@ -345,6 +346,7 @@ std::vector<Field> CSmartPlaylistRule::GetFields(const std::string &type)
     fields.push_back(FieldDisbanded);
     fields.push_back(FieldDied);
     fields.push_back(FieldRole);
+    fields.push_back(FieldPath);
   }
   else if (type == "tvshows")
   {
@@ -734,7 +736,7 @@ CDatabaseQueryRule::SEARCH_OPERATOR CSmartPlaylistRule::GetOperator(const std::s
   SEARCH_OPERATOR op = CDatabaseQueryRule::GetOperator(strType);
   if ((strType == "tvshows" || strType == "episodes") && m_field == FieldYear)
   { // special case for premiered which is a date rather than a year
-    // TODO: SMARTPLAYLISTS do we really need this, or should we just make this field the premiered date and request a date?
+    //! @todo SMARTPLAYLISTS do we really need this, or should we just make this field the premiered date and request a date?
     if (op == OPERATOR_EQUALS)
       op = OPERATOR_CONTAINS;
     else if (op == OPERATOR_DOES_NOT_EQUAL)
@@ -806,9 +808,14 @@ std::string CSmartPlaylistRule::FormatWhereClause(const std::string &negate, con
       query += " OR ";
       query += "EXISTS (SELECT DISTINCT album_artist.idArtist FROM album_artist, album_genre, genre WHERE album_artist.idArtist = " + GetField(FieldId, strType) + " AND album_artist.idAlbum = album_genre.idAlbum AND album_genre.idGenre = genre.idGenre AND genre.strGenre" + parameter + "))";
     }
-    if (m_field == FieldRole)
+    else if (m_field == FieldRole)
     {
       query = negate + " (EXISTS (SELECT DISTINCT song_artist.idArtist FROM song_artist, role WHERE song_artist.idArtist = " + GetField(FieldId, strType) + " AND song_artist.idRole = role.idRole AND role.strRole" + parameter + "))";
+    }
+    else if (m_field == FieldPath)
+    {
+      query = negate + " (EXISTS (SELECT DISTINCT song_artist.idArtist FROM song_artist JOIN song ON song.idSong = song_artist.idSong JOIN path ON song.idpath = path.idpath ";
+      query += "WHERE song_artist.idArtist = " + GetField(FieldId, strType) + " AND path.strPath" + parameter + "))";
     }
   }
   else if (strType == "movies")

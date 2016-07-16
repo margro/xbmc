@@ -103,6 +103,42 @@ bool CPVRTimers::IsRecording(void) const
   return false;
 }
 
+bool CPVRTimers::SetEpgTagTimer(const CPVRTimerInfoTagPtr &timer)
+{
+  if (timer->IsTimerRule() || timer->m_bStartAnyTime || timer->m_bEndAnyTime)
+    return false;
+
+  std::vector<CEpgInfoTagPtr> tags(g_EpgContainer.GetEpgTagsForTimer(timer));
+
+  if (tags.empty())
+    return false;
+
+  // assign first matching epg tag to the timer.
+  timer->SetEpgTag(tags.front());
+
+  // assign timer to every matching epg tag.
+  for (const auto &tag : tags)
+    tag->SetTimer(timer);
+
+  return true;
+}
+
+bool CPVRTimers::ClearEpgTagTimer(const CPVRTimerInfoTagPtr &timer)
+{
+  if (timer->IsTimerRule() || timer->m_bStartAnyTime || timer->m_bEndAnyTime)
+    return false;
+
+  std::vector<CEpgInfoTagPtr> tags(g_EpgContainer.GetEpgTagsForTimer(timer));
+
+  if (tags.empty())
+    return false;
+
+  for (const auto &tag : tags)
+    tag->ClearTimer();
+
+  return true;
+}
+
 bool CPVRTimers::UpdateEntries(const CPVRTimers &timers, const std::vector<int> &failedClients)
 {
   bool bChanged(false);
@@ -122,8 +158,11 @@ bool CPVRTimers::UpdateEntries(const CPVRTimers &timers, const std::vector<int> 
       {
         /* if it's present, update the current tag */
         bool bStateChanged(existingTimer->m_state != (*timerIt)->m_state);
+        ClearEpgTagTimer(existingTimer);
         if (existingTimer->UpdateEntry(*timerIt))
         {
+          SetEpgTagTimer(existingTimer);
+
           bChanged = true;
           existingTimer->ResetChildState();
 
@@ -157,6 +196,8 @@ bool CPVRTimers::UpdateEntries(const CPVRTimers &timers, const std::vector<int> 
         }
 
         newTimer->m_iTimerId = ++m_iLastId;
+        SetEpgTagTimer(newTimer);
+
         addEntry->push_back(newTimer);
         bChanged = true;
         bAddedOrDeleted = true;
@@ -208,8 +249,8 @@ bool CPVRTimers::UpdateEntries(const CPVRTimers &timers, const std::vector<int> 
         if (g_PVRManager.IsStarted())
           timerNotifications.push_back(std::make_pair(timer->m_iClientId, timer->GetDeletedNotificationText()));
 
-        /** clear the EPG tag explicitly here, because it no longer happens automatically with shared pointers */
-        timer->ClearEpgTag();
+        ClearEpgTagTimer(timer);
+
         it2 = it->second->erase(it2);
 
         bChanged = true;
@@ -222,7 +263,7 @@ bool CPVRTimers::UpdateEntries(const CPVRTimers &timers, const std::vector<int> 
         CLog::Log(LOGDEBUG,"PVRTimers - %s - changed start time timer %d on client %d",
             __FUNCTION__, timer->m_iClientIndex, timer->m_iClientId);
 
-        timer->ClearEpgTag();
+        ClearEpgTagTimer(timer);
 
         /* remember timer */
         timersToMove.push_back(timer);
@@ -259,6 +300,8 @@ bool CPVRTimers::UpdateEntries(const CPVRTimers &timers, const std::vector<int> 
       addEntry = itr->second;
     }
 
+    SetEpgTagTimer(*timerIt);
+
     addEntry->push_back(*timerIt);
   }
 
@@ -280,10 +323,10 @@ bool CPVRTimers::UpdateEntries(const CPVRTimers &timers, const std::vector<int> 
   if (bChanged)
   {
     UpdateChannels();
-    SetChanged();
+    g_PVRManager.SetChanged();
     lock.Leave();
 
-    NotifyObservers(bAddedOrDeleted ? ObservableMessageTimersReset : ObservableMessageTimers);
+    g_PVRManager.NotifyObservers(bAddedOrDeleted ? ObservableMessageTimersReset : ObservableMessageTimers);
 
     /* queue notifications / fill eventlog */
     for (const auto &entry : timerNotifications)
@@ -339,7 +382,7 @@ CFileItemPtr CPVRTimers::GetNextActiveTimer(void) const
     for (VecTimerInfoTag::const_iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
     {
       CPVRTimerInfoTagPtr current = *timerIt;
-      if (current->IsActive() && !current->IsRecording() && !current->IsRepeating() && !current->IsBroken())
+      if (current->IsActive() && !current->IsRecording() && !current->IsTimerRule() && !current->IsBroken())
       {
         CFileItemPtr fileItem(new CFileItem(current));
         return fileItem;
@@ -361,7 +404,7 @@ std::vector<CFileItemPtr> CPVRTimers::GetActiveTimers(void) const
     for (VecTimerInfoTag::const_iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
     {
       CPVRTimerInfoTagPtr current = *timerIt;
-      if (current->IsActive() && !current->IsRepeating())
+      if (current->IsActive() && !current->IsTimerRule())
       {
         CFileItemPtr fileItem(new CFileItem(current));
         tags.push_back(fileItem);
@@ -379,7 +422,7 @@ int CPVRTimers::AmountActiveTimers(void) const
 
   for (MapTags::const_iterator it = m_tags.begin(); it != m_tags.end(); ++it)
     for (VecTimerInfoTag::const_iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
-      if ((*timerIt)->IsActive() && !(*timerIt)->IsRepeating())
+      if ((*timerIt)->IsActive() && !(*timerIt)->IsTimerRule())
         ++iReturn;
 
   return iReturn;
@@ -395,7 +438,7 @@ std::vector<CFileItemPtr> CPVRTimers::GetActiveRecordings(void) const
     for (VecTimerInfoTag::const_iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
     {
       CPVRTimerInfoTagPtr current = *timerIt;
-      if (current->IsRecording() && !current->IsRepeating())
+      if (current->IsRecording() && !current->IsTimerRule())
       {
         CFileItemPtr fileItem(new CFileItem(current));
         tags.push_back(fileItem);
@@ -413,7 +456,7 @@ int CPVRTimers::AmountActiveRecordings(void) const
 
   for (MapTags::const_iterator it = m_tags.begin(); it != m_tags.end(); ++it)
     for (VecTimerInfoTag::const_iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
-      if ((*timerIt)->IsRecording() && !(*timerIt)->IsRepeating())
+      if ((*timerIt)->IsRecording() && !(*timerIt)->IsTimerRule())
         ++iReturn;
 
   return iReturn;
@@ -424,7 +467,7 @@ bool CPVRTimers::HasActiveTimers(void) const
   CSingleLock lock(m_critSection);
   for (MapTags::const_iterator it = m_tags.begin(); it != m_tags.end(); ++it)
     for (VecTimerInfoTag::const_iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
-      if ((*timerIt)->IsActive() && !(*timerIt)->IsRepeating())
+      if ((*timerIt)->IsActive() && !(*timerIt)->IsTimerRule())
         return true;
 
   return false;
@@ -449,7 +492,7 @@ bool CPVRTimers::GetRootDirectory(const CPVRTimersPath &path, CFileItemList &ite
     for (const auto &timer : *tagsEntry.second)
     {
       if ((bRadio == timer->m_bIsRadio) &&
-          (bRules == timer->IsRepeating()) &&
+          (bRules == timer->IsTimerRule()) &&
           (!bHideDisabled || (timer->m_state != PVR_TIMER_STATE_DISABLED)))
       {
         item.reset(new CFileItem(timer));
@@ -518,7 +561,7 @@ bool CPVRTimers::GetDirectory(const std::string& strPath, CFileItemList &items) 
 
 /********** channel methods **********/
 
-bool CPVRTimers::DeleteTimersOnChannel(const CPVRChannelPtr &channel, bool bDeleteRepeating /* = true */, bool bCurrentlyActiveOnly /* = false */)
+bool CPVRTimers::DeleteTimersOnChannel(const CPVRChannelPtr &channel, bool bDeleteTimerRules /* = true */, bool bCurrentlyActiveOnly /* = false */)
 {
   bool bReturn = false;
   {
@@ -529,39 +572,20 @@ bool CPVRTimers::DeleteTimersOnChannel(const CPVRChannelPtr &channel, bool bDele
       for (VecTimerInfoTag::iterator timerIt = it->second->begin(); timerIt != it->second->end(); ++timerIt)
       {
         bool bDeleteActiveItem = !bCurrentlyActiveOnly || (*timerIt)->IsRecording();
-        bool bDeleteRepeatingItem = bDeleteRepeating || !(*timerIt)->IsRepeating();
+        bool bDeleteTimerRuleItem = bDeleteTimerRules || !(*timerIt)->IsTimerRule();
         bool bChannelsMatch = (*timerIt)->ChannelTag() == channel;
 
-        if (bDeleteActiveItem && bDeleteRepeatingItem && bChannelsMatch)
+        if (bDeleteActiveItem && bDeleteTimerRuleItem && bChannelsMatch)
         {
           CLog::Log(LOGDEBUG,"PVRTimers - %s - deleted timer %d on client %d", __FUNCTION__, (*timerIt)->m_iClientIndex, (*timerIt)->m_iClientId);
           bReturn = (*timerIt)->DeleteFromClient(true) || bReturn;
-          SetChanged();
+          g_PVRManager.SetChanged();
         }
       }
     }
   }
 
-  NotifyObservers(ObservableMessageTimersReset);
-
-  return bReturn;
-}
-
-bool CPVRTimers::InstantTimer(const CPVRChannelPtr &channel)
-{
-  assert(channel.get());
-
-  if (!g_PVRManager.CheckParentalLock(channel))
-    return false;
-
-  CPVRTimerInfoTagPtr newTimer(CPVRTimerInfoTag::CreateInstantTimerTag(channel));
-
-  bool bReturn(false);
-  if (newTimer)
-    bReturn = newTimer->AddToClient();
-
-  if (!bReturn)
-    CLog::Log(LOGERROR, "PVRTimers - %s - unable to add an instant timer on the client", __FUNCTION__);
+  g_PVRManager.NotifyObservers(ObservableMessageTimersReset);
 
   return bReturn;
 }
@@ -570,7 +594,7 @@ bool CPVRTimers::InstantTimer(const CPVRChannelPtr &channel)
 
 bool CPVRTimers::AddTimer(const CPVRTimerInfoTagPtr &item)
 {
-  if (!item->m_channel && item->GetTimerType() && !item->GetTimerType()->IsRepeatingEpgBased())
+  if (!item->m_channel && item->GetTimerType() && !item->GetTimerType()->IsEpgBasedTimerRule())
   {
     CLog::Log(LOGERROR, "PVRTimers - %s - no channel given", __FUNCTION__);
     CGUIDialogOK::ShowAndGetInput(CVariant{19033}, CVariant{19109}); // Couldn't save timer
@@ -666,6 +690,23 @@ bool CPVRTimers::IsRecordingOnChannel(const CPVRChannel &channel) const
   return false;
 }
 
+CPVRTimerInfoTagPtr CPVRTimers::GetActiveTimerForChannel(const CPVRChannelPtr &channel) const
+{
+  CSingleLock lock(m_critSection);
+  for (const auto &tagsEntry : m_tags)
+  {
+    for (const auto &timersEntry : *tagsEntry.second)
+    {
+      if (timersEntry->IsRecording() &&
+          timersEntry->m_iClientChannelUid == channel->UniqueID() &&
+          timersEntry->m_iClientId == channel->ClientID())
+        return timersEntry;
+    }
+  }
+
+  return CPVRTimerInfoTagPtr();
+}
+
 CPVRTimerInfoTagPtr CPVRTimers::GetTimerForEpgTag(const CEpgInfoTagPtr &epgTag) const
 {
   if (epgTag)
@@ -687,7 +728,7 @@ CPVRTimerInfoTagPtr CPVRTimers::GetTimerForEpgTag(const CEpgInfoTagPtr &epgTag) 
         {
           timer = *timerIt;
 
-          if (!timer->IsRepeating() &&
+          if (!timer->IsTimerRule() &&
               (timer->GetEpgInfoTag(false) == epgTag ||
                (timer->m_iEpgUid != EPG_TAG_INVALID_UID && timer->m_iEpgUid == epgTag->UniqueBroadcastID()) ||
                (timer->m_iClientChannelUid == channel->UniqueID() &&

@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "addons/AudioDecoder.h"
+#include "addons/BinaryAddonCache.h"
 #include "addons/IAddon.h"
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -148,7 +149,6 @@ void CAdvancedSettings::Initialize()
   m_videoNonLinStretchRatio = 0.5f;
   m_videoEnableHighQualityHwScalers = false;
   m_videoAutoScaleMaxFps = 30.0f;
-  m_videoDisableBackgroundDeinterlace = false;
   m_videoCaptureUseOcclusionQuery = -1; //-1 is auto detect
   m_videoVDPAUtelecine = false;
   m_videoVDPAUdeintSkipChromaHD = false;
@@ -280,6 +280,7 @@ void CAdvancedSettings::Initialize()
   m_strMusicLibraryAlbumFormat = "";
   m_prioritiseAPEv2tags = false;
   m_musicItemSeparator = " / ";
+  m_musicArtistSeparators = { ";", ":", "|", " feat. ", " ft. " };
   m_videoItemSeparator = " / ";
   m_iMusicLibraryDateAdded = 1; // prefer mtime over ctime and current time
 
@@ -381,7 +382,7 @@ void CAdvancedSettings::Initialize()
   m_databaseMusic.Reset();
   m_databaseVideo.Reset();
 
-  m_pictureExtensions = ".png|.jpg|.jpeg|.bmp|.gif|.ico|.tif|.tiff|.tga|.pcx|.cbz|.zip|.cbr|.rar|.dng|.nef|.cr2|.crw|.orf|.arw|.erf|.3fr|.dcr|.x3f|.mef|.raf|.mrw|.pef|.sr2|.rss|.webp|.jp2|.apng";
+  m_pictureExtensions = ".png|.jpg|.jpeg|.bmp|.gif|.ico|.tif|.tiff|.tga|.pcx|.cbz|.zip|.cbr|.rar|.rss|.webp|.jp2|.apng";
   m_musicExtensions = ".nsv|.m4a|.flac|.aac|.strm|.pls|.rm|.rma|.mpa|.wav|.wma|.ogg|.mp3|.mp2|.m3u|.gdm|.imf|.m15|.sfx|.uni|.ac3|.dts|.cue|.aif|.aiff|.wpl|.ape|.mac|.mpc|.mp+|.mpp|.shn|.zip|.rar|.wv|.dsp|.xsp|.xwav|.waa|.wvs|.wam|.gcm|.idsp|.mpdsp|.mss|.spt|.rsd|.sap|.cmc|.cmr|.dmc|.mpt|.mpd|.rmt|.tmc|.tm8|.tm2|.oga|.url|.pxml|.tta|.rss|.wtv|.mka|.tak|.opus|.dff|.dsf";
   m_videoExtensions = ".m4v|.3g2|.3gp|.nsv|.tp|.ts|.ty|.strm|.pls|.rm|.rmvb|.mpd|.m3u|.m3u8|.ifo|.mov|.qt|.divx|.xvid|.bivx|.vob|.nrg|.img|.iso|.pva|.wmv|.asf|.asx|.ogm|.m2v|.avi|.bin|.dat|.mpg|.mpeg|.mp4|.mkv|.mk3d|.avc|.vp3|.svq3|.nuv|.viv|.dv|.fli|.flv|.rar|.001|.wpl|.zip|.vdr|.dvr-ms|.xsp|.mts|.m2t|.m2ts|.evo|.ogv|.sdp|.avs|.rec|.url|.pxml|.vc1|.h264|.rcv|.rss|.mpls|.webm|.bdmv|.wtv";
   m_subtitlesExtensions = ".utf|.utf8|.utf-8|.sub|.srt|.smi|.rt|.txt|.ssa|.text|.ssa|.aqt|.jss|.ass|.idx|.ifo|.rar|.zip";
@@ -552,7 +553,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetFloat(pElement, "nonlinearstretchratio", m_videoNonLinStretchRatio, 0.01f, 1.0f);
     XMLUtils::GetBoolean(pElement,"enablehighqualityhwscalers", m_videoEnableHighQualityHwScalers);
     XMLUtils::GetFloat(pElement,"autoscalemaxfps",m_videoAutoScaleMaxFps, 0.0f, 1000.0f);
-    XMLUtils::GetBoolean(pElement, "disablebackgrounddeinterlace", m_videoDisableBackgroundDeinterlace);
     XMLUtils::GetInt(pElement, "useocclusionquery", m_videoCaptureUseOcclusionQuery, -1, 1);
     XMLUtils::GetBoolean(pElement,"vdpauInvTelecine",m_videoVDPAUtelecine);
     XMLUtils::GetBoolean(pElement,"vdpauHDdeintSkipChroma",m_videoVDPAUdeintSkipChromaHD);
@@ -702,6 +702,19 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetString(pElement, "albumformat", m_strMusicLibraryAlbumFormat);
     XMLUtils::GetString(pElement, "itemseparator", m_musicItemSeparator);
     XMLUtils::GetInt(pElement, "dateadded", m_iMusicLibraryDateAdded);
+    //Music artist name separators
+    TiXmlElement* separators = pElement->FirstChildElement("artistseparators");
+    if (separators)
+    {
+      m_musicArtistSeparators.clear();
+      TiXmlNode* separator = separators->FirstChild("separator");
+      while (separator)
+      {
+        if (separator->FirstChild())
+          m_musicArtistSeparators.push_back(separator->FirstChild()->ValueStr());
+        separator = separator->NextSibling("separator");
+      }
+    }
   }
 
   pElement = pRootElement->FirstChildElement("videolibrary");
@@ -889,8 +902,8 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   m_vecTokens.clear();
   CLangInfo::LoadTokens(pRootElement->FirstChild("sorttokens"),m_vecTokens);
 
-  // TODO: Should cache path be given in terms of our predefined paths??
-  //       Are we even going to have predefined paths??
+  //! @todo Should cache path be given in terms of our predefined paths??
+  //! Are we even going to have predefined paths??
   std::string tmp;
   if (XMLUtils::GetPath(pRootElement, "cachepath", tmp))
     m_cachePath = tmp;
@@ -1326,14 +1339,14 @@ void CAdvancedSettings::SettingOptionsLoggingComponentsFiller(const CSetting *se
   list.push_back(std::make_pair(g_localizeStrings.Get(672), LOGFFMPEG));
   list.push_back(std::make_pair(g_localizeStrings.Get(676), LOGAUDIO));
   list.push_back(std::make_pair(g_localizeStrings.Get(680), LOGVIDEO));
-#ifdef HAS_LIBRTMP
-  list.push_back(std::make_pair(g_localizeStrings.Get(673), LOGRTMP));
-#endif
 #ifdef HAS_DBUS
   list.push_back(std::make_pair(g_localizeStrings.Get(674), LOGDBUS));
 #endif
 #ifdef HAS_JSONRPC
   list.push_back(std::make_pair(g_localizeStrings.Get(675), LOGJSONRPC));
+#endif
+#ifdef HAS_WEB_SERVER
+  list.push_back(std::make_pair(g_localizeStrings.Get(681), LOGWEBSERVER));
 #endif
 #ifdef HAS_AIRTUNES
   list.push_back(std::make_pair(g_localizeStrings.Get(677), LOGAIRTUNES));

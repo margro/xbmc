@@ -57,6 +57,7 @@ public:
 
 class CMMALVideo;
 class CMMALRenderer;
+class CMMALPool;
 
 // a mmal video frame
 class CMMALVideoBuffer : public CMMALBuffer
@@ -75,7 +76,6 @@ public:
 
   // Required overrides
   virtual bool Open(CDVDStreamInfo &hints, CDVDCodecOptions &options);
-  virtual void Dispose(void);
   virtual int  Decode(uint8_t *pData, int iSize, double dts, double pts);
   virtual void Reset(void);
   virtual bool GetPicture(DVDVideoPicture *pDvdVideoPicture);
@@ -100,6 +100,7 @@ protected:
   bool CreateDeinterlace(EINTERLACEMETHOD interlace_method);
   bool DestroyDeinterlace();
   void Prime();
+  void Dispose(void);
 
   // Video format
   unsigned int      m_decoded_width;
@@ -132,6 +133,10 @@ protected:
   int               m_speed;
   int               m_codecControlFlags;
   bool              m_dropState;
+  bool              m_preroll;
+  bool              m_got_eos;
+  uint32_t          m_packet_num;
+  uint32_t          m_packet_num_eos;
 
   CCriticalSection m_sharedSection;
   MMAL_COMPONENT_T *m_dec;
@@ -139,6 +144,7 @@ protected:
   MMAL_PORT_T *m_dec_output;
   MMAL_POOL_T *m_dec_input_pool;
   CMMALRenderer *m_renderer;
+  std::shared_ptr<CMMALPool> m_pool;
 
   MMAL_ES_FORMAT_T *m_es_format;
   MMAL_COMPONENT_T *m_deint;

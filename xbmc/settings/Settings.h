@@ -88,7 +88,6 @@ public:
   static const std::string SETTING_VIDEOLIBRARY_ACTORTHUMBS;
   static const std::string SETTING_MYVIDEOS_FLATTEN;
   static const std::string SETTING_VIDEOLIBRARY_FLATTENTVSHOWS;
-  static const std::string SETTING_VIDEOLIBRARY_REMOVE_DUPLICATES;
   static const std::string SETTING_VIDEOLIBRARY_TVSHOWSSELECTFIRSTUNWATCHEDITEM;
   static const std::string SETTING_VIDEOLIBRARY_TVSHOWSINCLUDEALLSEASONSANDSPECIALS;
   static const std::string SETTING_VIDEOLIBRARY_SHOWALLITEMS;
@@ -116,6 +115,9 @@ public:
   static const std::string SETTING_VIDEOPLAYER_RENDERMETHOD;
   static const std::string SETTING_VIDEOPLAYER_HQSCALERS;
   static const std::string SETTING_VIDEOPLAYER_USEAMCODEC;
+  static const std::string SETTING_VIDEOPLAYER_USEAMCODECMPEG2;
+  static const std::string SETTING_VIDEOPLAYER_USEAMCODECMPEG4;
+  static const std::string SETTING_VIDEOPLAYER_USEAMCODECH264;
   static const std::string SETTING_VIDEOPLAYER_USEMEDIACODEC;
   static const std::string SETTING_VIDEOPLAYER_USEMEDIACODECSURFACE;
   static const std::string SETTING_VIDEOPLAYER_USEVDPAU;
@@ -196,6 +198,7 @@ public:
   static const std::string SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH;
   static const std::string SETTING_PVRPLAYBACK_CHANNELENTRYTIMEOUT;
   static const std::string SETTING_PVRPLAYBACK_FPS;
+  static const std::string SETTING_PVRRECORD_INSTANTRECORDACTION;
   static const std::string SETTING_PVRRECORD_INSTANTRECORDTIME;
   static const std::string SETTING_PVRRECORD_DEFAULTPRIORITY;
   static const std::string SETTING_PVRRECORD_DEFAULTLIFETIME;
@@ -203,6 +206,7 @@ public:
   static const std::string SETTING_PVRRECORD_MARGINEND;
   static const std::string SETTING_PVRRECORD_PREVENTDUPLICATEEPISODES;
   static const std::string SETTING_PVRRECORD_TIMERNOTIFICATIONS;
+  static const std::string SETTING_PVRRECORD_GROUPRECORDINGS;
   static const std::string SETTING_PVRPOWERMANAGEMENT_ENABLED;
   static const std::string SETTING_PVRPOWERMANAGEMENT_BACKENDIDLETIME;
   static const std::string SETTING_PVRPOWERMANAGEMENT_SETWAKEUPCMD;
@@ -248,7 +252,6 @@ public:
   static const std::string SETTING_AUDIOCDS_ENCODER;
   static const std::string SETTING_AUDIOCDS_SETTINGS;
   static const std::string SETTING_AUDIOCDS_EJECTONRIP;
-  static const std::string SETTING_MYMUSIC_STARTWINDOW;
   static const std::string SETTING_MYMUSIC_SONGTHUMBINVIS;
   static const std::string SETTING_MYMUSIC_DEFAULTLIBVIEW;
   static const std::string SETTING_PICTURES_GENERATETHUMBS;
@@ -295,6 +298,8 @@ public:
   static const std::string SETTING_VIDEOSCREEN_STEREOSCOPICMODE;
   static const std::string SETTING_VIDEOSCREEN_PREFEREDSTEREOSCOPICMODE;
   static const std::string SETTING_VIDEOSCREEN_NOOFBUFFERS;
+  static const std::string SETTING_VIDEOSCREEN_3DLUT;
+  static const std::string SETTING_VIDEOSCREEN_DISPLAYPROFILE;
   static const std::string SETTING_VIDEOSCREEN_GUICALIBRATION;
   static const std::string SETTING_VIDEOSCREEN_TESTPATTERN;
   static const std::string SETTING_VIDEOSCREEN_LIMITEDRANGE;
@@ -305,7 +310,6 @@ public:
   static const std::string SETTING_AUDIOOUTPUT_SAMPLERATE;
   static const std::string SETTING_AUDIOOUTPUT_STEREOUPMIX;
   static const std::string SETTING_AUDIOOUTPUT_MAINTAINORIGINALVOLUME;
-  static const std::string SETTING_AUDIOOUTPUT_NORMALIZELEVELS;
   static const std::string SETTING_AUDIOOUTPUT_PROCESSQUALITY;
   static const std::string SETTING_AUDIOOUTPUT_STREAMSILENCE;
   static const std::string SETTING_AUDIOOUTPUT_DSPADDONSENABLED;

@@ -58,6 +58,7 @@
 #include "utils/log.h"
 #include "utils/Variant.h"
 #include "utils/Mime.h"
+#include "utils/Random.h"
 
 #include <assert.h>
 #include <algorithm>
@@ -201,7 +202,7 @@ CFileItem::CFileItem(const CPVRTimerInfoTagPtr& timer)
 
   Initialize();
 
-  m_bIsFolder = timer->IsRepeating();
+  m_bIsFolder = timer->IsTimerRule();
   m_pvrTimerInfoTag = timer;
   m_strPath = timer->Path();
   SetLabel(timer->Title());
@@ -875,7 +876,6 @@ bool CFileItem::IsFileFolder(EFileFolderType types) const
   if(IsInternetStream())
     always_type = EFILEFOLDER_TYPE_ONCLICK;
 
-
   if(types & always_type)
   {
     if(IsSmartPlayList()
@@ -901,7 +901,6 @@ bool CFileItem::IsFileFolder(EFileFolderType types) const
 
   return false;
 }
-
 
 bool CFileItem::IsSmartPlayList() const
 {
@@ -1311,7 +1310,7 @@ bool CFileItem::IsParentFolder() const
 
 void CFileItem::FillInMimeType(bool lookup /*= true*/)
 {
-  // TODO: adapt this to use CMime::GetMimeType()
+  //! @todo adapt this to use CMime::GetMimeType()
   if (m_mimetype.empty())
   {
     if( m_bIsFolder )
@@ -1378,7 +1377,7 @@ bool CFileItem::IsSamePath(const CFileItem *item) const
   {
     if (m_videoInfoTag->m_iDbId != -1 && item->m_videoInfoTag->m_iDbId != -1)
       return ((m_videoInfoTag->m_iDbId == item->m_videoInfoTag->m_iDbId) &&
-        (m_videoInfoTag->m_type == item->m_videoInfoTag->m_type));        
+        (m_videoInfoTag->m_type == item->m_videoInfoTag->m_type));
   }
   if (IsMusicDb() && HasMusicInfoTag())
   {
@@ -1421,7 +1420,8 @@ bool CFileItem::IsAlbum() const
 void CFileItem::UpdateInfo(const CFileItem &item, bool replaceLabels /*=true*/)
 {
   if (item.HasVideoInfoTag())
-  { // copy info across (TODO: premiered info is normally stored in m_dateTime by the db)
+  { // copy info across
+    //! @todo premiered info is normally stored in m_dateTime by the db
     *GetVideoInfoTag() = *item.GetVideoInfoTag();
     // preferably use some information from PVR info tag if available
     if (m_pvrRecordingInfoTag)
@@ -1470,7 +1470,7 @@ void CFileItem::SetFromVideoInfoTag(const CVideoInfoTag &video)
     m_strPath = video.m_strFileNameAndPath;
     m_bIsFolder = false;
   }
-  
+
   *GetVideoInfoTag() = video;
   if (video.m_iSeason == 0)
     SetProperty("isspecial", "true");
@@ -1559,13 +1559,13 @@ std::string CFileItem::GetOpticalMediaPath() const
   return dvdPath;
 }
 
-/*
- TODO: Ideally this (and SetPath) would not be available outside of construction
- for CFileItem objects, or at least restricted to essentially be equivalent
- to construction. This would require re-formulating a bunch of CFileItem
- construction, and also allowing CFileItemList to have it's own (public)
- SetURL() function, so for now we give direct access.
- */
+/**
+* @todo Ideally this (and SetPath) would not be available outside of construction
+* for CFileItem objects, or at least restricted to essentially be equivalent
+* to construction. This would require re-formulating a bunch of CFileItem
+* construction, and also allowing CFileItemList to have it's own (public)
+* SetURL() function, so for now we give direct access.
+*/
 void CFileItem::SetURL(const CURL& url)
 {
   m_strPath = url.Get();
@@ -1641,13 +1641,13 @@ bool CFileItem::LoadTracksFromCueDocument(CFileItemList& scannedItems)
       {
         if (song.strAlbum.empty() && !tag.GetAlbum().empty())
           song.strAlbum = tag.GetAlbum();
-        //Pass album artist to final MusicInfoTag object via setting song album artist vector. 
+        //Pass album artist to final MusicInfoTag object via setting song album artist vector.
         if (song.GetAlbumArtist().empty() && !tag.GetAlbumArtist().empty())
-          song.SetAlbumArtist(tag.GetAlbumArtist());        
+          song.SetAlbumArtist(tag.GetAlbumArtist());
         if (song.genre.empty() && !tag.GetGenre().empty())
           song.genre = tag.GetGenre();
         //Pass artist to final MusicInfoTag object via setting song artist description string only.
-        //Artist credits not used during loading from cue sheet. 
+        //Artist credits not used during loading from cue sheet.
         if (song.strArtistDesc.empty() && !tag.GetArtistString().empty())
           song.strArtistDesc = tag.GetArtistString();
         if (tag.GetDiscNumber())
@@ -1681,7 +1681,6 @@ bool CFileItem::LoadTracksFromCueDocument(CFileItemList& scannedItems)
   }
   return tracksFound != 0;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////
 /////
@@ -2085,7 +2084,7 @@ void CFileItemList::Sort(SortDescription sortDescription)
 void CFileItemList::Randomize()
 {
   CSingleLock lock(m_lock);
-  std::random_shuffle(m_items.begin(), m_items.end());
+  KODI::UTILS::RandomShuffle(m_items.begin(), m_items.end());
 }
 
 void CFileItemList::Archive(CArchive& ar)
@@ -2431,7 +2430,7 @@ void CFileItemList::StackFolders()
       // 1. rars and zips may be on slow sources? is this supposed to be allowed?
       if( !item->IsRemote()
         || item->IsSmb()
-        || item->IsNfs() 
+        || item->IsNfs()
         || URIUtils::IsInRAR(item->GetPath())
         || URIUtils::IsInZIP(item->GetPath())
         || URIUtils::IsOnLAN(item->GetPath())
@@ -2674,15 +2673,23 @@ void CFileItemList::StackFiles()
 bool CFileItemList::Load(int windowID)
 {
   CFile file;
-  if (file.Open(GetDiscFileCache(windowID)))
+  auto path = GetDiscFileCache(windowID);
+  try
   {
-    CArchive ar(&file, CArchive::load);
-    ar >> *this;
-    CLog::Log(LOGDEBUG,"Loading items: %i, directory: %s sort method: %i, ascending: %s", Size(), CURL::GetRedacted(GetPath()).c_str(), m_sortDescription.sortBy,
-      m_sortDescription.sortOrder == SortOrderAscending ? "true" : "false");
-    ar.Close();
-    file.Close();
-    return true;
+    if (file.Open(path))
+    {
+      CArchive ar(&file, CArchive::load);
+      ar >> *this;
+      CLog::Log(LOGDEBUG,"Loading items: %i, directory: %s sort method: %i, ascending: %s", Size(), CURL::GetRedacted(GetPath()).c_str(), m_sortDescription.sortBy,
+        m_sortDescription.sortOrder == SortOrderAscending ? "true" : "false");
+      ar.Close();
+      file.Close();
+      return true;
+    }
+  }
+  catch(std::out_of_range ex)
+  {
+    CLog::Log(LOGERROR, "Corrupt archive: %s", CURL::GetRedacted(path).c_str());
   }
 
   return false;
@@ -2725,23 +2732,25 @@ std::string CFileItemList::GetDiscFileCache(int windowID) const
   std::string strPath(GetPath());
   URIUtils::RemoveSlashAtEnd(strPath);
 
-  Crc32 crc;
-  crc.ComputeFromLowerCase(strPath);
+  uint32_t crc = Crc32::ComputeFromLowerCase(strPath);
 
   std::string cacheFile;
   if (IsCDDA() || IsOnDVD())
-    cacheFile = StringUtils::Format("special://temp/r-%08x.fi", (unsigned __int32)crc);
-  else if (IsMusicDb())
-    cacheFile = StringUtils::Format("special://temp/mdb-%08x.fi", (unsigned __int32)crc);
-  else if (IsVideoDb())
-    cacheFile = StringUtils::Format("special://temp/vdb-%08x.fi", (unsigned __int32)crc);
-  else if (IsSmartPlayList())
-    cacheFile = StringUtils::Format("special://temp/sp-%08x.fi", (unsigned __int32)crc);
-  else if (windowID)
-    cacheFile = StringUtils::Format("special://temp/%i-%08x.fi", windowID, (unsigned __int32)crc);
-  else
-    cacheFile = StringUtils::Format("special://temp/%08x.fi", (unsigned __int32)crc);
-  return cacheFile;
+    return StringUtils::Format("special://temp/archive_cache/r-%08x.fi", crc);
+
+  if (IsMusicDb())
+    return StringUtils::Format("special://temp/archive_cache/mdb-%08x.fi", crc);
+
+  if (IsVideoDb())
+    return StringUtils::Format("special://temp/archive_cache/vdb-%08x.fi", crc);
+
+  if (IsSmartPlayList())
+    return StringUtils::Format("special://temp/archive_cache/sp-%08x.fi", crc);
+
+  if (windowID)
+    return StringUtils::Format("special://temp/archive_cache/%i-%08x.fi", windowID, crc);
+
+  return StringUtils::Format("special://temp/archive_cache/%08x.fi", crc);
 }
 
 bool CFileItemList::AlwaysCache() const

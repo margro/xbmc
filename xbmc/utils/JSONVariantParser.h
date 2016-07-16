@@ -19,6 +19,9 @@
  *
  */
 
+#include <string>
+#include <vector>
+
 #include "utils/Variant.h"
 
 #include <yajl/yajl_parse.h>
@@ -50,6 +53,8 @@ public:
   void push_buffer(const unsigned char *buffer, unsigned int length);
 
   static CVariant Parse(const unsigned char *json, unsigned int length);
+
+  static CVariant Parse(const std::string& json);
 
 private:
   static int ParseNull(void * ctx);

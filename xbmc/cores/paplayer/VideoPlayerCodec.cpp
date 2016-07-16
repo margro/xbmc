@@ -46,6 +46,8 @@ VideoPlayerCodec::VideoPlayerCodec()
   m_pResampler = NULL;
   m_needConvert = false;
   m_channels = 0;
+
+  m_processInfo.reset(CProcessInfo::CreateInstance());
 }
 
 VideoPlayerCodec::~VideoPlayerCodec()
@@ -69,8 +71,10 @@ void VideoPlayerCodec::SetContentType(const std::string &strContent)
   StringUtils::ToLower(m_strContentType);
 }
 
-bool VideoPlayerCodec::Init(const std::string &strFile, unsigned int filecache)
+bool VideoPlayerCodec::Init(const CFileItem &file, unsigned int filecache)
 {
+  const std::string &strFile = file.GetPath();
+
   // take precaution if Init()ialized earlier
   if (m_bInited)
   {
@@ -90,7 +94,7 @@ bool VideoPlayerCodec::Init(const std::string &strFile, unsigned int filecache)
   if (urlFile.IsProtocol("shout") )
     strFileToOpen.replace(0, 8, "http://");
 
-  CFileItem fileitem(urlFile, false);
+  CFileItem fileitem(file);
   fileitem.SetMimeType(m_strContentType);
   fileitem.SetMimeTypeForInternetFile();
   m_pInputStream = CDVDFactoryInputStream::CreateInputStream(NULL, fileitem);
@@ -100,8 +104,8 @@ bool VideoPlayerCodec::Init(const std::string &strFile, unsigned int filecache)
     return false;
   }
 
-  // TODO:
-  // convey CFileItem::ContentLookup() into Open()
+  //! @todo
+  //! convey CFileItem::ContentLookup() into Open()
   if (!m_pInputStream->Open())
   {
     CLog::Log(LOGERROR, "%s: Error opening file %s", __FUNCTION__, strFileToOpen.c_str());
@@ -163,7 +167,7 @@ bool VideoPlayerCodec::Init(const std::string &strFile, unsigned int filecache)
 
   CDVDStreamInfo hint(*pStream, true);
 
-  m_pAudioCodec = CDVDFactoryCodec::CreateAudioCodec(hint);
+  m_pAudioCodec = CDVDFactoryCodec::CreateAudioCodec(hint, *m_processInfo.get());
   if (!m_pAudioCodec)
   {
     CLog::Log(LOGERROR, "%s: Could not create audio codec", __FUNCTION__);

@@ -27,13 +27,14 @@
 #include "addons/LanguageResource.h"
 #include "addons/PluginSource.h"
 #include "addons/Repository.h"
+#include "addons/Scraper.h"
 #include "addons/ScreenSaver.h"
 #include "addons/Service.h"
 #include "addons/Skin.h"
 #include "addons/UISoundsResource.h"
 #include "addons/Visualisation.h"
 #include "addons/Webinterface.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSPAddon.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "games/controllers/Controller.h"
 #include "peripherals/addons/PeripheralAddon.h"
 #include "addons/PVRClient.h"
@@ -213,7 +214,7 @@ AddonPtr CAddonBuilder::FromProps(AddonProps addonProps)
     case ADDON_INPUTSTREAM:
       return AddonPtr(new CInputStream(std::move(addonProps)));
     case ADDON_PERIPHERALDLL:
-      return AddonPtr(new PERIPHERALS::CPeripheralAddon(std::move(addonProps), false, false)); // TODO
+      return AddonPtr(new PERIPHERALS::CPeripheralAddon(std::move(addonProps), false, false)); //! @todo implement
     case ADDON_GAME_CONTROLLER:
       return AddonPtr(new GAME::CController(std::move(addonProps)));
     default:

@@ -53,7 +53,7 @@ namespace XBMCAddon
 #define checkedv(methcall) { if (window.isNotNull()) xwin-> methcall ; }
 
 
-    // TODO: This should be done with template specialization
+    //! @todo This should be done with template specialization
     class WindowXMLInterceptor : public InterceptorDialog<CGUIMediaWindow>
     {
       WindowXML* xwin;
@@ -62,30 +62,30 @@ namespace XBMCAddon
         InterceptorDialog<CGUIMediaWindow>("CGUIMediaWindow",_window,windowid,xmlfile), xwin(_window) 
       { }
 
-      virtual void AllocResources(bool forceLoad = false)
+      virtual void AllocResources(bool forceLoad = false) override
       { XBMC_TRACE; if(up()) CGUIMediaWindow::AllocResources(forceLoad); else checkedv(AllocResources(forceLoad)); }
-      virtual  void FreeResources(bool forceUnLoad = false)
+      virtual  void FreeResources(bool forceUnLoad = false) override
       { XBMC_TRACE; if(up()) CGUIMediaWindow::FreeResources(forceUnLoad); else checkedv(FreeResources(forceUnLoad)); }
       virtual bool OnClick(int iItem, const std::string &player = "") override { XBMC_TRACE; return up() ? CGUIMediaWindow::OnClick(iItem, player) : checkedb(OnClick(iItem)); }
 
-      virtual void Process(unsigned int currentTime, CDirtyRegionList &dirtyregions)
+      virtual void Process(unsigned int currentTime, CDirtyRegionList &dirtyregions) override
       { XBMC_TRACE; if(up()) CGUIMediaWindow::Process(currentTime,dirtyregions); else checkedv(Process(currentTime,dirtyregions)); }
 
       // this is a hack to SKIP the CGUIMediaWindow
-      virtual bool OnAction(const CAction &action) 
+      virtual bool OnAction(const CAction &action) override
       { XBMC_TRACE; return up() ? CGUIWindow::OnAction(action) : checkedb(OnAction(action)); }
 
     protected:
       // CGUIWindow
-      virtual bool LoadXML(const std::string &strPath, const std::string &strPathLower)
+      virtual bool LoadXML(const std::string &strPath, const std::string &strPathLower) override
       { XBMC_TRACE; return up() ? CGUIMediaWindow::LoadXML(strPath,strPathLower) : xwin->LoadXML(strPath,strPathLower); }
 
       // CGUIMediaWindow
-      virtual void GetContextButtons(int itemNumber, CContextButtons &buttons)
+      virtual void GetContextButtons(int itemNumber, CContextButtons &buttons) override
       { XBMC_TRACE; if (up()) CGUIMediaWindow::GetContextButtons(itemNumber,buttons); else xwin->GetContextButtons(itemNumber,buttons); }
-      virtual bool Update(const std::string &strPath)
+      virtual bool Update(const std::string &strPath) override
       { XBMC_TRACE; return up() ? CGUIMediaWindow::Update(strPath) : xwin->Update(strPath); }
-      virtual void SetupShares() { XBMC_TRACE; if(up()) CGUIMediaWindow::SetupShares(); else checkedv(SetupShares()); }
+      virtual void SetupShares() override { XBMC_TRACE; if(up()) CGUIMediaWindow::SetupShares(); else checkedv(SetupShares()); }
 
       friend class WindowXML;
       friend class WindowXMLDialog;
@@ -185,11 +185,24 @@ namespace XBMCAddon
             A(m_vecItems)->AddFront(fileItem,position);
           }
           A(m_viewControl).SetItems(*(A(m_vecItems)));
-          A(UpdateButtons());
         }
         //----------------------------------------------------
       }
     }
+
+    void WindowXML::addItems(const std::vector<Alternative<String, const XBMCAddon::xbmcgui::ListItem* > > & items)
+    {
+    XBMC_TRACE;
+    LOCKGUI;
+    for (auto item : items)
+      {
+        AddonClass::Ref<ListItem> ritem = item.which() == XBMCAddon::first ? ListItem::fromString(item.former()) : AddonClass::Ref<ListItem>(item.later());
+        CFileItemPtr& fileItem = ritem->item;
+        A(m_vecItems)->Add(fileItem);
+      }
+      A(m_viewControl).SetItems(*(A(m_vecItems)));
+    }
+
 
     void WindowXML::removeItem(int position)
     {
@@ -198,7 +211,6 @@ namespace XBMCAddon
       LOCKGUI;
       A(m_vecItems)->Remove(position);
       A(m_viewControl).SetItems(*(A(m_vecItems)));
-      A(UpdateButtons());
     }
 
     int WindowXML::getCurrentListPosition()
@@ -253,7 +265,6 @@ namespace XBMCAddon
       A(ClearFileItems());
 
       A(m_viewControl).SetItems(*(A(m_vecItems)));
-      A(UpdateButtons());
     }
 
     void WindowXML::setContainerProperty(const String& key, const String& value)
@@ -290,9 +301,9 @@ namespace XBMCAddon
       CLog::Log(LOGDEBUG,"%sMessage id:%d",_tg.getSpaces(),(int)message.GetMessage());
 #endif
 
-      // TODO: We shouldn't be dropping down to CGUIWindow in any of this ideally.
-      //       We have to make up our minds about what python should be doing and
-      //       what this side of things should be doing
+      //! @todo We shouldn't be dropping down to CGUIWindow in any of this ideally.
+      //!       We have to make up our minds about what python should be doing and
+      //!       what this side of things should be doing
       switch (message.GetMessage())
       {
       case GUI_MSG_WINDOW_DEINIT:
@@ -358,7 +369,7 @@ namespace XBMCAddon
             CGUIControl* controlClicked = (CGUIControl*)interceptor->GetControl(iControl);
 
             // The old python way used to check list AND SELECITEM method 
-            //   or if its a button, checkmark.
+            //   or if its a button, radiobutton.
             // Its done this way for now to allow other controls without a 
             //  python version like togglebutton to still raise a onAction event
             if (controlClicked) // Will get problems if we the id is not on the window 
@@ -467,7 +478,6 @@ namespace XBMCAddon
     void WindowXML::SetupShares()
     {
       XBMC_TRACE;
-      A(UpdateButtons());
     }
 
     bool WindowXML::Update(const String &strPath)

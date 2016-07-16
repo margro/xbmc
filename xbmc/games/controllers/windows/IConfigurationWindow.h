@@ -23,6 +23,7 @@
 #include "input/joysticks/JoystickTypes.h"
 
 #include <string>
+#include <vector>
 
 class CEvent;
 
@@ -70,8 +71,9 @@ namespace GAME
 
     /*!
      * \brief Refresh the contents of the list
+     * \return True if the list was changed
      */
-    virtual void Refresh(void) = 0;
+    virtual bool Refresh(void) = 0;
 
     /*
      * \brief  The specified controller has been focused

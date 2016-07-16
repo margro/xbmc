@@ -37,6 +37,7 @@ config.log
 *.bak
 *.apk
 *.class
+*.dwo
 
 # Windows specific generated files
 *.exp
@@ -181,11 +182,13 @@ cmake_install.cmake
 /lib/cpluff/*/*/*/*/Makefile
 /lib/cpluff/po/*template
 /lib/cpluff/po/*header
+lib/cpluff/console/cpluff-console
 lib/cpluff/examples/cpfile/cpfile
 lib/cpluff/libcpluff/cpluffdef.h
 lib/cpluff/libcpluff/docsrc/Doxyfile-impl
 lib/cpluff/libcpluff/docsrc/Doxyfile-ref
 lib/cpluff/libtool
+lib/cpluff/loader/cpluff-loader
 lib/cpluff/po/POTFILES
 lib/cpluff/stamp-h1
 
@@ -223,8 +226,8 @@ lib/cpluff/stamp-h1
 /project/output
 
 # /project/cmake
-/project/cmake/kodi-config.cmake
-/project/cmake/xbmc-config.cmake
+/project/cmake/KodiConfig.cmake
+/project/cmake/XBMCConfig.cmake
 /project/cmake/addons/*.error
 /project/cmake/addons/.failure
 /project/cmake/addons/.success
@@ -558,3 +561,6 @@ lib/addons/library.kodi.inputstream/project/VS2010Express/Debug
 lib/addons/library.kodi.inputstream/project/VS2010Express/Release
 /project/VS2010Express/XBMC for Windows.VC.db
 /project/VS2010Express/XBMC for Windows.VC.VC.opendb
+tools/depends/native/TexturePacker/src/Win32/Debug/
+tools/depends/native/TexturePacker/src/Win32/Release/
+tools/depends/native/TexturePacker/src/Win32/TexturePacker.VC.db

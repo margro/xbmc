@@ -165,7 +165,7 @@ void CAnnouncementManager::DoAnnounce(AnnouncementFlag flag, const char *sender,
   {
     id = item->GetVideoInfoTag()->m_iDbId;
 
-    // TODO: Can be removed once this is properly handled when starting playback of a file
+    //! @todo Can be removed once this is properly handled when starting playback of a file
     if (id <= 0 && !item->GetPath().empty() &&
        (!item->HasProperty(LOOKUP_PROPERTY) || item->GetProperty(LOOKUP_PROPERTY).asBoolean()))
     {
@@ -190,7 +190,7 @@ void CAnnouncementManager::DoAnnounce(AnnouncementFlag flag, const char *sender,
 
     if (id <= 0)
     {
-      // TODO: Can be removed once this is properly handled when starting playback of a file
+      //! @todo Can be removed once this is properly handled when starting playback of a file
       item->SetProperty(LOOKUP_PROPERTY, false);
 
       std::string title = item->GetVideoInfoTag()->m_strTitle;
@@ -201,8 +201,8 @@ void CAnnouncementManager::DoAnnounce(AnnouncementFlag flag, const char *sender,
       switch (item->GetVideoContentType())
       {
       case VIDEODB_CONTENT_MOVIES:
-        if (item->GetVideoInfoTag()->m_iYear > 0)
-          object["item"]["year"] = item->GetVideoInfoTag()->m_iYear;
+        if (item->GetVideoInfoTag()->HasYear())
+          object["item"]["year"] = item->GetVideoInfoTag()->GetYear();
         break;
       case VIDEODB_CONTENT_EPISODES:
         if (item->GetVideoInfoTag()->m_iEpisode >= 0)
@@ -226,7 +226,7 @@ void CAnnouncementManager::DoAnnounce(AnnouncementFlag flag, const char *sender,
     id = item->GetMusicInfoTag()->GetDatabaseId();
     type = MediaTypeSong;
 
-    // TODO: Can be removed once this is properly handled when starting playback of a file
+    //! @todo Can be removed once this is properly handled when starting playback of a file
     if (id <= 0 && !item->GetPath().empty() &&
        (!item->HasProperty(LOOKUP_PROPERTY) || item->GetProperty(LOOKUP_PROPERTY).asBoolean()))
     {
@@ -246,7 +246,7 @@ void CAnnouncementManager::DoAnnounce(AnnouncementFlag flag, const char *sender,
 
     if (id <= 0)
     {
-      // TODO: Can be removed once this is properly handled when starting playback of a file
+      //! @todo Can be removed once this is properly handled when starting playback of a file
       item->SetProperty(LOOKUP_PROPERTY, false);
 
       std::string title = item->GetMusicInfoTag()->GetTitle();

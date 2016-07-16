@@ -37,12 +37,14 @@
 
 #define CLASSNAME "CMMALRenderer"
 
+#define VERBOSE 0
 
-MMAL_POOL_T *CMMALRenderer::GetPool(ERenderFormat format, bool opaque)
+std::shared_ptr<CMMALPool> CMMALRenderer::GetPool(ERenderFormat format, AVPixelFormat pixfmt, bool opaque)
 {
   CSingleLock lock(m_sharedSection);
-  if (!m_bMMALConfigured)
-    m_bMMALConfigured = init_vout(format, opaque);
+  bool formatChanged = m_format != format || m_opaque != opaque;
+  if (!m_bMMALConfigured || formatChanged)
+    m_bMMALConfigured = init_vout(format, pixfmt, opaque);
 
   return m_vout_input_pool;
 }
@@ -53,7 +55,7 @@ CRenderInfo CMMALRenderer::GetRenderInfo()
   CRenderInfo info;
 
   if (g_advancedSettings.CanLogComponent(LOGVIDEO))
-    CLog::Log(LOGDEBUG, "%s::%s cookie:%p", CLASSNAME, __func__, (void *)m_vout_input_pool);
+    CLog::Log(LOGDEBUG, "%s::%s opaque:%p", CLASSNAME, __func__, this);
 
   info.max_buffer_size = NUM_BUFFERS;
   info.optimal_buffer_size = NUM_BUFFERS;
@@ -67,8 +69,8 @@ void CMMALRenderer::vout_input_port_cb(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *
   assert(!(buffer->flags & MMAL_BUFFER_HEADER_FLAG_TRANSMISSION_FAILED));
   buffer->flags &= ~MMAL_BUFFER_HEADER_FLAG_USER2;
   CMMALBuffer *omvb = (CMMALBuffer *)buffer->user_data;
-  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
-    CLog::Log(LOGDEBUG, "%s::%s YUV port:%p omvb:%p mmal:%p:%p len:%d cmd:%x flags:%x flight:%d", CLASSNAME, __func__, port, omvb, buffer, omvb->mmal_buffer, buffer->length, buffer->cmd, buffer->flags, m_inflight);
+  if (VERBOSE && g_advancedSettings.CanLogComponent(LOGVIDEO))
+    CLog::Log(LOGDEBUG, "%s::%s port:%p omvb:%p mmal:%p:%p len:%d cmd:%x flags:%x flight:%d", CLASSNAME, __func__, port, omvb, buffer, omvb->mmal_buffer, buffer->length, buffer->cmd, buffer->flags, m_inflight);
   assert(buffer == omvb->mmal_buffer);
   m_inflight--;
   omvb->Release();
@@ -80,21 +82,78 @@ static void vout_input_port_cb_static(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *b
   mmal->vout_input_port_cb(port, buffer);
 }
 
-bool CMMALRenderer::init_vout(ERenderFormat format, bool opaque)
+static struct {
+   uint32_t encoding;
+   AVPixelFormat pixfmt;
+} pixfmt_to_encoding_table[] =
+{
+   {MMAL_ENCODING_I420,    AV_PIX_FMT_YUV420P},
+   {MMAL_ENCODING_I422,    AV_PIX_FMT_YUV422P},
+   {MMAL_ENCODING_I420,    AV_PIX_FMT_YUVJ420P}, // FIXME
+   {MMAL_ENCODING_I422,    AV_PIX_FMT_YUVJ422P}, // FIXME
+   {MMAL_ENCODING_RGB16,   AV_PIX_FMT_RGB565},
+   {MMAL_ENCODING_RGB16,   AV_PIX_FMT_RGB565LE},
+   {MMAL_ENCODING_BGR16,   AV_PIX_FMT_BGR565},
+   {MMAL_ENCODING_RGB24,   AV_PIX_FMT_RGB24},
+   {MMAL_ENCODING_BGR24,   AV_PIX_FMT_BGR24},
+   {MMAL_ENCODING_ARGB,    AV_PIX_FMT_ARGB},
+   {MMAL_ENCODING_RGBA,    AV_PIX_FMT_RGBA},
+   {MMAL_ENCODING_ABGR,    AV_PIX_FMT_ABGR},
+   {MMAL_ENCODING_BGRA,    AV_PIX_FMT_BGRA},
+   {MMAL_ENCODING_BGRA,    AV_PIX_FMT_BGR0},
+   {MMAL_ENCODING_UNKNOWN, AV_PIX_FMT_NONE}
+};
+
+static uint32_t pixfmt_to_encoding(AVPixelFormat pixfmt)
+{
+  unsigned int i;
+  for (i = 0; pixfmt_to_encoding_table[i].encoding != MMAL_ENCODING_UNKNOWN; i++)
+    if (pixfmt_to_encoding_table[i].pixfmt == pixfmt)
+      break;
+  return pixfmt_to_encoding_table[i].encoding;
+}
+
+CMMALPool::CMMALPool(MMAL_PORT_T *input, uint32_t num_buffers, uint32_t buffer_size)
+{
+  m_input = input;
+  m_pool = mmal_port_pool_create(input, num_buffers, buffer_size);
+  if (!m_pool)
+    CLog::Log(LOGERROR, "%s::%s Failed to create pool for decoder input port", CLASSNAME, __func__);
+  else
+    CLog::Log(LOGDEBUG, "%s::%s Created pool %p of size %d x %d", CLASSNAME, __func__, m_pool, num_buffers, buffer_size);
+}
+
+CMMALPool::~CMMALPool()
+{
+  CLog::Log(LOGDEBUG, "%s::%s destroying pool (%p)", CLASSNAME, __func__, m_pool);
+  mmal_port_pool_destroy(m_input, m_pool);
+  m_pool = nullptr;
+  m_input = nullptr;
+}
+
+bool CMMALRenderer::init_vout(ERenderFormat format, AVPixelFormat pixfmt, bool opaque)
 {
   CSingleLock lock(m_sharedSection);
-  bool formatChanged = m_format != format || m_opaque != opaque;
+  bool formatChanged = m_format != format || m_opaque != opaque || m_pixfmt != pixfmt;
   MMAL_STATUS_T status;
+  uint32_t encoding = pixfmt_to_encoding(pixfmt);
 
-  CLog::Log(LOGDEBUG, "%s::%s configured:%d format %d->%d opaque %d->%d", CLASSNAME, __func__, m_bConfigured, m_format, format, m_opaque, opaque);
+  CLog::Log(LOGDEBUG, "%s::%s configured:%d format %d->%d pixfmt %x->%x opaque %d->%d", CLASSNAME, __func__, m_bConfigured, m_format, format, m_pixfmt, pixfmt, m_opaque, opaque);
 
   if (m_bMMALConfigured && formatChanged)
     UnInitMMAL();
 
-  if (m_bMMALConfigured || format != RENDER_FMT_MMAL)
+  if (m_bMMALConfigured || format == RENDER_FMT_BYPASS)
     return true;
 
+  if (format != RENDER_FMT_MMAL || encoding == MMAL_ENCODING_UNKNOWN)
+  {
+    CLog::Log(LOGERROR, "%s::%s Unsupported format", CLASSNAME, __func__);
+    return false;
+  }
+
   m_format = format;
+  m_pixfmt = pixfmt;
   m_opaque = opaque;
 
   /* Create video renderer */
@@ -122,7 +181,7 @@ bool CMMALRenderer::init_vout(ERenderFormat format, bool opaque)
   es_format->es->video.width = m_sourceWidth;
   es_format->es->video.height = m_sourceHeight;
 
-  es_format->encoding = m_opaque ? MMAL_ENCODING_OPAQUE : MMAL_ENCODING_I420;
+  es_format->encoding = m_opaque ? MMAL_ENCODING_OPAQUE : encoding;
 
   status = mmal_port_parameter_set_boolean(m_vout_input, MMAL_PARAMETER_ZERO_COPY,  MMAL_TRUE);
   if (status != MMAL_SUCCESS)
@@ -152,13 +211,7 @@ bool CMMALRenderer::init_vout(ERenderFormat format, bool opaque)
     return false;
   }
 
-  CLog::Log(LOGDEBUG, "%s::%s Created pool of size %d x %d", CLASSNAME, __func__, m_vout_input->buffer_num, m_vout_input->buffer_size);
-  m_vout_input_pool = mmal_port_pool_create(m_vout_input , m_vout_input->buffer_num, m_opaque ? m_vout_input->buffer_size:0);
-  if (!m_vout_input_pool)
-  {
-    CLog::Log(LOGERROR, "%s::%s Failed to create pool for decoder input port (status=%x %s)", CLASSNAME, __func__, status, mmal_status_to_string(status));
-    return false;
-  }
+  m_vout_input_pool = std::make_shared<CMMALPool>(m_vout_input, m_vout_input->buffer_num, m_opaque ? m_vout_input->buffer_size:0);
   if (!CSettings::GetInstance().GetBool("videoplayer.usedisplayasclock"))
   {
     m_queue = mmal_queue_create();
@@ -176,6 +229,7 @@ CMMALRenderer::CMMALRenderer() : CThread("MMALRenderer")
   memset(m_buffers, 0, sizeof m_buffers);
   m_iFlags = 0;
   m_format = RENDER_FMT_NONE;
+  m_pixfmt = AV_PIX_FMT_YUV420P;
   m_opaque = true;
   m_bConfigured = false;
   m_bMMALConfigured = false;
@@ -246,7 +300,7 @@ void CMMALRenderer::AddVideoPictureHW(DVDVideoPicture& pic, int index)
 
   CMMALBuffer *buffer = pic.MMALBuffer;
   assert(buffer);
-  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
+  if (VERBOSE && g_advancedSettings.CanLogComponent(LOGVIDEO))
     CLog::Log(LOGDEBUG, "%s::%s MMAL - %p (%p) %i", CLASSNAME, __func__, buffer, buffer->mmal_buffer, index);
 
   m_buffers[index] = buffer->Acquire();
@@ -280,7 +334,7 @@ bool CMMALRenderer::Configure(unsigned int width, unsigned int height, unsigned 
   SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
   ManageRenderArea();
 
-  m_bMMALConfigured = init_vout(format, m_opaque);
+  m_bMMALConfigured = init_vout(format, m_pixfmt, m_opaque);
   m_bConfigured = m_bMMALConfigured;
   assert(m_bConfigured);
   return m_bConfigured;
@@ -310,7 +364,7 @@ void CMMALRenderer::ReleaseBuffer(int idx)
   }
 
   CMMALBuffer *omvb = m_buffers[idx];
-  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
+  if (VERBOSE && g_advancedSettings.CanLogComponent(LOGVIDEO))
     CLog::Log(LOGDEBUG, "%s::%s - MMAL: source:%d omvb:%p mmal:%p flight:%d", CLASSNAME, __func__, idx, omvb, omvb ? omvb->mmal_buffer:NULL, m_inflight);
   if (omvb)
     SAFE_RELEASE(m_buffers[idx]);
@@ -423,7 +477,7 @@ void CMMALRenderer::FlipPage(int source)
     return;
   }
 
-  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
+  if (VERBOSE && g_advancedSettings.CanLogComponent(LOGVIDEO))
     CLog::Log(LOGDEBUG, "%s::%s - source:%d", CLASSNAME, __func__, source);
 
   m_iYV12RenderBuffer = source;
@@ -450,7 +504,7 @@ void CMMALRenderer::PreInit()
 
 void CMMALRenderer::ReleaseBuffers()
 {
-  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
+  if (VERBOSE && g_advancedSettings.CanLogComponent(LOGVIDEO))
     CLog::Log(LOGDEBUG, "%s::%s", CLASSNAME, __func__);
   for (int i=0; i<NUM_BUFFERS; i++)
     ReleaseBuffer(i);
@@ -459,7 +513,7 @@ void CMMALRenderer::ReleaseBuffers()
 void CMMALRenderer::UnInitMMAL()
 {
   CSingleLock lock(m_sharedSection);
-  CLog::Log(LOGDEBUG, "%s::%s pool(%p)", CLASSNAME, __func__, m_vout_input_pool);
+  CLog::Log(LOGDEBUG, "%s::%s pool(%p)", CLASSNAME, __func__, m_vout_input_pool ? m_vout_input_pool->Get() : nullptr);
   if (m_queue)
   {
     StopThread(true);
@@ -479,11 +533,8 @@ void CMMALRenderer::UnInitMMAL()
 
   ReleaseBuffers();
 
-  if (m_vout_input_pool)
-  {
-    mmal_port_pool_destroy(m_vout_input, m_vout_input_pool);
-    m_vout_input_pool = NULL;
-  }
+  m_vout_input_pool = NULL;
+
   m_vout_input = NULL;
 
   if (m_vout)
@@ -570,7 +621,7 @@ bool CMMALRenderer::Supports(ESCALINGMETHOD method)
 
 EINTERLACEMETHOD CMMALRenderer::AutoInterlaceMethod()
 {
-  return m_sourceWidth * m_sourceHeight <= 576 * 720 ? VS_INTERLACEMETHOD_MMAL_ADVANCED : VS_INTERLACEMETHOD_MMAL_BOB;
+  return VS_INTERLACEMETHOD_MMAL_ADVANCED;
 }
 
 void CMMALRenderer::SetVideoRect(const CRect& InSrcRect, const CRect& InDestRect)
@@ -594,11 +645,30 @@ void CMMALRenderer::SetVideoRect(const CRect& InSrcRect, const CRect& InDestRect
   // fix up transposed video
   if (m_renderOrientation == 90 || m_renderOrientation == 270)
   {
-    float diff = (DestRect.Height() - DestRect.Width()) * 0.5f;
-    DestRect.x1 -= diff;
-    DestRect.x2 += diff;
-    DestRect.y1 += diff;
-    DestRect.y2 -= diff;
+    float newWidth, newHeight;
+    float aspectRatio = GetAspectRatio();
+    // clamp width if too wide
+    if (DestRect.Height() > DestRect.Width())
+    {
+      newWidth = DestRect.Width(); // clamp to the width of the old dest rect
+      newHeight = newWidth * aspectRatio;
+    }
+    else // else clamp to height
+    {
+      newHeight = DestRect.Height(); // clamp to the height of the old dest rect
+      newWidth = newHeight / aspectRatio;
+    }
+
+    // calculate the center point of the view and offsets
+    float centerX = DestRect.x1 + DestRect.Width() * 0.5f;
+    float centerY = DestRect.y1 + DestRect.Height() * 0.5f;
+    float diffX = newWidth * 0.5f;
+    float diffY = newHeight * 0.5f;
+
+    DestRect.x1 = centerX - diffX;
+    DestRect.x2 = centerX + diffX;
+    DestRect.y1 = centerY - diffY;
+    DestRect.y2 = centerY + diffY;
   }
 
   // check if destination rect or video view mode has changed

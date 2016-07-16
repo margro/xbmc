@@ -42,10 +42,10 @@
 #include "filesystem/File.h"
 #include "guilib/LocalizeStrings.h"
 #include "TextureCache.h"
-#include "video/windows/GUIWindowVideoBase.h"
 #include "URL.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
+#include "addons/Scraper.h"
 
 #define BACKGROUND_IMAGE       999
 #define GROUP_LIST             996
@@ -208,7 +208,7 @@ float CGUIDialogContextMenu::GetWidth() const
 
 bool CGUIDialogContextMenu::SourcesMenu(const std::string &strType, const CFileItemPtr& item, float posX, float posY)
 {
-  // TODO: This should be callable even if we don't have any valid items
+  //! @todo This should be callable even if we don't have any valid items
   if (!item)
     return false;
 
@@ -246,7 +246,7 @@ void CGUIDialogContextMenu::GetContextButtons(const std::string &type, const CFi
     if (share)
     {
       // Note. from now on, remove source & disable plugin should mean the same thing
-      //TODO might be smart to also combine editing source & plugin settings into one concept/dialog
+      //! @todo might be smart to also combine editing source & plugin settings into one concept/dialog
       // Note. Temporarily disabled ability to remove plugin sources until installer is operational
 
       CURL url(share->strPath);
@@ -621,9 +621,9 @@ void CGUIDialogContextMenu::SwitchMedia(const std::string& strType, const std::s
   // create menu
   CContextButtons choices;
   if (strType != "music")
-    choices.Add(WINDOW_MUSIC_FILES, 2);
+    choices.Add(WINDOW_MUSIC_NAV, 2);
   if (strType != "video")
-    choices.Add(WINDOW_VIDEO_FILES, 3);
+    choices.Add(WINDOW_VIDEO_NAV, 3);
   if (strType != "pictures")
     choices.Add(WINDOW_PICTURES, 1);
   if (strType != "files")

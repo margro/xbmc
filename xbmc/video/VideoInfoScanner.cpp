@@ -139,7 +139,11 @@ namespace VIDEO
          * occurs.
          */
         std::string directory = *m_pathsToScan.begin();
-        if (!CDirectory::Exists(directory))
+        if (m_bStop)
+        {
+          bCancelled = true;
+        }
+        else if (!CDirectory::Exists(directory))
         {
           /*
            * Note that this will skip clean (if m_bClean is enabled) if the directory really
@@ -613,7 +617,7 @@ namespace VIDEO
         return INFO_ERROR;
       return INFO_ADDED;
     }
-    // TODO: This is not strictly correct as we could fail to download information here or error, or be cancelled
+    //! @todo This is not strictly correct as we could fail to download information here or error, or be cancelled
     return INFO_NOT_FOUND;
   }
 
@@ -662,7 +666,7 @@ namespace VIDEO
         return INFO_ERROR;
       return INFO_ADDED;
     }
-    // TODO: This is not strictly correct as we could fail to download information here or error, or be cancelled
+    //! @todo This is not strictly correct as we could fail to download information here or error, or be cancelled
     return INFO_NOT_FOUND;
   }
 
@@ -1590,7 +1594,7 @@ namespace VIDEO
         CFileItem item;
         item.SetPath(file->strPath);
         if (!imdb.GetEpisodeDetails(guide->cScraperUrl, *item.GetVideoInfoTag(), pDlgProgress))
-          return INFO_NOT_FOUND; // TODO: should we just skip to the next episode?
+          return INFO_NOT_FOUND; //! @todo should we just skip to the next episode?
           
         // Only set season/epnum from filename when it is not already set by a scraper
         if (item.GetVideoInfoTag()->m_iSeason == -1)
@@ -1837,8 +1841,8 @@ namespace VIDEO
       struct __stat64 buffer;
       if (XFILE::CFile::Stat(items[i]->GetPath(), &buffer) == 0)
       {
-        // TODO: some filesystems may return the mtime/ctime inline, in which case this is
-        // unnecessarily expensive. Consider supporting Stat() in our directory cache?
+        //! @todo some filesystems may return the mtime/ctime inline, in which case this is
+        //! unnecessarily expensive. Consider supporting Stat() in our directory cache?
         stat_time = buffer.st_mtime ? buffer.st_mtime : buffer.st_ctime;
         time += stat_time;
       }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -68,11 +68,11 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug Testsuite|Win32'">XBMC\$(Configuration)\objs\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">XBMC\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">XBMC\$(Configuration)\objs\</IntDir>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug Testsuite|Win32'">$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(WindowsSdkDir)Include\km;$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug Testsuite|Win32'">$(WindowsSdkDir)Include\km;$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(WindowsSDK_LibraryPath_x86);$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug Testsuite|Win32'">$(WindowsSDK_LibraryPath_x86);$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(WindowsSdkDir)Include\km;$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(WindowsSDK_LibraryPath_x86);$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug Testsuite|Win32'">$(ProjectName)-test</TargetName>
     <CustomBuildBeforeTargets Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -132,7 +132,7 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
       <OutputFile>$(OutDir)$(ProjectName)-test.exe</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
-      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>LIBCMT.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
       <DelayLoadDLLs>zlib.dll;libmysql.dll;libxslt.dll;dnssd.dll;dwmapi.dll;ssh.dll;sqlite3.dll;avcodec-57.dll;avfilter-6.dll;avformat-57.dll;avutil-55.dll;postproc-54.dll;swresample-2.dll;swscale-4.dll;d3dcompiler_47.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -258,11 +258,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\AEFactory.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\AEResampleFactory.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\AESinkFactory.cpp" />
-    <ClCompile Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSP.cpp" />
-    <ClCompile Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSPAddon.cpp" />
-    <ClCompile Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSPDatabase.cpp" />
-    <ClCompile Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSPMode.cpp" />
-    <ClCompile Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSPProcess.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Encoders\AEEncoderFFmpeg.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\ActiveAE.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\ActiveAEBuffer.cpp" />
@@ -270,6 +265,11 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\ActiveAESink.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\ActiveAESound.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\ActiveAEStream.cpp" />
+    <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSP.cpp" />
+    <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSPAddon.cpp" />
+    <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSPDatabase.cpp" />
+    <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSPMode.cpp" />
+    <ClCompile Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSPProcess.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Sinks\AESinkDirectSound.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Sinks\AESinkNULL.cpp" />
     <ClCompile Include="..\..\xbmc\cores\AudioEngine\Sinks\AESinkWASAPI.cpp" />
@@ -391,7 +391,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\..\xbmc\filesystem\FavouritesDirectory.cpp" />
     <ClCompile Include="..\..\xbmc\filesystem\FileDirectoryFactory.cpp" />
     <ClCompile Include="..\..\xbmc\filesystem\FileFactory.cpp" />
-    <ClCompile Include="..\..\xbmc\filesystem\FileReaderFile.cpp" />
     <ClCompile Include="..\..\xbmc\filesystem\FTPDirectory.cpp" />
     <ClCompile Include="..\..\xbmc\filesystem\FTPParse.cpp" />
     <ClCompile Include="..\..\xbmc\filesystem\HTTPDirectory.cpp" />
@@ -515,7 +514,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\..\xbmc\guilib\GUIBaseContainer.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIBorderedImage.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIButtonControl.cpp" />
-    <ClCompile Include="..\..\xbmc\guilib\GUICheckMarkControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIColorManager.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIControlFactory.cpp" />
@@ -545,7 +543,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\..\xbmc\guilib\GUIMessage.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIMoverControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIMultiImage.cpp" />
-    <ClCompile Include="..\..\xbmc\guilib\GUIMultiSelectText.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIPanelContainer.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIProgressControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIRadioButtonControl.cpp" />
@@ -553,7 +550,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\..\xbmc\guilib\GUIResizeControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIRSSControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIScrollBarControl.cpp" />
-    <ClCompile Include="..\..\xbmc\guilib\GUISelectButtonControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUISettingsSliderControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIShader.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIShaderDX.cpp" />
@@ -714,6 +710,7 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\..\xbmc\peripherals\devices\PeripheralJoystick.cpp" />
     <ClCompile Include="..\..\xbmc\peripherals\EventScanner.cpp" />
     <ClCompile Include="..\..\xbmc\peripherals\EventScanRate.cpp" />
+    <ClCompile Include="..\..\xbmc\network\httprequesthandler\HTTPRequestHandlerUtils.cpp" />
     <ClCompile Include="..\..\xbmc\platform\posix\main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug Testsuite|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1024,11 +1021,11 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\..\xbmc\contrib\kissfft\kiss_fft.h" />
     <ClInclude Include="..\..\xbmc\contrib\kissfft\kiss_fftr.h" />
     <ClInclude Include="..\..\xbmc\contrib\kissfft\_kiss_fft_guts.h" />
-    <ClInclude Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSP.h" />
-    <ClInclude Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSPAddon.h" />
-    <ClInclude Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSPDatabase.h" />
-    <ClInclude Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSPMode.h" />
-    <ClInclude Include="..\..\xbmc\cores\AudioEngine\DSPAddons\ActiveAEDSPProcess.h" />
+    <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSP.h" />
+    <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSPAddon.h" />
+    <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSPDatabase.h" />
+    <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSPMode.h" />
+    <ClInclude Include="..\..\xbmc\cores\AudioEngine\Engines\ActiveAE\AudioDSPAddons\ActiveAEDSPProcess.h" />
     <ClInclude Include="..\..\xbmc\cores\AudioEngine\Utils\AEStreamData.h" />
     <ClInclude Include="..\..\xbmc\cores\DataCacheCore.h" />
     <ClInclude Include="..\..\xbmc\cores\AudioEngine\AEFactory.h" />
@@ -1267,6 +1264,7 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\..\xbmc\peripherals\devices\PeripheralJoystick.h" />
     <ClInclude Include="..\..\xbmc\peripherals\EventScanner.h" />
     <ClInclude Include="..\..\xbmc\peripherals\EventScanRate.h" />
+    <ClInclude Include="..\..\xbmc\network\httprequesthandler\HTTPRequestHandlerUtils.h" />
     <ClInclude Include="..\..\xbmc\platform\MessagePrinter.h" />
     <ClInclude Include="..\..\xbmc\media\MediaType.h" />
     <ClInclude Include="..\..\xbmc\messaging\ApplicationMessenger.h" />
@@ -1355,6 +1353,7 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\..\xbmc\utils\Locale.h" />
     <ClInclude Include="..\..\xbmc\utils\params_check_macros.h" />
     <ClInclude Include="..\..\xbmc\utils\ProgressJob.h" />
+    <ClInclude Include="..\..\xbmc\utils\Random.h" />
     <ClInclude Include="..\..\xbmc\utils\rfft.h" />
     <ClInclude Include="..\..\xbmc\utils\RssManager.h" />
     <ClInclude Include="..\..\xbmc\utils\Speed.h" />
@@ -1413,7 +1412,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\..\xbmc\filesystem\File.h" />
     <ClInclude Include="..\..\xbmc\filesystem\FileDirectoryFactory.h" />
     <ClInclude Include="..\..\xbmc\filesystem\FileFactory.h" />
-    <ClInclude Include="..\..\xbmc\filesystem\FileReaderFile.h" />
     <ClInclude Include="..\..\xbmc\filesystem\FTPDirectory.h" />
     <ClInclude Include="..\..\xbmc\filesystem\FTPParse.h" />
     <ClInclude Include="..\..\xbmc\filesystem\HTTPDirectory.h" />
@@ -1848,7 +1846,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDInputStreamFile.cpp" />
     <ClCompile Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDInputStreamMemory.cpp" />
     <ClCompile Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDInputStreamNavigator.cpp" />
-    <ClCompile Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDInputStreamRTMP.cpp" />
     <ClCompile Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDStateSerializer.cpp" />
     <ClCompile Include="..\..\xbmc\cores\VideoPlayer\DVDSubtitles\DVDFactorySubtitle.cpp" />
     <ClCompile Include="..\..\xbmc\cores\VideoPlayer\DVDSubtitles\DVDSubtitleLineCollection.cpp" />
@@ -2049,7 +2046,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\..\xbmc\guilib\GUIBorderedImage.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIButtonControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUICallback.h" />
-    <ClInclude Include="..\..\xbmc\guilib\GUICheckMarkControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIColorManager.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIControlFactory.h" />
@@ -2078,7 +2074,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\..\xbmc\guilib\GUIMessage.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIMoverControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIMultiImage.h" />
-    <ClInclude Include="..\..\xbmc\guilib\GUIMultiSelectText.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIPanelContainer.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIProgressControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIRadioButtonControl.h" />
@@ -2086,7 +2081,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\..\xbmc\guilib\GUIResizeControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIRSSControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIScrollBarControl.h" />
-    <ClInclude Include="..\..\xbmc\guilib\GUISelectButtonControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUISettingsSliderControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIShader.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUISliderControl.h" />
@@ -2482,7 +2476,6 @@ copy "..\Win32BuildSetup\dependencies\python27.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDInputStreamFile.h" />
     <ClInclude Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDInputStreamMemory.h" />
     <ClInclude Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDInputStreamNavigator.h" />
-    <ClInclude Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDInputStreamRTMP.h" />
     <ClInclude Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\DVDStateSerializer.h" />
     <ClInclude Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\dvdnav\dvd_types.h" />
     <ClInclude Include="..\..\xbmc\cores\VideoPlayer\DVDInputStreams\dvdnav\dvdnav.h" />

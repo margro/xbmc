@@ -79,6 +79,9 @@
 #include "dialogs/GUIDialogTextViewer.h"
 #include "network/GUIDialogNetworkSetup.h"
 #include "dialogs/GUIDialogMediaSource.h"
+#ifdef HAS_GL
+#include "video/dialogs/GUIDialogCMSSettings.h"
+#endif
 #include "video/dialogs/GUIDialogVideoSettings.h"
 #include "video/dialogs/GUIDialogAudioSubtitleSettings.h"
 #include "video/dialogs/GUIDialogVideoBookmarks.h"
@@ -213,6 +216,9 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogSlider);
   Add(new CGUIDialogMusicOSD);
   Add(new CGUIDialogVisualisationPresetList);
+#ifdef HAS_GL
+  Add(new CGUIDialogCMSSettings);
+#endif
   Add(new CGUIDialogVideoSettings);
   Add(new CGUIDialogAudioSubtitleSettings);
   Add(new CGUIDialogVideoBookmarks);
@@ -301,11 +307,9 @@ bool CGUIWindowManager::DestroyWindows()
     Delete(WINDOW_SPLASH);
     Delete(WINDOW_MUSIC_PLAYLIST);
     Delete(WINDOW_MUSIC_PLAYLIST_EDITOR);
-    Delete(WINDOW_MUSIC_FILES);
     Delete(WINDOW_MUSIC_NAV);
     Delete(WINDOW_DIALOG_MUSIC_INFO);
     Delete(WINDOW_DIALOG_VIDEO_INFO);
-    Delete(WINDOW_VIDEO_FILES);
     Delete(WINDOW_VIDEO_PLAYLIST);
     Delete(WINDOW_VIDEO_NAV);
     Delete(WINDOW_FILES);
@@ -328,6 +332,7 @@ bool CGUIWindowManager::DestroyWindows()
     Delete(WINDOW_DIALOG_LOCK_SETTINGS);
     Delete(WINDOW_DIALOG_NETWORK_SETUP);
     Delete(WINDOW_DIALOG_MEDIA_SOURCE);
+    Delete(WINDOW_DIALOG_CMS_OSD_SETTINGS);
     Delete(WINDOW_DIALOG_VIDEO_OSD_SETTINGS);
     Delete(WINDOW_DIALOG_AUDIO_OSD_SETTINGS);
     Delete(WINDOW_DIALOG_VIDEO_BOOKMARKS);
@@ -633,8 +638,8 @@ void CGUIWindowManager::PreviousWindow()
   // check to see whether our current window has a <previouswindow> tag
   if (pCurrentWindow->GetPreviousWindow() != WINDOW_INVALID)
   {
-    // TODO: we may need to test here for the
-    //       whether our history should be changed
+    //! @todo we may need to test here for the
+    //!       whether our history should be changed
 
     // don't reactivate the previouswindow if it is ourselves.
     if (currentWindow != pCurrentWindow->GetPreviousWindow())
@@ -729,20 +734,6 @@ void CGUIWindowManager::ActivateWindow(int iWindowID, const std::vector<std::str
 void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector<std::string>& params, bool swappingWindows, bool force /* = false */)
 {
   // translate virtual windows
-  // virtual music window which returns the last open music window (aka the music start window)
-  if (iWindowID == WINDOW_MUSIC || iWindowID == WINDOW_MUSIC_FILES)
-  { // backward compatibility for pre-something
-    iWindowID = WINDOW_MUSIC_NAV;
-  }
-  // virtual video window which returns the last open video window (aka the video start window)
-  if (iWindowID == WINDOW_VIDEOS || iWindowID == WINDOW_VIDEO_FILES)
-  { // backward compatibility for pre-Eden
-    iWindowID = WINDOW_VIDEO_NAV;
-  }
-  if (iWindowID == WINDOW_SCRIPTS)
-  { // backward compatibility for pre-Dharma
-    iWindowID = WINDOW_PROGRAMS;
-  }
   if (iWindowID == WINDOW_START)
   { // virtual start window
     iWindowID = g_SkinInfo->GetStartWindow();
@@ -764,10 +755,14 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector
   if (!pNewWindow)
   { // nothing to see here - move along
     CLog::Log(LOGERROR, "Unable to locate window with id %d.  Check skin files", iWindowID - WINDOW_HOME);
+    if (GetActiveWindowID() == WINDOW_STARTUP_ANIM)
+      ActivateWindow(WINDOW_HOME);
     return ;
   }
   else if (!pNewWindow->CanBeActivated())
   {
+    if (GetActiveWindowID() == WINDOW_STARTUP_ANIM)
+      ActivateWindow(WINDOW_HOME);
     return;
   }
   else if (pNewWindow->IsDialog())

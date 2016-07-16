@@ -155,10 +155,20 @@ CAlbum::CAlbum(const CFileItem& item)
     }
   }
   else
-  { // no musicbrainz info, so fill in directly
-    for (std::vector<std::string>::const_iterator it = tag.GetAlbumArtist().begin(); it != tag.GetAlbumArtist().end(); ++it)
+  { // No musicbrainz album artist ids so fill artist names directly.
+    // This method only called when there is a musicbrainz album id, so means mbid tags are incomplete.
+    // Try to separate album artist names further, and trim blank space.
+    std::vector<std::string> albumArtists = tag.GetAlbumArtist();
+    if (musicBrainzAlbumArtistHints.size() > albumArtists.size())
+      // Make use of hints (ALBUMARTISTS tag), when present, to separate artist names
+      albumArtists = musicBrainzAlbumArtistHints;
+    else
+      // Split album artist names further using multiple possible delimiters, over single separator applied in Tag loader
+      albumArtists = StringUtils::SplitMulti(albumArtists, g_advancedSettings.m_musicArtistSeparators);
+
+    for (auto artistname : albumArtists)
     {
-      artistCredits.emplace_back(*it);
+      artistCredits.emplace_back(StringUtils::Trim(artistname));
     }
   }
 
@@ -381,9 +391,9 @@ bool CAlbum::Load(const TiXmlElement *album, bool append, bool prioritise)
     float max_rating = 10;
     XMLUtils::GetFloat(album, "userrating", rating);
     if (userrating->QueryFloatAttribute("max", &max_rating) == TIXML_SUCCESS && max_rating >= 1)
-      rating *= (5.f / max_rating); // Normalise the Rating to between 0 and 10 
-    if (rating > 5.f)
-      rating = 5.f;
+      rating *= (10.f / max_rating); // Normalise the Rating to between 0 and 10
+    if (rating > 10.f)
+      rating = 10.f;
     iUserrating = MathUtils::round_int(rating);
   }
   XMLUtils::GetInt(album, "votes", iVotes);

@@ -171,16 +171,7 @@ void CGUIDialogMusicInfo::SetAlbum(const CAlbum& album, const std::string &path)
   m_album = album;
   SetSongs(m_album.infoSongs);
   *m_albumItem = CFileItem(path, true);
-  m_albumItem->GetMusicInfoTag()->SetAlbum(m_album.strAlbum);
-  m_albumItem->GetMusicInfoTag()->SetAlbumArtist(m_album.GetAlbumArtist());
-  m_albumItem->GetMusicInfoTag()->SetArtist(m_album.GetAlbumArtist());
-  m_albumItem->GetMusicInfoTag()->SetYear(m_album.iYear);
-  m_albumItem->GetMusicInfoTag()->SetLoaded(true);
-  m_albumItem->GetMusicInfoTag()->SetRating(m_album.fRating);
-  m_albumItem->GetMusicInfoTag()->SetVotes(m_album.iVotes);
-  m_albumItem->GetMusicInfoTag()->SetUserrating(m_album.iUserrating);
-  m_albumItem->GetMusicInfoTag()->SetGenre(m_album.genre);
-  m_albumItem->GetMusicInfoTag()->SetDatabaseId(m_album.idAlbum, MediaTypeAlbum);
+  m_albumItem->GetMusicInfoTag()->SetAlbum(m_album);
   CMusicDatabase::SetPropertiesFromAlbum(*m_albumItem,m_album);
 
   CMusicThumbLoader loader;
@@ -351,8 +342,8 @@ void CGUIDialogMusicInfo::SetUserrating(int userrating) const
 // 3.  Local thumb
 // 4.  No thumb (if no Local thumb is available)
 
-// TODO: Currently no support for "embedded thumb" as there is no easy way to grab it
-//       without sending a file that has this as it's album to this class
+//! @todo Currently no support for "embedded thumb" as there is no easy way to grab it
+//!       without sending a file that has this as it's album to this class
 void CGUIDialogMusicInfo::OnGetThumb()
 {
   CFileItemList items;
@@ -382,7 +373,7 @@ void CGUIDialogMusicInfo::OnGetThumb()
     item->SetIconImage("DefaultPicture.png");
     item->SetLabel(g_localizeStrings.Get(20015));
     
-    // TODO: Do we need to clear the cached image?
+    //! @todo Do we need to clear the cached image?
     //    CTextureCache::GetInstance().ClearCachedImage(thumb);
     items.Add(item);
   }
@@ -484,7 +475,7 @@ void CGUIDialogMusicInfo::OnGetFanart()
     item->SetIconImage("DefaultPicture.png");
     item->SetLabel(g_localizeStrings.Get(20441));
 
-    // TODO: Do we need to clear the cached image?
+    //! @todo Do we need to clear the cached image?
     //    CTextureCache::GetInstance().ClearCachedImage(thumb);
     items.Add(item);
   }
@@ -502,7 +493,7 @@ void CGUIDialogMusicInfo::OnGetFanart()
     itemLocal->SetArt("thumb", strLocal);
     itemLocal->SetLabel(g_localizeStrings.Get(20438));
 
-    // TODO: Do we need to clear the cached image?
+    //! @todo Do we need to clear the cached image?
     CTextureCache::GetInstance().ClearCachedImage(strLocal);
     items.Add(itemLocal);
   }

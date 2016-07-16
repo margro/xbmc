@@ -19,6 +19,8 @@
  *
  */
 
+#include <vector>
+
 #include "JNIBase.h"
 #include "ByteBuffer.h"
 #include "MediaCodecBufferInfo.h"
@@ -46,8 +48,8 @@ public:
   int   dequeueOutputBuffer(const CJNIMediaCodecBufferInfo &info, int64_t timeoutUs);
   void  releaseOutputBuffer(int index, bool render);
   const CJNIMediaFormat getOutputFormat();
-  std::vector<CJNIByteBuffer> getInputBuffers();
-  std::vector<CJNIByteBuffer> getOutputBuffers();
+  const CJNIByteBuffer getInputBuffer(int index);
+  const CJNIByteBuffer getOutputBuffer(int index);
   void  setVideoScalingMode(int mode);
 
   static void  PopulateStaticFields();

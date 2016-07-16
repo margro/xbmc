@@ -83,15 +83,12 @@ bool CMediaLibraryEvent::Execute() const
     }
     else
     {
-      // TODO: remove the filename for now as CGUIMediaWindow::GetDirectory() can't handle it
+      //! @todo remove the filename for now as CGUIMediaWindow::GetDirectory() can't handle it
       if (m_mediaType == MediaTypeMovie || m_mediaType == MediaTypeMusicVideo || m_mediaType == MediaTypeEpisode)
         path = URIUtils::GetDirectory(path);
     }
 
-    if (URIUtils::IsVideoDb(path))
-      windowId = WINDOW_VIDEO_NAV;
-    else
-      windowId = WINDOW_VIDEO_FILES;
+    windowId = WINDOW_VIDEO_NAV;
   }
   else if (m_mediaType == MediaTypeMusic || m_mediaType == MediaTypeArtist ||
            m_mediaType == MediaTypeAlbum || m_mediaType == MediaTypeSong)
@@ -109,15 +106,12 @@ bool CMediaLibraryEvent::Execute() const
     }
     else
     {
-      // TODO: remove the filename for now as CGUIMediaWindow::GetDirectory() can't handle it
+      //! @todo remove the filename for now as CGUIMediaWindow::GetDirectory() can't handle it
       if (m_mediaType == MediaTypeSong)
         path = URIUtils::GetDirectory(path);
     }
 
-    if (URIUtils::IsMusicDb(path))
-      windowId = WINDOW_MUSIC_NAV;
-    else
-      windowId = WINDOW_MUSIC_FILES;
+    windowId = WINDOW_MUSIC_NAV;
   }
 
   if (windowId < 0)

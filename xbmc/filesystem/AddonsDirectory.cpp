@@ -348,6 +348,7 @@ static bool Browse(const CURL& path, CFileItemList &items)
   const std::string repo = path.GetHostName();
 
   VECADDONS addons;
+  items.SetPath(path.Get());
   if (repo == "all")
   {
     CAddonDatabase database;
@@ -431,7 +432,7 @@ static bool Repos(const CURL& path, CFileItemList &items)
 
 static void RootDirectory(CFileItemList& items)
 {
-  items.SetLabel(g_localizeStrings.Get(24033));
+  items.SetLabel(g_localizeStrings.Get(10040));
   {
     CFileItemPtr item(new CFileItem("addons://user/", true));
     item->SetLabel(g_localizeStrings.Get(24998));
@@ -555,9 +556,6 @@ bool CAddonsDirectory::GetDirectory(const CURL& url, CFileItemList &items)
     if (!GetRecentlyUpdatedAddons(addons))
       return false;
 
-    std::sort(addons.begin(), addons.end(),
-        [](const AddonPtr& a, const AddonPtr& b){ return a->LastUpdated() > b->LastUpdated(); });
-
     CAddonsDirectory::GenerateAddonListing(path, addons, items, g_localizeStrings.Get(24004));
     return true;
 
@@ -653,7 +651,7 @@ CFileItemPtr CAddonsDirectory::FileItemFromAddon(const AddonPtr &addon,
   if (URIUtils::IsInternetStream(addon->FanArt()) || CFile::Exists(addon->FanArt()))
     item->SetArt("fanart", addon->FanArt());
 
-  //TODO: fix hacks that depends on these
+  //! @todo fix hacks that depends on these
   item->SetProperty("Addon.ID", addon->ID());
   item->SetProperty("Addon.Name", addon->Name());
   const auto it = addon->ExtraInfo().find("language");

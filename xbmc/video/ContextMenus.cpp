@@ -22,6 +22,7 @@
 #include "Application.h"
 #include "Autorun.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
+#include "video/windows/GUIWindowVideoBase.h"
 
 
 namespace CONTEXTMENU
@@ -114,7 +115,7 @@ std::string CPlay::GetLabel(const CFileItem& item) const
 bool CPlay::IsVisible(const CFileItem& item) const
 {
   if (item.m_bIsFolder)
-    return false; //TODO: implement
+    return false; //! @todo implement
   return item.IsVideo() || item.IsDVD() || item.IsCDDA();
 }
 

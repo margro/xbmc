@@ -18,10 +18,7 @@
  *
  */
 
-/**
- * TODO:
- * - use Observable here, so we can use event driven operations later
- */
+//! @todo use Observable here, so we can use event driven operations later
 
 #include "PVRChannelGroup.h"
 #include "PVRChannelGroupsContainer.h"
@@ -138,11 +135,6 @@ bool CPVRChannelGroup::operator!=(const CPVRChannelGroup &right) const
 }
 
 PVRChannelGroupMember CPVRChannelGroup::EmptyMember = { CPVRChannelPtr(), 0, 0 };
-
-std::pair<int, int> CPVRChannelGroup::PathIdToStorageId(uint64_t storageId)
-{
-  return std::make_pair(storageId >> 32, storageId & 0xFFFFFFFF);
-}
 
 void CPVRChannelGroup::OnInit(void)
 {
@@ -341,7 +333,7 @@ void CPVRChannelGroup::SearchAndSetChannelIcons(bool bUpdateDb /* = false */)
     if (bUpdateDb)
       channel->Persist();
 
-    /* TODO: start channel icon scraper here if nothing was found */
+    //! @todo start channel icon scraper here if nothing was found
   }
 
   if (dlgProgressHandle)
@@ -738,51 +730,6 @@ bool CPVRChannelGroup::UpdateGroupEntries(const CPVRChannelGroup &channels)
   return bReturn;
 }
 
-void CPVRChannelGroup::RemoveInvalidChannels(void)
-{
-  CPVRChannelPtr channel;
-  CSingleLock lock(m_critSection);
-  for (PVR_CHANNEL_GROUP_SORTED_MEMBERS::iterator it = m_sortedMembers.begin(); it != m_sortedMembers.end();)
-  {
-    bool bDelete = false;
-    channel = (*it).channel;
-
-    if (channel->ClientChannelNumber() <= 0)
-    {
-      CLog::Log(LOGERROR, "PVRChannelGroup - %s - removing invalid channel '%s' from client '%i': no valid client channel number",
-          __FUNCTION__, channel->ChannelName().c_str(), channel->ClientID());
-      bDelete = true;
-    }
-
-    if (!bDelete && channel->UniqueID() <= 0)
-    {
-      CLog::Log(LOGERROR, "PVRChannelGroup - %s - removing invalid channel '%s' from client '%i': no valid unique ID",
-          __FUNCTION__, channel->ChannelName().c_str(), channel->ClientID());
-      bDelete = true;
-    }
-
-    /* remove this channel from all non-system groups if this is the internal group */
-    if (bDelete)
-    {
-      if (IsInternalGroup())
-      {
-        g_PVRChannelGroups->Get(m_bRadio)->RemoveFromAllGroups(channel);
-        channel->Delete();
-      }
-      else
-      {
-        m_members.erase(channel->StorageId());
-        it = m_sortedMembers.erase(it);
-      }
-      m_bChanged = true;
-    }
-    else
-    {
-      ++it;
-    }
-  }
-}
-
 bool CPVRChannelGroup::RemoveFromGroup(const CPVRChannelPtr &channel)
 {
   bool bReturn(false);
@@ -792,7 +739,7 @@ bool CPVRChannelGroup::RemoveFromGroup(const CPVRChannelPtr &channel)
   {
     if (*channel == *((*it).channel))
     {
-      // TODO notify observers
+      //! @todo notify observers
       m_members.erase((*it).channel->StorageId());
       it = m_sortedMembers.erase(it);
       bReturn = true;
@@ -837,7 +784,7 @@ bool CPVRChannelGroup::AddToGroup(const CPVRChannelPtr &channel, int iChannelNum
 
       SortAndRenumber();
 
-      // TODO notify observers
+      //! @todo notify observers
       bReturn = true;
     }
   }
@@ -1010,7 +957,7 @@ void CPVRChannelGroup::OnSettingChanged(const CSetting *setting)
   if (setting == NULL)
     return;
 
-  /* TODO: while pvr manager is starting up do accept setting changes. */
+  //! @todo while pvr manager is starting up do accept setting changes.
   if(!g_PVRManager.IsStarted())
   {
     CLog::Log(LOGWARNING, "CPVRChannelGroup setting change ignored while PVRManager is starting\n");
@@ -1044,28 +991,6 @@ void CPVRChannelGroup::OnSettingChanged(const CSetting *setting)
 bool CPVRPersistGroupJob::DoWork(void)
 {
   return m_group->Persist();
-}
-
-int CPVRChannelGroup::GetEPGSearch(CFileItemList &results, const EpgSearchFilter &filter)
-{
-  int iInitialSize = results.Size();
-
-  /* get filtered results from all tables */
-  g_EpgContainer.GetEPGSearch(results, filter);
-
-  /* remove duplicate entries */
-  if (filter.m_bPreventRepeats)
-    EpgSearchFilter::RemoveDuplicates(results);
-
-  /* filter recordings */
-  if (filter.m_bIgnorePresentRecordings)
-    EpgSearchFilter::FilterRecordings(results);
-
-  /* filter timers */
-  if (filter.m_bIgnorePresentTimers)
-    EpgSearchFilter::FilterTimers(results);
-
-  return results.Size() - iInitialSize;
 }
 
 int CPVRChannelGroup::GetEPGNowOrNext(CFileItemList &results, bool bGetNext) const
@@ -1257,7 +1182,7 @@ bool CPVRChannelGroup::UpdateChannel(const CFileItem &item, bool bHidden, bool b
   if (iEPGSource == 0)
     member.channel->SetEPGScraper("client");
 
-  // TODO add other scrapers
+  //! @todo add other scrapers
   member.channel->SetEPGEnabled(bEPGEnabled);
 
   /* set new values in the channel tag */
@@ -1286,34 +1211,10 @@ bool CPVRChannelGroup::HasChannels() const
   return !m_members.empty();
 }
 
-bool CPVRChannelGroup::ToggleChannelLocked(const CFileItem &item)
-{
-  if (!item.HasPVRChannelInfoTag())
-    return false;
-
-  CSingleLock lock(m_critSection);
-
-  /* get the real channel from the group */
-  const PVRChannelGroupMember& member(GetByUniqueID(item.GetPVRChannelInfoTag()->StorageId()));
-  if (member.channel)
-  {
-    member.channel->SetLocked(!member.channel->IsLocked());
-    return true;
-  }
-
-  return false;
-}
-
 void CPVRChannelGroup::SetSelectedGroup(bool bSetTo)
 {
   CSingleLock lock(m_critSection);
   m_bSelectedGroup = bSetTo;
-}
-
-bool CPVRChannelGroup::IsSelectedGroup(void) const
-{
-  CSingleLock lock(m_critSection);
-  return m_bSelectedGroup;
 }
 
 bool CPVRChannelGroup::CreateChannelEpgs(bool bForce /* = false */)

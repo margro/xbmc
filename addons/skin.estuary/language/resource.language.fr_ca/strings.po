@@ -266,7 +266,7 @@ msgstr "Éléments du menu principal"
 
 msgctxt "#31062"
 msgid "Shortcuts to the \"Files\" sections of each media type. Go there to add additional sources for your databases."
-msgstr "Raccourcis vers les sections « Fichiers » de chaque type de médias. Allez-y pour ajouter des sources supplémentaires pour vos bases de données."
+msgstr "Raccourcis vers les sections « Fichiers » de chaque type de médias. S'y rendre pour ajouter des sources supplémentaires pour vos bases de données."
 
 msgctxt "#31063"
 msgid "Sections"
@@ -547,3 +547,7 @@ msgstr "Choisir le paquet de fanart de l'accueil"
 msgctxt "#31132"
 msgid "min"
 msgstr "min"
+
+msgctxt "#31133"
+msgid "Hide"
+msgstr "Masquer"

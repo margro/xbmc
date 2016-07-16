@@ -23,8 +23,9 @@
 
 #include <string>
 #include <queue>
+#include <vector>
 
-// TODO: should this be in configure
+//! @todo should this be in configure
 #ifndef OMX_SKIP64BIT
 #define OMX_SKIP64BIT
 #endif

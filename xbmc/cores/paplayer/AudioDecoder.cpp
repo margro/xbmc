@@ -83,9 +83,9 @@ bool CAudioDecoder::Create(const CFileItem &file, int64_t seekOffset)
     filecache = CSettings::GetInstance().GetInt(CSettings::SETTING_CACHEAUDIO_LAN);
 
   // create our codec
-  m_codec=CodecFactory::CreateCodecDemux(file.GetPath(), file.GetMimeType(), filecache * 1024);
+  m_codec=CodecFactory::CreateCodecDemux(file, filecache * 1024);
 
-  if (!m_codec || !m_codec->Init(file.GetPath(), filecache * 1024))
+  if (!m_codec || !m_codec->Init(file, filecache * 1024))
   {
     CLog::Log(LOGERROR, "CAudioDecoder: Unable to Init Codec while loading file %s", file.GetPath().c_str());
     Destroy();
@@ -298,7 +298,7 @@ int CAudioDecoder::ReadSamples(int numsamples)
       int result = m_codec->ReadRaw(&m_rawBuffer, &m_rawBufferSize);
       if (result == READ_SUCCESS && m_rawBufferSize)
       {
-        // TODO, trash this useless ringbuffer
+        //! @todo trash this useless ringbuffer
         if (m_status == STATUS_QUEUING)
         {
           m_status = STATUS_QUEUED;

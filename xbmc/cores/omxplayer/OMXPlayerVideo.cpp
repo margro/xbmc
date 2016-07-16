@@ -73,8 +73,7 @@ OMXPlayerVideo::OMXPlayerVideo(OMXClock *av_clock,
 : CThread("OMXPlayerVideo")
 , IDVDStreamPlayerVideo(processInfo)
 , m_messageQueue("video")
-, m_omxVideo(renderManager)
-, m_codecname("")
+, m_omxVideo(renderManager, processInfo)
 , m_messageParent(parent)
 , m_renderManager(renderManager)
 {
@@ -471,12 +470,12 @@ void OMXPlayerVideo::Process()
 
         if (m_syncState == IDVDStreamPlayer::SYNC_STARTING && !bRequestDrop && settings_changed)
         {
-          m_codecname = m_omxVideo.GetDecoderName();
+          m_processInfo.SetVideoDecoderName(m_omxVideo.GetDecoderName(), true);
           m_syncState = IDVDStreamPlayer::SYNC_WAITSYNC;
           SStartMsg msg;
           msg.player = VideoPlayer_VIDEO;
-          msg.cachetime = DVD_MSEC_TO_TIME(50); // TODO
-          msg.cachetotal = DVD_MSEC_TO_TIME(100); // TODO
+          msg.cachetime = DVD_MSEC_TO_TIME(50); //! @todo implement
+          msg.cachetotal = DVD_MSEC_TO_TIME(100); //! @todo implement
           msg.timestamp = pts;
           m_messageParent.Put(new CDVDMsgType<SStartMsg>(CDVDMsg::PLAYER_STARTED, msg));
         }
@@ -515,6 +514,8 @@ bool OMXPlayerVideo::OpenDecoder()
   if(!m_av_clock)
     return false;
 
+  m_processInfo.ResetVideoCodecInfo();
+
   if (m_hints.fpsrate && m_hints.fpsscale)
     m_fFrameRate = DVD_TIME_BASE / CDVDCodecUtils::NormalizeFrameduration((double)DVD_TIME_BASE * m_hints.fpsscale / m_hints.fpsrate);
   else
@@ -525,6 +526,8 @@ bool OMXPlayerVideo::OpenDecoder()
     CLog::Log(LOGINFO, "OMXPlayerVideo::OpenDecoder : Invalid framerate %d, using forced 25fps and just trust timestamps\n", (int)m_fFrameRate);
     m_fFrameRate = 25;
   }
+  m_processInfo.SetVideoFps(m_fFrameRate);
+
   // use aspect in stream if available
   if (m_hints.forced_aspect)
     m_fForcedAspectRatio = m_hints.aspect;
@@ -544,7 +547,7 @@ bool OMXPlayerVideo::OpenDecoder()
     CLog::Log(LOGINFO, "OMXPlayerVideo::OpenDecoder : Video codec %s width %d height %d profile %d fps %f\n",
         m_omxVideo.GetDecoderName().c_str() , m_hints.width, m_hints.height, m_hints.profile, m_fFrameRate);
 
-    m_codecname = m_omxVideo.GetDecoderName();
+    m_processInfo.SetVideoDecoderName(m_omxVideo.GetDecoderName(), true);
   }
 
   return bVideoDecoderOpen;
@@ -635,11 +638,30 @@ void OMXPlayerVideo::SetVideoRect(const CRect &InSrcRect, const CRect &InDestRec
   // fix up transposed video
   if (m_hints.orientation == 90 || m_hints.orientation == 270)
   {
-    float diff = (DestRect.Height() - DestRect.Width()) * 0.5f;
-    DestRect.x1 -= diff;
-    DestRect.x2 += diff;
-    DestRect.y1 += diff;
-    DestRect.y2 -= diff;
+    float newWidth, newHeight;
+    float aspectRatio = GetAspectRatio();
+    // clamp width if too wide
+    if (DestRect.Height() > DestRect.Width())
+    {
+      newWidth = DestRect.Width(); // clamp to the width of the old dest rect
+      newHeight = newWidth * aspectRatio;
+    }
+    else // else clamp to height
+    {
+      newHeight = DestRect.Height(); // clamp to the height of the old dest rect
+      newWidth = newHeight / aspectRatio;
+    }
+
+    // calculate the center point of the view and offsets
+    float centerX = DestRect.x1 + DestRect.Width() * 0.5f;
+    float centerY = DestRect.y1 + DestRect.Height() * 0.5f;
+    float diffX = newWidth * 0.5f;
+    float diffY = newHeight * 0.5f;
+
+    DestRect.x1 = centerX - diffX;
+    DestRect.x2 = centerX + diffX;
+    DestRect.y1 = centerY - diffY;
+    DestRect.y2 = centerY + diffY;
   }
 
   // check if destination rect or video view mode has changed
@@ -705,6 +727,9 @@ void OMXPlayerVideo::ResolutionUpdateCallBack(uint32_t width, uint32_t height, f
     m_bAllowFullscreen = false; // only allow on first configure
   }
 
+  m_processInfo.SetVideoDimensions(width, height);
+  m_processInfo.SetVideoDAR(display_aspect);
+
   unsigned int iDisplayWidth  = width;
   unsigned int iDisplayHeight = height;
 
@@ -715,6 +740,7 @@ void OMXPlayerVideo::ResolutionUpdateCallBack(uint32_t width, uint32_t height, f
     iDisplayWidth = (int) (iDisplayHeight * display_aspect);
 
   m_fFrameRate = DVD_TIME_BASE / CDVDCodecUtils::NormalizeFrameduration((double)DVD_TIME_BASE / framerate);
+  m_processInfo.SetVideoFps(m_fFrameRate);
 
   CLog::Log(LOGDEBUG,"%s - change configuration. video:%dx%d. framerate: %4.2f. %dx%d format: BYPASS",
       __FUNCTION__, video_width, video_height, m_fFrameRate, iDisplayWidth, iDisplayHeight);

@@ -18,8 +18,8 @@ option(ENABLE_NONFREE     "Enable non-free components?" ON)
 option(ENABLE_MICROHTTPD  "Enable MicroHttpd webserver?" ON)
 option(ENABLE_MYSQLCLIENT "Enable MySql support?" ON)
 option(ENABLE_AVAHI       "Enable Avahi support?" ON)
-option(ENABLE_RTMP        "Enable RTMP support?" ON)
 option(ENABLE_BLURAY      "Enable BluRay support?" ON)
+option(ENABLE_XSLT        "Enable XSLT scrapers support?" ON)
 option(ENABLE_PLIST       "Enable AirPlay support?" ON)
 option(ENABLE_NFS         "Enable NFS support?" ON)
 option(ENABLE_AIRTUNES    "Enable AirTunes support?" ON)
@@ -60,14 +60,17 @@ set(CORE_BUILD_DIR build)
 
 message(STATUS "Source directory: ${CORE_SOURCE_DIR}")
 message(STATUS "Build directory: ${CMAKE_BINARY_DIR}")
+if(CMAKE_BINARY_DIR STREQUAL CORE_SOURCE_DIR)
+  message(WARNING "In-source build detected. It is recommended to build out-of-source.")
+endif()
 
-include(scripts/common/generatorsetup.cmake)
-include(scripts/common/addoptions.cmake)
-include(scripts/common/archsetup.cmake)
-include(scripts/common/macros.cmake)
-include(scripts/common/managestring.cmake)
-include(scripts/common/projectmacros.cmake)
-include(scripts/common/pathsetup.cmake)
+include(modules/extra/ECMEnableSanitizers.cmake)
+include(scripts/common/GeneratorSetup.cmake)
+include(scripts/common/AddOptions.cmake)
+include(scripts/common/ArchSetup.cmake)
+include(scripts/common/Macros.cmake)
+include(scripts/common/ProjectMacros.cmake)
+include(scripts/${CORE_SYSTEM_NAME}/PathSetup.cmake)
 include(ExternalProject)
 
 core_find_git_rev()
@@ -95,7 +98,7 @@ list(APPEND DEPLIBS ${CMAKE_THREAD_LIBS_INIT})
 
 # Required dependencies
 set(required_deps Sqlite3 FreeType PCRE Cpluff LibDvd
-                  TinyXML Python Yajl Xslt
+                  TinyXML Python Yajl
                   Lzo2 Fribidi TagLib FFMPEG CrossGUID)
 if(NOT WIN32)
   list(APPEND required_deps LibSmbClient ZLIB)
@@ -107,7 +110,7 @@ if(CORE_SYSTEM_NAME STREQUAL android)
 endif()
 
 # Optional dependencies
-set(optional_deps MicroHttpd MySqlClient SSH
+set(optional_deps MicroHttpd MySqlClient SSH Xslt
                   Alsa UDev Dbus Avahi
                   PulseAudio VDPAU VAAPI)
 
@@ -115,10 +118,10 @@ set(optional_deps MicroHttpd MySqlClient SSH
 set(required_dyload Curl ASS)
 
 # Optional, dyloaded deps
-set(dyload_optional RTMP CEC Bluray Plist NFS)
+set(dyload_optional CEC Bluray Plist NFS)
 
 # Required by shared objects we link
-set(required_dep_libs PNG EXPAT)
+set(required_dep_libs EXPAT)
 
 # Required tools
 find_package(TexturePacker REQUIRED)
@@ -203,6 +206,10 @@ if(ENABLE_CCACHE)
   core_optional_dep(CCache)
 endif()
 
+if(CORE_SYSTEM_NAME STREQUAL android)
+  core_optional_dep(Breakpad)
+endif()
+
 # Compile Info
 add_custom_command(OUTPUT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp
                           ${CMAKE_BINARY_DIR}/addons/xbmc.addon/addon.xml
@@ -214,7 +221,7 @@ add_custom_command(OUTPUT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp
                                             -DARCH_DEFINES="${ARCH_DEFINES}"
                                             -DAPP_SCMID=${APP_SCMID}
                                             -Dprefix=${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}
-                                            -P ${PROJECT_SOURCE_DIR}/scripts/common/generateversionedfiles.cmake
+                                            -P ${PROJECT_SOURCE_DIR}/scripts/common/GenerateVersionedFiles.cmake
                   DEPENDS ${CORE_SOURCE_DIR}/version.txt
                           ${CORE_SOURCE_DIR}/addons/xbmc.addon/addon.xml.in
                           ${CORE_SOURCE_DIR}/addons/kodi.guilib/addon.xml.in
@@ -312,16 +319,23 @@ add_subdirectory(${CORE_SOURCE_DIR}/xbmc/interfaces/swig build/swig)
 set(OTHER_FILES README.md)
 
 # main binary
-add_executable(${APP_NAME_LC} ${CORE_MAIN_SOURCE} $<TARGET_OBJECTS:compileinfo> "${RESOURCES}" ${OTHER_FILES})
+if(NOT CORE_SYSTEM_NAME STREQUAL android)
+  add_executable(${APP_NAME_LC} ${CORE_MAIN_SOURCE} $<TARGET_OBJECTS:compileinfo> "${RESOURCES}" ${OTHER_FILES})
+else()
+  add_library(${APP_NAME_LC} SHARED ${CORE_MAIN_SOURCE} $<TARGET_OBJECTS:compileinfo> "${RESOURCES}" ${OTHER_FILES})
+endif()
 whole_archive(_MAIN_LIBRARIES ${core_DEPENDS})
 target_link_libraries(${APP_NAME_LC} ${SYSTEM_LDFLAGS} ${_MAIN_LIBRARIES} ${DEPLIBS} ${CMAKE_DL_LIBS})
 unset(_MAIN_LIBRARIES)
 add_dependencies(${APP_NAME_LC} export-files)
-if(NOT WIN32)
-  set_target_properties(${APP_NAME_LC} PROPERTIES SUFFIX ".bin")
-else()
+
+if(WIN32)
   set_target_properties(${APP_NAME_LC} PROPERTIES WIN32_EXECUTABLE ON)
   copy_main_dlls_to_buildtree()
+elseif(CORE_SYSTEM_NAME STREQUAL android)
+  # Nothing
+else()
+  set_target_properties(${APP_NAME_LC} PROPERTIES SUFFIX ".bin")
 endif()
 
 # testing
@@ -340,13 +354,16 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_dependencies(check ${APP_NAME_LC}-test)
 
   # For testing commit series
-  add_custom_target(check-commits ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/scripts/common/checkcommits.cmake
+  add_custom_target(check-commits ${CMAKE_COMMAND} -P ${PROJECT_SOURCE_DIR}/scripts/common/CheckCommits.cmake
                                                    -DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR})
 endif()
 
 # link wrapper
 if(FFMPEG_LINK_EXECUTABLE)
   set(CMAKE_CXX_LINK_EXECUTABLE "${FFMPEG_LINK_EXECUTABLE}")
+endif()
+if(FFMPEG_CREATE_SHARED_LIBRARY)
+  set(CMAKE_CXX_CREATE_SHARED_LIBRARY "${FFMPEG_CREATE_SHARED_LIBRARY}")
 endif()
 
 # randr
@@ -356,11 +373,11 @@ if(ENABLE_X11 AND XRANDR_FOUND)
 endif()
 
 # XBMCHelper
-if(CORE_SYSTEM_NAME STREQUAL darwin)
+if(CORE_SYSTEM_NAME STREQUAL osx)
   add_subdirectory(${CORE_SOURCE_DIR}/tools/EventClients/Clients/OSXRemote build/XBMCHelper)
 endif()
 
-include(scripts/${CORE_SYSTEM_NAME}/install.cmake)
+include(scripts/${CORE_SYSTEM_NAME}/Install.cmake)
 
 # Prepare add-on build env
 foreach(binding ${addon_bindings})
@@ -372,12 +389,12 @@ endforeach()
 set(APP_LIB_DIR ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/lib/${APP_NAME_LC})
 set(APP_INCLUDE_DIR ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/include/${APP_NAME_LC})
 set(CXX11_SWITCH "-std=c++11")
-configure_file(${PROJECT_SOURCE_DIR}/kodi-config.cmake.in
-               ${CORE_BUILD_DIR}/lib/${APP_NAME_LC}/${APP_NAME_LC}-config.cmake @ONLY)
-configure_file(${PROJECT_SOURCE_DIR}/scripts/common/addon-helpers.cmake
-               ${CORE_BUILD_DIR}/lib/${APP_NAME_LC}/addon-helpers.cmake COPYONLY)
-configure_file(${PROJECT_SOURCE_DIR}/scripts/common/addoptions.cmake
-               ${CORE_BUILD_DIR}/lib/${APP_NAME_LC}/addoptions.cmake COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/KodiConfig.cmake.in
+               ${CORE_BUILD_DIR}/lib/${APP_NAME_LC}/${APP_NAME}Config.cmake @ONLY)
+configure_file(${PROJECT_SOURCE_DIR}/scripts/common/AddonHelpers.cmake
+               ${CORE_BUILD_DIR}/lib/${APP_NAME_LC}/AddonHelpers.cmake COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/scripts/common/AddOptions.cmake
+               ${CORE_BUILD_DIR}/lib/${APP_NAME_LC}/AddOptions.cmake COPYONLY)
 
 # Status
 message(STATUS "#---- CONFIGURATION ----#")

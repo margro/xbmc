@@ -20,7 +20,7 @@
 
 #include "ActiveAEBuffer.h"
 #include "cores/AudioEngine/AEFactory.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSPProcess.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPProcess.h"
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/AudioEngine/AEResampleFactory.h"
@@ -438,6 +438,7 @@ bool CActiveAEBufferPoolResample::ResampleBuffers(int64_t timestamp)
 
         if (m_dspSample && m_processor->Process(in, m_dspSample))
         {
+          m_dspSample->timestamp = in->timestamp;
           in->Return();
           in = m_dspSample;
           m_dspSample = NULL;

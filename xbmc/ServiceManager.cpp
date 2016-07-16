@@ -19,10 +19,14 @@
  */
 
 #include "ServiceManager.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
+#include "addons/BinaryAddonCache.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
+#include "cores/DataCacheCore.h"
 #include "utils/log.h"
 #include "interfaces/AnnouncementManager.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
+#include "interfaces/python/XBPython.h"
+#include "pvr/PVRManager.h"
 
 bool CServiceManager::Init1()
 {
@@ -46,6 +50,7 @@ bool CServiceManager::Init2()
 
   m_ADSPManager.reset(new ActiveAE::CActiveAEDSP());
   m_PVRManager.reset(new PVR::CPVRManager());
+  m_dataCacheCore.reset(new CDataCacheCore());
 
   m_binaryAddonCache.reset( new ADDON::CBinaryAddonCache());
   m_binaryAddonCache->Init();
@@ -100,4 +105,15 @@ PVR::CPVRManager& CServiceManager::GetPVRManager()
 ActiveAE::CActiveAEDSP& CServiceManager::GetADSPManager()
 {
   return *m_ADSPManager;
+}
+
+CDataCacheCore& CServiceManager::GetDataCacheCore()
+{
+  return *m_dataCacheCore;
+}
+
+// deleters for unique_ptr
+void CServiceManager::delete_dataCacheCore::operator()(CDataCacheCore *p) const
+{
+  delete p;
 }

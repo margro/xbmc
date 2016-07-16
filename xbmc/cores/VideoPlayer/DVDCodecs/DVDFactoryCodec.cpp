@@ -67,7 +67,6 @@ CDVDVideoCodec* CDVDFactoryCodec::OpenCodec(CDVDVideoCodec* pCodec, CDVDStreamIn
     }
 
     CLog::Log(LOGDEBUG, "FactoryCodec - Video: %s - Failed", pCodec->GetName());
-    pCodec->Dispose();
     delete pCodec;
   }
   catch(...)
@@ -89,7 +88,6 @@ CDVDAudioCodec* CDVDFactoryCodec::OpenCodec(CDVDAudioCodec* pCodec, CDVDStreamIn
     }
 
     CLog::Log(LOGDEBUG, "FactoryCodec - Audio: %s - Failed", pCodec->GetName());
-    pCodec->Dispose();
     delete pCodec;
   }
   catch(...)
@@ -111,7 +109,6 @@ CDVDOverlayCodec* CDVDFactoryCodec::OpenCodec(CDVDOverlayCodec* pCodec, CDVDStre
     }
 
     CLog::Log(LOGDEBUG, "FactoryCodec - Overlay: %s - Failed", pCodec->GetName());
-    pCodec->Dispose();
     delete pCodec;
   }
   catch(...)
@@ -176,7 +173,7 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, CProces
   return nullptr;;
 }
 
-CDVDAudioCodec* CDVDFactoryCodec::CreateAudioCodec(CDVDStreamInfo &hint, bool allowpassthrough, bool allowdtshddecode)
+CDVDAudioCodec* CDVDFactoryCodec::CreateAudioCodec(CDVDStreamInfo &hint, CProcessInfo &processInfo, bool allowpassthrough, bool allowdtshddecode)
 {
   CDVDAudioCodec* pCodec = NULL;
   CDVDCodecOptions options;
@@ -187,12 +184,12 @@ CDVDAudioCodec* CDVDFactoryCodec::CreateAudioCodec(CDVDStreamInfo &hint, bool al
   // we don't use passthrough if "sync playback to display" is enabled
   if (allowpassthrough)
   {
-    pCodec = OpenCodec(new CDVDAudioCodecPassthrough(), hint, options);
+    pCodec = OpenCodec(new CDVDAudioCodecPassthrough(processInfo), hint, options);
     if (pCodec)
       return pCodec;
   }
 
-  pCodec = OpenCodec(new CDVDAudioCodecFFmpeg(), hint, options);
+  pCodec = OpenCodec(new CDVDAudioCodecFFmpeg(processInfo), hint, options);
   if (pCodec)
     return pCodec;
 

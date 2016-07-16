@@ -23,8 +23,8 @@
 using namespace ActiveAE;
 #include "ActiveAESound.h"
 #include "ActiveAEStream.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSPProcess.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPProcess.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/AudioEngine/Utils/AEStreamInfo.h"
 #include "cores/AudioEngine/AEResampleFactory.h"
@@ -296,9 +296,7 @@ CActiveAE::~CActiveAE()
 
 void CActiveAE::Dispose()
 {
-#if defined(HAS_GLX) || defined(TARGET_DARWIN)
   g_Windowing.Unregister(this);
-#endif
 
   m_bStop = true;
   m_outMsgEvent.Set();
@@ -1214,7 +1212,7 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
         format.m_streamInfo.m_channels = 2;
         format.m_streamInfo.m_sampleRate = 48000;
         format.m_streamInfo.m_ac3FrameSize = m_encoderFormat.m_frames;
-        // TODO
+        //! @todo implement
         if (m_encoderBuffers && initSink)
         {
           m_discardBufferPools.push_back(m_encoderBuffers);
@@ -1250,7 +1248,7 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
       uint64_t avlayout = CAEUtil::GetAVChannelLayout(outputFormat.m_channelLayout);
       outputFormat.m_channelLayout = CAEUtil::GetAEChannelLayout(avlayout);
 
-      // TODO: adjust to decoder
+      //! @todo adjust to decoder
       sinkInputFormat = outputFormat;
     }
     m_internalFormat = outputFormat;
@@ -1324,7 +1322,7 @@ void CActiveAE::Configure(AEAudioFormat *desiredFmt)
 
         // resample buffers
         m_vizBuffers = new CActiveAEBufferPoolResample(m_internalFormat, vizFormat, m_settings.resampleQuality);
-        // TODO use cache of sync + water level
+        //! @todo use cache of sync + water level
         m_vizBuffers->Create(2000, false, false);
         m_vizInitialized = false;
       }
@@ -1898,8 +1896,7 @@ bool CActiveAE::RunStages()
           CActiveAEStream *slave = (CActiveAEStream*)((*it)->m_streamSlave);
           slave->m_paused = false;
 
-          // TODO: find better solution for this
-          // gapless bites audiophile
+          //! @todo find better solution for this gapless bites audiophile
           if (m_settings.config == AE_CONFIG_MATCH)
             Configure(&slave->m_format);
 
@@ -2610,9 +2607,7 @@ bool CActiveAE::Initialize()
   }
 
   // hook into windowing for receiving display reset events
-#if defined(HAS_GLX) || defined(TARGET_DARWIN) 
   g_Windowing.Register(this);
-#endif
 
   m_inMsgEvent.Reset();
   return true;
@@ -3200,10 +3195,15 @@ bool CActiveAE::ResampleSound(CActiveAESound *sound)
 
 IAEStream *CActiveAE::MakeStream(AEAudioFormat &audioFormat, unsigned int options, IAEClockCallback *clock)
 {
+  if (audioFormat.m_dataFormat <= AE_FMT_INVALID || audioFormat.m_dataFormat >= AE_FMT_MAX)
+  {
+    return nullptr;
+  }
+
   if (IsSuspended())
     return NULL;
 
-  //TODO: pass number of samples in audio packet
+  //! @todo pass number of samples in audio packet
 
   AEAudioFormat format = audioFormat;
   format.m_frames = format.m_sampleRate / 10;
@@ -3276,7 +3276,7 @@ void CActiveAE::FlushStream(CActiveAEStream *stream)
 
 void CActiveAE::PauseStream(CActiveAEStream *stream, bool pause)
 {
-  // TODO pause sink, needs api change
+  //! @todo pause sink, needs api change
   if (pause)
     m_controlPort.SendOutMessage(CActiveAEControlProtocol::PAUSESTREAM,
                                    &stream, sizeof(CActiveAEStream*));

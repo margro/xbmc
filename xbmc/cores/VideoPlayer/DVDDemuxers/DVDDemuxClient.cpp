@@ -383,6 +383,7 @@ void CDVDDemuxClient::RequestStreams()
       streamAudio->iBitsPerSample  = source->iBitsPerSample;
       if (source->ExtraSize > 0 && source->ExtraData)
       {
+        delete[] streamAudio->ExtraData;
         streamAudio->ExtraData = new uint8_t[source->ExtraSize];
         streamAudio->ExtraSize = source->ExtraSize;
         for (unsigned int j=0; j<source->ExtraSize; j++)
@@ -399,7 +400,7 @@ void CDVDDemuxClient::RequestStreams()
 
       if (!source)
       {
-        CLog::Log(LOGERROR, "CDVDDemuxClient::RequestStreams - invalid audio stream with id %d", stream->uniqueId);
+        CLog::Log(LOGERROR, "CDVDDemuxClient::RequestStreams - invalid video stream with id %d", stream->uniqueId);
         DisposeStreams();
         return;
       }
@@ -416,14 +417,15 @@ void CDVDDemuxClient::RequestStreams()
           streamVideo->m_parser->flags |= PARSER_FLAG_COMPLETE_FRAMES;
       }
 
-      streamVideo->iFpsScale       = source->irFpsScale;
-      streamVideo->iFpsRate        = source->irFpsRate;
+      streamVideo->iFpsScale       = source->iFpsScale;
+      streamVideo->iFpsRate        = source->iFpsRate;
       streamVideo->iHeight         = source->iHeight;
       streamVideo->iWidth          = source->iWidth;
       streamVideo->fAspect         = source->fAspect;
       streamVideo->stereo_mode     = "mono";
       if (source->ExtraSize > 0 && source->ExtraData)
       {
+        delete[] streamVideo->ExtraData;
         streamVideo->ExtraData = new uint8_t[source->ExtraSize];
         streamVideo->ExtraSize = source->ExtraSize;
         for (unsigned int j=0; j<source->ExtraSize; j++)
@@ -440,7 +442,7 @@ void CDVDDemuxClient::RequestStreams()
 
       if (!source)
       {
-        CLog::Log(LOGERROR, "CDVDDemuxClient::RequestStreams - invalid audio stream with id %d", stream->uniqueId);
+        CLog::Log(LOGERROR, "CDVDDemuxClient::RequestStreams - invalid subtitle stream with id %d", stream->uniqueId);
         DisposeStreams();
         return;
       }
@@ -458,6 +460,7 @@ void CDVDDemuxClient::RequestStreams()
 
       if (source->ExtraSize == 4)
       {
+        delete[] streamSubtitle->ExtraData;
         streamSubtitle->ExtraData = new uint8_t[4];
         streamSubtitle->ExtraSize = 4;
         for (int j=0; j<4; j++)
@@ -472,7 +475,7 @@ void CDVDDemuxClient::RequestStreams()
 
       if (!source)
       {
-        CLog::Log(LOGERROR, "CDVDDemuxClient::RequestStreams - invalid audio stream with id %d", stream->uniqueId);
+        CLog::Log(LOGERROR, "CDVDDemuxClient::RequestStreams - invalid teletext stream with id %d", stream->uniqueId);
         DisposeStreams();
         return;
       }
@@ -494,7 +497,7 @@ void CDVDDemuxClient::RequestStreams()
 
       if (!source)
       {
-        CLog::Log(LOGERROR, "CDVDDemuxClient::RequestStreams - invalid audio stream with id %d", stream->uniqueId);
+        CLog::Log(LOGERROR, "CDVDDemuxClient::RequestStreams - invalid radio-rds stream with id %d", stream->uniqueId);
         DisposeStreams();
         return;
       }

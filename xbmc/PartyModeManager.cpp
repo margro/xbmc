@@ -36,6 +36,7 @@
 #include "profiles/ProfilesManager.h"
 #include "threads/SystemClock.h"
 #include "utils/log.h"
+#include "utils/Random.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include "video/VideoDatabase.h"
@@ -644,7 +645,7 @@ bool CPartyModeManager::AddInitialSongs(std::vector< std::pair<int,int > > &song
     {
       CFileItemPtr item(items[i]);
       Add(item);
-      // TODO: Allow "relaxed restrictions" later?
+      //! @todo Allow "relaxed restrictions" later?
     }
   }
   return true;
@@ -693,7 +694,7 @@ void CPartyModeManager::AddToHistory(int type, int songID)
 void CPartyModeManager::GetRandomSelection(std::vector< std::pair<int,int> >& in, unsigned int number, std::vector< std::pair<int,int> >& out)
 {
   number = std::min(number, (unsigned int)in.size());
-  std::random_shuffle(in.begin(), in.end());
+  KODI::UTILS::RandomShuffle(in.begin(), in.end());
   out.assign(in.begin(), in.begin() + number);
 }
 

@@ -21,7 +21,7 @@
 
 #include "ContextMenuManager.h"
 #include "GUIInfoManager.h"
-#include "cores/AudioEngine/DSPAddons/ActiveAEDSP.h"
+#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "epg/EpgContainer.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogOK.h"
@@ -56,17 +56,18 @@ void CGUIWindowPVRChannels::RegisterObservers(void)
 {
   CSingleLock lock(m_critSection);
   g_EpgContainer.RegisterObserver(this);
-  g_PVRTimers->RegisterObserver(this);
+  g_PVRManager.RegisterObserver(this);
   g_infoManager.RegisterObserver(this);
+  CGUIWindowPVRBase::RegisterObservers();
 }
 
 void CGUIWindowPVRChannels::UnregisterObservers(void)
 {
   CSingleLock lock(m_critSection);
-  g_EpgContainer.UnregisterObserver(this);
-  if (g_PVRTimers)
-    g_PVRTimers->UnregisterObserver(this);
+  CGUIWindowPVRBase::UnregisterObservers();
   g_infoManager.UnregisterObserver(this);
+  g_PVRManager.UnregisterObserver(this);
+  g_EpgContainer.UnregisterObserver(this);
 }
 
 void CGUIWindowPVRChannels::GetContextButtons(int itemNumber, CContextButtons &buttons)
@@ -243,13 +244,11 @@ bool CGUIWindowPVRChannels::OnMessage(CGUIMessage& message)
         case ObservableMessageCurrentItem:
         {
           SetInvalid();
-          bReturn = true;
           break;
         }
         case ObservableMessageChannelGroupReset:
         {
           Refresh(true);
-          bReturn = true;
           break;
         }
       }

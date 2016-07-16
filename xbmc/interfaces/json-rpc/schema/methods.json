@@ -1434,6 +1434,27 @@
       }
     }
   },
+  "VideoLibrary.GetTags": {
+    "type": "method",
+    "description": "Retrieve all tags",
+    "transport": "Response",
+    "permission": "ReadData",
+    "params": [
+      { "name": "type", "type": "string", "required": true, "enum": [ "movie", "tvshow", "musicvideo" ] },
+      { "name": "properties", "$ref": "Library.Fields.Tag" },
+      { "name": "limits", "$ref": "List.Limits" },
+      { "name": "sort", "$ref": "List.Sort" }
+    ],
+    "returns": {
+      "type": "object",
+      "properties": {
+        "limits": { "$ref": "List.LimitsReturned", "required": true },
+        "tags": { "type": "array", "required": true,
+          "items": { "$ref": "Library.Details.Tag" }
+        }
+      }
+    }
+  },
   "VideoLibrary.SetMovieDetails": {
     "type": "method",
     "description": "Update the given movie with the given details",
@@ -1446,7 +1467,7 @@
       { "name": "runtime", "$ref": "Optional.Integer", "description": "Runtime in seconds" },
       { "name": "director", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
       { "name": "studio", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
-      { "name": "year", "$ref": "Optional.Integer" },
+      { "name": "year", "$ref": "Optional.Integer", "description": "linked with premiered. Overridden by premiered parameter" },
       { "name": "plot", "$ref": "Optional.String" },
       { "name": "genre", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
       { "name": "rating", "$ref": "Optional.Number" },
@@ -1470,8 +1491,9 @@
       { "name": "art", "type": [ "null", { "$ref": "Media.Artwork.Set", "required": true } ], "default": null },
       { "name": "resume", "type": [ "null", { "$ref": "Video.Resume", "required": true } ], "default": null },
       { "name": "userrating", "$ref": "Optional.Integer" },
-      { "name": "ratings", "$ref": "Video.Ratings" },
-      { "name": "dateadded", "$ref": "Optional.String" }
+      { "name": "ratings", "$ref": "Video.Ratings.Set" },
+      { "name": "dateadded", "$ref": "Optional.String" },
+      { "name": "premiered", "$ref": "Optional.String", "description": "linked with year. Overriedes year" }
     ],
     "returns": "string"
   },
@@ -1513,7 +1535,7 @@
       { "name": "tag", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
       { "name": "art", "type": [ "null", { "$ref": "Media.Artwork.Set", "required": true } ], "default": null },
       { "name": "userrating", "$ref": "Optional.Integer" },
-      { "name": "ratings", "$ref": "Video.Ratings" },
+      { "name": "ratings", "$ref": "Video.Ratings.Set" },
       { "name": "dateadded", "$ref": "Optional.String" },
       { "name": "runtime", "$ref": "Optional.Integer", "description": "Runtime in seconds" },
       { "name": "status", "$ref": "Optional.String" }
@@ -1558,7 +1580,7 @@
       { "name": "art", "type": [ "null", { "$ref": "Media.Artwork.Set", "required": true } ], "default": null },
       { "name": "resume", "type": [ "null", { "$ref": "Video.Resume", "required": true } ], "default": null },
       { "name": "userrating", "$ref": "Optional.Integer" },
-      { "name": "ratings", "$ref": "Video.Ratings" },
+      { "name": "ratings", "$ref": "Video.Ratings.Set" },
       { "name": "dateadded", "$ref": "Optional.String" }
     ],
     "returns": "string"
@@ -1575,7 +1597,7 @@
       { "name": "runtime", "$ref": "Optional.Integer", "description": "Runtime in seconds" },
       { "name": "director", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
       { "name": "studio", "type": [ "null", { "$ref": "Array.String", "required": true } ], "default": null },
-      { "name": "year", "$ref": "Optional.Integer" },
+      { "name": "year", "$ref": "Optional.Integer", "description": "linked with premiered. Overridden by premiered parameter" },
       { "name": "plot", "$ref": "Optional.String" },
       { "name": "album", "$ref": "Optional.String" },
       { "name": "artist", "type": [ "null", { "$ref": "Array.String", "required": true } ] },
@@ -1589,7 +1611,8 @@
       { "name": "resume", "type": [ "null", { "$ref": "Video.Resume", "required": true } ], "default": null },
       { "name": "rating", "$ref": "Optional.Number" },
       { "name": "userrating", "$ref": "Optional.Integer" },
-      { "name": "dateadded", "$ref": "Optional.String" }
+      { "name": "dateadded", "$ref": "Optional.String" },
+      { "name": "premiered", "$ref": "Optional.String", "description": "linked with year. Overriedes year" }
     ],
     "returns": "string"
   },

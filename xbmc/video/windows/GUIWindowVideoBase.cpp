@@ -34,6 +34,7 @@
 #include "Application.h"
 #include "NfoFile.h"
 #include "PlayListPlayer.h"
+#include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "GUIPassword.h"
 #include "filesystem/StackDirectory.h"
 #include "filesystem/VideoDatabaseDirectory.h"
@@ -180,10 +181,6 @@ bool CGUIWindowVideoBase::OnMessage(CGUIMessage& message)
             if (GetID() == WINDOW_VIDEO_NAV)
               OnDeleteItem(iItem);
 
-            // or be at the files window and have file deletion enabled
-            else if (GetID() == WINDOW_VIDEO_FILES && CSettings::GetInstance().GetBool(CSettings::SETTING_FILELISTS_ALLOWFILEDELETION))
-              OnDeleteItem(iItem);
-
             // or be at the video playlists location
             else if (m_vecItems->IsPath("special://videoplaylists/"))
               OnDeleteItem(iItem);
@@ -261,8 +258,7 @@ void CGUIWindowVideoBase::OnItemInfo(const CFileItem& fileItem, ADDON::ScraperPt
 
   bool modified = ShowIMDB(CFileItemPtr(new CFileItem(item)), scraper, fromDB);
   if (modified &&
-     (g_windowManager.GetActiveWindow() == WINDOW_VIDEO_FILES ||
-      g_windowManager.GetActiveWindow() == WINDOW_VIDEO_NAV)) // since we can be called from the music library we need this check
+     (g_windowManager.GetActiveWindow() == WINDOW_VIDEO_NAV)) // since we can be called from the music library we need this check
   {
     int itemNumber = m_viewControl.GetSelectedItem();
     Refresh();
@@ -1097,8 +1093,8 @@ bool CGUIWindowVideoBase::OnPlayMedia(int iItem, const std::string &player)
   CLog::Log(LOGDEBUG, "%s %s", __FUNCTION__, CURL::GetRedacted(item.GetPath()).c_str());
 
 
-  // TODO: delete entire block in v18
-  // m_strStreamURL is deprecated
+  //! @todo delete entire block in v18
+  //! @deprecated m_strStreamURL is deprecated in v17
   if (item.IsPVR())
   {
     CPVRRecordingsPath path(item.GetPath());

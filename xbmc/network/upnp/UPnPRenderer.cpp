@@ -34,6 +34,7 @@
 #include "pictures/PictureInfoTag.h"
 #include "interfaces/AnnouncementManager.h"
 #include "settings/Settings.h"
+#include "PlayListPlayer.h"
 #include "TextureDatabase.h"
 #include "ThumbLoader.h"
 #include "URL.h"
@@ -260,7 +261,7 @@ CUPnPRenderer::Announce(AnnouncementFlag flag, const char *sender, const char *m
                 avt->SetStateVariable("AVTransportURIMetaData", meta);
             }
 
-            avt->SetStateVariable("TransportPlaySpeed", NPT_String::FromInteger(data["speed"].asInteger()));
+            avt->SetStateVariable("TransportPlaySpeed", NPT_String::FromInteger(data["player"]["speed"].asInteger()));
             avt->SetStateVariable("TransportState", "PLAYING");
 
             /* this could be a transition to next track, so clear next */
@@ -268,11 +269,12 @@ CUPnPRenderer::Announce(AnnouncementFlag flag, const char *sender, const char *m
             avt->SetStateVariable("NextAVTransportURIMetaData", "");
         }
         else if (strcmp(message, "OnPause") == 0) {
-            avt->SetStateVariable("TransportPlaySpeed", NPT_String::FromInteger(data["speed"].asInteger()));
+            int64_t speed = data["player"]["speed"].asInteger();
+            avt->SetStateVariable("TransportPlaySpeed", NPT_String::FromInteger(speed != 0 ? speed : 1));
             avt->SetStateVariable("TransportState", "PAUSED_PLAYBACK");
         }
         else if (strcmp(message, "OnSpeedChanged") == 0) {
-            avt->SetStateVariable("TransportPlaySpeed", NPT_String::FromInteger(data["speed"].asInteger()));
+            avt->SetStateVariable("TransportPlaySpeed", NPT_String::FromInteger(data["player"]["speed"].asInteger()));
         }
     }
     else if (flag == Application && strcmp(message, "OnVolumeChanged") == 0) {

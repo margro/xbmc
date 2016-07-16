@@ -186,7 +186,7 @@ bool CRenderSystemGL::ResetRenderSystem(int width, int height, bool fullScreen, 
   glEnable(GL_SCISSOR_TEST);
 
   glMatrixProject.Clear();
-  glMatrixModview->LoadIdentity();
+  glMatrixProject->LoadIdentity();
   glMatrixProject->Ortho(0.0f, width-1, height-1, 0.0f, -1.0f, 1.0f);
   glMatrixProject.Load();
 
@@ -290,7 +290,7 @@ bool CRenderSystemGL::IsExtSupported(const char* extension)
   return m_RenderExtensions.find(name) != std::string::npos;
 }
 
-void CRenderSystemGL::PresentRender(bool rendered)
+void CRenderSystemGL::PresentRender(bool rendered, bool videoLayer)
 {
   SetVSync(true);
 

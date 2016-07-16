@@ -733,15 +733,14 @@ void CMusicInfoScanner::FileItemsToAlbums(CFileItemList& items, VECALBUMS& album
       album.strAlbum = songsByAlbumName->first;
       for (std::vector<std::string>::iterator it = common.begin(); it != common.end(); ++it)
       {
-        CArtistCredit artistCredit(*it);
-        album.artistCredits.push_back(artistCredit);
+        album.artistCredits.emplace_back(StringUtils::Trim(*it));
       }
       album.bCompilation = compilation;
       for (std::vector<CSong *>::iterator k = artistSongs.begin(); k != artistSongs.end(); ++k)
       {
         if ((*k)->GetAlbumArtist().empty())
           (*k)->SetAlbumArtist(common);
-        // TODO: in future we may wish to union up the genres, for now we assume they're the same
+        //! @todo in future we may wish to union up the genres, for now we assume they're the same
         album.genre = (*k)->genre;
         //       in addition, we may want to use year as discriminating for albums
         album.iYear = (*k)->iYear;

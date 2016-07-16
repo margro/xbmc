@@ -749,8 +749,8 @@ int CEdl::RemoveCutTime(int iSeek) const
   if (!HasCut())
     return iSeek;
 
-  /*
-   * TODO: Consider an optimisation of using the (now unused) total cut time if the seek time
+  /**
+   * @todo Consider an optimisation of using the (now unused) total cut time if the seek time
    * requested is later than the end of the last recorded cut. For example, when calculating the
    * total duration for display.
    */
@@ -838,6 +838,51 @@ bool CEdl::InCut(const int iSeek, Cut *pCut) const
   }
 
   return false;
+}
+
+bool CEdl::GetNearestCut(bool bPlus, const int iSeek, Cut *pCut) const
+{
+  if (bPlus) 
+  {
+    // Searching forwards
+    for (auto &cut : m_vecCuts)
+    {
+      if (iSeek >= cut.start && iSeek <= cut.end) // Inside cut.
+      {
+        if (pCut)
+          *pCut = cut;
+        return true;
+      }
+      else if (iSeek < cut.start) // before this cut
+      {
+        if (pCut)
+          *pCut = cut;
+        return true;
+      }
+    }
+    return false;
+  } 
+  else
+  {
+    // Searching backwards
+    for (int i = (int)m_vecCuts.size() - 1; i >= 0; i--)
+    {
+      if (iSeek - 20000 >= m_vecCuts[i].start && iSeek <= m_vecCuts[i].end) 
+        // Inside cut. We ignore if we're closer to 20 seconds inside
+      {
+        if (pCut)
+          *pCut = m_vecCuts[i];
+        return true;
+      }
+      else if (iSeek > m_vecCuts[i].end) // after this cut
+      {
+        if (pCut)
+          *pCut = m_vecCuts[i];
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 bool CEdl::GetNextSceneMarker(bool bPlus, const int iClock, int *iSceneMarker) const

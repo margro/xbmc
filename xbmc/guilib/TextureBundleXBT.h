@@ -21,18 +21,21 @@
  */
 
 #include <map>
+#include <memory>
 #include <string>
-#include "XBTFReader.h"
+#include <vector>
 
 class CBaseTexture;
+class CXBTFReader;
+class CXBTFFrame;
 
 class CTextureBundleXBT
 {
 public:
-  CTextureBundleXBT(void);
-  ~CTextureBundleXBT(void);
+  CTextureBundleXBT();
+  explicit CTextureBundleXBT(bool themeBundle);
+  ~CTextureBundleXBT();
 
-  void Cleanup();
   void SetThemeBundle(bool themeBundle);
   bool HasFile(const std::string& Filename);
   void GetTexturesFromPath(const std::string &path, std::vector<std::string> &textures);
@@ -54,7 +57,7 @@ private:
 
   bool m_themeBundle;
   std::string m_path;
-  CXBTFReaderPtr m_XBTFReader;
+  std::shared_ptr<CXBTFReader> m_XBTFReader;
 };
 
 

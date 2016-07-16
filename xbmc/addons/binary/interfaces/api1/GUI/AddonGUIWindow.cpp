@@ -25,6 +25,7 @@
 #include "addons/Addon.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/TextureManager.h"
+#include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
@@ -77,9 +78,9 @@ bool CGUIAddonWindow::OnAction(const CAction &action)
 
 bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
 {
-  // TODO: We shouldn't be dropping down to CGUIWindow in any of this ideally.
-  //       We have to make up our minds about what python should be doing and
-  //       what this side of things should be doing
+  //! @todo We shouldn't be dropping down to CGUIWindow in any of this ideally.
+  //! We have to make up our minds about what python should be doing and
+  //! what this side of things should be doing
   switch (message.GetMessage())
   {
     case GUI_MSG_WINDOW_DEINIT:
@@ -148,7 +149,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
       {
         CGUIControl* controlClicked = (CGUIControl*)this->GetControl(iControl);
 
-        // The old python way used to check list AND SELECITEM method or if its a button, checkmark.
+        // The old python way used to check list AND SELECITEM method or if its a button, radiobutton.
         // Its done this way for now to allow other controls without a python version like togglebutton to still raise a onAction event
         if (controlClicked) // Will get problems if we the id is not on the window and we try to do GetControlType on it. So check to make sure it exists
         {

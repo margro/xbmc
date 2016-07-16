@@ -25,7 +25,6 @@
 #include "DVDInputStreamNavigator.h"
 #include "DVDInputStreamFFmpeg.h"
 #include "DVDInputStreamPVRManager.h"
-#include "DVDInputStreamRTMP.h"
 #include "InputStreamAddon.h"
 #include "InputStreamMultiSource.h"
 #ifdef HAVE_LIBBLURAY
@@ -77,6 +76,10 @@ CDVDInputStream* CDVDFactoryInputStream::CreateInputStream(IVideoPlayer* pPlayer
       ADDON_STATUS status = addon->Create();
       if (status == ADDON_STATUS_OK)
       {
+        unsigned int videoWidth, videoHeight;
+        pPlayer->GetVideoResolution(videoWidth, videoHeight);
+        addon->SetVideoResolution(videoWidth, videoHeight);
+
         return new CInputStreamAddon(fileitem, addon);
       }
     }
@@ -128,14 +131,12 @@ CDVDInputStream* CDVDFactoryInputStream::CreateInputStream(IVideoPlayer* pPlayer
   else if(file.substr(0, 8) == "stack://")
     return new CDVDInputStreamStack(fileitem);
 #endif
-#ifdef HAS_LIBRTMP
   else if(file.substr(0, 7) == "rtmp://"
        || file.substr(0, 8) == "rtmpt://"
        || file.substr(0, 8) == "rtmpe://"
        || file.substr(0, 9) == "rtmpte://"
        || file.substr(0, 8) == "rtmps://")
-    return new CDVDInputStreamRTMP(fileitem);
-#endif
+    return new CDVDInputStreamFFmpeg(fileitem);
   else if (fileitem.IsInternetStream())
   {
     if (fileitem.IsType(".m3u8"))

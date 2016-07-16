@@ -77,6 +77,7 @@ CVideoPlayerVideo::CVideoPlayerVideo(CDVDClock* pClock
 
   m_bRenderSubs = false;
   m_stalled = false;
+  m_paused = false;
   m_syncState = IDVDStreamPlayer::SYNC_STARTING;
   m_iSubtitleDelay = 0;
   m_iLateFrames = 0;
@@ -119,6 +120,8 @@ double CVideoPlayerVideo::GetOutputDelay()
 
 bool CVideoPlayerVideo::OpenStream( CDVDStreamInfo &hint )
 {
+  m_processInfo.ResetVideoCodecInfo();
+
   CRenderInfo info;
   info = m_renderManager.GetRenderInfo();
 
@@ -152,11 +155,17 @@ void CVideoPlayerVideo::OpenStream(CDVDStreamInfo &hint, CDVDVideoCodec* codec)
 
   //reported fps is usually not completely correct
   if (hint.fpsrate && hint.fpsscale)
+  {
     m_fFrameRate = DVD_TIME_BASE / CDVDCodecUtils::NormalizeFrameduration((double)DVD_TIME_BASE * hint.fpsscale / hint.fpsrate);
+    m_bFpsInvalid = false;
+    m_processInfo.SetVideoFps(m_fFrameRate);
+  }
   else
+  {
     m_fFrameRate = 25;
-
-  m_bFpsInvalid = (hint.fpsrate == 0 || hint.fpsscale == 0);
+    m_bFpsInvalid = true;
+    m_processInfo.SetVideoFps(0);
+  }
 
   m_pullupCorrection.ResetVFRDetection();
   m_bCalcFrameRate = CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK) ||
@@ -179,8 +188,10 @@ void CVideoPlayerVideo::OpenStream(CDVDStreamInfo &hint, CDVDVideoCodec* codec)
     m_fForcedAspectRatio = 0.0;
 
   if (m_pVideoCodec)
+  {
+    m_pVideoCodec->ClearPicture(&m_picture);
     delete m_pVideoCodec;
-
+  }
   m_pVideoCodec = codec;
   m_hints   = hint;
   m_stalled = m_messageQueue.GetPacketCount(CDVDMsg::DEMUXER_PACKET) == 0;
@@ -210,7 +221,7 @@ void CVideoPlayerVideo::CloseStream(bool bWaitForBuffers)
   CLog::Log(LOGNOTICE, "deleting video codec");
   if (m_pVideoCodec)
   {
-    m_pVideoCodec->Dispose();
+    m_pVideoCodec->ClearPicture(&m_picture);
     delete m_pVideoCodec;
     m_pVideoCodec = NULL;
   }
@@ -251,6 +262,9 @@ void CVideoPlayerVideo::Process()
     int iPriority = (m_speed == DVD_PLAYSPEED_PAUSE && m_syncState == IDVDStreamPlayer::SYNC_INSYNC) ? 1 : 0;
 
     if (m_syncState == IDVDStreamPlayer::SYNC_WAITSYNC)
+      iPriority = 1;
+
+    if (m_paused)
       iPriority = 1;
 
     CDVDMsg* pMsg;
@@ -335,7 +349,7 @@ void CVideoPlayerVideo::Process()
 
       m_pullupCorrection.Flush();
       //we need to recalculate the framerate
-      //TODO: this needs to be set on a streamchange instead
+      //! @todo this needs to be set on a streamchange instead
       ResetFrameRateCalc();
       m_droppingStats.Reset();
 
@@ -389,6 +403,11 @@ void CVideoPlayerVideo::Process()
         if (decoderState & VC_BUFFER)
           break;
       }
+    }
+    else if (pMsg->IsType(CDVDMsg::GENERAL_PAUSE))
+    {
+      m_paused = static_cast<CDVDMsgBool*>(pMsg)->m_value;
+      CLog::Log(LOGDEBUG, "CVideoPlayerVideo - CDVDMsg::GENERAL_PAUSE: %d", m_paused);
     }
     else if (pMsg->IsType(CDVDMsg::DEMUXER_PACKET))
     {
@@ -602,8 +621,8 @@ bool CVideoPlayerVideo::ProcessDecoderOutput(int &decoderState, double &frametim
         m_syncState = IDVDStreamPlayer::SYNC_WAITSYNC;
         SStartMsg msg;
         msg.player = VideoPlayer_VIDEO;
-        msg.cachetime = DVD_MSEC_TO_TIME(50); // TODO
-        msg.cachetotal = DVD_MSEC_TO_TIME(100); // TODO
+        msg.cachetime = DVD_MSEC_TO_TIME(50); //! @todo implement
+        msg.cachetotal = DVD_MSEC_TO_TIME(100); //! @todo implement
         msg.timestamp = hasTimestamp ? pts : DVD_NOPTS_VALUE;
         m_messageParent.Put(new CDVDMsgType<SStartMsg>(CDVDMsg::PLAYER_STARTED, msg));
       }
@@ -784,7 +803,8 @@ int CVideoPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
   }
 
   //try to calculate the framerate
-  CalcFrameRate();
+  if (!m_stalled)
+    CalcFrameRate();
 
   // signal to clock what our framerate is, it may want to adjust it's
   // speed to better match with our video renderer's output speed
@@ -1007,6 +1027,7 @@ void CVideoPlayerVideo::CalcFrameRate()
         CLog::Log(LOGDEBUG,"%s framerate was:%f calculated:%f", __FUNCTION__, m_fFrameRate, m_fStableFrameRate / m_iFrameRateCount);
         m_fFrameRate = m_fStableFrameRate / m_iFrameRateCount;
         m_bFpsInvalid = false;
+        m_processInfo.SetVideoFps(m_fFrameRate);
       }
 
       //reset the stored framerates
@@ -1030,7 +1051,6 @@ int CVideoPlayerVideo::CalcDropRequirement(double pts)
   int result = 0;
   int lateframes;
   double iDecoderPts, iRenderPts;
-  double interval;
   int iSkippedPicture = -1;
   int iDroppedFrames = -1;
   int    iBufferLevel;
@@ -1056,8 +1076,6 @@ int CVideoPlayerVideo::CalcDropRequirement(double pts)
     if (g_advancedSettings.CanLogComponent(LOGVIDEO))
       CLog::Log(LOGDEBUG,"CVideoPlayerVideo::CalcDropRequirement - hurry: %d", iBufferLevel);
   }
-
-  interval = 1/m_fFrameRate*(double)DVD_TIME_BASE;
 
   if (m_bAllowDrop)
   {
