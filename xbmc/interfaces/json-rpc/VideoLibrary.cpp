@@ -528,7 +528,7 @@ JSONRPC_STATUS CVideoLibrary::SetMovieDetails(const std::string &method, ITransp
     return InternalError;
 
   CVideoInfoTag infos;
-  if (!videodatabase.GetMovieInfo("", infos, id, RequiresInitialDetails(parameterObject)) || infos.m_iDbId <= 0)
+  if (!videodatabase.GetMovieInfo("", infos, id) || infos.m_iDbId <= 0)
     return InvalidParams;
 
   // get artwork
@@ -605,7 +605,7 @@ JSONRPC_STATUS CVideoLibrary::SetTVShowDetails(const std::string &method, ITrans
     return InternalError;
 
   CVideoInfoTag infos;
-  if (!videodatabase.GetTvShowInfo("", infos, id, (CFileItem *)0, RequiresInitialDetails(parameterObject)) || infos.m_iDbId <= 0)
+  if (!videodatabase.GetTvShowInfo("", infos, id) || infos.m_iDbId <= 0)
     return InvalidParams;
 
   // get artwork
@@ -676,7 +676,7 @@ JSONRPC_STATUS CVideoLibrary::SetEpisodeDetails(const std::string &method, ITran
     return InternalError;
 
   CVideoInfoTag infos;
-  videodatabase.GetEpisodeInfo("", infos, id, RequiresInitialDetails(parameterObject));
+  videodatabase.GetEpisodeInfo("", infos, id);
   if (infos.m_iDbId <= 0)
   {
     videodatabase.Close();
@@ -988,14 +988,6 @@ bool CVideoLibrary::FillFileItemList(const CVariant &parameterObject, CFileItemL
   return success;
 }
 
-int CVideoLibrary::RequiresInitialDetails(const CVariant &parameterObject)
-{
-  int details = VideoDbDetailsNone;
-  if (ParameterNotNull(parameterObject, "ratings") || ParameterNotNull(parameterObject, "rating") || ParameterNotNull(parameterObject, "votes"))
-    return VideoDbDetailsRating;
-  return details;
-}
-
 int CVideoLibrary::RequiresAdditionalDetails(const MediaType& mediaType, const CVariant &parameterObject)
 {
   if (mediaType != MediaTypeMovie && mediaType != MediaTypeTvShow && mediaType != MediaTypeEpisode && mediaType != MediaTypeMusicVideo)
@@ -1010,6 +1002,8 @@ int CVideoLibrary::RequiresAdditionalDetails(const MediaType& mediaType, const C
       details = details | VideoDbDetailsCast;
     else if (propertyValue == "ratings")
       details = details | VideoDbDetailsRating;
+    else if (propertyValue == "uniqueid")
+      details = details | VideoDbDetailsUniqueID;
     else if (propertyValue == "showlink")
       details = details | VideoDbDetailsShowLink;
     else if (propertyValue == "streamdetails")
@@ -1149,7 +1143,24 @@ void CVideoLibrary::UpdateVideoTag(const CVariant &parameterObject, CVideoInfoTa
   if (ParameterNotNull(parameterObject, "mpaa"))
     details.SetMPAARating(parameterObject["mpaa"].asString());
   if (ParameterNotNull(parameterObject, "imdbnumber"))
-    details.SetIMDBNumber(parameterObject["imdbnumber"].asString());
+    details.SetUniqueID(parameterObject["imdbnumber"].asString());
+  if (ParameterNotNull(parameterObject, "uniqueid"))
+  {
+    CVariant uniqueids = parameterObject["uniqueid"];
+    for (CVariant::const_iterator_map idIt = uniqueids.begin_map(); idIt != uniqueids.end_map(); idIt++)
+    {
+      if (idIt->second.isString() && !idIt->second.asString().empty())
+      {
+        details.SetUniqueID(idIt->second.asString(), idIt->first);
+        updatedDetails.insert("uniqueid");
+      }
+      else if (idIt->second.isNull() && idIt->first != details.GetDefaultUniqueID())
+      {
+        details.RemoveUniqueID(idIt->first);
+        updatedDetails.insert("uniqueid");
+      }
+    }
+  }
   if (ParameterNotNull(parameterObject, "premiered"))
   {
     CDateTime premiered;

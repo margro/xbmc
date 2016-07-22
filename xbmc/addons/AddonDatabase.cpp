@@ -50,6 +50,10 @@ static std::string SerializeMetadata(const IAddon& addon)
   variant["fanart"] = addon.FanArt();
   variant["icon"] = addon.Icon();
 
+  variant["screenshots"] = CVariant(CVariant::VariantTypeArray);
+  for (const auto& item : addon.Screenshots())
+    variant["screenshots"].push_back(item);
+
   variant["extensions"] = CVariant(CVariant::VariantTypeArray);
   variant["extensions"].push_back(ADDON::TranslateType(addon.Type(), false));
 
@@ -87,6 +91,11 @@ static void DeserializeMetadata(const std::string& document, CAddonBuilder& buil
   builder.SetPath(variant["path"].asString());
   builder.SetFanart(variant["fanart"].asString());
   builder.SetIcon(variant["icon"].asString());
+
+  std::vector<std::string> screenshots;
+  for (auto it = variant["screenshots"].begin_array(); it != variant["screenshots"].end_array(); ++it)
+    screenshots.push_back(it->asString());
+  builder.SetScreenshots(std::move(screenshots));
 
   builder.SetType(TranslateType(variant["extensions"][0].asString()));
 
@@ -668,7 +677,12 @@ bool CAddonDatabase::GetRepositoryContent(const std::string& id, VECADDONS& addo
 
       auto addon = builder.Build();
       if (addon)
-        result.push_back(std::move(addon));
+      {
+        if (!result.empty() && result.back()->ID() == addonId)
+          result.back() = std::move(addon);
+        else
+          result.push_back(std::move(addon));
+      }
       else
         CLog::Log(LOGWARNING, "CAddonDatabase: failed to build %s", addonId.c_str());
       m_pDS->next();

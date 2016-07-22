@@ -1493,7 +1493,8 @@
       { "name": "userrating", "$ref": "Optional.Integer" },
       { "name": "ratings", "$ref": "Video.Ratings.Set" },
       { "name": "dateadded", "$ref": "Optional.String" },
-      { "name": "premiered", "$ref": "Optional.String", "description": "linked with year. Overriedes year" }
+      { "name": "premiered", "$ref": "Optional.String", "description": "linked with year. Overriedes year" },
+      { "name": "uniqueid", "type": [ "null", { "$ref": "Media.UniqueID.Set", "required": true } ], "default": null }
     ],
     "returns": "string"
   },
@@ -1538,7 +1539,8 @@
       { "name": "ratings", "$ref": "Video.Ratings.Set" },
       { "name": "dateadded", "$ref": "Optional.String" },
       { "name": "runtime", "$ref": "Optional.Integer", "description": "Runtime in seconds" },
-      { "name": "status", "$ref": "Optional.String" }
+      { "name": "status", "$ref": "Optional.String" },
+      { "name": "uniqueid", "type": [ "null", { "$ref": "Media.UniqueID.Set", "required": true } ], "default": null }
     ],
     "returns": "string"
   },
@@ -1581,7 +1583,8 @@
       { "name": "resume", "type": [ "null", { "$ref": "Video.Resume", "required": true } ], "default": null },
       { "name": "userrating", "$ref": "Optional.Integer" },
       { "name": "ratings", "$ref": "Video.Ratings.Set" },
-      { "name": "dateadded", "$ref": "Optional.String" }
+      { "name": "dateadded", "$ref": "Optional.String" },
+      { "name": "uniqueid", "type": [ "null", { "$ref": "Media.UniqueID.Set", "required": true } ], "default": null }
     ],
     "returns": "string"
   },
@@ -1835,7 +1838,8 @@
       { "name": "content", "$ref": "Addon.Content", "description": "Content provided by the addon. Only considered for plugins and scripts." },
       { "name": "enabled", "type": [ { "type": "boolean" }, { "type": "string", "enum": [ "all" ] } ], "default": "all" },
       { "name": "properties", "$ref": "Addon.Fields" },
-      { "name": "limits", "$ref": "List.Limits" }
+      { "name": "limits", "$ref": "List.Limits" },
+      { "name": "installed", "type": [ { "type": "boolean" }, { "type": "string", "enum": [ "all" ] } ], "default": true }
     ],
     "returns": { "type": "object",
       "properties": {
@@ -2042,34 +2046,33 @@
   },
   "PVR.AddTimer": {
     "type": "method",
-    "description": "Adds a timer",
+    "description": "Adds a timer to record the given show one times or a timer rule to record all showings of the given show",
     "transport": "Response",
     "permission": "ControlPVR",
     "params": [
-      { "name": "broadcastid", "$ref": "Library.Id", "required": true, "description": "the broadcast id of item to record" },
-      { "name": "repeating", "type": "boolean", "default": false, "description": "the add should be done for all occurances" }
+      { "name": "broadcastid", "$ref": "Library.Id", "required": true, "description": "the broadcast id of the item to record" },
+      { "name": "timerrule", "type": "boolean", "default": false, "description": "controls whether to create a timer rule or a onetime timer" }
     ],
     "returns":  "string"
   },
   "PVR.DeleteTimer": {
     "type": "method",
-    "description": "Removes a timer",
+    "description": "Deletes a onetime timer or a timer rule",
     "transport": "Response",
     "permission": "ControlPVR",
     "params": [
-      { "name": "timerid", "$ref": "Library.Id", "required": true, "description": "the id of the timer to delete" },
-      { "name": "repeating", "type": "boolean", "default": false, "description": "the delete should be done for all occurances" }
+      { "name": "timerid", "$ref": "Library.Id", "required": true, "description": "the id of the onetime timer or timer rule to delete" }
     ],
     "returns":  "string"
   },
   "PVR.ToggleTimer": {
     "type": "method",
-    "description": "Toggles a timer",
+    "description": "Creates or deletes a onetime timer or timer rule for a given show. If it exists, it will be deleted. If it does not exist, it will be created",
     "transport": "Response",
     "permission": "ControlPVR",
     "params": [
-      { "name": "broadcastid", "$ref": "Library.Id", "required": true, "description": "the id of the broadcast to toggle a timer for" },
-      { "name": "repeating", "type": "boolean", "default": false, "description": "the toggle should be done for all occurances" }
+      { "name": "broadcastid", "$ref": "Library.Id", "required": true, "description": "the broadcast id of the item to toggle a onetime timer or time rule for" }
+      { "name": "timerrule", "type": "boolean", "default": false, "description": "controls whether to create / delete a timer rule or a onetime timer" }
     ],
     "returns":  "string"
   },

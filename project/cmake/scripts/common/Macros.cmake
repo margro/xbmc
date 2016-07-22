@@ -6,8 +6,6 @@ include(${CORE_SOURCE_DIR}/project/cmake/scripts/${CORE_SYSTEM_NAME}/Macros.cmak
 # Add a library, optionally as a dependency of the main application
 # Arguments:
 #   name name of the library to add
-# Optional Arguments:
-#   NO_MAIN_DEPENDS if specified, the library is not added to main depends
 # Implicit arguments:
 #   SOURCES the sources of the library
 #   HEADERS the headers of the library (only for IDE support)
@@ -15,8 +13,6 @@ include(${CORE_SOURCE_DIR}/project/cmake/scripts/${CORE_SYSTEM_NAME}/Macros.cmak
 # On return:
 #   Library will be built, optionally added to ${core_DEPENDS}
 function(core_add_library name)
-  cmake_parse_arguments(arg "NO_MAIN_DEPENDS" "" "" ${ARGN})
-
   if(NOT SOURCES)
       message(STATUS "No sources added to ${name} skipping")
       return()
@@ -24,12 +20,11 @@ function(core_add_library name)
 
   add_library(${name} STATIC ${SOURCES} ${HEADERS} ${OTHERS})
   set_target_properties(${name} PROPERTIES PREFIX "")
-  if(NOT arg_NO_MAIN_DEPENDS)
-    set(core_DEPENDS ${name} ${core_DEPENDS} CACHE STRING "" FORCE)
-  endif()
+  set(core_DEPENDS ${name} ${core_DEPENDS} CACHE STRING "" FORCE)
+  add_dependencies(${name} libcpluff ffmpeg)
 
   # Add precompiled headers to Kodi main libraries
-  if(WIN32 AND "${CMAKE_CURRENT_LIST_DIR}" MATCHES "^${CORE_SOURCE_DIR}/xbmc")
+  if(CORE_SYSTEM_NAME STREQUAL windows AND CMAKE_CURRENT_LIST_DIR MATCHES "^${CORE_SOURCE_DIR}/xbmc")
     add_precompiled_header(${name} pch.h ${CORE_SOURCE_DIR}/xbmc/win32/pch.cpp
                            PCH_TARGET kodi)
   endif()
@@ -49,9 +44,17 @@ endfunction()
 function(core_add_test_library name)
   # Backup the old SOURCES variable, since we'll append SUPPORT_SOURCES to it
   set(TEST_ONLY_SOURCES ${SOURCES})
-  set(SOURCES ${SOURCES} ${SUPPORT_SOURCES})
-  core_add_library(${name} NO_MAIN_DEPENDS)
-  set_target_properties(${name} PROPERTIES EXCLUDE_FROM_ALL 1)
+  add_library(${name} STATIC ${SOURCES} ${SUPPORTED_SOURCES} ${HEADERS} ${OTHERS})
+  set_target_properties(${name} PROPERTIES PREFIX ""
+                                           EXCLUDE_FROM_ALL 1)
+
+  # Add precompiled headers to Kodi main libraries
+  if(CORE_SYSTEM_NAME STREQUAL windows AND CMAKE_CURRENT_LIST_DIR MATCHES "^${CORE_SOURCE_DIR}/xbmc")
+    add_precompiled_header(${name} pch.h ${CORE_SOURCE_DIR}/xbmc/win32/pch.cpp
+                           PCH_TARGET kodi)
+  endif()
+
+  add_dependencies(${name} libcpluff ffmpeg)
   foreach(src ${TEST_ONLY_SOURCES})
     # This will prepend CMAKE_CURRENT_SOURCE_DIR if the path is relative,
     # otherwise use the absolute path.
@@ -59,6 +62,70 @@ function(core_add_test_library name)
     set(test_sources "${src_path}" ${test_sources} CACHE STRING "" FORCE)
   endforeach()
   set(test_archives ${test_archives} ${name} CACHE STRING "" FORCE)
+endfunction()
+
+# Add an addon callback library
+# Arguments:
+#   name name of the library to add
+# Implicit arguments:
+#   SOURCES the sources of the library
+#   HEADERS the headers of the library (only for IDE support)
+#   OTHERS  other library related files (only for IDE support)
+# On return:
+#   Library target is defined and added to LIBRARY_FILES
+function(core_add_addon_library name)
+  get_filename_component(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+  list(APPEND SOURCES lib${name}.cpp)
+  core_add_shared_library(${name} OUTPUT_DIRECTORY addons/${DIRECTORY})
+  set_target_properties(${name} PROPERTIES FOLDER addons)
+  target_include_directories(${name} PRIVATE
+                             ${CMAKE_CURRENT_SOURCE_DIR}
+                             ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi
+                             ${CORE_SOURCE_DIR}/xbmc)
+endfunction()
+
+# Add an dl-loaded shared library
+# Arguments:
+#   name name of the library to add
+# Optional arguments:
+#   WRAPPED wrap this library on POSIX platforms to add VFS support for
+#           libraries that would otherwise not support it.
+#   OUTPUT_DIRECTORY where to create the library in the build dir
+#           (default: system)
+# Implicit arguments:
+#   SOURCES the sources of the library
+#   HEADERS the headers of the library (only for IDE support)
+#   OTHERS  other library related files (only for IDE support)
+# On return:
+#   Library target is defined and added to LIBRARY_FILES
+function(core_add_shared_library name)
+  cmake_parse_arguments(arg "WRAPPED" "OUTPUT_DIRECTORY" "" ${ARGN})
+  if(arg_OUTPUT_DIRECTORY)
+    set(OUTPUT_DIRECTORY ${arg_OUTPUT_DIRECTORY})
+  else()
+    set(OUTPUT_DIRECTORY system)
+  endif()
+  if(CORE_SYSTEM_NAME STREQUAL windows)
+    set(OUTPUT_NAME lib${name})
+  else()
+    set(OUTPUT_NAME lib${name}-${ARCH})
+  endif()
+
+  if(NOT arg_WRAPPED OR CORE_SYSTEM_NAME STREQUAL windows)
+    add_library(${name} SHARED ${SOURCES} ${HEADERS} ${OTHERS})
+    set_target_properties(${name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${OUTPUT_DIRECTORY}
+                                             RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${OUTPUT_DIRECTORY}
+                                             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/${OUTPUT_DIRECTORY}
+                                             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/${OUTPUT_DIRECTORY}
+                                             OUTPUT_NAME ${OUTPUT_NAME} PREFIX "")
+
+    set(LIBRARY_FILES ${LIBRARY_FILES} ${CMAKE_BINARY_DIR}/${OUTPUT_DIRECTORY}/${OUTPUT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX} CACHE STRING "" FORCE)
+    add_dependencies(${APP_NAME_LC}-libraries ${name})
+  else()
+    add_library(${name} STATIC ${SOURCES} ${HEADERS} ${OTHERS})
+    set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE 1)
+    core_link_library(${name} ${OUTPUT_DIRECTORY}/lib${name})
+  endif()
 endfunction()
 
 # Add a data file to installation list with a mirror in build tree
@@ -331,11 +398,51 @@ macro(today RESULT)
     string(REGEX REPLACE "(..)/(..)/..(..).*" "\\1/\\2/\\3" ${RESULT} ${${RESULT}})
   else()
     message(SEND_ERROR "date not implemented")
-    set(${RESULT} 000000)
+    set(${RESULT} 00000000)
   endif()
   string(REGEX REPLACE "(\r?\n)+$" "" ${RESULT} "${${RESULT}}")
 endmacro()
 
+# Generates an RFC2822 timestamp
+#
+# The following variable is set:
+#   RFC2822_TIMESTAMP
+function(rfc2822stamp)
+  execute_process(COMMAND date -R
+                  OUTPUT_VARIABLE RESULT)
+  set(RFC2822_TIMESTAMP ${RESULT} PARENT_SCOPE)
+endfunction()
+
+# Generates an user stamp from git config info
+#
+# The following variable is set:
+#   PACKAGE_MAINTAINER - user stamp in the form of "username <username@example.com>"
+#                        if no git tree is found, value is set to "nobody <nobody@example.com>"
+function(userstamp)
+  find_package(Git)
+  if(GIT_FOUND AND EXISTS ${CORE_SOURCE_DIR}/.git)
+    execute_process(COMMAND ${GIT_EXECUTABLE} config user.name
+                    OUTPUT_VARIABLE username
+                    WORKING_DIRECTORY ${CORE_SOURCE_DIR}
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} config user.email
+                    OUTPUT_VARIABLE useremail
+                    WORKING_DIRECTORY ${CORE_SOURCE_DIR}
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(PACKAGE_MAINTAINER "${username} <${useremail}>" PARENT_SCOPE)
+  else()
+    set(PACKAGE_MAINTAINER "nobody <nobody@example.com>" PARENT_SCOPE)
+  endif()
+endfunction()
+
+# Parses git info and sets variables used to identify the build
+#
+# The following variables are set:
+#   APP_SCMID - git HEAD commit in the form of 'YYYYMMDD-hash'
+#               if git tree is dirty, value is set in the form of 'YYYYMMDD-hash-dirty'
+#               if no git tree is found, value is set in the form of 'YYYYMMDD-nogitfound'
+#   GIT_HASH  - git HEAD commit in the form of 'hash'. if git tree is dirty,
+#               value is set in the form of 'hash-dirty'
 function(core_find_git_rev)
   find_package(Git)
   if(GIT_FOUND AND EXISTS ${CORE_SOURCE_DIR}/.git)
@@ -370,6 +477,7 @@ function(core_find_git_rev)
   set(GIT_REV "${DATE}-${HASH}")
   if(GIT_REV)
     set(APP_SCMID ${GIT_REV} PARENT_SCOPE)
+    set(GIT_HASH ${HASH} PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -426,3 +534,4 @@ macro(core_find_versions)
     message(FATAL_ERROR "Could not determine add-on API version! Make sure that ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_guilib.h exists")
   endif()
 endmacro()
+

@@ -2368,7 +2368,7 @@ void CVideoPlayer::SynchronizeDemuxer(unsigned int timeout)
 
   CDVDMsgGeneralSynchronize* message = new CDVDMsgGeneralSynchronize(timeout, 0);
   m_messenger.Put(message->Acquire());
-  message->Wait(&m_bStop, 0);
+  message->Wait(m_bStop, 0);
   message->Release();
 }
 
@@ -2977,33 +2977,17 @@ bool CVideoPlayer::CanPause()
 
 void CVideoPlayer::Pause()
 {
-  CSingleLock lock(m_StateSection);
-  if (!m_State.canpause)
-    return;
-  lock.Leave();
-
-  if(m_playSpeed != DVD_PLAYSPEED_PAUSE && IsCaching())
+  // toggle between pause and normal speed
+  if (GetSpeed() == 0)
   {
-    SetCaching(CACHESTATE_DONE);
-    return;
-  }
-
-  // return to normal speed if it was paused before, pause otherwise
-  if (m_playSpeed == DVD_PLAYSPEED_PAUSE)
-  {
-    SetPlaySpeed(DVD_PLAYSPEED_NORMAL);
+    SetSpeed(1);
     m_callback.OnPlayBackResumed();
   }
   else
   {
-    SetPlaySpeed(DVD_PLAYSPEED_PAUSE);
+    SetSpeed(0);
     m_callback.OnPlayBackPaused();
   }
-}
-
-bool CVideoPlayer::IsPaused() const
-{
-  return m_playSpeed == DVD_PLAYSPEED_PAUSE || IsCaching();
 }
 
 bool CVideoPlayer::HasVideo() const
@@ -3938,7 +3922,7 @@ void CVideoPlayer::FlushBuffers(bool queued, double pts, bool accurate, bool syn
       CDVDMsgGeneralSynchronize* msg = new CDVDMsgGeneralSynchronize(1000, 0);
       m_VideoPlayerAudio->SendMessage(msg->Acquire(), 1);
       m_VideoPlayerVideo->SendMessage(msg->Acquire(), 1);
-      msg->Wait(&m_bStop, 0);
+      msg->Wait(m_bStop, 0);
       msg->Release();
 
       // purge any pending PLAYER_STARTED messages
