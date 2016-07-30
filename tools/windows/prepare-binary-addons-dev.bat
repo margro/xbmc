@@ -75,8 +75,8 @@ IF "%addon%" NEQ "" (
   SETLOCAL DisableDelayedExpansion
 )
 
-rem execute cmake to generate Visual Studio 12 project files
-cmake "%ADDONS_PATH%" -G "Visual Studio 12" ^
+rem execute cmake to generate Visual Studio 14 project files
+cmake "%ADDONS_PATH%" -G "Visual Studio 14" ^
       -DCMAKE_BUILD_TYPE=Debug ^
       -DCMAKE_USER_MAKE_RULES_OVERRIDE="%SCRIPTS_PATH%/CFlagOverrides.cmake" ^
       -DCMAKE_USER_MAKE_RULES_OVERRIDE_CXX="%SCRIPTS_PATH%/CXXFlagOverrides.cmake" ^
