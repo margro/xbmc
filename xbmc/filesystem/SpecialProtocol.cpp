@@ -50,6 +50,11 @@ void CSpecialProtocol::SetXBMCBinPath(const std::string &dir)
   SetPath("xbmcbin", dir);
 }
 
+void CSpecialProtocol::SetXBMCBinAddonPath(const std::string &dir)
+{
+  SetPath("xbmcbinaddons", dir);
+}
+
 void CSpecialProtocol::SetXBMCFrameworksPath(const std::string &dir)
 {
   SetPath("frameworks", dir);
@@ -63,6 +68,11 @@ void CSpecialProtocol::SetHomePath(const std::string &dir)
 void CSpecialProtocol::SetUserHomePath(const std::string &dir)
 {
   SetPath("userhome", dir);
+}
+
+void CSpecialProtocol::SetEnvHomePath(const std::string &dir)
+{
+  SetPath("envhome", dir);
 }
 
 void CSpecialProtocol::SetMasterProfilePath(const std::string &dir)
@@ -153,7 +163,9 @@ std::string CSpecialProtocol::TranslatePath(const CURL &url)
   // from here on, we have our "real" special paths
   else if (RootDir == "xbmc" ||
            RootDir == "xbmcbin" ||
+           RootDir == "xbmcbinaddons" ||
            RootDir == "home" ||
+           RootDir == "envhome" ||
            RootDir == "userhome" ||
            RootDir == "temp" ||
            RootDir == "profile" ||
@@ -246,7 +258,11 @@ void CSpecialProtocol::LogPaths()
 {
   CLog::Log(LOGNOTICE, "special://xbmc/ is mapped to: %s", GetPath("xbmc").c_str());
   CLog::Log(LOGNOTICE, "special://xbmcbin/ is mapped to: %s", GetPath("xbmcbin").c_str());
+  CLog::Log(LOGNOTICE, "special://xbmcbinaddons/ is mapped to: %s", GetPath("xbmcbinaddons").c_str());
   CLog::Log(LOGNOTICE, "special://masterprofile/ is mapped to: %s", GetPath("masterprofile").c_str());
+#if defined(TARGET_POSIX)
+  CLog::Log(LOGNOTICE, "special://envhome/ is mapped to: %s", GetPath("envhome").c_str());
+#endif
   CLog::Log(LOGNOTICE, "special://home/ is mapped to: %s", GetPath("home").c_str());
   CLog::Log(LOGNOTICE, "special://temp/ is mapped to: %s", GetPath("temp").c_str());
   CLog::Log(LOGNOTICE, "special://logpath/ is mapped to: %s", GetPath("logpath").c_str());
