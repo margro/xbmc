@@ -303,6 +303,7 @@ const std::string CSettings::SETTING_PICTURES_DISPLAYRESOLUTION = "pictures.disp
 const std::string CSettings::SETTING_SLIDESHOW_STAYTIME = "slideshow.staytime";
 const std::string CSettings::SETTING_SLIDESHOW_DISPLAYEFFECTS = "slideshow.displayeffects";
 const std::string CSettings::SETTING_SLIDESHOW_SHUFFLE = "slideshow.shuffle";
+const std::string CSettings::SETTING_SLIDESHOW_HIGHQUALITYDOWNSCALING = "slideshow.highqualitydownscaling";
 const std::string CSettings::SETTING_WEATHER_CURRENTLOCATION = "weather.currentlocation";
 const std::string CSettings::SETTING_WEATHER_ADDON = "weather.addon";
 const std::string CSettings::SETTING_WEATHER_ADDONSETTINGS = "weather.addonsettings";
@@ -354,6 +355,7 @@ const std::string CSettings::SETTING_AUDIOOUTPUT_SAMPLERATE = "audiooutput.sampl
 const std::string CSettings::SETTING_AUDIOOUTPUT_STEREOUPMIX = "audiooutput.stereoupmix";
 const std::string CSettings::SETTING_AUDIOOUTPUT_MAINTAINORIGINALVOLUME = "audiooutput.maintainoriginalvolume";
 const std::string CSettings::SETTING_AUDIOOUTPUT_PROCESSQUALITY = "audiooutput.processquality";
+const std::string CSettings::SETTING_AUDIOOUTPUT_ATEMPOTHRESHOLD = "audiooutput.atempothreshold";
 const std::string CSettings::SETTING_AUDIOOUTPUT_STREAMSILENCE = "audiooutput.streamsilence";
 const std::string CSettings::SETTING_AUDIOOUTPUT_DSPADDONSENABLED = "audiooutput.dspaddonsenabled";
 const std::string CSettings::SETTING_AUDIOOUTPUT_DSPSETTINGS = "audiooutput.dspsettings";
@@ -371,6 +373,8 @@ const std::string CSettings::SETTING_AUDIOOUTPUT_VOLUMESTEPS = "audiooutput.volu
 const std::string CSettings::SETTING_INPUT_PERIPHERALS = "input.peripherals";
 const std::string CSettings::SETTING_INPUT_ENABLEMOUSE = "input.enablemouse";
 const std::string CSettings::SETTING_INPUT_CONTROLLERCONFIG = "input.controllerconfig";
+const std::string CSettings::SETTING_INPUT_TESTRUMBLE = "input.testrumble";
+const std::string CSettings::SETTING_INPUT_CONTROLLERPOWEROFF = "input.controllerpoweroff";
 const std::string CSettings::SETTING_INPUT_APPLEREMOTEMODE = "input.appleremotemode";
 const std::string CSettings::SETTING_INPUT_APPLEREMOTEALWAYSON = "input.appleremotealwayson";
 const std::string CSettings::SETTING_INPUT_APPLEREMOTESEQUENCETIME = "input.appleremotesequencetime";
@@ -413,6 +417,9 @@ const std::string CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES = "addons.unkn
 const std::string CSettings::SETTING_ADDONS_MANAGE_DEPENDENCIES = "addons.managedependencies";
 const std::string CSettings::SETTING_GENERAL_ADDONFOREIGNFILTER = "general.addonforeignfilter";
 const std::string CSettings::SETTING_GENERAL_ADDONBROKENFILTER = "general.addonbrokenfilter";
+const std::string CSettings::SETTING_SOURCE_VIDEOS = "source.videos";
+const std::string CSettings::SETTING_SOURCE_MUSIC = "source.music";
+const std::string CSettings::SETTING_SOURCE_PICTURES = "source.pictures";
 
 CSettings::CSettings()
   : m_initialized(false)
@@ -1058,6 +1065,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_PASSTHROUGH);
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_CHANNELS);
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_PROCESSQUALITY);
+  settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_ATEMPOTHRESHOLD);
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_GUISOUNDMODE);
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_STEREOUPMIX);
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_AC3PASSTHROUGH);
@@ -1092,6 +1100,9 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_VIDEOPLAYER_USEMEDIACODEC);
   settingSet.insert(CSettings::SETTING_VIDEOPLAYER_USEMEDIACODECSURFACE);
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_VOLUMESTEPS);
+  settingSet.insert(CSettings::SETTING_SOURCE_VIDEOS);
+  settingSet.insert(CSettings::SETTING_SOURCE_MUSIC);
+  settingSet.insert(CSettings::SETTING_SOURCE_PICTURES);
   m_settingsManager->RegisterCallback(&g_application, settingSet);
 
   settingSet.clear();
@@ -1170,6 +1181,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.clear();
   settingSet.insert(CSettings::SETTING_INPUT_PERIPHERALS);
   settingSet.insert(CSettings::SETTING_INPUT_CONTROLLERCONFIG);
+  settingSet.insert(CSettings::SETTING_INPUT_TESTRUMBLE);
   settingSet.insert(CSettings::SETTING_LOCALE_LANGUAGE);
   m_settingsManager->RegisterCallback(&PERIPHERALS::CPeripherals::GetInstance(), settingSet);
 

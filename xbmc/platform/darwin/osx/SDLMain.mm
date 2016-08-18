@@ -434,94 +434,69 @@ static void setupWindowMenu(void)
   [pool release];
 }
 
+static void keyPress(SDLKey key)
+{
+  SDL_Event event;
+  memset(&event, 0, sizeof(event));
+  event.type = SDL_KEYDOWN;
+  event.key.keysym.sym = key;
+  SDL_PushEvent(&event);
+  event.type = SDL_KEYUP;
+  SDL_PushEvent(&event);
+}
+
 #define VK_SLEEP            0x143
 #define VK_VOLUME_MUTE      0xAD
 #define VK_VOLUME_DOWN      0xAE
 #define VK_VOLUME_UP        0xAF
-#define VK_MEDIA_NEXT_TRACK 0xB0
-#define VK_MEDIA_PREV_TRACK 0xB1
+#define VK_MEDIA_NEXT_TRACK 0x9E
+#define VK_MEDIA_PREV_TRACK 0x9D
 #define VK_MEDIA_STOP       0xB2
 #define VK_MEDIA_PLAY_PAUSE 0xB3
-#define VK_REWIND           0x9D
-#define VK_FAST_FWD         0x9E
+#define VK_REWIND           0xB1
+#define VK_FAST_FWD         0xB0
 
 - (void)powerKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_SLEEP;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_SLEEP);
 }
 
 - (void)muteKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_VOLUME_MUTE;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_VOLUME_MUTE);
 }
 - (void)soundUpKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_VOLUME_UP;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_VOLUME_UP);
 }
 - (void)soundDownKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_VOLUME_DOWN;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_VOLUME_DOWN);
 }
 
 - (void)playPauseKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_MEDIA_PLAY_PAUSE;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_MEDIA_PLAY_PAUSE);
 }
 
 - (void)fastKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_FAST_FWD;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_FAST_FWD);
 }
 
 - (void)rewindKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_REWIND;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_REWIND);
 }
 
 - (void)nextKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_MEDIA_NEXT_TRACK;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_MEDIA_NEXT_TRACK);
 }
 
 - (void)previousKeyNotification
 {
-  SDL_Event event;
-  memset(&event, 0, sizeof(event));
-  event.type = SDL_KEYDOWN;
-  event.key.keysym.sym = (SDLKey)VK_MEDIA_PREV_TRACK;
-  SDL_PushEvent(&event);
+  keyPress((SDLKey)VK_MEDIA_PREV_TRACK);
 }
 
 @end

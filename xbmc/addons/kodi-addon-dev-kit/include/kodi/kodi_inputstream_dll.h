@@ -82,14 +82,6 @@ extern "C"
   void EnableStream(int streamid, bool enable);
 
   /*!
-  * Enables a stream at the given PTS.
-  * @param streamId unique id of stream
-  * @param pts position in stream in microseconds 
-  * @remarks will only be called if CAPABILITIES::m_supportsEnableAtPTS is set to true
-  */
-  void EnableStreamAtPTS(int streamid, uint64_t pts);
-
-  /*!
    * Reset the demultiplexer in the add-on.
    * @remarks Required if bHandlesDemuxing is set to true.
    */
@@ -222,6 +214,12 @@ extern "C"
   */
   bool IsRealTimeStream();
 
+  const char* GetApiVersion()
+  {
+    static const char *ApiVersion = INPUTSTREAM_API_VERSION;
+    return ApiVersion;
+  }
+
   /*!
   * Called by XBMC to assign the function pointers of this add-on to pClient.
   * @param pClient The struct to assign the function pointers to.
@@ -232,11 +230,11 @@ extern "C"
     pClient->Close = Close;
     pClient->GetPathList = GetPathList;
     pClient->GetCapabilities = GetCapabilities;
+    pClient->GetApiVersion = GetApiVersion;
 
     pClient->GetStreamIds = GetStreamIds;
     pClient->GetStream = GetStream;
     pClient->EnableStream = EnableStream;
-    pClient->EnableStreamAtPTS = EnableStreamAtPTS;
     pClient->DemuxReset = DemuxReset;
     pClient->DemuxAbort = DemuxAbort;
     pClient->DemuxFlush = DemuxFlush;

@@ -22,9 +22,10 @@
 
 #include <string>
 #include <vector>
-
+#include "addons/AddonEvents.h"
 #include "IListProvider.h"
 #include "guilib/GUIStaticItem.h"
+#include "pvr/PVRManagerState.h"
 #include "utils/Job.h"
 #include "threads/CriticalSection.h"
 #include "interfaces/IAnnouncer.h"
@@ -49,7 +50,7 @@ public:
   typedef enum
   {
     OK,
-    PENDING,
+    INVALIDATED,
     DONE
   } UpdateState;
 
@@ -84,9 +85,9 @@ private:
   std::vector<InfoTagType> m_itemTypes;
   CCriticalSection m_section;
 
-  void FireJob();
-  void RegisterListProvider(bool hasLibraryContent);
   bool UpdateURL();
   bool UpdateLimit();
   bool UpdateSort();
+  void OnAddonEvent(const ADDON::AddonEvent& event);
+  void OnPVRManagerEvent(const PVR::ManagerState& event);
 };

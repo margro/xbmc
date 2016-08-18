@@ -30,6 +30,9 @@
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h"
 #endif
 
+/* current API version */
+#define INPUTSTREAM_API_VERSION "1.0.5"
+
 extern "C" {
 
   // this are properties given to the addon on create
@@ -49,7 +52,6 @@ extern "C" {
     bool m_supportsIDisplayTime;            /*!< @brief supports interface IDisplayTime */
     bool m_supportsSeek;                    /*!< @brief supports seek */
     bool m_supportsPause;                   /*!< @brief supports pause */
-    bool m_supportsEnableAtPTS;             /*!< @brief supports enabling streams at a given PTS time */
   } INPUTSTREAM_CAPABILITIES;
 
   /*!
@@ -128,12 +130,12 @@ extern "C" {
     void (__cdecl* Close)(void);
     const char* (__cdecl* GetPathList)(void);
     struct INPUTSTREAM_CAPABILITIES (__cdecl* GetCapabilities)(void);
+    const char* (__cdecl* GetApiVersion)(void);
 
     // IDemux
     struct INPUTSTREAM_IDS (__cdecl* GetStreamIds)();
     struct INPUTSTREAM_INFO (__cdecl* GetStream)(int);
     void (__cdecl* EnableStream)(int, bool);
-    void (__cdecl* EnableStreamAtPTS)(int, uint64_t);
     void (__cdecl* DemuxReset)(void);
     void (__cdecl* DemuxAbort)(void);
     void (__cdecl* DemuxFlush)(void);

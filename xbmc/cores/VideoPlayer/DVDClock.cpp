@@ -156,6 +156,8 @@ void CDVDClock::SetSpeed(int iSpeed)
 
 void CDVDClock::SetSpeedAdjust(double adjust)
 {
+  CLog::Log(LOGDEBUG, "CDVDClock::SetSpeedAdjust - adjusted:%f", adjust);
+
   CSingleLock lock(m_critSection);
   m_speedAdjust = adjust;
 }
@@ -184,9 +186,13 @@ double CDVDClock::ErrorAdjust(double error, const char* log)
 
   if (m_vSyncAdjust != 0)
   {
-    if (error > 0.5 * m_frameTime)
+    // Audio ahead is more noticeable then audio behind video.
+    // Correct if aufio is more than 20ms ahead or more then
+    // 27ms behind. In a worst case scenario we switch from
+    // 20ms ahead to 21ms behind (for fps of 23.976)
+    if (error > 0.02 * DVD_TIME_BASE)
       adjustment = m_frameTime;
-    else if (error < -0.5 * m_frameTime)
+    else if (error < -0.027 * DVD_TIME_BASE)
       adjustment = -m_frameTime;
     else
       adjustment = 0;
@@ -297,6 +303,8 @@ double CDVDClock::SystemToPlaying(int64_t system)
 
 double CDVDClock::GetClockSpeed()
 {
+  CSingleLock lock(m_critSection);
+
   double speed = (double)m_systemFrequency / m_systemUsed;
-  return m_videoRefClock->GetSpeed() * speed;
+  return m_videoRefClock->GetSpeed() * speed + m_speedAdjust;
 }

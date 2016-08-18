@@ -941,14 +941,31 @@ void PAPlayer::SetDynamicRangeCompression(long drc)
 
 }
 
-void PAPlayer::SetSpeed(int iSpeed)
+void PAPlayer::SetSpeed(float speed)
 {
-  m_playbackSpeed  = iSpeed;
+  m_playbackSpeed = static_cast<int>(speed);
+  if (m_playbackSpeed != 0 && m_isPaused)
+  {
+    m_isPaused = false;
+    SoftStart();
+  }
+  else if (m_playbackSpeed == 0 && !m_isPaused)
+  {
+    m_isPaused = true;
+    SoftStop(true, false);
+  }
   m_signalSpeedChange = true;
 }
 
-int PAPlayer::GetSpeed()
+float PAPlayer::GetSpeed()
 {
+  //! @todo: remove extra member for pause state
+  //! there was inconsistency throughout the entire application on how speed
+  //! and pause were used. Now speed is defined as current playback speed.
+  //! as a result speed must be 0 if player is paused.
+  if (m_isPaused)
+    return 0;
+
   return m_playbackSpeed;
 }
 

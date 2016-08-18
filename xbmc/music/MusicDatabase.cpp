@@ -3671,11 +3671,13 @@ bool CMusicDatabase::GetCommonNav(const std::string &strBaseDir, const std::stri
       extFilter.order.clear();
     }
     
+    // Do prepare before add where as it could contain a LIKE statement with wild card that upsets format
+    // e.g. LIKE '%symphony%' would be taken as a %s format argument
+    strSQL = PrepareSQL(strSQL, !extFilter.fields.empty() ? extFilter.fields.c_str() : labelField.c_str());
+
     CMusicDbUrl musicUrl;
     if (!BuildSQL(strBaseDir, strSQL, extFilter, strSQL, musicUrl))
       return false;
-    
-    strSQL = PrepareSQL(strSQL, !extFilter.fields.empty() ? extFilter.fields.c_str() : labelField.c_str());
     
     // run query
     CLog::Log(LOGDEBUG, "%s query: %s", __FUNCTION__, strSQL.c_str());
@@ -5855,8 +5857,9 @@ void CMusicDatabase::ExportToXML(const std::string &xmlFile, bool singleFile, bo
           if (images)
           {
             std::string thumb = GetArtForItem(album.idAlbum, MediaTypeAlbum, "thumb");
-            if (!thumb.empty() && (overwrite || !CFile::Exists(URIUtils::AddFileToFolder(strPath,"folder.jpg"))))
-              CTextureCache::GetInstance().Export(thumb, URIUtils::AddFileToFolder(strPath,"folder.jpg"));
+            std::string imagePath = URIUtils::AddFileToFolder(strPath, "folder.jpg");
+            if (!thumb.empty() && (overwrite || !CFile::Exists(imagePath)))
+              CTextureCache::GetInstance().Export(thumb, imagePath);
           }
           xmlDoc.Clear();
           TiXmlDeclaration decl("1.0", "UTF-8", "yes");

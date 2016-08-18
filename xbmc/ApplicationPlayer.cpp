@@ -456,11 +456,11 @@ float CApplicationPlayer::GetCachePercentage() const
     return 0.0;
 }
 
-void CApplicationPlayer::SetSpeed(int iSpeed)
+void CApplicationPlayer::SetSpeed(float speed)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
-    player->SetSpeed(iSpeed);
+    player->SetSpeed(speed);
 }
 
 void CApplicationPlayer::DoAudioWork()
@@ -710,13 +710,6 @@ void CApplicationPlayer::GetDeinterlaceMethods(std::vector<int> &deinterlaceMeth
     player->OMXGetDeinterlaceMethods(deinterlaceMethods);
 }
 
-void CApplicationPlayer::GetDeinterlaceModes(std::vector<int> &deinterlaceModes)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-    player->OMXGetDeinterlaceModes(deinterlaceModes);
-}
-
 void CApplicationPlayer::GetScalingMethods(std::vector<int> &scalingMethods)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
@@ -724,7 +717,7 @@ void CApplicationPlayer::GetScalingMethods(std::vector<int> &scalingMethods)
     player->OMXGetScalingMethods(scalingMethods);
 }
 
-void CApplicationPlayer::SetPlaySpeed(int iSpeed)
+void CApplicationPlayer::SetPlaySpeed(float speed)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
   if (!player)
@@ -733,24 +726,33 @@ void CApplicationPlayer::SetPlaySpeed(int iSpeed)
   if (!IsPlayingAudio() && !IsPlayingVideo())
     return ;
 
-  SetSpeed(iSpeed);
+  SetSpeed(speed);
   m_speedUpdate.SetExpired();
 }
 
-int CApplicationPlayer::GetPlaySpeed()
+float CApplicationPlayer::GetPlaySpeed()
 {
   if (!m_speedUpdate.IsTimePast())
-    return m_iPlaySpeed;
+    return m_fPlaySpeed;
 
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
   {
-    m_iPlaySpeed = player->GetSpeed();
+    m_fPlaySpeed = player->GetSpeed();
     m_speedUpdate.Set(1000);
-    return m_iPlaySpeed;
+    return m_fPlaySpeed;
   }
   else
     return 0;
+}
+
+bool CApplicationPlayer::SupportsTempo()
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+    return player->SupportsTempo();
+  else
+    return false;
 }
 
 void CApplicationPlayer::FrameMove()
@@ -829,15 +831,6 @@ bool CApplicationPlayer::IsRenderingVideoLayer()
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
     return player->IsRenderingVideoLayer();
-  else
-    return false;
-}
-
-bool CApplicationPlayer::Supports(EDEINTERLACEMODE mode)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-    return player->Supports(mode);
   else
     return false;
 }

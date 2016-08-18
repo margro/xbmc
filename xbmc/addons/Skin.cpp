@@ -256,17 +256,14 @@ std::string CSkinInfo::GetSkinPath(const std::string& strFile, RESOLUTION_INFO *
   const RESOLUTION_INFO &target = g_graphicsContext.GetResInfo();
   *res = *std::min_element(m_resolutions.begin(), m_resolutions.end(), closestRes(target));
 
-  std::string strPath = URIUtils::AddFileToFolder(strPathToUse, res->strMode);
-  strPath = URIUtils::AddFileToFolder(strPath, strFile);
+  std::string strPath = URIUtils::AddFileToFolder(strPathToUse, res->strMode, strFile);
   if (CFile::Exists(strPath))
     return strPath;
 
   // use the default resolution
   *res = m_defaultRes;
 
-  strPath = URIUtils::AddFileToFolder(strPathToUse, res->strMode);
-  strPath = URIUtils::AddFileToFolder(strPath, strFile);
-  return strPath;
+  return URIUtils::AddFileToFolder(strPathToUse, res->strMode, strFile);
 }
 
 bool CSkinInfo::HasSkinFile(const std::string &strFile) const
@@ -308,7 +305,9 @@ bool CSkinInfo::LoadStartupWindows(const cp_extension_t *ext)
   m_startupWindows.clear();
   m_startupWindows.emplace_back(WINDOW_HOME, "513");
   m_startupWindows.emplace_back(WINDOW_TV_CHANNELS, "19180");
+  m_startupWindows.emplace_back(WINDOW_TV_GUIDE, "19273");
   m_startupWindows.emplace_back(WINDOW_RADIO_CHANNELS, "19183");
+  m_startupWindows.emplace_back(WINDOW_RADIO_GUIDE, "19274");
   m_startupWindows.emplace_back(WINDOW_PROGRAMS, "0");
   m_startupWindows.emplace_back(WINDOW_PICTURES, "1");
   m_startupWindows.emplace_back(WINDOW_MUSIC_NAV, "2");

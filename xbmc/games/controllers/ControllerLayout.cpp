@@ -19,7 +19,9 @@
  */
 
 #include "ControllerLayout.h"
+#include "Controller.h"
 #include "ControllerDefinitions.h"
+#include "guilib/LocalizeStrings.h"
 #include "utils/log.h"
 #include "utils/XMLUtils.h"
 
@@ -100,17 +102,32 @@ bool CControllerLayout::Deserialize(const TiXmlElement* pElement, const CControl
     CLog::Log(LOGDEBUG, "<%s> tag has no \"%s\" attribute", LAYOUT_XML_ROOT, LAYOUT_XML_ATTR_LAYOUT_OVERLAY);
 
   // Features
-  for (const TiXmlElement* pCategory = pElement->FirstChildElement(); pCategory != NULL; pCategory = pCategory->NextSiblingElement())
+  for (const TiXmlElement* pGroup = pElement->FirstChildElement(); pGroup != nullptr; pGroup = pGroup->NextSiblingElement())
   {
-    std::string strCategory = pElement->Value();
+    if (pGroup->ValueStr() != LAYOUT_XML_ELM_GROUP)
+    {
+      CLog::Log(LOGDEBUG, "<%s> tag is misnamed: <%s>", LAYOUT_XML_ELM_GROUP, pGroup->Value() ? pGroup->Value() : "");
+      continue;
+    }
 
-    //! @todo Something with category
+    // Group
+    std::string strGroup;
 
-    for (const TiXmlElement* pFeature = pCategory->FirstChildElement(); pFeature != NULL; pFeature = pFeature->NextSiblingElement())
+    std::string strGroupLabel = XMLUtils::GetAttribute(pGroup, LAYOUT_XML_ATTR_GROUP_LABEL);
+    if (!strGroupLabel.empty())
+    {
+      unsigned int categoryId;
+      std::istringstream(strGroupLabel) >> categoryId;
+      strGroup = g_localizeStrings.GetAddonString(controller->ID(), categoryId);
+      if (strGroup.empty())
+        strGroup = g_localizeStrings.Get(categoryId);
+    }
+
+    for (const TiXmlElement* pFeature = pGroup->FirstChildElement(); pFeature != nullptr; pFeature = pFeature->NextSiblingElement())
     {
       CControllerFeature feature;
 
-      if (!feature.Deserialize(pFeature, controller))
+      if (!feature.Deserialize(pFeature, controller, strGroup))
         return false;
 
       m_features.push_back(feature);

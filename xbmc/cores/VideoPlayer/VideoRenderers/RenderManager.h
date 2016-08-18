@@ -57,6 +57,7 @@ class IRenderMsg
 protected:
   virtual void VideoParamsChange() = 0;
   virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) = 0;
+  virtual void UpdateClockSync(bool enabled) = 0;
 };
 
 class CRenderManager
@@ -91,7 +92,6 @@ public:
 
   // Functions called from GUI
   bool Supports(ERENDERFEATURE feature);
-  bool Supports(EDEINTERLACEMODE method);
   bool Supports(EINTERLACEMETHOD method);
   bool Supports(ESCALINGMETHOD method);
   EINTERLACEMETHOD AutoInterlaceMethod(EINTERLACEMETHOD mInt);

@@ -45,25 +45,21 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|X64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|X64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
@@ -91,13 +87,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>Bin\Desktop_2015\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>Bin\Desktop_2015\$(Platform)\$(Configuration)\</IntDir>
-    <TargetName>Effects11</TargetName>
+    <TargetName>Effects11d</TargetName>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|X64'">
     <OutDir>Bin\Desktop_2015\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>Bin\Desktop_2015\$(Platform)\$(Configuration)\</IntDir>
-    <TargetName>Effects11</TargetName>
+    <TargetName>Effects11d</TargetName>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -138,7 +134,7 @@
       <AdditionalIncludeDirectories>.\Binary;.\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pchfx.h</PrecompiledHeaderFile>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;_DEBUG;DEBUG;PROFILE;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;_DEBUG;DEBUG;PROFILE;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;_CRT_STDIO_ARBITRARY_WIDE_SPECIFIERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -180,7 +176,7 @@
       <AdditionalIncludeDirectories>.\Binary;.\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pchfx.h</PrecompiledHeaderFile>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;_DEBUG;DEBUG;PROFILE;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;_DEBUG;DEBUG;PROFILE;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;_CRT_STDIO_ARBITRARY_WIDE_SPECIFIERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
@@ -223,7 +219,7 @@
       <AdditionalIncludeDirectories>.\Binary;.\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pchfx.h</PrecompiledHeaderFile>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;NDEBUG;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;NDEBUG;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;_CRT_STDIO_ARBITRARY_WIDE_SPECIFIERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
@@ -266,7 +262,7 @@
       <AdditionalIncludeDirectories>.\Binary;.\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pchfx.h</PrecompiledHeaderFile>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;NDEBUG;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;NDEBUG;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;_CRT_STDIO_ARBITRARY_WIDE_SPECIFIERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
@@ -310,7 +306,7 @@
       <AdditionalIncludeDirectories>.\Binary;.\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pchfx.h</PrecompiledHeaderFile>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;NDEBUG;PROFILE;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;NDEBUG;PROFILE;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;_CRT_STDIO_ARBITRARY_WIDE_SPECIFIERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
@@ -353,7 +349,7 @@
       <AdditionalIncludeDirectories>.\Binary;.\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pchfx.h</PrecompiledHeaderFile>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;NDEBUG;PROFILE;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN7_PLATFORM_UPDATE;WIN32;NDEBUG;PROFILE;_WINDOWS;_LIB;D3DXFX_LARGEADDRESS_HANDLE;_WIN32_WINNT=0x0600;_CRT_STDIO_ARBITRARY_WIDE_SPECIFIERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>

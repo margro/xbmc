@@ -71,10 +71,10 @@
 	</variable>
 	<variable name="SeekLabel">
 		<value condition="!String.IsEmpty(Player.SeekStepSize)">[UPPERCASE]$LOCALIZE[773][/UPPERCASE] $INFO[Player.SeekStepSize]</value>
-		<value condition="!String.IsEmpty(Player.SeekOffset)">[UPPERCASE]$LOCALIZE[773][/UPPERCASE] $INFO[Player.SeekOffset]</value>
 		<value condition="Player.Forwarding">$LOCALIZE[31044] $VAR[Speed]</value>
 		<value condition="Player.Rewinding">$LOCALIZE[31045] $VAR[Speed]</value>
 		<value condition="Player.Paused">[UPPERCASE]$LOCALIZE[31043][/UPPERCASE]</value>
+		<value condition="Player.IsTempo">[UPPERCASE]$LOCALIZE[31046]: $INFO[Player.PlaySpeed][/UPPERCASE]</value>
 	</variable>
 	<variable name="Speed">
 		<value condition="Player.Forwarding2x | Player.Rewinding2x">2x</value>

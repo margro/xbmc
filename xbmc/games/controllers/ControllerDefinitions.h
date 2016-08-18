@@ -21,13 +21,18 @@
 
 #define LAYOUT_XML_ROOT                    "layout"
 
+#define LAYOUT_XML_ELM_GROUP               "category"
+
 #define LAYOUT_XML_ELM_BUTTON              "button"
 #define LAYOUT_XML_ELM_ANALOG_STICK        "analogstick"
 #define LAYOUT_XML_ELM_ACCELEROMETER       "accelerometer"
+#define LAYOUT_XML_ELM_MOTOR               "motor"
 
 #define LAYOUT_XML_ATTR_LAYOUT_LABEL       "label"
 #define LAYOUT_XML_ATTR_LAYOUT_IMAGE       "image"
 #define LAYOUT_XML_ATTR_LAYOUT_OVERLAY     "overlay"
+
+#define LAYOUT_XML_ATTR_GROUP_LABEL        "label"
 
 #define LAYOUT_XML_ATTR_FEATURE_NAME       "name"
 #define LAYOUT_XML_ATTR_FEATURE_LABEL      "label"
