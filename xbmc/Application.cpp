@@ -1309,6 +1309,7 @@ bool CApplication::StartServer(enum ESERVERS eServer, bool bStart, bool bWait/* 
 
 void CApplication::StopPVRManager()
 {
+  CLog::Log(LOGINFO, "stopping PVRManager");
   if (g_PVRManager.IsPlaying())
     StopPlaying();
   g_PVRManager.Stop();
