@@ -269,6 +269,11 @@ lib/cpluff/stamp-h1
 /project/BuildDependencies/bin/doxygen
 /project/BuildDependencies/bin/json-rpc
 
+# Generated VS2015 solution
+/project/VS2015
+# PVR addons
+/pvr-addons-build
+
 # /system
 /system/cpluff.dll
 /system/EasyHook32.dll
