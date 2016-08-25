@@ -42,7 +42,7 @@ using namespace EPG;
 #define SHORTGAP     5 // how many blocks is considered a short-gap in nav logic
 #define BLOCKJUMP    4 // how many blocks are jumped with each analogue scroll action
 static const int BLOCK_SCROLL_OFFSET = 60 / CGUIEPGGridContainerModel::MINSPERBLOCK; // how many blocks are jumped if we are at left/right edge of grid
-static const int PAGE_NOW_OFFSET     = 30 / CGUIEPGGridContainerModel::MINSPERBLOCK;
+static const int PAGE_NOW_OFFSET = CGUIEPGGridContainerModel::GRID_START_PADDING / CGUIEPGGridContainerModel::MINSPERBLOCK; // this is the 'now' block relative to page start  
 
 CGUIEPGGridContainer::CGUIEPGGridContainer(int parentID, int controlID, float posX, float posY, float width,
                                            float height, int scrollTime, int preloadItems, int timeBlocks, int rulerUnit,
@@ -500,7 +500,16 @@ void CGUIEPGGridContainer::UpdateItems()
 
     if (prevSelectedEpgTag->StartAsUTC().IsValid()) // "normal" tag selected
     {
-      newBlockIndex = (prevSelectedEpgTag->StartAsUTC() - m_gridModel->GetGridStart()).GetSecondsTotal() / 60 / CGUIEPGGridContainerModel::MINSPERBLOCK + eventOffset;
+      const CDateTime gridStart(m_gridModel->GetGridStart());
+      const CDateTime eventStart(prevSelectedEpgTag->StartAsUTC());
+
+      if (gridStart >= eventStart)
+      {
+        // start of previously selected event is before grid start
+        newBlockIndex = eventOffset;
+      }
+      else
+        newBlockIndex = (eventStart - gridStart).GetSecondsTotal() / 60 / CGUIEPGGridContainerModel::MINSPERBLOCK + eventOffset;
 
       const CPVRChannelPtr channel(prevSelectedEpgTag->ChannelTag());
       if (channel)
@@ -516,7 +525,16 @@ void CGUIEPGGridContainer::UpdateItems()
         const CEpgInfoTagPtr tag(prevItem->item->GetEPGInfoTag());
         if (tag && tag->EndAsUTC().IsValid())
         {
-          newBlockIndex = (tag->EndAsUTC() - m_gridModel->GetGridStart()).GetSecondsTotal() / 60 / CGUIEPGGridContainerModel::MINSPERBLOCK + eventOffset;
+          const CDateTime gridStart(m_gridModel->GetGridStart());
+          const CDateTime eventEnd(tag->EndAsUTC());
+
+          if (gridStart >= eventEnd)
+          {
+            // start of previously selected gap tag is before grid start
+            newBlockIndex = eventOffset;
+          }
+          else
+            newBlockIndex = (eventEnd - gridStart).GetSecondsTotal() / 60 / CGUIEPGGridContainerModel::MINSPERBLOCK + eventOffset;
 
           const CPVRChannelPtr channel(tag->ChannelTag());
           if (channel)
