@@ -21,6 +21,7 @@
  */
 
 #include <atomic>
+#include <memory>
 #include <utility>
 #include <vector>
 #include "cores/IPlayer.h"
@@ -368,7 +369,6 @@ public:
   virtual bool SwitchChannel(const PVR::CPVRChannelPtr &channel);
 
   virtual void FrameMove();
-  virtual bool HasFrame();
   virtual void Render(bool clear, uint32_t alpha = 255, bool gui = true);
   virtual void FlushRenderer();
   virtual void SetRenderViewMode(int mode);
@@ -377,9 +377,10 @@ public:
   virtual bool IsRenderingVideo();
   virtual bool IsRenderingGuiLayer();
   virtual bool IsRenderingVideoLayer();
-  virtual bool Supports(EINTERLACEMETHOD method);
-  virtual bool Supports(ESCALINGMETHOD method);
-  virtual bool Supports(ERENDERFEATURE feature);
+  virtual bool Supports(EINTERLACEMETHOD method) override;
+  virtual EINTERLACEMETHOD GetDeinterlacingMethodDefault() override;
+  virtual bool Supports(ESCALINGMETHOD method) override;
+  virtual bool Supports(ERENDERFEATURE feature) override;
 
   virtual unsigned int RenderCaptureAlloc();
   virtual void RenderCapture(unsigned int captureId, unsigned int width, unsigned int height, int flags);
@@ -405,7 +406,7 @@ protected:
   virtual void VideoParamsChange() override;
   virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) override;
   virtual void UpdateClockSync(bool enabled) override;
-  virtual void UpdateDeinterlacingMethods(std::list<EINTERLACEMETHOD> &methods) override;
+  virtual void UpdateRenderInfo(CRenderInfo &info) override;
 
   void CreatePlayers();
   void DestroyPlayers();
@@ -503,7 +504,7 @@ protected:
   XbmcThreads::EndTime m_cachingTimer;
   CFileItem    m_item;
   XbmcThreads::EndTime m_ChannelEntryTimeOut;
-  CProcessInfo *m_processInfo;
+  std::unique_ptr<CProcessInfo> m_processInfo;
 
   CCurrentStream m_CurrentAudio;
   CCurrentStream m_CurrentVideo;

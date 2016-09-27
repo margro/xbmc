@@ -14,6 +14,11 @@ if(NOT EXISTS "${APP_LIB_DIR}/")
   file(MAKE_DIRECTORY ${APP_LIB_DIR})
 endif()
 
+set(APP_DATA_DIR ${DEPENDS_PATH}/share/${APP_NAME_LC})
+if(NOT EXISTS "${APP_DATA_DIR}/")
+  file(MAKE_DIRECTORY ${APP_DATA_DIR})
+endif()
+
 set(APP_INCLUDE_DIR ${DEPENDS_PATH}/include/${APP_NAME_LC})
 if(NOT EXISTS "${APP_INCLUDE_DIR}/")
   file(MAKE_DIRECTORY ${APP_INCLUDE_DIR})
@@ -37,14 +42,13 @@ file(COPY ${CORE_SOURCE_DIR}/project/cmake/scripts/common/AddonHelpers.cmake
 
 ### copy all the addon binding header files to include/kodi
 # parse addon-bindings.mk to get the list of header files to copy
-file(STRINGS ${CORE_SOURCE_DIR}/xbmc/addons/addon-bindings.mk bindings)
-string(REPLACE "\n" ";" bindings "${bindings}")
+core_file_read_filtered(bindings ${CORE_SOURCE_DIR}/xbmc/addons/addon-bindings.mk)
 foreach(binding ${bindings})
   string(REPLACE " =" ";" binding "${binding}")
   string(REPLACE "+=" ";" binding "${binding}")
   list(GET binding 1 header)
   # copy the header file to include/kodi
-  file(COPY ${CORE_SOURCE_DIR}/${header} DESTINATION ${APP_INCLUDE_DIR})
+  configure_file(${CORE_SOURCE_DIR}/${header} ${APP_INCLUDE_DIR} COPYONLY)
 endforeach()
 
 ### on windows we need a "patch" binary to be able to patch 3rd party sources

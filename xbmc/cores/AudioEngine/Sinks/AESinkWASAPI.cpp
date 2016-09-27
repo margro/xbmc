@@ -69,10 +69,10 @@ static const enum AEChannel layoutsList[][16] =
   {AE_CH_FL,  AE_CH_FR,  AE_CH_BL,  AE_CH_BR,  AE_CH_NULL}, // Quad
   {AE_CH_FL,  AE_CH_FR,  AE_CH_FC,  AE_CH_BC,  AE_CH_NULL}, // Surround
   {AE_CH_FL,  AE_CH_FR,  AE_CH_FC,  AE_CH_LFE, AE_CH_SL,  AE_CH_SR,  AE_CH_NULL}, // Standard 5.1
+  {AE_CH_FL,  AE_CH_FR,  AE_CH_FC,  AE_CH_LFE, AE_CH_BL,  AE_CH_BR,  AE_CH_NULL}, // 5.1 wide (obsolete)
   {AE_CH_FL,  AE_CH_FR,  AE_CH_FC,  AE_CH_LFE, AE_CH_SL,  AE_CH_SR,  AE_CH_BL,  AE_CH_BR,  AE_CH_NULL}, // Standard 7.1
   /* Less common configurations */
   {AE_CH_FL,  AE_CH_FR,  AE_CH_LFE, AE_CH_NULL}, // 2.1
-  {AE_CH_FL,  AE_CH_FR,  AE_CH_FC,  AE_CH_LFE, AE_CH_BL,  AE_CH_BR,  AE_CH_NULL}, // 5.1 wide (obsolete)
   {AE_CH_FL,  AE_CH_FR,  AE_CH_FC,  AE_CH_LFE, AE_CH_BL,  AE_CH_BR,  AE_CH_FLOC,AE_CH_FROC,AE_CH_NULL}, // 7.1 wide (obsolete)
   /* Exotic configurations */
   {AE_CH_FL,  AE_CH_FR,  AE_CH_FC,  AE_CH_NULL}, // 3 front speakers
@@ -875,27 +875,31 @@ void CAESinkWASAPI::BuildWaveFormatExtensible(AEAudioFormat &format, WAVEFORMATE
   else //Raw bitstream
   {
     wfxex.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-    if (format.m_dataFormat == AE_FMT_RAW
-	&& ((format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_AC3)
-	|| (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTSHD_CORE)
-        || (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTS_2048)
-        || (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTS_1024)
-        || (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTS_512)))
+    if (format.m_dataFormat == AE_FMT_RAW &&
+        ((format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_AC3) ||
+         (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_EAC3) ||
+         (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTSHD_CORE) ||
+         (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTS_2048) ||
+         (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTS_1024) ||
+         (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTS_512)))
     {
+      if (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_EAC3)
+        wfxex.SubFormat = KSDATAFORMAT_SUBTYPE_IEC61937_DOLBY_DIGITAL_PLUS;
+      else
+        wfxex.SubFormat = KSDATAFORMAT_SUBTYPE_IEC61937_DOLBY_DIGITAL;
       wfxex.dwChannelMask               = bool (format.m_channelLayout.Count() == 2) ? KSAUDIO_SPEAKER_STEREO : KSAUDIO_SPEAKER_5POINT1;
-      wfxex.SubFormat                   = KSDATAFORMAT_SUBTYPE_IEC61937_DOLBY_DIGITAL;
       wfxex.Format.wBitsPerSample       = 16;
       wfxex.Samples.wValidBitsPerSample = 16;
-      wfxex.Format.nChannels            = (WORD)format.m_channelLayout.Count(); // Fixme and test on windows setup
-      wfxex.Format.nSamplesPerSec       = format.m_streamInfo.m_sampleRate;
+      wfxex.Format.nChannels            = (WORD)format.m_channelLayout.Count();
+      wfxex.Format.nSamplesPerSec       = format.m_sampleRate;
       if (format.m_streamInfo.m_sampleRate == 0)
-	CLog::Log(LOGERROR, "Invalid sample rate supplied for RAW format");
+      CLog::Log(LOGERROR, "Invalid sample rate supplied for RAW format");
     }
-    else if (format.m_dataFormat == AE_FMT_RAW
-	&& ((format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTSHD)
-	|| (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD)))
+    else if (format.m_dataFormat == AE_FMT_RAW &&
+             ((format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_DTSHD) ||
+              (format.m_streamInfo.m_type == CAEStreamInfo::STREAM_TYPE_TRUEHD)))
     {
-      /* IEC 61937 transmissions over HDMI */            
+      // IEC 61937 transmissions over HDMI       
       wfxex.Format.nSamplesPerSec       = 192000L;
       wfxex.Format.wBitsPerSample       = 16;
       wfxex.Samples.wValidBitsPerSample = 16;
@@ -903,11 +907,6 @@ void CAESinkWASAPI::BuildWaveFormatExtensible(AEAudioFormat &format, WAVEFORMATE
 
       switch (format.m_streamInfo.m_type)
       {
-        case CAEStreamInfo::STREAM_TYPE_EAC3:
-          wfxex.SubFormat             = KSDATAFORMAT_SUBTYPE_IEC61937_DOLBY_DIGITAL_PLUS;
-          wfxex.Format.nChannels      = 2; // One IEC 60958 Line.
-          wfxex.dwChannelMask         = KSAUDIO_SPEAKER_5POINT1;
-          break;
         case CAEStreamInfo::STREAM_TYPE_TRUEHD:
           wfxex.SubFormat             = KSDATAFORMAT_SUBTYPE_IEC61937_DOLBY_MLP;
           wfxex.Format.nChannels      = 8; // Four IEC 60958 Lines.
@@ -921,9 +920,9 @@ void CAESinkWASAPI::BuildWaveFormatExtensible(AEAudioFormat &format, WAVEFORMATE
       }
 
       if (format.m_channelLayout.Count() == 8)
-        wfxex.dwChannelMask         = KSAUDIO_SPEAKER_7POINT1_SURROUND;
+        wfxex.dwChannelMask = KSAUDIO_SPEAKER_7POINT1_SURROUND;
       else
-        wfxex.dwChannelMask         = KSAUDIO_SPEAKER_5POINT1;
+        wfxex.dwChannelMask = KSAUDIO_SPEAKER_5POINT1;
     }
   }
 

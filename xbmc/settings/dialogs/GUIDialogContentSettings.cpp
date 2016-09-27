@@ -27,6 +27,7 @@
 #include <limits.h>
 
 #include "GUIDialogContentSettings.h"
+#include "addons/AddonSystemSettings.h"
 #include "addons/GUIDialogAddonSettings.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "filesystem/AddonsDirectory.h"
@@ -239,7 +240,8 @@ void CGUIDialogContentSettings::OnSettingAction(const CSetting *setting)
       m_content = static_cast<CONTENT_TYPE>(selected.second);
 
       AddonPtr scraperAddon;
-      CAddonMgr::GetInstance().GetDefault(ADDON::ScraperTypeFromContent(m_content), scraperAddon);
+      CAddonSystemSettings::GetInstance().GetActive(ADDON::ScraperTypeFromContent(m_content),
+          scraperAddon);
       m_scraper = std::dynamic_pointer_cast<CScraper>(scraperAddon);
 
       SetupView();
@@ -249,10 +251,13 @@ void CGUIDialogContentSettings::OnSettingAction(const CSetting *setting)
   else if (settingId == SETTING_SCRAPER_LIST)
   {
     ADDON::TYPE type = ADDON::ScraperTypeFromContent(m_content);
-    std::string selectedAddonId = m_scraper->ID();
+    std::string currentScraperId;
+    if (m_scraper != nullptr)
+      currentScraperId = m_scraper->ID();
+    std::string selectedAddonId = currentScraperId;
 
     if (CGUIWindowAddonBrowser::SelectAddonID(type, selectedAddonId, false) == 1
-        && selectedAddonId != m_scraper->ID())
+        && selectedAddonId != currentScraperId)
     {
       AddonPtr scraperAddon;
       CAddonMgr::GetInstance().GetAddon(selectedAddonId, scraperAddon);

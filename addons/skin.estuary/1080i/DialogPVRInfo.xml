@@ -34,7 +34,7 @@
 				<top>-18</top>
 				<width>1170</width>
 				<height>509</height>
-				<font>-</font>
+				<font></font>
 				<onleft>61</onleft>
 				<onright>61</onright>
 				<ondown>9000</ondown>
@@ -82,7 +82,7 @@
 					<param name="id" value="8" />
 					<param name="icon" value="icons/infodialogs/play_record.png" />
 					<param name="label" value="$LOCALIZE[19687]" />
-					<param name="visible" value="Window.IsActive(PVRGuideInfo)" />
+					<param name="visible" value="Window.IsActive(PVRGuideInfo) | Window.IsActive(PVRRecordingInfo)" />
 				</include>
 				<include content="InfoDialogButton">
 					<param name="id" value="6" />
@@ -90,12 +90,10 @@
 					<param name="visible" value="Window.IsActive(PVRGuideInfo)" />
 				</include>
 				<include content="InfoDialogButton">
-					<param name="id" value="5010" />
-					<param name="icon" value="icons/infodialogs/play_record.png" />
-					<param name="label" value="$LOCALIZE[19687]" />
-					<param name="onclick_1" value="Dialog.close(PVRRecordingInfo,true)" />
-					<param name="onclick_2" value="Action(select)" />
-					<param name="visible" value="Window.IsActive(PVRRecordingInfo)" />
+					<param name="id" value="9" />
+					<param name="icon" value="icons/infodialogs/timer.png" />
+					<param name="label" value="$LOCALIZE[19061]" />
+					<param name="visible" value="Window.IsActive(PVRGuideInfo)" />
 				</include>
 				<include content="InfoDialogButton">
 					<param name="id" value="440" />

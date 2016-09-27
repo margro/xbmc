@@ -40,7 +40,6 @@ class CRenderCapture;
 class CBaseTexture;
 namespace Shaders { class BaseYUV2RGBShader; }
 namespace Shaders { class BaseVideoFilterShader; }
-typedef std::vector<int>     Features;
 
 
 #undef ALIGN
@@ -146,9 +145,7 @@ public:
   // Feature support
   virtual bool SupportsMultiPassRendering() override;
   virtual bool Supports(ERENDERFEATURE feature) override;
-  virtual bool Supports(EINTERLACEMETHOD method) override;
   virtual bool Supports(ESCALINGMETHOD method) override;
-  virtual EINTERLACEMETHOD AutoInterlaceMethod() override;
 
   virtual CRenderInfo GetRenderInfo() override;
 
@@ -262,10 +259,6 @@ protected:
   Shaders::BaseVideoFilterShader *m_pVideoFilterShader;
   ESCALINGMETHOD m_scalingMethod;
   ESCALINGMETHOD m_scalingMethodGui;
-
-  Features m_renderFeatures;
-  Features m_deinterlaceMethods;
-  Features m_scalingMethods;
 
   // clear colour for "black" bars
   float m_clearColour;

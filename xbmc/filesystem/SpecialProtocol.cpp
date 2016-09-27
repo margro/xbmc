@@ -55,6 +55,11 @@ void CSpecialProtocol::SetXBMCBinAddonPath(const std::string &dir)
   SetPath("xbmcbinaddons", dir);
 }
 
+void CSpecialProtocol::SetXBMCAltBinAddonPath(const std::string &dir)
+{
+  SetPath("xbmcaltbinaddons", dir);
+}
+
 void CSpecialProtocol::SetXBMCFrameworksPath(const std::string &dir)
 {
   SetPath("frameworks", dir);
@@ -164,6 +169,7 @@ std::string CSpecialProtocol::TranslatePath(const CURL &url)
   else if (RootDir == "xbmc" ||
            RootDir == "xbmcbin" ||
            RootDir == "xbmcbinaddons" ||
+           RootDir == "xbmcaltbinaddons" ||
            RootDir == "home" ||
            RootDir == "envhome" ||
            RootDir == "userhome" ||

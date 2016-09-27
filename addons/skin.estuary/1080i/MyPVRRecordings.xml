@@ -200,6 +200,7 @@
 						<align>justify</align>
 						<label>$INFO[ListItem.Plot]</label>
 						<font>font12</font>
+						<autoscroll delay="10000" time="3000" repeat="10000">Skin.HasSetting(autoscroll)</autoscroll>
 					</control>
 				</control>
 				<control type="image">
@@ -243,12 +244,12 @@
 						<height>262</height>
 						<label>$LOCALIZE[19076] ($INFO[Container(5000).NumItems,[B],[/B] $LOCALIZE[31036]])</label>
 						<font>font16</font>
-						<visible>ListItem.IsFolder</visible>
+						<visible>ListItem.IsFolder + !ListItem.IsParentFolder</visible>
 					</control>
 					<control type="group">
 						<left>-10</left>
 						<top>60</top>
-						<visible>ListItem.IsFolder</visible>
+						<visible>ListItem.IsFolder + !ListItem.IsParentFolder</visible>
 						<include content="InfoList">
 							<param name="path" value="$INFO[ListItem.Path]/$INFO[ListItem.Label]" />
 							<param name="height" value="362" />
@@ -264,18 +265,20 @@
 				<include>PVRSideBar</include>
 			</control>
 			<include content="TopBar">
-				<param name="breadcrumbs_label" value="$LOCALIZE[19017]" />
+				<param name="breadcrumbs_label" value="$VAR[BreadcrumbsPVRRecordingsVar]" />
 				<param name="breadcrumbs_icon" value="icons/settings/tvguide.png" />
 			</include>
 			<control type="label" id="29">
-				<font>-</font>
+				<font></font>
 				<include>HiddenObject</include>
 			</control>
 			<control type="label" id="30">
-				<font>-</font>
+				<font></font>
 				<include>HiddenObject</include>
 			</control>
-			<include>BottomBar</include>
+			<include content="BottomBar">
+				<param name="info_visible" value="true" />
+			</include>
 		</control>
 	</controls>
 </window>

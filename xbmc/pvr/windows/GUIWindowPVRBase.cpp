@@ -22,11 +22,12 @@
 #include "GUIWindowPVRRecordings.h"
 
 #include "Application.h"
+#include "addons/AddonManager.h"
 #include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogOK.h"
-#include "dialogs/GUIDialogProgress.h"
+#include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "epg/Epg.h"
@@ -65,14 +66,18 @@ std::string CGUIWindowPVRBase::m_selectedItemPaths[2];
 
 CGUIWindowPVRBase::CGUIWindowPVRBase(bool bRadio, int id, const std::string &xmlFile) :
   CGUIMediaWindow(id, xmlFile.c_str()),
-  m_bRadio(bRadio)
+  m_bRadio(bRadio),
+  m_progressHandle(nullptr)
 {
   m_selectedItemPaths[false] = "";
   m_selectedItemPaths[true] = "";
+
+  RegisterObservers();
 }
 
 CGUIWindowPVRBase::~CGUIWindowPVRBase(void)
 {
+  UnregisterObservers();
 }
 
 void CGUIWindowPVRBase::SetSelectedItemPath(bool bRadio, const std::string &path)
@@ -93,16 +98,10 @@ void CGUIWindowPVRBase::UpdateSelectedItemPath()
   m_selectedItemPaths[m_bRadio] = m_viewControl.GetSelectedItemPath();
 }
 
-void CGUIWindowPVRBase::ResetObservers(void)
-{
-  UnregisterObservers();
-  if (IsActive())
-    RegisterObservers();
-}
-
 void CGUIWindowPVRBase::RegisterObservers(void)
 {
   CSingleLock lock(m_critSection);
+  g_PVRManager.RegisterObserver(this);
   if (m_channelGroup)
     m_channelGroup->RegisterObserver(this);
 };
@@ -112,12 +111,19 @@ void CGUIWindowPVRBase::UnregisterObservers(void)
   CSingleLock lock(m_critSection);
   if (m_channelGroup)
     m_channelGroup->UnregisterObserver(this);
+  g_PVRManager.UnregisterObserver(this);
 };
 
 void CGUIWindowPVRBase::Notify(const Observable &obs, const ObservableMessage msg)
 {
-  CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, msg);
-  CApplicationMessenger::GetInstance().SendGUIMessage(m);
+  if (msg == ObservableMessageManagerStopped)
+    ClearData();
+
+  if (IsActive())
+  {
+    CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, msg);
+    CApplicationMessenger::GetInstance().SendGUIMessage(m);
+  }
 }
 
 bool CGUIWindowPVRBase::OnAction(const CAction &action)
@@ -150,11 +156,15 @@ bool CGUIWindowPVRBase::OnBack(int actionID)
   return CGUIMediaWindow::OnBack(actionID);
 }
 
+void CGUIWindowPVRBase::ClearData()
+{
+  CSingleLock lock(m_critSection);
+  m_channelGroup.reset();
+}
+
 void CGUIWindowPVRBase::OnInitWindow(void)
 {
   SetProperty("IsRadio", m_bRadio ? "true" : "");
-
-  g_PVRManager.RegisterObserver(this);
 
   if (InitChannelGroup())
   {
@@ -162,21 +172,17 @@ void CGUIWindowPVRBase::OnInitWindow(void)
 
     // mark item as selected by channel path
     m_viewControl.SetSelectedItem(GetSelectedItemPath(m_bRadio));
-
-    RegisterObservers();
   }
   else
   {
     CGUIWindow::OnInitWindow(); // do not call CGUIMediaWindow as it will do a Refresh which in no case works in this state (no cahnnelgroup!)
-    g_PVRManager.ShowProgressDialog(g_localizeStrings.Get(19235), 0); // PVR manager is starting up
+    ShowProgressDialog(g_localizeStrings.Get(19235), 0); // PVR manager is starting up
   }
 }
 
 void CGUIWindowPVRBase::OnDeinitWindow(int nextWindowID)
 {
-  g_PVRManager.HideProgressDialog();
-  g_PVRManager.UnregisterObserver(this);
-  UnregisterObservers();
+  HideProgressDialog();
   UpdateSelectedItemPath();
   CGUIMediaWindow::OnDeinitWindow(nextWindowID);
 }
@@ -205,6 +211,7 @@ bool CGUIWindowPVRBase::OnMessage(CGUIMessage& message)
           // late init
           InitChannelGroup();
           RegisterObservers();
+          HideProgressDialog();
           Refresh(true);
           m_viewControl.SetFocused();
           break;
@@ -339,8 +346,14 @@ void CGUIWindowPVRBase::SetInvalid()
 
 bool CGUIWindowPVRBase::CanBeActivated() const
 {
-  // No activation if PVR is not (yet) available.
-  return g_PVRManager.IsStarted();
+  // check if there is at least one enabled PVR add-on
+  if (!ADDON::CAddonMgr::GetInstance().HasAddons(ADDON::ADDON_PVRDLL))
+  {
+    CGUIDialogOK::ShowAndGetInput(CVariant{19296}, CVariant{19272}); // No PVR add-on enabled, You need a tuner, backend software...
+    return false;
+  }
+
+  return true;
 }
 
 bool CGUIWindowPVRBase::OpenChannelGroupSelectionDialog(void)
@@ -567,7 +580,10 @@ bool CGUIWindowPVRBase::AddTimer(CFileItem *item, bool bCreateRule, bool bShowTi
   CPVRTimerInfoTagPtr newTimer(epgTag ? CPVRTimerInfoTag::CreateFromEpg(epgTag, bCreateRule) : CPVRTimerInfoTag::CreateInstantTimerTag(channel));
   if (!newTimer)
   {
-    CLog::Log(LOGERROR, "CGUIWindowPVRBase - %s - unable to create timer for epg tag!", __FUNCTION__);
+    CGUIDialogOK::ShowAndGetInput(CVariant{19033},
+                                  bCreateRule
+                                    ? CVariant{19095} // "Information", "Timer rule creation failed. The PVR add-on does not support a suitable timer rule type."
+                                    : CVariant{19094}); // "Information", "Timer creation failed. The PVR add-on does not support a suitable timer type."
     return false;
   }
 
@@ -1036,4 +1052,30 @@ bool CGUIWindowPVRBase::ConfirmStopRecording(const CPVRTimerInfoTagPtr &timer)
                          CVariant{848}, // "Are you sure you want to stop this recording?"
                          CVariant{""},
                          CVariant{timer->Title()});
+}
+
+void CGUIWindowPVRBase::ShowProgressDialog(const std::string &strText, int iProgress)
+{
+  if (!m_progressHandle)
+  {
+    CGUIDialogExtendedProgressBar *loadingProgressDialog = dynamic_cast<CGUIDialogExtendedProgressBar *>(g_windowManager.GetWindow(WINDOW_DIALOG_EXT_PROGRESS));
+    if (!loadingProgressDialog)
+    {
+      CLog::Log(LOGERROR, "CGUIWindowPVRBase - %s - unable to get WINDOW_DIALOG_EXT_PROGRESS!", __FUNCTION__);
+      return;
+    }
+    m_progressHandle = loadingProgressDialog->GetHandle(g_localizeStrings.Get(19235)); // PVR manager is starting up
+  }
+
+  m_progressHandle->SetPercentage(static_cast<float>(iProgress));
+  m_progressHandle->SetText(strText);
+}
+
+void CGUIWindowPVRBase::HideProgressDialog(void)
+{
+  if (m_progressHandle)
+  {
+    m_progressHandle->MarkFinished();
+    m_progressHandle = nullptr;
+  }
 }

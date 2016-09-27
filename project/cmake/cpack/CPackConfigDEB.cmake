@@ -12,6 +12,9 @@ if(NOT CPACK_PACKAGE_DIRECTORY)
   set(CPACK_PACKAGE_DIRECTORY ${CMAKE_BINARY_DIR}/packages)
 endif()
 
+# force CPack generated DEBs to use the same path as CMAKE_INSTALL_PREFIX
+set(CPACK_SET_DESTDIR true)
+
 # set architecture
 if(NOT CPACK_SYSTEM_NAME)
   set(CPACK_SYSTEM_NAME ${CMAKE_SYSTEM_PROCESSOR})
@@ -64,7 +67,7 @@ if(DEBIAN_PACKAGE_TYPE STREQUAL stable)
 elseif(DEBIAN_PACKAGE_TYPE STREQUAL unstable)
   set(RELEASE_IDENTIFIER ${APP_VERSION_TAG_LC})
 else()
-  set(RELEASE_IDENTIFIER ${GIT_HASH})
+  core_find_git_rev(RELEASE_IDENTIFIER)
 endif()
 
 # package name

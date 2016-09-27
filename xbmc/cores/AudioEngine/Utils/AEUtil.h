@@ -28,21 +28,21 @@ extern "C" {
 }
 
 #ifdef TARGET_WINDOWS
-#if _M_IX86_FP>0 && !defined(__SSE__)
-#define __SSE__
-#if _M_IX86_FP>1 && !defined(__SSE2__)
-#define __SSE2__
+#if _M_IX86_FP>0 && !defined(HAVE_SSE)
+#define HAVE_SSE
+#if _M_IX86_FP>1 && !defined(HAVE_SSE2)
+#define HAVE_SSE2
 #endif
 #endif
 #endif
 
-#ifdef __SSE__
+#if defined(HAVE_SSE) && defined(__SSE__)
 #include <xmmintrin.h>
 #else
 #define __m128 void
 #endif
 
-#ifdef __SSE2__
+#if defined(HAVE_SSE2) && defined(__SSE2__)
 #include <emmintrin.h>
 #endif
 
@@ -138,7 +138,7 @@ class CAEUtil
 {
 private:
   static unsigned int m_seed;
-  #ifdef __SSE2__
+  #if defined(HAVE_SSE2) && defined(__SSE2__)
     static __m128i m_sseSeed;
   #endif
 
@@ -211,7 +211,7 @@ public:
     return 20*log10(scale);
   }
 
-  #ifdef __SSE__
+  #if defined(HAVE_SSE) && defined(__SSE__)
   static void SSEMulArray     (float *data, const float mul, uint32_t count);
   static void SSEMulAddArray  (float *data, float *add, const float mul, uint32_t count);
   #endif

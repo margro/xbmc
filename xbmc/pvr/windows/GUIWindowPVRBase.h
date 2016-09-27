@@ -35,6 +35,8 @@
 #define CONTROL_LABEL_HEADER1             29
 #define CONTROL_LABEL_HEADER2             30
 
+class CGUIDialogProgressBarHandle;
+
 namespace PVR
 {
   enum EpgGuideView
@@ -79,8 +81,6 @@ namespace PVR
     virtual void SetInvalid() override;
     virtual bool CanBeActivated() const override;
 
-    void ResetObservers(void);
-
     static std::string GetSelectedItemPath(bool bRadio);
     static void SetSelectedItemPath(bool bRadio, const std::string &path);
 
@@ -93,10 +93,14 @@ namespace PVR
     static bool DeleteTimerRule(CFileItem *item);
     static bool StopRecordFile(CFileItem *item);
 
+    static bool PlayRecording(CFileItem *item, bool bPlayMinimized = false, bool bCheckResume = true);
+
   protected:
     CGUIWindowPVRBase(bool bRadio, int id, const std::string &xmlFile);
 
     virtual std::string GetDirectoryPath(void) = 0;
+
+    virtual void ClearData();
 
     bool InitChannelGroup(void);
     virtual CPVRChannelGroupPtr GetChannelGroup(void);
@@ -109,20 +113,19 @@ namespace PVR
     virtual bool ActionDeleteChannel(CFileItem *item);
     virtual bool ActionInputChannelNumber(int input);
 
-    virtual bool PlayRecording(CFileItem *item, bool bPlayMinimized = false, bool bCheckResume = true);
     virtual bool PlayFile(CFileItem *item, bool bPlayMinimized = false, bool bCheckResume = true);
     virtual void ShowEPGInfo(CFileItem *item);
     virtual void ShowRecordingInfo(CFileItem *item);
     virtual bool UpdateEpgForChannel(CFileItem *item);
     virtual void UpdateSelectedItemPath();
-    bool CheckResumeRecording(CFileItem *item);
+    static bool CheckResumeRecording(CFileItem *item);
 
     bool OnContextButtonEditTimer(CFileItem *item, CONTEXT_BUTTON button);
     bool OnContextButtonEditTimerRule(CFileItem *item, CONTEXT_BUTTON button);
     bool OnContextButtonDeleteTimerRule(CFileItem *item, CONTEXT_BUTTON button);
 
-    virtual void RegisterObservers(void);
-    virtual void UnregisterObservers(void);
+    void RegisterObservers(void);
+    void UnregisterObservers(void);
 
     static CCriticalSection m_selectedItemPathsLock;
     static std::string m_selectedItemPaths[2];
@@ -149,10 +152,23 @@ namespace PVR
      */
     static bool ConfirmStopRecording(const CPVRTimerInfoTagPtr &timer);
 
+    /*!
+     * @brief Show or update the progress dialog.
+     * @param strText The current status.
+     * @param iProgress The current progress in %.
+     */
+    void ShowProgressDialog(const std::string &strText, int iProgress);
+
+    /*!
+     * @brief Hide the progress dialog if it's visible.
+     */
+    void HideProgressDialog(void);
+
     static bool DeleteTimer(CFileItem *item, bool bIsRecording, bool bDeleteRule);
     static bool AddTimer(CFileItem *item, bool bCreateRule, bool bShowTimerSettings);
 
     CPVRChannelGroupPtr m_channelGroup;
     XbmcThreads::EndTime m_refreshTimeout;
+    CGUIDialogProgressBarHandle *m_progressHandle; /*!< progress dialog that is displayed while the pvr manager is loading */
   };
 }

@@ -22,6 +22,7 @@
 
 #include "addons/Addon.h"
 #include "addons/AddonManager.h"
+#include "addons/AddonSystemSettings.h"
 #include "addons/Scraper.h"
 #include "Album.h"
 #include "Application.h"
@@ -2413,10 +2414,12 @@ bool CMusicDatabase::GetRecentlyPlayedAlbums(VECALBUMS& albums)
     // Get data from album and album_artist tables to fully populate albums
     std::string strSQL = PrepareSQL("SELECT albumview.*, albumartistview.* FROM "
       "(SELECT idAlbum FROM albumview WHERE albumview.lastplayed IS NOT NULL "
+      "AND albumview.strReleaseType = '%s' "
       "ORDER BY albumview.lastplayed DESC LIMIT %u) as playedalbums "
       "JOIN albumview ON albumview.idAlbum = playedalbums.idAlbum "
       "JOIN albumartistview ON albumview.idAlbum = albumartistview.idAlbum "
-      "ORDER BY albumview.lastplayed DESC, albumartistview.iorder ", RECENTLY_PLAYED_LIMIT);
+      "ORDER BY albumview.lastplayed DESC, albumartistview.iorder ", 
+      CAlbum::ReleaseTypeToString(CAlbum::Album).c_str(), RECENTLY_PLAYED_LIMIT);
 
     CLog::Log(LOGDEBUG, "%s query: %s", __FUNCTION__, strSQL.c_str());
     if (!m_pDS->query(strSQL)) return false;
@@ -3614,9 +3617,11 @@ bool CMusicDatabase::GetRolesNav(const std::string& strBaseDir, CFileItemList& i
       CFileItemPtr pItem(new CFileItem(labelValue));
       pItem->GetMusicInfoTag()->SetTitle(labelValue);
       pItem->GetMusicInfoTag()->SetDatabaseId(m_pDS->fv("role.idRole").get_asInt(), "role");
-
-      std::string artistrolepath = StringUtils::Format("musicdb://artists/?roleid=%i", m_pDS->fv("role.idRole").get_asInt());
-      pItem->SetPath(artistrolepath);
+      CMusicDbUrl itemUrl = musicUrl;
+      std::string strDir = StringUtils::Format("%i/", m_pDS->fv("role.idRole").get_asInt());
+      itemUrl.AppendPath(strDir);
+      itemUrl.AddOption("roleid", m_pDS->fv("role.idRole").get_asInt());
+      pItem->SetPath(itemUrl.ToString());
 
       pItem->m_bIsFolder = true;
       items.Add(pItem);
@@ -5186,6 +5191,11 @@ std::string CMusicDatabase::GetArtistById(int id)
   return GetSingleValue("artist", "strArtist", PrepareSQL("idArtist=%i", id));
 }
 
+std::string CMusicDatabase::GetRoleById(int id)
+{
+  return GetSingleValue("role", "strRole", PrepareSQL("idRole=%i", id));
+}
+
 std::string CMusicDatabase::GetAlbumById(int id)
 {
   return GetSingleValue("album", "strAlbum", PrepareSQL("idAlbum=%i", id));
@@ -5689,7 +5699,7 @@ bool CMusicDatabase::GetScraperForPath(const std::string& strPath, ADDON::Scrape
       else
       { // use default scraper of the requested type
         ADDON::AddonPtr defaultScraper;
-        if (ADDON::CAddonMgr::GetInstance().GetDefault(type, defaultScraper))
+        if (ADDON::CAddonSystemSettings::GetInstance().GetActive(type, defaultScraper))
         {
           info = std::dynamic_pointer_cast<ADDON::CScraper>(defaultScraper);
         }
@@ -5700,7 +5710,7 @@ bool CMusicDatabase::GetScraperForPath(const std::string& strPath, ADDON::Scrape
     if (!info)
     { // use default music scraper instead
       ADDON::AddonPtr addon;
-      if(ADDON::CAddonMgr::GetInstance().GetDefault(type, addon))
+      if(ADDON::CAddonSystemSettings::GetInstance().GetActive(type, addon))
       {
         info = std::dynamic_pointer_cast<ADDON::CScraper>(addon);
         return info != NULL;
@@ -5776,6 +5786,8 @@ std::string CMusicDatabase::GetItemById(const std::string &itemType, int id)
     return GetArtistById(id);
   else if (StringUtils::EqualsNoCase(itemType, "albums"))
     return GetAlbumById(id);
+  else if (StringUtils::EqualsNoCase(itemType, "roles"))
+    return GetRoleById(id);
 
   return "";
 }

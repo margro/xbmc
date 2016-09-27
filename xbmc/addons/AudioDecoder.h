@@ -56,7 +56,7 @@ namespace ADDON
     CAudioDecoder(AddonProps props, std::string extension, std::string mimetype, bool tags,
         bool tracks, std::string codecName, std::string strExt);
 
-    virtual ~CAudioDecoder() {}
+    virtual ~CAudioDecoder();
 
     // Things that MUST be supplied by the child classes
     bool Init(const CFileItem& file, unsigned int filecache) override;
@@ -69,7 +69,6 @@ namespace ADDON
               MUSIC_INFO::CMusicInfoTag& tag,
               MUSIC_INFO::EmbeddedArt *art = NULL);
     int GetTrackCount(const std::string& strPath);
-    virtual CAEChannelInfo GetChannelInfo();
 
     const std::string& GetExtensions() const { return m_extension; }
     const std::string& GetMimetypes() const { return m_mimetype; }

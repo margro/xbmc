@@ -46,6 +46,11 @@ CAudioDecoder::CAudioDecoder(AddonProps props, std::string extension, std::strin
   m_strExt = std::move(strExt);
 }
 
+CAudioDecoder::~CAudioDecoder()
+{
+  DeInit();
+}
+
 bool CAudioDecoder::Init(const CFileItem& file, unsigned int filecache)
 {
   if (!Initialized())
@@ -130,11 +135,6 @@ int CAudioDecoder::GetTrackCount(const std::string& strPath)
 
   XFILE::CMusicFileDirectory::m_tag.SetLoaded(true);
   return result;
-}
-
-CAEChannelInfo CAudioDecoder::GetChannelInfo()
-{
-  return m_format.m_channelLayout;
 }
 
 void CAudioDecoder::Destroy()

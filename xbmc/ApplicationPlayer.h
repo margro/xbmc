@@ -83,7 +83,6 @@ public:
   void SetPlaySpeed(float speed);
 
   void FrameMove();
-  bool HasFrame();
   void Render(bool clear, uint32_t alpha = 255, bool gui = true);
   void FlushRenderer();
   void SetRenderViewMode(int mode);
@@ -93,6 +92,7 @@ public:
   bool IsRenderingGuiLayer();
   bool IsRenderingVideoLayer();
   bool Supports(EINTERLACEMETHOD method);
+  EINTERLACEMETHOD GetDeinterlacingMethodDefault();
   bool Supports(ESCALINGMETHOD method);
   bool Supports(ERENDERFEATURE feature);
   unsigned int RenderCaptureAlloc();
@@ -117,13 +117,10 @@ public:
   int   GetChapter();  
   void  GetChapterName(std::string& strChapterName, int chapterIdx=-1);
   int64_t GetChapterPos(int chapterIdx=-1);
-  void  GetDeinterlaceMethods(std::vector<int> &deinterlaceMethods);
   float GetPercentage() const;
   std::string GetPlayerState();
   std::string GetPlayingTitle();
   int   GetPreferredPlaylist() const;
-  void  GetRenderFeatures(std::vector<int> &renderFeatures);
-  void  GetScalingMethods(std::vector<int> &scalingMethods);
   bool  GetStreamDetails(CStreamDetails &details);
   int   GetSubtitle();
   void  GetSubtitleCapabilities(std::vector<int> &subCaps);

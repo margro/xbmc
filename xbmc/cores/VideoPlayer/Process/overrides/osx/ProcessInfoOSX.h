@@ -1,7 +1,6 @@
-#pragma once
 /*
- *      Copyright (C) 2012-2016 Team Kodi
- *      http://kodi.tv
+ *      Copyright (C) 2005-2016 Team XBMC
+ *      http://xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,16 +17,15 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
-namespace PVR
+#include "cores/IPlayer.h"
+#include "../../ProcessInfo.h"
+
+class CProcessInfoOSX : public CProcessInfo
 {
-  enum ManagerState
-  {
-    ManagerStateError = 0,
-    ManagerStateStopped,
-    ManagerStateStarting,
-    ManagerStateStopping,
-    ManagerStateInterrupted,
-    ManagerStateStarted
-  };
-} // namespace PVR
+public:
+  CProcessInfoOSX();
+  virtual ~CProcessInfoOSX();
+  void SetSwDeinterlacingMethods() override;
+};

@@ -12,7 +12,7 @@
 				<top>400</top>
 				<width>1235</width>
 				<height>375</height>
-				<label>-</label>
+				<label></label>
 				<onup>50</onup>
 				<ondown>9000</ondown>
 				<onclick>SetProperty(TextViewer_Header,$LOCALIZE[31141] $INFO[ListItem.AddonVersion],home)</onclick>
@@ -200,7 +200,7 @@
 				<top>490</top>
 				<width>511</width>
 				<height>128</height>
-				<label>-</label>
+				<label></label>
 			</control>
 			<control type="textbox">
 				<left>30</left>
@@ -217,16 +217,16 @@
 				<include>OpenClose_Fade</include>
 				<control type="image">
 					<left>24</left>
-					<top>186</top>
-					<width>511</width>
-					<height>511</height>
+					<top>24</top>
+					<width>457</width>
+					<height>457</height>
 					<texture colordiffuse="AAFFFFFF">colors/black.png</texture>
 				</control>
 				<control type="textbox">
 					<left>24</left>
-					<top>186</top>
-					<width>511</width>
-					<height>511</height>
+					<top>24</top>
+					<width>457</width>
+					<height>457</height>
 					<align>center</align>
 					<aligny>center</aligny>
 					<label>$LOCALIZE[24096]</label>

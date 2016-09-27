@@ -59,9 +59,9 @@
 									<top>10</top>
 									<width>80</width>
 									<height>80</height>
-									<texture fallback="DefaultTVShowsSquare.png">$INFO[Listitem.Art(thumb)]</texture>
+									<texture fallback="DefaultTVShowsSquare.png">$INFO[Listitem.ActualIcon]</texture>
 									<aspectratio>keep</aspectratio>
-									<visible>!String.IsEmpty(ListItem.Icon)</visible>
+									<visible>!String.IsEmpty(ListItem.ActualIcon)</visible>
 								</control>
 								<control type="label">
 									<left>120</left>
@@ -123,9 +123,9 @@
 									<top>10</top>
 									<width>80</width>
 									<height>80</height>
-									<texture fallback="DefaultTVShowsSquare.png">$INFO[Listitem.Art(thumb)]</texture>
+									<texture fallback="DefaultTVShowsSquare.png">$INFO[Listitem.ActualIcon]</texture>
 									<aspectratio>keep</aspectratio>
-									<visible>!String.IsEmpty(ListItem.Icon)</visible>
+									<visible>!String.IsEmpty(ListItem.ActualIcon)</visible>
 								</control>
 								<control type="label">
 									<left>120</left>
@@ -181,10 +181,12 @@
 				<include>PVRSideBar</include>
 			</control>
 			<include content="TopBar">
-				<param name="breadcrumbs_label" value="$LOCALIZE[137]" />
+				<param name="breadcrumbs_label" value="$VAR[BreadcrumbsPVRSearchVar]" />
 				<param name="breadcrumbs_icon" value="icons/settings/tvguide.png" />
 			</include>
-			<include>BottomBar</include>
+			<include content="BottomBar">
+				<param name="info_visible" value="true" />
+			</include>
 		</control>
 	</controls>
 </window>

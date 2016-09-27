@@ -28,8 +28,10 @@
 #include "pvr/addons/PVRClients.h"
 #include "pvr/recordings/PVRRecordingsPath.h"
 #include "pvr/PVRManager.h"
+#include "pvr/PVREvent.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
+#include "URL.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -74,15 +76,16 @@ std::string CPVRRecordings::TrimSlashes(const std::string &strOrig) const
   return strReturn;
 }
 
-bool CPVRRecordings::IsDirectoryMember(const std::string &strDirectory, const std::string &strEntryDirectory) const
+bool CPVRRecordings::IsDirectoryMember(const std::string &strDirectory, const std::string &strEntryDirectory, bool bGrouped) const
 {
   std::string strUseDirectory = TrimSlashes(strDirectory);
   std::string strUseEntryDirectory = TrimSlashes(strEntryDirectory);
 
   /* Case-insensitive comparison since sub folders are created with case-insensitive matching (GetSubDirectories) */
-  return CSettings::GetInstance().GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS) ?
-      StringUtils::EqualsNoCase(strUseDirectory, strUseEntryDirectory) :
-        StringUtils::StartsWithNoCase(strUseEntryDirectory, strUseDirectory);
+  if (bGrouped)
+    return StringUtils::EqualsNoCase(strUseDirectory, strUseEntryDirectory);
+  else
+    return StringUtils::StartsWithNoCase(strUseEntryDirectory, strUseDirectory);
 }
 
 void CPVRRecordings::GetSubDirectories(const CPVRRecordingsPath &recParentPath, CFileItemList *results)
@@ -165,6 +168,7 @@ void CPVRRecordings::Update(void)
   lock.Leave();
 
   g_PVRManager.NotifyObservers(ObservableMessageRecordings);
+  g_PVRManager.PublishEvent(RecordingsInvalidated);
 }
 
 int CPVRRecordings::GetNumTVRecordings() const
@@ -267,13 +271,33 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
 {
   CSingleLock lock(m_critSection);
 
-  CPVRRecordingsPath recPath(strPath);
+  bool bGrouped = false;
+  const CURL url(strPath);
+  if (url.HasOption("view"))
+  {
+    const std::string view(url.GetOption("view"));
+    if (view == "grouped")
+      bGrouped = true;
+    else if (view == "flat")
+      bGrouped = false;
+    else
+    {
+      CLog::Log(LOGERROR, "CPVRRecordings - %s - unsupported value '%s' for url parameter 'view'", __FUNCTION__, view.c_str());
+      return false;
+    }
+  }
+  else
+  {
+    bGrouped = CSettings::GetInstance().GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
+  }
+
+  CPVRRecordingsPath recPath(url.GetWithoutOptions());
   if (recPath.IsValid())
   {
     // Get the directory structure if in non-flatten mode
     // Deleted view is always flatten. So only for an active view
     std::string strDirectory(recPath.GetDirectoryPath());
-    if (!recPath.IsDeleted() && CSettings::GetInstance().GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS))
+    if (!recPath.IsDeleted() && bGrouped)
       GetSubDirectories(recPath, &items);
 
     // get all files of the currrent directory or recursively all files starting at the current directory if in flatten mode
@@ -282,7 +306,7 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
       CPVRRecordingPtr current = recording.second;
 
       // Omit recordings not matching criteria
-      if (!IsDirectoryMember(strDirectory, current->m_strDirectory) ||
+      if (!IsDirectoryMember(strDirectory, current->m_strDirectory, bGrouped) ||
           current->IsDeleted() != recPath.IsDeleted() ||
           current->IsRadio() != recPath.IsRadio())
         continue;
@@ -314,11 +338,17 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
 
       items.Add(pFileItem);
     }
-
-    return true;
   }
 
-  return false;
+  if (items.IsEmpty())
+  {
+    // Note: Do not change the ".." label. It has very special meaning/logic.
+    //       CFileItem::IsParentFolder() and and other code depends on this.
+    const CFileItemPtr item(new CFileItem(".."));
+    items.Add(item);
+  }
+
+  return recPath.IsValid();
 }
 
 void CPVRRecordings::GetAll(CFileItemList &items, bool bDeleted)
@@ -465,7 +495,12 @@ CPVRRecordingPtr CPVRRecordings::GetRecordingForEpgTag(const EPG::CEpgInfoTagPtr
     else
     {
       // uid is optional, so check other relevant data.
-      if (recording.second->Channel() == epgTag->ChannelTag() &&
+
+      // note: don't use recording.second->Channel() for comparing channels here as this can lead
+      //       to deadlocks. compare client ids and channel ids instead, this has the same effect.
+      if (epgTag->ChannelTag() &&
+          recording.second->ClientID() == epgTag->ChannelTag()->ClientID() &&
+          recording.second->ChannelUid() == epgTag->ChannelTag()->UniqueID() &&
           recording.second->RecordingTimeAsUTC() <= epgTag->StartAsUTC() &&
           (recording.second->RecordingTimeAsUTC() + recording.second->m_duration) >= epgTag->EndAsUTC())
         return recording.second;

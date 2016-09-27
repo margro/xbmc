@@ -32,6 +32,7 @@
 #include "filesystem/File.h"
 #include "RepositoryUpdater.h"
 #include "settings/Settings.h"
+#include "ServiceBroker.h"
 #include "system.h"
 #include "URL.h"
 #include "Util.h"
@@ -347,11 +348,11 @@ void OnEnabled(const std::string& id)
       CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_ADSPDLL))
     return addon->OnEnabled();
 
-  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE))
-    std::static_pointer_cast<CService>(addon)->Start();
-
-  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_CONTEXT_ITEM))
-    CContextMenuManager::GetInstance().Register(std::static_pointer_cast<CContextMenuAddon>(addon));
+  if (CAddonMgr::GetInstance().ServicesHasStarted())
+  {
+    if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE))
+      std::static_pointer_cast<CService>(addon)->Start();
+  }
 
   if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_REPOSITORY))
     CRepositoryUpdater::GetInstance().ScheduleUpdate(); //notify updater there is a new addon
@@ -359,16 +360,20 @@ void OnEnabled(const std::string& id)
 
 void OnDisabled(const std::string& id)
 {
+
   AddonPtr addon;
   if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_PVRDLL, false) ||
       CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_ADSPDLL, false))
     return addon->OnDisabled();
 
-  if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE, false))
-    std::static_pointer_cast<CService>(addon)->Stop();
+  if (CAddonMgr::GetInstance().ServicesHasStarted())
+  {
+    if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_SERVICE, false))
+      std::static_pointer_cast<CService>(addon)->Stop();
+  }
 
   if (CAddonMgr::GetInstance().GetAddon(id, addon, ADDON_CONTEXT_ITEM, false))
-    CContextMenuManager::GetInstance().Unregister(std::static_pointer_cast<CContextMenuAddon>(addon));
+    CContextMenuManager::GetInstance().Unload(*std::static_pointer_cast<CContextMenuAddon>(addon));
 }
 
 void OnPreInstall(const AddonPtr& addon)
@@ -376,11 +381,15 @@ void OnPreInstall(const AddonPtr& addon)
   //Before installing we need to stop/unregister any local addon
   //that have this id, regardless of what the 'new' addon is.
   AddonPtr localAddon;
-  if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
-    std::static_pointer_cast<CService>(localAddon)->Stop();
+
+  if (CAddonMgr::GetInstance().ServicesHasStarted())
+  {
+    if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
+      std::static_pointer_cast<CService>(localAddon)->Stop();
+  }
 
   if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_CONTEXT_ITEM))
-    CContextMenuManager::GetInstance().Unregister(std::static_pointer_cast<CContextMenuAddon>(localAddon));
+    CContextMenuManager::GetInstance().Unload(*std::static_pointer_cast<CContextMenuAddon>(localAddon));
 
   //Fallback to the pre-install callback in the addon.
   //! @bug If primary extension point have changed we're calling the wrong method.
@@ -390,11 +399,11 @@ void OnPreInstall(const AddonPtr& addon)
 void OnPostInstall(const AddonPtr& addon, bool update, bool modal)
 {
   AddonPtr localAddon;
-  if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
-    std::static_pointer_cast<CService>(localAddon)->Start();
-
-  if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_CONTEXT_ITEM))
-    CContextMenuManager::GetInstance().Register(std::static_pointer_cast<CContextMenuAddon>(localAddon));
+  if (CAddonMgr::GetInstance().ServicesHasStarted())
+  {
+    if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
+      std::static_pointer_cast<CService>(localAddon)->Start();
+  }
 
   if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_REPOSITORY))
     CRepositoryUpdater::GetInstance().ScheduleUpdate(); //notify updater there is a new addon or version
@@ -405,11 +414,15 @@ void OnPostInstall(const AddonPtr& addon, bool update, bool modal)
 void OnPreUnInstall(const AddonPtr& addon)
 {
   AddonPtr localAddon;
-  if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
-    std::static_pointer_cast<CService>(localAddon)->Stop();
+
+  if (CAddonMgr::GetInstance().ServicesHasStarted())
+  {
+    if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_SERVICE))
+      std::static_pointer_cast<CService>(localAddon)->Stop();
+  }
 
   if (CAddonMgr::GetInstance().GetAddon(addon->ID(), localAddon, ADDON_CONTEXT_ITEM))
-    CContextMenuManager::GetInstance().Unregister(std::static_pointer_cast<CContextMenuAddon>(localAddon));
+    CContextMenuManager::GetInstance().Unload(*std::static_pointer_cast<CContextMenuAddon>(localAddon));
 
   addon->OnPreUnInstall();
 }

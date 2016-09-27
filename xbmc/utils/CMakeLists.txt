@@ -2,7 +2,6 @@ set(SOURCES ActorProtocol.cpp
             AlarmClock.cpp
             AliasShortcutUtils.cpp
             Archive.cpp
-            AsyncFileCopy.cpp
             auto_buffer.cpp
             Base64.cpp
             BitstreamConverter.cpp
@@ -72,14 +71,12 @@ set(SOURCES ActorProtocol.cpp
             Vector.cpp
             Weather.cpp
             XBMCTinyXML.cpp
-            XMLUtils.cpp
-            XSLTUtils.cpp)
+            XMLUtils.cpp)
 
 set(HEADERS ActorProtocol.h
             AlarmClock.h
             AliasShortcutUtils.h
             Archive.h
-            AsyncFileCopy.h
             auto_buffer.h
             Base64.h
             BitstreamConverter.h
@@ -162,8 +159,12 @@ set(HEADERS ActorProtocol.h
             Vector.h
             Weather.h
             XBMCTinyXML.h
-            XMLUtils.h
-            XSLTUtils.h)
+            XMLUtils.h)
+
+if(XSLT_FOUND)
+  list(APPEND SOURCES XSLTUtils.cpp)
+  list(APPEND HEADERS XSLTUtils.h)
+endif()
 
 # The large map trips the clang optimizer
 if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
@@ -185,3 +186,9 @@ if(AML_FOUND)
 endif()
 
 core_add_library(utils)
+
+if(NOT CORE_SYSTEM_NAME STREQUAL windows)
+  if(HAVE_SSE2)
+    target_compile_options(${CORE_LIBRARY} PRIVATE -msse2)
+  endif()
+endif()

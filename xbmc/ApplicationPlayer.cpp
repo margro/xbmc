@@ -696,27 +696,6 @@ int  CApplicationPlayer::SeekChapter(int iChapter)
     return 0;
 }
 
-void CApplicationPlayer::GetRenderFeatures(std::vector<int> &renderFeatures)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-    player->OMXGetRenderFeatures(renderFeatures);
-}
-
-void CApplicationPlayer::GetDeinterlaceMethods(std::vector<int> &deinterlaceMethods)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-    player->OMXGetDeinterlaceMethods(deinterlaceMethods);
-}
-
-void CApplicationPlayer::GetScalingMethods(std::vector<int> &scalingMethods)
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-    player->OMXGetScalingMethods(scalingMethods);
-}
-
 void CApplicationPlayer::SetPlaySpeed(float speed)
 {
   std::shared_ptr<IPlayer> player = GetInternal();
@@ -760,15 +739,6 @@ void CApplicationPlayer::FrameMove()
   std::shared_ptr<IPlayer> player = GetInternal();
   if (player)
     player->FrameMove();
-}
-
-bool CApplicationPlayer::HasFrame()
-{
-  std::shared_ptr<IPlayer> player = GetInternal();
-  if (player)
-    return player->HasFrame();
-  else
-    return false;
 }
 
 void CApplicationPlayer::Render(bool clear, uint32_t alpha, bool gui)
@@ -842,6 +812,15 @@ bool CApplicationPlayer::Supports(EINTERLACEMETHOD method)
     return player->Supports(method);
   else
     return false;
+}
+
+EINTERLACEMETHOD CApplicationPlayer::GetDeinterlacingMethodDefault()
+{
+  std::shared_ptr<IPlayer> player = GetInternal();
+  if (player)
+    return player->GetDeinterlacingMethodDefault();
+  else
+    return EINTERLACEMETHOD::VS_INTERLACEMETHOD_NONE;
 }
 
 bool CApplicationPlayer::Supports(ESCALINGMETHOD method)

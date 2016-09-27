@@ -29,7 +29,7 @@ using namespace PERIPHERALS;
 
 CAddonButtonMapping::CAddonButtonMapping(CPeripheral* peripheral, IButtonMapper* mapper)
 {
-  PeripheralAddonPtr addon = g_peripherals.GetAddon(peripheral);
+  PeripheralAddonPtr addon = g_peripherals.GetAddonWithButtonMap(peripheral);
 
   if (!addon)
   {
@@ -39,7 +39,12 @@ CAddonButtonMapping::CAddonButtonMapping(CPeripheral* peripheral, IButtonMapper*
   {
     m_buttonMap.reset(new CAddonButtonMap(peripheral, addon, mapper->ControllerID()));
     if (m_buttonMap->Load())
+    {
       m_driverHandler.reset(new CButtonMapping(mapper, m_buttonMap.get()));
+
+      // Allow the mapper to save our button map
+      mapper->SetButtonMapCallback(this);
+    }
     else
       m_buttonMap.reset();
   }
@@ -79,4 +84,10 @@ void CAddonButtonMapping::ProcessAxisMotions(void)
 {
   if (m_driverHandler)
     m_driverHandler->ProcessAxisMotions();
+}
+
+void CAddonButtonMapping::SaveButtonMap()
+{
+  if (m_buttonMap)
+    m_buttonMap->SaveButtonMap();
 }

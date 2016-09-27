@@ -37,44 +37,47 @@
 		</control>
 	</include>
 	<include name="InfoWallMusicLayout">
-		<control type="image">
-			<top>-10</top>
-			<width>320</width>
-			<height>380</height>
-			<texture border="40">buttons/button-nofo.png</texture>
-		</control>
-		<control type="image">
-			<left>35</left>
-			<top>21</top>
-			<width>250</width>
-			<height>250</height>
-			<texture border="2" fallback="DefaultFolderSquare.png" background="true">$VAR[ShiftThumbVar]</texture>
-			<aspectratio>keep</aspectratio>
-			<bordertexture colordiffuse="border_alpha">colors/black.png</bordertexture>
-			<bordersize>4</bordersize>
-		</control>
-		<control type="image">
-			<left>20</left>
-			<top>278</top>
-			<width>278</width>
-			<height>70</height>
-			<texture>colors/black.png</texture>
-		</control>
-		<control type="textbox">
-			<left>28</left>
-			<top>278</top>
-			<width>262</width>
-			<height>70</height>
-			<font>font12</font>
-			<align>center</align>
-			<aligny>center</aligny>
-			<label>$INFO[ListItem.Year,[COLOR button_focus], - [/COLOR]]$INFO[ListItem.Label]</label>
-		</control>
-		<control type="group">
-			<left>230</left>
-			<top>28</top>
-			<include>UserRatingCircle</include>
-		</control>
+		<param name="fallback_image">DefaultFolder.png</param>
+		<definition>
+			<control type="image">
+				<top>-10</top>
+				<width>320</width>
+				<height>380</height>
+				<texture border="40">buttons/button-nofo.png</texture>
+			</control>
+			<control type="image">
+				<left>35</left>
+				<top>21</top>
+				<width>250</width>
+				<height>250</height>
+				<texture border="2" fallback="$PARAM[fallback_image]" background="true">$VAR[ShiftThumbVar]</texture>
+				<aspectratio>keep</aspectratio>
+				<bordertexture colordiffuse="border_alpha">colors/black.png</bordertexture>
+				<bordersize>4</bordersize>
+			</control>
+			<control type="image">
+				<left>20</left>
+				<top>278</top>
+				<width>278</width>
+				<height>70</height>
+				<texture>colors/black.png</texture>
+			</control>
+			<control type="textbox">
+				<left>28</left>
+				<top>278</top>
+				<width>262</width>
+				<height>70</height>
+				<font>font12</font>
+				<align>center</align>
+				<aligny>center</aligny>
+				<label>$INFO[ListItem.Year,[COLOR button_focus], - [/COLOR]]$INFO[ListItem.Label]</label>
+			</control>
+			<control type="group">
+				<left>230</left>
+				<top>28</top>
+				<include>UserRatingCircle</include>
+			</control>
+		</definition>
 	</include>
 	<include name="View_54_InfoWall">
 		<include content="UpDownArrows">
@@ -120,6 +123,18 @@
 						<bordertexture border="20">overlays/shadow.png</bordertexture>
 						<bordersize>20</bordersize>
 					</control>
+					<control type="textbox">
+						<left>20</left>
+						<top>220</top>
+						<width>209</width>
+						<height>100</height>
+						<label>$INFO[ListItem.Label]</label>
+						<font>font12_title</font>
+						<shadowcolor>text_shadow</shadowcolor>
+						<align>center</align>
+						<aligny>center</aligny>
+						<visible>String.IsEmpty(ListItem.Art(poster)) + !Listitem.IsParentFolder</visible>
+					</control>
 					<control type="group">
 						<left>179</left>
 						<top>30</top>
@@ -138,6 +153,18 @@
 							<texture fallback="DefaultVideo.png" background="true">$VAR[ListPosterVar]</texture>
 							<bordertexture border="20">overlays/shadow.png</bordertexture>
 							<bordersize>20</bordersize>
+						</control>
+						<control type="textbox">
+							<left>20</left>
+							<top>220</top>
+							<width>209</width>
+							<height>100</height>
+							<label>$INFO[ListItem.Label]</label>
+							<font>font12_title</font>
+							<shadowcolor>text_shadow</shadowcolor>
+							<align>center</align>
+							<aligny>center</aligny>
+							<visible>String.IsEmpty(ListItem.Art(poster)) + !Listitem.IsParentFolder</visible>
 						</control>
 						<control type="group">
 							<left>179</left>

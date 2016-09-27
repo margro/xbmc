@@ -27,9 +27,8 @@ namespace PVR
   {
   public:
     CGUIWindowPVRChannels(bool bRadio);
-    virtual ~CGUIWindowPVRChannels(void) {};
+    virtual ~CGUIWindowPVRChannels(void);
 
-    virtual bool CanBeActivated() const override;
     virtual bool OnMessage(CGUIMessage& message) override;
     virtual void GetContextButtons(int itemNumber, CContextButtons &buttons) override;
     virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button) override;
@@ -39,8 +38,6 @@ namespace PVR
 
   protected:
     virtual std::string GetDirectoryPath(void) override;
-    virtual void RegisterObservers(void) override;
-    virtual void UnregisterObservers(void) override;
 
   private:
     bool OnContextButtonAdd(CFileItem *item, CONTEXT_BUTTON button);

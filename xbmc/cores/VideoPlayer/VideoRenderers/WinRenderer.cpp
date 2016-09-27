@@ -349,9 +349,9 @@ void CWinRenderer::FlipPage(int source)
   if( source >= 0 && source < m_NumYV12Buffers )
     m_iYV12RenderBuffer = source;
   else
-    m_iYV12RenderBuffer = NextYV12Texture();;
+    m_iYV12RenderBuffer = NextYV12Texture();
 
-  if (m_VideoBuffers[m_iYV12RenderBuffer] != nullptr)
+  if (m_iYV12RenderBuffer >= 0 && m_VideoBuffers[m_iYV12RenderBuffer] != nullptr)
     m_VideoBuffers[m_iYV12RenderBuffer]->StartRender();
 
   return;
@@ -1006,22 +1006,6 @@ bool CWinRenderer::CreateYV12Texture(int index)
   return true;
 }
 
-bool CWinRenderer::Supports(EINTERLACEMETHOD method)
-{
-  if(method == VS_INTERLACEMETHOD_AUTO)
-    return true;
-
-  if (m_renderMethod == RENDER_DXVA)
-    return false; // only auto. DXVA processor selects deinterlacing method automatically
-
-  if(m_format != RENDER_FMT_DXVA
-  && (   method == VS_INTERLACEMETHOD_DEINTERLACE
-      || method == VS_INTERLACEMETHOD_DEINTERLACE_HALF))
-    return true;
-
-  return false;
-}
-
 bool CWinRenderer::Supports(ERENDERFEATURE feature)
 {
   if(feature == RENDERFEATURE_BRIGHTNESS)
@@ -1089,12 +1073,12 @@ bool CWinRenderer::Supports(ESCALINGMETHOD method)
   return false;
 }
 
-EINTERLACEMETHOD CWinRenderer::AutoInterlaceMethod()
+bool CWinRenderer::WantsDoublePass()
 {
   if (m_renderMethod == RENDER_DXVA)
-    return VS_INTERLACEMETHOD_RENDER_BOB;
+    return true;
 
-  return VS_INTERLACEMETHOD_DEINTERLACE_HALF;
+  return false;
 }
 
 CRenderInfo CWinRenderer::GetRenderInfo()
@@ -1103,7 +1087,11 @@ CRenderInfo CWinRenderer::GetRenderInfo()
   info.formats = m_formats;
   info.max_buffer_size = NUM_BUFFERS;
   if (m_renderMethod == RENDER_DXVA && m_processor)
+  {
     info.optimal_buffer_size = m_processor->Size();
+    if (m_extended_format != RENDER_FMT_DXVA)
+      info.m_deintMethods.push_back(VS_INTERLACEMETHOD_DXVA_AUTO);
+  }
   else
     info.optimal_buffer_size = 4;
   return info;

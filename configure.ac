@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([kodi], [16.9.802], [http://trac.kodi.tv])
+AC_INIT([kodi], [16.9.803], [http://trac.kodi.tv])
 AC_CONFIG_HEADERS([xbmc/config.h])
 AH_TOP([#pragma once])
 m4_include([m4/ax_prog_cc_for_build.m4])
@@ -762,6 +762,21 @@ if test "$host_vendor" = "apple" ; then
   # standard application paths
   INCLUDES="$INCLUDES -I\$(abs_top_srcdir)/xbmc/osx"
   if test "$use_arch" != "arm"; then
+    SAVE_CFLAGS="$CFLAGS"
+    CFLAGS="-msse -msse2"
+    AC_COMPILE_IFELSE(
+      [AC_LANG_SOURCE([int foo;])],
+      [ HAVE_SSE=1
+        HAVE_SSE2=1
+        AC_DEFINE([HAVE_SSE],[1],[sse enabled])
+        AC_DEFINE([HAVE_SSE2],[1],[sse2 enabled])],
+      [ HAVE_SSE=0
+        HAVE_SSE2=0
+        AC_DEFINE([HAVE_SSE],[0],[sse enabled])
+        AC_DEFINE([HAVE_SSE2],[0],[sse2 enabled])
+      ])
+    CFLAGS="$SAVE_CFLAGS"
+
     LIBS="$LIBS -framework ApplicationServices"
     LIBS="$LIBS -framework AudioUnit"
     LIBS="$LIBS -framework AudioToolbox"
@@ -809,13 +824,24 @@ fi
 use_sse4=no
 if test "$ARCH" = "x86_64-linux" || test "$ARCH" = "i486-linux"; then
   SAVE_CFLAGS="$CFLAGS"
-  CFLAGS="-msse4.1"
+  CFLAGS="-msse -msse2 -msse4.1"
   AC_COMPILE_IFELSE(
     [AC_LANG_SOURCE([int foo;])],
     [ use_sse4=yes
-      USE_SSE4=1],
+      HAVE_SSE=1
+      HAVE_SSE2=1
+      HAVE_SSE4=1
+      AC_DEFINE([HAVE_SSE],[1],[sse enabled])
+      AC_DEFINE([HAVE_SSE2],[1],[sse2 enabled])
+      AC_DEFINE([HAVE_SSE4],[1],[sse4.1 enabled])],
     [ use_sse4=no
-      USE_SSE4=0])
+      HAVE_SSE=0
+      HAVE_SSE2=0
+      HAVE_SSE4=0
+      AC_DEFINE([HAVE_SSE],[0],[sse enabled])
+      AC_DEFINE([HAVE_SSE2],[0],[sse2 enabled])
+      AC_DEFINE([HAVE_SSE4],[0],[sse4.1 enabled])
+    ])
   CFLAGS="$SAVE_CFLAGS"
 fi
 
@@ -2227,9 +2253,11 @@ fi
 eval "APP_PREFIX=${prefix}"
 eval "APP_LIB_DIR=${libdir}/${APP_NAME_LC}"
 eval "APP_INCLUDE_DIR=${includedir}/${APP_NAME_LC}"
+eval "APP_DATA_DIR=${datarootdir}/${APP_NAME_LC}"
 AC_SUBST(APP_PREFIX)
 AC_SUBST(APP_LIB_DIR)
 AC_SUBST(APP_INCLUDE_DIR)
+AC_SUBST(APP_DATA_DIR)
 
 # Line below is used so we can use AM_INIT_AUTOMAKE. The corresponding
 # .dummy.am does nothing.
@@ -2287,7 +2315,9 @@ AC_SUBST(USE_ANDROID)
 AC_SUBST(GTEST_CONFIGURED)
 AC_SUBST(USE_DOXYGEN)
 AC_SUBST(UPNP_DEFINES)
-AC_SUBST(USE_SSE4)
+AC_SUBST(HAVE_SSE)
+AC_SUBST(HAVE_SSE2)
+AC_SUBST(HAVE_SSE4)
 AC_SUBST(USE_MMAL)
 AC_SUBST(USE_X11)
 AC_SUBST(USE_OPTICAL_DRIVE)

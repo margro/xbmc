@@ -188,17 +188,6 @@ bool CLinuxRendererGLES::Configure(unsigned int width, unsigned int height, unsi
 
   m_iLastRenderBuffer = -1;
 
-  if (m_format == RENDER_FMT_BYPASS)
-  {
-    m_renderFeatures.clear();
-    m_scalingMethods.clear();
-    m_deinterlaceMethods.clear();
-
-    g_application.m_pPlayer->GetRenderFeatures(m_renderFeatures);
-    g_application.m_pPlayer->GetDeinterlaceMethods(m_deinterlaceMethods);
-    g_application.m_pPlayer->GetScalingMethods(m_scalingMethods);
-  }
-
   return true;
 }
 
@@ -1627,13 +1616,6 @@ void CLinuxRendererGLES::SetTextureFilter(GLenum method)
 
 bool CLinuxRendererGLES::Supports(ERENDERFEATURE feature)
 {
-  // Player controls render, let it dictate available render features
-  if((m_renderMethod & RENDER_BYPASS))
-  {
-    Features::iterator itr = std::find(m_renderFeatures.begin(),m_renderFeatures.end(), feature);
-    return itr != m_renderFeatures.end();
-  }
-
   if(feature == RENDERFEATURE_BRIGHTNESS)
     return true;
 
@@ -1669,62 +1651,13 @@ bool CLinuxRendererGLES::SupportsMultiPassRendering()
   return false;
 }
 
-bool CLinuxRendererGLES::Supports(EINTERLACEMETHOD method)
-{
-  // Player controls render, let it dictate available deinterlace methods
-  if((m_renderMethod & RENDER_BYPASS))
-  {
-    Features::iterator itr = std::find(m_deinterlaceMethods.begin(),m_deinterlaceMethods.end(), method);
-    return itr != m_deinterlaceMethods.end();
-  }
-
-  if(method == VS_INTERLACEMETHOD_AUTO)
-    return true;
-
-#if !defined(TARGET_ANDROID) && (defined(__i386__) || defined(__x86_64__))
-  if(method == VS_INTERLACEMETHOD_DEINTERLACE
-  || method == VS_INTERLACEMETHOD_DEINTERLACE_HALF)
-#else
-  if(method == VS_INTERLACEMETHOD_RENDER_BOB
-  || method == VS_INTERLACEMETHOD_RENDER_BOB_INVERTED)
-#endif
-    return true;
-
-  return false;
-}
-
 bool CLinuxRendererGLES::Supports(ESCALINGMETHOD method)
 {
-  // Player controls render, let it dictate available scaling methods
-  if((m_renderMethod & RENDER_BYPASS))
-  {
-    Features::iterator itr = std::find(m_scalingMethods.begin(),m_scalingMethods.end(), method);
-    return itr != m_scalingMethods.end();
-  }
-
   if(method == VS_SCALINGMETHOD_NEAREST
   || method == VS_SCALINGMETHOD_LINEAR)
     return true;
 
   return false;
-}
-
-EINTERLACEMETHOD CLinuxRendererGLES::AutoInterlaceMethod()
-{
-  // Player controls render, let it pick the auto-deinterlace method
-  if((m_renderMethod & RENDER_BYPASS))
-  {
-    if (!m_deinterlaceMethods.empty())
-      return ((EINTERLACEMETHOD)m_deinterlaceMethods[0]);
-    else
-      return VS_INTERLACEMETHOD_NONE;
-  }
-
-#if !defined(TARGET_ANDROID) && (defined(__i386__) || defined(__x86_64__))
-  return VS_INTERLACEMETHOD_DEINTERLACE_HALF;
-#else
-  return VS_INTERLACEMETHOD_RENDER_BOB;
-#endif
 }
 
 CRenderInfo CLinuxRendererGLES::GetRenderInfo()

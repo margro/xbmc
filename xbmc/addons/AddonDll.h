@@ -133,6 +133,7 @@ bool CAddonDll<TheDll, TheStruct, TheProps>::LoadDll()
     return true;
 
   std::string strFileName;
+  std::string strAltFileName;
   if (!m_bIsChild)
   {
     strFileName = LibPath();
@@ -176,14 +177,33 @@ bool CAddonDll<TheDll, TheStruct, TheProps>::LoadDll()
 #endif
   if (!XFILE::CFile::Exists(strFileName))
   {
-    std::string temp = CSpecialProtocol::TranslatePath("special://xbmc/");
-    std::string tempbin = CSpecialProtocol::TranslatePath("special://xbmcbin/");
-    strFileName.erase(0, temp.size());
-    strFileName = tempbin + strFileName;
-    if (!XFILE::CFile::Exists(strFileName))
+    std::string altbin = CSpecialProtocol::TranslatePath("special://xbmcaltbinaddons/");
+    if (!altbin.empty())
     {
-      CLog::Log(LOGERROR, "ADDON: Could not locate %s", m_props.libname.c_str());
-      return false;
+      strAltFileName = altbin + m_props.libname;
+      if (!XFILE::CFile::Exists(strAltFileName))
+      {
+        std::string temp = CSpecialProtocol::TranslatePath("special://xbmc/addons/");
+        strAltFileName = strFileName;
+        strAltFileName.erase(0, temp.size());
+        strAltFileName = altbin + strAltFileName;
+      }
+      CLog::Log(LOGDEBUG, "ADDON: Trying to load %s", strAltFileName.c_str());
+    }
+
+    if (XFILE::CFile::Exists(strAltFileName))
+      strFileName = strAltFileName;
+    else
+    {
+      std::string temp = CSpecialProtocol::TranslatePath("special://xbmc/");
+      std::string tempbin = CSpecialProtocol::TranslatePath("special://xbmcbin/");
+      strFileName.erase(0, temp.size());
+      strFileName = tempbin + strFileName;
+      if (!XFILE::CFile::Exists(strFileName))
+      {
+        CLog::Log(LOGERROR, "ADDON: Could not locate %s", m_props.libname.c_str());
+        return false;
+      }
     }
   }
 

@@ -29,7 +29,7 @@
 #include "utils/JobManager.h"
 #include "utils/Observer.h"
 
-#include "pvr/PVRManagerState.h"
+#include "pvr/PVREvent.h"
 #include "pvr/recordings/PVRRecording.h"
 
 #include <map>
@@ -153,6 +153,11 @@ private:
      * @brief Init PVRManager.
      */
     void Init(void);
+
+    /*!
+     * @brief Reinit PVRManager.
+     */
+    void Reinit(void);
 
     /*!
      * @brief Stop the PVRManager and destroy all objects it created.
@@ -564,19 +569,13 @@ private:
     /*!
      * @brief Query the events available for CEventStream
      */
-    CEventStream<ManagerState>& Events() { return m_events; }
+    CEventStream<PVREvent>& Events() { return m_events; }
 
     /*!
-     * @brief Show or update the progress dialog.
-     * @param strText The current status.
-     * @param iProgress The current progress in %.
+     * @brief Publish an event
+     * @param state the event
      */
-    void ShowProgressDialog(const std::string &strText, int iProgress);
-
-    /*!
-     * @brief Hide the progress dialog if it's visible.
-     */
-    void HideProgressDialog(void);
+    void PublishEvent(PVREvent state);
 
   protected:
     /*!
@@ -590,6 +589,18 @@ private:
     virtual void Process(void) override;
 
   private:
+    /*!
+     * @brief Show or update the progress dialog.
+     * @param strText The current status.
+     * @param iProgress The current progress in %.
+     */
+    void ShowProgressDialog(const std::string &strText, int iProgress);
+
+    /*!
+     * @brief Hide the progress dialog if it's visible.
+     */
+    void HideProgressDialog(void);
+
     /*!
      * @brief Load at least one client and load all other PVR data after loading the client.
      * If some clients failed to load here, the pvrmanager will retry to load them every second.
@@ -629,6 +640,16 @@ private:
      */
     void QueueJob(CJob *job);
 
+    enum ManagerState
+    {
+      ManagerStateError = 0,
+      ManagerStateStopped,
+      ManagerStateStarting,
+      ManagerStateStopping,
+      ManagerStateInterrupted,
+      ManagerStateStarted
+    };
+
     ManagerState GetState(void) const;
 
     void SetState(ManagerState state);
@@ -661,10 +682,9 @@ private:
     CCriticalSection                m_managerStateMutex;
     ManagerState                    m_managerState;
     std::unique_ptr<CStopWatch>     m_parentalTimer;
-    static const int                m_pvrWindowIds[12];
 
     std::atomic_bool m_isChannelPreview;
-    CEventSource<ManagerState> m_events;
+    CEventSource<PVREvent> m_events;
   };
 
   class CPVRStartupJob : public CJob

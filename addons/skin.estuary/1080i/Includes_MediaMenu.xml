@@ -23,7 +23,7 @@
 				<height>95</height>
 				<align>center</align>
 				<aligny>center</aligny>
-				<font>-</font>
+				<font></font>
 				<texturefocus border="40" colordiffuse="button_focus">buttons/button-fo.png</texturefocus>
 				<texturenofocus border="40">buttons/button-nofo.png</texturenofocus>
 				<radioposx>26</radioposx>
@@ -46,7 +46,7 @@
 		<definition>
 			<control type="button" id="28">
 				<left>-1000</left>
-				<label>-</label>
+				<label></label>
 				<height>1</height>
 			</control>
 			<control type="grouplist" id="9000">
@@ -56,7 +56,11 @@
 				<height>100%</height>
 				<onleft>9000</onleft>
 				<onup>9000</onup>
-				<onright>50</onright>
+				<onright condition="!Window.IsActive(MyPVRGuide.xml)">50</onright>
+				<onright condition="Window.IsActive(MyPVRGuide.xml) + Control.IsVisible(10)">10</onright>
+				<onright condition="Window.IsActive(MyPVRGuide.xml) + Control.IsVisible(11)">11</onright>
+				<onright condition="Window.IsActive(MyPVRGuide.xml) + Control.IsVisible(12)">12</onright>
+				<onright condition="Window.IsActive(MyPVRGuide.xml) + Control.IsVisible(13)">13</onright>
 				<ondown>14100</ondown>
 				<onback>50</onback>
 				<defaultcontrol>6054</defaultcontrol>
@@ -86,7 +90,11 @@
 						<left>5</left>
 						<height>95</height>
 						<onleft>6056</onleft>
-						<onright>50</onright>
+						<onright condition="!Window.IsActive(MyPVRGuide.xml)">50</onright>
+						<onright condition="Window.IsActive(MyPVRGuide.xml) + Control.IsVisible(10)">10</onright>
+						<onright condition="Window.IsActive(MyPVRGuide.xml) + Control.IsVisible(11)">11</onright>
+						<onright condition="Window.IsActive(MyPVRGuide.xml) + Control.IsVisible(12)">12</onright>
+						<onright condition="Window.IsActive(MyPVRGuide.xml) + Control.IsVisible(13)">13</onright>
 						<onup>14100</onup>
 						<ondown>6054</ondown>
 						<width>1000</width>
@@ -153,13 +161,6 @@
 					<label2>[B]$INFO[Container.SortOrder][/B]</label2>
 					<onclick>Container.SetSortDirection</onclick>
 					<visible>!Window.IsActive(MyPVRGuide.xml)</visible>
-				</control>
-				<control type="button" id="6051">
-					<include>MediaMenuItemsCommon</include>
-					<label>$LOCALIZE[456]</label>
-					<label2>[B]$INFO[Container.Viewmode][/B]</label2>
-					<onclick>Container.NextViewMode</onclick>
-					<visible>Window.IsActive(MyPVRGuide.xml)</visible>
 				</control>
 				<control type="label" id="300">
 					<label>$LOCALIZE[31021]</label>
@@ -366,13 +367,13 @@
 	</include>
 	<include name="MediaMenuMouseOverlay">
 		<control type="button" id="6130">
-			<label>-</label>
+			<label></label>
 			<height>100%</height>
 			<width>50</width>
 			<left>-50</left>
 			<top>0</top>
-			<texturefocus>-</texturefocus>
-			<texturenofocus>-</texturenofocus>
+			<texturefocus></texturefocus>
+			<texturenofocus></texturenofocus>
 		</control>
 	</include>
 </includes>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<window type="dialog" id="2901">
+<window>
 	<onload>Dialog.Close(fullscreeninfo)</onload>
 	<onload condition="VideoPlayer.Content(LiveTV) + !Player.PauseEnabled">SetFocus(603)</onload>
 	<depth>DepthOSD</depth>
@@ -11,8 +11,8 @@
 			<top>0</top>
 			<width>1920</width>
 			<height>800</height>
-			<texturefocus>-</texturefocus>
-			<texturenofocus>-</texturenofocus>
+			<texturefocus></texturefocus>
+			<texturenofocus></texturenofocus>
 			<onclick>Action(close)</onclick>
 		</control>
 		<control type="group">
@@ -79,14 +79,14 @@
 							<textureradioonnofocus>osd/fullscreen/buttons/play.png</textureradioonnofocus>
 							<textureradioofffocus colordiffuse="button_focus">osd/fullscreen/buttons/pause.png</textureradioofffocus>
 							<textureradiooffnofocus>osd/fullscreen/buttons/pause.png</textureradiooffnofocus>
-							<texturefocus>-</texturefocus>
+							<texturefocus></texturefocus>
 							<width>125</width>
 							<animation center="77,62" effect="zoom" end="100" reversible="false" start="95" time="480" tween="back">Focus</animation>
 							<height>123</height>
 							<radiowidth>74</radiowidth>
 							<radioheight>74</radioheight>
-							<font>-</font>
-							<texturenofocus>-</texturenofocus>
+							<font></font>
+							<texturenofocus></texturenofocus>
 							<selected>Player.Paused</selected>
 							<onclick>PlayerControl(Play)</onclick>
 							<visible>Player.PauseEnabled</visible>
@@ -102,7 +102,7 @@
 								<param name="texture" value="osd/fullscreen/buttons/next.png"/>
 							</include>
 							<onclick>PlayerControl(Next)</onclick>
-							<visible>!VideoPlayer.Content(livetv) + Integer.IsGreater(Playlist.Length(video),1)</visible>
+							<visible>!VideoPlayer.Content(livetv) + [Player.ChapterCount | Integer.IsGreater(Playlist.Length(video),1)]</visible>
 						</control>
 						<control type="radiobutton" id="804">
 							<include content="OSDButton">
@@ -116,14 +116,14 @@
 							<textureradioonnofocus>osd/fullscreen/buttons/record-white.png</textureradioonnofocus>
 							<textureradioofffocus colordiffuse="button_focus">osd/fullscreen/buttons/record.png</textureradioofffocus>
 							<textureradiooffnofocus>osd/fullscreen/buttons/record.png</textureradiooffnofocus>
-							<texturefocus>-</texturefocus>
+							<texturefocus></texturefocus>
 							<width>125</width>
 							<animation center="77,62" effect="zoom" end="100" reversible="false" start="95" time="480" tween="back">Focus</animation>
 							<height>123</height>
 							<radiowidth>74</radiowidth>
 							<radioheight>74</radioheight>
-							<font>-</font>
-							<texturenofocus>-</texturenofocus>
+							<font></font>
+							<texturenofocus></texturenofocus>
 							<radioposx>0</radioposx>
 							<radioposy>0</radioposy>
 							<selected>!Player.Recording | Control.HasFocus(606)</selected>
@@ -260,7 +260,7 @@
 						<textureslidernibfocus colordiffuse="button_focus">osd/progress/nub_leftright.png</textureslidernibfocus>
 						<info>Player.Progress</info>
 						<action>seek</action>
-						<visible>!Control.HasFocus(87)</visible>
+						<visible>!Control.HasFocus(87) + Player.SeekEnabled</visible>
 					</control>
 					<control type="slider">
 						<left>30</left>
@@ -274,7 +274,7 @@
 						<textureslidernibfocus colordiffuse="button_focus">osd/progress/nub_leftright.png</textureslidernibfocus>
 						<info>Player.Progress</info>
 						<action>seek</action>
-						<visible>Control.HasFocus(87)</visible>
+						<visible>Control.HasFocus(87) + Player.SeekEnabled</visible>
 					</control>
 				</control>
 			</control>

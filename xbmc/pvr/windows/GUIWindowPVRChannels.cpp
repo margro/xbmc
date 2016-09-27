@@ -50,29 +50,14 @@ CGUIWindowPVRChannels::CGUIWindowPVRChannels(bool bRadio) :
   CGUIWindowPVRBase(bRadio, bRadio ? WINDOW_RADIO_CHANNELS : WINDOW_TV_CHANNELS, "MyPVRChannels.xml"),
   m_bShowHiddenChannels(false)
 {
-}
-
-void CGUIWindowPVRChannels::RegisterObservers(void)
-{
-  CSingleLock lock(m_critSection);
   g_EpgContainer.RegisterObserver(this);
-  g_PVRManager.RegisterObserver(this);
   g_infoManager.RegisterObserver(this);
-  CGUIWindowPVRBase::RegisterObservers();
 }
 
-void CGUIWindowPVRChannels::UnregisterObservers(void)
+CGUIWindowPVRChannels::~CGUIWindowPVRChannels()
 {
-  CSingleLock lock(m_critSection);
-  CGUIWindowPVRBase::UnregisterObservers();
   g_infoManager.UnregisterObserver(this);
-  g_PVRManager.UnregisterObserver(this);
   g_EpgContainer.UnregisterObserver(this);
-}
-
-bool CGUIWindowPVRChannels::CanBeActivated() const
-{
-  return true;
 }
 
 void CGUIWindowPVRChannels::GetContextButtons(int itemNumber, CContextButtons &buttons)
