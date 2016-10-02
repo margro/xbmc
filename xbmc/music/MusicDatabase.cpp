@@ -489,6 +489,7 @@ bool CMusicDatabase::AddAlbum(CAlbum& album)
                            album.GetAlbumArtistString(),
                            album.GetGenreString(),
                            album.iYear,
+                           album.strLabel, album.strType,
                            album.bCompilation, album.releaseType);
 
   // Add the album artists
@@ -853,6 +854,7 @@ int CMusicDatabase::UpdateSong(int idSong,
 
 int CMusicDatabase::AddAlbum(const std::string& strAlbum, const std::string& strMusicBrainzAlbumID,
                              const std::string& strArtist, const std::string& strGenre, int year,
+                             const std::string& strRecordLabel, const std::string& strType,
                              bool bCompilation, CAlbum::ReleaseType releaseType)
 {
   std::string strSQL;
@@ -875,20 +877,24 @@ int CMusicDatabase::AddAlbum(const std::string& strAlbum, const std::string& str
       m_pDS->close();
       // doesnt exists, add it
       if (strMusicBrainzAlbumID.empty())
-        strSQL=PrepareSQL("insert into album (idAlbum, strAlbum, strMusicBrainzAlbumID, strArtists, strGenres, iYear, bCompilation, strReleaseType) values( NULL, '%s', NULL, '%s', '%s', %i, %i, '%s')",
+        strSQL=PrepareSQL("insert into album (idAlbum, strAlbum, strMusicBrainzAlbumID, strArtists, strGenres, iYear, strLabel, strType, bCompilation, strReleaseType) values( NULL, '%s', NULL, '%s', '%s', %i, '%s', '%s', %i, '%s')",
                           strAlbum.c_str(),
                           strArtist.c_str(),
                           strGenre.c_str(),
                           year,
+                          strRecordLabel.c_str(),
+                          strType.c_str(),
                           bCompilation,
                           CAlbum::ReleaseTypeToString(releaseType).c_str());
       else
-        strSQL=PrepareSQL("insert into album (idAlbum, strAlbum, strMusicBrainzAlbumID, strArtists, strGenres, iYear, bCompilation, strReleaseType) values( NULL, '%s', '%s', '%s', '%s', %i, %i, '%s')",
+        strSQL=PrepareSQL("insert into album (idAlbum, strAlbum, strMusicBrainzAlbumID, strArtists, strGenres, iYear, strLabel, strType, bCompilation, strReleaseType) values( NULL, '%s', '%s', '%s', '%s', %i, '%s', '%s', %i, '%s')",
                           strAlbum.c_str(),
                           strMusicBrainzAlbumID.c_str(),
                           strArtist.c_str(),
                           strGenre.c_str(),
                           year,
+                          strRecordLabel.c_str(),
+                          strType.c_str(),
                           bCompilation,
                           CAlbum::ReleaseTypeToString(releaseType).c_str());
       m_pDS->exec(strSQL);
@@ -909,18 +915,22 @@ int CMusicDatabase::AddAlbum(const std::string& strAlbum, const std::string& str
       int idAlbum = m_pDS->fv("idAlbum").get_asInt();
       m_pDS->close();
       if (strMusicBrainzAlbumID.empty())
-        strSQL=PrepareSQL("UPDATE album SET strGenres = '%s', iYear=%i, bCompilation=%i, strReleaseType = '%s', lastScraped = NULL WHERE idAlbum=%i",
+        strSQL=PrepareSQL("UPDATE album SET strGenres = '%s', iYear=%i, strLabel = '%s', strType = '%s', bCompilation=%i, strReleaseType = '%s', lastScraped = NULL WHERE idAlbum=%i",
                           strGenre.c_str(),
                           year,
+                          strRecordLabel.c_str(),
+                          strType.c_str(),
                           bCompilation,
                           CAlbum::ReleaseTypeToString(releaseType).c_str(),
                           idAlbum);
       else
-        strSQL=PrepareSQL("UPDATE album SET strAlbum = '%s', strArtists = '%s', strGenres = '%s', iYear=%i, bCompilation=%i, strReleaseType = '%s', lastScraped = NULL WHERE idAlbum=%i",
+        strSQL=PrepareSQL("UPDATE album SET strAlbum = '%s', strArtists = '%s', strGenres = '%s', iYear=%i, strLabel = '%s', strType = '%s', bCompilation=%i, strReleaseType = '%s', lastScraped = NULL WHERE idAlbum=%i",
                           strAlbum.c_str(),
                           strArtist.c_str(),
                           strGenre.c_str(),
                           year,
+                          strRecordLabel.c_str(),
+                          strType.c_str(),
                           bCompilation,
                           CAlbum::ReleaseTypeToString(releaseType).c_str(),
                           idAlbum);
@@ -2167,12 +2177,18 @@ int CMusicDatabase::GetAlbumIdByPath(const std::string& strPath)
 {
   try
   {
-    std::string strSQL=PrepareSQL("select distinct idAlbum from song join path on song.idPath = path.idPath where path.strPath='%s'", strPath.c_str());
-    m_pDS->query(strSQL);
-    if (m_pDS->eof())
-      return -1;
+    if (NULL == m_pDB.get()) return false;
+    if (NULL == m_pDS.get()) return false;
 
-    int idAlbum = m_pDS->fv(0).get_asInt();
+    std::string strSQL = PrepareSQL("SELECT DISTINCT idAlbum FROM song JOIN path ON song.idPath = path.idPath WHERE path.strPath='%s'", strPath.c_str());
+    // run query
+    if (!m_pDS->query(strSQL)) return false;
+    int iRowsFound = m_pDS->num_rows();
+
+    int idAlbum = -1; // If no album is found, or more than one album is found then -1 is returned
+    if (iRowsFound == 1)
+      idAlbum = m_pDS->fv(0).get_asInt();
+    
     m_pDS->close();
 
     return idAlbum;
@@ -2182,7 +2198,7 @@ int CMusicDatabase::GetAlbumIdByPath(const std::string& strPath)
     CLog::Log(LOGERROR, "%s(%s) failed", __FUNCTION__, strPath.c_str());
   }
 
-  return false;
+  return -1;
 }
 
 int CMusicDatabase::GetSongByArtistAndAlbumAndTitle(const std::string& strArtist, const std::string& strAlbum, const std::string& strTitle)
@@ -5497,24 +5513,22 @@ bool CMusicDatabase::SetSongUserrating(const std::string &filePath, int userrati
   return false;
 }
 
-bool CMusicDatabase::SetAlbumUserrating(const std::string &filePath, int userrating)
+bool CMusicDatabase::SetAlbumUserrating(const int idAlbum, int userrating)
 {
   try
   {
-    if (filePath.empty()) return false;
     if (NULL == m_pDB.get()) return false;
     if (NULL == m_pDS.get()) return false;
 
-    int albumID = GetAlbumIdByPath(filePath);
-    if (-1 == albumID) return false;
+    if (-1 == idAlbum) return false;
 
-    std::string sql = PrepareSQL("UPDATE album SET iUserrating='%i' WHERE idAlbum = %i", userrating, albumID);
+    std::string sql = PrepareSQL("UPDATE album SET iUserrating='%i' WHERE idAlbum = %i", userrating, idAlbum);
     m_pDS->exec(sql);
     return true;
   }
   catch (...)
   {
-    CLog::Log(LOGERROR, "%s (%s,%i) failed", __FUNCTION__, filePath.c_str(), userrating);
+    CLog::Log(LOGERROR, "%s (%i,%i) failed", __FUNCTION__, idAlbum, userrating);
   }
   return false;
 }
@@ -5531,28 +5545,6 @@ bool CMusicDatabase::SetSongVotes(const std::string &filePath, int votes)
     if (-1 == songID) return false;
 
     std::string sql = PrepareSQL("UPDATE song SET votes='%i' WHERE idSong = %i", votes, songID);
-    m_pDS->exec(sql);
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s,%i) failed", __FUNCTION__, filePath.c_str(), votes);
-  }
-  return false;
-}
-
-bool CMusicDatabase::SetAlbumVotes(const std::string &filePath, int votes)
-{
-  try
-  {
-    if (filePath.empty()) return false;
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
-
-    int albumID = GetAlbumIdByPath(filePath);
-    if (-1 == albumID) return false;
-
-    std::string sql = PrepareSQL("UPDATE album SET iVotes='%i' WHERE idAlbum = %i", votes, albumID);
     m_pDS->exec(sql);
     return true;
   }
