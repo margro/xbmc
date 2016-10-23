@@ -27,6 +27,7 @@
 #include "utils/AMLUtils.h"
 #include "utils/BitstreamConverter.h"
 #include "utils/log.h"
+#include "utils/SysfsUtils.h"
 #include "threads/Atomics.h"
 #include "settings/Settings.h"
 
@@ -50,7 +51,8 @@ CDVDVideoCodecAmlogic::CDVDVideoCodecAmlogic(CProcessInfo &processInfo) : CDVDVi
   m_mpeg2_sequence(NULL),
   m_bitparser(NULL),
   m_bitstream(NULL),
-  m_opened(false)
+  m_opened(false),
+  m_drop(false)
 {
   pthread_mutex_init(&m_queue_mutex, NULL);
 }
@@ -104,7 +106,11 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
       {
         case FF_PROFILE_H264_HIGH_10:
         case FF_PROFILE_H264_HIGH_10_INTRA:
-          // Amlogic decodes Hi10P with lots of artifacts
+        case FF_PROFILE_H264_HIGH_422:
+        case FF_PROFILE_H264_HIGH_422_INTRA:
+        case FF_PROFILE_H264_HIGH_444_PREDICTIVE:
+        case FF_PROFILE_H264_HIGH_444_INTRA:
+        case FF_PROFILE_H264_CAVLC_444:
           return false;
       }
       if ((!aml_support_h264_4k2k()) && ((m_hints.width > 1920) || (m_hints.height > 1088)))
@@ -171,6 +177,10 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
         }
       } else {
         // HEVC supported only on S805 and S812.
+        return false;
+      }
+      if ((hints.profile == FF_PROFILE_HEVC_MAIN_10) && !aml_support_hevc_10bit())
+      {
         return false;
       }
       m_pFormatName = "am-h265";
@@ -341,6 +351,19 @@ bool CDVDVideoCodecAmlogic::ClearPicture(DVDVideoPicture *pDvdVideoPicture)
 
 void CDVDVideoCodecAmlogic::SetDropState(bool bDrop)
 {
+  if (bDrop == m_drop)
+    return;
+
+  m_drop = bDrop;
+  if (bDrop)
+    m_videobuffer.iFlags |=  DVP_FLAG_DROPPED;
+  else
+    m_videobuffer.iFlags &= ~DVP_FLAG_DROPPED;
+
+  // Freerun mode causes amvideo driver to ignore timing and process frames
+  // as quickly as they are coming from decoder. By enabling freerun mode we can
+  // skip rendering of the frames that are requested to be dropped by VideoPlayer.
+  SysfsUtils::SetInt("/sys/class/video/freerun_mode", bDrop ? 1 : 0);
 }
 
 void CDVDVideoCodecAmlogic::SetSpeed(int iSpeed)

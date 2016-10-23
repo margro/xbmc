@@ -165,14 +165,14 @@
 			<posy>0</posy>
 			<include>ScreenWidth</include>
 			<height>960</height>
-			<visible>!Skin.HasSetting(HideVideoBackground) + Player.HasVideo + !Window.IsVisible(TVChannels) + !Window.IsVisible(RadioChannels) + !Window.IsVisible(TVGuide) + !Window.IsVisible(RadioGuide) + !Window.IsVisible(TVSearch) + !Window.IsVisible(RadioSearch) + !Window.IsVisible(TVTimers) + !Window.IsVisible(RadioTimers) + !Window.IsVisible(TVTimerRules) + !Window.IsVisible(RadioTimerRules) + !Window.IsVisible(TVRecordings) + !Window.IsVisible(RadioRecordings)</visible>
+			<visible>!Skin.HasSetting(HideVideoBackground) + Player.HasVideo + !Window.IsVisible(TVChannels) + !Window.IsVisible(RadioChannels) + !Window.IsVisible(TVGuide) + !Window.IsVisible(RadioGuide) + !Window.IsVisible(TVSearch) + !Window.IsVisible(RadioSearch) + !Window.IsVisible(TVTimers) + !Window.IsVisible(RadioTimers) + !Window.IsVisible(TVTimerRules) + !Window.IsVisible(RadioTimerRules) + !Window.IsVisible(TVRecordings) + !Window.IsVisible(RadioRecordings) + !SlideShow.IsActive</visible>
 		</control>
 		<control type="visualisation">
 			<posx>0</posx>
 			<posy>0</posy>
 			<include>ScreenWidth</include>
 			<height>960</height>
-			<visible>!Skin.HasSetting(HideVizBackground) + Player.HasAudio</visible>
+			<visible>!Skin.HasSetting(HideVizBackground) + Player.HasAudio + !SlideShow.IsActive</visible>
 		</control>
 		<control type="image">
 			<posx>0</posx>
@@ -1024,14 +1024,14 @@
 			<onclick>ActivateWindow(TVChannels)</onclick>
 			<icon>icon_menu_livetv.png</icon>
 			<thumb></thumb>
-			<visible>Skin.HasSetting(ShowHomeButtonLiveTV)</visible>
+			<visible>System.HasPVRAddon + !Skin.HasSetting(HideHomeButtonLiveTV)</visible>
 		</item>
 		<item id="2">
 			<label>19021</label>
 			<onclick>ActivateWindow(RadioChannels)</onclick>
 			<icon>icon_menu_radio.png</icon>
 			<thumb></thumb>
-			<visible>Skin.HasSetting(ShowHomeButtonRadio)</visible>
+			<visible>System.HasPVRAddon + !Skin.HasSetting(HideHomeButtonRadio)</visible>
 		</item>
 		<item id="3">
 			<label>20342</label>
@@ -1240,7 +1240,7 @@
 			<alttexturenofocus border="40,0,40,5">list_nofocus.png</alttexturenofocus>
 			<label>653</label>
 			<altlabel>13353</altlabel>
-			<usealttexture>library.isscanningmusic</usealttexture> 
+			<usealttexture>library.isscanningmusic</usealttexture>
 		</control>
 		<control type="radiobutton" id="16">
 			<description>PartyMode</description>
@@ -1496,7 +1496,7 @@
 			<alttexturenofocus border="40,0,40,5">list_nofocus.png</alttexturenofocus>
 			<label>653</label>
 			<altlabel>13353</altlabel>
-			<usealttexture>library.isscanningvideo</usealttexture> 
+			<usealttexture>library.isscanningvideo</usealttexture>
 		</control>
 		<control type="radiobutton" id="16">
 			<description>PartyMode</description>

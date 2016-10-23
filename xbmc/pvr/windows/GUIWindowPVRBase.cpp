@@ -33,6 +33,7 @@
 #include "epg/Epg.h"
 #include "epg/GUIEPGGridContainer.h"
 #include "filesystem/StackDirectory.h"
+#include "GUIUserMessages.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
@@ -69,6 +70,9 @@ CGUIWindowPVRBase::CGUIWindowPVRBase(bool bRadio, int id, const std::string &xml
   m_bRadio(bRadio),
   m_progressHandle(nullptr)
 {
+  // prevent removable drives to appear in directory listing (base class default behavior).
+  m_rootDir.AllowNonLocalSources(false);
+
   m_selectedItemPaths[false] = "";
   m_selectedItemPaths[true] = "";
 
@@ -224,6 +228,21 @@ bool CGUIWindowPVRBase::OnMessage(CGUIMessage& message)
         UpdateSelectedItemPath();
       }
       bReturn = true;
+    }
+    break;
+
+    case GUI_MSG_NOTIFY_ALL:
+    {
+      switch (message.GetParam1())
+      {
+        case GUI_MSG_UPDATE_SOURCES:
+        {
+          // removable drive connected/disconnected. base class triggers a window
+          // content refresh, which makes no sense for pvr windows.
+          bReturn = true;
+          break;
+        }
+      }
     }
     break;
   }
@@ -386,12 +405,6 @@ bool CGUIWindowPVRBase::OpenChannelGroupSelectionDialog(void)
 
 bool CGUIWindowPVRBase::InitChannelGroup()
 {
-  {
-    CSingleLock lock(m_critSection);
-    if (m_channelGroup)
-      return true;
-  }
-
   const CPVRChannelGroupPtr group(g_PVRManager.GetPlayingGroup(m_bRadio));
   if (group)
   {
@@ -619,7 +632,7 @@ bool CGUIWindowPVRBase::EditTimer(CFileItem *item)
   const CPVRTimerInfoTagPtr newTimer(new CPVRTimerInfoTag);
   newTimer->UpdateEntry(timer);
 
-  if (ShowTimerSettings(newTimer) && !timer->GetTimerType()->IsReadOnly())
+  if (ShowTimerSettings(newTimer) && (!timer->GetTimerType()->IsReadOnly() || timer->GetTimerType()->SupportsEnableDisable()))
   {
     if (newTimer->GetTimerType() == timer->GetTimerType())
     {

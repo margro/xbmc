@@ -58,7 +58,7 @@ namespace XBMCAddon
     /// Kodi is noted as having a very flexible and robust framework for its
     /// GUI, making theme-skinning and personal customization very accessible.
     /// Users can create their own skin (or modify an existing skin) and share
-    /// it with others. Confluence is the official skin.
+    /// it with others.
     ///
     /// Kodi includes a new GUI library written from scratch. This library
     /// allows you to skin/change everything you see in Kodi, from the images,
@@ -1026,6 +1026,7 @@ namespace XBMCAddon
       ///
       ///
       ///-----------------------------------------------------------------------
+      /// @python_v14 New function added.
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -1219,6 +1220,7 @@ namespace XBMCAddon
       ///
       ///
       ///-----------------------------------------------------------------------
+      /// @python_v13 New function added.
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -1902,6 +1904,7 @@ namespace XBMCAddon
       ///
       ///
       ///-----------------------------------------------------------------------
+      /// @python_v15 New function added.
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -1989,6 +1992,7 @@ namespace XBMCAddon
       ///
       ///
       ///-----------------------------------------------------------------------
+      /// @python_v13 Added new option **useCache**.
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -2538,6 +2542,8 @@ namespace XBMCAddon
     ///
     ///
     ///--------------------------------------------------------------------------
+    /// @python_v13 New function added.
+    /// @python_v16 Deprecated **focusTexture** and **noFocusTexture**. Use **focusOnTexture** and **noFocusOnTexture**.
     ///
     /// **Example:**
     /// ~~~~~~~~~~~~~{.py}
@@ -2763,6 +2769,7 @@ namespace XBMCAddon
     ///
     ///
     ///--------------------------------------------------------------------------
+    /// @python_v17 **orientation** option added.
     ///
     /// **Example:**
     /// ~~~~~~~~~~~~~{.py}

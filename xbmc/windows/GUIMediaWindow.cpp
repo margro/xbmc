@@ -512,6 +512,9 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
       if (message.GetParam2() == PLUGIN_REFRESH_DELAY)
       {
         Refresh();
+        SetInitialVisibility();
+        RestoreControlStates();
+        SetInitialVisibility();
         return true;
       }
     }
@@ -669,7 +672,7 @@ bool CGUIMediaWindow::GetDirectory(const std::string &strDirectory, CFileItemLis
       SetupShares();
     
     CFileItemList dirItems;
-    if (!m_rootDir.GetDirectory(pathToUrl, dirItems))
+    if (!m_rootDir.GetDirectory(pathToUrl, dirItems, UseFileDirectories()))
       return false;
     
     // assign fetched directory items
@@ -1260,7 +1263,7 @@ void CGUIMediaWindow::SetHistoryForPath(const std::string& strDirectory)
     URIUtils::RemoveSlashAtEnd(strPath);
 
     CFileItemList items;
-    m_rootDir.GetDirectory(CURL(), items);
+    m_rootDir.GetDirectory(CURL(), items, UseFileDirectories());
 
     m_history.ClearPathHistory();
 

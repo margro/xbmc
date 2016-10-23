@@ -154,6 +154,8 @@ namespace XBMCAddon
       ///
       /// @note Will be called when library clean has ended and return video or
       /// music to indicate which library is being scanned
+      ///-----------------------------------------------------------------------
+      /// @python_v14 New function added.
       ///
       onScanStarted(...);
 #else
@@ -172,6 +174,8 @@ namespace XBMCAddon
       ///
       /// @note Will be called when library clean has ended and return video or
       /// music to indicate which library has been scanned
+      ///-----------------------------------------------------------------------
+      /// @python_v14 New function added.
       ///
       onScanFinished(...);
 #else
@@ -183,7 +187,8 @@ namespace XBMCAddon
       /// \ingroup python_monitor
       /// @brief \python_func{ onDatabaseScanStarted(database) }
       ///-----------------------------------------------------------------------
-      /// @warning Deprecated, use onScanStarted().
+      /// @python_v13 New function added.
+      /// @python_v14 Deprecated. Use **onScanStarted()**.
       ///
       onDatabaseScanStarted(...);
 #else
@@ -195,7 +200,7 @@ namespace XBMCAddon
       /// \ingroup python_monitor
       /// @brief \python_func{ onDatabaseUpdated(database) }
       ///-----------------------------------------------------------------------
-      /// @warning Deprecated, use onScanFinished().
+      /// @python_v14 Deprecated. Use **onScanFinished()**.
       ///
       onDatabaseUpdated(...);
 #else
@@ -214,6 +219,8 @@ namespace XBMCAddon
       ///
       /// @note Will be called when library clean has ended and return video or
       /// music to indicate which library has been cleaned
+      ///-----------------------------------------------------------------------
+      /// @python_v14 New function added.
       ///
       onCleanStarted(...);
 #else
@@ -232,6 +239,8 @@ namespace XBMCAddon
       ///
       /// @note Will be called when library clean has ended and return video or
       /// music to indicate which library has been finished
+      ///-----------------------------------------------------------------------
+      /// @python_v14 New function added.
       ///
       onCleanFinished(...);
 #else
@@ -243,13 +252,10 @@ namespace XBMCAddon
       /// \ingroup python_monitor
       /// @brief \python_func{ onAbortRequested() }
       ///-----------------------------------------------------------------------
-      /// @warning Deprecated, use waitForAbort() to be notified about this event.
+      /// @python_v14 Deprecated. Use **waitForAbort()** to be notified about this event.
       ///
       onAbortRequested();
 #else
-      /**
-       * onAbortRequested() -- Deprecated, use waitForAbort() to be notified about this event.\n
-       */
       virtual void    onAbortRequested() { XBMC_TRACE; }
 #endif
 
@@ -265,6 +271,8 @@ namespace XBMCAddon
       /// @param data                JSON-encoded data of the notification
       ///
       /// @note Will be called when Kodi receives or sends a notification
+      ///-----------------------------------------------------------------------
+      /// @python_v13 New function added.
       ///
       onNotification(...);
 #else
@@ -285,6 +293,8 @@ namespace XBMCAddon
       /// @return                        True when abort have been requested,
       ///                                False if a timeout is given and the
       ///                                operation times out.
+      ///-----------------------------------------------------------------------
+      /// @python_v14 New function added.
       ///
       waitForAbort(...);
 #else
@@ -298,6 +308,8 @@ namespace XBMCAddon
       /// Returns True if abort has been requested.
       ///
       /// @return                        True if requested
+      ///-----------------------------------------------------------------------
+      /// @python_v14 New function added.
       ///
       abortRequested();
 #else

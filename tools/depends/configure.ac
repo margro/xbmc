@@ -5,9 +5,18 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_FILES([target/config.site native/config.site.native Makefile.include target/Toolchain.cmake
                  target/config-binaddons.site target/Toolchain_binaddons.cmake])
 AC_CANONICAL_HOST
+
+# save flags before autotools checks the compiler, since
+# it will automatically include -g in c/cxxflags
+passed_cflags="$CFLAGS"
+passed_ldflags="$LDFLAGS"
+passed_cxxflags="$CXXFLAGS"
+
 m4_include([../../m4/xbmc_arch.m4])
 m4_include([../../m4/ax_cxx_compile_stdcxx_11.m4])
-AX_CXX_COMPILE_STDCXX_11(,[optional])
+AX_CXX_COMPILE_STDCXX_11(,[mandatory])
+c11_flags="$CFLAGS"
+cxx11_flags="$CXXFLAGS"
 
 # check for not same cpu value
 AC_DEFUN([MC_CHECK_NOT_CPU],
@@ -21,6 +30,12 @@ AC_DEFUN([MC_CHECK_NOT_CPU],
       AC_MSG_RESULT([$1 is not $2])
   esac
 ])
+
+AC_ARG_ENABLE([debug],
+  [AS_HELP_STRING([--enable-debug],
+  [enable debugging information (default is yes)])],
+  [use_debug=$enableval],
+  [use_debug=yes])
 
 AC_ARG_WITH([toolchain],
   [AS_HELP_STRING([--with-toolchain],
@@ -59,7 +74,7 @@ AC_ARG_WITH([sdk-path],
 
 AC_ARG_WITH([sdk],
   [AS_HELP_STRING([--with-sdk],
-  [spcify sdk platform version (optional for android). default is android-17])],
+  [spcify sdk platform version (optional for android). default is android-21])],
   [use_sdk=$withval])
 
 AC_ARG_ENABLE([gplv3],
@@ -101,9 +116,6 @@ deps_dir=$use_host
 tool_dir=$build_cpu-$build_os-native
 cross_compiling="yes"
 
-passed_cflags="$CFLAGS"
-passed_ldflags="$LDFLAGS"
-passed_cxxflags="$CXXFLAGS"
 platform_cc=gcc
 platform_cxx=g++
 
@@ -130,7 +142,7 @@ case $host in
     if test "x$use_cpu" = "xauto"; then
       use_cpu="armeabi-v7a"
     fi
-    use_sdk="${use_sdk:-android-17}"
+    use_sdk="${use_sdk:-android-21}"
     deps_dir="$use_host-$use_sdk"
     platform_cflags="-DANDROID -Os -fexceptions"
     if test "x$use_cpu" = "xarmeabi-v7a"; then
@@ -143,11 +155,28 @@ case $host in
     #android builds are always cross
     cross_compiling="yes"
   ;;
+  aarch64*-*linux-android*)
+    if test "x$use_cpu" = "xauto"; then
+      use_cpu="arm64-v8a"
+    fi
+    use_sdk="${use_sdk:-android-21}"
+    deps_dir="$use_host-$use_sdk"
+    platform_cflags="-DANDROID -Os -fexceptions"
+    if test "x$use_cpu" = "xarm64-v8a"; then
+      platform_cflags+=" -march=armv8-a -mtune=cortex-a53"
+    fi
+    platform_ldflags="-L$prefix/$deps_dir/lib/$use_sdk"
+    platform_cxxflags="$platform_cflags -frtti"
+    platform_includes="-I$prefix/$deps_dir/include/$use_sdk"
+    platform_os="android"
+    #android builds are always cross
+    cross_compiling="yes"
+  ;;
   i*86*-linux-android*)
     if test "x$use_cpu" = "xauto"; then
       use_cpu=$host_cpu
     fi
-    use_sdk="${use_sdk:-android-17}"
+    use_sdk="${use_sdk:-android-21}"
     deps_dir="$use_host-$use_sdk"
     platform_cflags="-DANDROID -Os -fexceptions"
     platform_ldflags="-L$prefix/$deps_dir/lib/$use_sdk"
@@ -158,6 +187,18 @@ case $host in
     cross_compiling="yes"
   ;;
   arm*-*-linux-gnu*|arm*-*-linux-uclibc*)
+    if test "$use_platform" = "auto"; then
+      if test "x$use_cpu" = "xauto"; then
+        use_cpu=$host_cpu
+      fi
+      use_toolchain="${use_toolchain:-/usr}"
+      platform_cflags="-Os -fPIC -DPIC"
+      platform_ldflags="-Wl,-rpath-link=$prefix/$deps_dir/lib"
+      platform_cxxflags="$platform_cflags"
+      platform_os="linux"
+    fi
+  ;;
+  aarch64*-*-linux-gnu*|aarch*-*-linux-be*)
     if test "$use_platform" = "auto"; then
       if test "x$use_cpu" = "xauto"; then
         use_cpu=$host_cpu
@@ -538,6 +579,15 @@ if test "$platform_os" == "android"; then
     AC_MSG_ERROR(unable to create $prefix/$deps_dir/lib/$use_sdk. verify that the path and permissions are correct.)
   fi
 fi
+
+if test "$use_debug" = "yes"; then
+  DEBUG_FLAGS="-g -D_DEBUG"
+else
+  DEBUG_FLAGS="-DNDEBUG=1"
+fi
+platform_cflags+="$c11_flags $DEBUG_FLAGS"
+platform_cxxflags+="$cxx11_flags $DEBUG_FLAGS"
+
 
 if test "$platform_os" == "android"; then
 echo -e

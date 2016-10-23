@@ -1689,7 +1689,8 @@ const infomap musicplayer[] =    {{ "title",            MUSICPLAYER_TITLE },
                                   { "channelnumber",    MUSICPLAYER_CHANNEL_NUMBER },
                                   { "subchannelnumber", MUSICPLAYER_SUB_CHANNEL_NUMBER },
                                   { "channelnumberlabel", MUSICPLAYER_CHANNEL_NUMBER_LBL },
-                                  { "channelgroup",     MUSICPLAYER_CHANNEL_GROUP }
+                                  { "channelgroup",     MUSICPLAYER_CHANNEL_GROUP },
+                                  { "dbid", MUSICPLAYER_DBID }
 };
 
 /// \page modules__General__List_of_gui_access
@@ -2120,7 +2121,8 @@ const infomap videoplayer[] =    {{ "title",            VIDEOPLAYER_TITLE },
                                   { "stereoscopicmode", VIDEOPLAYER_STEREOSCOPIC_MODE },
                                   { "canresumelivetv",  VIDEOPLAYER_CAN_RESUME_LIVE_TV },
                                   { "imdbnumber",       VIDEOPLAYER_IMDBNUMBER },
-                                  { "episodename",      VIDEOPLAYER_EPISODENAME }
+                                  { "episodename",      VIDEOPLAYER_EPISODENAME },
+                                  { "dbid", VIDEOPLAYER_DBID }
 };
 
 const infomap player_process[] =
@@ -3826,6 +3828,7 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "dateadded",        LISTITEM_DATE_ADDED },
                                   { "dbtype",           LISTITEM_DBTYPE },
                                   { "dbid",             LISTITEM_DBID },
+                                  { "appearances",      LISTITEM_APPEARANCES },
                                   { "stereoscopicmode", LISTITEM_STEREOSCOPIC_MODE },
                                   { "isstereoscopic",   LISTITEM_IS_STEREOSCOPIC },
                                   { "imdbnumber",       LISTITEM_IMDBNUMBER },
@@ -6093,6 +6096,7 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
   case MUSICPLAYER_CHANNEL_GROUP:
   case MUSICPLAYER_PLAYCOUNT:
   case MUSICPLAYER_LASTPLAYED:
+  case MUSICPLAYER_DBID:
     strLabel = GetMusicLabel(info);
   break;
   case VIDEOPLAYER_TITLE:
@@ -6140,6 +6144,7 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
   case VIDEOPLAYER_PLAYCOUNT:
   case VIDEOPLAYER_LASTPLAYED:
   case VIDEOPLAYER_IMDBNUMBER:
+  case VIDEOPLAYER_DBID:
   case VIDEOPLAYER_EPISODENAME:
     strLabel = GetVideoLabel(info);
   break;
@@ -8722,6 +8727,10 @@ std::string CGUIInfoManager::GetMusicTagLabel(int info, const CFileItem *item)
     return GetItemLabel(item, LISTITEM_PLAYCOUNT);
   case MUSICPLAYER_LASTPLAYED:
     return GetItemLabel(item, LISTITEM_LASTPLAYED);
+  case MUSICPLAYER_DBID:
+    if (m_currentFile->GetMusicInfoTag()->GetDatabaseId() > -1)
+      return StringUtils::Format("%i", m_currentFile->GetMusicInfoTag()->GetDatabaseId());
+    break;
   }
   return "";
 }
@@ -8964,6 +8973,10 @@ std::string CGUIInfoManager::GetVideoLabel(int item)
       break;
     case VIDEOPLAYER_IMDBNUMBER:
       return m_currentFile->GetVideoInfoTag()->GetUniqueID();
+    case VIDEOPLAYER_DBID:
+      if (m_currentFile->GetVideoInfoTag()->m_iDbId > -1)
+        return StringUtils::Format("%i", m_currentFile->GetVideoInfoTag()->m_iDbId);
+      break;
     case VIDEOPLAYER_RATING:
       {
         std::string strRating;
@@ -10497,6 +10510,14 @@ std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int info, std::
         if (dbId > -1)
           return StringUtils::Format("%i", dbId);
       }
+    break;
+  case LISTITEM_APPEARANCES:
+    if (item->HasVideoInfoTag())
+    {
+      int appearances = item->GetVideoInfoTag()->m_relevance;
+      if (appearances > -1)
+        return StringUtils::Format("%i", appearances);
+    }
     break;
   case LISTITEM_STEREOSCOPIC_MODE:
     {

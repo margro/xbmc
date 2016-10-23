@@ -2485,10 +2485,11 @@ bool CMusicDatabase::GetRecentlyPlayedAlbumSongs(const std::string& strBaseDir, 
       return false;
 
     std::string strSQL = PrepareSQL("SELECT songview.*, songartistview.* FROM "
-      "(SELECT idAlbum FROM albumview WHERE albumview.lastplayed IS NOT NULL "
+      "(SELECT idAlbum, lastPlayed FROM albumview WHERE albumview.lastplayed IS NOT NULL "
       "ORDER BY albumview.lastplayed DESC LIMIT %u) as playedalbums "
       "JOIN songview ON songview.idAlbum = playedalbums.idAlbum "
-      "JOIN songartistview ON songview.idSong = songartistview.idSong ", 
+      "JOIN songartistview ON songview.idSong = songartistview.idSong "
+      "ORDER BY playedalbums.lastplayed DESC,songartistview.idsong, songartistview.idRole, songartistview.iOrder",
       g_advancedSettings.m_iMusicLibraryRecentlyAddedItems);
     CLog::Log(LOGDEBUG,"GetRecentlyPlayedAlbumSongs() query: %s", strSQL.c_str());
     if (!m_pDS->query(strSQL)) return false;
@@ -2623,7 +2624,7 @@ bool CMusicDatabase::GetRecentlyAddedAlbumSongs(const std::string& strBaseDir, C
         "(SELECT idAlbum FROM album ORDER BY idAlbum DESC LIMIT %u) AS recentalbums " 
         "JOIN songview ON songview.idAlbum = recentalbums.idAlbum "
         "JOIN songartistview ON songview.idSong = songartistview.idSong "
-        "ORDER BY songview.idAlbum desc, songview.itrack, songartistview.iOrder ",
+        "ORDER BY songview.idAlbum DESC, songview.idSong, songartistview.idRole, songartistview.iOrder ",
         limit ? limit : g_advancedSettings.m_iMusicLibraryRecentlyAddedItems);
     CLog::Log(LOGDEBUG,"GetRecentlyAddedAlbumSongs() query: %s", strSQL.c_str());
     if (!m_pDS->query(strSQL)) return false;
@@ -4258,6 +4259,7 @@ bool CMusicDatabase::GetSongsFullByWhere(const std::string &baseDir, const Filte
     if (artistData)
     { // Get data from song and song_artist tables to fully populate songs with artists
       // All songs now have at least one artist so inner join sufficient
+      // Need guaranteed ordering for dataset processing to extract songs
       if (limited)
         //Apply where clause and limits to songview, then join as mutiple records in result set per song
         strSQL = "SELECT sv.*, songartistview.* "
@@ -4266,6 +4268,7 @@ bool CMusicDatabase::GetSongsFullByWhere(const std::string &baseDir, const Filte
       else
         strSQL = "SELECT songview.*, songartistview.* "
           "FROM songview JOIN songartistview ON songartistview.idsong = songview.idsong " + strSQLExtra;
+      strSQL += " ORDER BY songartistview.idsong, songartistview.idRole, songartistview.iOrder";
     }
     else
       strSQL = "SELECT songview.* FROM songview " + strSQLExtra;
@@ -6281,9 +6284,39 @@ bool CMusicDatabase::GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription
   std::string type = musicUrl.GetType();
   const CUrlOptions::UrlOptions& options = musicUrl.GetOptions();
 
+  // Check for playlist rules first, they may contain role criteria
+  bool hasRoleRules = false;
+  auto option = options.find("xsp");
+  if (option != options.end())
+  {
+    CSmartPlaylist xsp;
+    if (!xsp.LoadFromJson(option->second.asString()))
+      return false;
+
+    std::set<std::string> playlists;
+    std::string xspWhere;
+    xspWhere = xsp.GetWhereClause(*this, playlists);
+    hasRoleRules = xsp.GetType() == "artists" && xspWhere.find("song_artist.idRole = role.idRole") != xspWhere.npos;
+
+    // check if the filter playlist matches the item type
+    if (xsp.GetType() == type ||
+      (xsp.GetGroup() == type && !xsp.IsGroupMixed()))
+    {
+      filter.AppendWhere(xspWhere);
+
+      if (xsp.GetLimit() > 0)
+        sorting.limitEnd = xsp.GetLimit();
+      if (xsp.GetOrder() != SortByNone)
+        sorting.sortBy = xsp.GetOrder();
+      sorting.sortOrder = xsp.GetOrderAscending() ? SortOrderAscending : SortOrderDescending;
+      if (CSettings::GetInstance().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING))
+        sorting.sortAttributes = SortAttributeIgnoreArticle;
+    }
+  }
+
   //Process role options, common to artist and album type filtering
   int idRole = 1; // Default restrict song_artist to "artists" only, no other roles.
-  auto option = options.find("roleid");
+  option = options.find("roleid");
   if (option != options.end())
     idRole = (int)option->second.asInteger();
   else
@@ -6296,6 +6329,12 @@ bool CMusicDatabase::GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription
       else
         idRole = GetRoleByName(option->second.asString());
     }
+  }
+  if (hasRoleRules)
+  {
+    // Get Role from role rule(s) here.
+    // But that requires much change, so for now get all roles as better than none
+    idRole = -1000; //All roles
   }
   
   std::string strRoleSQL; //Role < 0 means all roles, otherwise filter by role
@@ -6338,7 +6377,7 @@ bool CMusicDatabase::GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription
     if (option != options.end())
       albumArtistsOnly = option->second.asBoolean();
 
-    std::string strSQL = "(artistview.idArtist IN ";
+    std::string strSQL = "artistview.idArtist IN ";
     if (idArtist > 0)
       strSQL += PrepareSQL("(%d)", idArtist);
     else if (idAlbum > 0)
@@ -6365,7 +6404,7 @@ bool CMusicDatabase::GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription
         " WHERE song_genre.idGenre = %i AND song_artist.idRole = %i )", idGenre, idRole);
 
       if (idRole < -1) //All artists contributing to songs, all roles.
-        strSQL = PrepareSQL("(artistview.idArtist IN (SELECT song_artist.idArtist FROM song_artist"
+        strSQL = PrepareSQL("artistview.idArtist IN (SELECT song_artist.idArtist FROM song_artist"
         " JOIN song_genre ON song_artist.idSong = song_genre.idSong"
         " WHERE song_genre.idGenre = %i)"
         " OR artistview.idArtist IN"
@@ -6393,21 +6432,21 @@ bool CMusicDatabase::GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription
         strSQL += PrepareSQL("(SELECT song_artist.idArtist FROM song_artist WHERE song_artist.idRole = %i)", idRole);
 
       if (idRole < 0) //All artists contributing to songs, all roles.
-        strSQL = "(artistview.idArtist IN (SELECT song_artist.idArtist FROM song_artist) OR"
-                 " artistview.idArtist IN (SELECT album_artist.idArtist FROM album_artist )";
+        strSQL = "artistview.idArtist IN (SELECT song_artist.idArtist FROM song_artist) OR "
+                 "artistview.idArtist IN (SELECT album_artist.idArtist FROM album_artist)";
     }
+    if (!hasRoleRules)
+      filter.AppendWhere(strSQL);
 
     // remove the null string
-    strSQL += ") and artistview.strArtist != ''";
+    filter.AppendWhere("artistview.strArtist != ''");
 
     // and the various artist entry if applicable
     if (!albumArtistsOnly)
     {
       std::string strVariousArtists = g_localizeStrings.Get(340);
-      strSQL += PrepareSQL(" and artistview.strArtist <> '%s'", strVariousArtists.c_str());
+      filter.AppendWhere(PrepareSQL("artistview.strArtist <> '%s'", strVariousArtists.c_str()));
     }
-
-    filter.AppendWhere(strSQL);
   }
   else if (type == "albums")
   {
@@ -6508,40 +6547,6 @@ bool CMusicDatabase::GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription
         "songview.idSong IN (SELECT song.idSong FROM song JOIN album_artist ON song.idAlbum=album_artist.idAlbum "
         "JOIN artist ON artist.idArtist = album_artist.idArtist WHERE artist.strArtist like '%s')", // album artists
         option->second.asString().c_str(), strRoleSQL.c_str(), option->second.asString().c_str()));
-  }
-
-  option = options.find("xsp");
-  if (option != options.end())
-  {
-    CSmartPlaylist xsp;
-    if (!xsp.LoadFromJson(option->second.asString()))
-      return false;
-
-    // check if the filter playlist matches the item type
-    if (xsp.GetType()  == type ||
-       (xsp.GetGroup() == type && !xsp.IsGroupMixed()))
-    {
-      std::set<std::string> playlists;
-      std::string xspWhere = xsp.GetWhereClause(*this, playlists);
-      // When "artists" type playlist rules include role, need to avoid any conflict with default role = 1 filter clause.
-      // The song_artist clause is provided by the playlist and album artists only setting is over ruled
-      if (type == "artists" && xspWhere.find("song_artist.idRole = role.idRole") != xspWhere.npos)
-      {
-        filter.where.clear();
-        // remove the null string and various artist entry
-        std::string strVariousArtists = g_localizeStrings.Get(340);
-        filter.AppendWhere(PrepareSQL("artistview.strArtist != '' AND artistview.strArtist <> '%s'", strVariousArtists.c_str()));
-      }
-      filter.AppendWhere(xspWhere);
-
-      if (xsp.GetLimit() > 0)
-        sorting.limitEnd = xsp.GetLimit();
-      if (xsp.GetOrder() != SortByNone)
-        sorting.sortBy = xsp.GetOrder();
-      sorting.sortOrder = xsp.GetOrderAscending() ? SortOrderAscending : SortOrderDescending;
-      if (CSettings::GetInstance().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING))
-        sorting.sortAttributes = SortAttributeIgnoreArticle;
-    }
   }
 
   option = options.find("filter");

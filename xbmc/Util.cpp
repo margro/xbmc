@@ -39,6 +39,9 @@
 #endif
 #if defined(TARGET_ANDROID)
 #include "platform/android/bionic_supplement/bionic_supplement.h"
+#include "platform/android/activity/XBMCApp.h"
+#include "platform/android/jni/ApplicationInfo.h"
+#include "CompileInfo.h"
 #endif
 #include <stdlib.h>
 #include <algorithm>
@@ -1433,7 +1436,10 @@ bool CUtil::MakeShortenPath(std::string StrInput, std::string& StrOutput, size_t
 {
   size_t iStrInputSize = StrInput.size();
   if(iStrInputSize <= 0 || iTextMaxLength >= iStrInputSize)
-    return false;
+  {
+    StrOutput = StrInput;
+    return true;
+  }
 
   char cDelim = '\0';
   size_t nGreaterDelim, nPos;
@@ -1778,6 +1784,13 @@ std::string CUtil::ResolveExecutablePath()
     strExecutablePath = "";
   else
     strExecutablePath = buf;
+#elif defined(TARGET_ANDROID)
+  strExecutablePath = CXBMCApp::getApplicationInfo().nativeLibraryDir;
+
+  std::string appName = CCompileInfo::GetAppName();
+  std::string libName = "lib" + appName + ".so";
+  StringUtils::ToLower(libName);
+  strExecutablePath += "/" + libName;
 #else
   /* Get our PID and build the name of the link in /proc */
   pid_t pid = getpid();

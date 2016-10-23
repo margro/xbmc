@@ -62,6 +62,9 @@ CPeripheralBusAndroid::~CPeripheralBusAndroid()
 
 bool CPeripheralBusAndroid::InitializeProperties(CPeripheral* peripheral)
 {
+  if (!CPeripheralBus::InitializeProperties(peripheral))
+    return false;
+
   if (peripheral == nullptr || peripheral->Type() != PERIPHERAL_JOYSTICK)
   {
     CLog::Log(LOGWARNING, "CPeripheralBusAndroid: unknown peripheral");
@@ -106,6 +109,12 @@ bool CPeripheralBusAndroid::InitializeProperties(CPeripheral* peripheral)
   CLog::Log(LOGDEBUG, "CPeripheralBusAndroid: input device \"%s\" with ID %d has %u buttons, %u hats and %u axes",
             joystick->DeviceName().c_str(), deviceId, joystick->ButtonCount(), joystick->HatCount(), joystick->AxisCount());
   return true;
+}
+
+void CPeripheralBusAndroid::Initialise(void)
+{
+  CPeripheralBus::Initialise();
+  TriggerDeviceScan();
 }
 
 void CPeripheralBusAndroid::ProcessEvents()
