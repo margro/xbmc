@@ -25,6 +25,7 @@
 #include "events/EventLog.h"
 #include "events/NotificationEvent.h"
 #include "interfaces/builtins/Builtins.h"
+#include "utils/JobManager.h"
 #include "utils/Variant.h"
 #include "utils/Splash.h"
 #include "LangInfo.h"
@@ -1123,8 +1124,22 @@ bool CApplication::Initialize()
   g_curlInterface.Unload();
 
   // initialize (and update as needed) our databases
-  CSplash::GetInstance().Show(g_localizeStrings.Get(24150));
-  CDatabaseManager::GetInstance().Initialize();
+  CEvent event(true);
+  CJobManager::GetInstance().Submit([&event]() {
+    CDatabaseManager::GetInstance().Initialize();
+    event.Set();
+  });
+  std::string localizedStr = g_localizeStrings.Get(24150);
+  int iDots = 1;
+  while (!event.WaitMSec(1000))
+  {
+    if (CDatabaseManager::GetInstance().m_bIsUpgrading)
+      CSplash::GetInstance().Show(std::string(iDots, ' ') + localizedStr + std::string(iDots, '.'));
+    if (iDots == 3)
+      iDots = 1;
+    else
+      ++iDots;
+  }
   CSplash::GetInstance().Show();
 
   StartServices();
@@ -1139,11 +1154,30 @@ bool CApplication::Initialize()
     g_windowManager.CreateWindows();
 
     m_confirmSkinChange = false;
-    m_incompatibleAddons = CAddonSystemSettings::GetInstance().MigrateAddons([](){
-      CSplash::GetInstance().Show(g_localizeStrings.Get(24151));
+
+    std::vector<std::string> incompatibleAddons;
+    event.Reset();
+    std::atomic<bool> isMigratingAddons(false);
+    CJobManager::GetInstance().Submit([&event, &incompatibleAddons, &isMigratingAddons]() {
+      incompatibleAddons = CAddonSystemSettings::GetInstance().MigrateAddons([&isMigratingAddons]() {
+        isMigratingAddons = true;
+      });
+      event.Set();
     });
-    m_confirmSkinChange = true;
+    localizedStr = g_localizeStrings.Get(24151);
+    iDots = 1;
+    while (!event.WaitMSec(1000))
+    {
+      if (isMigratingAddons)
+        CSplash::GetInstance().Show(std::string(iDots, ' ') + localizedStr + std::string(iDots, '.'));
+      if (iDots == 3)
+        iDots = 1;
+      else
+        ++iDots;
+    }
     CSplash::GetInstance().Show();
+    m_incompatibleAddons = incompatibleAddons;
+    m_confirmSkinChange = true;
 
     std::string defaultSkin = ((const CSettingString*)CSettings::GetInstance().GetSetting(CSettings::SETTING_LOOKANDFEEL_SKIN))->GetDefault();
     if (!LoadSkin(CSettings::GetInstance().GetString(CSettings::SETTING_LOOKANDFEEL_SKIN)))
@@ -1625,19 +1659,6 @@ bool CApplication::LoadSkin(const std::string& skinID)
     skin = std::static_pointer_cast<ADDON::CSkinInfo>(addon);
   }
 
-  // start/prepare the skin
-  skin->Start();
-
-  // migrate any skin-specific settings that are still stored in guisettings.xml
-  CSkinSettings::GetInstance().MigrateSettings(skin);
-
-  // check if the skin has been properly loaded and if it has a Home.xml
-  if (!skin->HasSkinFile("Home.xml"))
-  {
-    CLog::Log(LOGERROR, "failed to load requested skin '%s'", skin->ID().c_str());
-    return false;
-  }
-
   bool bPreviousPlayingState=false;
   bool bPreviousRenderingState=false;
   if (m_pPlayer->IsPlayingVideo())
@@ -1665,6 +1686,18 @@ bool CApplication::LoadSkin(const std::string& skinID)
   g_windowManager.GetActiveModelessWindows(currentModelessWindows);
 
   UnloadSkin();
+
+  skin->Start();
+
+  // migrate any skin-specific settings that are still stored in guisettings.xml
+  CSkinSettings::GetInstance().MigrateSettings(skin);
+
+  // check if the skin has been properly loaded and if it has a Home.xml
+  if (!skin->HasSkinFile("Home.xml"))
+  {
+    CLog::Log(LOGERROR, "failed to load requested skin '%s'", skin->ID().c_str());
+    return false;
+  }
 
   CLog::Log(LOGINFO, "  load skin from: %s (version: %s)", skin->Path().c_str(), skin->Version().asString().c_str());
   g_SkinInfo = skin;
@@ -2728,7 +2761,7 @@ void CApplication::FrameMove(bool processEvents, bool processGUI)
     if (processGUI && m_renderGUI)
     {
       m_pInertialScrollingHandler->ProcessInertialScroll(frameTime);
-      CSeekHandler::GetInstance().Process();
+      CSeekHandler::GetInstance().FrameMove();
     }
 
     // Open the door for external calls e.g python exactly here.
