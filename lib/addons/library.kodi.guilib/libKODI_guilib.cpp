@@ -476,7 +476,6 @@ DLLEXPORT void GUI_control_release_spin(CAddonGUISpinControl* p)
 
 CAddonGUISpinControl::CAddonGUISpinControl(void *hdl, void *cb, CAddonGUIWindow *window, int controlId)
  : m_Window(window)
- , m_ControlId(controlId)
 {
   m_Handle = hdl;
   m_cb = cb;
@@ -536,7 +535,6 @@ DLLEXPORT void GUI_control_release_radiobutton(CAddonGUIRadioButton* p)
 
 CAddonGUIRadioButton::CAddonGUIRadioButton(void *hdl, void *cb, CAddonGUIWindow *window, int controlId)
  : m_Window(window)
- , m_ControlId(controlId)
  , m_Handle(hdl)
  , m_cb(cb)
 {
@@ -585,7 +583,6 @@ DLLEXPORT void GUI_control_release_progress(CAddonGUIProgressControl* p)
 
 CAddonGUIProgressControl::CAddonGUIProgressControl(void *hdl, void *cb, CAddonGUIWindow *window, int controlId)
  : m_Window(window)
- , m_ControlId(controlId)
  , m_Handle(hdl)
  , m_cb(cb)
 {
@@ -644,7 +641,6 @@ DLLEXPORT void GUI_control_release_slider(CAddonGUISliderControl* p)
 
 CAddonGUISliderControl::CAddonGUISliderControl(void *hdl, void *cb, CAddonGUIWindow *window, int controlId)
  : m_Window(window)
- , m_ControlId(controlId)
  , m_Handle(hdl)
  , m_cb(cb)
 {
@@ -745,7 +741,6 @@ DLLEXPORT void GUI_control_release_settings_slider(CAddonGUISettingsSliderContro
 
 CAddonGUISettingsSliderControl::CAddonGUISettingsSliderControl(void *hdl, void *cb, CAddonGUIWindow *window, int controlId)
  : m_Window(window)
- , m_ControlId(controlId)
  , m_Handle(hdl)
  , m_cb(cb)
 {
@@ -962,15 +957,14 @@ DLLEXPORT bool GUI_control_rendering_dirty(GUIHANDLE handle)
 }
 
 CAddonGUIRenderingControl::CAddonGUIRenderingControl(void *hdl, void *cb, CAddonGUIWindow *window, int controlId)
-  : m_Window(window)
-  , m_ControlId(controlId)
-  , m_Handle(hdl)
-  , m_cb(cb)
-  , m_cbhdl(nullptr)
+  : m_cbhdl(nullptr)
   , CBCreate(nullptr)
   , CBRender(nullptr)
   , CBStop(nullptr)
   , CBDirty(nullptr)
+  , m_Window(window)
+  , m_Handle(hdl)
+  , m_cb(cb)
 {
   m_RenderingHandle = ((CB_GUILib*)m_cb)->Window_GetControl_RenderAddon(((AddonCB*)m_Handle)->addonData, m_Window->m_WindowHandle, controlId);
 }

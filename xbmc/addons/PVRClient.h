@@ -19,6 +19,7 @@
  *
  */
 
+#include <exception>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,6 +30,7 @@
 #include "network/ZeroconfBrowser.h"
 
 #include "pvr/channels/PVRChannel.h"
+#include "pvr/PVRTypes.h"
 
 namespace EPG
 {
@@ -51,7 +53,6 @@ namespace PVR
   typedef std::shared_ptr<CPVRClient> PVR_CLIENT;
   #define PVR_INVALID_CLIENT_ID (-2)
 
-  typedef std::shared_ptr<CPVRTimerType> CPVRTimerTypePtr;
   typedef std::vector<CPVRTimerTypePtr>  CPVRTimerTypes;
 
   /*!
@@ -515,7 +516,7 @@ namespace PVR
      * @return True if the seek operation was possible
      * @remarks Optional, and only used if addon has its own demuxer. Return False if this add-on won't provide this function.
      */
-    bool SeekTime(int time, bool backwards, double *startpts);
+    bool SeekTime(double time, bool backwards, double *startpts);
 
     /*!
      * Notify the pvr addon/demuxer that XBMC wishes to change playback speed

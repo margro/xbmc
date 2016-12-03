@@ -25,6 +25,7 @@
 #include "addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_utils.hpp"
 #include "input/joysticks/JoystickTypes.h"
 #include "peripherals/PeripheralTypes.h"
+#include "threads/CriticalSection.h"
 
 #include <map>
 #include <memory>
@@ -41,6 +42,7 @@ namespace PERIPHERALS
   class CPeripheral;
   class CPeripheralJoystick;
 
+  typedef std::vector<ADDON::DriverPrimitive> PrimitiveVector;
   typedef std::map<JOYSTICK::FeatureName, ADDON::JoystickFeature> FeatureMap;
 
   class CPeripheralAddon : public ADDON::CAddonDll<DllPeripheral, PeripheralAddon, PERIPHERAL_PROPERTIES>
@@ -84,7 +86,10 @@ namespace PERIPHERALS
     bool HasButtonMaps(void) const { return m_bProvidesButtonMaps; }
     bool GetFeatures(const CPeripheral* device, const std::string& strControllerId, FeatureMap& features);
     bool MapFeature(const CPeripheral* device, const std::string& strControllerId, const ADDON::JoystickFeature& feature);
+    bool GetIgnoredPrimitives(const CPeripheral* device, PrimitiveVector& primitives);
+    bool SetIgnoredPrimitives(const CPeripheral* device, const PrimitiveVector& primitives);
     void SaveButtonMap(const CPeripheral* device);
+    void RevertButtonMap(const CPeripheral* device);
     void ResetButtonMap(const CPeripheral* device, const std::string& strControllerId);
     void PowerOffJoystick(unsigned int index);
     //@}
@@ -102,6 +107,8 @@ namespace PERIPHERALS
     virtual bool CheckAPIVersion(void) override;
 
   private:
+    void UnregisterButtonMap(CPeripheral* device);
+
     /*!
      * @brief Helper functions
      */
@@ -145,6 +152,7 @@ namespace PERIPHERALS
 
     /* @brief Button map observers */
     std::vector<std::pair<CPeripheral*, JOYSTICK::IButtonMap*> > m_buttonMaps;
+    CCriticalSection m_buttonMapMutex;
 
     /* @brief Thread synchronization */
     CCriticalSection    m_critSection;

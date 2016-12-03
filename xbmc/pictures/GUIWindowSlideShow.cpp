@@ -22,6 +22,7 @@
 #include "system.h"
 #include "GUIWindowSlideShow.h"
 #include "Application.h"
+#include "ServiceBroker.h"
 #include "messaging/ApplicationMessenger.h"
 #include "utils/URIUtils.h"
 #include "URL.h"
@@ -68,7 +69,6 @@ using namespace KODI::MESSAGING;
 #define ROTATION_SNAP_RANGE              10.0f
 
 #define LABEL_ROW1                          10
-#define LABEL_ROW2                          11
 #define CONTROL_PAUSE                       13
 
 static float zoomamount[10] = { 1.0f, 1.2f, 1.5f, 2.0f, 2.8f, 4.0f, 6.0f, 9.0f, 13.5f, 20.0f };
@@ -267,6 +267,7 @@ void CGUIWindowSlideShow::OnDeinitWindow(int nextWindowID)
     m_Image[1].Close();
   }
   g_infoManager.ResetCurrentSlide();
+  m_bSlideShow = false;
 
   CGUIDialog::OnDeinitWindow(nextWindowID);
 }
@@ -633,6 +634,9 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
 
 void CGUIWindowSlideShow::Render()
 {
+  if (m_slides.empty())
+    return;
+
   g_graphicsContext.Clear(0xff000000);
 
   if (m_slides.at(m_iCurrentSlide)->IsVideo())
@@ -917,7 +921,7 @@ bool CGUIWindowSlideShow::OnMessage(CGUIMessage& message)
   {
   case GUI_MSG_WINDOW_INIT:
     {
-      m_Resolution = (RESOLUTION) CSettings::GetInstance().GetInt(CSettings::SETTING_PICTURES_DISPLAYRESOLUTION);
+      m_Resolution = (RESOLUTION) CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PICTURES_DISPLAYRESOLUTION);
 
       //FIXME: Use GUI resolution for now
       if (0 /*m_Resolution != CDisplaySettings::GetInstance().GetCurrentResolution() && m_Resolution != INVALID && m_Resolution!=AUTORES*/)
@@ -1104,7 +1108,7 @@ bool CGUIWindowSlideShow::PlayVideo()
 CSlideShowPic::DISPLAY_EFFECT CGUIWindowSlideShow::GetDisplayEffect(int iSlideNumber) const
 {
   if (m_bSlideShow && !m_bPause && !m_slides.at(iSlideNumber)->IsVideo())
-    return CSettings::GetInstance().GetBool(CSettings::SETTING_SLIDESHOW_DISPLAYEFFECTS) ? CSlideShowPic::EFFECT_RANDOM : CSlideShowPic::EFFECT_NONE;
+    return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SLIDESHOW_DISPLAYEFFECTS) ? CSlideShowPic::EFFECT_RANDOM : CSlideShowPic::EFFECT_NONE;
   else
     return CSlideShowPic::EFFECT_NO_TIMEOUT;
 }
@@ -1211,7 +1215,7 @@ void CGUIWindowSlideShow::RunSlideShow(const std::string &strPath,
     bRandom = bNotRandom = false;
 
   // NotRandom overrides the window setting
-  if ((!bNotRandom && CSettings::GetInstance().GetBool(CSettings::SETTING_SLIDESHOW_SHUFFLE)) || bRandom)
+  if ((!bNotRandom && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SLIDESHOW_SHUFFLE)) || bRandom)
     Shuffle();
 
   if (!beginSlidePath.empty())

@@ -137,9 +137,11 @@ install(FILES ${CORE_SOURCE_DIR}/privacy-policy.txt
         COMPONENT kodi)
 
 # Install kodi-tools-texturepacker
-install(PROGRAMS ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/texturepacker/TexturePacker
-        DESTINATION ${bindir}
-        COMPONENT kodi-tools-texturepacker)
+if(NOT WITH_TEXTUREPACKER)
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/texturepacker/TexturePacker
+          DESTINATION ${bindir}
+          COMPONENT kodi-tools-texturepacker)
+endif()
 
 # Install kodi-addon-dev headers
 install(FILES ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_vfs_types.h
@@ -152,12 +154,14 @@ install(FILES ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kod
               ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libXBMC_addon.h
               ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libXBMC_codec.h
               ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libXBMC_pvr.h
+              ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h
               ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_addon_cpp_dll.h
               ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_addon_dll.h
               ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_addon_types.h
               ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_codec_types.h
               ${CORE_SOURCE_DIR}/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h
               ${CORE_SOURCE_DIR}/xbmc/filesystem/IFileTypes.h
+              ${CORE_SOURCE_DIR}/xbmc/input/XBMC_vkeys.h
         DESTINATION ${includedir}/${APP_NAME_LC}
         COMPONENT kodi-addon-dev)
 
@@ -309,6 +313,14 @@ install(FILES ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kod
               ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_utils.hpp
         DESTINATION ${includedir}/${APP_NAME_LC}
         COMPONENT kodi-peripheral-dev)
+
+# Install kodi-game-dev
+install(FILES ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_callbacks.h
+              ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h
+              ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
+        DESTINATION ${includedir}/${APP_NAME_LC}
+        COMPONENT kodi-game-dev)
+
 
 # Install XBT skin files
 foreach(texture ${XBT_FILES})

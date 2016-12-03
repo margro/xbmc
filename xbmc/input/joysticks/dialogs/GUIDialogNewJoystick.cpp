@@ -19,6 +19,7 @@
  */
 
 #include "GUIDialogNewJoystick.h"
+#include "ServiceBroker.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
 #include "messaging/helpers/DialogHelper.h"
@@ -37,9 +38,9 @@ void CGUIDialogNewJoystick::ShowAsync()
 
   if (IsRunning())
     bShow = false;
-  else if (!CSettings::GetInstance().GetBool(CSettings::SETTING_INPUT_ASKNEWCONTROLLERS))
+  else if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_ASKNEWCONTROLLERS))
     bShow = false;
-  else if (g_windowManager.GetActiveWindow() == WINDOW_DIALOG_GAME_CONTROLLERS)
+  else if (g_windowManager.IsWindowActive(WINDOW_DIALOG_GAME_CONTROLLERS, false))
     bShow = false;
 
   if (bShow)
@@ -58,6 +59,6 @@ void CGUIDialogNewJoystick::Process()
   }
   else
   {
-    CSettings::GetInstance().SetBool(CSettings::SETTING_INPUT_ASKNEWCONTROLLERS, false);
+    CServiceBroker::GetSettings().SetBool(CSettings::SETTING_INPUT_ASKNEWCONTROLLERS, false);
   }
 }

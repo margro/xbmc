@@ -137,8 +137,8 @@ public:
 
 class DllLibAmCodec : public DllDynamic, DllLibamCodecInterface
 {
-  // libamcodec is static linked into libamplayer.so or libamcodec.so
-  DECLARE_DLL_WRAPPER(DllLibAmCodec, "libamplayer.so")
+  // libamcodec is static linked into libamcodec.so
+  DECLARE_DLL_WRAPPER(DllLibAmCodec, "libamcodec.so")
 
   DEFINE_METHOD1(int, codec_init,               (codec_para_t *p1))
   DEFINE_METHOD1(int, codec_close,              (codec_para_t *p1))
@@ -1387,11 +1387,7 @@ CAMLCodec::CAMLCodec()
   memset(am_private, 0, sizeof(am_private_t));
   m_dll = new DllLibAmCodec;
   if(!m_dll->Load())
-  {
-    CLog::Log(LOGWARNING, "CAMLCodec::CAMLCodec libamplayer.so not found, trying libamcodec.so instead");
-    m_dll->SetFile("libamcodec.so");
-    m_dll->Load();
-  }
+    CLog::Log(LOGWARNING, "CAMLCodec::CAMLCodec libamcodec.so not found");
   am_private->m_dll = m_dll;
   am_private->vcodec.handle             = -1; //init to invalid
   am_private->vcodec.cntl_handle        = -1;
@@ -1497,10 +1493,11 @@ bool CAMLCodec::OpenDecoder(CDVDStreamInfo &hints)
     am_private->video_rotation_degree = 3;
   // handle extradata
   am_private->video_format      = codecid_to_vformat(hints.codec);
-  if (am_private->video_format == VFORMAT_H264) {
-      if (hints.width > 1920 || hints.height > 1088) {
-        am_private->video_format = VFORMAT_H264_4K2K;
-      }
+  if ((am_private->video_format == VFORMAT_H264)
+    && (hints.width > 1920 || hints.height > 1088)
+    && (aml_support_h264_4k2k() == AML_HAS_H264_4K2K))
+  {
+    am_private->video_format = VFORMAT_H264_4K2K;
   }
   switch (am_private->video_format)
   {

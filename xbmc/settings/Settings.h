@@ -236,7 +236,6 @@ public:
   static const std::string SETTING_MUSICPLAYER_REPLAYGAINTYPE;
   static const std::string SETTING_MUSICPLAYER_REPLAYGAINPREAMP;
   static const std::string SETTING_MUSICPLAYER_REPLAYGAINNOGAINPREAMP;
-  static const std::string SETTING_MUSICPLAYER_REPLAYGAINAVOIDCLIPPING;
   static const std::string SETTING_MUSICPLAYER_CROSSFADE;
   static const std::string SETTING_MUSICPLAYER_CROSSFADEALBUMTRACKS;
   static const std::string SETTING_MUSICPLAYER_VISUALISATION;
@@ -379,6 +378,18 @@ public:
   static const std::string SETTING_SOURCE_VIDEOS;
   static const std::string SETTING_SOURCE_MUSIC;
   static const std::string SETTING_SOURCE_PICTURES;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERS;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_1;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_2;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_3;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_4;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_5;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_6;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_7;
+  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_8;
+  static const std::string SETTING_GAMES_ENABLE;
+  static const std::string SETTING_GAMES_ENABLEREWIND;
+  static const std::string SETTING_GAMES_REWINDTIME;
 
   /*!
    \brief Creates a new settings wrapper around a new settings manager.
@@ -388,13 +399,6 @@ public:
    */
   CSettings();
   virtual ~CSettings();
-
-  /*!
-   \brief Returns a "global" settings wrapper which can be used from anywhere.
-
-   \return "global" settings wrapper
-   */
-  static CSettings& GetInstance();
 
   CSettingsManager* GetSettingsManager() const { return m_settingsManager; }
 
@@ -601,10 +605,14 @@ private:
   void InitializeVisibility();
   void InitializeDefaults();
   void InitializeOptionFillers();
+  void UninitializeOptionFillers();
   void InitializeConditions();
   void InitializeISettingsHandlers();
+  void UninitializeISettingsHandlers();
   void InitializeISubSettings();
+  void UninitializeISubSettings();
   void InitializeISettingCallbacks();
+  void UninitializeISettingCallbacks();
   bool Reset();
 
   bool m_initialized;

@@ -22,6 +22,7 @@
 
 #include <utility>
 
+#include "ServiceBroker.h"
 #include "epg/EpgContainer.h"
 #include "epg/EpgInfoTag.h"
 #include "FileItem.h"
@@ -104,7 +105,7 @@ void CPVRRecordings::GetSubDirectories(const CPVRRecordingsPath &recParentPath, 
     if (current->IsRadio() != bRadio)
       continue;
 
-    const std::string strCurrent = recParentPath.GetSubDirectoryPath(current->m_strDirectory);
+    const std::string strCurrent(recParentPath.GetUnescapedSubDirectoryPath(current->m_strDirectory));
     if (strCurrent.empty())
       continue;
 
@@ -139,9 +140,9 @@ void CPVRRecordings::GetSubDirectories(const CPVRRecordingsPath &recParentPath, 
       unwatchedFolders.insert(pFileItem);
   }
 
-  // Remove the watched overlay from folders containing unwatched entries
+  // Change the watched overlay to unwatched for folders containing unwatched entries
   for (auto item : unwatchedFolders)
-    item->SetOverlayImage(CGUIListItem::ICON_OVERLAY_WATCHED, true);
+    item->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, false);
 }
 
 int CPVRRecordings::Load(void)
@@ -288,7 +289,7 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
   }
   else
   {
-    bGrouped = CSettings::GetInstance().GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
+    bGrouped = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
   }
 
   CPVRRecordingsPath recPath(url.GetWithoutOptions());
@@ -296,7 +297,7 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
   {
     // Get the directory structure if in non-flatten mode
     // Deleted view is always flatten. So only for an active view
-    std::string strDirectory(recPath.GetDirectoryPath());
+    std::string strDirectory(recPath.GetUnescapedDirectoryPath());
     if (!recPath.IsDeleted() && bGrouped)
       GetSubDirectories(recPath, &items);
 
@@ -338,14 +339,6 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
 
       items.Add(pFileItem);
     }
-  }
-
-  if (items.IsEmpty())
-  {
-    // Note: Do not change the ".." label. It has very special meaning/logic.
-    //       CFileItem::IsParentFolder() and and other code depends on this.
-    const CFileItemPtr item(new CFileItem(".."));
-    items.Add(item);
   }
 
   return recPath.IsValid();

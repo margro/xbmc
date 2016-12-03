@@ -14,6 +14,7 @@
 include(CheckCXXSourceCompiles)
 include(CheckSymbolExists)
 include(CheckFunctionExists)
+include(CheckIncludeFile)
 
 # Macro to check if a given type exists in a given header
 # Arguments:
@@ -71,6 +72,15 @@ if(CMAKE_TOOLCHAIN_FILE)
   endif()
 endif()
 
+# While CMAKE_CROSSCOMPILING is set unconditionally if there's a toolchain file,
+# this variable is set if we can execute build artefacts on the host system (for example unit tests).
+if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL CMAKE_SYSTEM_PROCESSOR AND
+   CMAKE_HOST_SYSTEM_NAME STREQUAL CMAKE_SYSTEM_NAME)
+  set(CORE_HOST_IS_TARGET TRUE)
+else()
+  set(CORE_HOST_IS_TARGET FALSE)
+endif()
+
 # Main cpp
 set(CORE_MAIN_SOURCE ${CORE_SOURCE_DIR}/xbmc/platform/posix/main.cpp)
 
@@ -88,6 +98,7 @@ message(STATUS "Core system type: ${CORE_SYSTEM_NAME}")
 message(STATUS "Platform: ${PLATFORM}")
 message(STATUS "CPU: ${CPU}, ARCH: ${ARCH}")
 message(STATUS "Cross-Compiling: ${CMAKE_CROSSCOMPILING}")
+message(STATUS "Execute build artefacts on host: ${CORE_HOST_IS_TARGET}")
 
 check_type(string std::u16string HAVE_STD__U16_STRING)
 check_type(string std::u32string HAVE_STD__U32_STRING)
@@ -99,6 +110,10 @@ check_symbol_exists(PRIdMAX inttypes.h HAVE_INTTYPES_H)
 check_builtin("long* temp=0; long ret=__sync_add_and_fetch(temp, 1)" HAS_BUILTIN_SYNC_ADD_AND_FETCH)
 check_builtin("long* temp=0; long ret=__sync_sub_and_fetch(temp, 1)" HAS_BUILTIN_SYNC_SUB_AND_FETCH)
 check_builtin("long* temp=0; long ret=__sync_val_compare_and_swap(temp, 1, 1)" HAS_BUILTIN_SYNC_VAL_COMPARE_AND_SWAP)
+check_include_file(sys/inotify.h HAVE_INOTIFY)
+if(HAVE_INOTIFY)
+  list(APPEND SYSTEM_DEFINES -DHAVE_INOTIFY=1)
+endif()
 if(HAVE_POSIX_FADVISE)
   list(APPEND SYSTEM_DEFINES -DHAVE_POSIX_FADVISE=1)
 endif()

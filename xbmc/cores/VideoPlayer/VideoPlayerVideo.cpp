@@ -19,6 +19,7 @@
  */
 
 #include "system.h"
+#include "ServiceBroker.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "windowing/WindowingFactory.h"
 #include "settings/AdvancedSettings.h"
@@ -167,8 +168,8 @@ void CVideoPlayerVideo::OpenStream(CDVDStreamInfo &hint, CDVDVideoCodec* codec)
   }
 
   m_pullupCorrection.ResetVFRDetection();
-  m_bCalcFrameRate = CSettings::GetInstance().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK) ||
-                     CSettings::GetInstance().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF;
+  m_bCalcFrameRate = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEDISPLAYASCLOCK) ||
+                     CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF;
   ResetFrameRateCalc();
 
   m_iDroppedRequest = 0;
@@ -846,15 +847,15 @@ int CVideoPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
   if (pPicture->iFlags & DVP_FLAG_INTERLACED)
   {
     deintMethod = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod;
-    if (m_processInfo.Supports(deintMethod))
+    if (!m_processInfo.Supports(deintMethod))
+      deintMethod = m_processInfo.GetDeinterlacingMethodDefault();
+    if (deintMethod != EINTERLACEMETHOD::VS_INTERLACEMETHOD_NONE)
     {
       if (pPicture->iFlags & DVP_FLAG_TOP_FIELD_FIRST)
         mDisplayField = FS_TOP;
       else
         mDisplayField = FS_BOT;
     }
-    else
-      deintMethod = EINTERLACEMETHOD::VS_INTERLACEMETHOD_NONE;
   }
 
   int timeToDisplay = DVD_TIME_TO_MSEC(pts - iPlayingClock);

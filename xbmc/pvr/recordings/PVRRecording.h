@@ -35,25 +35,20 @@
  *
  */
 
-#include <string>
-#include <memory>
-#include <vector>
-
 #include "XBDateTime.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "video/VideoInfoTag.h"
+
+#include "pvr/PVRTypes.h"
+
+#include <string>
+#include <vector>
 
 class CVideoDatabase;
 class CVariant;
 
 namespace PVR
 {
-  class CPVRRecording;
-  typedef std::shared_ptr<PVR::CPVRRecording> CPVRRecordingPtr;
-
-  class CPVRChannel;
-  typedef std::shared_ptr<PVR::CPVRChannel> CPVRChannelPtr;
-
   /*!
    * @brief Representation of a CPVRRecording unique ID.
    */
@@ -236,6 +231,12 @@ namespace PVR
      * @note Returns an empty string if no Episode Name was provided by the PVR client
      */
     std::string EpisodeName(void) const { return m_strShowTitle; };
+
+    /*!
+     * @brief check whether this recording is currently in progress (according to its start time and duration)
+     * @return true if the recording is in progress, false otherwise
+     */
+    bool IsInProgress() const;
 
   private:
     CDateTime    m_recordingTime; /*!< start time of the recording */
