@@ -51,16 +51,21 @@ namespace PVR
 {
   class CPVRClient;
   class CPVRClients;
+  typedef std::shared_ptr<CPVRClients> CPVRClientsPtr;
   class CPVRChannel;
   typedef std::shared_ptr<CPVRChannel> CPVRChannelPtr;
   class CPVRChannelGroupsContainer;
+  typedef std::shared_ptr<CPVRChannelGroupsContainer> CPVRChannelGroupsContainerPtr;
   class CPVRChannelGroup;
   class CPVRRecordings;
+  typedef std::shared_ptr<CPVRRecordings> CPVRRecordingsPtr;
   class CPVRTimers;
+  typedef std::shared_ptr<CPVRTimers> CPVRTimersPtr;
   class CPVRTimerInfoTag;
   typedef std::shared_ptr<CPVRTimerInfoTag> CPVRTimerInfoTagPtr;
   class CPVRGUIInfo;
   class CPVRDatabase;
+  typedef std::shared_ptr<CPVRDatabase> CPVRDatabasePtr;
   class CGUIWindowPVRCommon;
 
   enum PlaybackType
@@ -84,6 +89,26 @@ namespace PVR
   #define g_PVRClients       g_PVRManager.Clients()
 
   typedef std::shared_ptr<PVR::CPVRChannelGroup> CPVRChannelGroupPtr;
+
+  class CPVRManagerJobQueue
+  {
+  public:
+    CPVRManagerJobQueue();
+
+    void Start();
+    void Stop();
+    void Clear();
+
+    void AppendJob(CJob * job);
+    void ExecutePendingJobs();
+    bool WaitForJobs(unsigned int milliSeconds);
+
+  private:
+    CCriticalSection m_critSection;
+    CEvent m_triggerEvent;
+    std::vector<CJob *> m_pendingUpdates;
+    bool m_bStopped;
+  };
 
   class CPVRManager : public ISettingCallback, private CThread, public Observable, public ANNOUNCEMENT::IAnnouncer
   {
@@ -130,25 +155,25 @@ private:
      * @brief Get the channel groups container.
      * @return The groups container.
      */
-    CPVRChannelGroupsContainer *ChannelGroups(void) const { return m_channelGroups.get(); }
+    CPVRChannelGroupsContainerPtr ChannelGroups(void) const;
 
     /*!
      * @brief Get the recordings container.
      * @return The recordings container.
      */
-    CPVRRecordings *Recordings(void) const { return m_recordings.get(); }
+    CPVRRecordingsPtr Recordings(void) const;
 
     /*!
      * @brief Get the timers container.
      * @return The timers container.
      */
-    CPVRTimers *Timers(void) const { return m_timers.get(); }
+    CPVRTimersPtr Timers(void) const;
 
     /*!
      * @brief Get the timers container.
      * @return The timers container.
      */
-    CPVRClients *Clients(void) const { return m_addons.get(); }
+    CPVRClientsPtr Clients(void) const;
 
     /*!
      * @brief Init PVRManager.
@@ -161,20 +186,25 @@ private:
     void Reinit(void);
 
     /*!
-     * @brief Stop the PVRManager and destroy all objects it created.
+     * @brief Stop PVRManager.
      */
     void Stop(void);
 
     /*!
-     * @brief Delete PVRManager's objects.
+     * @brief Stop PVRManager, unload data.
      */
-    void Cleanup(void);
+    void Unload();
+
+    /*!
+     * @brief Stop PVRManager, unload data, unload addons.
+     */
+    void Shutdown();
 
     /*!
      * @brief Get the TV database.
      * @return The TV database.
      */
-    CPVRDatabase *GetTVDatabase(void) const { return m_database; }
+    CPVRDatabasePtr GetTVDatabase(void) const;
 
     /*!
      * @brief Get a GUIInfoManager character string.
@@ -616,6 +646,11 @@ private:
     void ResetProperties(void);
 
     /*!
+     * @brief Destroy PVRManager's objects.
+     */
+    void Clear(void);
+
+    /*!
      * @brief Called by ChannelUp() and ChannelDown() to perform a channel switch.
      * @param iNewChannelNumber The new channel number after the switch.
      * @param bPreview Preview window if true.
@@ -629,17 +664,6 @@ private:
      * @return True if playback was continued, false otherwise.
      */
     bool ContinueLastChannel(void);
-
-    void ExecutePendingJobs(void);
-
-    bool IsJobPending(const char *strJobName) const;
-
-    /*!
-     * @brief Adds the job to the list of pending jobs unless an identical
-     * job is already queued
-     * @param job the job
-     */
-    void QueueJob(CJob *job);
 
     enum ManagerState
     {
@@ -661,19 +685,17 @@ private:
 
     /** @name containers */
     //@{
-    std::unique_ptr<CPVRChannelGroupsContainer>    m_channelGroups;               /*!< pointer to the channel groups container */
-    std::unique_ptr<CPVRRecordings>                m_recordings;                  /*!< pointer to the recordings container */
-    std::unique_ptr<CPVRTimers>                    m_timers;                      /*!< pointer to the timers container */
-    std::unique_ptr<CPVRClients>                   m_addons;                      /*!< pointer to the pvr addon container */
-    std::unique_ptr<CPVRGUIInfo>                   m_guiInfo;                     /*!< pointer to the guiinfo data */
+    CPVRChannelGroupsContainerPtr  m_channelGroups;               /*!< pointer to the channel groups container */
+    CPVRRecordingsPtr              m_recordings;                  /*!< pointer to the recordings container */
+    CPVRTimersPtr                  m_timers;                      /*!< pointer to the timers container */
+    CPVRClientsPtr                 m_addons;                      /*!< pointer to the pvr addon container */
+    std::unique_ptr<CPVRGUIInfo>   m_guiInfo;                     /*!< pointer to the guiinfo data */
     //@}
 
-    CCriticalSection                m_critSectionTriggers;         /*!< critical section for triggered updates */
-    CEvent                          m_triggerEvent;                /*!< triggers an update */
-    std::vector<CJob *>             m_pendingUpdates;              /*!< vector of pending pvr updates */
+    CPVRManagerJobQueue             m_pendingUpdates;              /*!< vector of pending pvr updates */
 
     CFileItem *                     m_currentFile;                 /*!< the PVR file that is currently playing */
-    CPVRDatabase *                  m_database;                    /*!< the database for all PVR related data */
+    CPVRDatabasePtr                 m_database;                    /*!< the database for all PVR related data */
     CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
     bool                            m_bFirstStart;                 /*!< true when the PVR manager was started first, false otherwise */
     bool                            m_bIsSwitchingChannels;        /*!< true while switching channels */
@@ -683,6 +705,8 @@ private:
     CCriticalSection                m_managerStateMutex;
     ManagerState                    m_managerState;
     std::unique_ptr<CStopWatch>     m_parentalTimer;
+
+    CCriticalSection                m_startStopMutex; // mutex for protecting pvr manager's start/restart/stop sequence */
 
     std::atomic_bool m_isChannelPreview;
     CEventSource<PVREvent> m_events;

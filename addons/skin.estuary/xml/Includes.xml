@@ -110,7 +110,7 @@
 	</include>
 	<include name="InfoList">
 		<param name="item_label">$INFO[ListItem.Year,[COLOR button_focus],[/COLOR]  -  ]$INFO[ListItem.Label]</param>
-		<param name="path">$INFO[ListItem.Path]</param>
+		<param name="path">$VAR[InfoListPathVar]</param>
 		<param name="item_height">40</param>
 		<param name="bottom">100</param>
 		<param name="width">1152</param>
@@ -118,12 +118,14 @@
 		<param name="font">font13</param>
 		<param name="sortby"></param>
 		<param name="sortorder">ascending</param>
+		<param name="visible">true</param>
 		<definition>
 			<control type="panel" id="$PARAM[list_id]">
 				<top>0</top>
 				<width>$PARAM[width]</width>
 				<bottom>$PARAM[bottom]</bottom>
 				<orientation>vertical</orientation>
+				<visible>$PARAM[visible]</visible>
 				<focusedlayout height="$PARAM[item_height]" width="$PARAM[width]">
 					<control type="label">
 						<left>10</left>
@@ -202,7 +204,7 @@
 				<control type="label">
 					<left>82</left>
 					<top>3</top>
-					<width>388</width>
+					<right>20</right>
 					<height>40</height>
 					<font>font12</font>
 					<aligny>center</aligny>
@@ -211,7 +213,7 @@
 				<control type="label">
 					<left>82</left>
 					<top>37</top>
-					<width>388</width>
+					<right>20</right>
 					<height>30</height>
 					<font>font12</font>
 					<aligny>center</aligny>
@@ -223,8 +225,8 @@
 				<control type="image">
 					<left>0</left>
 					<top>0</top>
-					<width>470</width>
-					<height>80</height>
+					<right>0</right>
+					<bottom>0</bottom>
 					<texture colordiffuse="button_focus">lists/focus.png</texture>
 					<visible>Control.HasFocus($PARAM[list_id])</visible>
 				</control>
@@ -239,7 +241,7 @@
 				<control type="label">
 					<left>82</left>
 					<top>3</top>
-					<width>388</width>
+					<right>20</right>
 					<height>40</height>
 					<font>font12</font>
 					<aligny>center</aligny>
@@ -248,7 +250,7 @@
 				<control type="label">
 					<left>82</left>
 					<top>37</top>
-					<width>388</width>
+					<right>20</right>
 					<height>30</height>
 					<font>font12</font>
 					<aligny>center</aligny>
@@ -287,13 +289,12 @@
 		<param name="font">font13</param>
 		<param name="fontcolor">grey</param>
 		<definition>
-			<itemlayout height="$PARAM[height]">
+			<itemlayout width="$PARAM[width]" height="$PARAM[height]">
 				<control type="label">
-					<left>0</left>
-					<textoffsetx>20</textoffsetx>
+					<left>20</left>
 					<top>0</top>
-					<width>$PARAM[width]</width>
-					<height>$PARAM[height]</height>
+					<right>20</right>
+					<bottom>0</bottom>
 					<align>$PARAM[align]</align>
 					<font>$PARAM[font]</font>
 					<aligny>center</aligny>
@@ -301,21 +302,20 @@
 					<label>$INFO[ListItem.Label]</label>
 				</control>
 			</itemlayout>
-			<focusedlayout height="$PARAM[height]" width="600">
+			<focusedlayout width="$PARAM[width]" height="$PARAM[height]">
 				<control type="image">
 					<left>0</left>
 					<top>0</top>
-					<width>$PARAM[width]</width>
-					<height>$PARAM[height]</height>
+					<right>0</right>
+					<bottom>0</bottom>
 					<texture colordiffuse="button_focus">lists/focus.png</texture>
 					<visible>Control.HasFocus($PARAM[list_id])</visible>
 				</control>
 				<control type="label">
-					<left>0</left>
-					<textoffsetx>20</textoffsetx>
+					<left>20</left>
 					<top>0</top>
-					<width>$PARAM[width]</width>
-					<height>$PARAM[height]</height>
+					<right>20</right>
+					<bottom>0</bottom>
 					<align>$PARAM[align]</align>
 					<font>$PARAM[font]</font>
 					<aligny>center</aligny>
@@ -382,7 +382,7 @@
 				<top>10</top>
 				<width>200</width>
 				<include content="InfoFlag">
-					<param name="visible" value="String.IsEqual(ListItem.DBtype,tvshow) + !String.IsEmpty(ListItem.Premiered)" />
+					<param name="visible" value="[String.IsEqual(ListItem.DBtype,tvshow) | String.IsEqual(ListItem.DBtype,episode)] + !String.IsEmpty(ListItem.Premiered)" />
 					<param name="icon" value="lists/year.png" />
 					<param name="label" value="$INFO[ListItem.Premiered]" />
 				</include>
@@ -521,7 +521,7 @@
 				<include content="Visible_Right_Delayed">
 					<param name="id" value="$PARAM[id]"/>
 				</include>
-				<visible>StringCompare(Container(9000).ListItem.Property(id),$PARAM[id])</visible>
+				<visible>String.IsEqual(Container(9000).ListItem.Property(id),$PARAM[id])</visible>
 				<control type="group">
 					<visible>Integer.IsGreater(Container($PARAM[group_id]50).NumItems,0) | Container($PARAM[group_id]50).IsUpdating</visible>
 					<control type="panel" id="$PARAM[group_id]50">
@@ -572,7 +572,6 @@
 				<control type="group">
 					<left>462</left>
 					<include content="ImageWidget">
-						<param name="image_path" value="$PARAM[imagewidget_image]"/>
 						<param name="text_label" value="$LOCALIZE[31153]" />
 						<param name="button_label" value="$LOCALIZE[31144]" />
 						<param name="button_onclick" value="$PARAM[imagewidget_onclick]"/>
@@ -820,7 +819,7 @@
 		<param name="sublabel">$INFO[Container.SortMethod,$LOCALIZE[31022]: ,  ∙  ]$INFO[Container.CurrentItem,, / ]$INFO[Container.NumItems]</param>
 		<definition>
 			<control type="group">
-				<animation effect="slide" end="0,-90" time="300" tween="sine" easing="inout" condition="$EXP[infodialog_active]">conditional</animation>
+				<animation effect="slide" end="0,-112" time="300" tween="sine" easing="inout" condition="$EXP[infodialog_active]">conditional</animation>
 				<depth>DepthBars</depth>
 				<animation effect="fade" start="0" end="100" time="300" condition="[Window.Previous(fullscreenvideo) | Window.Previous(startup)] + !Window.IsVisible(1109)">WindowOpen</animation>
 				<control type="image">
@@ -1041,7 +1040,7 @@
 			<depth>DepthBackground</depth>
 			<include>FullScreenDimensions</include>
 			<aspectratio>scale</aspectratio>
-			<texture colordiffuse="secondary_background" fallback="special://skin/extras/backgrounds/secondary1.png">$INFO[Skin.String(background_overlay),special://skin/extras/backgrounds/secondary,.png]</texture>
+			<texture colordiffuse="secondary_background" fallback="special://skin/extras/backgrounds/pattern1.jpg">$INFO[Skin.String(background_overlay),special://skin/extras/backgrounds/pattern,.jpg]</texture>
 		</control>
 	</include>
 	<include name="DefaultBackground">
@@ -1099,7 +1098,7 @@
 		<param name="info_visible">False</param>
 		<definition>
 			<control type="group">
-				<animation effect="slide" end="0,90" time="300" tween="sine" easing="inout" condition="$EXP[infodialog_active]">conditional</animation>
+				<animation effect="slide" end="0,112" time="300" tween="sine" easing="inout" condition="$EXP[infodialog_active]">conditional</animation>
 				<depth>DepthBars</depth>
 				<animation effect="fade" start="100" end="0" time="300" condition="Window.Next(visualisation) | Window.Next(screencalibration)">WindowClose</animation>
 				<animation effect="fade" start="0" end="100" time="300" condition="Window.Previous(fullscreenvideo) | Window.Previous(startup) | Window.Previous(visualisation)">WindowOpen</animation>
@@ -1282,7 +1281,7 @@
 		<param name="flipx">false</param>
 		<definition>
 			<control type="image">
-				<texture flipx="$PARAM[flipx]">lists/panel.png</texture>
+				<texture flipx="$PARAM[flipx]" colordiffuse="EDFFFFFF">lists/panel.png</texture>
 				<bordertexture border="21">overlays/shadow.png</bordertexture>
 				<bordersize>20</bordersize>
 				<width>$PARAM[width]</width>
