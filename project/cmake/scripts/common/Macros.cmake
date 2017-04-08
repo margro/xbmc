@@ -51,6 +51,53 @@ function(source_group_by_folder target)
   endif()
 endfunction()
 
+# Marks header file as being overridden on a certain list of platforms.
+#
+# Explicitly marking a file as overridden on specific platforms avoids issues with globbing where
+# CMake would have to be called manually when overriding for a new platform.
+#
+# Usage: add_platform_override(${PROJECT_NAME} settings.h PLATFORMS android linux osx)
+function(add_platform_override target filename)
+  cmake_parse_arguments(ARG "" "" "PLATFORMS" ${ARGN})
+  if(NOT ARG_PLATFORMS)
+    message(FATAL_ERROR "Missing parameter PLATFORMS")
+  endif()
+
+  # Generate an _override.h header that is either empty (platform doesn't define overrides)
+  # or includes the corresponding platform override header.
+  # This _override.h has to be included by the generic header.
+
+  # Determine filename of override header.
+  string(REPLACE ".h" "_override.h" override_file ${filename})
+
+  # Check if we have an override defined for this platform.
+  # TODO: Replace by if(IN_LIST) once we bump to CMake 3.3
+  if(";${ARG_PLATFORMS};" MATCHES ";${CORE_SYSTEM_NAME};")
+    message(STATUS "Override active for ${filename} on ${CORE_SYSTEM_NAME}")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${override_file} "#include \"overrides/${CORE_SYSTEM_NAME}/${filename}\"")
+
+    # Add platform specific header to target sources (for IDEs)
+    target_sources(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/overrides/${CORE_SYSTEM_NAME}/${filename})
+  else()
+    # Issue an error if a file exists but it's not listed in add_platform_override.
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/overrides/${CORE_SYSTEM_NAME}/${filename})
+      message(FATAL_ERROR "Disabled platform override file detected, add it to the 'add_platform_override' call.")
+    endif()
+
+    message(STATUS "Override disabled for ${filename}, using generic implementation")
+    string(CONCAT COMMENT "// No platform override defined for ${CORE_SYSTEM_NAME}. To add overrides:\n"
+                          "// Create '${CMAKE_CURRENT_SOURCE_DIR}/overrides/${CORE_SYSTEM_NAME}/${filename}' and redefine symbols from '${filename}'.\n"
+                          "// Then adapt '${CMAKE_CURRENT_LIST_FILE}' and add '${CORE_SYSTEM_NAME}' to the 'add_platform_override' call.")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${override_file} ${COMMENT})
+  endif()
+
+  # Add generated file to target sources (for IDEs)
+  target_sources(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${override_file})
+
+  # TODO: If we want to allow the usage of the header in others headers, change to PUBLIC
+  target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+endfunction()
+
 # Add sources to main application
 # Arguments:
 #   name name of the library to add
@@ -537,6 +584,7 @@ function(core_find_git_rev stamp)
   else()
     find_package(Git)
     if(GIT_FOUND AND EXISTS ${CORE_SOURCE_DIR}/.git)
+      execute_process(COMMAND ${GIT_EXECUTABLE} update-index --ignore-submodules --refresh -q)
       execute_process(COMMAND ${GIT_EXECUTABLE} diff-files --ignore-submodules --quiet --
                       RESULT_VARIABLE status_code
                       WORKING_DIRECTORY ${CORE_SOURCE_DIR})
@@ -606,9 +654,9 @@ macro(core_find_versions)
   set(APP_VERSION ${APP_VERSION_MAJOR}.${APP_VERSION_MINOR})
   if(APP_VERSION_TAG)
     set(APP_VERSION ${APP_VERSION}-${APP_VERSION_TAG})
+    string(TOLOWER ${APP_VERSION_TAG} APP_VERSION_TAG_LC)
   endif()
   string(REPLACE "." "," FILE_VERSION ${APP_ADDON_API}.0)
-  string(TOLOWER ${APP_VERSION_TAG} APP_VERSION_TAG_LC)
   file(STRINGS ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_guilib.h guilib_version REGEX "^.*GUILIB_API_VERSION (.*)$")
   string(REGEX REPLACE ".*\"(.*)\"" "\\1" guilib_version ${guilib_version})
   file(STRINGS ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_guilib.h guilib_version_min REGEX "^.*GUILIB_MIN_API_VERSION (.*)$")
