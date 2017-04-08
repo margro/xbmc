@@ -114,14 +114,14 @@ void CPeripherals::Initialise()
   busses.push_back(std::make_shared<CPeripheralBusAndroid>(this));
 #endif
 
+  {
+    CSingleLock bussesLock(m_critSectionBusses);
+    m_busses = busses;
+  }
+
   /* initialise all known busses and run an initial scan for devices */
   for (auto& bus : busses)
     bus->Initialise();
-
-  {
-    CSingleLock bussesLock(m_critSectionBusses);
-    m_busses = std::move(busses);
-  }
 
   m_eventScanner.Start();
 
@@ -243,6 +243,17 @@ PeripheralBusPtr CPeripherals::GetBusWithDevice(const std::string &strLocation) 
     return *bus;
 
   return nullptr;
+}
+
+bool CPeripherals::SupportsFeature(PeripheralFeature feature) const
+{
+  bool bSupportsFeature = false;
+
+  CSingleLock lock(m_critSectionBusses);
+  for (const auto& bus : m_busses)
+    bSupportsFeature |= bus->SupportsFeature(feature);
+
+  return bSupportsFeature;
 }
 
 int CPeripherals::GetPeripheralsWithFeature(PeripheralVector &results, const PeripheralFeature feature, PeripheralBusType busType /* = PERIPHERAL_BUS_UNKNOWN */) const
@@ -740,6 +751,9 @@ bool CPeripherals::GetNextKeypress(float frameTime, CKey &key)
 
 void CPeripherals::OnUserNotification()
 {
+  if (!CSettings::GetInstance().GetBool(CSettings::SETTING_INPUT_RUMBLENOTIFY))
+    return;
+
   PeripheralVector peripherals;
   GetPeripheralsWithFeature(peripherals, FEATURE_RUMBLE);
 

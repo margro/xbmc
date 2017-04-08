@@ -160,9 +160,12 @@ CPVRManager::CPVRManager(void) :
     m_bFirstStart(true),
     m_bIsSwitchingChannels(false),
     m_bEpgsCreated(false),
-    m_progressHandle(NULL),
+    m_progressBar(nullptr),
+    m_progressHandle(nullptr),
     m_managerState(ManagerStateStopped),
-    m_isChannelPreview(false)
+    m_isChannelPreview(false),
+    m_bSettingPowerManagementEnabled(CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPOWERMANAGEMENT_ENABLED)),
+    m_strSettingWakeupCommand(CSettings::GetInstance().GetString(CSettings::SETTING_PVRPOWERMANAGEMENT_SETWAKEUPCMD))
 {
   CAnnouncementManager::GetInstance().AddAnnouncer(this);
 }
@@ -267,6 +270,16 @@ void CPVRManager::OnSettingChanged(const CSetting *setting)
   else if(settingId == CSettings::SETTING_EPG_DAYSTODISPLAY)
   {
     m_addons->SetEPGTimeFrame(static_cast<const CSettingInt*>(setting)->GetValue());
+  }
+  else if(settingId == CSettings::SETTING_PVRPOWERMANAGEMENT_ENABLED)
+  {
+    CSingleLock lock(m_critSection);
+    m_bSettingPowerManagementEnabled = static_cast<const CSettingBool*>(setting)->GetValue();
+  }
+  else if(settingId == CSettings::SETTING_PVRPOWERMANAGEMENT_SETWAKEUPCMD)
+  {
+    CSingleLock lock(m_critSection);
+    m_strSettingWakeupCommand = static_cast<const CSettingString*>(setting)->GetValue();
   }
 }
 
@@ -375,7 +388,18 @@ void CPVRManager::Init()
   settingSet.insert(CSettings::SETTING_EPG_RESETEPG);
   settingSet.insert(CSettings::SETTING_EPG_DAYSTODISPLAY);
   settingSet.insert(CSettings::SETTING_PVRPARENTAL_ENABLED);
+  settingSet.insert(CSettings::SETTING_PVRPOWERMANAGEMENT_ENABLED);
+  settingSet.insert(CSettings::SETTING_PVRPOWERMANAGEMENT_SETWAKEUPCMD);
+
   CSettings::GetInstance().RegisterCallback(this, settingSet);
+
+  // Note: we're holding the progress bar dialog instance pointer in a member because it is needed by pvr core
+  //       components. The latter might run in a different thread than the gui and g_windowManager.GetWindow()
+  //       locks the global graphics mutex, which easily can lead to deadlocks.
+  m_progressBar = dynamic_cast<CGUIDialogExtendedProgressBar *>(g_windowManager.GetWindow(WINDOW_DIALOG_EXT_PROGRESS));
+
+  if (!m_progressBar)
+    CLog::Log(LOGERROR, "CPVRManager - %s - unable to get WINDOW_DIALOG_EXT_PROGRESS!", __FUNCTION__);
 
   // initial check for enabled addons
   // if at least one pvr addon is enabled, PVRManager start up
@@ -606,11 +630,19 @@ void CPVRManager::Process(void)
 
 bool CPVRManager::SetWakeupCommand(void)
 {
-  if (!CSettings::GetInstance().GetBool(CSettings::SETTING_PVRPOWERMANAGEMENT_ENABLED))
+  bool bSettingPowerManagementEnabled;
+  std::string strSettingWakeupCommand;
+
+  {
+    CSingleLock lock(m_critSection);
+    bSettingPowerManagementEnabled = m_bSettingPowerManagementEnabled;
+    strSettingWakeupCommand = m_strSettingWakeupCommand;
+  }
+
+  if (!bSettingPowerManagementEnabled)
     return false;
 
-  const std::string strWakeupCommand = CSettings::GetInstance().GetString(CSettings::SETTING_PVRPOWERMANAGEMENT_SETWAKEUPCMD);
-  if (!strWakeupCommand.empty() && m_timers)
+  if (!strSettingWakeupCommand.empty() && m_timers)
   {
     time_t iWakeupTime;
     const CDateTime nextEvent = m_timers->GetNextEventTime();
@@ -618,7 +650,7 @@ bool CPVRManager::SetWakeupCommand(void)
     {
       nextEvent.GetAsTime(iWakeupTime);
 
-      std::string strExecCommand = StringUtils::Format("%s %ld", strWakeupCommand.c_str(), iWakeupTime);
+      std::string strExecCommand = StringUtils::Format("%s %ld", strSettingWakeupCommand.c_str(), iWakeupTime);
 
       const int iReturn = system(strExecCommand.c_str());
       if (iReturn != 0)
@@ -691,14 +723,14 @@ bool CPVRManager::Load(bool bShowProgress)
 
 void CPVRManager::ShowProgressDialog(const std::string &strText, int iProgress)
 {
-  if (!m_progressHandle)
-  {
-    CGUIDialogExtendedProgressBar *loadingProgressDialog = (CGUIDialogExtendedProgressBar *)g_windowManager.GetWindow(WINDOW_DIALOG_EXT_PROGRESS);
-    m_progressHandle = loadingProgressDialog->GetHandle(g_localizeStrings.Get(19235)); // PVR manager is starting up
-  }
+  if (!m_progressHandle && m_progressBar)
+    m_progressHandle = m_progressBar->GetHandle(g_localizeStrings.Get(19235)); // PVR manager is starting up
 
-  m_progressHandle->SetPercentage((float)iProgress);
-  m_progressHandle->SetText(strText);
+  if (m_progressHandle)
+  {
+    m_progressHandle->SetPercentage(static_cast<float>(iProgress));
+    m_progressHandle->SetText(strText);
+  }
 }
 
 void CPVRManager::HideProgressDialog(void)
@@ -708,6 +740,14 @@ void CPVRManager::HideProgressDialog(void)
     m_progressHandle->MarkFinished();
     m_progressHandle = NULL;
   }
+}
+
+CGUIDialogProgressBarHandle* CPVRManager::ShowProgressDialog(const std::string &strTitle) const
+{
+  if (m_progressBar)
+    return m_progressBar->GetHandle(strTitle);
+
+  return nullptr;
 }
 
 bool CPVRManager::ChannelSwitchById(unsigned int iChannelId)
@@ -1410,7 +1450,8 @@ bool CPVRManager::UpdateItem(CFileItem& item)
   }
 
   CSingleLock lock(m_critSection);
-  if (!m_currentFile || *m_currentFile->GetPVRChannelInfoTag() == *item.GetPVRChannelInfoTag())
+  if (!m_currentFile || !m_currentFile->GetPVRChannelInfoTag() || !item.GetPVRChannelInfoTag() ||
+      *m_currentFile->GetPVRChannelInfoTag() == *item.GetPVRChannelInfoTag())
     return false;
 
   g_application.SetCurrentFileItem(*m_currentFile);
@@ -1559,6 +1600,7 @@ bool CPVRManager::PerformChannelSwitch(const CPVRChannelPtr &channel, bool bPrev
     return false;
 
   // check whether we're waiting for a previous switch to complete
+  CFileItem* previousFile = nullptr;
   {
     CSingleLock lock(m_critSection);
     if (m_bIsSwitchingChannels)
@@ -1590,13 +1632,12 @@ bool CPVRManager::PerformChannelSwitch(const CPVRChannelPtr &channel, bool bPrev
     }
 
     m_bIsSwitchingChannels = true;
+
+    CLog::Log(LOGDEBUG, "PVRManager - %s - switching to channel '%s'", __FUNCTION__, channel->ChannelName().c_str());
+
+    previousFile = m_currentFile;
+    m_currentFile = nullptr;
   }
-
-  CLog::Log(LOGDEBUG, "PVRManager - %s - switching to channel '%s'", __FUNCTION__, channel->ChannelName().c_str());
-
-  // will be deleted by CPVRChannelSwitchJob::DoWork()
-  CFileItem* previousFile = m_currentFile;
-  m_currentFile = NULL;
 
   bool bSwitched(false);
 

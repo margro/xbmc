@@ -21,7 +21,6 @@
 
 #include "Peripheral.h"
 #include "input/joysticks/DefaultJoystick.h"
-#include "input/joysticks/IDriverHandler.h"
 #include "input/joysticks/IDriverReceiver.h"
 #include "input/joysticks/JoystickMonitor.h"
 #include "input/joysticks/JoystickTypes.h"
@@ -37,12 +36,12 @@ namespace JOYSTICK
 {
   class CDeadzoneFilter;
   class IButtonMap;
+  class IDriverHandler;
 }
 
 namespace PERIPHERALS
 {
   class CPeripheralJoystick : public CPeripheral, //! @todo extend CPeripheralHID
-                              public JOYSTICK::IDriverHandler,
                               public JOYSTICK::IDriverReceiver
   {
   public:
@@ -54,16 +53,15 @@ namespace PERIPHERALS
     virtual bool InitialiseFeature(const PeripheralFeature feature) override;
     virtual void OnUserNotification() override;
     virtual bool TestFeature(PeripheralFeature feature) override;
-    virtual void RegisterJoystickDriverHandler(IDriverHandler* handler, bool bPromiscuous) override;
-    virtual void UnregisterJoystickDriverHandler(IDriverHandler* handler) override;
+    virtual void RegisterJoystickDriverHandler(JOYSTICK::IDriverHandler* handler, bool bPromiscuous) override;
+    virtual void UnregisterJoystickDriverHandler(JOYSTICK::IDriverHandler* handler) override;
     virtual JOYSTICK::IDriverReceiver* GetDriverReceiver() override { return this; }
     virtual JOYSTICK::IActionMap* GetActionMap() override { return &m_defaultInputHandler; }
 
-    // implementation of IDriverHandler
-    virtual bool OnButtonMotion(unsigned int buttonIndex, bool bPressed) override;
-    virtual bool OnHatMotion(unsigned int hatIndex, JOYSTICK::HAT_STATE state) override;
-    virtual bool OnAxisMotion(unsigned int axisIndex, float position) override;
-    virtual void ProcessAxisMotions(void) override;
+    bool OnButtonMotion(unsigned int buttonIndex, bool bPressed);
+    bool OnHatMotion(unsigned int hatIndex, JOYSTICK::HAT_STATE state);
+    bool OnAxisMotion(unsigned int axisIndex, float position);
+    void ProcessAxisMotions(void);
 
     // implementation of IDriverReceiver
     virtual bool SetMotorState(unsigned int motorIndex, float magnitude) override;
@@ -102,7 +100,7 @@ namespace PERIPHERALS
     void SetHatCount(unsigned int hatCount)       { m_hatCount      = hatCount; }
     void SetAxisCount(unsigned int axisCount)     { m_axisCount     = axisCount; }
     void SetMotorCount(unsigned int motorCount); // specialized to update m_features
-    void SetSupportsPowerOff(bool supportsPowerOff) { m_supportsPowerOff = supportsPowerOff; }
+    void SetSupportsPowerOff(bool bSupportsPowerOff); // specialized to update m_features
 
   protected:
     void InitializeDeadzoneFiltering();

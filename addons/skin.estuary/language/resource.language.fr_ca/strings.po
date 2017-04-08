@@ -112,6 +112,10 @@ msgctxt "#31025"
 msgid "No favourites found. You can add any item from media views to this list by using the context menu."
 msgstr "Aucun favori trouvé. Vous pouvez ajouter à cette liste n'importe quel élément des vues de médias en utilisant le menu contextuel."
 
+msgctxt "#31026"
+msgid "Timeshift"
+msgstr "Décalage temporel"
+
 msgctxt "#31028"
 msgid "Show fanart"
 msgstr "Afficher le fanart"
@@ -158,7 +162,7 @@ msgstr "Avance rapide"
 
 msgctxt "#31041"
 msgid "Camera manufacturer"
-msgstr "Fabricant de l'appareil-photo"
+msgstr "Fabricant de l'appareil photo"
 
 msgctxt "#31042"
 msgid "Playlist options"

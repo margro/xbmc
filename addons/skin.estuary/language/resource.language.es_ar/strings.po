@@ -82,7 +82,7 @@ msgstr "Canales vistos recientemente"
 
 msgctxt "#31017"
 msgid "Rated"
-msgstr "Valorado"
+msgstr "Calificación"
 
 msgctxt "#31018"
 msgid "Recently played channels"
@@ -111,6 +111,10 @@ msgstr "Tipo de vista"
 msgctxt "#31025"
 msgid "No favourites found. You can add any item from media views to this list by using the context menu."
 msgstr "No se encontraron favoritos. Puede agregar cualquier elemento desde las vistas de medios usando el menu contextual."
+
+msgctxt "#31026"
+msgid "Timeshift"
+msgstr "Timeshift"
 
 msgctxt "#31028"
 msgid "Show fanart"
@@ -382,7 +386,7 @@ msgstr "Editar notas"
 
 msgctxt "#31118"
 msgid "Enter add-on browser"
-msgstr "Entrar en el buscador de Add-ons"
+msgstr "Ir al buscador de Add-ons"
 
 msgctxt "#31119"
 msgid "You do not have any add-ons installed yet. Visit our add-on browser to browse through our collection and improve your Kodi experience."
@@ -474,7 +478,7 @@ msgstr "Velocidad de reproducción"
 
 msgctxt "#31143"
 msgid "You did not set up PVR yet. In order to use PVR, choose a PVR client addon and configure it. Please visit http://kodi.wiki/view/PVR to learn more."
-msgstr "Todavía no ha configurado PVR. Para usar PVR, seleccione un addon cliente PVR y configurelo. Por favor visite http://kodi.wiki/view/PVR  para concer más."
+msgstr "Todavía no ha configurado PVR. Para usar PVR, seleccione un addon cliente PVR y configurelo. Por favor visite http://kodi.wiki/view/PVR  para conocer más."
 
 msgctxt "#31144"
 msgid "Enter add-on browser"

@@ -2079,7 +2079,7 @@
         <setting id="videoscreen.dither" type="boolean" label="36099" help="36598">
           <requirement>HAS_GL</requirement>
           <level>3</level>
-          <default>true</default>
+          <default>false</default>
           <control type="toggle" />
         </setting>
         <setting id="videoscreen.ditherdepth" type="integer" label="36100" help="36599">
@@ -2621,15 +2621,27 @@
           <level>0</level>
           <control type="button" format="action" />
         </setting>
+        <setting id="input.rumblenotify" type="boolean" label="35053" help="35054">
+          <level>0</level>
+          <dependencies>
+            <dependency type="visible" on="property" name="HasRumbleFeature" />
+          </dependencies>
+          <control type="toggle" />
+          <default>false</default>
+        </setting>
         <setting id="input.testrumble" type="action" label="35051" help="35052">
           <level>2</level>
           <dependencies>
-            <dependency type="enable" on="property" name="HasRumbleFeature" />
+            <dependency type="visible" on="property" name="HasRumbleFeature" />
+            <dependency type="enable" on="property" name="HasRumbleController" />
           </dependencies>
           <control type="button" format="action" />
         </setting>
         <setting id="input.controllerpoweroff" type="boolean" label="35088" help="35089">
           <level>0</level>
+          <dependencies>
+            <dependency type="visible" on="property" name="HasPowerOffFeature" />
+          </dependencies>
           <default>false</default>
           <control type="toggle" />
         </setting>
@@ -2780,7 +2792,7 @@
         </setting>
         <setting id="general.addonnotifications" type="boolean" label="36609" help="36612">
           <level>0</level>
-          <default>true</default>
+          <default>false</default>
           <control type="toggle" />
           <dependencies>
             <dependency type="enable" setting="general.addonupdates">0</dependency>

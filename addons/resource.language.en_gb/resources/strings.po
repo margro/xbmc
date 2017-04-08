@@ -10293,14 +10293,14 @@ msgctxt "#19285"
 msgid "Browse for icon"
 msgstr ""
 
-#. Notification message if process starts searching for missing channel icons
-#: xbmc/pvr/PVRManager.cpp
+#. Label for channel icon search progress dialog
+#: xbmc/pvr/channels/PVRChannelGroup.cpp
 msgctxt "#19286"
 msgid "Searching for channel icons"
 msgstr ""
 
 #. Label for the default pvr channel group
-#: xbmc/pvr/windows/GUIWindowPVRCommon.cpp
+#: xbmc/pvr/channels/PVRChannelGroupInternal.cpp
 msgctxt "#19287"
 msgid "All channels"
 msgstr ""
@@ -14203,7 +14203,6 @@ msgid "Auto update"
 msgstr ""
 
 #. Used as an event log description for add-ons that have been installed/enabled
-#: xbmc/addons/AddonInstaller.cpp
 #: xbmc/addons/AddonManager.cpp
 msgctxt "#24064"
 msgid "Add-on enabled"
@@ -14303,7 +14302,10 @@ msgctxt "#24083"
 msgid "Information libraries"
 msgstr ""
 
-#empty string with id 24084
+#: xbmc/addons/AddonInstaller.cpp
+msgctxt "#24084"
+msgid "Add-on installed"
+msgstr ""
 
 #. Used as a text in the progress dialog when installing an add-on
 #: xbmc/addons/AddonInstaller.cpp
@@ -14354,17 +14356,19 @@ msgctxt "#24093"
 msgid "Checking %s..."
 msgstr ""
 
-#empty string with id 24094
+#: xbmc/addons/AddonInstaller.cpp
+msgctxt "#24094"
+msgid "Add-on disabled due to being marked broken in repository."
+msgstr ""
 
 #: xbmc/addons/GUIDialogAddonInfo.cpp
 msgctxt "#24095"
 msgid "Local package cache"
 msgstr ""
 
-#: xbmc/addons/Repository.cpp
 #: addons/skin.estuary/1080i/DialogAddonInfo.xml
 msgctxt "#24096"
-msgid "Add-on is incompatible or has been marked broken in repository."
+msgid "Add-on has been marked broken in repository."
 msgstr ""
 
 #: xbmc/addons/Repository.cpp
@@ -16033,11 +16037,7 @@ msgctxt "#35012"
 msgid "A new controller has been detected. Configuration can be done at any time in \"Settings -> System Settings -> Input\". Would you like to configure it now?"
 msgstr ""
 
-#. Label of the button to fix the bug where buttons are skipped in the controller dialog
-#: addons/skin.estuary/1080i/DialogGameControllers.xml
-msgctxt "#35013"
-msgid "Fix skipping"
-msgstr ""
+#empty string with id 35013
 
 #. Help text of the button to fix the bug where buttons are skipped in the controller dialog. %s - list of disabled buttons and axes
 msgctxt "#35014"
@@ -16066,7 +16066,14 @@ msgctxt "#35018"
 msgid "Controller configuration depends on a disabled add-on. Would you like to enable it?"
 msgstr ""
 
-#empty strings from id 35019 to 35048
+#. Label of the button to fix the bug where buttons are skipped in the controller dialog
+#: addons/skin.estuary/xml/DialogGameControllers.xml
+#: xbmc/games/controllers/dialogs/GUIDialogButtonCapture.cpp
+msgctxt "#35019"
+msgid "Ignore input"
+msgstr ""
+
+#empty strings from id 35020 to 35048
 
 #. Name of game add-ons category
 #: xbmc/filesystem/AddonsDirectory.cpp
@@ -16094,7 +16101,17 @@ msgctxt "#35052"
 msgid "Activate the rumble motors of all controllers."
 msgstr ""
 
-#empty strings from id 35053 to 35054
+#. Setting to enable rumble for GUI notifications
+#: system/settings/settings.xml
+msgctxt "#35053"
+msgid "Enable rumble for notifications"
+msgstr ""
+
+#. Description of setting to enable rumble for GUI notifications
+#: system/settings/settings.xml
+msgctxt "#35054"
+msgid "Activates controller rumble motors when a notification occurs."
+msgstr ""
 
 #. Help text for controller window
 #: xbmc/games/controllers/windows/GUIControllerWindow.cpp

@@ -268,6 +268,28 @@ bool CAddonButtonMap::IsIgnored(const JOYSTICK::CDriverPrimitive& primitive)
   return std::find(m_ignoredPrimitives.begin(), m_ignoredPrimitives.end(), primitive) != m_ignoredPrimitives.end();
 }
 
+bool CAddonButtonMap::GetAxisProperties(unsigned int axisIndex, int& center, unsigned int& range)
+{
+  CSingleLock lock(m_mutex);
+
+  for (auto it : m_driverMap)
+  {
+    const CDriverPrimitive& primitive = it.first;
+
+    if (primitive.Type() != PRIMITIVE_TYPE::SEMIAXIS)
+      continue;
+
+    if (primitive.Index() != axisIndex)
+      continue;
+
+    center = primitive.Center();
+    range = primitive.Range();
+    return true;
+  }
+
+  return false;
+}
+
 void CAddonButtonMap::SaveButtonMap()
 {
   if (auto addon = m_addon.lock())
@@ -326,7 +348,7 @@ CAddonButtonMap::DriverMap CAddonButtonMap::CreateLookupTable(const FeatureMap& 
           driverMap[translatedPrimitive] = it->first;
 
           // Map opposite semiaxis
-          CDriverPrimitive oppositePrimitive = CDriverPrimitive(translatedPrimitive.Index(), translatedPrimitive.SemiAxisDirection() * -1);
+          CDriverPrimitive oppositePrimitive = CDriverPrimitive(translatedPrimitive.Index(), 0, translatedPrimitive.SemiAxisDirection() * -1, 1);
           driverMap[oppositePrimitive] = it->first;
         }
         break;
