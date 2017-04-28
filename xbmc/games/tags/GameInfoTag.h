@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -34,7 +34,7 @@ namespace GAME
   public:
     CGameInfoTag() { Reset(); }
     CGameInfoTag(const CGameInfoTag& tag) { *this = tag; }
-    const CGameInfoTag& operator=(const CGameInfoTag& tag);
+    CGameInfoTag& operator=(const CGameInfoTag& tag);
     ~CGameInfoTag() { }
     void Reset();
 
@@ -49,8 +49,8 @@ namespace GAME
     void SetURL(const std::string& strURL) { m_strURL = strURL; }
 
     // Title
-    const std::string& GetTitle() const { return m_strName; }
-    void SetTitle(const std::string& strName) { m_strName = strName; }
+    const std::string& GetTitle() const { return m_strTitle; }
+    void SetTitle(const std::string& strTitle) { m_strTitle = strTitle; }
 
     // Platform
     const std::string& GetPlatform() const { return m_strPlatform; }
@@ -107,7 +107,7 @@ namespace GAME
   private:
     bool        m_bLoaded;
     std::string m_strURL;
-    std::string m_strName;
+    std::string m_strTitle;
     std::string m_strPlatform;
     std::vector<std::string> m_genres;
     std::string m_strDeveloper;

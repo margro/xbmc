@@ -19,23 +19,27 @@
  */
 
 #include "GUIDialogPVRTimerSettings.h"
+
 #include "dialogs/GUIDialogNumeric.h"
 #include "FileItem.h"
-#include "epg/EpgInfoTag.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "addons/PVRClient.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/PVRManager.h"
-#include "pvr/PVRSettings.h"
-#include "pvr/timers/PVRTimerInfoTag.h"
-#include "pvr/timers/PVRTimerType.h"
+#include "ServiceBroker.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/SettingUtils.h"
 #include "settings/windows/GUIControlSettings.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/Variant.h"
+
+#include "pvr/PVRManager.h"
+#include "pvr/PVRSettings.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/epg/EpgInfoTag.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
+#include "pvr/timers/PVRTimerType.h"
 
 using namespace PVR;
 
@@ -118,7 +122,7 @@ void CGUIDialogPVRTimerSettings::SetTimer(const CPVRTimerInfoTagPtr &timer)
   m_timerType     = m_timerInfoTag->GetTimerType();
   m_bIsRadio      = m_timerInfoTag->m_bIsRadio;
   m_bIsNewTimer   = m_timerInfoTag->m_iClientIndex == PVR_TIMER_NO_CLIENT_INDEX;
-  m_bTimerActive  = m_bIsNewTimer || !m_timerType->SupportsEnableDisable() || m_timerInfoTag->IsActive();
+  m_bTimerActive  = m_bIsNewTimer || !m_timerType->SupportsEnableDisable() || !(m_timerInfoTag->m_state == PVR_TIMER_STATE_DISABLED);
   m_bStartAnyTime = m_bIsNewTimer || !m_timerType->SupportsStartAnyTime() || m_timerInfoTag->m_bStartAnyTime;
   m_bEndAnyTime   = m_bIsNewTimer || !m_timerType->SupportsEndAnyTime() || m_timerInfoTag->m_bEndAnyTime;
   m_strTitle      = m_timerInfoTag->m_strTitle;
@@ -148,7 +152,12 @@ void CGUIDialogPVRTimerSettings::SetTimer(const CPVRTimerInfoTagPtr &timer)
   m_iPriority           = m_timerInfoTag->m_iPriority;
   m_iLifetime           = m_timerInfoTag->m_iLifetime;
   m_iMaxRecordings      = m_timerInfoTag->m_iMaxRecordings;
-  m_strDirectory        = m_timerInfoTag->m_strDirectory;
+
+  if (m_bIsNewTimer && m_timerInfoTag->m_strDirectory.empty() && m_timerType->SupportsRecordingFolders())
+    m_strDirectory = m_strTitle;
+  else
+    m_strDirectory = m_timerInfoTag->m_strDirectory;
+
   m_iRecordingGroup     = m_timerInfoTag->m_iRecordingGroup;
 
   InitializeChannelsList();
@@ -556,7 +565,7 @@ void CGUIDialogPVRTimerSettings::Save()
   m_timerInfoTag->m_bFullTextEpgSearch = m_bFullTextEpgSearch;
 
   // Channel
-  CPVRChannelPtr channel(g_PVRChannelGroups->GetByUniqueID(m_channel.channelUid, m_channel.clientId));
+  CPVRChannelPtr channel(CServiceBroker::GetPVRManager().ChannelGroups()->GetByUniqueID(m_channel.channelUid, m_channel.clientId));
   if (channel)
   {
     m_timerInfoTag->m_iClientChannelUid = channel->UniqueID();
@@ -729,7 +738,8 @@ void CGUIDialogPVRTimerSettings::InitializeTypesList()
     return;
   }
 
-  int idx = 0;
+  bool bFoundThisType(false);
+  int idx(0);
   const std::vector<CPVRTimerTypePtr> types(CPVRTimerType::GetAllTypes());
   for (const auto &type : types)
   {
@@ -750,7 +760,7 @@ void CGUIDialogPVRTimerSettings::InitializeTypesList()
     // Drop TimerTypes without 'Series' EPG attributes if none are set
     if (type->RequiresEpgSeriesOnCreate())
     {
-      const EPG::CEpgInfoTagPtr epgTag(m_timerInfoTag->GetEpgInfoTag());
+      const CPVREpgInfoTagPtr epgTag(m_timerInfoTag->GetEpgInfoTag());
       if (epgTag && !epgTag->IsSeries())
         continue;
     }
@@ -763,8 +773,14 @@ void CGUIDialogPVRTimerSettings::InitializeTypesList()
     if (!type->IsTimerRule() && m_timerInfoTag->EndAsLocalTime() < CDateTime::GetCurrentDateTime())
       continue;
 
+    if (!bFoundThisType && *type == *m_timerType)
+      bFoundThisType = true;
+
     m_typeEntries.insert(std::make_pair(idx++, type));
   }
+
+  if (!bFoundThisType)
+    m_typeEntries.insert(std::make_pair(idx++, m_timerType));
 }
 
 void CGUIDialogPVRTimerSettings::InitializeChannelsList()
@@ -772,7 +788,7 @@ void CGUIDialogPVRTimerSettings::InitializeChannelsList()
   m_channelEntries.clear();
 
   CFileItemList channelsList;
-  g_PVRChannelGroups->GetGroupAll(m_bIsRadio)->GetMembers(channelsList);
+  CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_bIsRadio)->GetMembers(channelsList);
 
   for (int i = 0; i < channelsList.Size(); ++i)
   {

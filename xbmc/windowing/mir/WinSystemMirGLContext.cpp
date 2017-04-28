@@ -41,7 +41,7 @@ bool CWinSystemMirGLContext::CreateNewWindow(const std::string& name,
 
   CWinSystemMir::CreateNewWindow(name, fullScreen, res, userFunction);
 
-  if (!m_pGLContext.CreateSurface(m_surface))
+  if (!m_pGLContext.CreateSurface(m_window))
   {
     return false;
   }
@@ -76,6 +76,26 @@ void CWinSystemMirGLContext::PresentRenderImpl(bool rendered)
   {
     m_pGLContext.SwapBuffers();
   }
+}
+
+EGLDisplay CWinSystemMirGLContext::GetEGLDisplay() const
+{
+  return m_pGLContext.m_eglDisplay;
+}
+
+EGLSurface CWinSystemMirGLContext::GetEGLSurface() const
+{
+  return m_pGLContext.m_eglSurface;
+}
+
+EGLContext CWinSystemMirGLContext::GetEGLContext() const
+{
+  return m_pGLContext.m_eglContext;
+}
+
+EGLConfig  CWinSystemMirGLContext::GetEGLConfig() const
+{
+  return m_pGLContext.m_eglConfig;
 }
 
 // FIXME Implement

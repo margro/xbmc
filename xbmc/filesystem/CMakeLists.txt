@@ -1,4 +1,5 @@
 set(SOURCES AddonsDirectory.cpp
+            AudioBookFileDirectory.cpp
             CacheStrategy.cpp
             CDDADirectory.cpp
             CDDAFile.cpp
@@ -44,9 +45,6 @@ set(SOURCES AddonsDirectory.cpp
             PlaylistFileDirectory.cpp
             PluginDirectory.cpp
             PVRDirectory.cpp
-            RarDirectory.cpp
-            RarFile.cpp
-            RarManager.cpp
             ResourceDirectory.cpp
             ResourceFile.cpp
             RSSDirectory.cpp
@@ -63,6 +61,7 @@ set(SOURCES AddonsDirectory.cpp
             UDFDirectory.cpp
             UDFFile.cpp
             VideoDatabaseDirectory.cpp
+            VideoDatabaseFile.cpp
             VirtualDirectory.cpp
             XbtDirectory.cpp
             XbtFile.cpp
@@ -123,9 +122,6 @@ set(HEADERS AddonsDirectory.h
             PlaylistFileDirectory.h
             PluginDirectory.h
             RSSDirectory.h
-            RarDirectory.h
-            RarFile.h
-            RarManager.h
             ResourceDirectory.h
             ResourceFile.h
             SFTPDirectory.h

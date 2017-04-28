@@ -24,9 +24,7 @@
  * Common data structures shared between KODI and KODI's audio DSP add-ons
  */
 
-#ifdef TARGET_WINDOWS
-#include <windows.h>
-#else
+#ifndef TARGET_WINDOWS
 #ifndef __cdecl
 #define __cdecl
 #endif
@@ -442,7 +440,7 @@ extern "C" {
     struct AE_DSP_MODE
     {
       int               iUniqueDBModeId;                                  /*!< @brief (required) the inside add-on used identifier for the mode, set by KODI's audio DSP database */
-      AE_DSP_MODE_TYPE  iModeType;                                        /*!< @brief (required) the processong mode type, see AE_DSP_MODE_TYPE */
+      AE_DSP_MODE_TYPE  iModeType;                                        /*!< @brief (required) the processing mode type, see AE_DSP_MODE_TYPE */
       char              strModeName[AE_DSP_ADDON_STRING_LENGTH];          /*!< @brief (required) the addon name of the mode, used on KODI's logs  */
 
       unsigned int      iModeNumber;                                      /*!< @brief (required) number of this mode on the add-on, is used on process functions with value "mode_id" */
@@ -474,7 +472,7 @@ extern "C" {
   /*!
    * @brief Structure to transfer the methods from kodi_audiodsp_dll.h to KODI
    */
-  struct AudioDSP
+  typedef struct KodiToAddonFuncTable_AudioDSP
   {
     const char*  (__cdecl* GetAudioDSPAPIVersion)                (void);
     const char*  (__cdecl* GetMinimumAudioDSPAPIVersion)         (void);
@@ -516,7 +514,7 @@ extern "C" {
     unsigned int (__cdecl* OutputResampleProcess)                (const ADDON_HANDLE, float**, float**, unsigned int);
     float        (__cdecl* OutputResampleGetDelay)               (const ADDON_HANDLE);
     int          (__cdecl* OutputResampleSampleRate)             (const ADDON_HANDLE);
-  };
+  } KodiToAddonFuncTable_AudioDSP;
 
 #ifdef __cplusplus
 }

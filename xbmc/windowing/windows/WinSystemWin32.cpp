@@ -24,6 +24,7 @@
 #include "ServiceBroker.h"
 #include "guilib/gui3d.h"
 #include "messaging/ApplicationMessenger.h"
+#include "platform/win32/CharsetConverter.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
@@ -31,8 +32,8 @@
 #include "utils/log.h"
 #include "utils/CharsetConverter.h"
 #include "utils/SystemInfo.h"
+#include "VideoSyncD3D.h"
 
-#ifdef TARGET_WINDOWS
 #include <tpcshrd.h>
 
 CWinSystemWin32::CWinSystemWin32()
@@ -47,6 +48,7 @@ CWinSystemWin32::CWinSystemWin32()
   PtrCloseGestureInfoHandle = NULL;
   PtrSetGestureConfig = NULL;
   PtrGetGestureInfo = NULL;
+  PtrEnableNonClientDpiScaling = NULL;
   m_ValidWindowedPosition = false;
   m_IsAlteringWindow = false;
 }
@@ -82,10 +84,26 @@ bool CWinSystemWin32::DestroyWindowSystem()
 
 bool CWinSystemWin32::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction)
 {
+  using KODI::PLATFORM::WINDOWS::ToW;
+
+  auto nameW = ToW(name);
+
   m_hInstance = ( HINSTANCE )GetModuleHandle( NULL );
 
   if(m_hInstance == NULL)
     CLog::Log(LOGDEBUG, "%s : GetModuleHandle failed with %d", __FUNCTION__, GetLastError());
+
+  // Load Win32 procs if available
+  HMODULE hUser32 = GetModuleHandle(L"user32");
+  if (hUser32)
+  {
+    PtrGetGestureInfo = (pGetGestureInfo)GetProcAddress(hUser32, "GetGestureInfo");
+    PtrSetGestureConfig = (pSetGestureConfig)GetProcAddress(hUser32, "SetGestureConfig");
+    PtrCloseGestureInfoHandle = (pCloseGestureInfoHandle)GetProcAddress(hUser32, "CloseGestureInfoHandle");
+
+    // if available, enable automatic DPI scaling of the non-client area portions of the window.
+    PtrEnableNonClientDpiScaling = (pEnableNonClientDpiScaling)GetProcAddress(hUser32, "EnableNonClientDpiScaling");
+  }
 
   m_nWidth  = res.iWidth;
   m_nHeight = res.iHeight;
@@ -105,7 +123,7 @@ bool CWinSystemWin32::CreateNewWindow(const std::string& name, bool fullScreen, 
   wndClass.hCursor = LoadCursor( NULL, IDC_ARROW );
   wndClass.hbrBackground = ( HBRUSH )GetStockObject( BLACK_BRUSH );
   wndClass.lpszMenuName = NULL;
-  wndClass.lpszClassName = name.c_str();
+  wndClass.lpszClassName = nameW.c_str();
 
   if( !RegisterClass( &wndClass ) )
   {
@@ -113,7 +131,7 @@ bool CWinSystemWin32::CreateNewWindow(const std::string& name, bool fullScreen, 
     return false;
   }
 
-  HWND hWnd = CreateWindow( name.c_str(), name.c_str(), fullScreen ? WS_POPUP : WS_OVERLAPPEDWINDOW,
+  HWND hWnd = CreateWindow( nameW.c_str(), nameW.c_str(), fullScreen ? WS_POPUP : WS_OVERLAPPEDWINDOW,
     0, 0, m_nWidth, m_nHeight, 0,
     NULL, m_hInstance, userFunction );
   if( hWnd == NULL )
@@ -128,14 +146,7 @@ bool CWinSystemWin32::CreateNewWindow(const std::string& name, bool fullScreen, 
 
   SetProp(hWnd, MICROSOFT_TABLETPENSERVICE_PROPERTY, reinterpret_cast<HANDLE>(dwHwndTabletProperty));
 
-  // setup our touch pointers
-  HMODULE hUser32 = GetModuleHandleA( "user32" );
-  if (hUser32)
-  {
-    PtrGetGestureInfo = (pGetGestureInfo) GetProcAddress( hUser32, "GetGestureInfo" );
-    PtrSetGestureConfig = (pSetGestureConfig) GetProcAddress( hUser32, "SetGestureConfig" );
-    PtrCloseGestureInfoHandle = (pCloseGestureInfoHandle) GetProcAddress( hUser32, "CloseGestureInfoHandle" );
-  }
+
 
   m_hWnd = hWnd;
   m_hDC = GetDC(m_hWnd);
@@ -167,7 +178,7 @@ bool CWinSystemWin32::CreateBlankWindows()
   wcex.hCursor= NULL;
   wcex.hbrBackground= (HBRUSH)CreateSolidBrush(RGB(0, 0, 0));
   wcex.lpszMenuName= 0;
-  wcex.lpszClassName= "BlankWindowClass";
+  wcex.lpszClassName= L"BlankWindowClass";
   wcex.hIconSm= 0;
 
   // Now we can go ahead and register our new window class
@@ -182,7 +193,7 @@ bool CWinSystemWin32::CreateBlankWindows()
 
   for (int i=0; i < BlankWindowsCount; i++)
   {
-    HWND hBlankWindow = CreateWindowEx(WS_EX_TOPMOST, "BlankWindowClass", "", WS_POPUP | WS_DISABLED,
+    HWND hBlankWindow = CreateWindowEx(WS_EX_TOPMOST, L"BlankWindowClass", L"", WS_POPUP | WS_DISABLED,
     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, NULL, NULL);
 
     if(hBlankWindow ==  NULL)
@@ -330,6 +341,52 @@ bool CWinSystemWin32::SetFullScreenEx(bool fullScreen, RESOLUTION_INFO& res, boo
   return true;
 }
 
+bool CWinSystemWin32::DPIChanged(WORD dpi, RECT windowRect)
+{
+  (void)dpi;
+  RECT resizeRect = windowRect;
+  HMONITOR hMon = MonitorFromRect(&resizeRect, MONITOR_DEFAULTTONULL);
+  if (hMon == NULL)
+  {
+    hMon = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTOPRIMARY);
+  }
+
+  if (hMon)
+  {
+    MONITORINFOEX monitorInfo;
+    monitorInfo.cbSize = sizeof(MONITORINFOEX);
+    GetMonitorInfo(hMon, &monitorInfo);
+    RECT wr = monitorInfo.rcWork;
+    long wrWidth = wr.right - wr.left;
+    long wrHeight = wr.bottom - wr.top;
+    long resizeWidth = resizeRect.right - resizeRect.left;
+    long resizeHeight = resizeRect.bottom - resizeRect.top;
+
+    if (resizeWidth > wrWidth)
+    {
+      resizeRect.right = resizeRect.left + wrWidth;
+    }
+
+    // make sure suggested windows size is not taller or wider than working area of new monitor (considers the toolbar)
+    if (resizeHeight > wrHeight)
+    {
+      resizeRect.bottom = resizeRect.top + wrHeight;
+    }
+  }
+
+  // resize the window to the suggested size. Will generate a WM_SIZE event
+  SetWindowPos(m_hWnd,
+    NULL,
+    resizeRect.left,
+    resizeRect.top,
+    resizeRect.right - resizeRect.left,
+    resizeRect.bottom - resizeRect.top,
+    SWP_NOZORDER | SWP_NOACTIVATE);
+
+  return true;
+}
+
+
 void CWinSystemWin32::RestoreDesktopResolution(int screen)
 {
   int resIdx = RES_DESKTOP;
@@ -434,6 +491,7 @@ bool CWinSystemWin32::ResizeInternal(bool forceRefresh)
       rc.top  = m_nTop  =  newScreenRect.top + ((newScreenRect.bottom - newScreenRect.top) / 2) - (m_nHeight / 2);
       rc.right = m_nLeft + m_nWidth;
       rc.bottom = m_nTop + m_nHeight;
+      m_ValidWindowedPosition = true;
     }
 
     AdjustWindowRect( &rc, WS_OVERLAPPEDWINDOW, false );
@@ -886,4 +944,8 @@ void CWinSystemWin32::SetForegroundWindowInternal(HWND hWnd)
   }
 }
 
-#endif
+std::unique_ptr<CVideoSync> CWinSystemWin32::GetVideoSync(void *clock)
+{
+  std::unique_ptr<CVideoSync> pVSync(new CVideoSyncD3D(clock));
+  return pVSync;
+}

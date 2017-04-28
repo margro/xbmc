@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <window type="dialog" id="1109">
 	<visible>Window.IsActive(fullscreenvideo) | Window.IsActive(visualisation)</visible>
-	<visible>Window.IsActive(seekbar) | Window.IsActive(pvrosdchannels) | Window.IsActive(pvrosdguide)</visible>
+	<visible>Window.IsActive(seekbar) | Window.IsActive(pvrosdchannels) | Window.IsActive(pvrchannelguide)</visible>
 	<depth>DepthOSD</depth>
 	<include>Animation_TopSlide</include>
 	<zorder>0</zorder>
@@ -16,8 +16,17 @@
 				<height>170</height>
 				<texture>frame/osdfade.png</texture>
 			</control>
+			<control type="image">
+				<left>10</left>
+				<top>0</top>
+				<width>500</width>
+				<height>160</height>
+				<texture>$INFO[Player.Art(clearlogo)]</texture>
+				<aspectratio aligny="top" align="left">keep</aspectratio>
+			</control>
 			<control type="group">
-				<visible>!Window.IsActive(pvrosdchannels) + !Window.IsActive(pvrosdguide)</visible>
+				<visible>!Window.IsActive(pvrosdchannels) + !Window.IsActive(pvrchannelguide)</visible>
+				<visible>String.IsEmpty(Player.Art(clearlogo))</visible>
 				<animation effect="fade" time="150">VisibleChange</animation>
 				<left>30</left>
 				<right>400</right>
@@ -67,6 +76,7 @@
 						<height>100</height>
 						<width>auto</width>
 						<visible>!String.isempty(Player.Duration)</visible>
+						<visible>Player.HasVideo</visible>
 						<visible>!VideoPlayer.Content(LiveTV) | VideoPlayer.HasEpg</visible>
 					</control>
 					<control type="image">

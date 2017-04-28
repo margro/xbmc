@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 #include "GameClientProperties.h"
 #include "GameClientTiming.h"
 #include "addons/AddonDll.h"
-#include "addons/DllGameClient.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
 #include "games/controllers/ControllerTypes.h"
 #include "games/GameTypes.h"
@@ -40,6 +39,7 @@ class CFileItem;
 namespace GAME
 {
 
+class CGameClientInGameSaves;
 class CGameClientInput;
 class CGameClientKeyboard;
 class CGameClientMouse;
@@ -53,7 +53,7 @@ class IGameVideoCallback;
  * \ingroup games
  * \brief Interface between Kodi and Game add-ons.
  */
-class CGameClient : public ADDON::CAddonDll<DllGameClient, GameClient, game_client_properties>
+class CGameClient : public ADDON::CAddonDll
 {
 public:
   static std::unique_ptr<CGameClient> FromExtension(ADDON::AddonProps props, const cp_extension_t* ext);
@@ -162,12 +162,18 @@ private:
   std::unique_ptr<IGameClientPlayback> m_playback; // Interface to control playback
   GAME_REGION           m_region;              // Region of the loaded game
 
+  // In-game saves
+  std::unique_ptr<CGameClientInGameSaves> m_inGameSaves;
+
   // Input
   std::map<int, std::unique_ptr<CGameClientInput>> m_ports;
   std::unique_ptr<CGameClientKeyboard> m_keyboard;
   std::unique_ptr<CGameClientMouse> m_mouse;
 
   CCriticalSection m_critSection;
+  
+  game_client_properties* m_info;
+  KodiToAddonFuncTable_Game m_struct;
 };
 
 } // namespace GAME

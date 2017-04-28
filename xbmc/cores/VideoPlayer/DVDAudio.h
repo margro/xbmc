@@ -20,9 +20,6 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
-  #include "config.h"
-#endif
 #include "threads/CriticalSection.h"
 #include "PlatformDefs.h"
 
@@ -79,7 +76,7 @@ protected:
   double m_resampleRatio;
   CCriticalSection m_critSection;
 
-  unsigned int m_sampeRate;
+  unsigned int m_sampleRate;
   int m_iBitsPerSample;
   bool m_bPassthrough;
   CAEChannelInfo m_channelLayout;

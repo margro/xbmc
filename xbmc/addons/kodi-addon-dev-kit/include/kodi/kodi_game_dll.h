@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -233,7 +233,7 @@ GAME_ERROR CheatReset(void);
  *
  * \return the error, or GAME_ERROR_NO_ERROR if data was set to a valid buffer
  */
-GAME_ERROR GetMemory(GAME_MEMORY type, const uint8_t** data, size_t* size);
+GAME_ERROR GetMemory(GAME_MEMORY type, uint8_t** data, size_t* size);
 
 /*!
  * \brief Set a cheat code
@@ -254,8 +254,10 @@ GAME_ERROR SetCheat(unsigned int index, bool enabled, const char* code);
  * Note that get_addon() is defined here, so it will be available in all
  * compiled game clients.
  */
-void __declspec(dllexport) get_addon(GameClient* pClient)
+void __declspec(dllexport) get_addon(void* ptr)
 {
+  KodiToAddonFuncTable_Game* pClient = static_cast<KodiToAddonFuncTable_Game*>(ptr);
+
   pClient->GetGameAPIVersion        = GetGameAPIVersion;
   pClient->GetMininumGameAPIVersion = GetMininumGameAPIVersion;
   pClient->LoadGame                 = LoadGame;

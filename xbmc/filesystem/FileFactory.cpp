@@ -18,9 +18,6 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
-  #include "config.h"
-#endif
 #include "network/Network.h"
 #include "system.h"
 #include "FileFactory.h"
@@ -50,9 +47,6 @@
 #endif
 #include "XbtFile.h"
 #include "ZipFile.h"
-#ifdef HAS_FILESYSTEM_RAR
-#include "RarFile.h"
-#endif
 #ifdef HAS_FILESYSTEM_SFTP
 #include "SFTPFile.h"
 #endif
@@ -70,6 +64,7 @@
 #endif
 #include "PipeFile.h"
 #include "MusicDatabaseFile.h"
+#include "VideoDatabaseFile.h"
 #include "SpecialProtocolFile.h"
 #include "MultiPathFile.h"
 #include "UDFFile.h"
@@ -79,7 +74,12 @@
 #include "URL.h"
 #include "utils/log.h"
 #include "network/WakeOnAccess.h"
+#include "utils/StringUtils.h"
+#include "ServiceBroker.h"
+#include "addons/VFSEntry.h"
+#include "addons/BinaryAddonCache.h"
 
+using namespace ADDON;
 using namespace XFILE;
 
 CFileFactory::CFileFactory()
@@ -101,21 +101,29 @@ IFile* CFileFactory::CreateLoader(const CURL& url)
   if (!CWakeOnAccess::GetInstance().WakeUpHost(url))
     return NULL;
 
+  std::string strProtocol = url.GetProtocol();
+  StringUtils::ToLower(strProtocol);
+
+  if (!strProtocol.empty() && CServiceBroker::IsBinaryAddonCacheUp())
+  {
+    VECADDONS addons;
+    ADDON::CBinaryAddonCache &addonCache = CServiceBroker::GetBinaryAddonCache();
+    addonCache.GetAddons(addons, ADDON::ADDON_VFS);
+    for (size_t i=0;i<addons.size();++i)
+    {
+      VFSEntryPtr vfs(std::static_pointer_cast<CVFSEntry>(addons[i]));
+      if (vfs->HasFiles() && vfs->GetProtocols().find(strProtocol) != std::string::npos)
+        return new CVFSEntryIFileWrapper(vfs);
+    }
+  }
+
 #if defined(TARGET_ANDROID)
   if (url.IsProtocol("apk")) return new CAPKFile();
 #endif
   if (url.IsProtocol("zip")) return new CZipFile();
-  else if (url.IsProtocol("rar"))
-  {
-#ifdef HAS_FILESYSTEM_RAR
-    return new CRarFile();
-#else
-    CLog::Log(LOGWARNING, "%s - Compiled without non-free, rar support is disabled", __FUNCTION__);
-#endif
-  }
   else if (url.IsProtocol("xbt")) return new CXbtFile();
   else if (url.IsProtocol("musicdb")) return new CMusicDatabaseFile();
-  else if (url.IsProtocol("videodb")) return nullptr;
+  else if (url.IsProtocol("videodb")) return new CVideoDatabaseFile();
   else if (url.IsProtocol("library")) return nullptr;
   else if (url.IsProtocol("special")) return new CSpecialProtocolFile();
   else if (url.IsProtocol("multipath")) return new CMultiPathFile();

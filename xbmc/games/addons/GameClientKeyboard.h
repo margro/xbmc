@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015-2016 Team Kodi
+ *      Copyright (C) 2015-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 
 #include "input/keyboard/IKeyboardHandler.h"
 
-struct GameClient;
+struct KodiToAddonFuncTable_Game;
 
 namespace GAME
 {
@@ -33,7 +33,7 @@ namespace GAME
    *
    * Listens to keyboard events and forwards them to the games (as game_input_event).
    */
-  class CGameClientKeyboard : public KEYBOARD::IKeyboardHandler
+  class CGameClientKeyboard : public KODI::KEYBOARD::IKeyboardHandler
   {
   public:
     /*!
@@ -41,7 +41,7 @@ namespace GAME
      * \param gameClient The game client implementation.
      * \param dllStruct The emulator or game to which the events are sent.
      */
-    CGameClientKeyboard(const CGameClient* gameClient, const GameClient* dllStruct);
+    CGameClientKeyboard(const CGameClient* gameClient, const KodiToAddonFuncTable_Game* dllStruct);
 
     /*!
      * \brief Destructor unregisters from keyboard events from CInputManager.
@@ -55,6 +55,6 @@ namespace GAME
   private:
     // Construction parameters
     const CGameClient* const m_gameClient;
-    const GameClient* const m_dllStruct;
+    const KodiToAddonFuncTable_Game* const m_dllStruct;
   };
 }

@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2013-2017 Team Kodi
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include "ContextMenuManager.h"
 #include "FileItem.h"
 #include "filesystem/Directory.h"
-#include "filesystem/FavouritesDirectory.h"
+#include "favourites/FavouritesService.h"
 #include "guilib/GUIWindowManager.h"
 #include "interfaces/AnnouncementManager.h"
 #include "messaging/ApplicationMessenger.h"
@@ -253,14 +253,6 @@ void CDirectoryProvider::Announce(AnnouncementFlag flag, const char *sender, con
           m_updateState = INVALIDATED;
       }
     }
-    else if (flag & GUI)
-    {
-      if (strcmp(message, "OnFavouritesUpdated") == 0)
-      {
-        if (URIUtils::IsProtocol(m_currentUrl, "favourites"))
-          m_updateState = INVALIDATED;
-      }
-    }
     else
     {
       // if we're in a database transaction, don't bother doing anything just yet
@@ -278,7 +270,7 @@ void CDirectoryProvider::Announce(AnnouncementFlag flag, const char *sender, con
   }
 }
 
-void CDirectoryProvider::Fetch(std::vector<CGUIListItemPtr> &items) const
+void CDirectoryProvider::Fetch(std::vector<CGUIListItemPtr> &items)
 {
   CSingleLock lock(m_section);
   items.clear();
@@ -316,6 +308,13 @@ void CDirectoryProvider::OnPVRManagerEvent(const PVR::PVREvent& event)
   }
 }
 
+void CDirectoryProvider::OnFavouritesEvent(const CFavouritesService::FavouritesUpdated& event)
+{
+  CSingleLock lock(m_section);
+  if (URIUtils::IsProtocol(m_currentUrl, "favourites"))
+    m_updateState = INVALIDATED;
+}
+
 void CDirectoryProvider::Reset()
 {
   CSingleLock lock(m_section);
@@ -335,8 +334,9 @@ void CDirectoryProvider::Reset()
   {
     m_isAnnounced = false;
     CAnnouncementManager::GetInstance().RemoveAnnouncer(this);
+    CServiceBroker::GetFavouritesService().Events().Unsubscribe(this);
     ADDON::CAddonMgr::GetInstance().Events().Unsubscribe(this);
-    g_PVRManager.Events().Unsubscribe(this);
+    CServiceBroker::GetPVRManager().Events().Unsubscribe(this);
   }
 }
 
@@ -374,7 +374,7 @@ bool CDirectoryProvider::OnClick(const CGUIListItemPtr &item)
       fileItem.SetPath(fileItem.GetProperty("node.target_url").asString());
   }
   // grab the execute string
-  std::string execute = CFavouritesDirectory::GetExecutePath(fileItem, target);
+  std::string execute = CServiceBroker::GetFavouritesService().GetExecutePath(fileItem, target);
   if (!execute.empty())
   {
     CGUIMessage message(GUI_MSG_EXECUTE, 0, 0);
@@ -443,7 +443,8 @@ bool CDirectoryProvider::UpdateURL()
     m_isAnnounced = true;
     CAnnouncementManager::GetInstance().AddAnnouncer(this);
     ADDON::CAddonMgr::GetInstance().Events().Subscribe(this, &CDirectoryProvider::OnAddonEvent);
-    g_PVRManager.Events().Subscribe(this, &CDirectoryProvider::OnPVRManagerEvent);
+    CServiceBroker::GetPVRManager().Events().Subscribe(this, &CDirectoryProvider::OnPVRManagerEvent);
+    CServiceBroker::GetFavouritesService().Events().Subscribe(this, &CDirectoryProvider::OnFavouritesEvent);
   }
   return true;
 }

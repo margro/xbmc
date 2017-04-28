@@ -110,7 +110,7 @@ private:
   tOpenContextMap m_openContextMap;//unique map for tracking all open contexts
   uint64_t m_lastAccessedTime;//last access time for m_pNfsContext
   DllLibNfs *m_pLibNfs;//the lib
-  std::list<std::string> m_exportList;//list of exported pathes of current connected servers
+  std::list<std::string> m_exportList;//list of exported paths of current connected servers
   CCriticalSection keepAliveLock;
   CCriticalSection openContextLock;
  
@@ -147,7 +147,7 @@ namespace XFILE
     //implement iocontrol for seek_possible for preventing the stat in File class for
     //getting this info ...
     virtual int IoControl(EIoControl request, void* param){ if(request == IOCTRL_SEEK_POSSIBLE) return 1;return -1;};    
-    virtual int  GetChunkSize() {return 1;}
+    virtual int  GetChunkSize() {return gNfsConnection.GetMaxReadChunkSize();}
     
     virtual bool OpenForWrite(const CURL& url, bool bOverWrite = false);
     virtual bool Delete(const CURL& url);

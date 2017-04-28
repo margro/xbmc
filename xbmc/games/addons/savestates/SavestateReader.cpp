@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -21,6 +21,7 @@
 #include "SavestateReader.h"
 #include "filesystem/File.h"
 #include "games/addons/GameClient.h"
+#include "utils/log.h"
 #include "IMemoryStream.h"
 
 using namespace GAME;

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015-2016 Team Kodi
+ *      Copyright (C) 2015-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 
 #include "input/mouse/IMouseInputHandler.h"
 
-struct GameClient;
+struct KodiToAddonFuncTable_Game;
 
 namespace GAME
 {
@@ -33,7 +33,7 @@ namespace GAME
    *
    * Listens to mouse events and forwards them to the games (as game_input_event).
    */
-  class CGameClientMouse : public MOUSE::IMouseInputHandler
+  class CGameClientMouse : public KODI::MOUSE::IMouseInputHandler
   {
   public:
     /*!
@@ -41,7 +41,7 @@ namespace GAME
      * \param gameClient The game client implementation.
      * \param dllStruct The emulator or game to which the events are sent.
      */
-    CGameClientMouse(const CGameClient* gameClient, const GameClient* dllStruct);
+    CGameClientMouse(const CGameClient* gameClient, const KodiToAddonFuncTable_Game* dllStruct);
 
     /*!
      * \brief Destructor unregisters from mouse events from CInputManager.
@@ -57,7 +57,7 @@ namespace GAME
   private:
     // Construction parameters
     const CGameClient* const m_gameClient;
-    const GameClient* const m_dllStruct;
+    const KodiToAddonFuncTable_Game* const m_dllStruct;
     const std::string m_controllerId;
   };
 }

@@ -61,7 +61,10 @@ using namespace VAAPI;
 
 CVAAPIContext *CVAAPIContext::m_context = 0;
 CCriticalSection CVAAPIContext::m_section;
+
+#ifdef HAVE_X11
 Display *CVAAPIContext::m_X11dpy = 0;
+#endif
 
 CVAAPIContext::CVAAPIContext()
 {
@@ -1171,7 +1174,7 @@ void CDecoder::FiniVAAPIOutput()
     CheckSuccess(vaDestroyContext(m_vaapiConfig.dpy, m_vaapiConfig.contextId));
   m_vaapiConfig.contextId = VA_INVALID_ID;
 
-  // detroy surfaces
+  // destroy surfaces
   if (g_advancedSettings.CanLogComponent(LOGVIDEO))
     CLog::Log(LOGDEBUG, "VAAPI::FiniVAAPIOutput destroying %d video surfaces", m_videoSurfaces.Size());
   VASurfaceID surf;

@@ -50,10 +50,10 @@
 #include "utils/StringUtils.h"
 #include "Util.h"
 #include "messaging/ApplicationMessenger.h"
+#include "ServiceBroker.h"
 
 #ifdef TARGET_WINDOWS
 
-using namespace PERIPHERALS;
 using namespace KODI::MESSAGING;
 
 HWND g_hWnd = NULL;
@@ -89,7 +89,7 @@ SHChangeNotifyEntry shcne;
 
 void DIB_InitOSKeymap()
 {
-  char current_layout[KL_NAMELENGTH];
+  wchar_t current_layout[KL_NAMELENGTH];
 
   GetKeyboardLayoutName(current_layout);
 
@@ -402,6 +402,18 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
   ZeroMemory(&newEvent, sizeof(newEvent));
   static HDEVNOTIFY hDeviceNotify;
 
+#if 0
+  if (uMsg == WM_NCCREATE)
+  {
+    // if available, enable DPI scaling of non-client portion of window (title bar, etc.) 
+    if (g_Windowing.PtrEnableNonClientDpiScaling != NULL)
+    {
+      g_Windowing.PtrEnableNonClientDpiScaling(hWnd);
+    }
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+  }
+#endif
+
   if (uMsg == WM_CREATE)
   {
     g_hWnd = hWnd;
@@ -668,6 +680,19 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
         m_pEventFunc(newEvent);
       }
       return(0);
+    case WM_DPICHANGED:
+      // This message tells the program that most of its window is on a
+      // monitor with a new DPI. The wParam contains the new DPI, and the 
+      // lParam contains a rect which defines the window rectangle scaled 
+      // the new DPI. 
+      if (g_application.GetRenderGUI() && !g_Windowing.IsAlteringWindow())
+      {
+        // get the suggested size of the window on the new display with a different DPI
+        unsigned short  dpi = LOWORD(wParam);
+        RECT resizeRect = *((RECT*)lParam);
+        g_Windowing.DPIChanged(dpi, resizeRect);
+      }
+      return(0);
     case WM_DISPLAYCHANGE:
       CLog::Log(LOGDEBUG, __FUNCTION__": display change event");  
       if (g_application.GetRenderGUI() && !g_Windowing.IsAlteringWindow() && GET_X_LPARAM(lParam) > 0 && GET_Y_LPARAM(lParam) > 0)  
@@ -684,9 +709,9 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
           newEvent.type = XBMC_VIDEORESIZE;  
           newEvent.resize.w = GET_X_LPARAM(lParam);  
           newEvent.resize.h = GET_Y_LPARAM(lParam);  
-        }  
-        m_pEventFunc(newEvent);  
-      }  
+        }
+        m_pEventFunc(newEvent);
+      }
       return(0);  
     case WM_SIZE:
       newEvent.type = XBMC_VIDEORESIZE;
@@ -724,7 +749,7 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
 
         if (hLock)
         {
-          char drivePath[MAX_PATH+1];
+          wchar_t drivePath[MAX_PATH+1];
           if (!SHGetPathFromIDList(ppidl[0], drivePath))
             break;
 
@@ -769,13 +794,13 @@ LRESULT CALLBACK CWinEventsWin32::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, L
         switch(wParam)
         {
           case DBT_DEVNODES_CHANGED:
-            g_peripherals.TriggerDeviceScan(PERIPHERAL_BUS_USB);
+            CServiceBroker::GetPeripherals().TriggerDeviceScan(PERIPHERALS::PERIPHERAL_BUS_USB);
             break;
           case DBT_DEVICEARRIVAL:
           case DBT_DEVICEREMOVECOMPLETE:
             if (((_DEV_BROADCAST_HEADER*) lParam)->dbcd_devicetype == DBT_DEVTYP_DEVICEINTERFACE)
             {
-              g_peripherals.TriggerDeviceScan(PERIPHERAL_BUS_USB);
+              CServiceBroker::GetPeripherals().TriggerDeviceScan(PERIPHERALS::PERIPHERAL_BUS_USB);
             }
             // check if an usb or optical media was inserted or removed
             if (((_DEV_BROADCAST_HEADER*) lParam)->dbcd_devicetype == DBT_DEVTYP_VOLUME)

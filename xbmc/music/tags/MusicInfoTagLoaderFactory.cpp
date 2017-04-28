@@ -66,7 +66,7 @@ IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const CFileItem& i
     if (dec->HasTags() && dec->GetExtensions().find("."+strExtension) != std::string::npos)
     {
       CAudioDecoder* result = new CAudioDecoder(*dec);
-      static_cast<AudioDecoderDll&>(*result).Create();
+      result->Create();
       return result;
     }
   }
@@ -77,7 +77,7 @@ IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const CFileItem& i
       strExtension == "mp3" || 
       strExtension == "wma" || 
       strExtension == "flac" || 
-      strExtension == "m4a" || strExtension == "mp4" ||
+      strExtension == "m4a" || strExtension == "mp4" || strExtension == "m4b" ||
       strExtension == "mpc" || strExtension == "mpp" || strExtension == "mp+" ||
       strExtension == "ogg" || strExtension == "oga" || strExtension == "oggstream" ||
       strExtension == "opus" ||

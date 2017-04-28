@@ -26,9 +26,6 @@
 #include "UDFDirectory.h"
 #include "RSSDirectory.h"
 #endif
-#ifdef HAS_FILESYSTEM_RAR
-#include "RarDirectory.h"
-#endif
 #if defined(TARGET_ANDROID)
 #include "APKDirectory.h"
 #endif
@@ -44,8 +41,10 @@
 #include "utils/StringUtils.h"
 #include "URL.h"
 #include "ServiceBroker.h"
-#include "addons/BinaryAddonCache.h"
 #include "addons/AudioDecoder.h"
+#include "addons/VFSEntry.h"
+#include "addons/BinaryAddonCache.h"
+#include "AudioBookFileDirectory.h"
 
 using namespace ADDON;
 using namespace XFILE;
@@ -76,7 +75,7 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
       if (dec->HasTracks() && dec->GetExtensions().find(strExtension) != std::string::npos)
       {
         CAudioDecoder* result = new CAudioDecoder(*dec);
-        static_cast<AudioDecoderDll&>(*result).Create();
+        result->Create();
         if (result->ContainsFiles(url))
           return result;
         delete result;
@@ -85,15 +84,46 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
     }
   }
 
-#ifdef HAS_FILESYSTEM
-  
+  if (CServiceBroker::IsBinaryAddonCacheUp())
+  {
+    VECADDONS vfs;
+    CBinaryAddonCache &addonCache = CServiceBroker::GetBinaryAddonCache();
+    addonCache.GetAddons(vfs, ADDON_VFS);
+    for (size_t i=0;i<vfs.size();++i)
+    {
+      std::shared_ptr<CVFSEntry> dec(std::static_pointer_cast<CVFSEntry>(vfs[i]));
+      if (!strExtension.empty() && dec->HasFileDirectories() &&
+          dec->GetExtensions().find(strExtension) != std::string::npos)
+      {
+        CVFSEntryIFileDirectoryWrapper* wrap = new CVFSEntryIFileDirectoryWrapper(dec);
+        if (wrap->ContainsFiles(url))
+        {
+          if (wrap->m_items.Size() == 1)
+          {
+            // one STORED file - collapse it down
+            *pItem = *wrap->m_items[0];
+          }
+          else
+          { // compressed or more than one file -> create a dir
+            pItem->SetPath(wrap->m_items.GetPath());
+            return wrap;
+          }
+        }
+        else
+          pItem->m_bIsFolder = true;
+
+        delete wrap;
+        return NULL;
+      }
+    }
+  }
+
   if (pItem->IsRSS())
     return new CRSSDirectory();
 
   if (pItem->IsDiscImage())
     return new CUDFDirectory();
 
-#endif
 #if defined(TARGET_ANDROID)
   if (url.IsFileType("apk"))
   {
@@ -136,59 +166,6 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
     }
     return NULL;
   }
-  if (url.IsFileType("rar") || url.IsFileType("001"))
-  {
-    std::vector<std::string> tokens;
-    const std::string strPath = url.Get();
-    StringUtils::Tokenize(strPath,tokens,".");
-    if (tokens.size() > 2)
-    {
-      if (url.IsFileType("001"))
-      {
-        if (StringUtils::EqualsNoCase(tokens[tokens.size()-2], "ts")) // .ts.001 - treat as a movie file to scratch some users itch
-          return NULL;
-      }
-      std::string token = tokens[tokens.size()-2];
-      if (StringUtils::StartsWith(token, "part")) // only list '.part01.rar'
-      {
-        // need this crap to avoid making mistakes - yeyh for the new rar naming scheme :/
-        struct __stat64 stat;
-        int digits = token.size()-4;
-        std::string strFormat = StringUtils::Format("part%%0%ii", digits);
-        std::string strNumber = StringUtils::Format(strFormat.c_str(), 1);
-        std::string strPath2 = strPath;
-        StringUtils::Replace(strPath2,token,strNumber);
-        if (atoi(token.substr(4).c_str()) > 1 && CFile::Stat(strPath2,&stat) == 0)
-        {
-          pItem->m_bIsFolder = true;
-          return NULL;
-        }
-      }
-    }
-
-    CURL rarURL = URIUtils::CreateArchivePath("rar", url);
-
-    CFileItemList items;
-    CDirectory::GetDirectory(rarURL, items, strMask);
-    if (items.Size() == 0) // no files - hide this
-      pItem->m_bIsFolder = true;
-    else if (items.Size() == 1 && items[0]->m_idepth == 0x30 && !items[0]->m_bIsFolder)
-    {
-      // one STORED file - collapse it down
-      *pItem = *items[0];
-    }
-    else
-    {
-#ifdef HAS_FILESYSTEM_RAR
-      // compressed or more than one file -> create a rar dir
-      pItem->SetURL(rarURL);
-      return new CRarDirectory;
-#else
-      return NULL;
-#endif
-    }
-    return NULL;
-  }
   if (url.IsFileType("xbt"))
   {
     CURL xbtUrl = URIUtils::CreateArchivePath("xbt", url);
@@ -203,7 +180,7 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
     if (playlist.OpenAndReadName(url))
     {
       pItem->SetLabel(playlist.GetName());
-      pItem->SetLabelPreformated(true);
+      pItem->SetLabelPreformatted(true);
     }
     IFileDirectory* pDir=new CSmartPlaylistDirectory;
     return pDir; // treat as directory
@@ -221,6 +198,17 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
         return pDir;
     }
     delete pDir;
+    return NULL;
+  }
+
+  if (pItem->IsAudioBook())
+  {
+    if (!pItem->HasMusicInfoTag() || pItem->m_lEndOffset <= 0)
+    {
+      std::unique_ptr<CAudioBookFileDirectory> pDir(new CAudioBookFileDirectory);
+      if (pDir->ContainsFiles(url))
+        return pDir.release();
+    }
     return NULL;
   }
   return NULL;

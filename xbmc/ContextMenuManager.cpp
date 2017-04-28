@@ -24,6 +24,7 @@
 #include "addons/ContextMenuAddon.h"
 #include "addons/ContextMenus.h"
 #include "addons/IAddon.h"
+#include "favourites/ContextMenus.h"
 #include "music/ContextMenus.h"
 #include "pvr/PVRContextMenus.h"
 #include "video/ContextMenus.h"
@@ -31,6 +32,7 @@
 #include "ServiceBroker.h"
 
 #include <iterator>
+#include "ContextMenus.h"
 
 using namespace ADDON;
 using namespace PVR;
@@ -44,7 +46,13 @@ CContextMenuManager::CContextMenuManager(CAddonMgr& addonMgr)
 
 CContextMenuManager::~CContextMenuManager()
 {
+  Deinit();
+}
+
+void CContextMenuManager::Deinit()
+{
   m_addonMgr.Events().Unsubscribe(this);
+  m_items.clear();
 }
 
 CContextMenuManager& CContextMenuManager::GetInstance()
@@ -61,6 +69,8 @@ void CContextMenuManager::Init()
       std::make_shared<CONTEXTMENU::CResume>(),
       std::make_shared<CONTEXTMENU::CPlay>(),
       std::make_shared<CONTEXTMENU::CAddonInfo>(),
+      std::make_shared<CONTEXTMENU::CEnableAddon>(),
+      std::make_shared<CONTEXTMENU::CDisableAddon>(),
       std::make_shared<CONTEXTMENU::CAddonSettings>(),
       std::make_shared<CONTEXTMENU::CCheckForUpdates>(),
       std::make_shared<CONTEXTMENU::CEpisodeInfo>(),
@@ -72,6 +82,11 @@ void CContextMenuManager::Init()
       std::make_shared<CONTEXTMENU::CSongInfo>(),
       std::make_shared<CONTEXTMENU::CMarkWatched>(),
       std::make_shared<CONTEXTMENU::CMarkUnWatched>(),
+      std::make_shared<CONTEXTMENU::CEjectDisk>(),
+      std::make_shared<CONTEXTMENU::CEjectDrive>(),
+      std::make_shared<CONTEXTMENU::CRemoveFavourite>(),
+      std::make_shared<CONTEXTMENU::CRenameFavourite>(),
+      std::make_shared<CONTEXTMENU::CChooseThumbnailForFavourite>(),
   };
 
   ReloadAddonItems();
@@ -104,25 +119,6 @@ void CContextMenuManager::ReloadAddonItems()
   CLog::Log(LOGDEBUG, "ContextMenuManager: addon menus reloaded.");
 }
 
-bool CContextMenuManager::Unload(const CContextMenuAddon& addon)
-{
-  CSingleLock lock(m_criticalSection);
-
-  const auto menuItems = addon.GetItems();
-
-  auto it = std::remove_if(m_addonItems.begin(), m_addonItems.end(),
-    [&](const CContextMenuItem& item)
-    {
-      if (item.IsGroup())
-        return false; //keep in case other items use them
-      return std::find(menuItems.begin(), menuItems.end(), item) != menuItems.end();
-    }
-  );
-  m_addonItems.erase(it, m_addonItems.end());
-  CLog::Log(LOGDEBUG, "ContextMenuManager: %s unloaded.", addon.ID().c_str());
-  return true;
-}
-
 void CContextMenuManager::OnEvent(const ADDON::AddonEvent& event)
 {
   if (typeid(event) == typeid(AddonEvents::InstalledChanged))
@@ -143,6 +139,14 @@ void CContextMenuManager::OnEvent(const ADDON::AddonEvent& event)
           m_addonItems.push_back(item);
       }
       CLog::Log(LOGDEBUG, "ContextMenuManager: loaded %s.", enableEvent->id.c_str());
+    }
+  }
+  else if (auto disableEvent = dynamic_cast<const AddonEvents::Disabled*>(&event))
+  {
+    AddonPtr addon;
+    if (m_addonMgr.GetAddon(disableEvent->id, addon, ADDON_CONTEXT_ITEM, false))
+    {
+      ReloadAddonItems();
     }
   }
 }

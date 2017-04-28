@@ -41,7 +41,7 @@
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "dialogs/GUIDialogProgress.h"
-#include "filesystem/FavouritesDirectory.h"
+#include "favourites/FavouritesService.h"
 #include "PlayListPlayer.h"
 #include "playlists/PlayList.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
@@ -59,6 +59,7 @@
 #include "utils/Variant.h"
 #include "Autorun.h"
 #include "URL.h"
+#include "platform/Filesystem.h"
 #ifdef TARGET_POSIX
 #include "linux/XFileUtils.h"
 #endif
@@ -321,6 +322,7 @@ bool CGUIWindowFileManager::OnMessage(CGUIMessage& message)
 
 void CGUIWindowFileManager::OnSort(int iList)
 {
+  using namespace KODI::PLATFORM::FILESYSTEM;
   // always sort the list by label in ascending order
   for (int i = 0; i < m_vecItems[iList]->Size(); i++)
   {
@@ -335,19 +337,21 @@ void CGUIWindowFileManager::OnSort(int iList)
     {
       if (pItem->IsHD())
       {
-        ULARGE_INTEGER ulBytesFree;
-        if (GetDiskFreeSpaceEx(pItem->GetPath().c_str(), &ulBytesFree, NULL, NULL))
+        std::error_code ec;
+        auto freeSpace = space(pItem->GetPath(), ec);
+        if (ec.value() == 0)
         {
-          pItem->m_dwSize = ulBytesFree.QuadPart;
+          pItem->m_dwSize = freeSpace.free;
           pItem->SetFileSizeLabel();
         }
       }
       else if (pItem->IsDVD() && g_mediaManager.IsDiscInDrive())
       {
-        ULARGE_INTEGER ulBytesTotal;
-        if (GetDiskFreeSpaceEx(pItem->GetPath().c_str(), NULL, &ulBytesTotal, NULL))
+        std::error_code ec;
+        auto freeSpace = space(pItem->GetPath(), ec);
+        if (ec.value() == 0)
         {
-          pItem->m_dwSize = ulBytesTotal.QuadPart;
+          pItem->m_dwSize = freeSpace.capacity;
           pItem->SetFileSizeLabel();
         }
       }
@@ -467,7 +471,7 @@ bool CGUIWindowFileManager::Update(int iList, const std::string &strDirectory)
     pItem->SetPath("add");
     pItem->SetIconImage("DefaultAddSource.png");
     pItem->SetLabel(strLabel);
-    pItem->SetLabelPreformated(true);
+    pItem->SetLabelPreformatted(true);
     pItem->m_bIsFolder = true;
     pItem->SetSpecialSort(SortSpecialOnBottom);
     m_vecItems[iList]->Add(pItem);
@@ -488,14 +492,14 @@ bool CGUIWindowFileManager::Update(int iList, const std::string &strDirectory)
     CFileItemPtr pItem(new CFileItem("special://profile/", true));
     pItem->SetLabel(g_localizeStrings.Get(20070));
     pItem->SetArt("thumb", "DefaultFolder.png");
-    pItem->SetLabelPreformated(true);
+    pItem->SetLabelPreformatted(true);
     m_vecItems[iList]->Add(pItem);
     
     #ifdef TARGET_DARWIN_IOS
       CFileItemPtr iItem(new CFileItem("special://envhome/Documents/Inbox", true));
       iItem->SetLabel("Inbox");
       iItem->SetArt("thumb", "DefaultFolder.png");
-      iItem->SetLabelPreformated(true);
+      iItem->SetLabelPreformatted(true);
       m_vecItems[iList]->Add(iItem);
     #endif
   }
@@ -618,7 +622,12 @@ void CGUIWindowFileManager::OnStart(CFileItem *pItem, const std::string &player)
     g_application.ProcessAndStartPlaylist(strPlayList, *pPlayList, PLAYLIST_MUSIC);
     return;
   }
-  if (pItem->IsAudio() || pItem->IsVideo() || pItem->IsGame())
+  if (pItem->IsAudio() || pItem->IsVideo())
+  {
+    g_playlistPlayer.Play(std::make_shared<CFileItem>(*pItem), player);
+    return;
+  }
+  if (pItem->IsGame())
   {
     g_application.PlayFile(*pItem, player);
     return ;
@@ -632,7 +641,7 @@ void CGUIWindowFileManager::OnStart(CFileItem *pItem, const std::string &player)
 #endif
   if (pItem->IsPicture())
   {
-    CGUIWindowSlideShow *pSlideShow = (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+    CGUIWindowSlideShow *pSlideShow = g_windowManager.GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
     if (!pSlideShow)
       return ;
     if (g_application.m_pPlayer->IsPlayingVideo())
@@ -848,7 +857,7 @@ void CGUIWindowFileManager::GetDirectoryHistoryString(const CFileItem* pItem, st
     // We are in the virtual directory
 
     // History string of the DVD drive
-    // must be handel separately
+    // must be handled separately
     if (pItem->m_iDriveType == CMediaSource::SOURCE_TYPE_DVD)
     {
       // Remove disc label from item label
@@ -1006,7 +1015,7 @@ void CGUIWindowFileManager::OnPopupMenu(int list, int item, bool bContextDriven 
     if (NumSelected(list) <  m_vecItems[list]->Size() - notSelectable)
       choices.Add(CONTROL_BTNSELECTALL, 188); // SelectAll
     if (!pItem->IsParentFolder())
-      choices.Add(CONTROL_BTNFAVOURITES,  XFILE::CFavouritesDirectory::IsFavourite(pItem.get(), GetID()) ? 14077 : 14076); // Add/Remove Favourite
+      choices.Add(CONTROL_BTNFAVOURITES, CServiceBroker::GetFavouritesService().IsFavourited(*pItem.get(), GetID()) ? 14077 : 14076); // Add/Remove Favourite
     if (players.size() > 1)
       choices.Add(CONTROL_BTNPLAYWITH, 15213);
     if (CanRename(list) && !pItem->IsParentFolder())
@@ -1034,7 +1043,7 @@ void CGUIWindowFileManager::OnPopupMenu(int list, int item, bool bContextDriven 
   }
   if (btnid == CONTROL_BTNFAVOURITES)
   {
-    XFILE::CFavouritesDirectory::AddOrRemove(pItem.get(), GetID());
+    CServiceBroker::GetFavouritesService().AddOrRemove(*pItem.get(), GetID());
     return;
   }
   if (btnid == CONTROL_BTNPLAYWITH)
@@ -1058,7 +1067,7 @@ void CGUIWindowFileManager::OnPopupMenu(int list, int item, bool bContextDriven 
   if (btnid == CONTROL_BTNCALCSIZE)
   {
     // setup the progress dialog, and show it
-    CGUIDialogProgress *progress = (CGUIDialogProgress *)g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS);
+    CGUIDialogProgress *progress = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
     if (progress)
     {
       progress->SetHeading(CVariant{13394});

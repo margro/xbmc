@@ -184,7 +184,7 @@ bool CPluginDirectory::GetPluginResult(const std::string& strPath, CFileItem &re
     resultItem.SetPath(newDir.m_fileResult->GetPath());
     resultItem.SetMimeType(newDir.m_fileResult->GetMimeType());
     resultItem.UpdateInfo(*newDir.m_fileResult);
-    if (newDir.m_fileResult->HasVideoInfoTag() && newDir.m_fileResult->GetVideoInfoTag()->m_resumePoint.IsSet())
+    if (newDir.m_fileResult->HasVideoInfoTag() && newDir.m_fileResult->GetVideoInfoTag()->GetResumePoint().IsSet())
       resultItem.m_lStartOffset = STARTOFFSET_RESUME; // resume point set in the resume item, so force resume
   }
 
@@ -228,7 +228,7 @@ void CPluginDirectory::EndOfDirectory(int handle, bool success, bool replaceList
     return;
 
   // set cache to disc
-  dir->m_listItems->SetCacheToDisc(CFileItemList::CACHE_NEVER);
+  dir->m_listItems->SetCacheToDisc(cacheToDisc ? CFileItemList::CACHE_IF_SLOW : CFileItemList::CACHE_NEVER);
 
   dir->m_success = success;
   dir->m_listItems->SetReplaceListing(replaceListing);

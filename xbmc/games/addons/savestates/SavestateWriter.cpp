@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Team Kodi
+ *      Copyright (C) 2016-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 #include "pictures/Picture.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/Crc32.h"
+#include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "Application.h"
 #include "XBDateTime.h"

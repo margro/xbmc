@@ -18,16 +18,14 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
-  #include "config.h"
-#elif defined(TARGET_WINDOWS)
+#if defined(TARGET_WINDOWS)
 #include "system.h"
 #endif
 
 #if defined(HAVE_OMXLIB)
 
 #include "ServiceBroker.h"
-#include "video/VideoReferenceClock.h"
+#include "cores/VideoPlayer/VideoReferenceClock.h"
 #include "settings/Settings.h"
 
 #include "OMXClock.h"

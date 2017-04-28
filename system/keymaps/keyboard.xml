@@ -183,6 +183,7 @@
   </Home>
   <VirtualKeyboard>
     <keyboard>
+      <c mod="longpress">noop</c>
       <left>Left</left>
       <right>Right</right>
       <up>Up</up>
@@ -193,6 +194,8 @@
       <browser_back>Backspace</browser_back>
       <browser_back mod="longpress">PreviousMenu</browser_back>
       <play_pause mod="longpress">Enter</play_pause>
+      <browser_search>VoiceRecognizer</browser_search>
+      <menu>VoiceRecognizer</menu>
     </keyboard>
   </VirtualKeyboard>
   <TVChannels>
@@ -240,6 +243,7 @@
       <e>PreviousMenu</e>
       <t>ShowTimerRule</t>
       <epg>PreviousMenu</epg>
+      <g>NextChannelGroup</g>
       <backspace mod="longpress">Number0</backspace> <!-- 0 key goes to "now" on EPG timeline -->
       <browser_back mod="longpress">Number0</browser_back> <!-- 0 key goes to "now" on EPG timeline -->
     </keyboard>
@@ -455,8 +459,6 @@
       <o>PlayerProcessInfo</o>
       <l>LockPreset</l>
       <escape>FullScreen</escape>
-      <g>ActivateWindow(PVROSDGuide)</g>
-      <c>ActivateWindow(PVROSDChannels)</c>
     </keyboard>
   </Visualisation>
   <MusicOSD>
@@ -663,6 +665,8 @@
       <down>Down</down>
       <return>OSD</return>
       <enter>OSD</enter>
+      <g>ActivateWindow(PVRChannelGuide)</g>
+      <c>ActivateWindow(PVROSDChannels)</c>
       <return mod="longpress">ActivateWindow(PVROSDChannels)</return>
       <enter mod="longpress">ActivateWindow(PVROSDChannels)</enter>
       <pageup>ChannelUp</pageup>
@@ -677,6 +681,8 @@
       <down>Down</down>
       <return>OSD</return>
       <enter>OSD</enter>
+      <g>ActivateWindow(PVRChannelGuide)</g>
+      <c>ActivateWindow(PVROSDChannels)</c>
       <return mod="longpress">ActivateWindow(PVROSDChannels)</return>
       <enter mod="longpress">ActivateWindow(PVROSDChannels)</enter>
       <pageup>ChannelUp</pageup>
@@ -691,13 +697,13 @@
       <c>Close</c>
     </keyboard>
   </PVROSDChannels>
-  <PVROSDGuide>
+  <PVRChannelGuide>
     <keyboard>
       <backspace>Close</backspace>
       <escape>Close</escape>
       <browser_back>Close</browser_back>
     </keyboard>
-  </PVROSDGuide>
+  </PVRChannelGuide>
   <PVRSettings>
     <keyboard>
       <backspace>PreviousMenu</backspace>

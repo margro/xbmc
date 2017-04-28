@@ -102,7 +102,7 @@ using namespace MUSIC_INFO;
  *  %Y - Year
  *  %Z - tvshow title
  *  %a - Date Added
- *  %c - Relevance - Used for actors' appearences
+ *  %c - Relevance - Used for actors' appearances
  *  %d - Date and Time
  *  %p - Last Played
  *  %r - User Rating
@@ -309,7 +309,7 @@ std::string CLabelFormatter::GetMaskContent(const CMaskString &mask, const CFile
     if (music)
       value = StringUtils::Format("%i", music->GetPlayCount());
     if (movie)
-      value = StringUtils::Format("%i", movie->m_playCount);
+      value = StringUtils::Format("%i", movie->GetPlayCount());
     break;
   case 'X': // Bitrate
     if( !item->m_bIsFolder && item->m_dwSize != 0 )

@@ -47,7 +47,7 @@
 #include "GUIListContainer.h"
 #include "GUIFixedListContainer.h"
 #include "GUIWrappingListContainer.h"
-#include "epg/GUIEPGGridContainer.h"
+#include "pvr/windows/GUIEPGGridContainer.h"
 #include "GUIPanelContainer.h"
 #include "GUIListLabel.h"
 #include "GUIListGroup.h"
@@ -64,7 +64,7 @@
 #include "games/controllers/guicontrols/GUIGameController.h"
 #include "Util.h"
 
-using namespace EPG;
+using namespace PVR;
 
 typedef struct
 {
@@ -355,7 +355,7 @@ bool CGUIControlFactory::GetTexture(const TiXmlNode* pRootNode, const char* strT
   const char *background = pNode->Attribute("background");
   if (background && strnicmp(background, "true", 4) == 0)
     image.useLarge = true;
-  image.filename = (pNode->FirstChild() && pNode->FirstChild()->ValueStr() != "-") ? pNode->FirstChild()->Value() : "";
+  image.filename = pNode->FirstChild() ? pNode->FirstChild()->Value() : "";
   return true;
 }
 
@@ -504,17 +504,21 @@ bool CGUIControlFactory::GetActions(const TiXmlNode* pRootNode, const char* strT
   return action.m_actions.size() > 0;
 }
 
-bool CGUIControlFactory::GetHitRect(const TiXmlNode *control, CRect &rect)
+bool CGUIControlFactory::GetHitRect(const TiXmlNode *control, CRect &rect, const CRect &parentRect)
 {
   const TiXmlElement* node = control->FirstChildElement("hitrect");
   if (node)
   {
-    node->QueryFloatAttribute("x", &rect.x1);
-    node->QueryFloatAttribute("y", &rect.y1);
+    rect.x1 = ParsePosition(node->Attribute("x"), parentRect.Width());
+    rect.y1 = ParsePosition(node->Attribute("y"), parentRect.Height());
     if (node->Attribute("w"))
       rect.x2 = (float)atof(node->Attribute("w")) + rect.x1;
+    else if (node->Attribute("right"))
+      rect.x2 = std::min(ParsePosition(node->Attribute("right"), parentRect.Width()), rect.x1);
     if (node->Attribute("h"))
       rect.y2 = (float)atof(node->Attribute("h")) + rect.y1;
+    else if (node->Attribute("bottom"))
+      rect.y2 = std::min(ParsePosition(node->Attribute("bottom"), parentRect.Height()), rect.y1);
     return true;
   }
   return false;
@@ -571,7 +575,7 @@ bool CGUIControlFactory::GetInfoLabelFromElement(const TiXmlElement *element, CG
     return false;
 
   std::string label = element->FirstChild()->Value();
-  if (label.empty() || label == "-")
+  if (label.empty())
     return false;
 
   std::string fallback = XMLUtils::GetAttribute(element, "fallback");
@@ -641,8 +645,6 @@ bool CGUIControlFactory::GetString(const TiXmlNode* pRootNode, const char *strTa
 {
   if (!XMLUtils::GetString(pRootNode, strTag, text))
     return false;
-  if (text == "-")
-    text.clear();
   if (StringUtils::IsNaturalNumber(text))
     text = g_localizeStrings.Get(atoi(text.c_str()));
   return true;
@@ -804,7 +806,7 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
   XMLUtils::GetFloat(pControlNode, "offsety", offset.y);
 
   hitRect.SetRect(posX, posY, posX + width, posY + height);
-  GetHitRect(pControlNode, hitRect);
+  GetHitRect(pControlNode, hitRect, rect);
 
   GetInfoColor(pControlNode, "hitrectcolor", hitColor, parentID);
 
@@ -1054,8 +1056,8 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
   if (cam)
   {
     hasCamera = true;
-    cam->QueryFloatAttribute("x", &camera.x);
-    cam->QueryFloatAttribute("y", &camera.y);
+    camera.x = ParsePosition(cam->Attribute("x"), width);
+    camera.y = ParsePosition(cam->Attribute("y"), height);
   }
 
   if (XMLUtils::GetFloat(pControlNode, "depth", stereo))
@@ -1335,7 +1337,7 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
     break;
   case CGUIControl::GUICONTAINER_EPGGRID:
     {
-      CGUIEPGGridContainer *epgGridContainer = new CGUIEPGGridContainer(parentID, id, posX, posY, width, height, scrollTime, preloadItems, timeBlocks, rulerUnit, textureProgressIndicator);
+      CGUIEPGGridContainer *epgGridContainer = new CGUIEPGGridContainer(parentID, id, posX, posY, width, height, orientation, scrollTime, preloadItems, timeBlocks, rulerUnit, textureProgressIndicator);
       control = epgGridContainer;
       epgGridContainer->LoadLayout(pControlNode);
       epgGridContainer->SetRenderOffset(offset);

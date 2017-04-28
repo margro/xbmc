@@ -26,25 +26,20 @@
 
 #include "addons/Addon.h"
 #include "addons/AddonDll.h"
-#include "addons/DllPVRClient.h"
-#include "network/ZeroconfBrowser.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/PVRTypes.h"
-
-namespace EPG
-{
-  class CEpg;
-}
 
 namespace PVR
 {
   class CPVRChannelGroup;
   class CPVRChannelGroupInternal;
   class CPVRChannelGroups;
-  class CPVRTimers;
+  class CPVRTimersContainer;
   class CPVRTimerInfoTag;
   class CPVRRecordings;
+  class CPVREpg;
   class CPVREpgContainer;
   class CPVRClient;
   class CPVRTimerType;
@@ -60,19 +55,17 @@ namespace PVR
    *
    * Also translates XBMC's C++ structures to the addon's C structures.
    */
-  class CPVRClient : public ADDON::CAddonDll<DllPVRClient, PVRClient, PVR_PROPERTIES>
+  class CPVRClient : public ADDON::CAddonDll
   {
   public:
     static std::unique_ptr<CPVRClient> FromExtension(ADDON::AddonProps props, const cp_extension_t* ext);
 
     explicit CPVRClient(ADDON::AddonProps props);
-    CPVRClient(ADDON::AddonProps props, const std::string& strAvahiType,
-        const std::string& strAvahiIpSetting, const std::string& strAvahiPortSetting);
-
     ~CPVRClient(void);
 
     virtual void OnDisabled() override;
     virtual void OnEnabled() override;
+    virtual void OnPreInstall() override;
     virtual void OnPostInstall(bool update, bool modal) override;
     virtual void OnPreUnInstall() override;
     virtual void OnPostUnInstall() override;
@@ -126,7 +119,7 @@ namespace PVR
     PVR_CONNECTION_STATE GetPreviousConnectionState(void) const;
 
     /*!
-     * @brief signal to PVRMananager this client should be ignored
+     * @brief signal to PVRManager this client should be ignored
      * @return true if this client should be ignored
      */
     bool IgnoreClient(void) const;
@@ -223,7 +216,7 @@ namespace PVR
     /*!
      * @return True if this add-on has menu hooks, false otherwise.
      */
-    bool HaveMenuHooks(PVR_MENUHOOK_CAT cat) const;
+    bool HasMenuHooks(PVR_MENUHOOK_CAT cat) const;
 
     /*!
      * @return The menu hooks for this add-on.
@@ -250,7 +243,7 @@ namespace PVR
      * @param bSaveInDb If true, tell the callback method to save any new entry in the database or not. see CAddonCallbacksPVR::PVRTransferEpgEntry()
      * @return PVR_ERROR_NO_ERROR if the table has been fetched successfully.
      */
-    PVR_ERROR GetEPGForChannel(const CPVRChannelPtr &channel, EPG::CEpg *epg, time_t start = 0, time_t end = 0, bool bSaveInDb = false);
+    PVR_ERROR GetEPGForChannel(const CPVRChannelPtr &channel, CPVREpg *epg, time_t start = 0, time_t end = 0, bool bSaveInDb = false);
 
     /*!
      * Tell the client the time frame to use when notifying epg events back to Kodi. The client might push epg events asynchronously
@@ -307,7 +300,7 @@ namespace PVR
 
     /*!
      * @param deleted if set return deleted recording
-     * @return The total amount of recordingd on the server or -1 on error.
+     * @return The total amount of recordings on the server or -1 on error.
      */
     int GetRecordingsAmount(bool deleted);
 
@@ -390,7 +383,7 @@ namespace PVR
      * @param results The container to store the result in.
      * @return PVR_ERROR_NO_ERROR if the list has been fetched successfully.
      */
-    PVR_ERROR GetTimers(CPVRTimers *results);
+    PVR_ERROR GetTimers(CPVRTimersContainer *results);
 
     /*!
      * @brief Add a timer on the backend.
@@ -532,7 +525,7 @@ namespace PVR
     /*!
      * @brief Open a recording on the server.
      * @param recording The recording to open.
-     * @return True if the stream has been opened succesfully, false otherwise.
+     * @return True if the stream has been opened successfully, false otherwise.
      */
     bool OpenStream(const CPVRRecordingPtr &recording);
 
@@ -608,23 +601,6 @@ namespace PVR
      * @brief time of latest packet in timeshift buffer
      */
     time_t GetBufferTimeEnd() const;
-
-    /*!
-     * @return True if this add-on can be auto-configured via avahi, false otherwise
-     */
-    bool CanAutoconfigure(void) const;
-
-    /*!
-     * Registers the avahi type for this add-on
-     * @return True if registered, false if not.
-     */
-    bool AutoconfigureRegisterType(void);
-
-    /*!
-     * Try to auto-configure this add-on via avahi
-     * @return True if auto-configured and the configured was accepted by the user, false otherwise
-     */
-    bool Autoconfigure(void);
 
     /*!
      * @brief is real-time stream?
@@ -707,8 +683,12 @@ namespace PVR
      */
     bool CanPlayChannel(const CPVRChannelPtr &channel) const;
 
+    /*!
+     * @brief Stop this instance, if it is currently running.
+     */
+    void StopRunningInstance();
+
     bool LogError(const PVR_ERROR error, const char *strMethod) const;
-    void LogException(const std::exception &e, const char *strFunctionName) const;
 
     bool                   m_bReadyToUse;          /*!< true if this add-on is initialised (ADDON_Create returned true), false otherwise */
     PVR_CONNECTION_STATE   m_connectionState;      /*!< the backend connection state */
@@ -727,12 +707,8 @@ namespace PVR
     std::string            m_strBackendHostname;    /*!< the cached backend hostname */
 
     /* stored strings to make sure const char* members in PVR_PROPERTIES stay valid */
-    std::string                                    m_strUserPath;         /*!< @brief translated path to the user profile */
-    std::string                                    m_strClientPath;       /*!< @brief translated path to this add-on */
-    std::string                                    m_strAvahiType;        /*!< avahi service type */
-    std::string                                    m_strAvahiIpSetting;   /*!< add-on setting name to change to the found ip address */
-    std::string                                    m_strAvahiPortSetting; /*!< add-on setting name to change to the found port number */
-    std::vector<CZeroconfBrowser::ZeroconfService> m_rejectedAvahiHosts;  /*!< hosts that were rejected by the user */
+    std::string            m_strUserPath;         /*!< @brief translated path to the user profile */
+    std::string            m_strClientPath;       /*!< @brief translated path to this add-on */
 
     CCriticalSection m_critSection;
 
@@ -741,6 +717,7 @@ namespace PVR
     bool                m_bIsPlayingRecording;
     CPVRRecordingPtr    m_playingRecording;
     ADDON::AddonVersion m_apiVersion;
-    bool                m_bAvahiServiceAdded;
+    PVR_PROPERTIES      m_info;
+    KodiToAddonFuncTable_PVR m_struct;
   };
 }

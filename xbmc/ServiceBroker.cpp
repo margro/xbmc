@@ -36,19 +36,21 @@ ANNOUNCEMENT::CAnnouncementManager &CServiceBroker::GetAnnouncementManager()
   return g_application.m_ServiceManager->GetAnnouncementManager();
 }
 
+#ifdef HAS_PYTHON
 XBPython& CServiceBroker::GetXBPython()
 {
   return g_application.m_ServiceManager->GetXBPython();
 }
+#endif
 
 PVR::CPVRManager &CServiceBroker::GetPVRManager()
 {
   return g_application.m_ServiceManager->GetPVRManager();
 }
 
-ActiveAE::CActiveAEDSP &CServiceBroker::GetADSP()
+IAE& CServiceBroker::GetActiveAE()
 {
-  return g_application.m_ServiceManager->GetADSPManager();
+  return g_application.m_ServiceManager->GetActiveAE();
 }
 
 CContextMenuManager& CServiceBroker::GetContextMenuManager()
@@ -69,4 +71,24 @@ PLAYLIST::CPlayListPlayer &CServiceBroker::GetPlaylistPlayer()
 CSettings& CServiceBroker::GetSettings()
 {
   return g_application.m_ServiceManager->GetSettings();
+}
+
+GAME::CGameServices& CServiceBroker::GetGameServices()
+{
+  return g_application.m_ServiceManager->GetGameServices();
+}
+
+PERIPHERALS::CPeripherals& CServiceBroker::GetPeripherals()
+{
+  return g_application.m_ServiceManager->GetPeripherals();
+}
+
+CFavouritesService& CServiceBroker::GetFavouritesService()
+{
+  return g_application.m_ServiceManager->GetFavouritesService();
+}
+
+bool CServiceBroker::IsBinaryAddonCacheUp()
+{
+  return g_application.m_ServiceManager->init_level > 1;
 }

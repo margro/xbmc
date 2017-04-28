@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Team Kodi
+ *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -230,8 +230,10 @@ extern "C"
    * pClient. Note that get_addon() is defined here, so it will be available in
    * all compiled peripheral add-ons.
    */
-  void __declspec(dllexport) get_addon(struct PeripheralAddon* pClient)
+  void __declspec(dllexport) get_addon(void* ptr)
   {
+    KodiToAddonFuncTable_Peripheral* pClient = static_cast<KodiToAddonFuncTable_Peripheral*>(ptr);
+
     pClient->GetPeripheralAPIVersion        = GetPeripheralAPIVersion;
     pClient->GetMinimumPeripheralAPIVersion = GetMinimumPeripheralAPIVersion;
     pClient->GetAddonCapabilities           = GetAddonCapabilities;

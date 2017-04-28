@@ -20,21 +20,18 @@
 
 #include "ContextMenuItem.h"
 #include "ServiceBroker.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "epg/EpgInfoTag.h"
+#include "guilib/GUIWindowManager.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/recordings/PVRRecordingsPath.h"
-#include "settings/Settings.h"
 #include "pvr/timers/PVRTimers.h"
 #include "utils/URIUtils.h"
 
 #include "PVRContextMenus.h"
-
-using namespace EPG;
 
 namespace PVR
 {
@@ -60,6 +57,7 @@ namespace PVR
 
     DECL_CONTEXTMENUITEM(ShowInformation);
     DECL_STATICCONTEXTMENUITEM(FindSimilar);
+    DECL_STATICCONTEXTMENUITEM(PlayRecording);
     DECL_STATICCONTEXTMENUITEM(StartRecording);
     DECL_STATICCONTEXTMENUITEM(StopRecording);
     DECL_STATICCONTEXTMENUITEM(AddTimerRule);
@@ -67,24 +65,18 @@ namespace PVR
     DECL_STATICCONTEXTMENUITEM(DeleteTimerRule);
     DECL_CONTEXTMENUITEM(EditTimer);
     DECL_CONTEXTMENUITEM(DeleteTimer);
-    DECL_CONTEXTMENUITEM(PlayChannel);
-    DECL_CONTEXTMENUITEM(ResumePlayRecording);
-    DECL_CONTEXTMENUITEM(PlayRecording);
-    DECL_STATICCONTEXTMENUITEM(MarkWatched);
-    DECL_STATICCONTEXTMENUITEM(MarkUnwatched);
     DECL_STATICCONTEXTMENUITEM(RenameRecording);
     DECL_CONTEXTMENUITEM(DeleteRecording);
     DECL_STATICCONTEXTMENUITEM(UndeleteRecording);
     DECL_CONTEXTMENUITEM(ToggleTimerState);
     DECL_STATICCONTEXTMENUITEM(RenameTimer);
-    DECL_STATICCONTEXTMENUITEM(ShowAudioDSPSettings);
     DECL_STATICCONTEXTMENUITEM(PVRClientMenuHook);
 
     CPVRTimerInfoTagPtr GetTimerInfoTagFromItem(const CFileItem &item)
     {
       CPVRTimerInfoTagPtr timer;
 
-      const CEpgInfoTagPtr epg(item.GetEPGInfoTag());
+      const CPVREpgInfoTagPtr epg(item.GetEPGInfoTag());
       if (epg)
         timer = epg->Timer();
 
@@ -127,9 +119,9 @@ namespace PVR
     bool ShowInformation::Execute(const CFileItemPtr &item) const
     {
       if (item->GetPVRRecordingInfoTag())
-        return CPVRGUIActions::GetInstance().ShowRecordingInfo(item);
+        return CServiceBroker::GetPVRManager().GUIActions()->ShowRecordingInfo(item);
 
-      return CPVRGUIActions::GetInstance().ShowEPGInfo(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->ShowEPGInfo(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -153,95 +145,19 @@ namespace PVR
 
     bool FindSimilar::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().FindSimilar(item);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Play channel
-
-    std::string PlayChannel::GetLabel(const CFileItem &item) const
-    {
-      if (item.GetEPGInfoTag())
-        return g_localizeStrings.Get(19000); /* Switch to channel */
-
-      return g_localizeStrings.Get(208); /* Play */
-    }
-
-    bool PlayChannel::IsVisible(const CFileItem &item) const
-    {
-      if (item.GetPVRChannelInfoTag())
-        return true;
-
-      if (item.GetEPGInfoTag())
-        return true;
-
-      return false;
-    }
-
-    bool PlayChannel::Execute(const CFileItemPtr &item) const
-    {
-      return CPVRGUIActions::GetInstance().SwitchToChannel(
-        item, CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRPLAYBACK_PLAYMINIMIZED), false /* bCheckResume */);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Resume play recording
-
-    std::string ResumePlayRecording::GetLabel(const CFileItem &item) const
-    {
-      return CPVRGUIActions::GetInstance().GetResumeLabel(item);
-    }
-
-    bool ResumePlayRecording::IsVisible(const CFileItem &item) const
-    {
-      CPVRRecordingPtr recording;
-
-      const CEpgInfoTagPtr epg(item.GetEPGInfoTag());
-      if (epg)
-        recording = epg->Recording();
-
-      if (!recording)
-        recording = item.GetPVRRecordingInfoTag();
-
-      if (recording)
-        return !recording->IsDeleted() && !CPVRGUIActions::GetInstance().GetResumeLabel(item).empty();
-
-      return false;
-    }
-
-    bool ResumePlayRecording::Execute(const CFileItemPtr &item) const
-    {
-      item->m_lStartOffset = STARTOFFSET_RESUME; // must always be set if PlayRecording is called with bCheckResume == false
-      return CPVRGUIActions::GetInstance().PlayRecording(item, false /* bPlayMinimized */, false /* bCheckResume */);
+      return CServiceBroker::GetPVRManager().GUIActions()->FindSimilar(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
     // Play recording
 
-    std::string PlayRecording::GetLabel(const CFileItem &item) const
-    {
-      const CPVRRecordingPtr recording(item.GetPVRRecordingInfoTag());
-      if (recording && !recording->IsDeleted())
-      {
-        if (CPVRGUIActions::GetInstance().GetResumeLabel(item).empty())
-          return g_localizeStrings.Get(208); /* Play */
-        else
-          return g_localizeStrings.Get(12021); /* Play from beginning */
-      }
-
-      return g_localizeStrings.Get(19687); /* Play recording */
-    }
-
     bool PlayRecording::IsVisible(const CFileItem &item) const
     {
       CPVRRecordingPtr recording;
 
-      const CEpgInfoTagPtr epg(item.GetEPGInfoTag());
+      const CPVREpgInfoTagPtr epg(item.GetEPGInfoTag());
       if (epg)
         recording = epg->Recording();
-
-      if (!recording)
-        recording = item.GetPVRRecordingInfoTag();
 
       if (recording)
         return !recording->IsDeleted();
@@ -251,68 +167,7 @@ namespace PVR
 
     bool PlayRecording::Execute(const CFileItemPtr &item) const
     {
-      item->m_lStartOffset = 0; // must always be set if PlayRecording is called with bCheckResume == false
-      return CPVRGUIActions::GetInstance().PlayRecording(item, false /* bPlayMinimized */, false /* bCheckResume */);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Mark watched
-
-    bool MarkWatched::IsVisible(const CFileItem &item) const
-    {
-      const CPVRRecordingPtr recording(item.GetPVRRecordingInfoTag());
-      if (!recording)
-        return false;
-
-      // ".." folders don't have have "mark watched" context menu item
-      if (item.IsParentFolder())
-        return false;
-
-      // recording folders always have "mark watched" context menu item
-      if (item.m_bIsFolder)
-        return true;
-
-      if (!recording->IsDeleted())
-      {
-        if (recording->m_playCount == 0)
-          return true;
-      }
-      return false;
-    }
-
-    bool MarkWatched::Execute(const CFileItemPtr &item) const
-    {
-      return CPVRGUIActions::GetInstance().MarkWatched(item);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Mark unwatched
-
-    bool MarkUnwatched::IsVisible(const CFileItem &item) const
-    {
-      const CPVRRecordingPtr recording(item.GetPVRRecordingInfoTag());
-      if (!recording)
-        return false;
-
-      // ".." folders don't have have "mark unwatched" context menu item
-      if (item.IsParentFolder())
-        return false;
-
-      // recording folders always have "mark unwatched" context menu item
-      if (item.m_bIsFolder)
-        return true;
-
-      if (!recording->IsDeleted())
-      {
-        if (recording->m_playCount > 0)
-          return true;
-      }
-      return false;
-    }
-
-    bool MarkUnwatched::Execute(const CFileItemPtr &item) const
-    {
-      return CPVRGUIActions::GetInstance().MarkUnwatched(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->PlayRecording(item, true /* bCheckResume */);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -322,18 +177,18 @@ namespace PVR
     {
       const CPVRChannelPtr channel(item.GetPVRChannelInfoTag());
       if (channel)
-        return g_PVRClients->SupportsTimers(channel->ClientID()) && !channel->IsRecording();
+        return CServiceBroker::GetPVRManager().Clients()->SupportsTimers(channel->ClientID()) && !channel->IsRecording();
 
-      const CEpgInfoTagPtr epg(item.GetEPGInfoTag());
+      const CPVREpgInfoTagPtr epg(item.GetEPGInfoTag());
       if (epg)
-        return g_PVRClients->SupportsTimers() && !epg->Timer() && epg->EndAsLocalTime() > CDateTime::GetCurrentDateTime();
+        return CServiceBroker::GetPVRManager().Clients()->SupportsTimers() && !epg->Timer() && epg->EndAsLocalTime() > CDateTime::GetCurrentDateTime();
 
       return false;
     }
 
     bool StartRecording::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().AddTimer(item, false);
+      return CServiceBroker::GetPVRManager().GUIActions()->AddTimer(item, false);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -354,7 +209,7 @@ namespace PVR
 
     bool StopRecording::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().StopRecording(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->StopRecording(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -371,7 +226,7 @@ namespace PVR
 
     bool RenameRecording::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().RenameRecording(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->RenameRecording(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -391,12 +246,19 @@ namespace PVR
       if (item.GetPVRRecordingInfoTag())
         return true;
 
+      // recordings folder?
+      if (item.m_bIsFolder)
+      {
+        const CPVRRecordingsPath path(item.GetPath());
+        return path.IsValid();
+      }
+
       return false;
     }
 
     bool DeleteRecording::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().DeleteRecording(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->DeleteRecording(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -413,7 +275,7 @@ namespace PVR
 
     bool UndeleteRecording::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().UndeleteRecording(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->UndeleteRecording(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -440,7 +302,7 @@ namespace PVR
 
     bool ToggleTimerState::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().ToggleTimerState(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->ToggleTimerState(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -448,16 +310,16 @@ namespace PVR
 
     bool AddTimerRule::IsVisible(const CFileItem &item) const
     {
-      const CEpgInfoTagPtr epg(item.GetEPGInfoTag());
+      const CPVREpgInfoTagPtr epg(item.GetEPGInfoTag());
       if (epg)
-        return g_PVRClients->SupportsTimers() && !epg->Timer();
+        return CServiceBroker::GetPVRManager().Clients()->SupportsTimers() && !epg->Timer();
 
       return false;
     }
 
     bool AddTimerRule::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().AddTimerRule(item, true);
+      return CServiceBroker::GetPVRManager().GUIActions()->AddTimerRule(item, true);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -474,7 +336,7 @@ namespace PVR
 
     bool EditTimerRule::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().EditTimerRule(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->EditTimerRule(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -491,9 +353,9 @@ namespace PVR
 
     bool DeleteTimerRule::Execute(const CFileItemPtr &item) const
     {
-      CFileItemPtr parentTimer(g_PVRTimers->GetTimerRule(item.get()));
+      const CFileItemPtr parentTimer(CServiceBroker::GetPVRManager().Timers()->GetTimerRule(item));
       if (parentTimer)
-        return CPVRGUIActions::GetInstance().DeleteTimerRule(parentTimer);
+        return CServiceBroker::GetPVRManager().GUIActions()->DeleteTimerRule(parentTimer);
 
       return false;
     }
@@ -509,7 +371,7 @@ namespace PVR
         const CPVRTimerTypePtr timerType(timer->GetTimerType());
         if (timerType && !timerType->IsReadOnly() && timer->GetTimerRuleId() == PVR_TIMER_NO_PARENT)
         {
-          const CEpgInfoTagPtr epg(item.GetEPGInfoTag());
+          const CPVREpgInfoTagPtr epg(item.GetEPGInfoTag());
           if (epg)
             return g_localizeStrings.Get(19242); /* Edit timer */
           else
@@ -534,7 +396,7 @@ namespace PVR
 
     bool EditTimer::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().EditTimer(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->EditTimer(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -559,7 +421,7 @@ namespace PVR
 
     bool RenameTimer::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().RenameTimer(item);
+      return CServiceBroker::GetPVRManager().GUIActions()->RenameTimer(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -587,24 +449,7 @@ namespace PVR
 
     bool DeleteTimer::Execute(const CFileItemPtr &item) const
     {
-      return CPVRGUIActions::GetInstance().DeleteTimer(item);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Show Audio DSP settings
-
-    bool ShowAudioDSPSettings::IsVisible(const CFileItem &item) const
-    {
-      if (item.GetPVRChannelInfoTag() || item.GetPVRRecordingInfoTag())
-        return CServiceBroker::GetADSP().IsProcessing();
-
-      return false;
-    }
-
-    bool ShowAudioDSPSettings::Execute(const CFileItemPtr &item) const
-    {
-      g_windowManager.ActivateWindow(WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS);
-      return true;
+      return CServiceBroker::GetPVRManager().GUIActions()->DeleteTimer(item);
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -614,26 +459,26 @@ namespace PVR
     {
       const CPVRChannelPtr channel(item.GetPVRChannelInfoTag());
       if (channel)
-        return g_PVRClients->HasMenuHooks(channel->ClientID(), PVR_MENUHOOK_CHANNEL);
+        return CServiceBroker::GetPVRManager().Clients()->HasMenuHooks(channel->ClientID(), PVR_MENUHOOK_CHANNEL);
 
-      const CEpgInfoTagPtr epg(item.GetEPGInfoTag());
+      const CPVREpgInfoTagPtr epg(item.GetEPGInfoTag());
       if (epg)
       {
         const CPVRChannelPtr channel(epg->ChannelTag());
-        return (channel && g_PVRClients->HasMenuHooks(channel->ClientID(), PVR_MENUHOOK_EPG));
+        return (channel && CServiceBroker::GetPVRManager().Clients()->HasMenuHooks(channel->ClientID(), PVR_MENUHOOK_EPG));
       }
 
       const CPVRTimerInfoTagPtr timer(item.GetPVRTimerInfoTag());
       if (timer && !URIUtils::PathEquals(item.GetPath(), CPVRTimersPath::PATH_ADDTIMER))
-        return g_PVRClients->HasMenuHooks(timer->m_iClientId, PVR_MENUHOOK_TIMER);
+        return CServiceBroker::GetPVRManager().Clients()->HasMenuHooks(timer->m_iClientId, PVR_MENUHOOK_TIMER);
 
       const CPVRRecordingPtr recording(item.GetPVRRecordingInfoTag());
       if (recording)
       {
         if (recording->IsDeleted())
-          return g_PVRClients->HasMenuHooks(recording->m_iClientId, PVR_MENUHOOK_DELETED_RECORDING);
+          return CServiceBroker::GetPVRManager().Clients()->HasMenuHooks(recording->m_iClientId, PVR_MENUHOOK_DELETED_RECORDING);
         else
-          return g_PVRClients->HasMenuHooks(recording->m_iClientId, PVR_MENUHOOK_RECORDING);
+          return CServiceBroker::GetPVRManager().Clients()->HasMenuHooks(recording->m_iClientId, PVR_MENUHOOK_RECORDING);
       }
 
       return false;
@@ -641,21 +486,9 @@ namespace PVR
 
     bool PVRClientMenuHook::Execute(const CFileItemPtr &item) const
     {
-      if (item->IsEPG() && item->GetEPGInfoTag()->HasPVRChannel())
-        g_PVRClients->ProcessMenuHooks(item->GetEPGInfoTag()->ChannelTag()->ClientID(), PVR_MENUHOOK_EPG, item.get());
-      else if (item->IsPVRChannel())
-        g_PVRClients->ProcessMenuHooks(item->GetPVRChannelInfoTag()->ClientID(), PVR_MENUHOOK_CHANNEL, item.get());
-      else if (item->IsDeletedPVRRecording())
-        g_PVRClients->ProcessMenuHooks(item->GetPVRRecordingInfoTag()->m_iClientId, PVR_MENUHOOK_DELETED_RECORDING, item.get());
-      else if (item->IsUsablePVRRecording())
-        g_PVRClients->ProcessMenuHooks(item->GetPVRRecordingInfoTag()->m_iClientId, PVR_MENUHOOK_RECORDING, item.get());
-      else if (item->IsPVRTimer())
-        g_PVRClients->ProcessMenuHooks(item->GetPVRTimerInfoTag()->m_iClientId, PVR_MENUHOOK_TIMER, item.get());
-      else
-        return false;
-
-      return true;
+      return CServiceBroker::GetPVRManager().GUIActions()->ProcessMenuHooks(item);;
     }
+
   } // namespace CONEXTMENUITEM
 
   CPVRContextMenuManager& CPVRContextMenuManager::GetInstance()
@@ -670,11 +503,7 @@ namespace PVR
     {
       std::make_shared<CONTEXTMENUITEM::ShowInformation>(),
       std::make_shared<CONTEXTMENUITEM::FindSimilar>(19003), /* Find similar */
-      std::make_shared<CONTEXTMENUITEM::PlayChannel>(),
-      std::make_shared<CONTEXTMENUITEM::ResumePlayRecording>(),
-      std::make_shared<CONTEXTMENUITEM::PlayRecording>(),
-      std::make_shared<CONTEXTMENUITEM::MarkWatched>(16103), /* Mark as watched */
-      std::make_shared<CONTEXTMENUITEM::MarkUnwatched>(16104), /* Mark as unwatched */
+      std::make_shared<CONTEXTMENUITEM::PlayRecording>(19687), /* Play recording */
       std::make_shared<CONTEXTMENUITEM::ToggleTimerState>(),
       std::make_shared<CONTEXTMENUITEM::AddTimerRule>(19061), /* Add timer */
       std::make_shared<CONTEXTMENUITEM::EditTimerRule>(19243), /* Edit timer rule */
@@ -687,7 +516,6 @@ namespace PVR
       std::make_shared<CONTEXTMENUITEM::RenameRecording>(118), /* Rename */
       std::make_shared<CONTEXTMENUITEM::DeleteRecording>(),
       std::make_shared<CONTEXTMENUITEM::UndeleteRecording>(19290), /* Undelete */
-      std::make_shared<CONTEXTMENUITEM::ShowAudioDSPSettings>(15047), /* Audio DSP settings */
       std::make_shared<CONTEXTMENUITEM::PVRClientMenuHook>(19195), /* PVR client specific action */
     };
   }

@@ -186,20 +186,19 @@ bool CGUIDialogFileBrowser::OnMessage(CGUIMessage& message)
         int iItem = m_viewControl.GetSelectedItem();
         int iAction = message.GetParam1();
         if (iItem < 0) break;
-        if (iAction == ACTION_SELECT_ITEM || iAction == ACTION_MOUSE_LEFT_CLICK)
+        CFileItemPtr pItem = (*m_vecItems)[iItem];
+        if ((iAction == ACTION_SELECT_ITEM || iAction == ACTION_MOUSE_LEFT_CLICK) &&
+           (!m_multipleSelection || pItem->m_bIsShareOrDrive || pItem->m_bIsFolder))
         {
           OnClick(iItem);
           return true;
         }
-        else if (iAction == ACTION_HIGHLIGHT_ITEM && m_multipleSelection)
+        else if ((iAction == ACTION_HIGHLIGHT_ITEM || iAction == ACTION_MOUSE_LEFT_CLICK || iAction == ACTION_SELECT_ITEM) &&
+                (m_multipleSelection && !pItem->m_bIsShareOrDrive && !pItem->m_bIsFolder))
         {
-          CFileItemPtr pItem = (*m_vecItems)[iItem];
-          if (!pItem->m_bIsShareOrDrive && !pItem->m_bIsFolder)
-          {
-            pItem->Select(!pItem->IsSelected());
-            CGUIMessage msg(GUI_MSG_ITEM_SELECT, GetID(), message.GetSenderId(), iItem + 1);
-            OnMessage(msg);
-          }
+          pItem->Select(!pItem->IsSelected());
+          CGUIMessage msg(GUI_MSG_ITEM_SELECT, GetID(), message.GetSenderId(), iItem + 1);
+          OnMessage(msg);
         }
       }
       else if (message.GetSenderId() == CONTROL_OK)
@@ -654,12 +653,12 @@ bool CGUIDialogFileBrowser::ShowAndGetImage(const CFileItemList &items, const VE
 
 bool CGUIDialogFileBrowser::ShowAndGetImage(const VECSOURCES &shares, const std::string &heading, std::string &path)
 {
-  return ShowAndGetFile(shares, g_advancedSettings.m_pictureExtensions, heading, path, true); // true for use thumbs
+  return ShowAndGetFile(shares, g_advancedSettings.GetPictureExtensions(), heading, path, true); // true for use thumbs
 }
 
 bool CGUIDialogFileBrowser::ShowAndGetImageList(const VECSOURCES &shares, const std::string &heading, std::vector<std::string> &path)
 {
-  return ShowAndGetFileList(shares, g_advancedSettings.m_pictureExtensions, heading, path, true); // true for use thumbs
+  return ShowAndGetFileList(shares, g_advancedSettings.GetPictureExtensions(), heading, path, true); // true for use thumbs
 }
 
 bool CGUIDialogFileBrowser::ShowAndGetDirectory(const VECSOURCES &shares, const std::string &heading, std::string &path, bool bWriteOnly)

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
+ *      Copyright (C) 2012-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -38,6 +38,7 @@
 #include "URL.h"
 #include "Util.h"
 #include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 
 #include <algorithm>
 
@@ -66,7 +67,7 @@ bool CGUIWindowGames::OnMessage(CGUIMessage& message)
         message.SetStringParam(CMediaSourceSettings::GetInstance().GetDefaultSource("games"));
 
       //! @todo
-      m_dlgProgress = dynamic_cast<CGUIDialogProgress*>(g_windowManager.GetWindow(WINDOW_DIALOG_PROGRESS));
+      m_dlgProgress = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
 
       break;
     }
@@ -194,9 +195,6 @@ void CGUIWindowGames::GetContextButtons(int itemNumber, CContextButtons &buttons
         buttons.Add(CONTEXT_BUTTON_PLAY_ITEM, 208); // Play
       }
 
-      if (!m_vecItems->IsPlugin() && item->HasAddonInfo())
-        buttons.Add(CONTEXT_BUTTON_INFO, 24003); // Add-on information
-
       if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_ALLOWFILEDELETION) && !item->IsReadOnly())
       {
         buttons.Add(CONTEXT_BUTTON_DELETE, 117);
@@ -255,7 +253,11 @@ bool CGUIWindowGames::GetDirectory(const std::string &strDirectory, CFileItemLis
   // Set label
   std::string label;
   if (items.GetLabel().empty())
-    m_rootDir.IsSource(items.GetPath(), CMediaSourceSettings::GetInstance().GetSources("games"), &label);
+  {
+    std::string source;
+    if (m_rootDir.IsSource(items.GetPath(), CMediaSourceSettings::GetInstance().GetSources("games"), &source))
+      label = std::move(source);
+  }
 
   if (!label.empty())
     items.SetLabel(label);
@@ -321,7 +323,7 @@ void CGUIWindowGames::OnItemInfo(int itemNumber)
 
   //! @todo
   /*
-  CGUIDialogGameInfo* gameInfo = dynamic_cast<CGUIDialogGameInfo*>(g_windowManager.GetWindow(WINDOW_DIALOG_PICTURE_INFO));
+  CGUIDialogGameInfo* gameInfo = g_windowManager.GetWindow<CGUIDialogGameInfo>(WINDOW_DIALOG_PICTURE_INFO);
   if (gameInfo)
   {
     gameInfo->SetGame(item);

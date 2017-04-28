@@ -1,4 +1,4 @@
-package org.xbmc.@APP_NAME_LC@;
+package @APP_PACKAGE@;
 
 import android.app.NativeActivity;
 import android.content.ComponentName;
@@ -15,7 +15,7 @@ import android.widget.RelativeLayout;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.Handler;
-import org.xbmc.@APP_NAME_LC@.XBMCVideoView;
+import @APP_PACKAGE@.XBMCVideoView;
 
 public class Main extends NativeActivity implements Choreographer.FrameCallback
 {
@@ -24,12 +24,32 @@ public class Main extends NativeActivity implements Choreographer.FrameCallback
   private XBMCSettingsContentObserver mSettingsContentObserver;
   private XBMCInputDeviceListener mInputDeviceListener;
   private XBMCVideoView mVideoView = null;
+  private XBMCJsonRPC mJsonRPC = null;
   private RelativeLayout mVideoLayout = null;
   private View thisView = null;
   private Handler handler = new Handler();
+  private Intent mNewIntent = null;
 
   native void _onNewIntent(Intent intent);
+  native void _onActivityResult(int requestCode, int resultCode, Intent resultData);
   native void _doFrame(long frameTimeNanos);
+
+  private Runnable leanbackUpdateRunnable = new Runnable()
+  {
+    @Override
+    public void run()
+    {
+      Log.d(TAG, "Updating recommendations");
+      new Thread()
+      {
+        public void run()
+        {
+          mJsonRPC.updateLeanback(Main.this);
+        }
+      }.start();
+      handler.postDelayed(this, XBMCProperties.getIntProperty("xbmc.leanbackrefresh", 60*60) * 1000);
+    }
+  };
 
   public Main()
   {
@@ -114,13 +134,21 @@ public class Main extends NativeActivity implements Choreographer.FrameCallback
 
     setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
-    mSettingsContentObserver = new XBMCSettingsContentObserver(this, new Handler());
+    mSettingsContentObserver = new XBMCSettingsContentObserver(this, handler);
     getApplicationContext().getContentResolver().registerContentObserver(android.provider.Settings.System.CONTENT_URI, true, mSettingsContentObserver );
+
+    if (getPackageManager().hasSystemFeature("android.software.leanback"))
+    {
+      // Leanback
+      mJsonRPC = new XBMCJsonRPC();
+      handler.removeCallbacks(leanbackUpdateRunnable);
+      handler.postDelayed(leanbackUpdateRunnable, 30*1000);
+    }
 
     // register the InputDeviceListener implementation
     mInputDeviceListener = new XBMCInputDeviceListener();
     InputManager manager = (InputManager) getSystemService(INPUT_SERVICE);
-    manager.registerInputDeviceListener(mInputDeviceListener, new Handler());
+    manager.registerInputDeviceListener(mInputDeviceListener, handler);
 
     thisView = getWindow().getDecorView();
     thisView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener()
@@ -159,11 +187,8 @@ public class Main extends NativeActivity implements Choreographer.FrameCallback
   protected void onNewIntent(Intent intent)
   {
     super.onNewIntent(intent);
-    try {
-      _onNewIntent(intent);
-    } catch (UnsatisfiedLinkError e) {
-      Log.e("Main", "Native not registered");
-    }
+    // Delay until after Resume
+    mNewIntent = intent;
   }
 
   @Override
@@ -195,6 +220,25 @@ public class Main extends NativeActivity implements Choreographer.FrameCallback
               | View.SYSTEM_UI_FLAG_FULLSCREEN
               | API_SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
+
+    // New intent ?
+    if (mNewIntent != null)
+    {
+      handler.postDelayed(new Runnable()
+      {
+        @Override
+        public void run()
+        {
+          try {
+            _onNewIntent(mNewIntent);
+          } catch (UnsatisfiedLinkError e) {
+            Log.e("Main", "Native not registered");
+          } finally {
+            mNewIntent = null;
+          }
+        }
+      }, 500);
+    }
   }
 
   @Override
@@ -203,6 +247,14 @@ public class Main extends NativeActivity implements Choreographer.FrameCallback
     super.onPause();
   }
   
+  @Override
+  public void onActivityResult(int requestCode, int resultCode,
+      Intent resultData)
+  {
+    _onActivityResult(requestCode, resultCode, resultData);
+  }
+
+  @Override
   public void onDestroy()
   {
     // unregister the InputDeviceListener implementation

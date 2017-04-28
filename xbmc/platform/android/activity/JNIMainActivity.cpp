@@ -20,9 +20,9 @@
 
 #include "JNIMainActivity.h"
 
-#include "platform/android/jni/Activity.h"
-#include "platform/android/jni/Intent.h"
-#include "platform/android/jni/jutils/jutils-details.hpp"
+#include <androidjni/Activity.h>
+#include <androidjni/Intent.h>
+#include <androidjni/jutils-details.hpp>
 
 using namespace jni;
 
@@ -45,6 +45,14 @@ void CJNIMainActivity::_onNewIntent(JNIEnv *env, jobject context, jobject intent
   (void)context;
   if (m_appInstance)
     m_appInstance->onNewIntent(CJNIIntent(jhobject(intent)));
+}
+
+void CJNIMainActivity::_onActivityResult(JNIEnv *env, jobject context, jint requestCode, jint resultCode, jobject resultData)
+{
+  (void)env;
+  (void)context;
+  if (m_appInstance)
+    m_appInstance->onActivityResult(requestCode, resultCode, CJNIIntent(jhobject(resultData)));
 }
 
 void CJNIMainActivity::_callNative(JNIEnv *env, jobject context, jlong funcAddr, jlong variantAddr)

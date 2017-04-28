@@ -18,9 +18,7 @@
  *
  */
 
-#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
-  #include "config.h"
-#elif defined(TARGET_WINDOWS)
+#if defined(TARGET_WINDOWS)
 #include "system.h"
 #endif
 
@@ -55,7 +53,7 @@ using namespace KODI::MESSAGING;
 
 #define CLASSNAME "COpenMaxVideo"
 
-//! @todo These are Nvidia Tegra2 dependent, need to dynamiclly find the
+//! @todo These are Nvidia Tegra2 dependent, need to dynamically find the
 //! right codec matched to video format.
 #define OMX_H264BASE_DECODER    "OMX.Nvidia.h264.decode"
 // OMX.Nvidia.h264ext.decode segfaults, not sure why.
@@ -285,7 +283,7 @@ void COpenMaxVideo::SetDropState(bool bDrop)
           CLASSNAME, __func__, omx_err);
     }
 
-    // And ingore all queued elements
+    // And ignore all queued elements
     ReleaseDemuxQueue();
 
     pthread_mutex_unlock(&m_omx_queue_mutex);
@@ -305,9 +303,9 @@ int COpenMaxVideo::EnqueueDemuxPacket(omx_demux_packet demux_packet)
   OMX_ERRORTYPE omx_err;
   OMX_BUFFERHEADERTYPE* omx_buffer;
 
-  // need to lock here to retreve an input buffer and pop the queue
-  omx_buffer = m_omx_input_avaliable.front();
-  m_omx_input_avaliable.pop();
+  // need to lock here to retrieve an input buffer and pop the queue
+  omx_buffer = m_omx_input_available.front();
+  m_omx_input_available.pop();
 
   // delete the previous demuxer buffer
   delete [] omx_buffer->pBuffer;
@@ -350,7 +348,7 @@ int COpenMaxVideo::Decode(uint8_t* pData, int iSize, double dts, double pts)
     uint8_t *demuxer_content = pData;
 
     // we need to queue then de-queue the demux packet, seems silly but
-    // omx might not have a omx input buffer avaliable when we are called
+    // omx might not have a omx input buffer available when we are called
     // and we must store the demuxer packet and try again later.
     omx_demux_packet demux_packet;
     demux_packet.dts = dts;
@@ -363,7 +361,7 @@ int COpenMaxVideo::Decode(uint8_t* pData, int iSize, double dts, double pts)
 
     m_demux_queue.push(demux_packet);
 
-    while(!m_omx_input_avaliable.empty() && !m_demux_queue.empty())
+    while(!m_omx_input_available.empty() && !m_demux_queue.empty())
     {
       demux_packet = m_demux_queue.front();
       m_demux_queue.pop();
@@ -371,7 +369,7 @@ int COpenMaxVideo::Decode(uint8_t* pData, int iSize, double dts, double pts)
     }
 
     #if defined(OMX_DEBUG_VERBOSE)
-    if (m_omx_input_avaliable.empty())
+    if (m_omx_input_available.empty())
       CLog::Log(LOGDEBUG,
         "%s::%s - buffering demux, m_demux_queue_size(%d), demuxer_bytes(%d)\n",
         CLASSNAME, __func__, m_demux_queue.size(), demuxer_bytes);
@@ -380,7 +378,7 @@ int COpenMaxVideo::Decode(uint8_t* pData, int iSize, double dts, double pts)
 
   int returnCode = VC_BUFFER;
 
-  if (m_omx_input_avaliable.empty() && m_omx_output_ready.empty()) {
+  if (m_omx_input_available.empty() && m_omx_output_ready.empty()) {
     // Sleep for some time until either an image has been decoded or there's space in the input buffer again
     struct timespec timeout;
     clock_gettime(CLOCK_REALTIME, &timeout);
@@ -395,7 +393,7 @@ int COpenMaxVideo::Decode(uint8_t* pData, int iSize, double dts, double pts)
   if (!m_omx_output_ready.empty()) {
     returnCode |= VC_PICTURE;
   }
-  if (!m_omx_input_avaliable.empty()) {
+  if (!m_omx_input_available.empty()) {
     returnCode |= VC_BUFFER;
   }
 
@@ -441,7 +439,7 @@ void COpenMaxVideo::ReleaseBuffer(OpenMaxVideoBuffer* releaseBuffer)
   if (!releaseBuffer)
     return;
 
-  //! @todo this is NOT multithreading safe. Buffer lifetime managment needs to be adopted.
+  //! @todo this is NOT multithreading safe. Buffer lifetime management needs to be adopted.
 
   pthread_mutex_lock(&m_omx_queue_mutex);
   OpenMaxVideoBuffer *buffer = releaseBuffer;
@@ -517,7 +515,7 @@ int COpenMaxVideo::GetPicture(DVDVideoPicture* pDvdVideoPicture)
   pDvdVideoPicture->iFlags  = DVP_FLAG_ALLOCATED;
   pDvdVideoPicture->iFlags |= m_drop_state ? DVP_FLAG_DROPPED : 0;
 
-  returnCode |= m_omx_input_avaliable.empty() ? 0 : VC_BUFFER;
+  returnCode |= m_omx_input_available.empty() ? 0 : VC_BUFFER;
 
   return returnCode;
 }
@@ -536,10 +534,10 @@ OMX_ERRORTYPE COpenMaxVideo::DecoderEmptyBufferDone(
     CLASSNAME, __func__, pBuffer->nFilledLen, (double)pBuffer->nTimeStamp / 1000.0);
   #endif
 
-  // queue free input buffer to avaliable list.
+  // queue free input buffer to available list.
   pthread_mutex_lock(&m_omx_queue_mutex);
-  ctx->m_omx_input_avaliable.push(pBuffer);
-  if(!ctx->m_omx_input_avaliable.empty()) {
+  ctx->m_omx_input_available.push(pBuffer);
+  if(!ctx->m_omx_input_available.empty()) {
     if (!ctx->m_demux_queue.empty()) {
       omx_demux_packet demux_packet = m_demux_queue.front();
       ctx->m_demux_queue.pop();
@@ -661,7 +659,7 @@ OMX_ERRORTYPE COpenMaxVideo::AllocOMXInputBuffers(void)
     }
     m_omx_input_buffers.push_back(buffer);
     // don't have to lock/unlock here, we are not decoding
-    m_omx_input_avaliable.push(buffer);
+    m_omx_input_available.push(buffer);
   }
   m_omx_input_eos = false;
 
@@ -688,8 +686,8 @@ OMX_ERRORTYPE COpenMaxVideo::FreeOMXInputBuffers(bool wait)
   m_omx_input_buffers.clear();
 
   // empty input buffer queue. not decoding so don't need lock/unlock.
-  while (!m_omx_input_avaliable.empty())
-    m_omx_input_avaliable.pop();
+  while (!m_omx_input_available.empty())
+    m_omx_input_available.pop();
   while (!m_demux_queue.empty())
     m_demux_queue.pop();
   while (!m_dts_queue.empty())
@@ -949,7 +947,7 @@ OMX_ERRORTYPE COpenMaxVideo::DecoderEventHandler(
           else if (ctx->m_omx_output_port == (int)nData2)
           {
             sem_post(ctx->m_omx_flush_output);
-            CLog::Log(LOGDEBUG, "COpenMax::%s - OMX_CommandFlush ouput\n",__func__);
+            CLog::Log(LOGDEBUG, "COpenMax::%s - OMX_CommandFlush output\n",__func__);
           }
           else
           */

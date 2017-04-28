@@ -57,6 +57,7 @@
 #include "utils/StringUtils.h"
 #include "Util.h"
 #include "settings/Settings.h"
+#include "ServiceBroker.h"
 
 #ifdef HAS_PERFORMANCE_SAMPLE
 #include "utils/PerformanceSample.h"
@@ -70,8 +71,8 @@
 using EVENTSERVER::CEventServer;
 #endif
 
-using namespace KODI::MESSAGING;
-using PERIPHERALS::CPeripherals;
+using namespace KODI;
+using namespace MESSAGING;
 
 CInputManager::CInputManager() :
   m_mouseButtonMap(new MOUSE::CMouseWindowingButtonMap),
@@ -124,7 +125,7 @@ bool CInputManager::ProcessRemote(int windowId)
 bool CInputManager::ProcessPeripherals(float frameTime)
 {
   CKey key;
-  if (g_peripherals.GetNextKeypress(frameTime, key))
+  if (CServiceBroker::GetPeripherals().GetNextKeypress(frameTime, key))
     return OnKey(key);
   return false;
 }
@@ -368,7 +369,7 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
       // Do not repeat long presses
       break;
     }
-    if (!CButtonTranslator::GetInstance().HasLonpressMapping(g_windowManager.GetActiveWindowID(), key))
+    if (!CButtonTranslator::GetInstance().HasLongpressMapping(g_windowManager.GetActiveWindowID(), key))
     {
       m_LastKey.Reset();
       OnKey(key);
@@ -571,7 +572,8 @@ bool CInputManager::OnKey(const CKey& key)
         action.GetID() == ACTION_SELECT_ITEM ||
         action.GetID() == ACTION_ENTER ||
         action.GetID() == ACTION_PREVIOUS_MENU ||
-        action.GetID() == ACTION_NAV_BACK))
+        action.GetID() == ACTION_NAV_BACK ||
+        action.GetID() == ACTION_VOICE_RECOGNIZE))
       {
         // the action isn't plain navigation - check for a keyboard-specific keymap
         action = CButtonTranslator::GetInstance().GetAction(WINDOW_DIALOG_KEYBOARD, key, false);

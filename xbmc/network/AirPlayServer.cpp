@@ -718,7 +718,7 @@ bool CAirPlayServer::CTCPClient::checkAuthorization(const std::string& authStr,
      }
      else
      {
-       CLog::Log(LOGDEBUG, "AirAuth: successfull authentication from AirPlay client");
+       CLog::Log(LOGDEBUG, "AirAuth: successful authentication from AirPlay client");
      }
   }
   m_bAuthenticated = authValid;
@@ -756,14 +756,10 @@ void dumpPlist(DllLibPlist *pLibPlist, plist_t *dict)
 std::string getStringFromPlist(DllLibPlist *pLibPlist,plist_t node)
 {
   std::string ret;
-  char *tmpStr = NULL;
+  char *tmpStr = nullptr;
   pLibPlist->plist_get_string_val(node, &tmpStr);
   ret = tmpStr;
-#ifdef TARGET_WINDOWS
-  pLibPlist->plist_free_string_val(tmpStr);
-#else
   free(tmpStr);
-#endif
   return ret;
 }
 

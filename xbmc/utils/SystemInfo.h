@@ -83,7 +83,6 @@ public:
   enum WindowsVersion
   {
     WindowsVersionUnknown = -1, // Undetected, unsupported Windows version or OS in not Windows
-    WindowsVersionVista,        // Windows Vista, Windows Server 2008
     WindowsVersionWin7,         // Windows 7, Windows Server 2008 R2
     WindowsVersionWin8,         // Windows 8, Windows Server 2012
     WindowsVersionWin8_1,       // Windows 8.1
@@ -131,7 +130,7 @@ public:
   std::string GetCPUSerial();
   static std::string GetManufacturerName(void);
   static std::string GetModelName(void);
-  bool GetDiskSpace(const std::string& drive,int& iTotal, int& iTotalFree, int& iTotalUsed, int& iPercentFree, int& iPercentUsed);
+  bool GetDiskSpace(std::string drive,int& iTotal, int& iTotalFree, int& iTotalUsed, int& iPercentFree, int& iPercentUsed);
   std::string GetHddSpaceInfo(int& percent, int drive, bool shortText=false);
   std::string GetHddSpaceInfo(int drive, bool shortText=false);
 

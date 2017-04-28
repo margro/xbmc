@@ -6,7 +6,7 @@ LIBNAME=curl
 ifeq (osx, $(findstring osx, $(OS)))
 VERSION=7.21.6
 else
-VERSION=7.50.1
+VERSION=7.51.0
 endif
 SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.bz2
@@ -29,6 +29,9 @@ $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
 ifeq (osx, $(findstring osx, $(OS)))
 	cd $(PLATFORM); patch -p1 < ../0001-HTTP-reset-expected-DL-UL-sizes-on-redirects.patch
+endif
+ifeq (darwin, $(findstring darwin, $(HOST)))
+	cd $(PLATFORM); sed -ie "s/elif defined(HAVE_CLOCK_GETTIME_MONOTONIC)/#elif defined(HAVE_CLOCK_GETTIME_MONOTONIC_NOPE)/" lib/timeval.c
 endif
 	cd $(PLATFORM); $(CONFIGURE)
 

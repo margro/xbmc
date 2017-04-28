@@ -20,8 +20,13 @@
  *
  */
 
+#ifndef TARGET_WINDOWS
 #ifndef __cdecl
 #define __cdecl
+#endif
+#ifndef __declspec
+#define __declspec(X)
+#endif
 #endif
 
 #ifdef BUILD_KODI_ADDON
@@ -124,7 +129,7 @@ extern "C" {
   /*!
    * @brief Structure to transfer the methods from xbmc_inputstream_dll.h to XBMC
    */
-  typedef struct InputStreamAddonFunctions
+  typedef struct KodiToAddonFuncTable_InputStream
   {
     bool (__cdecl* Open)(INPUTSTREAM&);
     void (__cdecl* Close)(void);
@@ -161,7 +166,7 @@ extern "C" {
     int64_t (__cdecl* LengthStream)(void);
     void (__cdecl* PauseStream)(double);
     bool (__cdecl* IsRealTimeStream)(void);
-  } InputStreamAddonFunctions;
+  } KodiToAddonFuncTable_InputStream;
 }
 
 

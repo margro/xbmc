@@ -25,7 +25,7 @@
 					<focusposition>3</focusposition>
 					<pagecontrol>77</pagecontrol>
 					<scrolltime>200</scrolltime>
-					<itemlayout height="100" width="tvchannelslist_width">
+					<itemlayout height="100">
 						<control type="label">
 							<visible>String.IsEmpty(ListItem.Date)</visible>
 							<left>120</left>
@@ -64,16 +64,9 @@
 								<aligny>center</aligny>
 								<label>$INFO[ListItem.Date]</label>
 							</control>
-							<control type="image">
-								<left>980</left>
-								<top>50</top>
-								<width>50</width>
-								<height>50</height>
-								<texture>$VAR[PVRStatusImageVar]</texture>
-							</control>
 						</control>
 					</itemlayout>
-					<focusedlayout height="100" width="tvchannelslist_width">
+					<focusedlayout height="100">
 						<control type="image">
 							<left>0</left>
 							<top>0</top>
@@ -119,13 +112,6 @@
 								<font>font12</font>
 								<aligny>center</aligny>
 								<label>$INFO[ListItem.Date]</label>
-							</control>
-							<control type="image">
-								<left>980</left>
-								<top>50</top>
-								<width>50</width>
-								<height>50</height>
-								<texture>$VAR[PVRStatusImageVar]</texture>
 							</control>
 						</control>
 					</focusedlayout>

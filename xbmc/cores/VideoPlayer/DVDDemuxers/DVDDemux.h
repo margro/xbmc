@@ -32,10 +32,6 @@ class CDVDInputStream;
 #pragma warning(disable:4244)
 #endif
 
-#if (defined HAVE_CONFIG_H) && (!defined TARGET_WINDOWS)
-  #include "config.h"
-#endif
-
 extern "C" {
 #include "libavcodec/avcodec.h"
 }
@@ -157,6 +153,7 @@ public:
     type = STREAM_VIDEO;
     iOrientation = 0;
     iBitsPerPixel = 0;
+    iBitRate = 0;
   }
 
   virtual ~CDemuxStreamVideo() {}
@@ -168,8 +165,9 @@ public:
   bool bVFR;  // variable framerate
   bool bPTSInvalid; // pts cannot be trusted (avi's).
   bool bForcedAspect; // aspect is forced from container
-  int iOrientation; // orientation of the video in degress counter clockwise
+  int iOrientation; // orientation of the video in degrees counter clockwise
   int iBitsPerPixel;
+  int iBitRate;
   std::string stereo_mode; // expected stereo mode
 };
 

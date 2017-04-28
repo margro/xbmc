@@ -38,9 +38,9 @@
 #include <sys/wait.h>
 #endif
 #if defined(TARGET_ANDROID)
+#include <androidjni/ApplicationInfo.h>
 #include "platform/android/bionic_supplement/bionic_supplement.h"
 #include "platform/android/activity/XBMCApp.h"
-#include "platform/android/jni/ApplicationInfo.h"
 #include "CompileInfo.h"
 #endif
 #include <stdlib.h>
@@ -55,9 +55,6 @@
 #include "filesystem/MultiPathDirectory.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/RSSDirectory.h"
-#ifdef HAS_FILESYSTEM_RAR
-#include "filesystem/RarManager.h"
-#endif
 #ifdef HAS_UPNP
 #include "filesystem/UPnPDirectory.h"
 #endif
@@ -543,7 +540,7 @@ bool CUtil::IsTVRecording(const std::string& strFile)
 bool CUtil::IsPicture(const std::string& strFile)
 {
   return URIUtils::HasExtension(strFile,
-                  g_advancedSettings.m_pictureExtensions + "|.tbn|.dds");
+                  g_advancedSettings.GetPictureExtensions()+ "|.tbn|.dds");
 }
 
 bool CUtil::ExcludeFileOrFolder(const std::string& strFileOrFolder, const std::vector<std::string>& regexps)
@@ -1095,7 +1092,7 @@ void CUtil::SplitParams(const std::string &paramString, std::vector<std::string>
         inFunction++;
       }
       if (!inFunction && ch == ',')
-      { // not in a function, so a comma signfies the end of this parameter
+      { // not in a function, so a comma signifies the end of this parameter
         if (whiteSpacePos)
           parameter = parameter.substr(0, whiteSpacePos);
         // trim off start and end quotes
@@ -1262,7 +1259,7 @@ int CUtil::GetMatchingSource(const std::string& strPath1, VECSOURCES& VECSOURCES
         // if exact match, return it immediately
         if (iLenPath == iLenShare)
         {
-          // if the path EXACTLY matches an item in a concatentated path
+          // if the path EXACTLY matches an item in a concatenated path
           // set source name to true to load the full virtualpath
           bIsSourceName = false;
           if (vecPaths.size() > 1)
@@ -1921,7 +1918,7 @@ int CUtil::ScanArchiveForAssociatedItems(const std::string& strArchivePath,
                                          const std::vector<std::string>& item_exts,
                                          std::vector<std::string>& associatedFiles)
 {
-  CLog::LogFunction(LOGDEBUG, __FUNCTION__, "Scanning archive %s", strArchivePath.c_str());
+  CLog::LogFunction(LOGDEBUG, __FUNCTION__, "Scanning archive %s", CURL::GetRedacted(strArchivePath).c_str());
   int nItemsAdded = 0;
   CFileItemList ItemList;
 
@@ -1933,35 +1930,18 @@ int CUtil::ScanArchiveForAssociatedItems(const std::string& strArchivePath,
     if (!CDirectory::GetDirectory(zipURL, ItemList, "", DIR_FLAG_NO_FILE_DIRS))
       return false;
   }
-  else
+  else if (URIUtils::HasExtension(strArchivePath, ".rar"))
   {
-#ifdef HAS_FILESYSTEM_RAR
-    // get _ALL_files in the rar, even those located in subdirectories because we set the bMask to false.
-    // so now we dont have to find any subdirs anymore, all files in the rar is checked.
-    if (!g_RarManager.GetFilesInRar(ItemList, strArchivePath, false, ""))
+    CURL pathToUrl(strArchivePath);
+    CURL rarURL = URIUtils::CreateArchivePath("rar", pathToUrl, "");
+    if (!CDirectory::GetDirectory(rarURL, ItemList, "", DIR_FLAG_NO_FILE_DIRS))
       return false;
-#else
-    return false;
-#endif
   }
   for (int it = 0; it < ItemList.Size(); ++it)
   {
     std::string strPathInRar = ItemList[it]->GetPath();
     std::string strExt = URIUtils::GetExtension(strPathInRar);
 
-    // checking for embedded archives
-    if (URIUtils::IsArchive(strPathInRar))
-    {
-      std::string archInArch(strPathInRar);
-      if (strExt == ".rar")
-      {
-        CURL pathToUrl(strArchivePath);
-        archInArch = URIUtils::CreateArchivePath("rar", pathToUrl, strPathInRar).Get();
-      }
-
-      ScanArchiveForAssociatedItems(archInArch, videoNameNoExt, item_exts,  associatedFiles);
-      continue;
-    }
     // check that the found filename matches the movie filename
     int fnl = videoNameNoExt.size();
     if (fnl && !StringUtils::StartsWithNoCase(URIUtils::GetFileName(strPathInRar), videoNameNoExt))
@@ -1971,15 +1951,8 @@ int CUtil::ScanArchiveForAssociatedItems(const std::string& strArchivePath,
     {
       if (StringUtils::EqualsNoCase(strExt, ext))
       {
-        CURL pathToURL(strArchivePath);
-        std::string strSourceUrl;
-        if (URIUtils::HasExtension(strArchivePath, ".rar"))
-          strSourceUrl = URIUtils::CreateArchivePath("rar", pathToURL, strPathInRar).Get();
-        else
-          strSourceUrl = strPathInRar;
-
-        CLog::Log(LOGINFO, "%s: found associated file %s\n", __FUNCTION__, strSourceUrl.c_str());
-        associatedFiles.push_back(strSourceUrl);
+        CLog::Log(LOGINFO, "%s: found associated file %s\n", __FUNCTION__, CURL::GetRedacted(strPathInRar).c_str());
+        associatedFiles.push_back(strPathInRar);
         nItemsAdded++;
         break;
       }
@@ -2015,12 +1988,12 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
   {
     if (!g_application.getNetwork().IsAvailable() && !URIUtils::IsHD(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH)))
     {
-      CLog::Log(LOGINFO, "CUtil::CacheSubtitles: disabling alternate subtitle directory for this session, it's nonaccessible");
+      CLog::Log(LOGINFO, "CUtil::CacheSubtitles: disabling alternate subtitle directory for this session, it's inaccessible");
       CMediaSettings::GetInstance().SetAdditionalSubtitleDirectoryChecked(-1); // disabled
     }
     else if (!CDirectory::Exists(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_CUSTOMPATH)))
     {
-      CLog::Log(LOGINFO, "CUtil::CacheSubtitles: disabling alternate subtitle directory for this session, it's nonexistant");
+      CLog::Log(LOGINFO, "CUtil::CacheSubtitles: disabling alternate subtitle directory for this session, it's nonexistent");
       CMediaSettings::GetInstance().SetAdditionalSubtitleDirectoryChecked(-1); // disabled
     }
 
@@ -2056,11 +2029,11 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
     if (URIUtils::HasExtension(vecSubtitles[i], ".smi"))
     {
       //Cache multi-language sami subtitle
-      CDVDSubtitleStream* pStream = new CDVDSubtitleStream();
-      if (pStream->Open(vecSubtitles[i]))
+      CDVDSubtitleStream stream;
+      if (stream.Open(vecSubtitles[i]))
       {
         CDVDSubtitleTagSami TagConv;
-        TagConv.LoadHead(pStream);
+        TagConv.LoadHead(&stream);
         if (TagConv.m_Langclass.size() >= 2)
         {
           for (unsigned int k = 0; k < TagConv.m_Langclass.size(); k++)
@@ -2074,7 +2047,6 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
           }
         }
       }
-      delete pStream;
     }
   }
   CLog::Log(LOGDEBUG, "%s: END (total time: %i ms)", __FUNCTION__, (int)(XbmcThreads::SystemClockMillis() - startTimer));

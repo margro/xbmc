@@ -100,7 +100,7 @@ JSONRPC_STATUS CFileOperations::GetDirectory(const std::string &method, ITranspo
   else if (media == "pictures")
   {
     regexps = g_advancedSettings.m_pictureExcludeFromListingRegExps;
-    extensions = g_advancedSettings.m_pictureExtensions;
+    extensions = g_advancedSettings.GetPictureExtensions();
   }
 
   if (CDirectory::GetDirectory(strPath, items, extensions))
@@ -240,7 +240,7 @@ JSONRPC_STATUS CFileOperations::SetFileDetails(const std::string &method, ITrans
     return InvalidParams;
 
   CDateTime lastPlayed = infos.m_lastPlayed;
-  int playcount = infos.m_playCount;
+  int playcount = infos.GetPlayCount();
   if (!parameterObject["lastplayed"].isNull())
   {
     lastPlayed.Reset();
@@ -249,7 +249,7 @@ JSONRPC_STATUS CFileOperations::SetFileDetails(const std::string &method, ITrans
   }
   if (!parameterObject["playcount"].isNull())
     playcount = parameterObject["playcount"].asInteger();
-  if (playcount != infos.m_playCount || lastPlayed != infos.m_lastPlayed)
+  if (playcount != infos.GetPlayCount() || lastPlayed != infos.m_lastPlayed)
     videodatabase.SetPlayCount(CFileItem(infos), playcount, lastPlayed);
 
   CVideoLibrary::UpdateResumePoint(parameterObject, infos, videodatabase);
@@ -362,7 +362,7 @@ bool CFileOperations::FillFileItemList(const CVariant &parameterObject, CFileIte
       else if (media == "pictures")
       {
         regexps = g_advancedSettings.m_pictureExcludeFromListingRegExps;
-        extensions = g_advancedSettings.m_pictureExtensions;
+        extensions = g_advancedSettings.GetPictureExtensions();
       }
 
       CDirectory directory;

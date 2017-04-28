@@ -39,6 +39,17 @@
 #include "messaging/ApplicationMessenger.h"
 #include "utils/CharsetConverter.h"
 #include "windowing/WindowingFactory.h"
+#include "utils/log.h"
+
+#ifdef TARGET_ANDROID
+#include <androidjni/Intent.h>
+#include <androidjni/RecognizerIntent.h>
+#include <androidjni/ArrayList.h>
+#include "platform/android/activity/XBMCApp.h"
+
+#define ACTION_RECOGNIZE_SPEECH_REQID 543
+
+#endif
 
 using namespace KODI::MESSAGING;
 
@@ -133,12 +144,17 @@ void CGUIDialogKeyboardGeneric::OnInitWindow()
   m_layouts.clear();
   const KeyboardLayouts& keyboardLayouts = CKeyboardLayoutManager::GetInstance().GetLayouts();
   std::vector<CVariant> layoutNames = CServiceBroker::GetSettings().GetList(CSettings::SETTING_LOCALE_KEYBOARDLAYOUTS);
+  std::string activeLayout = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOCALE_ACTIVEKEYBOARDLAYOUT);
 
   for (std::vector<CVariant>::const_iterator layoutName = layoutNames.begin(); layoutName != layoutNames.end(); ++layoutName)
   {
     KeyboardLayouts::const_iterator keyboardLayout = keyboardLayouts.find(layoutName->asString());
     if (keyboardLayout != keyboardLayouts.end())
+    {
       m_layouts.push_back(keyboardLayout->second);
+      if (layoutName->asString() == activeLayout)
+        m_currentLayout = m_layouts.size() - 1;
+    }
   }
 
   // set alphabetic (capitals)
@@ -195,6 +211,8 @@ bool CGUIDialogKeyboardGeneric::OnAction(const CAction &action)
            action.GetID() == ACTION_MOVE_RIGHT ||
            action.GetID() == ACTION_SELECT_ITEM))
     handled = false;
+  else if (action.GetID() == ACTION_VOICE_RECOGNIZE)
+    OnVoiceRecognition();
   else
   {
     std::wstring wch = L"";
@@ -300,7 +318,7 @@ bool CGUIDialogKeyboardGeneric::OnMessage(CGUIMessage& message)
   case GUI_MSG_SET_TEXT:
   case GUI_MSG_INPUT_TEXT_EDIT:
     {
-      // the edit control only handles these messages if it is either focues
+      // the edit control only handles these messages if it is either focused
       // or its specific control ID is set in the message. As neither is the
       // case here (focus is on one of the keyboard buttons) we have to force
       // the control ID of the message to the control ID of the edit control
@@ -525,6 +543,8 @@ void CGUIDialogKeyboardGeneric::OnLayout()
   m_currentLayout++;
   if (m_currentLayout >= m_layouts.size())
     m_currentLayout = 0;
+  CKeyboardLayout layout = m_layouts.empty() ? CKeyboardLayout() : m_layouts[m_currentLayout];
+  CServiceBroker::GetSettings().SetString(CSettings::SETTING_LOCALE_ACTIVEKEYBOARDLAYOUT, layout.GetName());
   UpdateButtons();
 }
 
@@ -564,6 +584,21 @@ void CGUIDialogKeyboardGeneric::OnIPAddress()
     SetEditText(text.substr(0, start) + ip.c_str() + text.substr(start + length));
 }
 
+void CGUIDialogKeyboardGeneric::OnVoiceRecognition()
+{
+#ifdef TARGET_ANDROID
+  CJNIIntent intent = CJNIIntent(CJNIRecognizerIntent::ACTION_RECOGNIZE_SPEECH);
+  intent.putExtra(CJNIRecognizerIntent::EXTRA_LANGUAGE_MODEL, CJNIRecognizerIntent::LANGUAGE_MODEL_FREE_FORM);
+  CJNIIntent result;
+  if (CXBMCApp::WaitForActivityResult(intent, ACTION_RECOGNIZE_SPEECH_REQID, result) == CJNIBase::RESULT_OK)
+  {
+    CJNIArrayList<std::string> guesses = result.getStringArrayListExtra(CJNIRecognizerIntent::EXTRA_RESULTS);
+    if (guesses.size())
+      SetEditText(guesses.get(0));
+  }
+#endif
+}
+
 void CGUIDialogKeyboardGeneric::SetControlLabel(int id, const std::string &label)
 { // find all controls with this id, and set all their labels
   CGUIMessage message(GUI_MSG_LABEL_SET, GetID(), id);
@@ -599,7 +634,7 @@ void CGUIDialogKeyboardGeneric::Cancel()
 
 bool CGUIDialogKeyboardGeneric::ShowAndGetInput(char_callback_t pCallback, const std::string &initialString, std::string &typedString, const std::string &heading, bool bHiddenInput)
 {
-  CGUIDialogKeyboardGeneric *pKeyboard = (CGUIDialogKeyboardGeneric*)g_windowManager.GetWindow(WINDOW_DIALOG_KEYBOARD);
+  CGUIDialogKeyboardGeneric *pKeyboard = g_windowManager.GetWindow<CGUIDialogKeyboardGeneric>(WINDOW_DIALOG_KEYBOARD);
 
   if (!pKeyboard)
     return false;

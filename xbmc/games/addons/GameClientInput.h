@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015-2016 Team Kodi
+ *      Copyright (C) 2015-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 #include "games/controllers/ControllerTypes.h"
 #include "input/joysticks/IInputHandler.h"
 
-struct GameClient;
+struct KodiToAddonFuncTable_Game;
 
 namespace GAME
 {
@@ -34,7 +34,7 @@ namespace GAME
    *
    * Listens to game controller events and forwards them to the games (as game_input_event).
    */
-  class CGameClientInput : public JOYSTICK::IInputHandler
+  class CGameClientInput : public KODI::JOYSTICK::IInputHandler
   {
   public:
     /*!
@@ -44,13 +44,13 @@ namespace GAME
      * \param controller The game controller which is used (for controller mapping).
      * \param dllStruct The emulator or game to which the events are sent.
      */
-    CGameClientInput(CGameClient* addon, int port, const ControllerPtr& controller, const GameClient* dllStruct);
+    CGameClientInput(CGameClient* addon, int port, const ControllerPtr& controller, const KodiToAddonFuncTable_Game* dllStruct);
 
     // Implementation of IInputHandler
     virtual std::string ControllerID(void) const override;
     virtual bool HasFeature(const std::string& feature) const override;
     virtual bool AcceptsInput(void) override;
-    virtual JOYSTICK::INPUT_TYPE GetInputType(const std::string& feature) const override;
+    virtual KODI::JOYSTICK::INPUT_TYPE GetInputType(const std::string& feature) const override;
     virtual bool OnButtonPress(const std::string& feature, bool bPressed) override;
     virtual void OnButtonHold(const std::string& feature, unsigned int holdTimeMs) override { }
     virtual bool OnButtonMotion(const std::string& feature, float magnitude) override;
@@ -63,6 +63,6 @@ namespace GAME
     const CGameClient* const  m_gameClient;
     const int                 m_port;
     const ControllerPtr       m_controller;
-    const GameClient* const   m_dllStruct;
+    const KodiToAddonFuncTable_Game* const m_dllStruct;
   };
 }
