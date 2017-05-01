@@ -1,6 +1,12 @@
 @echo off
 
+IF NOT EXIST "C:\Program Files (x86)\CMake\bin" (
+	GOTO SKIP_SET_PATH
+)
+echo Adding CMake to the path
 SET PATH=%PATH%;C:\Program Files (x86)\CMake\bin
+
+:SKIP_SET_PATH
 
 cd %~dp0\..
 SET KODI_SRC=%CD%
@@ -12,8 +18,10 @@ IF NOT EXIST %SOLUTION_DIR% (
 
 cd %SOLUTION_DIR%
 
-cmake -G "Visual Studio 14" %KODI_SRC%\project\cmake
+cmake -G "Visual Studio 14" %KODI_SRC%
 
 set KODI_HOME=%SOLUTION_DIR%
 set PATH=%SOLUTION_DIR%\system;%PATH%
-start %SOLUTION_DIR%\kodi.sln
+IF EXIST %SOLUTION_DIR%\kodi.sln (
+	start %SOLUTION_DIR%\kodi.sln
+)
