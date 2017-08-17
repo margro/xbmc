@@ -61,11 +61,9 @@ const char* CPlayListM3U::OffsetMarker = "#EXT-KX-OFFSET";
 //   playlist_800.m3u8
 
 
-CPlayListM3U::CPlayListM3U(void)
-{}
+CPlayListM3U::CPlayListM3U(void) = default;
 
-CPlayListM3U::~CPlayListM3U(void)
-{}
+CPlayListM3U::~CPlayListM3U(void) = default;
 
 
 bool CPlayListM3U::Load(const std::string& strFileName)
@@ -196,6 +194,11 @@ bool CPlayListM3U::Load(const std::string& strFileName)
         {
           newItem->SetProperty(prop.first, prop.second);
         }
+
+        newItem->SetMimeType(newItem->GetProperty("mimetype").asString());
+        if (!newItem->GetMimeType().empty())
+          newItem->SetContentLookup(false);
+
         Add(newItem);
 
         // Reset the values just in case there part of the file have the extended marker

@@ -37,7 +37,7 @@ CGUIListItemLayout::CGUIListItemLayout()
   m_group.SetPushUpdates(true);
 }
 
-CGUIListItemLayout::CGUIListItemLayout(const CGUIListItemLayout &from)
+CGUIListItemLayout::CGUIListItemLayout(const CGUIListItemLayout &from, CGUIControl *control)
 : m_group(from.m_group), m_isPlaying(from.m_isPlaying)
 {
   m_width = from.m_width;
@@ -45,11 +45,10 @@ CGUIListItemLayout::CGUIListItemLayout(const CGUIListItemLayout &from)
   m_focused = from.m_focused;
   m_condition = from.m_condition;
   m_invalidated = true;
+  m_group.SetParentControl(control);
 }
 
-CGUIListItemLayout::~CGUIListItemLayout()
-{
-}
+CGUIListItemLayout::~CGUIListItemLayout() = default;
 
 bool CGUIListItemLayout::IsAnimating(ANIMATION_TYPE animType)
 {
@@ -73,7 +72,7 @@ void CGUIListItemLayout::Process(CGUIListItem *item, int parentID, unsigned int 
     m_invalidated = false;
     // could use a dynamic cast here if RTTI was enabled.  As it's not,
     // let's use a static cast with a virtual base function
-    CFileItem *fileItem = item->IsFileItem() ? (CFileItem *)item : new CFileItem(*item);
+    CFileItem *fileItem = item->IsFileItem() ? static_cast<CFileItem*>(item) : new CFileItem(*item);
     m_isPlaying.Update(item);
     m_group.SetInvalid();
     m_group.UpdateInfo(fileItem);
@@ -160,7 +159,7 @@ void CGUIListItemLayout::LoadControl(TiXmlElement *child, CGUIControlGroup *grou
       TiXmlElement *grandChild = child->FirstChildElement("control");
       while (grandChild)
       {
-        LoadControl(grandChild, (CGUIControlGroup *)control);
+        LoadControl(grandChild, static_cast<CGUIControlGroup*>(control));
         grandChild = grandChild->NextSiblingElement("control");
       }
     }

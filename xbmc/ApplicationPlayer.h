@@ -28,7 +28,6 @@
 #include "threads/SystemClock.h"
 #include "guilib/Resolution.h"
 #include "cores/IPlayer.h"
-#include "pvr/PVRTypes.h"
 
 typedef enum
 {
@@ -60,8 +59,6 @@ class CApplicationPlayer
   int m_iVideoStream;
   XbmcThreads::EndTime m_subtitleStreamUpdate;
   int m_iSubtitleStream;
-  XbmcThreads::EndTime m_speedUpdate;
-  float m_fPlaySpeed;
 
 public:
   CApplicationPlayer();
@@ -72,10 +69,12 @@ public:
   void ClosePlayerGapless(std::string &playername);
   void CreatePlayer(const std::string &player, IPlayerCallback& callback);
   std::string GetCurrentPlayer();
-  float  GetPlaySpeed();
+  float GetPlaySpeed();
+  float GetPlayTempo();
   bool HasPlayer() const;
   PlayBackRet OpenFile(const CFileItem& item, const CPlayerOptions& options);
   void SetPlaySpeed(float speed);
+  void SetTempo(float tempo);
 
   void FrameMove();
   void Render(bool clear, uint32_t alpha = 255, bool gui = true);
@@ -116,7 +115,6 @@ public:
   std::string GetPlayerState();
   std::string GetPlayingTitle();
   int   GetPreferredPlaylist() const;
-  bool  GetStreamDetails(CStreamDetails &details);
   int   GetSubtitle();
   void  GetSubtitleCapabilities(std::vector<int> &subCaps);
   int   GetSubtitleCount();
@@ -125,6 +123,9 @@ public:
   TextCacheStruct_t* GetTeletextCache();
   std::string GetRadioText(unsigned int line);
   int64_t GetTime() const;
+  int64_t GetMinTime() const;
+  int64_t GetMaxTime() const;
+  time_t GetStartTime() const;
   int64_t GetTotalTime() const;
   int   GetVideoStream();
   int   GetVideoStreamCount();
@@ -169,7 +170,6 @@ public:
   void  SetTotalTime(int64_t time);
   void  SetVideoStream(int iStream);
   void  SetVolume(float volume);
-  bool  SwitchChannel(const PVR::CPVRChannelPtr &channel);
   void  SetSpeed(float speed);
   bool SupportsTempo();
 

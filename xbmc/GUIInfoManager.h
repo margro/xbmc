@@ -101,13 +101,13 @@ friend CSetCurrentItemJob;
 
 public:
   CGUIInfoManager(void);
-  virtual ~CGUIInfoManager(void);
+  ~CGUIInfoManager(void) override;
 
   void Clear();
-  virtual bool OnMessage(CGUIMessage &message) override;
+  bool OnMessage(CGUIMessage &message) override;
 
-  virtual int GetMessageMask() override;
-  virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
+  int GetMessageMask() override;
+  void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
 
   /*! \brief Register a boolean condition/expression
    This routine allows controls or other clients of the info manager to register
@@ -192,7 +192,6 @@ public:
   void SetShowInfo(bool showinfo);
   bool GetShowInfo() const { return m_playerShowInfo; }
   bool ToggleShowInfo();
-  bool IsPlayerChannelPreviewActive() const;
 
   std::string GetSystemHeatInfo(int info);
   CTemperature GetGPUTemperature();
@@ -328,7 +327,9 @@ protected:
   int m_nextWindowID;
   int m_prevWindowID;
 
-  std::vector<INFO::InfoPtr> m_bools;
+  typedef std::set<INFO::InfoPtr, bool(*)(const INFO::InfoPtr&, const INFO::InfoPtr&)> INFOBOOLTYPE;
+  INFOBOOLTYPE m_bools;
+  unsigned int m_refreshCounter;
   std::vector<INFO::CSkinVariableString> m_skinVariableStrings;
 
   int m_libraryHasMusic;
@@ -345,12 +346,12 @@ protected:
 
   SPlayerVideoStreamInfo m_videoInfo;
   SPlayerAudioStreamInfo m_audioInfo;
-  bool m_isPvrChannelPreview;
 
   CCriticalSection m_critInfo;
 
 private:
   static std::string FormatRatingAndVotes(float rating, int votes);
+  bool IsPlayerChannelPreviewActive() const;
 };
 
 /*!

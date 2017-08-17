@@ -37,9 +37,9 @@ public:
   CBooleanLogicValue(const std::string &value = "", bool negated = false)
     : m_value(value), m_negated(negated)
   { }
-  virtual ~CBooleanLogicValue() { }
+  ~CBooleanLogicValue() override = default;
 
-  virtual bool Deserialize(const TiXmlNode *node);
+  bool Deserialize(const TiXmlNode *node) override;
 
   virtual const std::string& GetValue() const { return m_value; }
   virtual bool IsNegated() const { return m_negated; }
@@ -63,12 +63,12 @@ typedef std::vector<CBooleanLogicOperationPtr> CBooleanLogicOperations;
 class CBooleanLogicOperation : public IXmlDeserializable
 {
 public:
-  CBooleanLogicOperation(BooleanLogicOperation op = BooleanLogicOperationAnd)
+  explicit CBooleanLogicOperation(BooleanLogicOperation op = BooleanLogicOperationAnd)
     : m_operation(op)
   { }
-  virtual ~CBooleanLogicOperation();
+  ~CBooleanLogicOperation() override;
 
-  virtual bool Deserialize(const TiXmlNode *node);
+  bool Deserialize(const TiXmlNode *node) override;
 
   virtual BooleanLogicOperation GetOperation() const { return m_operation; }
   virtual const CBooleanLogicOperations& GetOperations() const { return m_operations; }
@@ -88,10 +88,10 @@ protected:
 class CBooleanLogic : public IXmlDeserializable
 {
 public:
-  CBooleanLogic() { }
-  virtual ~CBooleanLogic() { }
+  CBooleanLogic() = default;
+  ~CBooleanLogic() override = default;
 
-  virtual bool Deserialize(const TiXmlNode *node);
+  bool Deserialize(const TiXmlNode *node) override;
 
   virtual const CBooleanLogicOperationPtr& Get() const { return m_operation; }
   virtual CBooleanLogicOperationPtr Get() { return m_operation; }

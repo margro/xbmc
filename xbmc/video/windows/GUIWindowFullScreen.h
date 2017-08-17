@@ -22,29 +22,33 @@
 
 #include "guilib/GUIWindow.h"
 
+class CGUIDialog;
+
 class CGUIWindowFullScreen : public CGUIWindow
 {
 public:
   CGUIWindowFullScreen(void);
-  virtual ~CGUIWindowFullScreen(void);
-  virtual bool OnMessage(CGUIMessage& message);
-  virtual bool OnAction(const CAction &action);
-  virtual void ClearBackground();
-  virtual void FrameMove();
-  virtual void Process(unsigned int currentTime, CDirtyRegionList &dirtyregion);
-  virtual void Render();
-  virtual void RenderEx();
-  virtual void OnWindowLoaded();
+  ~CGUIWindowFullScreen(void) override;
+  bool OnMessage(CGUIMessage& message) override;
+  bool OnAction(const CAction &action) override;
+  void ClearBackground() override;
+  void FrameMove() override;
+  void Process(unsigned int currentTime, CDirtyRegionList &dirtyregion) override;
+  void Render() override;
+  void RenderEx() override;
+  void OnWindowLoaded() override;
+  bool HasVisibleControls() override;
 
 protected:
-  virtual EVENT_RESULT OnMouseEvent(const CPoint &point, const CMouseEvent &event);
+  EVENT_RESULT OnMouseEvent(const CPoint &point, const CMouseEvent &event) override;
 
 private:
   void SeekChapter(int iChapter);
   void ToggleOSD();
   void TriggerOSD();
+  CGUIDialog *GetOSD();
 
-  bool m_bShowViewModeInfo;
+  bool m_viewModeChanged;
   unsigned int m_dwShowViewModeTimeout;
 
   bool m_bShowCurrentTime;

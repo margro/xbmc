@@ -18,6 +18,8 @@
  *
  */
 
+#include "PVRActionListener.h"
+
 #include "Application.h"
 #include "ServiceBroker.h"
 #include "dialogs/GUIDialogNumeric.h"
@@ -29,8 +31,7 @@
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannel.h"
-
-#include "PVRActionListener.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 
 namespace PVR
 {
@@ -57,9 +58,20 @@ CPVRActionListener::~CPVRActionListener()
   g_application.UnregisterActionListener(this);
 }
 
+ChannelSwitchMode CPVRActionListener::GetChannelSwitchMode(int iAction)
+{
+  if ((iAction == ACTION_MOVE_UP || iAction == ACTION_MOVE_DOWN) &&
+      CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH))
+    return ChannelSwitchMode::NO_SWITCH;
+
+  return ChannelSwitchMode::INSTANT_OR_DELAYED_SWITCH;
+}
+
 bool CPVRActionListener::OnAction(const CAction &action)
 {
   bool bIsJumpSMS = false;
+  bool bIsPlayingPVR(CServiceBroker::GetPVRManager().IsPlaying() &&
+                     g_application.CurrentFileItem().HasPVRChannelInfoTag());
 
   switch (action.GetID())
   {
@@ -69,19 +81,18 @@ bool CPVRActionListener::OnAction(const CAction &action)
     {
       // see if we're already playing a PVR stream and if not or the stream type
       // doesn't match the demanded type, start playback of according type
-      bool isPlayingPvr(CServiceBroker::GetPVRManager().IsPlaying() && g_application.CurrentFileItem().HasPVRChannelInfoTag());
       switch (action.GetID())
       {
         case ACTION_PVR_PLAY:
-          if (!isPlayingPvr)
+          if (!bIsPlayingPVR)
             CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(PlaybackTypeAny);
           break;
         case ACTION_PVR_PLAY_TV:
-          if (!isPlayingPvr || g_application.CurrentFileItem().GetPVRChannelInfoTag()->IsRadio())
+          if (!bIsPlayingPVR || g_application.CurrentFileItem().GetPVRChannelInfoTag()->IsRadio())
             CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(PlaybackTypeTV);
           break;
         case ACTION_PVR_PLAY_RADIO:
-          if (!isPlayingPvr || !g_application.CurrentFileItem().GetPVRChannelInfoTag()->IsRadio())
+          if (!bIsPlayingPVR || !g_application.CurrentFileItem().GetPVRChannelInfoTag()->IsRadio())
             CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(PlaybackTypeRadio);
           break;
       }
@@ -109,9 +120,10 @@ bool CPVRActionListener::OnAction(const CAction &action)
     case REMOTE_8:
     case REMOTE_9:
     {
-      if (g_application.CurrentFileItem().IsLiveTV() &&
-          (g_windowManager.IsWindowActive(WINDOW_FULLSCREEN_VIDEO) ||
-           g_windowManager.IsWindowActive(WINDOW_VISUALISATION)))
+      if (!bIsPlayingPVR)
+        return false;
+
+      if (g_windowManager.IsWindowActive(WINDOW_FULLSCREEN_VIDEO) || g_windowManager.IsWindowActive(WINDOW_VISUALISATION))
       {
         // do not consume action if a python modal is the top most dialog
         // as a python modal can't return that it consumed the action.
@@ -122,13 +134,57 @@ bool CPVRActionListener::OnAction(const CAction &action)
         CServiceBroker::GetPVRManager().GUIActions()->GetChannelNumberInputHandler().AppendChannelNumberDigit(iRemote - REMOTE_0);
         return true;
       }
+      return false;
     }
-    break;
+    case ACTION_SHOW_INFO:
+    {
+      if (!bIsPlayingPVR)
+        return false;
+
+      CServiceBroker::GetPVRManager().GUIActions()->GetChannelNavigator().ToggleInfo();
+      return true;
+    }
+
+    case ACTION_MOVE_UP:
+    case ACTION_NEXT_ITEM:
+    case ACTION_CHANNEL_UP:
+    {
+      if (!bIsPlayingPVR)
+        return false;
+
+      CServiceBroker::GetPVRManager().GUIActions()->GetChannelNavigator().SelectNextChannel(GetChannelSwitchMode(action.GetID()));
+      return true;
+    }
+
+    case ACTION_MOVE_DOWN:
+    case ACTION_PREV_ITEM:
+    case ACTION_CHANNEL_DOWN:
+    {
+      if (!bIsPlayingPVR)
+        return false;
+
+      CServiceBroker::GetPVRManager().GUIActions()->GetChannelNavigator().SelectPreviousChannel(GetChannelSwitchMode(action.GetID()));
+      return true;
+    }
+
+    case ACTION_CHANNEL_SWITCH:
+    {
+      if (!bIsPlayingPVR)
+        return false;
+
+      // Offset from key codes back to button number
+      int iChannelNumber = static_cast<int>(action.GetAmount());
+      const CPVRChannelPtr currentChannel(CServiceBroker::GetPVRManager().GetCurrentChannel());
+      const CFileItemPtr item(CServiceBroker::GetPVRManager().ChannelGroups()->Get(currentChannel->IsRadio())->GetSelectedGroup()->GetByChannelNumber(iChannelNumber));
+      CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(item, false);
+
+      return true;
+    }
   }
   return false;
 }
 
-void CPVRActionListener::OnSettingChanged(const CSetting *setting)
+void CPVRActionListener::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == nullptr)
     return;
@@ -136,7 +192,7 @@ void CPVRActionListener::OnSettingChanged(const CSetting *setting)
   const std::string &settingId = setting->GetId();
   if (settingId == CSettings::SETTING_PVRPARENTAL_ENABLED)
   {
-    if (dynamic_cast<const CSettingBool*>(setting)->GetValue() && CServiceBroker::GetSettings().GetString(CSettings::SETTING_PVRPARENTAL_PIN).empty())
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue() && CServiceBroker::GetSettings().GetString(CSettings::SETTING_PVRPARENTAL_PIN).empty())
     {
       std::string newPassword = "";
       // password set... save it
@@ -144,16 +200,16 @@ void CPVRActionListener::OnSettingChanged(const CSetting *setting)
         CServiceBroker::GetSettings().SetString(CSettings::SETTING_PVRPARENTAL_PIN, newPassword);
       // password not set... disable parental
       else
-        dynamic_cast<CSettingBool*>(const_cast<CSetting*>(setting))->SetValue(false);
+        std::static_pointer_cast<CSettingBool>(std::const_pointer_cast<CSetting>(setting))->SetValue(false);
     }
   }
   else if (settingId == CSettings::SETTING_EPG_DAYSTODISPLAY)
   {
-    CServiceBroker::GetPVRManager().Clients()->SetEPGTimeFrame(static_cast<const CSettingInt*>(setting)->GetValue());
+    CServiceBroker::GetPVRManager().Clients()->SetEPGTimeFrame(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
   }
 }
 
-void CPVRActionListener::OnSettingAction(const CSetting *setting)
+void CPVRActionListener::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == nullptr)
     return;

@@ -28,16 +28,16 @@
 class CHTTPFileHandler : public IHTTPRequestHandler
 {
 public:
-  virtual ~CHTTPFileHandler() { }
+  ~CHTTPFileHandler() override = default;
 
-  virtual int HandleRequest();
+  int HandleRequest() override;
 
-  virtual bool CanHandleRanges() const { return m_canHandleRanges; }
-  virtual bool CanBeCached() const { return m_canBeCached; }
-  virtual bool GetLastModifiedDate(CDateTime &lastModified) const;
+  bool CanHandleRanges() const override { return m_canHandleRanges; }
+  bool CanBeCached() const override { return m_canBeCached; }
+  bool GetLastModifiedDate(CDateTime &lastModified) const override;
 
-  virtual std::string GetRedirectUrl() const { return m_url; }
-  virtual std::string GetResponseFile() const { return m_url; }
+  std::string GetRedirectUrl() const override { return m_url; }
+  std::string GetResponseFile() const override { return m_url; }
 
 protected:
   CHTTPFileHandler();

@@ -39,7 +39,7 @@ class CWebServer
 {
 public:
   CWebServer();
-  virtual ~CWebServer() { }
+  virtual ~CWebServer() = default;
 
   bool Start(uint16_t port, const std::string &username, const std::string &password);
   bool Stop();
@@ -58,7 +58,7 @@ protected:
     struct MHD_PostProcessor *postprocessor;
     int errorStatus;
 
-    ConnectionHandler(const std::string& uri)
+    explicit ConnectionHandler(const std::string& uri)
       : fullUri(uri)
       , isNew(true)
       , requestHandler(nullptr)
@@ -69,7 +69,7 @@ protected:
 
   virtual void LogRequest(const char* uri) const;
 
-  virtual int HandlePartialRequest(struct MHD_Connection *connection, ConnectionHandler* connectionHandler, HTTPRequest request,
+  virtual int HandlePartialRequest(struct MHD_Connection *connection, ConnectionHandler* connectionHandler, const HTTPRequest& request,
                                    const char *upload_data, size_t *upload_data_size, void **con_cls);
   virtual int HandleRequest(const std::shared_ptr<IHTTPRequestHandler>& handler);
   virtual int FinalizeRequest(const std::shared_ptr<IHTTPRequestHandler>& handler, int responseStatus, struct MHD_Response *response);
@@ -77,8 +77,17 @@ protected:
 private:
   struct MHD_Daemon* StartMHD(unsigned int flags, int port);
 
-  int AskForAuthentication(struct MHD_Connection *connection) const;
-  bool IsAuthenticated(struct MHD_Connection *connection) const;
+  std::shared_ptr<IHTTPRequestHandler> FindRequestHandler(const HTTPRequest& request) const;
+
+  int AskForAuthentication(const HTTPRequest& request) const;
+  bool IsAuthenticated(const HTTPRequest& request) const;
+
+  bool IsRequestCacheable(const HTTPRequest& request) const;
+  bool IsRequestRanged(const HTTPRequest& request, const CDateTime &lastModified) const;
+
+  void SetupPostDataProcessing(const HTTPRequest& request, ConnectionHandler *connectionHandler, std::shared_ptr<IHTTPRequestHandler> handler, void **con_cls) const;
+  bool ProcessPostData(const HTTPRequest& request, ConnectionHandler *connectionHandler, const char *upload_data, size_t *upload_data_size, void **con_cls) const;
+  void FinalizePostDataProcessing(ConnectionHandler *connectionHandler) const;
 
   int CreateMemoryDownloadResponse(const std::shared_ptr<IHTTPRequestHandler>& handler, struct MHD_Response *&response) const;
   int CreateRangedMemoryDownloadResponse(const std::shared_ptr<IHTTPRequestHandler>& handler, struct MHD_Response *&response) const;
@@ -88,9 +97,13 @@ private:
   int CreateErrorResponse(struct MHD_Connection *connection, int responseType, HTTPMethod method, struct MHD_Response *&response) const;
   int CreateMemoryDownloadResponse(struct MHD_Connection *connection, const void *data, size_t size, bool free, bool copy, struct MHD_Response *&response) const;
 
-  int SendErrorResponse(struct MHD_Connection *connection, int errorType, HTTPMethod method) const;
+  int SendResponse(const HTTPRequest& request, int responseStatus, MHD_Response *response) const;
+  int SendErrorResponse(const HTTPRequest& request, int errorType, HTTPMethod method) const;
 
   int AddHeader(struct MHD_Response *response, const std::string &name, const std::string &value) const;
+
+  void LogRequest(const HTTPRequest& request) const;
+  void LogResponse(const HTTPRequest& request, int responseStatus) const;
 
   static std::string CreateMimeTypeFromExtension(const char *ext);
 
@@ -130,9 +143,10 @@ private:
   struct MHD_Daemon *m_daemon_ip6;
   struct MHD_Daemon *m_daemon_ip4;
   bool m_running;
-  bool m_needcredentials;
   size_t m_thread_stacksize;
-  std::string m_Credentials64Encoded;
+  bool m_authenticationRequired;
+  std::string m_authenticationUsername;
+  std::string m_authenticationPassword;
   CCriticalSection m_critSection;
   std::vector<IHTTPRequestHandler *> m_requestHandlers;
 };

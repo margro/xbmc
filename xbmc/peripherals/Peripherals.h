@@ -24,7 +24,6 @@
 #include "EventScanner.h"
 #include "bus/PeripheralBus.h"
 #include "devices/Peripheral.h"
-#include "games/ports/PortMapper.h" //! @todo Find me a better place
 #include "interfaces/IAnnouncer.h"
 #include "messaging/IMessageTarget.h"
 #include "settings/lib/ISettingCallback.h"
@@ -48,6 +47,11 @@ namespace JOYSTICK
 }
 }
 
+namespace ANNOUNCEMENT
+{
+  class CAnnouncementManager;
+}
+
 namespace PERIPHERALS
 {
   class CPeripherals :  public ISettingCallback,
@@ -57,9 +61,9 @@ namespace PERIPHERALS
                         public ANNOUNCEMENT::IAnnouncer
   {
   public:
-    CPeripherals();
+    explicit CPeripherals(ANNOUNCEMENT::CAnnouncementManager &announcements);
 
-    virtual ~CPeripherals();
+    ~CPeripherals() override;
 
     /*!
      * @brief Initialise the peripherals manager.
@@ -253,7 +257,7 @@ namespace PERIPHERALS
     }
 
     // implementation of IEventScannerCallback
-    virtual void ProcessEvents(void) override;
+    void ProcessEvents(void) override;
 
     /*!
      * \brief Initialize button mapping
@@ -300,15 +304,15 @@ namespace PERIPHERALS
     void UnregisterJoystickButtonMapper(KODI::JOYSTICK::IButtonMapper* mapper);
 
     // implementation of ISettingCallback
-    virtual void OnSettingChanged(const CSetting *setting) override;
-    virtual void OnSettingAction(const CSetting *setting) override;
+    void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
+    void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
 
     // implementation of IMessageTarget
-    virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
-    virtual int GetMessageMask() override;
+    void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
+    int GetMessageMask() override;
 
     // implementation of IAnnouncer
-    virtual void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data) override;
+    void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data) override;
 
   private:
     bool LoadMappings();
@@ -317,13 +321,15 @@ namespace PERIPHERALS
 
     void OnDeviceChanged();
 
+    // Construction parameters
+    ANNOUNCEMENT::CAnnouncementManager &m_announcements;
+
 #if !defined(HAVE_LIBCEC)
     bool                                 m_bMissingLibCecWarningDisplayed = false;
 #endif
     std::vector<PeripheralBusPtr>        m_busses;
     std::vector<PeripheralDeviceMapping> m_mappings;
     CEventScanner                        m_eventScanner;
-	GAME::CPortMapper                    m_portMapper; //! @todo Find me a better place
     CCriticalSection                     m_critSectionBusses;
     CCriticalSection                     m_critSectionMappings;
   };

@@ -63,15 +63,15 @@ bool CDVDInputStreamFFmpeg::Open()
   m_can_seek  = true;
   m_aborted   = false;
 
-  if(strnicmp(m_item.GetPath().c_str(), "udp://", 6) == 0 ||
-     strnicmp(m_item.GetPath().c_str(), "rtp://", 6) == 0)
+  if(strnicmp(m_item.GetDynPath().c_str(), "udp://", 6) == 0 ||
+     strnicmp(m_item.GetDynPath().c_str(), "rtp://", 6) == 0)
   {
     m_can_pause = false;
     m_can_seek = false;
     m_realtime = true;
   }
 
-  if(strnicmp(m_item.GetPath().c_str(), "tcp://", 6) == 0)
+  if(strnicmp(m_item.GetDynPath().c_str(), "tcp://", 6) == 0)
   {
     m_can_pause = true;
     m_can_seek  = false;
@@ -115,7 +115,7 @@ std::string CDVDInputStreamFFmpeg::GetProxyHost() const
 uint16_t CDVDInputStreamFFmpeg::GetProxyPort() const
 {
   if (m_item.HasProperty("proxy.port"))
-    return m_item.GetProperty("proxy.port").asInteger();
+    return static_cast<uint16_t>(m_item.GetProperty("proxy.port").asInteger());
 
   // Select the standard port
   const std::string value = GetProxyType();

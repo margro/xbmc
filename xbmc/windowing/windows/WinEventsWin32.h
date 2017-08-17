@@ -31,9 +31,8 @@ class CGenericTouchSwipeDetector;
 class CWinEventsWin32 : public IWinEvents
 {
 public:
-  void MessagePush(XBMC_Event *newEvent);
-  bool MessagePump();
-  virtual size_t GetQueueSize();
+  void MessagePush(XBMC_Event *newEvent) override;
+  bool MessagePump() override;
   static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
@@ -42,7 +41,6 @@ private:
   static void OnGestureNotify(HWND hWnd, LPARAM lParam);
   static void OnGesture(HWND hWnd, LPARAM lParam);
 
-  static PHANDLE_EVENT_FUNC m_pEventFunc;
   static int m_originalZoomDistance;
   static Pointer m_touchPointer;
   static CGenericTouchSwipeDetector *m_touchSwipeDetector;

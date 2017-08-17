@@ -19,26 +19,36 @@
  */
 #pragma once
 
+#include "VideoBuffer.h"
 #include "cores/IPlayer.h"
-#include "cores/VideoPlayer/VideoRenderers/RenderFormats.h"
+#include "cores/VideoPlayer/VideoRenderers/RenderInfo.h"
 #include "threads/CriticalSection.h"
+#include <atomic>
 #include <list>
+#include <map>
 #include <string>
+
+class CProcessInfo;
+class CDataCacheCore;
+
+using CreateProcessControl = CProcessInfo* (*)();
 
 class CProcessInfo
 {
 public:
   static CProcessInfo* CreateInstance();
-  virtual ~CProcessInfo();
+  static void RegisterProcessControl(std::string id, CreateProcessControl createFunc);
+  virtual ~CProcessInfo() = default;
+  void SetDataCache(CDataCacheCore *cache);
 
-  // player video info
+  // player video
   void ResetVideoCodecInfo();
-  void SetVideoDecoderName(std::string name, bool isHw);
+  void SetVideoDecoderName(const std::string &name, bool isHw);
   std::string GetVideoDecoderName();
   bool IsVideoHwDecoder();
-  void SetVideoDeintMethod(std::string method);
+  void SetVideoDeintMethod(const std::string &method);
   std::string GetVideoDeintMethod();
-  void SetVideoPixelFormat(std::string pixFormat);
+  void SetVideoPixelFormat(const std::string &pixFormat);
   std::string GetVideoPixelFormat();
   void SetVideoDimensions(int width, int height);
   void GetVideoDimensions(int &width, int &height);
@@ -52,12 +62,15 @@ public:
   bool Supports(EINTERLACEMETHOD method);
   void SetDeinterlacingMethodDefault(EINTERLACEMETHOD method);
   EINTERLACEMETHOD GetDeinterlacingMethodDefault();
+  CVideoBufferManager& GetVideoBufferManager();
+  std::vector<AVPixelFormat> GetPixFormats();
+  void SetPixFormats(std::vector<AVPixelFormat> &formats);
 
   // player audio info
   void ResetAudioCodecInfo();
-  void SetAudioDecoderName(std::string name);
+  void SetAudioDecoderName(const std::string &name);
   std::string GetAudioDecoderName();
-  void SetAudioChannels(std::string channels);
+  void SetAudioChannels(const std::string &channels);
   std::string GetAudioChannels();
   void SetAudioSampleRate(int sampleRate);
   int GetAudioSampleRate();
@@ -71,13 +84,32 @@ public:
   void UpdateRenderInfo(CRenderInfo &info);
   void UpdateRenderBuffers(int queued, int discard, int free);
   void GetRenderBuffers(int &queued, int &discard, int &free);
+  virtual std::vector<AVPixelFormat> GetRenderFormats();
 
   // player states
   void SetStateSeeking(bool active);
   bool IsSeeking();
+  void SetSpeed(float speed);
+  void SetNewSpeed(float speed);
+  float GetNewSpeed();
+  void SetTempo(float tempo);
+  void SetNewTempo(float tempo);
+  float GetNewTempo();
+  virtual bool IsTempoAllowed(float tempo);
+  void SetLevelVQ(int level);
+  int GetLevelVQ();
+  void SetGuiRender(bool gui);
+  bool GetGuiRender();
+  void SetVideoRender(bool video);
+  bool GetVideoRender();
+
+  void SetPlayTimes(time_t start, int64_t current, int64_t min, int64_t max);
+  int64_t GetMaxTime();
 
 protected:
-  CProcessInfo();
+  CProcessInfo() = default;
+  static std::map<std::string, CreateProcessControl> m_processControls;
+  CDataCacheCore *m_dataCache = nullptr;
 
   // player video info
   bool m_videoIsHWDecoder;
@@ -91,6 +123,8 @@ protected:
   std::list<EINTERLACEMETHOD> m_deintMethods;
   EINTERLACEMETHOD m_deintMethodDefault;
   CCriticalSection m_videoCodecSection;
+  CVideoBufferManager m_videoBufferManager;
+  std::vector<AVPixelFormat> m_pixFormats;
 
   // player audio info
   std::string m_audioDecoderName;
@@ -110,4 +144,15 @@ protected:
   // player states
   CCriticalSection m_stateSection;
   bool m_stateSeeking;
+  std::atomic_int m_levelVQ;
+  std::atomic_bool m_renderGuiLayer;
+  std::atomic_bool m_renderVideoLayer;
+  float m_tempo;
+  float m_newTempo;
+  float m_speed;
+  float m_newSpeed;
+  time_t m_startTime;
+  int64_t m_time;
+  int64_t m_timeMax;
+  int64_t m_timeMin;
 };

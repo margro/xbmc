@@ -30,7 +30,7 @@ public:
 
   CDVDSubtitlesLibass* m_libass;
 
-  CDVDOverlaySSA(CDVDSubtitlesLibass* libass) : CDVDOverlay(DVDOVERLAY_TYPE_SSA)
+  explicit CDVDOverlaySSA(CDVDSubtitlesLibass* libass) : CDVDOverlay(DVDOVERLAY_TYPE_SSA)
   {
     replace = true;
     m_libass = libass;
@@ -44,13 +44,13 @@ public:
     m_libass->Acquire();
   }
 
-  ~CDVDOverlaySSA()
+  ~CDVDOverlaySSA() override
   {
     if(m_libass)
       SAFE_RELEASE(m_libass);
   }
 
-  virtual CDVDOverlaySSA* Clone()
+  CDVDOverlaySSA* Clone() override
   {
     return new CDVDOverlaySSA(*this);
   }

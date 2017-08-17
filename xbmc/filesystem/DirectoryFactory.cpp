@@ -59,15 +59,11 @@
 #include "CDDADirectory.h"
 #endif
 #include "PluginDirectory.h"
-#ifdef HAS_FILESYSTEM
 #include "ISO9660Directory.h"
-#endif
 #ifdef HAS_UPNP
 #include "UPnPDirectory.h"
 #endif
-#ifdef HAS_PVRCLIENTS
 #include "PVRDirectory.h"
-#endif
 #if defined(TARGET_ANDROID)
 #include "APKDirectory.h"
 #endif
@@ -94,7 +90,6 @@
 #include "ResourceDirectory.h"
 #include "ServiceBroker.h"
 #include "addons/VFSEntry.h"
-#include "addons/BinaryAddonCache.h"
 
 using namespace ADDON;
 
@@ -129,9 +124,7 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
 #if defined(HAS_FILESYSTEM_CDDA) && defined(HAS_DVD_DRIVE)
   if (url.IsProtocol("cdda")) return new CCDDADirectory();
 #endif
-#ifdef HAS_FILESYSTEM
   if (url.IsProtocol("iso9660")) return new CISO9660Directory();
-#endif
   if (url.IsProtocol("udf")) return new CUDFDirectory();
   if (url.IsProtocol("plugin")) return new CPluginDirectory();
 #if defined(TARGET_ANDROID)
@@ -173,15 +166,11 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
     if (url.IsProtocol("smb")) return new CSMBDirectory();
 #endif
 #endif
-#ifdef HAS_FILESYSTEM
-#endif
 #ifdef HAS_UPNP
     if (url.IsProtocol("upnp")) return new CUPnPDirectory();
 #endif
     if (url.IsProtocol("rss")) return new CRSSDirectory();
-#ifdef HAS_PVRCLIENTS
     if (url.IsProtocol("pvr")) return new CPVRDirectory();
-#endif
 #ifdef HAS_ZEROCONF
     if (url.IsProtocol("zeroconf")) return new CZeroconfDirectory();
 #endif
@@ -192,14 +181,10 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
 
   if (!url.GetProtocol().empty() && CServiceBroker::IsBinaryAddonCacheUp())
   {
-    VECADDONS addons;
-    ADDON::CBinaryAddonCache &addonCache = CServiceBroker::GetBinaryAddonCache();
-    addonCache.GetAddons(addons, ADDON::ADDON_VFS);
-    for (size_t i=0;i<addons.size();++i)
+    for (const auto& vfsAddon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
     {
-      VFSEntryPtr vfs(std::static_pointer_cast<CVFSEntry>(addons[i]));
-      if (vfs->HasDirectories() && vfs->GetProtocols().find(url.GetProtocol()) != std::string::npos)
-        return new CVFSEntryIDirectoryWrapper(vfs);
+      if (vfsAddon->HasDirectories() && vfsAddon->GetProtocols().find(url.GetProtocol()) != std::string::npos)
+        return new CVFSEntryIDirectoryWrapper(vfsAddon);
     }
   }
 

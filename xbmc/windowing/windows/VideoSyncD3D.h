@@ -26,9 +26,9 @@
 class CVideoSyncD3D : public CVideoSync, IDispResource
 {
 public:
-  CVideoSyncD3D(void *clock) : CVideoSync(clock) {};
+  CVideoSyncD3D(void *clock) : CVideoSync(clock), m_displayLost(false), m_displayReset(false), m_lastUpdateTime(0) { };
   bool Setup(PUPDATECLOCK func) override;
-  void Run(std::atomic<bool>& stop) override;
+  void Run(CEvent& stopEvent) override;
   void Cleanup() override;
   float GetFps() override;
   void RefreshChanged() override;
@@ -37,8 +37,6 @@ public:
   void OnResetDisplay() override;
 
 private:
-  static std::string GetErrorDescription(HRESULT hr);
-
   volatile bool m_displayLost;
   volatile bool m_displayReset;
   CEvent m_lostEvent;

@@ -29,6 +29,7 @@
 
 #include <cstring>
 
+using namespace KODI;
 using namespace GAME;
 
 #define SETTING_GAMES_KEYBOARD_PLAYERCONFIG_PREFIX  "gameskeyboard.keyboardplayerconfig" //! @todo
@@ -39,9 +40,9 @@ CGameSettings& CGameSettings::GetInstance()
   return gameSettingsInstance;
 }
 
-void CGameSettings::OnSettingChanged(const CSetting *setting)
+void CGameSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
-  if (setting == NULL)
+  if (setting == nullptr)
     return;
 
   const std::string& settingId = setting->GetId();
@@ -57,9 +58,9 @@ void CGameSettings::OnSettingChanged(const CSetting *setting)
   }
 }
 
-void CGameSettings::OnSettingAction(const CSetting *setting)
+void CGameSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
-  if (setting == NULL)
+  if (setting == nullptr)
     return;
 
   const std::string& settingId = setting->GetId();

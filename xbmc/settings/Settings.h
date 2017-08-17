@@ -19,24 +19,14 @@
  *
  */
 
-#include <set>
 #include <string>
-#include <vector>
-
-#include <memory>
 
 #include "settings/SettingControl.h"
 #include "settings/SettingCreator.h"
-#include "settings/lib/ISettingCallback.h"
-#include "threads/CriticalSection.h"
+#include "settings/SettingsBase.h"
 
-class CSetting;
 class CSettingList;
-class CSettingSection;
-class CSettingsManager;
-class TiXmlElement;
 class TiXmlNode;
-class CVariant;
 
 /*!
  \brief Wrapper around CSettingsManager responsible for properly setting up
@@ -44,7 +34,7 @@ class CVariant;
  setting types.
  \sa CSettingsManager
  */
-class CSettings : public CSettingCreator, public CSettingControlCreator
+class CSettings : public CSettingsBase, public CSettingCreator, public CSettingControlCreator
 {
 public:
   static const std::string SETTING_LOOKANDFEEL_SKIN;
@@ -53,6 +43,7 @@ public:
   static const std::string SETTING_LOOKANDFEEL_SKINCOLORS;
   static const std::string SETTING_LOOKANDFEEL_FONT;
   static const std::string SETTING_LOOKANDFEEL_SKINZOOM;
+  static const std::string SETTING_LOOKANDFEEL_STARTUPACTION;
   static const std::string SETTING_LOOKANDFEEL_STARTUPWINDOW;
   static const std::string SETTING_LOOKANDFEEL_SOUNDSKIN;
   static const std::string SETTING_LOOKANDFEEL_ENABLERSSFEEDS;
@@ -133,7 +124,6 @@ public:
   static const std::string SETTING_VIDEOPLAYER_PREFERVAAPIRENDER;
   static const std::string SETTING_VIDEOPLAYER_USEDXVA2;
   static const std::string SETTING_VIDEOPLAYER_USEOMXPLAYER;
-  static const std::string SETTING_VIDEOPLAYER_USEOMX;
   static const std::string SETTING_VIDEOPLAYER_USEVTB;
   static const std::string SETTING_VIDEOPLAYER_USEMMAL;
   static const std::string SETTING_VIDEOPLAYER_USESTAGEFRIGHT;
@@ -181,7 +171,6 @@ public:
   static const std::string SETTING_PVRMANAGER_CHANNELSCAN;
   static const std::string SETTING_PVRMANAGER_RESETDB;
   static const std::string SETTING_PVRMENU_DISPLAYCHANNELINFO;
-  static const std::string SETTING_PVRMENU_CLOSECHANNELOSDONSWITCH;
   static const std::string SETTING_PVRMENU_ICONPATH;
   static const std::string SETTING_PVRMENU_SEARCHICONS;
   static const std::string SETTING_EPG_DAYSTODISPLAY;
@@ -192,7 +181,6 @@ public:
   static const std::string SETTING_EPG_IGNOREDBFORCLIENT;
   static const std::string SETTING_EPG_RESETEPG;
   static const std::string SETTING_PVRPLAYBACK_SWITCHTOFULLSCREEN;
-  static const std::string SETTING_PVRPLAYBACK_STARTLAST;
   static const std::string SETTING_PVRPLAYBACK_SIGNALQUALITY;
   static const std::string SETTING_PVRPLAYBACK_SCANTIME;
   static const std::string SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH;
@@ -263,6 +251,7 @@ public:
   static const std::string SETTING_WEATHER_ADDON;
   static const std::string SETTING_WEATHER_ADDONSETTINGS;
   static const std::string SETTING_SERVICES_DEVICENAME;
+  static const std::string SETTING_SERVICES_UPNP;
   static const std::string SETTING_SERVICES_UPNPSERVER;
   static const std::string SETTING_SERVICES_UPNPANNOUNCE;
   static const std::string SETTING_SERVICES_UPNPLOOKFOREXTERNALSUBTITLES;
@@ -288,6 +277,7 @@ public:
   static const std::string SETTING_SERVICES_AIRPLAYVIDEOSUPPORT;
   static const std::string SETTING_SMB_WINSSERVER;
   static const std::string SETTING_SMB_WORKGROUP;
+  static const std::string SETTING_SMB_MAXPROTOCOL;
   static const std::string SETTING_VIDEOSCREEN_MONITOR;
   static const std::string SETTING_VIDEOSCREEN_SCREEN;
   static const std::string SETTING_VIDEOSCREEN_RESOLUTION;
@@ -327,6 +317,7 @@ public:
   static const std::string SETTING_AUDIOOUTPUT_DTSHDPASSTHROUGH;
   static const std::string SETTING_AUDIOOUTPUT_VOLUMESTEPS;
   static const std::string SETTING_INPUT_PERIPHERALS;
+  static const std::string SETTING_INPUT_PERIPHERALLIBRARIES;
   static const std::string SETTING_INPUT_ENABLEMOUSE;
   static const std::string SETTING_INPUT_ASKNEWCONTROLLERS;
   static const std::string SETTING_INPUT_CONTROLLERCONFIG;
@@ -398,24 +389,18 @@ public:
    For access to the "global" settings wrapper the static GetInstance() method should
    be used.
    */
-  CSettings();
-  virtual ~CSettings();
+  CSettings() = default;
+  ~CSettings() override = default;
 
   CSettingsManager* GetSettingsManager() const { return m_settingsManager; }
 
-  /*!
-   \brief Initializes the setting system with the generic
-   settings definition and platform specific setting definitions.
+  // specialization of CSettingsBase
+  bool Initialize() override;
 
-   \return True if the initialization was successful, false otherwise
-   */
-  bool Initialize();
-  /*!
-   \brief Loads the setting values.
+  // implementations of CSettingsBase
+  bool Load() override;
+  bool Save() override;
 
-   \return True if the setting values are successfully loaded, false otherwise
-   */
-  bool Load();
   /*!
    \brief Loads setting values from the given (XML) file.
 
@@ -424,27 +409,21 @@ public:
    */
   bool Load(const std::string &file);
   /*!
+  \brief Loads setting values from the given XML element.
+
+  \param root XML element containing setting values
+  \return True if the setting values were successfully loaded, false otherwise
+  */
+  bool Load(const TiXmlElement *root) { bool updated; return CSettingsBase::LoadValuesFromXml(root, updated); }
+  /*!
    \brief Loads setting values from the given XML element.
 
    \param root XML element containing setting values
    \param hide Whether to hide the loaded settings or not
    \return True if the setting values were successfully loaded, false otherwise
    */
-  bool Load(const TiXmlElement *root, bool hide = false);
-  /*!
-   \brief Tells the settings system that all setting values
-   have been loaded.
+  bool LoadHidden(const TiXmlElement *root) { return CSettingsBase::LoadHiddenValuesFromXml(root); }
 
-   This manual trigger is necessary to enable the ISettingCallback methods
-   being executed.
-   */
-  void SetLoaded();
-  /*!
-   \brief Saves the setting values.
-
-   \return True if the setting values were successfully saved, false otherwise
-   */
-  bool Save();
   /*!
    \brief Saves the setting values to the given (XML) file.
 
@@ -452,139 +431,6 @@ public:
    \return True if the setting values were successfully saved, false otherwise
    */
   bool Save(const std::string &file);
-  /*!
-   \brief Unloads the previously loaded setting values.
-
-   The values of all the settings are reset to their default values.
-   */
-  void Unload();
-  /*!
-   \brief Uninitializes the settings system.
-
-   Unregisters all previously registered callbacks and destroys all setting
-   objects.
-   */
-  void Uninitialize();
-
-  /*!
-   \brief Registers the given ISettingCallback implementation for the given
-   set of settings.
-
-   \param callback ISettingCallback implementation
-   \param settingList List of setting identifiers for which the given callback shall be triggered
-   */
-  void RegisterCallback(ISettingCallback *callback, const std::set<std::string> &settingList);
-  /*!
-   \brief Unregisters the given ISettingCallback implementation.
-
-   \param callback ISettingCallback implementation
-   */
-  void UnregisterCallback(ISettingCallback *callback);
-
-  /*!
-   \brief Gets the setting with the given identifier.
-
-   \param id Setting identifier
-   \return Setting object with the given identifier or NULL if the identifier is unknown
-   */
-  CSetting* GetSetting(const std::string &id) const;
-  /*!
-   \brief Gets the full list of setting sections.
-
-   \return List of setting sections
-   */
-  std::vector<CSettingSection*> GetSections() const;
-  /*!
-   \brief Gets the setting section with the given identifier.
-
-   \param section Setting section identifier
-   \return Setting section with the given identifier or NULL if the identifier is unknown
-   */
-  CSettingSection* GetSection(const std::string &section) const;
-
-  /*!
-   \brief Gets the boolean value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \return Boolean value of the setting with the given identifier
-   */
-  bool GetBool(const std::string &id) const;
-  /*!
-   \brief Gets the integer value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \return Integer value of the setting with the given identifier
-   */
-  int GetInt(const std::string &id) const;
-  /*!
-   \brief Gets the real number value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \return Real number value of the setting with the given identifier
-   */
-  double GetNumber(const std::string &id) const;
-  /*!
-   \brief Gets the string value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \return String value of the setting with the given identifier
-   */
-  std::string GetString(const std::string &id) const;
-  /*!
-   \brief Gets the values of the list setting with the given identifier.
-
-   \param id Setting identifier
-   \return List of values of the setting with the given identifier
-   */
-  std::vector<CVariant> GetList(const std::string &id) const;
-
-  /*!
-   \brief Sets the boolean value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \param value Boolean value to set
-   \return True if setting the value was successful, false otherwise
-   */
-  bool SetBool(const std::string &id, bool value);
-  /*!
-   \brief Toggles the boolean value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \return True if toggling the boolean value was successful, false otherwise
-   */
-  bool ToggleBool(const std::string &id);
-  /*!
-   \brief Sets the integer value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \param value Integer value to set
-   \return True if setting the value was successful, false otherwise
-   */
-  bool SetInt(const std::string &id, int value);
-  /*!
-   \brief Sets the real number value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \param value Real number value to set
-   \return True if setting the value was successful, false otherwise
-   */
-  bool SetNumber(const std::string &id, double value);
-  /*!
-   \brief Sets the string value of the setting with the given identifier.
-
-   \param id Setting identifier
-   \param value String value to set
-   \return True if setting the value was successful, false otherwise
-   */
-  bool SetString(const std::string &id, const std::string &value);
-  /*!
-   \brief Sets the values of the list setting with the given identifier.
-
-   \param id Setting identifier
-   \param value Values to set
-   \return True if setting the values was successful, false otherwise
-   */
-  bool SetList(const std::string &id, const std::vector<CVariant> &value);
 
   /*!
    \brief Loads the setting being represented by the given XML node with the
@@ -595,28 +441,33 @@ public:
    \return True if the setting was successfully loaded from the given XML node, false otherwise
    */
   bool LoadSetting(const TiXmlNode *node, const std::string &settingId);
+
+  // overwrite (not override) from CSettingsBase
+  bool GetBool(const std::string& id) const;
+
+protected:
+  // specializations of CSettingsBase
+  void InitializeSettingTypes() override;
+  void InitializeControls() override;
+  void InitializeOptionFillers() override;
+  void UninitializeOptionFillers() override;
+  void InitializeConditions() override;
+  void InitializeVisibility() override;
+  void InitializeDefaults() override;
+  void InitializeISettingsHandlers() override;
+  void UninitializeISettingsHandlers() override;
+  void InitializeISubSettings() override;
+  void UninitializeISubSettings() override;
+  void InitializeISettingCallbacks() override;
+  void UninitializeISettingCallbacks() override;
+
+  // implementation of CSettingsBase
+  bool InitializeDefinitions() override;
+
 private:
-  CSettings(const CSettings&);
-  CSettings const& operator=(CSettings const&);
+  CSettings(const CSettings&) = delete;
+  CSettings const& operator=(CSettings const&) = delete;
 
   bool Initialize(const std::string &file);
-  bool InitializeDefinitions();
-  void InitializeSettingTypes();
-  void InitializeControls();
-  void InitializeVisibility();
-  void InitializeDefaults();
-  void InitializeOptionFillers();
-  void UninitializeOptionFillers();
-  void InitializeConditions();
-  void InitializeISettingsHandlers();
-  void UninitializeISettingsHandlers();
-  void InitializeISubSettings();
-  void UninitializeISubSettings();
-  void InitializeISettingCallbacks();
-  void UninitializeISettingCallbacks();
   bool Reset();
-
-  bool m_initialized;
-  CSettingsManager *m_settingsManager;
-  CCriticalSection m_critical;
 };

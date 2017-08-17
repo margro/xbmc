@@ -40,7 +40,7 @@ For Windows the dependencies can be found in the
 install the [Windows Software Development Kit (SDK)](https://dev.windows.com/en-us/downloads/sdk-archive) for your Windows version. This is required for HLSL shader offline compiling with the [Effect-Compiler Tool](https://msdn.microsoft.com/de-de/library/windows/desktop/bb232919(v=vs.85).aspx) (fxc.exe).
 
 On Windows, the CMake based buildsystem requires that the binary dependencies
-are downloaded using `DownloadBuildDeps.bat` and `DownloadMingwBuildEnv.bat`
+are downloaded using `download-dependencies.bat` and `download-msys2.bat`
 and that the mingw libs (ffmpeg, libdvd and others) are built using
 `make-mingwlibs.bat`.
 
@@ -113,17 +113,24 @@ cmake --build . -- VERBOSE=1 -j$(nproc)  # or: make VERBOSE=1 -j$(nproc)
 ```
 
 ### Windows with Visual Studio project files
-
+#### Build for win32
 ```
 cmake -G "Visual Studio 14" <KODI_SRC>
 cmake --build . --config "Debug"  # or: Build solution with Visual Studio
 Debug\kodi.exe
 ```
+#### Build for x64
+```
+cmake -G "Visual Studio 14 Win64" <KODI_SRC>
+cmake --build . --config "Debug"  # or: Build solution with Visual Studio
+Debug\kodi.exe
+```
+You can always check ``cmake --help` to see which generators are available and how to call those.
 
 #### Windows installer generation
 
-The script [project/Win32BuildSetup](https://github.com/xbmc/xbmc/blob/master/project/Win32BuildSetup/BuildSetup.bat)
-builds an installable package for Windows.
+The script [project/Win32BuildSetup](https://github.com/xbmc/xbmc/blob/master/tools/buildsteps/windows/win32/BuildSetup.bat) or [project/Win64BuildSetup](https://github.com/xbmc/xbmc/blob/master/tools/buildsteps/windows/x64/BuildSetup.bat)
+builds an installable package for Windows. Choose either 32bit or 64bit, depending on what your trying to build.
 
 ### Windows with NMake Makefiles
 

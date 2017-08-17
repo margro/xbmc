@@ -27,10 +27,10 @@ namespace ADDON
 class CUISoundsResource : public CResource
 {
 public:
-  CUISoundsResource(AddonProps props) : CResource(std::move(props)) {};
-  virtual bool IsAllowed(const std::string &file) const;
-  virtual bool IsInUse() const;
-  virtual void OnPostInstall(bool update, bool modal);
+  explicit CUISoundsResource(CAddonInfo addonInfo) : CResource(std::move(addonInfo)) {}
+  bool IsAllowed(const std::string &file) const override;
+  bool IsInUse() const override;
+  void OnPostInstall(bool update, bool modal) override;
 };
 
 }

@@ -23,7 +23,7 @@
 #include <utility>
 
 #include "addons/AddonManager.h"
-#include "addons/GUIDialogAddonSettings.h"
+#include "addons/settings/GUIDialogAddonSettings.h"
 #include "Application.h"
 #include "ServiceBroker.h"
 #include "filesystem/Directory.h"
@@ -155,7 +155,7 @@ void CWeatherJob::LoadLocalizedToken()
 {
   // We load the english strings in to get our tokens
   std::string language = LANGUAGE_DEFAULT;
-  CSettingString* languageSetting = static_cast<CSettingString*>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_LOCALE_LANGUAGE));
+  std::shared_ptr<CSettingString> languageSetting = std::static_pointer_cast<CSettingString>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_LOCALE_LANGUAGE));
   if (languageSetting != NULL)
     language = languageSetting->GetDefault();
 
@@ -308,9 +308,7 @@ CWeather::CWeather(void) : CInfoLoader(30 * 60 * 1000) // 30 minutes
   Reset();
 }
 
-CWeather::~CWeather(void)
-{
-}
+CWeather::~CWeather(void) = default;
 
 std::string CWeather::BusyInfo(int info) const
 {
@@ -394,11 +392,11 @@ CJob *CWeather::GetJob() const
 
 void CWeather::OnJobComplete(unsigned int jobID, bool success, CJob *job)
 {
-  m_info = ((CWeatherJob *)job)->GetInfo();
+  m_info = static_cast<CWeatherJob*>(job)->GetInfo();
   CInfoLoader::OnJobComplete(jobID, success, job);
 }
 
-void CWeather::OnSettingChanged(const CSetting *setting)
+void CWeather::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -408,12 +406,13 @@ void CWeather::OnSettingChanged(const CSetting *setting)
   {
     // clear "WeatherProviderLogo" property that some weather addons set
     CGUIWindow* window = g_windowManager.GetWindow(WINDOW_WEATHER);
-    window->SetProperty("WeatherProviderLogo", "");
+    if (window != nullptr)
+      window->SetProperty("WeatherProviderLogo", "");
     Refresh();
   }
 }
 
-void CWeather::OnSettingAction(const CSetting *setting)
+void CWeather::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -424,7 +423,7 @@ void CWeather::OnSettingAction(const CSetting *setting)
     AddonPtr addon;
     if (CAddonMgr::GetInstance().GetAddon(CServiceBroker::GetSettings().GetString(CSettings::SETTING_WEATHER_ADDON), addon, ADDON_SCRIPT_WEATHER) && addon != NULL)
     { //! @todo maybe have ShowAndGetInput return a bool if settings changed, then only reset weather if true.
-      CGUIDialogAddonSettings::ShowAndGetInput(addon);
+      CGUIDialogAddonSettings::ShowForAddon(addon);
       Refresh();
     }
   }

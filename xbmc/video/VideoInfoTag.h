@@ -51,7 +51,7 @@ class CRating
 {
 public:
   CRating(): rating(0.0f), votes(0) {}
-  CRating(float r): rating(r), votes(0) {}
+  explicit CRating(float r): rating(r), votes(0) {}
   CRating(float r, int v): rating(r), votes(v) {}
   float rating;
   int votes;
@@ -80,18 +80,18 @@ public:
    */
   bool Load(const TiXmlElement *element, bool append = false, bool prioritise = false);
   bool Save(TiXmlNode *node, const std::string &tag, bool savePathInfo = true, const TiXmlElement *additionalNode = NULL);
-  virtual void Archive(CArchive& ar);
-  virtual void Serialize(CVariant& value) const;
-  virtual void ToSortable(SortItem& sortable, Field field) const;
+  void Archive(CArchive& ar) override;
+  void Serialize(CVariant& value) const override;
+  void ToSortable(SortItem& sortable, Field field) const override;
   const CRating GetRating(std::string type = "") const;
   const std::string& GetDefaultRating() const;
   const std::string GetUniqueID(std::string type = "") const;
   const std::map<std::string, std::string>& GetUniqueIDs() const;
   const std::string& GetDefaultUniqueID() const;
-  const bool HasUniqueID() const;
-  const bool HasYear() const;
-  const int GetYear() const;
-  const bool HasPremiered() const;
+  bool HasUniqueID() const;
+  bool HasYear() const;
+  int GetYear() const;
+  bool HasPremiered() const;
   const CDateTime& GetPremiered() const;
   const CDateTime& GetFirstAired() const;
   const std::string GetCast(bool bIncludeRole = false) const;
@@ -187,6 +187,17 @@ public:
    * @return True if play count was increased successfully, false otherwise.
    */
   virtual bool IncrementPlayCount();
+
+  /*!
+  * @brief Reset playcount
+  */
+  virtual void ResetPlayCount();
+
+  /*!
+  * @brief Check if the playcount is set
+  * @return True if play count value is set
+  */
+  virtual bool IsPlayCountSet() const;
 
   /*!
    * @brief Get this videos's resume point.
@@ -291,6 +302,7 @@ private:
 
   int m_playCount;
   CBookmark m_resumePoint;
+  static const int PLAYCOUNT_NOT_SET = -1;
 };
 
 typedef std::vector<CVideoInfoTag> VECMOVIES;

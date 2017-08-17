@@ -32,12 +32,12 @@ namespace PERIPHERALS
   class CPeripheralBusApplication : public CPeripheralBus
   {
   public:
-    CPeripheralBusApplication(CPeripherals& manager);
-    virtual ~CPeripheralBusApplication(void) { }
+    explicit CPeripheralBusApplication(CPeripherals& manager);
+    ~CPeripheralBusApplication(void) override = default;
 
     // implementation of CPeripheralBus
-    virtual void Initialise(void) override;
-    virtual void GetDirectory(const std::string &strPath, CFileItemList &items) const override;
+    void Initialise(void) override;
+    void GetDirectory(const std::string &strPath, CFileItemList &items) const override;
 
     /*!
      * \brief Get the location for the specified controller index
@@ -46,6 +46,6 @@ namespace PERIPHERALS
 
   protected:
     // implementation of CPeripheralBus
-    virtual bool PerformDeviceScan(PeripheralScanResults& results) override;
+    bool PerformDeviceScan(PeripheralScanResults& results) override;
   };
 }

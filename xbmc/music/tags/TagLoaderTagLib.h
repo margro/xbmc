@@ -34,16 +34,19 @@ class CTagLoaderTagLib : public MUSIC_INFO::IMusicInfoTagLoader
 {
 public:
   CTagLoaderTagLib() = default;
-  virtual ~CTagLoaderTagLib() = default;
+  ~CTagLoaderTagLib() override = default;
   bool                   Load(const std::string& strFileName, MUSIC_INFO::CMusicInfoTag& tag, MUSIC_INFO::EmbeddedArt *art = nullptr) override;
   bool                   Load(const std::string& strFileName, MUSIC_INFO::CMusicInfoTag& tag, const std::string& fallbackFileExtension, MUSIC_INFO::EmbeddedArt *art = NULL);
 
   static std::vector<std::string> SplitMBID(const std::vector<std::string> &values);
 protected:
   static void SetArtist(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
+  static void SetArtistSort(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetArtistHints(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetAlbumArtist(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
+  static void SetAlbumArtistSort(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetAlbumArtistHints(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
+  static void SetComposerSort(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetGenre(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void SetReleaseType(MUSIC_INFO::CMusicInfoTag &tag, const std::vector<std::string> &values);
   static void AddArtistRole(MUSIC_INFO::CMusicInfoTag &tag, const std::string& strRole, const std::vector<std::string> &values);

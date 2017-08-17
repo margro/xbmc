@@ -41,7 +41,7 @@ CAppParamParser::CAppParamParser()
   m_testmode = false;
 }
 
-void CAppParamParser::Parse(const char* argv[], int nArgs)
+void CAppParamParser::Parse(const char* const* argv, int nArgs)
 {
   if (nArgs > 1)
   {
@@ -56,13 +56,13 @@ void CAppParamParser::Parse(const char* argv[], int nArgs)
         {
           if ((argv[next][0] != '-') && (argv[next][0] == '/'))
           {
-            CInputManager::GetInstance().SetRemoteControlName(argv[next]);
+            m_remoteControlName = argv[next];
             i++;
           }
         }
       }
       else if (strnicmp(argv[i], "-n", 2) == 0 || strnicmp(argv[i], "--nolirc", 8) == 0)
-        CInputManager::GetInstance().DisableRemoteControl();
+        m_remoteControlEnabled = false;
 
       if (stricmp(argv[i], "-d") == 0)
       {

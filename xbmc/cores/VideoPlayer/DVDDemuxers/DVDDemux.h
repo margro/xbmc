@@ -22,10 +22,17 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include "system.h"
 
 struct DemuxPacket;
+struct DemuxCryptoSession;
+
 class CDVDInputStream;
+
+namespace ADDON {
+  class IAddonProvider;
+}
 
 #ifndef __GNUC__
 #pragma warning(push)
@@ -89,7 +96,6 @@ public:
     changes = 0;
     flags = FLAG_NONE;
     realtime = false;
-    bandwidth = 0;
   }
 
   virtual ~CDemuxStream()
@@ -109,7 +115,6 @@ public:
   StreamType type;
   int source;
   bool realtime;
-  unsigned int bandwidth;
 
   int iDuration; // in mseconds
   void* pPrivate; // private pointer for the demuxer
@@ -135,6 +140,9 @@ public:
   , FLAG_HEARING_IMPAIRED = 0x0080
   , FLAG_VISUAL_IMPAIRED  = 0x0100
   } flags;
+
+  std::shared_ptr<DemuxCryptoSession> cryptoSession;
+  std::shared_ptr<ADDON::IAddonProvider> externalInterfaces;
 };
 
 class CDemuxStreamVideo : public CDemuxStream
@@ -156,12 +164,12 @@ public:
     iBitRate = 0;
   }
 
-  virtual ~CDemuxStreamVideo() {}
+  ~CDemuxStreamVideo() override = default;
   int iFpsScale; // scale of 1000 and a rate of 29970 will result in 29.97 fps
   int iFpsRate;
   int iHeight; // height of the stream reported by the demuxer
   int iWidth; // width of the stream reported by the demuxer
-  float fAspect; // display aspect of stream
+  double fAspect; // display aspect of stream
   bool bVFR;  // variable framerate
   bool bPTSInvalid; // pts cannot be trusted (avi's).
   bool bForcedAspect; // aspect is forced from container
@@ -185,7 +193,7 @@ public:
     type = STREAM_AUDIO;
   }
 
-  virtual ~CDemuxStreamAudio() {}
+  ~CDemuxStreamAudio() override = default;
 
   std::string GetStreamType();
 
@@ -229,7 +237,7 @@ class CDVDDemux
 public:
 
   CDVDDemux() : m_demuxerId(NewGuid()) {}
-  virtual ~CDVDDemux() {}
+  virtual ~CDVDDemux() = default;
 
 
   /*
@@ -241,7 +249,7 @@ public:
    * Aborts any internal reading that might be stalling main thread
    * NOTICE - this can be called from another thread
    */
-  virtual void Abort() = 0;
+  virtual void Abort() { }
 
   /*
    * Flush the demuxer, if any data is kept in buffers, this should be freed now
@@ -292,12 +300,12 @@ public:
    * Set the playspeed, if demuxer can handle different
    * speeds of playback
    */
-  virtual void SetSpeed(int iSpeed) = 0;
+  virtual void SetSpeed(int iSpeed) { }
 
   /*
    * returns the total time in msec
    */
-  virtual int GetStreamLength() = 0;
+  virtual int GetStreamLength() { return 0; }
 
   /*
    * returns the stream or NULL on error
@@ -314,7 +322,7 @@ public:
   /*
    * returns opened filename
    */
-  virtual std::string GetFileName() = 0;
+  virtual std::string GetFileName() { return ""; }
 
   /*
    * return nr of subtitle streams, 0 if none
@@ -332,6 +340,11 @@ public:
   virtual void EnableStream(int64_t demuxerId, int id, bool enable) { EnableStream(id, enable); };
 
   /*
+  * implicitly enable and open a demux stream for playback
+  */
+  virtual void OpenStream(int64_t demuxerId, int id) { OpenStream(id); };
+
+  /*
    * sets desired width / height for video stream
    * adaptive demuxers like DASH can use this to choose best fitting video stream
    */
@@ -344,6 +357,7 @@ public:
 
 protected:
   virtual void EnableStream(int id, bool enable) {};
+  virtual void OpenStream(int id) {};
   virtual CDemuxStream* GetStream(int iStreamId) const = 0;
   virtual std::string GetStreamCodecName(int iStreamId) { return ""; };
 

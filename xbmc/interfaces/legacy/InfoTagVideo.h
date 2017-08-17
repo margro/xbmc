@@ -60,9 +60,10 @@ namespace XBMCAddon
 
     public:
 #ifndef SWIG
-      InfoTagVideo(const CVideoInfoTag& tag);
+      explicit InfoTagVideo(const CVideoInfoTag& tag);
 #endif
       InfoTagVideo();
+      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
       virtual ~InfoTagVideo();
 
 #ifdef DOXYGEN_SHOULD_USE_THIS

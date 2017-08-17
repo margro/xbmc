@@ -78,13 +78,10 @@ using namespace ADDON;
 using namespace KODI::MESSAGING;
 
 //********************************************************************************************************************************
-CVideoDatabase::CVideoDatabase(void)
-{
-}
+CVideoDatabase::CVideoDatabase(void) = default;
 
 //********************************************************************************************************************************
-CVideoDatabase::~CVideoDatabase(void)
-{}
+CVideoDatabase::~CVideoDatabase(void) = default;
 
 //********************************************************************************************************************************
 bool CVideoDatabase::Open()
@@ -677,7 +674,7 @@ int CVideoDatabase::RunQuery(const std::string &sql)
     if (rows == 0)
       m_pDS->close();
   }
-  CLog::Log(LOGDEBUG, "%s took %d ms for %d items query: %s", __FUNCTION__, XbmcThreads::SystemClockMillis() - time, rows, sql.c_str());
+  CLog::Log(LOGDEBUG, LOGDATABASE, "%s took %d ms for %d items query: %s", __FUNCTION__, XbmcThreads::SystemClockMillis() - time, rows, sql.c_str());
   return rows;
 }
 
@@ -1125,7 +1122,7 @@ int CVideoDatabase::GetMovieId(const std::string& strFilenameAndPath)
     else
       strSQL=PrepareSQL("select idMovie from movie where idFile=%i", idFile);
 
-    CLog::Log(LOGDEBUG, "%s (%s), query = %s", __FUNCTION__, CURL::GetRedacted(strFilenameAndPath).c_str(), strSQL.c_str());
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s (%s), query = %s", __FUNCTION__, CURL::GetRedacted(strFilenameAndPath).c_str(), strSQL.c_str());
     m_pDS->query(strSQL);
     if (m_pDS->num_rows() > 0)
       idMovie = m_pDS->fv("idMovie").get_asInt();
@@ -1207,7 +1204,7 @@ int CVideoDatabase::GetEpisodeId(const std::string& strFilenameAndPath, int idEp
 
     std::string strSQL=PrepareSQL("select idEpisode from episode where idFile=%i", idFile);
 
-    CLog::Log(LOGDEBUG, "%s (%s), query = %s", __FUNCTION__, CURL::GetRedacted(strFilenameAndPath).c_str(), strSQL.c_str());
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s (%s), query = %s", __FUNCTION__, CURL::GetRedacted(strFilenameAndPath).c_str(), strSQL.c_str());
     pDS->query(strSQL);
     if (pDS->num_rows() > 0)
     {
@@ -1258,7 +1255,7 @@ int CVideoDatabase::GetMusicVideoId(const std::string& strFilenameAndPath)
 
     std::string strSQL=PrepareSQL("select idMVideo from musicvideo where idFile=%i", idFile);
 
-    CLog::Log(LOGDEBUG, "%s (%s), query = %s", __FUNCTION__, CURL::GetRedacted(strFilenameAndPath).c_str(), strSQL.c_str());
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s (%s), query = %s", __FUNCTION__, CURL::GetRedacted(strFilenameAndPath).c_str(), strSQL.c_str());
     m_pDS->query(strSQL);
     int idMVideo=-1;
     if (m_pDS->num_rows() > 0)
@@ -2006,7 +2003,7 @@ bool CVideoDatabase::GetTvShowInfo(const std::string& strPath, CVideoInfoTag& de
   return false;
 }
 
-bool CVideoDatabase::GetSeasonInfo(int idSeason, CVideoInfoTag& details)
+bool CVideoDatabase::GetSeasonInfo(int idSeason, CVideoInfoTag& details, bool allDetails /* = true */)
 {
   if (idSeason < 0)
     return false;
@@ -2016,32 +2013,62 @@ bool CVideoDatabase::GetSeasonInfo(int idSeason, CVideoInfoTag& details)
     if (!m_pDB.get() || !m_pDS.get())
       return false;
 
-    std::string sql = PrepareSQL("SELECT idShow FROM seasons WHERE idSeason=%i", idSeason);
+    std::string sql = PrepareSQL("SELECT idSeason, idShow, season, name, userrating FROM seasons WHERE idSeason=%i", idSeason);
     if (!m_pDS->query(sql))
       return false;
 
-    int idShow = -1;
-    if (m_pDS->num_rows() == 1)
-      idShow = m_pDS->fv(0).get_asInt();
-
-    m_pDS->close();
-
-    if (idShow < 0)
+    if (m_pDS->num_rows() != 1)
       return false;
 
-    CFileItemList seasons;
-    if (!GetSeasonsNav(StringUtils::Format("videodb://tvshows/titles/%i/", idShow), seasons, -1, -1, -1, -1, idShow, false) || seasons.Size() <= 0)
-      return false;
-
-    for (int index = 0; index < seasons.Size(); index++)
+    if (allDetails)
     {
-      const CFileItemPtr season = seasons.Get(index);
-      if (season->HasVideoInfoTag() && season->GetVideoInfoTag()->m_iDbId == idSeason && season->GetVideoInfoTag()->m_iIdShow == idShow)
+      int idShow = m_pDS->fv(1).get_asInt();
+
+      // close the current result because we are going to query the season view for all details
+      m_pDS->close();
+
+      if (idShow < 0)
+        return false;
+
+      CFileItemList seasons;
+      if (!GetSeasonsNav(StringUtils::Format("videodb://tvshows/titles/%i/", idShow), seasons, -1, -1, -1, -1, idShow, false) || seasons.Size() <= 0)
+        return false;
+
+      for (int index = 0; index < seasons.Size(); index++)
       {
-        details = *season->GetVideoInfoTag();
-        return true;
+        const CFileItemPtr season = seasons.Get(index);
+        if (season->HasVideoInfoTag() && season->GetVideoInfoTag()->m_iDbId == idSeason && season->GetVideoInfoTag()->m_iIdShow == idShow)
+        {
+          details = *season->GetVideoInfoTag();
+          return true;
+        }
       }
+
+      return false;
     }
+
+    const int season = m_pDS->fv(2).get_asInt();
+    std::string name = m_pDS->fv(3).get_asString();
+
+    if (name.empty())
+    {
+      if (season == 0)
+        name = g_localizeStrings.Get(20381);
+      else
+        name = StringUtils::Format(g_localizeStrings.Get(20358).c_str(), season);
+    }
+
+    details.m_strTitle = name;
+    if (!name.empty())
+      details.m_strSortTitle = name;
+    details.m_iSeason = season;
+    details.m_iDbId = m_pDS->fv(0).get_asInt();
+    details.m_iIdSeason = details.m_iDbId;
+    details.m_type = MediaTypeSeason;
+    details.m_iUserRating = m_pDS->fv(4).get_asInt();
+    details.m_iIdShow = m_pDS->fv(1).get_asInt();
+
+    return true;
   }
   catch (...)
   {
@@ -2372,7 +2399,7 @@ int CVideoDatabase::UpdateDetailsForMovie(int idMovie, CVideoInfoTag& details, c
 
   try
   {
-    CLog::Log(LOGDEBUG, "%s: Starting updates for movie %i", __FUNCTION__, idMovie);
+    CLog::Log(LOGINFO, "%s: Starting updates for movie %i", __FUNCTION__, idMovie);
 
     BeginTransaction();
 
@@ -2457,7 +2484,7 @@ int CVideoDatabase::UpdateDetailsForMovie(int idMovie, CVideoInfoTag& details, c
 
     CommitTransaction();
 
-    CLog::Log(LOGDEBUG, "%s: Finished updates for movie %i", __FUNCTION__, idMovie);
+    CLog::Log(LOGINFO, "%s: Finished updates for movie %i", __FUNCTION__, idMovie);
 
     return idMovie;
   }
@@ -2582,11 +2609,11 @@ bool CVideoDatabase::UpdateDetailsForTvShow(int idTvShow, CVideoInfoTag &details
   for (const auto& namedSeason : details.m_namedSeasons)
   {
     // make sure the named season exists
-    int seasonId = AddSeason(idTvShow, namedSeason.first);
+    int seasonId = AddSeason(idTvShow, namedSeason.first, namedSeason.second);
 
     // get any existing details for the named season
     CVideoInfoTag season;
-    if (!GetSeasonInfo(seasonId, season) || season.m_strSortTitle == namedSeason.second)
+    if (!GetSeasonInfo(seasonId, season, false) || season.m_strSortTitle == namedSeason.second)
       continue;
 
     season.SetSortTitle(namedSeason.second);
@@ -2776,12 +2803,12 @@ int CVideoDatabase::GetSeasonId(int showID, int season)
   return strtol(id.c_str(), NULL, 10);
 }
 
-int CVideoDatabase::AddSeason(int showID, int season)
+int CVideoDatabase::AddSeason(int showID, int season, const std::string& name /* = "" */)
 {
   int seasonId = GetSeasonId(showID, season);
   if (seasonId < 0)
   {
-    if (ExecuteQuery(PrepareSQL("INSERT INTO seasons (idShow,season,name) VALUES(%i,%i,'')", showID, season)))
+    if (ExecuteQuery(PrepareSQL("INSERT INTO seasons (idShow, season, name) VALUES(%i, %i, '%s')", showID, season, name.c_str())))
       seasonId = (int)m_pDS->lastinsertid();
   }
   return seasonId;
@@ -5255,7 +5282,7 @@ bool CVideoDatabase::GetPlayCounts(const std::string &strPath, CFileItemList &it
       CFileItemPtr item = items.Get(path);
       if (item)
       {
-        if (!items.IsPlugin() || item->GetVideoInfoTag()->GetPlayCount() == -1)
+        if (!items.IsPlugin() || !item->GetVideoInfoTag()->IsPlayCountSet())
           item->GetVideoInfoTag()->SetPlayCount(m_pDS->fv(1).get_asInt());
 
         if (!item->GetVideoInfoTag()->GetResumePoint().IsSet())
@@ -6042,7 +6069,7 @@ bool CVideoDatabase::GetPeopleNav(const std::string& strBaseDir, CFileItemList& 
     // run query
     unsigned int time = XbmcThreads::SystemClockMillis();
     if (!m_pDS->query(strSQL)) return false;
-    CLog::Log(LOGDEBUG, "%s -  query took %i ms",
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s -  query took %i ms",
               __FUNCTION__, XbmcThreads::SystemClockMillis() - time); time = XbmcThreads::SystemClockMillis();
     int iRowsFound = m_pDS->num_rows();
     if (iRowsFound == 0)
@@ -6147,7 +6174,7 @@ bool CVideoDatabase::GetPeopleNav(const std::string& strBaseDir, CFileItemList& 
       }
       m_pDS->close();
     }
-    CLog::Log(LOGDEBUG, "%s item retrieval took %i ms",
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s item retrieval took %i ms",
               __FUNCTION__, XbmcThreads::SystemClockMillis() - time); time = XbmcThreads::SystemClockMillis();
 
     return true;
@@ -7850,7 +7877,7 @@ bool CVideoDatabase::GetRandomMusicVideo(CFileItem* item, int& idSong, const std
     if (!strWhere.empty())
       strSQL += " where " + strWhere;
     strSQL += PrepareSQL(" order by RANDOM() limit 1");
-    CLog::Log(LOGDEBUG, "%s query = %s", __FUNCTION__, strSQL.c_str());
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s query = %s", __FUNCTION__, strSQL.c_str());
     // run query
     if (!m_pDS->query(strSQL))
       return false;
@@ -8438,7 +8465,7 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const st
     {
       filesToDelete = "(" + StringUtils::TrimRight(filesToDelete, ",") + ")";
 
-      CLog::Log(LOGDEBUG, "%s: Cleaning files table", __FUNCTION__);
+      CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning files table", __FUNCTION__);
       sql = "DELETE FROM files WHERE idFile IN " + filesToDelete;
       m_pDS->exec(sql);
     }
@@ -8450,7 +8477,7 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const st
         moviesToDelete += StringUtils::Format("%i,", i);
       moviesToDelete = "(" + StringUtils::TrimRight(moviesToDelete, ",") + ")";
 
-      CLog::Log(LOGDEBUG, "%s: Cleaning movie table", __FUNCTION__);
+      CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning movie table", __FUNCTION__);
       sql = "DELETE FROM movie WHERE idMovie IN " + moviesToDelete;
       m_pDS->exec(sql);
     }
@@ -8462,12 +8489,12 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const st
         episodesToDelete += StringUtils::Format("%i,", i);
       episodesToDelete = "(" + StringUtils::TrimRight(episodesToDelete, ",") + ")";
 
-      CLog::Log(LOGDEBUG, "%s: Cleaning episode table", __FUNCTION__);
+      CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning episode table", __FUNCTION__);
       sql = "DELETE FROM episode WHERE idEpisode IN " + episodesToDelete;
       m_pDS->exec(sql);
     }
 
-    CLog::Log(LOGDEBUG, "%s: Cleaning paths that don't exist and have content set...", __FUNCTION__);
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning paths that don't exist and have content set...", __FUNCTION__);
     sql = "SELECT path.idPath, path.strPath, path.idParentPath FROM path "
             "WHERE NOT ((strContent IS NULL OR strContent = '') "
                    "AND (strSettings IS NULL OR strSettings = '') "
@@ -8498,7 +8525,7 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const st
       m_pDS->exec(sql);
     }
 
-    CLog::Log(LOGDEBUG, "%s: Cleaning tvshow table", __FUNCTION__);
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning tvshow table", __FUNCTION__);
 
     std::string tvshowsToDelete;
     sql = "SELECT idShow FROM tvshow WHERE NOT EXISTS (SELECT 1 FROM tvshowlinkpath WHERE tvshowlinkpath.idShow = tvshow.idShow)";
@@ -8523,12 +8550,12 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const st
         musicVideosToDelete += StringUtils::Format("%i,", i);
       musicVideosToDelete = "(" + StringUtils::TrimRight(musicVideosToDelete, ",") + ")";
 
-      CLog::Log(LOGDEBUG, "%s: Cleaning musicvideo table", __FUNCTION__);
+      CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning musicvideo table", __FUNCTION__);
       sql = "DELETE FROM musicvideo WHERE idMVideo IN " + musicVideosToDelete;
       m_pDS->exec(sql);
     }
 
-    CLog::Log(LOGDEBUG, "%s: Cleaning path table", __FUNCTION__);
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning path table", __FUNCTION__);
     sql = StringUtils::Format("DELETE FROM path "
                                 "WHERE (strContent IS NULL OR strContent = '') "
                                   "AND (strSettings IS NULL OR strSettings = '') "
@@ -8543,28 +8570,28 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const st
                 , VIDEODB_ID_PARENTPATHID, VIDEODB_ID_EPISODE_PARENTPATHID, VIDEODB_ID_MUSICVIDEO_PARENTPATHID );
     m_pDS->exec(sql);
 
-    CLog::Log(LOGDEBUG, "%s: Cleaning genre table", __FUNCTION__);
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning genre table", __FUNCTION__);
     sql = "DELETE FROM genre "
             "WHERE NOT EXISTS (SELECT 1 FROM genre_link WHERE genre_link.genre_id = genre.genre_id)";
     m_pDS->exec(sql);
 
-    CLog::Log(LOGDEBUG, "%s: Cleaning country table", __FUNCTION__);
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning country table", __FUNCTION__);
     sql = "DELETE FROM country WHERE NOT EXISTS (SELECT 1 FROM country_link WHERE country_link.country_id = country.country_id)";
     m_pDS->exec(sql);
 
-    CLog::Log(LOGDEBUG, "%s: Cleaning actor table of actors, directors and writers", __FUNCTION__);
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning actor table of actors, directors and writers", __FUNCTION__);
     sql = "DELETE FROM actor "
             "WHERE NOT EXISTS (SELECT 1 FROM actor_link WHERE actor_link.actor_id = actor.actor_id) "
               "AND NOT EXISTS (SELECT 1 FROM director_link WHERE director_link.actor_id = actor.actor_id) "
               "AND NOT EXISTS (SELECT 1 FROM writer_link WHERE writer_link.actor_id = actor.actor_id)";
     m_pDS->exec(sql);
 
-    CLog::Log(LOGDEBUG, "%s: Cleaning studio table", __FUNCTION__);
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning studio table", __FUNCTION__);
     sql = "DELETE FROM studio "
             "WHERE NOT EXISTS (SELECT 1 FROM studio_link WHERE studio_link.studio_id = studio.studio_id)";
     m_pDS->exec(sql);
 
-    CLog::Log(LOGDEBUG, "%s: Cleaning set table", __FUNCTION__);
+    CLog::Log(LOGDEBUG, LOGDATABASE, "%s: Cleaning set table", __FUNCTION__);
     sql = "DELETE FROM sets WHERE NOT EXISTS (SELECT 1 FROM movie WHERE movie.idSet = sets.idSet)";
     m_pDS->exec(sql);
 
@@ -8732,7 +8759,7 @@ void CVideoDatabase::DumpToDummyFiles(const std::string &path)
 {
   // get all tvshows
   CFileItemList items;
-  GetTvShowsByWhere("videodb://tvshows/titles/", "", items);
+  GetTvShowsByWhere("videodb://tvshows/titles/", CDatabase::Filter(), items);
   std::string showPath = URIUtils::AddFileToFolder(path, "shows");
   CDirectory::Create(showPath);
   for (int i = 0; i < items.Size(); i++)
@@ -8759,7 +8786,7 @@ void CVideoDatabase::DumpToDummyFiles(const std::string &path)
   }
   // get all movies
   items.Clear();
-  GetMoviesByWhere("videodb://movies/titles/", "", items);
+  GetMoviesByWhere("videodb://movies/titles/", CDatabase::Filter(), items);
   std::string moviePath = URIUtils::AddFileToFolder(path, "movies");
   CDirectory::Create(moviePath);
   for (int i = 0; i < items.Size(); i++)
@@ -8792,7 +8819,7 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFile /* = t
     if (NULL == pDS2.get()) return;
 
     // if we're exporting to a single folder, we export thumbs as well
-    std::string exportRoot = URIUtils::AddFileToFolder(path, "xbmc_videodb_" + CDateTime::GetCurrentDateTime().GetAsDBDate());
+    std::string exportRoot = URIUtils::AddFileToFolder(path, "kodi_videodb_" + CDateTime::GetCurrentDateTime().GetAsDBDate());
     std::string xmlFile = URIUtils::AddFileToFolder(exportRoot, "videodb.xml");
     std::string actorsDir = URIUtils::AddFileToFolder(exportRoot, "actors");
     std::string moviesDir = URIUtils::AddFileToFolder(exportRoot, "movies");
@@ -8883,7 +8910,7 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFile /* = t
       {
         if (!item.Exists(false))
         {
-          CLog::Log(LOGDEBUG, "%s - Not exporting item %s as it does not exist", __FUNCTION__, movie.m_strFileNameAndPath.c_str());
+          CLog::Log(LOGINFO, "%s - Not exporting item %s as it does not exist", __FUNCTION__, movie.m_strFileNameAndPath.c_str());
           bSkip = true;
         }
         else
@@ -8980,7 +9007,7 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFile /* = t
       {
         if (!item.Exists(false))
         {
-          CLog::Log(LOGDEBUG, "%s - Not exporting item %s as it does not exist", __FUNCTION__, movie.m_strFileNameAndPath.c_str());
+          CLog::Log(LOGINFO, "%s - Not exporting item %s as it does not exist", __FUNCTION__, movie.m_strFileNameAndPath.c_str());
           bSkip = true;
         }
         else
@@ -9011,7 +9038,7 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFile /* = t
           std::string strFileName(StringUtils::Join(movie.m_artist, g_advancedSettings.m_videoItemSeparator) + "." + movie.m_strTitle);
           if (movie.HasYear())
             strFileName += StringUtils::Format("_%i", movie.GetYear());
-          item.SetPath(GetSafeFile(moviesDir, strFileName) + ".avi");
+          item.SetPath(GetSafeFile(musicvideosDir, strFileName) + ".avi");
         }
         for (const auto &i : artwork)
         {
@@ -9078,7 +9105,7 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFile /* = t
       {
         if (!item.Exists(false))
         {
-          CLog::Log(LOGDEBUG, "%s - Not exporting item %s as it does not exist", __FUNCTION__, tvshow.m_strPath.c_str());
+          CLog::Log(LOGINFO, "%s - Not exporting item %s as it does not exist", __FUNCTION__, tvshow.m_strPath.c_str());
           bSkip = true;
         }
         else
@@ -9173,7 +9200,7 @@ void CVideoDatabase::ExportToXML(const std::string &path, bool singleFile /* = t
         {
           if (!item.Exists(false))
           {
-            CLog::Log(LOGDEBUG, "%s - Not exporting item %s as it does not exist", __FUNCTION__, episode.m_strFileNameAndPath.c_str());
+            CLog::Log(LOGINFO, "%s - Not exporting item %s as it does not exist", __FUNCTION__, episode.m_strFileNameAndPath.c_str());
             bSkip = true;
           }
           else
@@ -9329,7 +9356,7 @@ void CVideoDatabase::ImportFromXML(const std::string &path)
     int iVersion = 0;
     XMLUtils::GetInt(root, "version", iVersion);
 
-    CLog::Log(LOGDEBUG, "%s: Starting import (export version = %i)", __FUNCTION__, iVersion);
+    CLog::Log(LOGINFO, "%s: Starting import (export version = %i)", __FUNCTION__, iVersion);
 
     TiXmlElement *movie = root->FirstChildElement();
     int current = 0;

@@ -21,37 +21,34 @@
  */
 
 #include "DVDVideoCodec.h"
+#include "cores/VideoPlayer/Process/VideoBuffer.h"
 #include <string>
+
+class CProcessInfo;
 
 class CDVDVideoPPFFmpeg
 {
 public:
 
-  CDVDVideoPPFFmpeg();
+  explicit CDVDVideoPPFFmpeg(CProcessInfo &processInfo);
   ~CDVDVideoPPFFmpeg();
 
-
   void SetType(const std::string& mType, bool deinterlace);
-  void SetTarget(DVDVideoPicture *pPicture){ m_pTarget = pPicture; };
-  bool Process   (DVDVideoPicture *pPicture);
-  bool GetPicture(DVDVideoPicture *pPicture);
+  void Process(VideoPicture *pPicture);
 
 protected:
   std::string m_sType;
+  CProcessInfo &m_processInfo;
 
   void *m_pContext;
   void *m_pMode;
   bool m_deinterlace;
 
-  DVDVideoPicture m_FrameBuffer;
-  DVDVideoPicture *m_pSource;
-  DVDVideoPicture *m_pTarget;
-
   void Dispose();
 
   int m_iInitWidth, m_iInitHeight;
   bool CheckInit(int iWidth, int iHeight);
-  bool CheckFrameBuffer(const DVDVideoPicture* pSource);
+  bool CheckFrameBuffer(const VideoPicture* pSource);
 };
 
 

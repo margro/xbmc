@@ -18,8 +18,9 @@
  */
 #pragma once
 
-#include "AddonDll.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/kodi_audiodec_types.h"
+#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/BinaryAddonBase.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/AudioDecoder.h"
 #include "cores/paplayer/ICodec.h"
 #include "music/tags/ImusicInfoTagLoader.h"
 #include "filesystem/MusicFileDirectory.h"
@@ -32,54 +33,50 @@ namespace MUSIC_INFO
 
 namespace ADDON
 {
-  class CAudioDecoder : public CAddonDll,
+
+  class CAudioDecoder : public IAddonInstanceHandler,
                         public ICodec,
                         public MUSIC_INFO::IMusicInfoTagLoader,
                         public XFILE::CMusicFileDirectory
   {
   public:
-
-    static std::unique_ptr<CAudioDecoder> FromExtension(AddonProps props, const cp_extension_t* ext);
-
-    explicit CAudioDecoder(AddonProps props)
-      : CAddonDll(std::move(props))
-      , m_context{nullptr}
-      , m_tags{false}
-      , m_tracks{false}
-      , m_channel{nullptr}
-    {}
-
-    CAudioDecoder(AddonProps props, std::string extension, std::string mimetype, bool tags,
-        bool tracks, std::string codecName, std::string strExt);
-
-    virtual ~CAudioDecoder();
+    explicit CAudioDecoder(const BinaryAddonBasePtr& addonInfo);
+    ~CAudioDecoder() override;
 
     // Things that MUST be supplied by the child classes
-    bool Create();
+    bool CreateDecoder();
     bool Init(const CFileItem& file, unsigned int filecache) override;
-    int ReadPCM(uint8_t* buffer, int size, int* actualsize);
-    bool Seek(int64_t time);
-    bool CanInit() { return true; }
-    void DeInit();
-    void Destroy();
+    int ReadPCM(uint8_t* buffer, int size, int* actualsize) override;
+    bool Seek(int64_t time) override;
+    bool CanInit() override { return true; }
     bool Load(const std::string& strFileName,
-              MUSIC_INFO::CMusicInfoTag& tag,
-              MUSIC_INFO::EmbeddedArt *art = NULL);
-    int GetTrackCount(const std::string& strPath);
+                      MUSIC_INFO::CMusicInfoTag& tag,
+                      MUSIC_INFO::EmbeddedArt *art = nullptr) override;
+    int GetTrackCount(const std::string& strPath) override;
 
-    const std::string& GetExtensions() const { return m_extension; }
-    const std::string& GetMimetypes() const { return m_mimetype; }
-    bool HasTags() const { return m_tags; }
-    bool HasTracks() const { return m_tracks; }
-  protected:
-    std::string m_extension;
-    std::string m_mimetype;
-    void* m_context;
-    bool m_tags;
-    bool m_tracks;
+    static inline std::string GetExtensions(const BinaryAddonBasePtr& addonInfo)
+    {
+      return addonInfo->Type(ADDON_AUDIODECODER)->GetValue("@extension").asString();
+    }
+
+    static inline std::string GetMimetypes(const BinaryAddonBasePtr& addonInfo)
+    {
+      return addonInfo->Type(ADDON_AUDIODECODER)->GetValue("@mimetype").asString();
+    }
+
+    static inline bool HasTags(const BinaryAddonBasePtr& addonInfo)
+    {
+      return addonInfo->Type(ADDON_AUDIODECODER)->GetValue("@tags").asBoolean();
+    }
+
+    static inline bool HasTracks(const BinaryAddonBasePtr& addonInfo)
+    {
+      return addonInfo->Type(ADDON_AUDIODECODER)->GetValue("@tracks").asBoolean();
+    }
+
+  private:
     const AEChannel* m_channel;
-    AUDIODEC_PROPS m_info;
-    KodiToAddonFuncTable_AudioDecoder m_struct;
+    AddonInstance_AudioDecoder m_struct;
   };
 
 } /*namespace ADDON*/

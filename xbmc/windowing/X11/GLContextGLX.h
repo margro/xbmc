@@ -20,14 +20,13 @@
 
 #pragma once
 
-#if defined(HAVE_X11)
 #include "GLContext.h"
 #include "GL/glx.h"
 
 class CGLContextGLX : public CGLContext
 {
 public:
-  CGLContextGLX(Display *dpy);
+  explicit CGLContextGLX(Display *dpy);
   bool Refresh(bool force, int screen, Window glWindow, bool &newContext) override;
   void Destroy() override;
   void Detach() override;
@@ -47,5 +46,3 @@ protected:
   int m_iVSyncErrors;
   int m_vsyncMode;
 };
-
-#endif

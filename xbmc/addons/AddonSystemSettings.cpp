@@ -55,7 +55,7 @@ CAddonSystemSettings& CAddonSystemSettings::GetInstance()
   return inst;
 }
 
-void CAddonSystemSettings::OnSettingAction(const CSetting* setting)
+void CAddonSystemSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting->GetId() == CSettings::SETTING_ADDONS_MANAGE_DEPENDENCIES)
   {
@@ -69,7 +69,7 @@ void CAddonSystemSettings::OnSettingAction(const CSetting* setting)
   }
 }
 
-void CAddonSystemSettings::OnSettingChanged(const CSetting* setting)
+void CAddonSystemSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   using namespace KODI::MESSAGING::HELPERS;
 
@@ -115,7 +115,7 @@ bool CAddonSystemSettings::UnsetActive(const AddonPtr& addon)
   if (it == m_activeSettings.end())
     return true;
 
-  auto setting = static_cast<CSettingString*>(CServiceBroker::GetSettings().GetSetting(it->second));
+  auto setting = std::static_pointer_cast<CSettingString>(CServiceBroker::GetSettings().GetSetting(it->second));
   if (setting->GetValue() != addon->ID())
     return true;
 
@@ -144,8 +144,8 @@ std::vector<std::string> CAddonSystemSettings::MigrateAddons(std::function<void(
   {
     onMigrate();
 
-    if (CRepositoryUpdater::GetInstance().CheckForUpdates())
-      CRepositoryUpdater::GetInstance().Await();
+    if (CServiceBroker::GetRepositoryUpdater().CheckForUpdates())
+      CServiceBroker::GetRepositoryUpdater().Await();
 
     CLog::Log(LOGINFO, "ADDON: waiting for add-ons to update...");
     CAddonInstaller::GetInstance().InstallUpdatesAndWait();

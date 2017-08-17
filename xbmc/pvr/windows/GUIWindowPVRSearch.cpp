@@ -24,6 +24,7 @@
 #include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "input/Key.h"
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
@@ -67,13 +68,13 @@ namespace
   }
 } // unnamed namespace
 
-CGUIWindowPVRSearch::CGUIWindowPVRSearch(bool bRadio) :
-  CGUIWindowPVRBase(bRadio, bRadio ? WINDOW_RADIO_SEARCH : WINDOW_TV_SEARCH, "MyPVRSearch.xml"),
+CGUIWindowPVRSearchBase::CGUIWindowPVRSearchBase(bool bRadio, int id, const std::string &xmlFile) :
+  CGUIWindowPVRBase(bRadio, id, xmlFile),
   m_bSearchConfirmed(false)
 {
 }
 
-void CGUIWindowPVRSearch::GetContextButtons(int itemNumber, CContextButtons &buttons)
+void CGUIWindowPVRSearchBase::GetContextButtons(int itemNumber, CContextButtons &buttons)
 {
   if (itemNumber < 0 || itemNumber >= m_vecItems->Size())
     return;
@@ -83,7 +84,7 @@ void CGUIWindowPVRSearch::GetContextButtons(int itemNumber, CContextButtons &but
   CGUIWindowPVRBase::GetContextButtons(itemNumber, buttons);
 }
 
-bool CGUIWindowPVRSearch::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
+bool CGUIWindowPVRSearchBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
 {
   if (itemNumber < 0 || itemNumber >= m_vecItems->Size())
     return false;
@@ -93,7 +94,7 @@ bool CGUIWindowPVRSearch::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
       CGUIMediaWindow::OnContextButton(itemNumber, button);
 }
 
-void CGUIWindowPVRSearch::SetItemToSearch(const CFileItemPtr &item)
+void CGUIWindowPVRSearchBase::SetItemToSearch(const CFileItemPtr &item)
 {
   m_searchfilter.Reset();
 
@@ -114,7 +115,7 @@ void CGUIWindowPVRSearch::SetItemToSearch(const CFileItemPtr &item)
     Refresh(true);
 }
 
-void CGUIWindowPVRSearch::OnPrepareFileItems(CFileItemList &items)
+void CGUIWindowPVRSearchBase::OnPrepareFileItems(CFileItemList &items)
 {
   bool bAddSpecialSearchItem = items.IsEmpty();
 
@@ -140,7 +141,7 @@ void CGUIWindowPVRSearch::OnPrepareFileItems(CFileItemList &items)
   }
 }
 
-bool CGUIWindowPVRSearch::OnMessage(CGUIMessage &message)
+bool CGUIWindowPVRSearchBase::OnMessage(CGUIMessage &message)
 {
   if (message.GetMessage() == GUI_MSG_CLICKED)
   {
@@ -181,7 +182,7 @@ bool CGUIWindowPVRSearch::OnMessage(CGUIMessage &message)
   return CGUIWindowPVRBase::OnMessage(message);
 }
 
-bool CGUIWindowPVRSearch::OnContextButtonClear(CFileItem *item, CONTEXT_BUTTON button)
+bool CGUIWindowPVRSearchBase::OnContextButtonClear(CFileItem *item, CONTEXT_BUTTON button)
 {
   bool bReturn = false;
 
@@ -198,7 +199,7 @@ bool CGUIWindowPVRSearch::OnContextButtonClear(CFileItem *item, CONTEXT_BUTTON b
   return bReturn;
 }
 
-void CGUIWindowPVRSearch::OpenDialogSearch()
+void CGUIWindowPVRSearchBase::OpenDialogSearch()
 {
   CGUIDialogPVRGuideSearch* dlgSearch = g_windowManager.GetWindow<CGUIDialogPVRGuideSearch>(WINDOW_DIALOG_PVR_GUIDE_SEARCH);
 

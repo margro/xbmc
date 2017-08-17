@@ -513,10 +513,10 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
     {
       // Apply the "shuffled" option if available
       if (optionShuffled.isBoolean())
-        g_playlistPlayer.SetShuffle(playlistid, optionShuffled.asBoolean(), false);
+        CServiceBroker::GetPlaylistPlayer().SetShuffle(playlistid, optionShuffled.asBoolean(), false);
       // Apply the "repeat" option if available
       if (!optionRepeat.isNull())
-        g_playlistPlayer.SetRepeat(playlistid, (REPEAT_STATE)ParseRepeatState(optionRepeat), false);
+        CServiceBroker::GetPlaylistPlayer().SetRepeat(playlistid, (REPEAT_STATE)ParseRepeatState(optionRepeat), false);
     }
 
     int playlistStartPosition = (int)parameterObject["item"]["position"].asInteger();
@@ -577,15 +577,9 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
     if (channel == NULL)
       return InvalidParams;
 
-    if ((CServiceBroker::GetPVRManager().IsPlayingRadio() && channel->IsRadio()) ||
-        (CServiceBroker::GetPVRManager().IsPlayingTV() && !channel->IsRadio()))
-      g_application.m_pPlayer->SwitchChannel(channel);
-    else
-    {
-      CFileItemList *l = new CFileItemList; //don't delete,
-      l->Add(std::make_shared<CFileItem>(channel));
-      CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, -1, -1, static_cast<void*>(l));
-    }
+    CFileItemList *l = new CFileItemList; //don't delete,
+    l->Add(std::make_shared<CFileItem>(channel));
+    CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, -1, -1, static_cast<void*>(l));
 
     return ACK;
   }
@@ -775,7 +769,7 @@ JSONRPC_STATUS CPlayerOperations::SetShuffle(const std::string &method, ITranspo
         return FailedToExecute;
 
       int playlistid = GetPlaylist(GetPlayer(parameterObject["playerid"]));
-      if (g_playlistPlayer.IsShuffled(playlistid))
+      if (CServiceBroker::GetPlaylistPlayer().IsShuffled(playlistid))
       {
         if ((shuffle.isBoolean() && !shuffle.asBoolean()) ||
             (shuffle.isString() && shuffle.asString() == "toggle"))
@@ -834,7 +828,7 @@ JSONRPC_STATUS CPlayerOperations::SetRepeat(const std::string &method, ITranspor
       int playlistid = GetPlaylist(GetPlayer(parameterObject["playerid"]));
       if (parameterObject["repeat"].asString() == "cycle")
       {
-        REPEAT_STATE repeatPrev = g_playlistPlayer.GetRepeat(playlistid);
+        REPEAT_STATE repeatPrev = CServiceBroker::GetPlaylistPlayer().GetRepeat(playlistid);
         if (repeatPrev == REPEAT_NONE)
           repeat = REPEAT_ALL;
         else if (repeatPrev == REPEAT_ALL)
@@ -1114,7 +1108,7 @@ PlayerType CPlayerOperations::GetPlayer(const CVariant &player)
 
 int CPlayerOperations::GetPlaylist(PlayerType player)
 {
-  int playlist = g_playlistPlayer.GetCurrentPlaylist();
+  int playlist = CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist();
   if (playlist == PLAYLIST_NONE) // No active playlist, try guessing
     playlist = g_application.m_pPlayer->GetPreferredPlaylist();
 
@@ -1344,8 +1338,8 @@ JSONRPC_STATUS CPlayerOperations::GetPropertyValue(PlayerType player, const std:
     {
       case Video:
       case Audio: /* Return the position of current item if there is an active playlist */
-        if (!IsPVRChannel() && g_playlistPlayer.GetCurrentPlaylist() == playlist)
-          result = g_playlistPlayer.GetCurrentSong();
+        if (!IsPVRChannel() && CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() == playlist)
+          result = CServiceBroker::GetPlaylistPlayer().GetCurrentSong();
         else
           result = -1;
         break;
@@ -1375,7 +1369,7 @@ JSONRPC_STATUS CPlayerOperations::GetPropertyValue(PlayerType player, const std:
           break;
         }
 
-        switch (g_playlistPlayer.GetRepeat(playlist))
+        switch (CServiceBroker::GetPlaylistPlayer().GetRepeat(playlist))
         {
         case REPEAT_ONE:
           result = "one";
@@ -1408,7 +1402,7 @@ JSONRPC_STATUS CPlayerOperations::GetPropertyValue(PlayerType player, const std:
           break;
         }
 
-        result = g_playlistPlayer.IsShuffled(playlist);
+        result = CServiceBroker::GetPlaylistPlayer().IsShuffled(playlist);
         break;
 
       case Picture:

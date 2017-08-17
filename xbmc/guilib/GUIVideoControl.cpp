@@ -31,8 +31,7 @@ CGUIVideoControl::CGUIVideoControl(int parentID, int controlID, float posX, floa
   ControlType = GUICONTROL_VIDEO;
 }
 
-CGUIVideoControl::~CGUIVideoControl(void)
-{}
+CGUIVideoControl::~CGUIVideoControl(void) = default;
 
 void CGUIVideoControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
@@ -73,8 +72,6 @@ void CGUIVideoControl::Render()
 
     g_graphicsContext.RemoveTransform();
   }
-  //! @todo remove this crap: HAS_VIDEO_PLAYBACK
-  //! instantiating a video control having no playback is complete nonsense
   CGUIControl::Render();
 }
 

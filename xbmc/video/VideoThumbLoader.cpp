@@ -68,9 +68,7 @@ CThumbExtractor::CThumbExtractor(const CFileItem& item,
     m_item.SetPath(CStackDirectory::GetFirstStackedFile(m_item.GetPath()));
 }
 
-CThumbExtractor::~CThumbExtractor()
-{
-}
+CThumbExtractor::~CThumbExtractor() = default;
 
 bool CThumbExtractor::operator==(const CJob* job) const
 {
@@ -570,7 +568,7 @@ void CVideoThumbLoader::OnJobComplete(unsigned int jobID, bool success, CJob* jo
 {
   if (success)
   {
-    CThumbExtractor* loader = (CThumbExtractor*)job;
+    CThumbExtractor* loader = static_cast<CThumbExtractor*>(job);
     loader->m_item.SetPath(loader->m_listpath);
 
     if (m_pObserver)

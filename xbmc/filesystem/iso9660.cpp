@@ -180,7 +180,7 @@ struct iso_dirtree *iso9660::ReadRecursiveDirFromSector( DWORD sector, const cha
   if (!pCurr_dir_cache )
     return NULL;
 
-  BOOL bResult = ::ReadFile( m_info.ISO_HANDLE, pCurr_dir_cache, wSectorSize, &lpNumberOfBytesRead, NULL );
+  int bResult = ::ReadFile( m_info.ISO_HANDLE, pCurr_dir_cache, wSectorSize, &lpNumberOfBytesRead, NULL );
   if (!bResult || lpNumberOfBytesRead != wSectorSize)
   {
     CLog::Log(LOGERROR, "%s: unable to read", __FUNCTION__);
@@ -498,7 +498,7 @@ void iso9660::Scan()
     DWORD lpNumberOfBytesRead;
     char* pCurr_dir_cache = (char*)malloc( 16*wSectorSize );
     iso9660_Directory isodir;
-    BOOL bResult = ::ReadFile( m_info.ISO_HANDLE, pCurr_dir_cache, wSectorSize, &lpNumberOfBytesRead, NULL );
+    int bResult = ::ReadFile( m_info.ISO_HANDLE, pCurr_dir_cache, wSectorSize, &lpNumberOfBytesRead, NULL );
     memcpy( &isodir, pCurr_dir_cache, sizeof(isodir));
 
     int iso9660searchpointer=0;
@@ -577,7 +577,7 @@ void iso9660::Reset()
 
   for (intptr_t i = 0; i < MAX_ISO_FILES;++i)
   {
-    FreeFileContext( (HANDLE)i);
+    FreeFileContext( reinterpret_cast<HANDLE>(i));
   }
 
   if (m_hCDROM)
@@ -647,7 +647,8 @@ HANDLE iso9660::FindFirstFile( char *szLocalFolder, WIN32_FIND_DATA *wfdFile )
 #ifdef TARGET_WINDOWS
       wcscpy_s(wfdFile->cFileName, MAX_PATH, KODI::PLATFORM::WINDOWS::ToW(m_searchpointer->name).c_str());
 #else
-      strcpy(wfdFile->cFileName, m_searchpointer->name );
+      strncpy(wfdFile->cFileName, m_searchpointer->name, sizeof(wfdFile->cFileName) - 1);
+      wfdFile->cFileName[sizeof(wfdFile->cFileName) - 1] = '\0';
 #endif
 
       if ( m_searchpointer->type == 2 )
@@ -677,7 +678,8 @@ int iso9660::FindNextFile( HANDLE szLocalFolder, WIN32_FIND_DATA *wfdFile )
 #ifdef TARGET_WINDOWS
     wcscpy_s(wfdFile->cFileName, MAX_PATH, KODI::PLATFORM::WINDOWS::ToW(m_searchpointer->name).c_str());
 #else
-    strcpy(wfdFile->cFileName, m_searchpointer->name );
+    strncpy(wfdFile->cFileName, m_searchpointer->name, sizeof(wfdFile->cFileName) - 1);
+    wfdFile->cFileName[sizeof(wfdFile->cFileName) - 1] = '\0';
 #endif
 
     if ( m_searchpointer->type == 2 )
@@ -738,7 +740,8 @@ HANDLE iso9660::OpenFile(const char *filename)
   while ( strpbrk( pointer, "\\/" ) )
     pointer = strpbrk( pointer, "\\/" ) + 1;
 
-  strcpy(work, filename );
+  strncpy(work, filename, sizeof(work) - 1);
+  work[sizeof(work) - 1] = '\0';
   pointer2 = work;
 
   while ( strpbrk(pointer2 + 1, "\\" ) )
@@ -1030,7 +1033,7 @@ HANDLE iso9660::AllocFileContext()
     if (m_isoFiles[i] == NULL)
     {
       m_isoFiles[i] = new isofile;
-      return (HANDLE)i;
+      return reinterpret_cast<HANDLE>(i);
     }
   }
   return INVALID_HANDLE_VALUE;

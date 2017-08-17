@@ -30,9 +30,7 @@
 #include "guilib/GUISliderControl.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "video/dialogs/GUIDialogAudioSubtitleSettings.h"
-#ifdef HAS_VIDEO_PLAYBACK
 #include "cores/VideoPlayer/VideoRenderers/OverlayRendererGUI.h"
-#endif
 #include "Application.h"
 #include "utils/LangCodeExpander.h"
 #include "utils/StringUtils.h"
@@ -42,9 +40,7 @@ CPlayerController::CPlayerController()
 {
 }
 
-CPlayerController::~CPlayerController()
-{
-}
+CPlayerController::~CPlayerController() = default;
 
 CPlayerController& CPlayerController::GetInstance()
 {

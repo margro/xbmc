@@ -9,16 +9,21 @@
   !include "nsDialogs.nsh"
   !include "LogicLib.nsh"
   !include "WinVer.nsh"
+  !include "x64.nsh"
   
 ;--------------------------------
 ;General
 
   ;Name and file
   Name "${APP_NAME}"
-  OutFile "${APP_NAME}Setup-${app_revision}-${app_branch}.exe"
+  OutFile "${APP_NAME}Setup-${app_revision}-${app_branch}-${TARGET_ARCHITECTURE}.exe"
 
   ;Default installation folder
+!ifdef x64
+  InstallDir "$PROGRAMFILES64\${APP_NAME}"
+!else
   InstallDir "$PROGRAMFILES\${APP_NAME}"
+!endif
 
   ;Get installation folder from registry if available
   InstallDirRegKey HKCU "Software\${APP_NAME}" ""
@@ -231,9 +236,11 @@ SectionEnd
 !include /nonfatal "audioencoder-addons.nsi"
 !include /nonfatal "audiodsp-addons.nsi"
 !include /nonfatal "game-addons.nsi"
+!include /nonfatal "imagedecoder-addons.nsi"
 !include /nonfatal "inputstream-addons.nsi"
 !include /nonfatal "pvr-addons.nsi"
 !include /nonfatal "screensaver-addons.nsi"
+!include /nonfatal "vfs-addons.nsi"
 !include /nonfatal "visualization-addons.nsi"
 
 ;--------------------------------
@@ -298,7 +305,9 @@ Section "Uninstall"
   
   ;Un-install User Data if option is checked, otherwise skip
   ${If} $UnPageProfileCheckbox_State == ${BST_CHECKED}
+    SetShellVarContext current
     RMDir /r "$APPDATA\${APP_NAME}\"
+    SetShellVarContext all
     RMDir /r "$INSTDIR\portable_data\"
   ${EndIf}
   RMDir "$INSTDIR"
@@ -317,12 +326,12 @@ SectionEnd
 ;vs redist installer Section
 SectionGroup "Microsoft Visual C++ packages" SEC_VCREDIST
 
-Section "VS2015 C++ re-distributable Package (x86)" SEC_VCREDIST1
+Section "VS2015 C++ re-distributable Package (${TARGET_ARCHITECTURE})" SEC_VCREDIST1
 DetailPrint "Running VS2015 re-distributable setup..."
   SectionIn 1 2 #section is in install type Full
   SetOutPath "$TEMP\vc2015"
-  File "${app_root}\..\dependencies\vcredist\2015\vcredist_x86.exe"
-  ExecWait '"$TEMP\vc2015\vcredist_x86.exe" /install /quiet /norestart' $VSRedistSetupError
+  File "${app_root}\..\dependencies\vcredist\2015\vcredist_${TARGET_ARCHITECTURE}.exe"
+  ExecWait '"$TEMP\vc2015\vcredist_${TARGET_ARCHITECTURE}.exe" /install /quiet /norestart' $VSRedistSetupError
   RMDir /r "$TEMP\vc2015"
   DetailPrint "Finished VS2015 re-distributable setup"
   SetOutPath "$INSTDIR"
@@ -331,6 +340,14 @@ SectionEnd
 SectionGroupEnd
 
 Function .onInit
+  !ifdef x64
+    SetRegView 64
+    ${IfNot} ${RunningX64}
+      MessageBox MB_OK|MB_ICONSTOP 'This is the 64-bit ${APP_NAME} installer.$\nPlease download the 32-bit version from ${WEBSITE}.$\n$\nClick Ok to quit Setup.'
+      Quit
+    ${Endif}
+  !endif
+
   ; Win7 SP1 is minimum requirement
   ${IfNot} ${AtLeastWin7}
   ${OrIf} ${IsWin7}

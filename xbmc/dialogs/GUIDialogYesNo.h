@@ -38,10 +38,10 @@ class CGUIDialogYesNo :
       public CGUIDialogBoxBase
 {
 public:
-  CGUIDialogYesNo(int overrideId = -1);
-  virtual ~CGUIDialogYesNo(void);
-  virtual bool OnMessage(CGUIMessage& message);
-  virtual bool OnBack(int actionID);
+  explicit CGUIDialogYesNo(int overrideId = -1);
+  ~CGUIDialogYesNo(void) override;
+  bool OnMessage(CGUIMessage& message) override;
+  bool OnBack(int actionID) override;
 
   enum TimeOut
   {
@@ -112,8 +112,8 @@ public:
   int ShowAndGetInput(const KODI::MESSAGING::HELPERS::DialogYesNoMessage& options);
 
 protected:
-  virtual void OnInitWindow();
-  virtual int GetDefaultLabelID(int controlId) const;
+  void OnInitWindow() override;
+  int GetDefaultLabelID(int controlId) const override;
 
   bool m_bCanceled;
 };

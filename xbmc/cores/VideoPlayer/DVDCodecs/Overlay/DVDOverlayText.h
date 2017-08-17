@@ -38,7 +38,7 @@ public:
   class CElement
   {
   public:
-    CElement(ElementType type)
+    explicit CElement(ElementType type)
     {
       pNext = NULL;
       m_type = type;
@@ -50,9 +50,7 @@ public:
       m_type = src.m_type;
     }
 
-    virtual ~CElement()
-    {
-    }
+    virtual ~CElement() = default;
 
     bool IsElementType(ElementType type) { return (type == m_type); }
 
@@ -74,7 +72,7 @@ public:
       else
         m_text.assign(strText, size);
     }
-    CElementText(const std::string& text) : CElement(ELEMENT_TYPE_TEXT),
+    explicit CElementText(const std::string& text) : CElement(ELEMENT_TYPE_TEXT),
       m_text(text)
     {
     }
@@ -90,9 +88,7 @@ public:
     const char* GetTextPtr()
     { return m_text.c_str(); }
 
-    virtual ~CElementText()
-    {  }
-
+    ~CElementText() override = default;
   };
 
   class CElementProperty : public CElement
@@ -139,7 +135,7 @@ public:
     }
   }
 
-  virtual ~CDVDOverlayText()
+  ~CDVDOverlayText() override
   {
     while (m_pHead)
     {
@@ -149,7 +145,7 @@ public:
     }
   }
 
-  virtual CDVDOverlayText* Clone()
+  CDVDOverlayText* Clone() override
   {
     return new CDVDOverlayText(*this);
   }

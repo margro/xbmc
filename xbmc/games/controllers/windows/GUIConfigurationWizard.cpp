@@ -25,8 +25,10 @@
 #include "games/controllers/ControllerFeature.h"
 #include "input/joysticks/IButtonMap.h"
 #include "input/joysticks/IButtonMapCallback.h"
+#include "input/joysticks/JoystickUtils.h"
 #include "input/keyboard/KeymapActionMap.h"
 #include "input/InputManager.h"
+#include "input/IKeymap.h"
 #include "peripherals/Peripherals.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
@@ -50,9 +52,7 @@ CGUIConfigurationWizard::CGUIConfigurationWizard(bool bEmulation, unsigned int c
   InitializeState();
 }
 
-CGUIConfigurationWizard::~CGUIConfigurationWizard(void)
-{
-}
+CGUIConfigurationWizard::~CGUIConfigurationWizard(void) = default;
 
 void CGUIConfigurationWizard::InitializeState(void)
 {
@@ -60,6 +60,7 @@ void CGUIConfigurationWizard::InitializeState(void)
   m_currentDirection = JOYSTICK::ANALOG_STICK_DIRECTION::UNKNOWN;
   m_history.clear();
   m_lateAxisDetected = false;
+  m_deviceName.clear();
 }
 
 void CGUIConfigurationWizard::Run(const std::string& strControllerId, const std::vector<IFeatureButton*>& buttons)
@@ -188,7 +189,7 @@ void CGUIConfigurationWizard::Process(void)
 }
 
 bool CGUIConfigurationWizard::MapPrimitive(JOYSTICK::IButtonMap* buttonMap,
-                                           JOYSTICK::IActionMap* actionMap,
+                                           IKeymap* keymap,
                                            const JOYSTICK::CDriverPrimitive& primitive)
 {
   using namespace JOYSTICK;
@@ -196,9 +197,49 @@ bool CGUIConfigurationWizard::MapPrimitive(JOYSTICK::IButtonMap* buttonMap,
   bool bHandled = false;
 
   // Handle esc key separately
-  if (primitive.Type() == PRIMITIVE_TYPE::BUTTON &&
-      primitive.Index() == ESC_KEY_CODE)
+  if (!m_deviceName.empty() && m_deviceName != buttonMap->DeviceName())
   {
+    bool bIsCancelAction = false;
+
+    //! @todo This only succeeds for game.controller.default; no actions are
+    //        currently defined for other controllers
+    if (keymap)
+    {
+      std::string feature;
+      if (buttonMap->GetFeature(primitive, feature))
+      {
+        const auto &actions = keymap->GetActions(CJoystickUtils::MakeKeyName(feature));
+        if (!actions.empty())
+        {
+          //! @todo Handle multiple actions mapped to the same key
+          switch (actions.begin()->actionId)
+          {
+          case ACTION_NAV_BACK:
+          case ACTION_PREVIOUS_MENU:
+            bIsCancelAction = true;
+            break;
+          default:
+            break;
+          }
+        }
+      }
+    }
+
+    if (bIsCancelAction)
+    {
+      CLog::Log(LOGDEBUG, "%s: device \"%s\" is cancelling prompt", buttonMap->ControllerID().c_str(), buttonMap->DeviceName().c_str());
+      Abort(false);
+    }
+    else
+      CLog::Log(LOGDEBUG, "%s: ignoring input for device \"%s\"", buttonMap->ControllerID().c_str(), buttonMap->DeviceName().c_str());
+
+    // Discard input
+    bHandled = true;
+  }
+  else if (primitive.Type() == PRIMITIVE_TYPE::BUTTON &&
+           primitive.Index() == ESC_KEY_CODE)
+  {
+    // Handle esc key
     bHandled = Abort(false);
   }
   else if (m_history.find(primitive) != m_history.end())
@@ -242,6 +283,12 @@ bool CGUIConfigurationWizard::MapPrimitive(JOYSTICK::IButtonMap* buttonMap,
           bHandled = true;
           break;
         }
+        case FEATURE_TYPE::RELPOINTER:
+        {
+          buttonMap->AddRelativePointer(feature.Name(), currentDirection, primitive);
+          bHandled = true;
+          break;
+        }
         default:
           break;
       }
@@ -252,6 +299,7 @@ bool CGUIConfigurationWizard::MapPrimitive(JOYSTICK::IButtonMap* buttonMap,
 
         OnMotion(buttonMap);
         m_inputEvent.Set();
+        m_deviceName = buttonMap->DeviceName();
       }
     }
   }
@@ -341,17 +389,17 @@ void CGUIConfigurationWizard::InstallHooks(void)
 
   // If we're not using emulation, allow keyboard input to abort prompt
   if (!m_bEmulation)
-    CInputManager::GetInstance().RegisterKeyboardHandler(this);
+    CServiceBroker::GetInputManager().RegisterKeyboardHandler(this);
 
-  CInputManager::GetInstance().RegisterMouseHandler(this);
+  CServiceBroker::GetInputManager().RegisterMouseHandler(this);
 }
 
 void CGUIConfigurationWizard::RemoveHooks(void)
 {
-  CInputManager::GetInstance().UnregisterMouseHandler(this);
+  CServiceBroker::GetInputManager().UnregisterMouseHandler(this);
 
   if (!m_bEmulation)
-    CInputManager::GetInstance().UnregisterKeyboardHandler(this);
+    CServiceBroker::GetInputManager().UnregisterKeyboardHandler(this);
 
   CServiceBroker::GetPeripherals().UnregisterObserver(this);
   CServiceBroker::GetPeripherals().UnregisterJoystickButtonMapper(this);

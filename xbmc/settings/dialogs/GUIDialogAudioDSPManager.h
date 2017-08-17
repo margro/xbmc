@@ -19,7 +19,7 @@
  *
  */
 
-#include "addons/kodi-addon-dev-kit/include/kodi/kodi_adsp_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/AudioDSP.h"
 #include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSPMode.h"
 #include "dialogs/GUIDialogContextMenu.h"
 #include "guilib/GUIDialog.h"
@@ -33,16 +33,16 @@ namespace ActiveAE
   {
   public:
     CGUIDialogAudioDSPManager(void);
-    virtual ~CGUIDialogAudioDSPManager(void);
-    virtual bool OnMessage(CGUIMessage& message);
-    virtual bool OnAction(const CAction& action);
-    virtual void OnWindowLoaded(void);
-    virtual void OnWindowUnload(void);
-    virtual bool HasListItems() const { return true; };
+    ~CGUIDialogAudioDSPManager(void) override;
+    bool OnMessage(CGUIMessage& message) override;
+    bool OnAction(const CAction& action) override;
+    void OnWindowLoaded(void) override;
+    void OnWindowUnload(void) override;
+    bool HasListItems() const override { return true; };
 
   protected:
-    virtual void OnInitWindow();
-    virtual void OnDeinitWindow(int nextWindowID);
+    void OnInitWindow() override;
+    void OnDeinitWindow(int nextWindowID) override;
 
     virtual bool OnPopupMenu(int iItem, int listType);
     virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button, int listType);

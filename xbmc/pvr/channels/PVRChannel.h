@@ -19,6 +19,10 @@
  *
  */
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "threads/CriticalSection.h"
 #include "utils/ISerializable.h"
@@ -27,15 +31,11 @@
 
 #include "pvr/PVRTypes.h"
 
-#include <string>
-#include <utility>
-
 class CVariant;
 class CFileItemList;
 
 namespace PVR
 {
-  class CPVRDatabase;
   class CPVRChannelGroupInternal;
 
   typedef struct
@@ -45,25 +45,27 @@ namespace PVR
   } pvr_channel_num;
 
   /** PVR Channel class */
-  class CPVRChannel : public Observable, public ISerializable, public ISortable
+  class CPVRChannel : public Observable,
+                      public ISerializable,
+                      public ISortable,
+                      public std::enable_shared_from_this<CPVRChannel>
   {
     friend class CPVRDatabase;
-    friend class CPVRChannelGroupInternal;
 
   public:
     /*! @brief Create a new channel */
-    CPVRChannel(bool bRadio = false);
+    explicit CPVRChannel(bool bRadio = false);
     CPVRChannel(const PVR_CHANNEL &channel, unsigned int iClientId);
 
   private:
-    CPVRChannel(const CPVRChannel &tag); // intentionally not implemented.
-    CPVRChannel &operator=(const CPVRChannel &channel); // intentionally not implemented.
+    CPVRChannel(const CPVRChannel &tag) = delete;
+    CPVRChannel &operator=(const CPVRChannel &channel) = delete;
 
   public:
     bool operator ==(const CPVRChannel &right) const;
     bool operator !=(const CPVRChannel &right) const;
 
-    virtual void Serialize(CVariant& value) const;
+    void Serialize(CVariant& value) const override;
 
     /*! @name XBMC related channel methods
      */
@@ -229,21 +231,6 @@ namespace PVR
     bool SetLastWatched(time_t iLastWatched);
 
     /*!
-     * @brief Sets the 'was playing on last app quit' flag for a channel.
-     * @param bSet True to set the flag, false to reset the flag
-     * @return True if the operation was successful, false otherwise
-     */
-    bool SetWasPlayingOnLastQuit(bool bSet);
-
-    /*!
-     * @brief Sets the 'was playing on last app quit' flag for a channel.
-     * @param bSet True to set the flag, false to reset the flag
-     * @param bWasPlaying on return contains the previous value of the flag
-     * @return True if the operation was successful, false otherwise
-     */
-    bool SetWasPlayingOnLastQuit(bool bSet, bool& bWasPlaying);
-
-    /*!
      * @brief True if this channel has no file or stream name
      * @return True if this channel has no file or stream name
      */
@@ -311,33 +298,12 @@ namespace PVR
     std::string InputFormat(void) const;
 
     /*!
-     * @brief The stream URL to access this channel.
-     *
-     * The stream URL to access this channel.
-     * If this is empty, then the client should be used to read from the channel.
-     *
-     * @return The stream URL to access this channel.
-     */
-    std::string StreamURL(void) const;
-
-    /*!
-     * @brief Set the stream URL to access this channel.
-     *
-     * Set the stream URL to access this channel.
-     * If this is empty, then the client should be used to read from the channel.
-     *
-     * @param strStreamURL The new stream URL.
-     * @return True if the something changed, false otherwise.
-     */
-    bool SetStreamURL(const std::string &strStreamURL);
-
-    /*!
      * @brief The path in the XBMC VFS to be used by PVRManager to open and read the stream.
      * @return The path in the XBMC VFS to be used by PVRManager to open and read the stream.
      */
     std::string Path(void) const;
 
-    virtual void ToSortable(SortItem& sortable, Field field) const;
+    void ToSortable(SortItem& sortable, Field field) const override;
 
     /*!
      * @brief Update the path this channel got added to the internal group
@@ -390,6 +356,13 @@ namespace PVR
      * @param iEpgId The new epg id
      */
     void SetEpgID(int iEpgId);
+
+    /*!
+     * @brief Create the EPG for this channel, if it does not yet exist
+     * @param bForce to create a new EPG, even if it already exists.
+     * @return true if a new epg was created, false otherwise.
+     */
+    bool CreateEPG(bool bForce);
 
     /*!
      * @brief Get the EPG table for this channel.
@@ -467,6 +440,9 @@ namespace PVR
     void SetCachedSubChannelNumber(unsigned int iSubChannelNumber);
 
     bool CanRecord(void) const;
+
+    static std::string GetEncryptionName(int iCaid);
+
     //@}
   private:
     /*!
@@ -508,7 +484,6 @@ namespace PVR
     pvr_channel_num  m_iClientChannelNumber;    /*!< the channel number on the client */
     std::string      m_strClientChannelName;    /*!< the name of this channel on the client */
     std::string      m_strInputFormat;          /*!< the stream input type based on ffmpeg/libavformat/allformats.c */
-    std::string      m_strStreamURL;            /*!< URL of the stream. Use the client to read stream if this is empty */
     std::string      m_strFileNameAndPath;      /*!< the filename to be used by PVRManager to open and read the stream */
     int              m_iClientEncryptionSystem; /*!< the encryption system used by this channel. 0 for FreeToAir, -1 for unknown */
     std::string      m_strClientEncryptionName; /*!< the name of the encryption system used by this channel */

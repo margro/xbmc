@@ -18,16 +18,17 @@
  *
  */
 
-//hack around problem with xbmc's typedef int BOOL
-// and obj-c's typedef unsigned char BOOL
-#define BOOL XBMC_BOOL 
-#include "system.h"
-#undef BOOL
 
-#ifdef HAS_EGL
-#define BOOL XBMC_BOOL
+#include "system.h"
+
 #include "VideoSyncIos.h"
 #include "WinSystemIOS.h"
+#include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
+#include "cores/VideoPlayer/DVDCodecs/Video/VTB.h"
+#include "cores/VideoPlayer/Process/ios/ProcessInfoIOS.h"
+#include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
+#include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
+#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVTBGLES.h"
 #include "utils/log.h"
 #include "filesystem/SpecialProtocol.h"
 #include "settings/DisplaySettings.h"
@@ -39,7 +40,6 @@
 #include "threads/SingleLock.h"
 #include "VideoSyncIos.h"
 #include <vector>
-#undef BOOL
 
 #import <Foundation/Foundation.h>
 #import <OpenGLES/ES2/gl.h>
@@ -76,7 +76,7 @@ CWinSystemIOS::CWinSystemIOS() : CWinSystemBase()
   m_bIsBackgrounded = false;
   m_pDisplayLink = new CADisplayLinkWrapper;
   m_pDisplayLink->callbackClass = [[IOSDisplayLinkCallback alloc] init];
-  
+
 }
 
 CWinSystemIOS::~CWinSystemIOS()
@@ -95,10 +95,10 @@ bool CWinSystemIOS::DestroyWindowSystem()
   return true;
 }
 
-bool CWinSystemIOS::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction)
+bool CWinSystemIOS::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res)
 {
   //NSLog(@"%s", __PRETTY_FUNCTION__);
-	
+
   if(!SetFullScreen(fullScreen, res, false))
     return false;
 
@@ -117,6 +117,15 @@ bool CWinSystemIOS::CreateNewWindow(const std::string& name, bool fullScreen, RE
   m_eglext += " ";
 
   CLog::Log(LOGDEBUG, "EGL_EXTENSIONS:%s", m_eglext.c_str());
+
+  // register platform dependent objects
+  CDVDFactoryCodec::ClearHWAccels();
+  VTB::CDecoder::Register();
+  VIDEOPLAYER::CRendererFactory::ClearRenderer();
+  CLinuxRendererGLES::Register();
+  CRendererVTB::Register();
+  VIDEOPLAYER::CProcessInfoIOS::Register();
+
   return true;
 }
 
@@ -128,14 +137,14 @@ bool CWinSystemIOS::DestroyWindow()
 bool CWinSystemIOS::ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop)
 {
   //NSLog(@"%s", __PRETTY_FUNCTION__);
-	
+
   if (m_nWidth != newWidth || m_nHeight != newHeight)
   {
     m_nWidth  = newWidth;
     m_nHeight = newHeight;
   }
 
-  CRenderSystemGLES::ResetRenderSystem(newWidth, newHeight, false, 0);
+  CRenderSystemGLES::ResetRenderSystem(newWidth, newHeight);
 
   return true;
 }
@@ -143,15 +152,15 @@ bool CWinSystemIOS::ResizeWindow(int newWidth, int newHeight, int newLeft, int n
 bool CWinSystemIOS::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
 {
   //NSLog(@"%s", __PRETTY_FUNCTION__);
-	
+
   m_nWidth      = res.iWidth;
   m_nHeight     = res.iHeight;
   m_bFullScreen = fullScreen;
 
   CLog::Log(LOGDEBUG, "About to switch to %i x %i on screen %i",m_nWidth, m_nHeight, res.iScreen);
   SwitchToVideoMode(res.iWidth, res.iHeight, res.fRefreshRate, res.iScreen);
-  CRenderSystemGLES::ResetRenderSystem(res.iWidth, res.iHeight, fullScreen, res.fRefreshRate);
-  
+  CRenderSystemGLES::ResetRenderSystem(res.iWidth, res.iHeight);
+
   return true;
 }
 
@@ -159,13 +168,13 @@ UIScreenMode *getModeForResolution(int width, int height, unsigned int screenIdx
 {
   if( screenIdx >= [[UIScreen screens] count])
     return NULL;
-    
+
   UIScreen *aScreen = [[UIScreen screens]objectAtIndex:screenIdx];
   for ( UIScreenMode *mode in [aScreen availableModes] )
   {
     //for main screen also find modes where width and height are
     //exchanged (because of the 90°degree rotated buildinscreens)
-    if((mode.size.width == width && mode.size.height == height) || 
+    if((mode.size.width == width && mode.size.height == height) ||
         (screenIdx == 0 && mode.size.width == height && mode.size.height == width))
     {
       CLog::Log(LOGDEBUG,"Found matching mode");
@@ -183,7 +192,7 @@ bool CWinSystemIOS::SwitchToVideoMode(int width, int height, double refreshrate,
   // This can take several seconds.
   if( screenIdx >= GetNumScreens())
     return false;
-  
+
   //get the mode to pass to the controller
   UIScreenMode *newMode = getModeForResolution(width, height, screenIdx);
 
@@ -227,7 +236,7 @@ bool CWinSystemIOS::GetScreenResolution(int* w, int* h, double* fps, int screenI
     *w = firstMode.size.width;
     *h = firstMode.size.height;
   }
-  
+
   //for mainscreen use the eagl bounds
   //because mainscreen is build in
   //in 90° rotated
@@ -236,7 +245,7 @@ bool CWinSystemIOS::GetScreenResolution(int* w, int* h, double* fps, int screenI
     *w = [g_xbmcController getScreenSize].width;
     *h = [g_xbmcController getScreenSize].height;
   }
-  CLog::Log(LOGDEBUG,"Current resolution Screen: %i with %i x %i",screenIdx, *w, *h);  
+  CLog::Log(LOGDEBUG,"Current resolution Screen: %i with %i x %i",screenIdx, *w, *h);
   return true;
 }
 
@@ -258,7 +267,7 @@ void CWinSystemIOS::UpdateResolutions()
   //add the desktop resolutions of the other screens
   for(int i = 1; i < GetNumScreens(); i++)
   {
-    RESOLUTION_INFO res;      
+    RESOLUTION_INFO res;
     //get current resolution of screen i
     if(GetScreenResolution(&w, &h, &fps, i))
     {
@@ -266,7 +275,7 @@ void CWinSystemIOS::UpdateResolutions()
       CDisplaySettings::GetInstance().AddResolutionInfo(res);
     }
   }
-  
+
   //now just fill in the possible resolutions for the attached screens
   //and push to the resolution info vector
   FillInVideoModes();
@@ -294,7 +303,7 @@ void CWinSystemIOS::FillInVideoModes()
       w = mode.size.width;
       h = mode.size.height;
       UpdateDesktopResolution(res, disp, w, h, refreshrate);
-      CLog::Log(LOGNOTICE, "Found possible resolution for display %d with %d x %d\n", disp, w, h);      
+      CLog::Log(LOGNOTICE, "Found possible resolution for display %d with %d x %d\n", disp, w, h);
 
       //overwrite the mode str because  UpdateDesktopResolution adds a
       //"Full Screen". Since the current resolution is there twice
@@ -373,7 +382,7 @@ void CWinSystemIOS::OnAppFocusChange(bool focus)
 @implementation IOSDisplayLinkCallback
 @synthesize _videoSyncImpl;
 //--------------------------------------------------------------
-- (void) runDisplayLink;
+- (void) runDisplayLink
 {
   NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
   if (_videoSyncImpl != nil)
@@ -396,12 +405,12 @@ bool CWinSystemIOS::InitDisplayLink(CVideoSyncIos *syncImpl)
   {
     fprintf(stderr,"InitDisplayLink on internal");
   }
-  
+
   unsigned int currentScreenIdx = [[IOSScreenManager sharedInstance] GetScreenIdx];
   UIScreen * currentScreen = [[UIScreen screens] objectAtIndex:currentScreenIdx];
   [m_pDisplayLink->callbackClass SetVideoSyncImpl:syncImpl];
   m_pDisplayLink->impl = [currentScreen displayLinkWithTarget:m_pDisplayLink->callbackClass selector:@selector(runDisplayLink)];
-  
+
   [m_pDisplayLink->impl setFrameInterval:1];
   [m_pDisplayLink->impl addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
   return m_pDisplayLink->impl != nil;
@@ -428,9 +437,9 @@ void CWinSystemIOS::PresentRenderImpl(bool rendered)
 
 void CWinSystemIOS::SetVSyncImpl(bool enable)
 {
-  #if 0	
+  #if 0
     // set swapinterval if possible
-    void *eglSwapInterval;	
+    void *eglSwapInterval;
     eglSwapInterval = dlsym( RTLD_DEFAULT, "eglSwapInterval" );
     if ( eglSwapInterval )
     {
@@ -490,6 +499,3 @@ std::unique_ptr<CVideoSync> CWinSystemIOS::GetVideoSync(void *clock)
   std::unique_ptr<CVideoSync> pVSync(new CVideoSyncIos(clock));
   return pVSync;
 }
-
-#endif
-

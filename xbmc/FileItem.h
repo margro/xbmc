@@ -47,9 +47,13 @@ namespace MUSIC_INFO
 }
 class CVideoInfoTag;
 class CPictureInfoTag;
+
+namespace KODI
+{
 namespace GAME
 {
   class CGameInfoTag;
+}
 }
 
 class CAlbum;
@@ -97,29 +101,29 @@ class CFileItem :
 public:
   CFileItem(void);
   CFileItem(const CFileItem& item);
-  CFileItem(const CGUIListItem& item);
+  explicit CFileItem(const CGUIListItem& item);
   explicit CFileItem(const std::string& strLabel);
   explicit CFileItem(const char* strLabel);
   CFileItem(const CURL& path, bool bIsFolder);
   CFileItem(const std::string& strPath, bool bIsFolder);
-  CFileItem(const CSong& song);
+  explicit CFileItem(const CSong& song);
   CFileItem(const CSong& song, const MUSIC_INFO::CMusicInfoTag& music);
   CFileItem(const CURL &path, const CAlbum& album);
   CFileItem(const std::string &path, const CAlbum& album);
-  CFileItem(const CArtist& artist);
-  CFileItem(const CGenre& genre);
-  CFileItem(const MUSIC_INFO::CMusicInfoTag& music);
-  CFileItem(const CVideoInfoTag& movie);
-  CFileItem(const PVR::CPVREpgInfoTagPtr& tag);
-  CFileItem(const PVR::CPVRChannelPtr& channel);
-  CFileItem(const PVR::CPVRRecordingPtr& record);
-  CFileItem(const PVR::CPVRTimerInfoTagPtr& timer);
-  CFileItem(const CMediaSource& share);
-  CFileItem(std::shared_ptr<const ADDON::IAddon> addonInfo);
-  CFileItem(const EventPtr& eventLogEntry);
+  explicit CFileItem(const CArtist& artist);
+  explicit CFileItem(const CGenre& genre);
+  explicit CFileItem(const MUSIC_INFO::CMusicInfoTag& music);
+  explicit CFileItem(const CVideoInfoTag& movie);
+  explicit CFileItem(const PVR::CPVREpgInfoTagPtr& tag);
+  explicit CFileItem(const PVR::CPVRChannelPtr& channel);
+  explicit CFileItem(const PVR::CPVRRecordingPtr& record);
+  explicit CFileItem(const PVR::CPVRTimerInfoTagPtr& timer);
+  explicit CFileItem(const CMediaSource& share);
+  explicit CFileItem(std::shared_ptr<const ADDON::IAddon> addonInfo);
+  explicit CFileItem(const EventPtr& eventLogEntry);
 
-  virtual ~CFileItem(void);
-  virtual CGUIListItem *Clone() const { return new CFileItem(*this); };
+  ~CFileItem(void) override;
+  CGUIListItem *Clone() const override { return new CFileItem(*this); };
 
   const CURL GetURL() const;
   void SetURL(const CURL& url);
@@ -128,17 +132,22 @@ public:
   void SetPath(const std::string &path) { m_strPath = path; };
   bool IsPath(const std::string& path, bool ignoreURLOptions = false) const;
 
+  const CURL GetDynURL() const;
+  void SetDynURL(const CURL& url);
+  const std::string &GetDynPath() const;
+  void SetDynPath(const std::string &path);
+
   /*! \brief reset class to it's default values as per construction.
    Free's all allocated memory.
    \sa Initialize
    */
   void Reset();
-  const CFileItem& operator=(const CFileItem& item);
-  virtual void Archive(CArchive& ar);
-  virtual void Serialize(CVariant& value) const;
-  virtual void ToSortable(SortItem &sortable, Field field) const;
+  CFileItem& operator=(const CFileItem& item);
+  void Archive(CArchive& ar) override;
+  void Serialize(CVariant& value) const override;
+  void ToSortable(SortItem &sortable, Field field) const override;
   void ToSortable(SortItem &sortable, const Fields &fields) const;
-  virtual bool IsFileItem() const { return true; };
+  bool IsFileItem() const override { return true; };
 
   bool Exists(bool bUseCache = true) const;
 
@@ -227,6 +236,7 @@ public:
   bool IsPVRRecording() const;
   bool IsUsablePVRRecording() const;
   bool IsDeletedPVRRecording() const;
+  bool IsInProgressPVRRecording() const;
   bool IsPVRTimer() const;
   bool IsPVRRadioRDS() const;
   bool IsType(const char *ext) const;
@@ -246,7 +256,7 @@ public:
   void CleanString();
   void FillInDefaultIcon();
   void SetFileSizeLabel();
-  virtual void SetLabel(const std::string &strLabel);
+  void SetLabel(const std::string &strLabel) override;
   int GetVideoContentType() const; /* return VIDEODB_CONTENT_TYPE, but don't want to include videodb in this header */
   bool IsLabelPreformatted() const { return m_bLabelPreformatted; }
   void SetLabelPreformatted(bool bYesNo) { m_bLabelPreformatted=bYesNo; }
@@ -376,9 +386,9 @@ public:
     return m_gameInfoTag != NULL;
   }
 
-  GAME::CGameInfoTag* GetGameInfoTag();
+  KODI::GAME::CGameInfoTag* GetGameInfoTag();
 
-  inline const GAME::CGameInfoTag* GetGameInfoTag() const
+  inline const KODI::GAME::CGameInfoTag* GetGameInfoTag() const
   {
     return m_gameInfoTag;
   }
@@ -563,6 +573,7 @@ private:
   CBookmark GetResumePoint() const;
 
   std::string m_strPath;            ///< complete path to item
+  std::string m_strDynPath;
 
   SortSpecial m_specialSort;
   bool m_bIsParentFolder;
@@ -580,7 +591,7 @@ private:
   PVR::CPVRRadioRDSInfoTagPtr m_pvrRadioRDSInfoTag;
   CPictureInfoTag* m_pictureInfoTag;
   std::shared_ptr<const ADDON::IAddon> m_addonInfo;
-  GAME::CGameInfoTag* m_gameInfoTag;
+  KODI::GAME::CGameInfoTag* m_gameInfoTag;
   EventPtr m_eventLogEntry;
   bool m_bIsAlbum;
 
@@ -637,8 +648,8 @@ public:
 
   CFileItemList();
   explicit CFileItemList(const std::string& strPath);
-  virtual ~CFileItemList();
-  virtual void Archive(CArchive& ar);
+  ~CFileItemList() override;
+  void Archive(CArchive& ar) override;
   CFileItemPtr operator[] (int iItem);
   const CFileItemPtr operator[] (int iItem) const;
   CFileItemPtr operator[] (const std::string& strPath);

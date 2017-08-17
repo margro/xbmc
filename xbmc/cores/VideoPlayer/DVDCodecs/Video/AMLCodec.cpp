@@ -23,7 +23,7 @@
 #include "AMLCodec.h"
 #include "DynamicDll.h"
 
-#include "cores/VideoPlayer/DVDClock.h"
+#include "cores/VideoPlayer/TimingConstants.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
 #include "settings/AdvancedSettings.h"
@@ -1323,7 +1323,9 @@ int set_header_info(am_private_t *para)
 CAMLCodec::CAMLCodec()
   : m_opened(false)
   , m_ptsIs64us(false)
+  , m_speed(DVD_PLAYSPEED_NORMAL)
   , m_cur_pts(INT64_0)
+  , m_ptsOverflow(0)
   , m_last_pts(0)
   , m_bufferIndex(-1)
   , m_state(0)
@@ -1367,12 +1369,12 @@ int CAMLCodec::GetAmlDuration() const
 bool CAMLCodec::OpenDecoder(CDVDStreamInfo &hints)
 {
   m_speed = DVD_PLAYSPEED_NORMAL;
+  m_drain = false;
   m_cur_pts = INT64_0;
   m_dst_rect.SetRect(0, 0, 0, 0);
-  m_zoom = -1;
+  m_zoom = -1.0f;
   m_contrast = -1;
   m_brightness = -1;
-  m_start_adj = 0;
   m_hints = hints;
   m_state = 0;
   m_frameSizes.clear();
@@ -1603,6 +1605,8 @@ bool CAMLCodec::OpenDecoder(CDVDStreamInfo &hints)
 
   CLog::Log(LOGNOTICE, "CAMLCodec::OpenDecoder - using V4L2 pts format: %s", m_ptsIs64us ? "64Bit":"32Bit");
 
+  m_ptsOverflow = m_ptsIs64us ? 0 : INT64_0;
+
   m_opened = true;
   // vcodec is open, update speed if it was
   // changed before VideoPlayer called OpenDecoder.
@@ -1731,8 +1735,8 @@ void CAMLCodec::Reset()
 
   // reset some interal vars
   m_cur_pts = INT64_0;
+  m_ptsOverflow = m_ptsIs64us ? 0 : INT64_0;
   m_state = 0;
-  m_start_adj = 0;
   m_frameSizes.clear();
   m_frameSizeSum = 0;
 
@@ -1741,113 +1745,99 @@ void CAMLCodec::Reset()
   SetPollDevice(am_private->vcodec.cntl_handle);
 }
 
-int CAMLCodec::Decode(uint8_t *pData, size_t iSize, double dts, double pts)
+bool CAMLCodec::AddData(uint8_t *pData, size_t iSize, double dts, double pts)
 {
-  if (!m_opened)
-    return VC_ERROR;
+  if (!m_opened || !pData)
+    return false;
 
-  int rtn(0);
+  m_frameSizes.push_back(iSize);
+  m_frameSizeSum += iSize;
 
-  float timesize(GetTimeSize());
-  if (pData)
+  am_private->am_pkt.data = pData;
+  am_private->am_pkt.data_size = iSize;
+
+  am_private->am_pkt.newflag    = 1;
+  am_private->am_pkt.isvalid    = 1;
+  am_private->am_pkt.avduration = 0;
+
+  // handle pts, including 31bit wrap, aml can only handle 31
+  // bit pts as it uses an int in kernel.
+  if (m_hints.ptsinvalid || pts == DVD_NOPTS_VALUE)
+    am_private->am_pkt.avpts = INT64_0;
+  else
   {
-    m_frameSizes.push_back(iSize);
-    m_frameSizeSum += iSize;
-
-    am_private->am_pkt.data = pData;
-    am_private->am_pkt.data_size = iSize;
-
-    am_private->am_pkt.newflag    = 1;
-    am_private->am_pkt.isvalid    = 1;
-    am_private->am_pkt.avduration = 0;
-
-    // handle pts, including 31bit wrap, aml can only handle 31
-    // bit pts as it uses an int in kernel.
-    if (m_hints.ptsinvalid || pts == DVD_NOPTS_VALUE)
-      am_private->am_pkt.avpts = INT64_0;
-    else
-    {
-      am_private->am_pkt.avpts = 0.5 + (pts * PTS_FREQ) / DVD_TIME_BASE;\
-      if (!m_start_adj && am_private->am_pkt.avpts >= 0x7fffffff)
-        m_start_adj = am_private->am_pkt.avpts & ~0x0000ffff;
-      am_private->am_pkt.avpts -= m_start_adj;
-      m_state |= STATE_HASPTS;
-    }
-
-    // handle dts, including 31bit wrap, aml can only handle 31
-    // bit dts as it uses an int in kernel.
-    if (dts == DVD_NOPTS_VALUE)
-      am_private->am_pkt.avdts = am_private->am_pkt.avpts;
-    else
-    {
-      am_private->am_pkt.avdts = 0.5 + (dts * PTS_FREQ) / DVD_TIME_BASE;
-      if (!m_start_adj && am_private->am_pkt.avdts >= 0x7fffffff)
-        m_start_adj = am_private->am_pkt.avdts & ~0x0000ffff;
-      am_private->am_pkt.avdts -= m_start_adj;
-
-      // For VC1 AML decoder uses PTS only on I-Frames
-      if (am_private->am_pkt.avpts == INT64_0 && (((size_t)am_private->gcodec.param) & KEYFRAME_PTS_ONLY))
-        am_private->am_pkt.avpts = am_private->am_pkt.avdts;
-    }
-    // We use this to determine the fill state if no PTS is given
-    if (m_cur_pts == INT64_0)
-    {
-      m_cur_pts = am_private->am_pkt.avdts;
-      // No PTS given -> use first DTS for AML ptsserver initialization
-      if ((m_state & STATE_HASPTS) == 0)
-         am_private->am_pkt.avpts = am_private->am_pkt.avdts;
-    }
-
-    // some formats need header/data tweaks.
-    // the actual write occurs once in write_av_packet
-    // and is controlled by am_pkt.newflag.
-    set_header_info(am_private);
-
-    // loop until we write all into codec, am_pkt.isvalid
-    // will get set to zero once everything is consumed.
-    // PLAYER_SUCCESS means all is ok, not all bytes were written.
-    int loop = 0;
-    while (am_private->am_pkt.isvalid && loop < 100)
-    {
-      // abort on any errors.
-      if (write_av_packet(am_private, &am_private->am_pkt) != PLAYER_SUCCESS)
-        break;
-
-      if (am_private->am_pkt.isvalid)
-        CLog::Log(LOGDEBUG, "CAMLCodec::Decode: write_av_packet looping");
-      loop++;
-    }
-    if (loop == 100)
-      // Decoder got stuck; Reset
-      Reset();
-
-    if ((m_state & STATE_PREFILLED) == 0 && timesize >= 1.0)
-       m_state |= STATE_PREFILLED;
+    am_private->am_pkt.avpts = 0.5 + (pts * PTS_FREQ) / DVD_TIME_BASE;
+    m_state |= STATE_HASPTS;
   }
 
-  if ((m_state & STATE_PREFILLED) != 0 && timesize > 0.5 &&  DequeueBuffer() == 0)
-    rtn |= VC_PICTURE;
-
-  if (((rtn & VC_PICTURE) == 0 && timesize < 2.0) || timesize < 1.0)
-    rtn |= VC_BUFFER;
-
-
-  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
+  // handle dts, including 31bit wrap, aml can only handle 31
+  // bit dts as it uses an int in kernel.
+  if (dts == DVD_NOPTS_VALUE)
+    am_private->am_pkt.avdts = am_private->am_pkt.avpts;
+  else
   {
-    CLog::Log(LOGDEBUG, "CAMLCodec::Decode: ret: %d, sz: %u, dts_in: %0.4lf[%llX], pts_in: %0.4lf[%llX], adj:%llu, ptsOut:%0.4f, amlpts:%d, idx:%u, timesize:%0.4f",
-      rtn,
+    am_private->am_pkt.avdts = 0.5 + (dts * PTS_FREQ) / DVD_TIME_BASE;
+
+    // For VC1 AML decoder uses PTS only on I-Frames
+    if (am_private->am_pkt.avpts == INT64_0 && (((size_t)am_private->gcodec.param) & KEYFRAME_PTS_ONLY))
+      am_private->am_pkt.avpts = am_private->am_pkt.avdts;
+  }
+
+  //Handle PTS overflow
+  if (!m_ptsIs64us)
+  {
+    if (am_private->am_pkt.avpts != INT64_0)
+    {
+      if (m_ptsOverflow == INT64_0)
+        m_ptsOverflow = am_private->am_pkt.avpts & 0xFFFF80000000ULL;
+      am_private->am_pkt.avpts &= 0x7FFFFFFF;
+    }
+    if (am_private->am_pkt.avdts != INT64_0)
+      am_private->am_pkt.avdts &= 0x7FFFFFFF;
+  }
+
+  // We use this to determine the fill state if no PTS is given
+  if (m_cur_pts == INT64_0)
+  {
+    m_cur_pts = am_private->am_pkt.avdts;
+    // No PTS given -> use first DTS for AML ptsserver initialization
+    if ((m_state & STATE_HASPTS) == 0)
+      am_private->am_pkt.avpts = am_private->am_pkt.avdts;
+  }
+
+  // some formats need header/data tweaks.
+  // the actual write occurs once in write_av_packet
+  // and is controlled by am_pkt.newflag.
+  set_header_info(am_private);
+
+  // loop until we write all into codec, am_pkt.isvalid
+  // will get set to zero once everything is consumed.
+  // PLAYER_SUCCESS means all is ok, not all bytes were written.
+  int loop = 0;
+  while (am_private->am_pkt.isvalid && loop < 100)
+  {
+    // abort on any errors.
+    if (write_av_packet(am_private, &am_private->am_pkt) != PLAYER_SUCCESS)
+      break;
+
+    if (am_private->am_pkt.isvalid)
+      CLog::Log(LOGDEBUG, "CAMLCodec::Decode: write_av_packet looping");
+    loop++;
+  }
+  if (loop == 100)
+  {
+    // Decoder got stuck; Reset
+    Reset();
+    return false;
+  }
+
+  CLog::Log(LOGDEBUG, LOGVIDEO, "CAMLCodec::AddData: sz: %u, dts_in: %0.4lf[%llX], pts_in: %0.4lf[%llX], overflow:%llx",
       static_cast<unsigned int>(iSize),
       dts / DVD_TIME_BASE, am_private->am_pkt.avdts,
       pts / DVD_TIME_BASE, am_private->am_pkt.avpts,
-      m_start_adj,
-      static_cast<float>(m_cur_pts)/PTS_FREQ,
-      static_cast<int>(m_cur_pts),
-      m_bufferIndex,
-      timesize
+      m_ptsOverflow
     );
-  }
-
-  return rtn;
+  return true;
 }
 
 std::atomic_flag CAMLCodec::m_pollSync = ATOMIC_FLAG_INIT;
@@ -1885,11 +1875,13 @@ int CAMLCodec::ReleaseFrame(const uint32_t index, bool drop)
   vbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   vbuf.index = index;
 
+  if (!m_amlVideoFile)
+    return 0;
+
   if (drop)
     vbuf.flags |= V4L2_BUF_FLAG_DONE;
 
-  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
-    CLog::Log(LOGDEBUG, "CAMLCodec::ReleaseFrame idx:%u", index);
+  CLog::Log(LOGDEBUG, LOGVIDEO, "CAMLCodec::ReleaseFrame idx:%u", index);
 
   if ((ret = m_amlVideoFile->IOControl(VIDIOC_QBUF, &vbuf)) < 0)
     CLog::Log(LOGERROR, "CAMLCodec::ReleaseFrame - VIDIOC_QBUF failed: %s", strerror(errno));
@@ -1904,6 +1896,8 @@ int CAMLCodec::DequeueBuffer()
   //Driver change from 10 to 0ms latency, throttle here
   std::chrono::time_point<std::chrono::system_clock> now(std::chrono::system_clock::now());
 
+  unsigned int waitTime(10);
+DRAIN:
   if (m_amlVideoFile->IOControl(VIDIOC_DQBUF, &vbuf) < 0)
   {
     if (errno != EAGAIN)
@@ -1911,8 +1905,14 @@ int CAMLCodec::DequeueBuffer()
 
     std::chrono::milliseconds elapsed(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - now).count());
 
-    if (elapsed < std::chrono::milliseconds(10))
-      std::this_thread::sleep_for(std::chrono::milliseconds(10) - elapsed);
+    if (elapsed < std::chrono::milliseconds(waitTime))
+      std::this_thread::sleep_for(std::chrono::milliseconds(waitTime) - elapsed);
+
+    if (m_drain && elapsed < std::chrono::milliseconds(100))
+    {
+      waitTime += 10;
+      goto DRAIN;
+    }
 
     return -errno;
   }
@@ -1948,29 +1948,52 @@ float CAMLCodec::GetTimeSize()
     m_frameSizeSum -= m_frameSizes.front();
     m_frameSizes.pop_front();
   }
-  if (bs.free_len < bs.data_len)
+  if (bs.free_len < (bs.data_len >> 1))
     return 7.0;
 
   return (float)(m_frameSizes.size() * am_private->video_rate) / UNIT_FREQ;
 }
 
-bool CAMLCodec::GetPicture(DVDVideoPicture *pDvdVideoPicture)
+CDVDVideoCodec::VCReturn CAMLCodec::GetPicture(VideoPicture *pVideoPicture)
 {
   if (!m_opened)
-    return false;
+    return CDVDVideoCodec::VC_ERROR;
 
-  pDvdVideoPicture->iFlags = DVP_FLAG_ALLOCATED;
-  pDvdVideoPicture->format = RENDER_FMT_AML;
+  float timesize(GetTimeSize());
+  if(!m_drain && timesize < 1.0)
+    return CDVDVideoCodec::VC_BUFFER;
 
-  if (m_last_pts <= 0)
-    pDvdVideoPicture->iDuration = (double)(am_private->video_rate * DVD_TIME_BASE) / UNIT_FREQ;
+  if (DequeueBuffer() == 0)
+  {
+    pVideoPicture->iFlags = 0;
+
+    if (m_last_pts <= 0)
+      pVideoPicture->iDuration = (double)(am_private->video_rate * DVD_TIME_BASE) / UNIT_FREQ;
+    else
+    {
+      // Check for int overflow
+      if (m_cur_pts + 0xFFFFFFF < m_last_pts)
+      {
+        m_last_pts -= 0x7FFFFFFF;
+        m_ptsOverflow += 0x80000000;
+        CLog::Log(LOGDEBUG, "CAMLCodec::GetPicture, PTS overflow incremented(%lld)", m_ptsOverflow);
+      }
+      pVideoPicture->iDuration = (double)((m_cur_pts - m_last_pts) * DVD_TIME_BASE) / PTS_FREQ;
+    }
+
+    pVideoPicture->dts = DVD_NOPTS_VALUE;
+    pVideoPicture->pts = (double)(m_cur_pts + m_ptsOverflow) / PTS_FREQ * DVD_TIME_BASE;
+
+    CLog::Log(LOGDEBUG, LOGVIDEO, "CAMLCodec::GetPicture: index: %u, pts: %0.4lf[%llX], overflow: %llX",m_bufferIndex, pVideoPicture->pts/DVD_TIME_BASE, m_cur_pts, m_ptsOverflow);
+
+    return CDVDVideoCodec::VC_PICTURE;
+  }
+  else if (m_drain)
+    return CDVDVideoCodec::VC_EOF;
   else
-    pDvdVideoPicture->iDuration = (double)((m_cur_pts - m_last_pts) * DVD_TIME_BASE) / PTS_FREQ;
+    usleep(5000);
 
-  pDvdVideoPicture->dts = DVD_NOPTS_VALUE;
-  pDvdVideoPicture->pts = (double)GetCurPts() / PTS_FREQ * DVD_TIME_BASE;
-
-  return true;
+  return CDVDVideoCodec::VC_NONE;
 }
 
 void CAMLCodec::SetSpeed(int speed)
@@ -2047,10 +2070,20 @@ void CAMLCodec::SetVideoSaturation(const int saturation)
   SysfsUtils::SetInt("/sys/class/video/saturation", saturation);
 }
 
-void CAMLCodec::SetVideo3dMode(const int mode3d)
+bool CAMLCodec::SetVideo3dMode(const int mode3d)
 {
-  CLog::Log(LOGDEBUG, "CAMLCodec::SetVideo3dMode:mode3d(0x%x)", mode3d);
-  SysfsUtils::SetInt("/sys/class/ppmgr/ppmgr_3d_mode", mode3d);
+  bool result = true;
+  if (SysfsUtils::Has("/sys/class/ppmgr/ppmgr_3d_mode"))
+  {
+    CLog::Log(LOGDEBUG, "CAMLCodec::SetVideo3dMode:mode3d(0x%x)", mode3d);
+    SysfsUtils::SetInt("/sys/class/ppmgr/ppmgr_3d_mode", mode3d);
+  }
+  else
+  {
+    CLog::Log(LOGINFO, "CAMLCodec::SetVideo3dMode: ppmgr_3d support not found in kernel.");
+    result = false;
+  }
+  return result;
 }
 
 std::string CAMLCodec::GetStereoMode()
@@ -2184,13 +2217,41 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
   {
     std::string mode = GetStereoMode();
     if (mode == "left_right")
-      SetVideo3dMode(MODE_3D_TO_2D_L);
+    {
+      if (!SetVideo3dMode(MODE_3D_TO_2D_L))
+      {
+        // fall back to software scaling if no hw support
+        // was found
+        dst_rect.x2 *= 2.0;
+      }
+    }
     else if (mode == "right_left")
-      SetVideo3dMode(MODE_3D_TO_2D_R);
+    {
+      if (!SetVideo3dMode(MODE_3D_TO_2D_R))
+      {
+        // fall back to software scaling if no hw support
+        // was found
+        dst_rect.x2 *= 2.0;
+      }
+    }
     else if (mode == "top_bottom")
-      SetVideo3dMode(MODE_3D_TO_2D_T);
+    {
+      if (!SetVideo3dMode(MODE_3D_TO_2D_T))
+      {
+        // fall back to software scaling if no hw support
+        // was found
+        dst_rect.y2 *= 2.0;
+      }
+    }
     else if (mode == "bottom_top")
-      SetVideo3dMode(MODE_3D_TO_2D_B);
+    {
+      if (!SetVideo3dMode(MODE_3D_TO_2D_B))
+      {
+        // fall back to software scaling if no hw support
+        // was found
+        dst_rect.y2 *= 2.0;
+      }
+    }
     else
       SetVideo3dMode(MODE_3D_DISABLE);
   }

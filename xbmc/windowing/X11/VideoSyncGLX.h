@@ -19,8 +19,6 @@
  *
  */
 
-#if defined(HAS_GLX)
-
 #include "windowing/VideoSync.h"
 #include "system_gl.h"
 #include <X11/X.h>
@@ -32,13 +30,13 @@
 class CVideoSyncGLX : public CVideoSync, IDispResource
 {
 public:
-  CVideoSyncGLX(void *clock) : CVideoSync(clock) {};
-  virtual bool Setup(PUPDATECLOCK func);
-  virtual void Run(std::atomic<bool>& stop);
-  virtual void Cleanup();
-  virtual float GetFps();
-  virtual void OnLostDisplay();
-  virtual void OnResetDisplay();
+  explicit CVideoSyncGLX(void *clock) : CVideoSync(clock) {};
+  bool Setup(PUPDATECLOCK func) override;
+  void Run(CEvent& stopEvent) override;
+  void Cleanup() override;
+  float GetFps() override;
+  void OnLostDisplay() override;
+  void OnResetDisplay() override;
 
 private:
   int  (*m_glXWaitVideoSyncSGI) (int, int, unsigned int*);
@@ -52,5 +50,3 @@ private:
   volatile bool m_displayReset;
   CEvent m_lostEvent;
 };
-
-#endif

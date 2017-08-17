@@ -34,10 +34,11 @@ namespace INFO
 class InfoSingle : public InfoBool
 {
 public:
-  InfoSingle(const std::string &condition, int context);
-  virtual ~InfoSingle() {};
+  InfoSingle(const std::string &expression, int context, unsigned int &refreshCounter)
+    : InfoBool(expression, context, refreshCounter) {};
+  void Initialize() override;
 
-  virtual void Update(const CGUIListItem *item);
+  void Update(const CGUIListItem *item) override;
 private:
   int m_condition;             ///< actual condition this represents
 };
@@ -47,10 +48,13 @@ private:
 class InfoExpression : public InfoBool
 {
 public:
-  InfoExpression(const std::string &expression, int context);
-  virtual ~InfoExpression() {};
+  InfoExpression(const std::string &expression, int context, unsigned int &refreshCounter)
+    : InfoBool(expression, context, refreshCounter) {};
+  ~InfoExpression() override = default;
 
-  virtual void Update(const CGUIListItem *item);
+  void Initialize() override;
+
+  void Update(const CGUIListItem *item) override;
 private:
   typedef enum
   {
@@ -73,7 +77,7 @@ private:
   class InfoSubexpression
   {
   public:
-    virtual ~InfoSubexpression(void) {}; // so we can destruct derived classes using a pointer to their base class
+    virtual ~InfoSubexpression(void) = default; // so we can destruct derived classes using a pointer to their base class
     virtual bool Evaluate(const CGUIListItem *item) = 0;
     virtual node_type_t Type() const=0;
   };
@@ -85,8 +89,8 @@ private:
   {
   public:
     InfoLeaf(InfoPtr info, bool invert) : m_info(info), m_invert(invert) {};
-    virtual bool Evaluate(const CGUIListItem *item);
-    virtual node_type_t Type() const { return NODE_LEAF; };
+    bool Evaluate(const CGUIListItem *item) override;
+    node_type_t Type() const override { return NODE_LEAF; };
   private:
     InfoPtr m_info;
     bool m_invert;
@@ -99,8 +103,8 @@ private:
     InfoAssociativeGroup(node_type_t type, const InfoSubexpressionPtr &left, const InfoSubexpressionPtr &right);
     void AddChild(const InfoSubexpressionPtr &child);
     void Merge(std::shared_ptr<InfoAssociativeGroup> other);
-    virtual bool Evaluate(const CGUIListItem *item);
-    virtual node_type_t Type() const { return m_type; };
+    bool Evaluate(const CGUIListItem *item) override;
+    node_type_t Type() const override { return m_type; };
   private:
     node_type_t m_type;
     std::list<InfoSubexpressionPtr> m_children;

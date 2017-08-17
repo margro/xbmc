@@ -48,6 +48,8 @@ elseif(CORE_SYSTEM_NAME STREQUAL android)
 elseif(CORE_SYSTEM_NAME STREQUAL ios)
   if(NOT CPU MATCHES arm64)
     list(APPEND ffmpeg_conf --cpu=cortex-a8)
+  else()
+    list(APPEND ffmpeg_conf "--as=${NATIVEPREFIX}/bin/gas-preprocessor.pl -arch aarch64 -- ${CMAKE_C_COMPILER}")
   endif()
   list(APPEND ffmpeg_conf --disable-decoder=mpeg_xvmc --disable-vda --disable-crystalhd --enable-videotoolbox
                           --target-os=darwin)
@@ -56,11 +58,11 @@ elseif(CORE_SYSTEM_NAME STREQUAL osx)
                           --disable-decoder=mpeg_xvmc --disable-vda --disable-crystalhd --enable-videotoolbox
                           --target-os=darwin
                           --disable-securetransport)
-elseif(CORE_SYSTEM_NAME STREQUAL rbpi)
+elseif(CORE_PLATFORM_NAME STREQUAL rbpi)
   list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau)
 endif()
 
-if(CPU MATCHES arm OR CORE_SYSTEM_NAME STREQUAL rbpi)
+if(CPU MATCHES arm OR CORE_PLATFORM_NAME STREQUAL rbpi)
   list(APPEND ffmpeg_conf --enable-pic --disable-armv5te --disable-armv6t2)
 elseif(CPU MATCHES mips)
   list(APPEND ffmpeg_conf --disable-mips32r2 --disable-mipsdspr1 --disable-mipsdspr2)

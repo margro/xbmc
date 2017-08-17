@@ -30,10 +30,7 @@ CDVDInputStream::CDVDInputStream(DVDStreamType streamType, const CFileItem& file
   m_item = fileitem;
 }
 
-CDVDInputStream::~CDVDInputStream()
-{
-
-}
+CDVDInputStream::~CDVDInputStream() = default;
 
 bool CDVDInputStream::Open()
 {
@@ -49,7 +46,7 @@ void CDVDInputStream::Close()
 
 std::string CDVDInputStream::GetFileName()
 {
-  CURL url(m_item.GetPath());
+  CURL url(m_item.GetDynPath());
 
   url.SetProtocolOptions("");
   return url.Get();
@@ -57,5 +54,5 @@ std::string CDVDInputStream::GetFileName()
 
 CURL CDVDInputStream::GetURL()
 {
-  return m_item.GetURL();
+  return m_item.GetDynURL();
 }

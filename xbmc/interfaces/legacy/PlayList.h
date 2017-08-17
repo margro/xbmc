@@ -65,7 +65,8 @@ namespace XBMCAddon
       PLAYLIST::CPlayList *pPlayList;
 
     public:
-      PlayList(int playList);
+      explicit PlayList(int playList);
+      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
       virtual ~PlayList();
 
 #ifdef DOXYGEN_SHOULD_USE_THIS

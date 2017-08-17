@@ -21,8 +21,6 @@
 #include "PlatformDefs.h"
 #include "ZeroconfAvahi.h"
 
-#ifdef HAS_AVAHI
-
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -40,7 +38,7 @@
 ///helper RAII-struct to block event loop for modifications
 struct ScopedEventLoopBlock
 {
-  ScopedEventLoopBlock(AvahiThreadedPoll* fp_poll):mp_poll(fp_poll)
+  explicit ScopedEventLoopBlock(AvahiThreadedPoll* fp_poll):mp_poll(fp_poll)
   {
     avahi_threaded_poll_lock(mp_poll);
   }
@@ -431,6 +429,3 @@ void CZeroconfAvahi::addService(tServiceMap::mapped_type fp_service_info, AvahiC
     //! @todo what now? reset the group? free it?
   }
 }
-
-#endif // HAS_AVAHI
-

@@ -49,7 +49,7 @@ extern "C" FILE *fopen_utf8(const char *_Filename, const char *_Mode);
 #endif
 
 //  Entry point of a dll (DllMain)
-typedef BOOL (APIENTRY *EntryFunc)(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
+typedef int (APIENTRY *EntryFunc)(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
 
 
 #ifdef TARGET_POSIX
@@ -355,7 +355,7 @@ int DllLoader::ResolveImports(void)
 
 const char* DllLoader::ResolveReferencedDll(const char* dll)
 {
-  DllLoader* pDll = (DllLoader*) DllLoaderContainer::LoadModule(dll, GetPath(), m_bLoadSymbols);
+  DllLoader* pDll = static_cast<DllLoader*>(DllLoaderContainer::LoadModule(dll, GetPath(), m_bLoadSymbols));
 
   if (!pDll)
   {
@@ -501,7 +501,7 @@ Export* DllLoader::GetExportByFunctionName(const char* sFunctionName)
 
 int DllLoader::ResolveOrdinal(const char *sName, unsigned long ordinal, void **fixup)
 {
-  DllLoader* pDll = (DllLoader*) DllLoaderContainer::GetModule(sName);
+  DllLoader* pDll = static_cast<DllLoader*>(DllLoaderContainer::GetModule(sName));
 
   if (pDll)
   {
@@ -522,7 +522,7 @@ int DllLoader::ResolveOrdinal(const char *sName, unsigned long ordinal, void **f
 
 int DllLoader::ResolveName(const char *sName, char* sFunction, void **fixup)
 {
-  DllLoader* pDll = (DllLoader*) DllLoaderContainer::GetModule(sName);
+  DllLoader* pDll = static_cast<DllLoader*>(DllLoaderContainer::GetModule(sName));
 
   if (pDll)
   {

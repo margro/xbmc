@@ -77,7 +77,7 @@ namespace XBMCAddon
 
       void playStream(const String& item = emptyString, const XBMCAddon::xbmcgui::ListItem* listitem = NULL, bool windowed = false);
       void playPlaylist(const PlayList* playlist = NULL,
-                        bool windowed = false, int startpos=-1);
+      bool windowed = false, int startpos=-1);
       void playCurrent(bool windowed = false);
 
     public:
@@ -89,7 +89,8 @@ namespace XBMCAddon
       // Construct a Player proxying the given generated binding. The 
       //  construction of a Player needs to identify whether or not any 
       //  callbacks will be executed asynchronously or not.
-      Player(int playerCore = 0);
+      explicit Player(int playerCore = 0);
+      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
       virtual ~Player(void);
 #endif
 
@@ -711,15 +712,15 @@ namespace XBMCAddon
 #endif
 
 #if !defined SWIG && !defined DOXYGEN_SHOULD_SKIP_THIS
-      SWIGHIDDENVIRTUAL void OnPlayBackStarted();
-      SWIGHIDDENVIRTUAL void OnPlayBackEnded();
-      SWIGHIDDENVIRTUAL void OnPlayBackStopped();
-      SWIGHIDDENVIRTUAL void OnPlayBackPaused();
-      SWIGHIDDENVIRTUAL void OnPlayBackResumed();
-      SWIGHIDDENVIRTUAL void OnQueueNextItem();
-      SWIGHIDDENVIRTUAL void    OnPlayBackSpeedChanged(int iSpeed);
-      SWIGHIDDENVIRTUAL void    OnPlayBackSeek(int iTime, int seekOffset);
-      SWIGHIDDENVIRTUAL void    OnPlayBackSeekChapter(int iChapter);
+      SWIGHIDDENVIRTUAL void OnPlayBackStarted() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackEnded() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackStopped() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackPaused() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackResumed() override;
+      SWIGHIDDENVIRTUAL void OnQueueNextItem() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackSpeedChanged(int iSpeed) override;
+      SWIGHIDDENVIRTUAL void OnPlayBackSeek(int64_t iTime, int64_t seekOffset) override;
+      SWIGHIDDENVIRTUAL void OnPlayBackSeekChapter(int iChapter) override;
 #endif
 
     protected:

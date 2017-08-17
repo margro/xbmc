@@ -26,8 +26,8 @@ class IAESound
 {
 protected:
   friend class IAE;
-  IAESound(const std::string &filename) {}
-  virtual ~IAESound() {}
+  explicit IAESound(const std::string &filename) {}
+  virtual ~IAESound() = default;
 
 public:
   /* play the sound this object represents */

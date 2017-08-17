@@ -860,7 +860,6 @@ unsigned int CAESinkPULSE::AddPackets(uint8_t **data, unsigned int frames, unsig
   while ((length = pa_stream_writable_size(m_Stream)) < m_periodSize)
     pa_threaded_mainloop_wait(m_MainLoop);
 
-  unsigned int free = length;
   length =  std::min((unsigned int)length, available);
 
   int error = pa_stream_write(m_Stream, buffer, length, NULL, 0, PA_SEEK_RELATIVE);
@@ -936,11 +935,11 @@ void CAESinkPULSE::SetVolume(float volume)
     else
       pa_cvolume_set(&m_Volume, m_Channels, pavolume);
 
-      pa_operation *op = pa_context_set_sink_input_volume(m_Context, sink_input_idx, &m_Volume, NULL, NULL);
-      if (op == NULL)
-        CLog::Log(LOGERROR, "PulseAudio: Failed to set volume");
-      else
-        pa_operation_unref(op);
+    pa_operation *op = pa_context_set_sink_input_volume(m_Context, sink_input_idx, &m_Volume, NULL, NULL);
+    if (op == NULL)
+      CLog::Log(LOGERROR, "PulseAudio: Failed to set volume");
+    else
+      pa_operation_unref(op);
 
     pa_threaded_mainloop_unlock(m_MainLoop);
   }

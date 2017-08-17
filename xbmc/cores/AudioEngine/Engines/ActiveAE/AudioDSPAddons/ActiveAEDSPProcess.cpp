@@ -173,7 +173,7 @@ bool CActiveAEDSPProcess::Create(const AEAudioFormat &inputFormat, const AEAudio
 
   if (iStreamType == AE_DSP_ASTREAM_AUTO)
     m_streamTypeUsed = m_streamTypeDetected;
-  else if (iStreamType >= AE_DSP_ASTREAM_BASIC || iStreamType < AE_DSP_ASTREAM_AUTO)
+  else if (iStreamType >= AE_DSP_ASTREAM_BASIC && iStreamType < AE_DSP_ASTREAM_AUTO)
     m_streamTypeUsed = iStreamType;
   else
   {
@@ -657,7 +657,7 @@ bool CActiveAEDSPProcess::MasterModeChange(int iModeID, AE_DSP_STREAMTYPE iStrea
     CLog::Log(LOGDEBUG, "  ----  Input stream  ----");
     if (iStreamType == AE_DSP_ASTREAM_AUTO)
       m_streamTypeUsed = m_streamTypeDetected;
-    else if (iStreamType >= AE_DSP_ASTREAM_BASIC || iStreamType < AE_DSP_ASTREAM_AUTO)
+    else if (iStreamType >= AE_DSP_ASTREAM_BASIC && iStreamType < AE_DSP_ASTREAM_AUTO)
       m_streamTypeUsed = iStreamType;
     else
     {
@@ -911,7 +911,7 @@ bool CActiveAEDSPProcess::Process(CSampleBuffer *in, CSampleBuffer *out)
    */
   for (unsigned int i = 0; i < m_addons_InputProc.size(); ++i)
   {
-    if (!m_addons_InputProc[i].pAddon->InputProcess(&m_addons_InputProc[i].handle, (const float **)lastOutArray, frames))
+    if (!m_addons_InputProc[i].pAddon->InputProcess(&m_addons_InputProc[i].handle, const_cast<const float**>(lastOutArray), frames))
     {
       CLog::Log(LOGERROR, "ActiveAE DSP - %s - input process failed on addon No. %i", __FUNCTION__, i);
       return false;
@@ -927,7 +927,9 @@ bool CActiveAEDSPProcess::Process(CSampleBuffer *in, CSampleBuffer *out)
   {
     startTime = CurrentHostCounter();
 
-    frames = m_addon_InputResample.pAddon->InputResampleProcess(&m_addon_InputResample.handle, lastOutArray, m_processArray[togglePtr], frames);
+    frames = m_addon_InputResample.pAddon->InputResampleProcess(&m_addon_InputResample.handle,
+                                                                const_cast<const float**>(lastOutArray),
+                                                                m_processArray[togglePtr], frames);
     if (frames == 0)
       return false;
 
@@ -945,7 +947,9 @@ bool CActiveAEDSPProcess::Process(CSampleBuffer *in, CSampleBuffer *out)
   {
     startTime = CurrentHostCounter();
 
-    frames = m_addons_PreProc[i].pAddon->PreProcess(&m_addons_PreProc[i].handle, m_addons_PreProc[i].iAddonModeNumber, lastOutArray, m_processArray[togglePtr], frames);
+    frames = m_addons_PreProc[i].pAddon->PreProcess(&m_addons_PreProc[i].handle,
+                                                    m_addons_PreProc[i].iAddonModeNumber,
+                                                    const_cast<const float**>(lastOutArray), m_processArray[togglePtr], frames);
     if (frames == 0)
       return false;
 
@@ -964,7 +968,9 @@ bool CActiveAEDSPProcess::Process(CSampleBuffer *in, CSampleBuffer *out)
   {
     startTime = CurrentHostCounter();
 
-    frames = m_addons_MasterProc[m_activeMode].pAddon->MasterProcess(&m_addons_MasterProc[m_activeMode].handle, lastOutArray, m_processArray[togglePtr], frames);
+    frames = m_addons_MasterProc[m_activeMode].pAddon->MasterProcess(&m_addons_MasterProc[m_activeMode].handle,
+                                                                     const_cast<const float**>(lastOutArray),
+                                                                     m_processArray[togglePtr], frames);
     if (frames == 0)
       return false;
 
@@ -1013,7 +1019,10 @@ bool CActiveAEDSPProcess::Process(CSampleBuffer *in, CSampleBuffer *out)
   {
     startTime = CurrentHostCounter();
 
-    frames = m_addons_PostProc[i].pAddon->PostProcess(&m_addons_PostProc[i].handle, m_addons_PostProc[i].iAddonModeNumber, lastOutArray, m_processArray[togglePtr], frames);
+    frames = m_addons_PostProc[i].pAddon->PostProcess(&m_addons_PostProc[i].handle,
+                                                      m_addons_PostProc[i].iAddonModeNumber,
+                                                      const_cast<const float**>(lastOutArray),
+                                                      m_processArray[togglePtr], frames);
     if (frames == 0)
       return false;
 
@@ -1032,14 +1041,15 @@ bool CActiveAEDSPProcess::Process(CSampleBuffer *in, CSampleBuffer *out)
   {
     startTime = CurrentHostCounter();
 
-    frames = m_addon_OutputResample.pAddon->OutputResampleProcess(&m_addon_OutputResample.handle, lastOutArray, m_processArray[togglePtr], frames);
+    frames = m_addon_OutputResample.pAddon->OutputResampleProcess(&m_addon_OutputResample.handle,
+                                                                  const_cast<const float**>(lastOutArray),
+                                                                  m_processArray[togglePtr], frames);
     if (frames == 0)
       return false;
 
     m_addon_OutputResample.iLastTime += 1000 * 10000 * (CurrentHostCounter() - startTime) / hostFrequency;
 
     lastOutArray = m_processArray[togglePtr];
-    togglePtr ^= 1;
   }
 
   /**

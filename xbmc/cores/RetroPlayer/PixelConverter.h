@@ -20,29 +20,34 @@
 #pragma once
 
 #include "IPixelConverter.h"
-#include "cores/VideoPlayer/VideoRenderers/RenderFormats.h"
 
+#include <memory>
 #include <stdint.h>
 
-struct DVDVideoPicture;
+class CPixelBufferPoolFFmpeg;
+struct AVFrame;
+struct VideoPicture;
 struct SwsContext;
 
 class CPixelConverter : public IPixelConverter
 {
 public:
   CPixelConverter();
-  virtual ~CPixelConverter() { Dispose(); }
+  ~CPixelConverter() override { Dispose(); }
 
   // implementation of IPixelConverter
-  virtual bool Open(AVPixelFormat pixfmt, AVPixelFormat target, unsigned int width, unsigned int height) override;
-  virtual void Dispose() override;
-  virtual bool Decode(const uint8_t* pData, unsigned int size) override;
-  virtual void GetPicture(DVDVideoPicture& dvdVideoPicture) override;
+  bool Open(AVPixelFormat pixfmt, AVPixelFormat target, unsigned int width, unsigned int height) override;
+  void Dispose() override;
+  bool Decode(const uint8_t* pData, unsigned int size) override;
+  void GetPicture(VideoPicture& dvdVideoPicture) override;
 
 protected:
-  ERenderFormat    m_renderFormat;
-  unsigned int     m_width;
-  unsigned int     m_height;
-  SwsContext*      m_swsContext;
-  DVDVideoPicture* m_buf;
+  bool AllocateBuffers(AVFrame *pFrame) const;
+
+  AVPixelFormat m_targetFormat;
+  unsigned int m_width;
+  unsigned int m_height;
+  SwsContext* m_swsContext;
+  AVFrame *m_pFrame;
+  std::shared_ptr<CPixelBufferPoolFFmpeg> m_pixelBufferPool;
 };

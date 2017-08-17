@@ -29,6 +29,7 @@
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "media/MediaType.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -46,8 +47,7 @@ CVideoLibraryRefreshingJob::CVideoLibraryRefreshingJob(CFileItemPtr item, bool f
     m_searchTitle(searchTitle)
 { }
 
-CVideoLibraryRefreshingJob::~CVideoLibraryRefreshingJob()
-{ }
+CVideoLibraryRefreshingJob::~CVideoLibraryRefreshingJob() = default;
 
 bool CVideoLibraryRefreshingJob::operator==(const CJob* job) const
 {

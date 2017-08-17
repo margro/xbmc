@@ -53,7 +53,7 @@
  */
 static int ClearPlaylist(const std::vector<std::string>& params)
 {
-  g_playlistPlayer.Clear();
+  CServiceBroker::GetPlaylistPlayer().Clear();
 
   return 0;
 }
@@ -90,21 +90,21 @@ static int PlayOffset(const std::vector<std::string>& params)
     }
 
     // user wants to play the 'other' playlist
-    if (iPlaylist != g_playlistPlayer.GetCurrentPlaylist())
+    if (iPlaylist != CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist())
     {
       g_application.StopPlaying();
-      g_playlistPlayer.Reset();
-      g_playlistPlayer.SetCurrentPlaylist(iPlaylist);
+      CServiceBroker::GetPlaylistPlayer().Reset();
+      CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(iPlaylist);
     }
   }
   // play the desired offset
   int pos = atol(strPos.c_str());
   // playlist is already playing
   if (g_application.m_pPlayer->IsPlaying())
-    g_playlistPlayer.PlayNext(pos);
+    CServiceBroker::GetPlaylistPlayer().PlayNext(pos);
   // we start playing the 'other' playlist so we need to use play to initialize the player state
   else
-    g_playlistPlayer.Play(pos, "");
+    CServiceBroker::GetPlaylistPlayer().Play(pos, "");
 
   return 0;
 }
@@ -142,8 +142,6 @@ static int PlayerControl(const std::vector<std::string>& params)
     if (g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused())
     {
       float playSpeed = g_application.m_pPlayer->GetPlaySpeed();
-      if (playSpeed >= 0.75 && playSpeed <= 1.55)
-        playSpeed = 1;
 
       if (paramlow == "rewind" && playSpeed == 1) // Enables Rewinding
         playSpeed *= -2;
@@ -169,17 +167,13 @@ static int PlayerControl(const std::vector<std::string>& params)
     if (g_application.m_pPlayer->SupportsTempo() &&
         g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused())
     {
-      float playSpeed = g_application.m_pPlayer->GetPlaySpeed();
-      if (playSpeed >= 0.75 && playSpeed <= 1.55)
-      {
-        if (paramlow == "tempodown" && playSpeed > 0.85)
-          playSpeed -= 0.1;
-        else if (paramlow == "tempoup" && playSpeed < 1.45)
-          playSpeed += 0.1;
+      float playTempo = g_application.m_pPlayer->GetPlayTempo();
+      if (paramlow == "tempodown")
+          playTempo -= 0.1f;
+      else if (paramlow == "tempoup")
+          playTempo += 0.1f;
 
-        playSpeed = floor(playSpeed * 100 + 0.5) / 100;
-        g_application.m_pPlayer->SetPlaySpeed(playSpeed);
-      }
+      g_application.m_pPlayer->SetTempo(playTempo);
     }
   }
   else if (paramlow == "next")
@@ -263,40 +257,40 @@ static int PlayerControl(const std::vector<std::string>& params)
   else if (paramlow == "random" || paramlow == "randomoff" || paramlow == "randomon")
   {
     // get current playlist
-    int iPlaylist = g_playlistPlayer.GetCurrentPlaylist();
+    int iPlaylist = CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist();
 
     // reverse the current setting
-    bool shuffled = g_playlistPlayer.IsShuffled(iPlaylist);
+    bool shuffled = CServiceBroker::GetPlaylistPlayer().IsShuffled(iPlaylist);
     if ((shuffled && paramlow == "randomon") || (!shuffled && paramlow == "randomoff"))
       return 0;
 
     // check to see if we should notify the user
     bool notify = (params.size() == 2 && StringUtils::EqualsNoCase(params[1], "notify"));
-    g_playlistPlayer.SetShuffle(iPlaylist, !shuffled, notify);
+    CServiceBroker::GetPlaylistPlayer().SetShuffle(iPlaylist, !shuffled, notify);
 
     // save settings for now playing windows
     switch (iPlaylist)
     {
       case PLAYLIST_MUSIC:
-        CMediaSettings::GetInstance().SetMusicPlaylistShuffled(g_playlistPlayer.IsShuffled(iPlaylist));
+        CMediaSettings::GetInstance().SetMusicPlaylistShuffled(CServiceBroker::GetPlaylistPlayer().IsShuffled(iPlaylist));
         CServiceBroker::GetSettings().Save();
         break;
       case PLAYLIST_VIDEO:
-        CMediaSettings::GetInstance().SetVideoPlaylistShuffled(g_playlistPlayer.IsShuffled(iPlaylist));
+        CMediaSettings::GetInstance().SetVideoPlaylistShuffled(CServiceBroker::GetPlaylistPlayer().IsShuffled(iPlaylist));
         CServiceBroker::GetSettings().Save();
       default:
         break;
     }
 
     // send message
-    CGUIMessage msg(GUI_MSG_PLAYLISTPLAYER_RANDOM, 0, 0, iPlaylist, g_playlistPlayer.IsShuffled(iPlaylist));
+    CGUIMessage msg(GUI_MSG_PLAYLISTPLAYER_RANDOM, 0, 0, iPlaylist, CServiceBroker::GetPlaylistPlayer().IsShuffled(iPlaylist));
     g_windowManager.SendThreadMessage(msg);
   }
   else if (StringUtils::StartsWithNoCase(params[0], "repeat"))
   {
     // get current playlist
-    int iPlaylist = g_playlistPlayer.GetCurrentPlaylist();
-    PLAYLIST::REPEAT_STATE previous_state = g_playlistPlayer.GetRepeat(iPlaylist);
+    int iPlaylist = CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist();
+    PLAYLIST::REPEAT_STATE previous_state = CServiceBroker::GetPlaylistPlayer().GetRepeat(iPlaylist);
 
     std::string paramlow(params[0]);
     StringUtils::ToLower(paramlow);
@@ -320,7 +314,7 @@ static int PlayerControl(const std::vector<std::string>& params)
 
     // check to see if we should notify the user
     bool notify = (params.size() == 2 && StringUtils::EqualsNoCase(params[1], "notify"));
-    g_playlistPlayer.SetRepeat(iPlaylist, state, notify);
+    CServiceBroker::GetPlaylistPlayer().SetRepeat(iPlaylist, state, notify);
 
     // save settings for now playing windows
     switch (iPlaylist)
@@ -352,6 +346,10 @@ static int PlayerControl(const std::vector<std::string>& params)
         return false;
       }
     }
+  }
+  else if (paramlow == "reset")
+  {
+    g_application.OnAction(CAction(ACTION_PLAYER_RESET));
   }
 
   return 0;
@@ -465,13 +463,13 @@ static int PlayMedia(const std::vector<std::string>& params)
       }
     }
 
-    g_playlistPlayer.ClearPlaylist(playlist);
-    g_playlistPlayer.Add(playlist, items);
-    g_playlistPlayer.SetCurrentPlaylist(playlist);
-    g_playlistPlayer.Play(playOffset, "");
+    CServiceBroker::GetPlaylistPlayer().ClearPlaylist(playlist);
+    CServiceBroker::GetPlaylistPlayer().Add(playlist, items);
+    CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(playlist);
+    CServiceBroker::GetPlaylistPlayer().Play(playOffset, "");
   }
   else if (item.IsAudio() || item.IsVideo())
-    g_playlistPlayer.Play(std::make_shared<CFileItem>(item), "");
+    CServiceBroker::GetPlaylistPlayer().Play(std::make_shared<CFileItem>(item), "");
   else
     g_application.PlayMedia(item, "", PLAYLIST_NONE);
 

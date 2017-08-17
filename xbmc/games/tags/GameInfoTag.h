@@ -25,6 +25,8 @@
 
 #include <string>
 
+namespace KODI
+{
 namespace GAME
 {
   class CGameInfoTag : public IArchivable,
@@ -35,7 +37,7 @@ namespace GAME
     CGameInfoTag() { Reset(); }
     CGameInfoTag(const CGameInfoTag& tag) { *this = tag; }
     CGameInfoTag& operator=(const CGameInfoTag& tag);
-    ~CGameInfoTag() { }
+    virtual ~CGameInfoTag() = default;
     void Reset();
 
     bool operator==(const CGameInfoTag& tag) const;
@@ -92,10 +94,6 @@ namespace GAME
     const std::string& GetCartridgeType() const { return m_strCartridgeType; }
     void SetCartridgeType(const std::string& strCartridgeType) { m_strCartridgeType = strCartridgeType; }
 
-    // Savestate path
-    const std::string& GetSavestate() const { return m_strSavestate; }
-    void SetSavestate(const std::string& strSavestate) { m_strSavestate = strSavestate; }
-
     // Game client add-on ID
     const std::string& GetGameClient() const { return m_strGameClient; }
     void SetGameClient(const std::string& strGameClient) { m_strGameClient = strGameClient; }
@@ -118,7 +116,7 @@ namespace GAME
     std::string m_strPublisher;
     std::string m_strFormat;
     std::string m_strCartridgeType;
-    std::string m_strSavestate;
     std::string m_strGameClient;
   };
+}
 }

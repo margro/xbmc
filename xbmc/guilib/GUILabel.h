@@ -155,6 +155,10 @@ public:
    */
   bool SetScrolling(bool scrolling);
 
+  /*! \brief Set max. text scroll count
+  */
+  void SetScrollLoopCount(unsigned int loopCount) { m_maxScrollLoops = loopCount; };
+
   /*! \brief Set how this label should handle overflowing text.
    \param overflow the overflow type
    \sa OVER_FLOW
@@ -241,4 +245,5 @@ private:
   CRect          m_maxRect;      ///< maximum sizing of text
   bool           m_invalid;      ///< if true, the label needs recomputing
   COLOR          m_color;        ///< color to render text \sa SetColor, GetColor
+  unsigned int   m_maxScrollLoops = ~0U;
 };

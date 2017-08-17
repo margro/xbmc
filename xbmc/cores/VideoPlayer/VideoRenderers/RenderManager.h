@@ -38,11 +38,7 @@
 #include "DVDClock.h"
 
 class CRenderCapture;
-
-namespace DXVA { class CProcessor; }
-namespace VAAPI { class CSurfaceHolder; }
-namespace VDPAU { class CVdpauRenderPicture; }
-struct DVDVideoPicture;
+struct VideoPicture;
 
 class CWinRenderer;
 class CMMALRenderer;
@@ -54,12 +50,16 @@ class CRenderManager;
 class IRenderMsg
 {
   friend CRenderManager;
+public:
+  virtual ~IRenderMsg() = default;
 protected:
   virtual void VideoParamsChange() = 0;
   virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) = 0;
   virtual void UpdateClockSync(bool enabled) = 0;
   virtual void UpdateRenderInfo(CRenderInfo &info) = 0;
   virtual void UpdateRenderBuffers(int queued, int discard, int free) = 0;
+  virtual void UpdateGuiRender(bool gui) = 0;
+  virtual void UpdateVideoRender(bool video) = 0;
 };
 
 class CRenderManager
@@ -74,7 +74,6 @@ public:
   void FrameMove();
   void FrameWait(int ms);
   void Render(bool clear, DWORD flags = 0, DWORD alpha = 255, bool gui = true);
-  bool IsGuiLayer();
   bool IsVideoLayer();
   RESOLUTION GetResolution();
   void UpdateResolution();
@@ -82,7 +81,7 @@ public:
   void SetViewMode(int iViewMode);
   void PreInit();
   void UnInit();
-  bool Flush();
+  bool Flush(bool wait);
   bool IsConfigured() const;
   void ToggleDebug();
 
@@ -106,31 +105,11 @@ public:
    * @param orientation
    * @param numbers of kept buffer references
    */
-  bool Configure(DVDVideoPicture& picture, float fps, unsigned flags, unsigned int orientation, int buffers = 0);
+  bool Configure(const VideoPicture& picture, float fps, unsigned flags, unsigned int orientation, int buffers = 0);
 
-  int AddVideoPicture(DVDVideoPicture& picture);
-
-  /**
-   * Called by video player to flip render buffers
-   * If buffering is enabled this method does not block. In case of disabled buffering
-   * this method blocks waiting for the render thread to pass by.
-   * When buffering is used there might be no free buffer available after the call to
-   * this method. Player has to call WaitForBuffer. A free buffer will become
-   * available after the main thread has flipped front / back buffers.
-   *
-   * @param bStop reference to stop flag of calling thread
-   * @param timestamp of frame delivered with AddVideoPicture
-   * @param pts used for lateness detection
-   * @param method for deinterlacing
-   * @param sync signals frame, top, or bottom field
-   * @param wait: block until pic has been rendered
-   */
-  void FlipPage(volatile std::atomic_bool& bStop, double pts, EINTERLACEMETHOD deintMethod, EFIELDSYNC sync, bool wait);
+  bool AddVideoPicture(const VideoPicture& picture, volatile std::atomic_bool& bStop, EINTERLACEMETHOD deintMethod, bool wait);
 
   void AddOverlay(CDVDOverlay* o, double pts);
-
-  // Get renderer info, can be called before configure
-  CRenderInfo GetRenderInfo();
 
   /**
    * If player uses buffering it has to wait for a buffer before it calls
@@ -164,6 +143,7 @@ protected:
 
   void PrepareNextRender();
   bool IsPresenting();
+  bool IsGuiLayer();
 
   bool Configure();
   void CreateRenderer();
@@ -173,18 +153,20 @@ protected:
   void UpdateDisplayLatency();
   void CheckEnableClockSync();
 
-  CBaseRenderer *m_pRenderer;
+  void FlipPage(volatile std::atomic_bool& bStop, double pts, EINTERLACEMETHOD deintMethod, EFIELDSYNC sync, bool wait);
+
+  CBaseRenderer *m_pRenderer = nullptr;
   OVERLAY::CRenderer m_overlays;
   CDebugRenderer m_debugRenderer;
   CCriticalSection m_statelock;
   CCriticalSection m_presentlock;
   CCriticalSection m_datalock;
-  bool m_bTriggerUpdateResolution;
-  bool m_bRenderGUI;
-  int m_waitForBufferCount;
-  int m_rendermethod;
-  bool m_renderedOverlay;
-  bool m_renderDebug;
+  bool m_bTriggerUpdateResolution = false;
+  bool m_bRenderGUI = true;
+  int m_waitForBufferCount = 0;
+  int m_rendermethod = 0;
+  bool m_renderedOverlay = false;
+  bool m_renderDebug = false;
   XbmcThreads::EndTime m_debugTimer;
 
 
@@ -214,11 +196,11 @@ protected:
   ERENDERSTATE m_renderState;
   CEvent m_stateEvent;
 
-  double m_displayLatency;
-  std::atomic_int m_videoDelay;
+  double m_displayLatency = 0.0;
+  std::atomic_int m_videoDelay = {0};
 
-  int m_QueueSize;
-  int m_QueueSkip;
+  int m_QueueSize = 2;
+  int m_QueueSkip = 0;
 
   struct SPresent
   {
@@ -231,21 +213,23 @@ protected:
   std::deque<int> m_queued;
   std::deque<int> m_discard;
 
-  ERenderFormat m_format;
-  unsigned int m_width, m_height, m_dwidth, m_dheight;
-  unsigned int m_flags;
-  float m_fps;
-  unsigned int m_extended_format;
-  unsigned int m_orientation;
-  int m_NumberBuffers;
+  std::unique_ptr<VideoPicture> m_pConfigPicture;
+  unsigned int m_width = 0;
+  unsigned int m_height = 0;
+  unsigned int m_dwidth = 0;
+  unsigned int m_dheight = 0;
+  unsigned int m_flags = 0;
+  float m_fps = 0.0;
+  unsigned int m_orientation = 0;
+  int m_NumberBuffers = 0;
 
-  int m_lateframes;
-  double m_presentpts;
-  EPRESENTSTEP m_presentstep;
+  int m_lateframes = -1;
+  double m_presentpts = 0.0;
+  EPRESENTSTEP m_presentstep = PRESENT_IDLE;
   XbmcThreads::EndTime m_presentTimer;
-  bool m_forceNext;
-  int m_presentsource;
-  XbmcThreads::ConditionVariable  m_presentevent;
+  bool m_forceNext = false;
+  int m_presentsource = 0;
+  XbmcThreads::ConditionVariable m_presentevent;
   CEvent m_flushEvent;
   CDVDClock &m_dvdClock;
   IRenderMsg *m_playerPort;
@@ -265,8 +249,8 @@ protected:
   CCriticalSection m_captCritSect;
   std::map<unsigned int, CRenderCapture*> m_captures;
   static unsigned int m_nextCaptureId;
-  unsigned int m_captureWaitCounter;
+  unsigned int m_captureWaitCounter = 0;
   //set to true when adding something to m_captures, set to false when m_captures is made empty
   //std::list::empty() isn't thread safe, using an extra bool will save a lock per render when no captures are requested
-  bool m_hasCaptures;
+  bool m_hasCaptures = false;
 };

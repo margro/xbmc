@@ -38,7 +38,7 @@ using KODI::MESSAGING::HELPERS::DialogResponse;
 namespace ADDON
 {
 
-std::unique_ptr<CLanguageResource> CLanguageResource::FromExtension(AddonProps props, const cp_extension_t* ext)
+std::unique_ptr<CLanguageResource> CLanguageResource::FromExtension(CAddonInfo addonInfo, const cp_extension_t* ext)
 {
   // parse <extension> attributes
   CLocale locale = CLocale::FromString(CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@locale"));
@@ -96,7 +96,7 @@ std::unique_ptr<CLanguageResource> CLanguageResource::FromExtension(AddonProps p
     }
   }
   return std::unique_ptr<CLanguageResource>(new CLanguageResource(
-      std::move(props),
+      std::move(addonInfo),
       locale,
       charsetGui,
       forceUnicodeFont,
@@ -108,7 +108,7 @@ std::unique_ptr<CLanguageResource> CLanguageResource::FromExtension(AddonProps p
 }
 
 CLanguageResource::CLanguageResource(
-    AddonProps props,
+    CAddonInfo addonInfo,
     const CLocale& locale,
     const std::string& charsetGui,
     bool forceUnicodeFont,
@@ -117,7 +117,7 @@ CLanguageResource::CLanguageResource(
     const std::string& dvdLanguageAudio,
     const std::string& dvdLanguageSubtitle,
     const std::set<std::string>& sortTokens)
-  : CResource(std::move(props)),
+  : CResource(std::move(addonInfo)),
     m_locale(locale),
     m_charsetGui(charsetGui),
     m_forceUnicodeFont(forceUnicodeFont),
@@ -183,36 +183,6 @@ bool CLanguageResource::FindLegacyLanguage(const std::string &locale, std::strin
 
   legacyLanguage = addon->Name();
   return true;
-}
-
-bool CLanguageResource::FindLanguageAddonByName(const std::string &legacyLanguage, std::string &addonId, const VECADDONS &languageAddons /* = VECADDONS() */)
-{
-  if (legacyLanguage.empty())
-    return false;
-
-  VECADDONS addons;
-  if (!languageAddons.empty())
-    addons = languageAddons;
-  else if (!CAddonMgr::GetInstance().GetInstalledAddons(addons, ADDON_RESOURCE_LANGUAGE) || addons.empty())
-    return false;
-
-  // try to find a language that matches the old language in name or id
-  for (VECADDONS::const_iterator addon = addons.begin(); addon != addons.end(); ++addon)
-  {
-    const CLanguageResource* languageAddon = static_cast<CLanguageResource*>(addon->get());
-
-    // check if the old language matches the language addon id, the language
-    // locale or the language addon name
-    if (legacyLanguage.compare((*addon)->ID()) == 0 ||
-        languageAddon->GetLocale().Equals(legacyLanguage) ||
-        StringUtils::EqualsNoCase(legacyLanguage, languageAddon->Name()))
-    {
-      addonId = (*addon)->ID();
-      return true;
-    }
-  }
-
-  return false;
 }
 
 }

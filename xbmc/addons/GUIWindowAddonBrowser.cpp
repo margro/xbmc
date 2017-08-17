@@ -23,7 +23,7 @@
 #include "AddonSystemSettings.h"
 #include "addons/RepositoryUpdater.h"
 #include "GUIDialogAddonInfo.h"
-#include "GUIDialogAddonSettings.h"
+#include "addons/settings/GUIDialogAddonSettings.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "dialogs/GUIDialogSelect.h"
@@ -62,9 +62,7 @@ CGUIWindowAddonBrowser::CGUIWindowAddonBrowser(void)
 {
 }
 
-CGUIWindowAddonBrowser::~CGUIWindowAddonBrowser()
-{
-}
+CGUIWindowAddonBrowser::~CGUIWindowAddonBrowser() = default;
 
 bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
 {
@@ -72,7 +70,7 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
   {
     case GUI_MSG_WINDOW_DEINIT:
     {
-      CRepositoryUpdater::GetInstance().Events().Unsubscribe(this);
+      CServiceBroker::GetRepositoryUpdater().Events().Unsubscribe(this);
       CAddonMgr::GetInstance().Events().Unsubscribe(this);
 
       if (m_thumbLoader.IsLoading())
@@ -81,7 +79,7 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
     break;
   case GUI_MSG_WINDOW_INIT:
     {
-      CRepositoryUpdater::GetInstance().Events().Subscribe(this, &CGUIWindowAddonBrowser::OnEvent);
+      CServiceBroker::GetRepositoryUpdater().Events().Subscribe(this, &CGUIWindowAddonBrowser::OnEvent);
       CAddonMgr::GetInstance().Events().Subscribe(this, &CGUIWindowAddonBrowser::OnEvent);
 
       SetProperties();
@@ -106,7 +104,7 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
       }
       else if (iControl == CONTROL_CHECK_FOR_UPDATES)
       {
-        CRepositoryUpdater::GetInstance().CheckForUpdates(true);
+        CServiceBroker::GetRepositoryUpdater().CheckForUpdates(true);
         return true;
       }
       else if (iControl == CONTROL_SETTINGS)
@@ -157,14 +155,14 @@ bool CGUIWindowAddonBrowser::OnMessage(CGUIMessage& message)
 
 void CGUIWindowAddonBrowser::SetProperties()
 {
-  auto lastUpdated = CRepositoryUpdater::GetInstance().LastUpdated();
+  auto lastUpdated = CServiceBroker::GetRepositoryUpdater().LastUpdated();
   SetProperty("Updated", lastUpdated.IsValid() ?
     lastUpdated.GetAsLocalizedDateTime() : g_localizeStrings.Get(21337));
 }
 
 class UpdateAddons : public IRunnable
 {
-  virtual void Run()
+  void Run() override
   {
     for (const auto& addon : CAddonMgr::GetInstance().GetAvailableUpdates())
       CAddonInstaller::GetInstance().InstallOrUpdate(addon->ID());
@@ -474,7 +472,7 @@ int CGUIWindowAddonBrowser::SelectAddonID(const std::vector<ADDON::TYPE> &types,
   {
     if (!heading.empty())
       heading += ", ";
-    heading += TranslateType(*type, true);
+    heading += CAddonInfo::TranslateType(*type, true);
   }
 
   dialog->SetHeading(CVariant{std::move(heading)});

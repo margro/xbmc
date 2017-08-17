@@ -22,6 +22,8 @@
 #include <stdint.h>
 #include <string>
 
+namespace KODI
+{
 namespace GAME
 {
   class IGameClientPlayback
@@ -43,7 +45,8 @@ namespace GAME
     virtual void SetSpeed(double speedFactor) = 0;
 
     // Savestates
-    virtual std::string CreateManualSavestate() = 0; // Returns the path of savestate on success
+    virtual std::string CreateSavestate() = 0; // Returns the path of savestate on success
     virtual bool LoadSavestate(const std::string& path) = 0;
   };
+}
 }

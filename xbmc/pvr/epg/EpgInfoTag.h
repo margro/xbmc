@@ -19,16 +19,17 @@
  *
  */
 
+#include <string>
+#include <vector>
+
 #include "XBDateTime.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "utils/ISerializable.h"
+
 #include "pvr/PVRTypes.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
-#include "utils/ISerializable.h"
-
-#include <string>
-#include <vector>
 
 #define EPG_DEBUGGING 0
 
@@ -53,7 +54,7 @@ namespace PVR
      * @brief Create a new EPG infotag with 'data' as content.
      * @param data The tag's content.
      */
-    CPVREpgInfoTag(const EPG_TAG &data);
+    explicit CPVREpgInfoTag(const EPG_TAG &data);
 
   private:
     /*!
@@ -64,18 +65,18 @@ namespace PVR
     /*!
      * @brief Create a new empty event without a unique ID.
      */
-    CPVREpgInfoTag(CPVREpg *epg, const PVR::CPVRChannelPtr &pvrChannel, const std::string &strTableName = "", const std::string &strIconPath = "");
+    CPVREpgInfoTag(CPVREpg *epg, const PVR::CPVRChannelPtr &channel, const std::string &strTableName = "", const std::string &strIconPath = "");
 
     CPVREpgInfoTag(const CPVREpgInfoTag &tag) = delete;
     CPVREpgInfoTag &operator =(const CPVREpgInfoTag &other) = delete;
 
   public:
-    virtual ~CPVREpgInfoTag();
+    ~CPVREpgInfoTag() override = default;
 
     bool operator ==(const CPVREpgInfoTag& right) const;
     bool operator !=(const CPVREpgInfoTag& right) const;
 
-    virtual void Serialize(CVariant &value) const;
+    void Serialize(CVariant &value) const override;
 
     /*!
      * @brief Check if this event is currently active.
@@ -115,7 +116,7 @@ namespace PVR
      */
     const CPVREpg *GetTable() const;
 
-    const int EpgID(void) const;
+    int EpgID(void) const;
 
     /*!
      * @brief Sets the epg reference of this event
@@ -280,6 +281,12 @@ namespace PVR
     int SeriesNumber(void) const;
 
     /*!
+     * @brief The series link for this event.
+     * @return The series link or empty string, if not available.
+     */
+    std::string SeriesLink() const;
+
+    /*!
      * @brief The episode number of this event.
      * @return The episode number.
      */
@@ -365,22 +372,22 @@ namespace PVR
      * @brief Change the channel tag of this epg tag
      * @param channel The new channel
      */
-    void SetPVRChannel(const PVR::CPVRChannelPtr &channel);
+    void SetChannel(const PVR::CPVRChannelPtr &channel);
 
     /*!
      * @return True if this tag has a PVR channel set.
      */
-    bool HasPVRChannel(void) const;
+    bool HasChannel(void) const;
 
-    int PVRChannelNumber(void) const;
+    int ChannelNumber(void) const;
 
-    std::string PVRChannelName(void) const;
+    std::string ChannelName(void) const;
 
     /*!
      * @brief Get the channel that plays this event.
      * @return a pointer to the channel.
      */
-    const PVR::CPVRChannelPtr ChannelTag(void) const;
+    const PVR::CPVRChannelPtr Channel(void) const;
 
     /*!
      * @brief Persist this tag in the database.
@@ -459,9 +466,10 @@ namespace PVR
     CPVREpg *                m_epg;                /*!< the schedule that this event belongs to */
 
     unsigned int             m_iFlags;             /*!< the flags applicable to this EPG entry */
+    std::string              m_strSeriesLink;      /*!< series link */
 
     CCriticalSection         m_critSection;
-    PVR::CPVRChannelPtr      m_pvrChannel;
+    PVR::CPVRChannelPtr      m_channel;
     PVR::CPVRRecordingPtr    m_recording;
   };
 }

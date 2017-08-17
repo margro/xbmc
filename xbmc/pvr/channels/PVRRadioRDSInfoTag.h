@@ -19,14 +19,14 @@
  *
  */
 
-#include "utils/IArchivable.h"
-#include "utils/ISerializable.h"
-#include "XBDateTime.h"
-
-#include "pvr/PVRTypes.h"
-
 #include <deque>
 #include <string>
+
+#include "XBDateTime.h"
+#include "utils/IArchivable.h"
+#include "utils/ISerializable.h"
+
+#include "pvr/PVRTypes.h"
 
 namespace PVR
 {
@@ -45,30 +45,17 @@ private:
    */
   CPVRRadioRDSInfoTag(void);
 
-  /*!
-   * @brief Prevent copy construction, even for CPVREpgInfoTag instances and friends.
-   * Note: Only declared, but intentionally not implemented
-   *       to prevent compiler generated copy ctor and to force.
-   *       a linker error in case somebody tries to call it.
-   */
-  CPVRRadioRDSInfoTag(const CPVRRadioRDSInfoTag& tag);
-
-  /*!
-   * @brief Prevent copy construction, even for CPVREpgInfoTag instances and friends.
-   * Note: Only declared, but intentionally not implemented
-   *       to prevent compiler generated copy ctor and to force.
-   *       a linker error in case somebody tries to call it.
-   */
-  const CPVRRadioRDSInfoTag& operator =(const CPVRRadioRDSInfoTag& tag);
+  CPVRRadioRDSInfoTag(const CPVRRadioRDSInfoTag& tag) = delete;
+  const CPVRRadioRDSInfoTag& operator =(const CPVRRadioRDSInfoTag& tag) = delete;
   
 public:
-  virtual ~CPVRRadioRDSInfoTag();
+  ~CPVRRadioRDSInfoTag() override;
 
   bool operator ==(const CPVRRadioRDSInfoTag& tag) const;
   bool operator !=(const CPVRRadioRDSInfoTag& tag) const;
 
-  virtual void Archive(CArchive& ar);
-  virtual void Serialize(CVariant& value) const;
+  void Archive(CArchive& ar) override;
+  void Serialize(CVariant& value) const override;
 
   void Clear();
   void ResetSongInformation();

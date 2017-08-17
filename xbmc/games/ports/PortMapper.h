@@ -19,30 +19,27 @@
  */
 #pragma once
 
+#include "PortTypes.h"
 #include "peripherals/PeripheralTypes.h"
 #include "utils/Observer.h"
 
 #include <map>
-
-namespace KODI
-{
-namespace JOYSTICK
-{
-  class IInputHandler; 
-}
-}
 
 namespace PERIPHERALS
 {
   class CPeripherals;
 }
 
+namespace KODI
+{
 namespace GAME
 {
+  class CPortManager;
+
   class CPortMapper : public Observer
   {
   public:
-    CPortMapper(PERIPHERALS::CPeripherals& peripheralManager);
+    CPortMapper(PERIPHERALS::CPeripherals& peripheralManager, CPortManager& portManager);
 
     virtual ~CPortMapper();
 
@@ -52,9 +49,11 @@ namespace GAME
     void ProcessPeripherals();
 
     // Construction parameters
-    PERIPHERALS::CPeripherals& m_peripheralManager;
+    PERIPHERALS::CPeripherals &m_peripheralManager;
+    CPortManager &m_portManager;
 
     // Port paremters
-    std::map<PERIPHERALS::PeripheralPtr, KODI::JOYSTICK::IInputHandler*>  m_portMap;
+    std::map<PERIPHERALS::PeripheralPtr, PortPtr> m_portMap;
   };
+}
 }

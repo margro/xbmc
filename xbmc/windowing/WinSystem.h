@@ -21,23 +21,27 @@
 #ifndef WINDOW_SYSTEM_BASE_H
 #define WINDOW_SYSTEM_BASE_H
 
+#include "OSScreenSaver.h"
 #include "VideoSync.h"
 #include "WinEvents.h"
 #include "guilib/Resolution.h"
 #include <memory>
 #include <vector>
 
-typedef enum _WindowSystemType
+enum WindowSystemType
 {
   WINDOW_SYSTEM_WIN32,
   WINDOW_SYSTEM_OSX,
   WINDOW_SYSTEM_IOS,
   WINDOW_SYSTEM_X11,
   WINDOW_SYSTEM_MIR,
+  WINDOW_SYSTEM_GBM,
   WINDOW_SYSTEM_SDL,
   WINDOW_SYSTEM_EGL,
+  WINDOW_SYSTEM_RPI,
+  WINDOW_SYSTEM_AML,
   WINDOW_SYSTEM_ANDROID
-} WindowSystemType;
+};
 
 struct RESOLUTION_WHR
 {
@@ -63,7 +67,7 @@ public:
   // windowing interfaces
   virtual bool InitWindowSystem();
   virtual bool DestroyWindowSystem();
-  virtual bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction) = 0;
+  virtual bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) = 0;
   virtual bool DestroyWindow(){ return false; }
   virtual bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) = 0;
   virtual bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) = 0;
@@ -93,9 +97,15 @@ public:
   virtual void OnMove(int x, int y) {}
 
   // OS System screensaver
-  virtual void EnableSystemScreenSaver(bool bEnable) {};
-  virtual bool IsSystemScreenSaverEnabled() {return false;}
-  virtual void ResetOSScreensaver() {};
+  /**
+   * Get OS screen saver inhibit implementation if available
+   * 
+   * \return OS screen saver implementation that can be used with this windowing system
+   *         or nullptr if unsupported.
+   *         Lifetime of the returned object will usually end with \ref DestroyWindowSystem, so
+   *         do not use any more after calling that.
+   */
+  KODI::WINDOWING::COSScreenSaverManager* GetOSScreenSaver();
 
   // resolution interfaces
   unsigned int GetWidth() { return m_nWidth; }
@@ -116,10 +126,11 @@ public:
   virtual void EnableTextInput(bool bEnable) {}
   virtual bool IsTextInputEnabled() { return false; }
 
-  std::string GetClipboardText(void);
+  virtual std::string GetClipboardText(void);
 
 protected:
   void UpdateDesktopResolution(RESOLUTION_INFO& newRes, int screen, int width, int height, float refreshRate, uint32_t dwFlags = 0);
+  virtual std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> GetOSScreenSaverImpl() { return nullptr; }
 
   WindowSystemType  m_eWindowSystem;
   int               m_nWidth;
@@ -131,6 +142,7 @@ protected:
   int               m_nScreen;
   bool              m_bBlankOtherDisplay;
   float             m_fRefreshRate;
+  std::unique_ptr<KODI::WINDOWING::COSScreenSaverManager> m_screenSaverManager;
 };
 
 

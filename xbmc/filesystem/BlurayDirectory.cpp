@@ -17,8 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h"
-#ifdef HAVE_LIBBLURAY
 #include "BlurayDirectory.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
@@ -30,6 +28,13 @@
 #include "guilib/LocalizeStrings.h"
 
 #include <cassert>
+#include <array>
+#include <climits>
+#include <stdlib.h>
+#include <string>
+#include "utils/LangCodeExpander.h"
+#include "File.h"
+#include "utils/RegExp.h"
 
 namespace XFILE
 {
@@ -56,6 +61,65 @@ void CBlurayDirectory::Dispose()
   }
   delete m_dll;
   m_dll = NULL;
+}
+
+std::string CBlurayDirectory::GetBlurayTitle()
+{
+  return GetDiscInfoString(DiscInfo::TITLE);
+}
+
+std::string CBlurayDirectory::GetBlurayID()
+{
+  return GetDiscInfoString(DiscInfo::ID);
+}
+
+std::string CBlurayDirectory::GetDiscInfoString(DiscInfo info)
+{
+  switch (info)
+  {
+  case XFILE::CBlurayDirectory::DiscInfo::TITLE:
+  {
+    if (!m_blurayInitialized)
+      return "";
+    const BLURAY_DISC_INFO* disc_info = m_dll->bd_get_disc_info(m_bd);
+    if (!disc_info || !disc_info->bluray_detected)
+      return "";
+
+    std::string title = "";
+
+#if (BLURAY_VERSION > BLURAY_VERSION_CODE(1,0,0))
+    title = disc_info->disc_name ? disc_info->disc_name : "";
+#endif
+
+    return title;
+  }
+  case XFILE::CBlurayDirectory::DiscInfo::ID:
+  {
+    if (!m_blurayInitialized)
+      return "";
+
+    const BLURAY_DISC_INFO* disc_info = m_dll->bd_get_disc_info(m_bd);
+    if (!disc_info || !disc_info->bluray_detected)
+      return "";
+
+    std::string id = "";
+
+#if (BLURAY_VERSION > BLURAY_VERSION_CODE(1,0,0))
+    id = disc_info->udf_volume_id ? disc_info->udf_volume_id : "";
+
+    if (id.empty())
+    {
+      id = HexToString(disc_info->disc_id, 20);
+    }
+#endif
+
+    return id;
+  }
+  default:
+    break;
+  }
+
+  return "";
 }
 
 CFileItemPtr CBlurayDirectory::GetTitle(const BLURAY_TITLE_INFO* title, const std::string& label)
@@ -85,42 +149,44 @@ CFileItemPtr CBlurayDirectory::GetTitle(const BLURAY_TITLE_INFO* title, const st
 
 void CBlurayDirectory::GetTitles(bool main, CFileItemList &items)
 {
-  unsigned titles = m_dll->bd_get_titles(m_bd, TITLES_RELEVANT, 0);
-  std::string buf;
+  std::vector<BLURAY_TITLE_INFO*> titleList;
+  uint64_t minDuration = 0;
 
-  std::vector<BLURAY_TITLE_INFO*> buffer;
+  // Searching for a user provided list of playlists. 
+  if (main)
+    titleList = GetUserPlaylists();
 
-  uint64_t duration = 0;
-
-  for(unsigned i=0; i < titles; i++)
+  if (!main || titleList.empty())
   {
-    BLURAY_TITLE_INFO *t = m_dll->bd_get_title_info(m_bd, i, 0);
-    if(!t)
+    uint32_t numTitles = m_dll->bd_get_titles(m_bd, TITLES_RELEVANT, 0);
+
+    for (uint32_t i = 0; i < numTitles; i++)
     {
-      CLog::Log(LOGDEBUG, "CBlurayDirectory - unable to get title %d", i);
-      continue;
+      BLURAY_TITLE_INFO* t = m_dll->bd_get_title_info(m_bd, i, 0);
+
+      if (!t)
+      {
+        CLog::Log(LOGDEBUG, "CBlurayDirectory - unable to get title %d", i);
+        continue;
+      }
+
+      if (main && t->duration > minDuration)
+          minDuration = t->duration;
+
+      titleList.emplace_back(t);
     }
-    if(t->duration > duration)
-      duration = t->duration;
-
-    buffer.push_back(t);
   }
 
-  if(main)
-    duration = duration * MAIN_TITLE_LENGTH_PERCENT / 100;
-  else
-    duration = 0;
+  minDuration = minDuration * MAIN_TITLE_LENGTH_PERCENT / 100;
 
-  for(std::vector<BLURAY_TITLE_INFO*>::iterator it = buffer.begin(); it != buffer.end(); ++it)
+  for (auto& title : titleList)
   {
-    if((*it)->duration < duration)
+    if (title->duration < minDuration)
       continue;
-    items.Add(GetTitle(*it, main ? g_localizeStrings.Get(25004) /* Main Title */ : g_localizeStrings.Get(25005) /* Title */));
+
+    items.Add(GetTitle(title, main ? g_localizeStrings.Get(25004) /* Main Title */ : g_localizeStrings.Get(25005) /* Title */));
+    m_dll->bd_free_title_info(title);
   }
-
-
-  for(std::vector<BLURAY_TITLE_INFO*>::iterator it = buffer.begin(); it != buffer.end(); ++it)
-    m_dll->bd_free_title_info(*it);
 }
 
 void CBlurayDirectory::GetRoot(CFileItemList &items)
@@ -138,7 +204,7 @@ void CBlurayDirectory::GetRoot(CFileItemList &items)
     item->SetIconImage("DefaultVideoPlaylists.png");
     items.Add(item);
 
-    path.SetFileName("BDMV/MovieObject.bdmv");
+    path.SetFileName("menu");
     item.reset(new CFileItem());
     item->SetPath(path.Get());
     item->m_bIsFolder = false;
@@ -156,25 +222,8 @@ bool CBlurayDirectory::GetDirectory(const CURL& url, CFileItemList &items)
   URIUtils::RemoveSlashAtEnd(file);
   URIUtils::RemoveSlashAtEnd(root);
 
-  m_dll = new DllLibbluray();
-  if (!m_dll->Load())
-  {
-    CLog::Log(LOGERROR, "CBlurayDirectory::GetDirectory - failed to load dll");
+  if (!InitializeBluray(root))
     return false;
-  }
-
-  m_dll->bd_register_dir(DllLibbluray::dir_open);
-  m_dll->bd_register_file(DllLibbluray::file_open);
-  m_dll->bd_set_debug_handler(DllLibbluray::bluray_logger);
-  m_dll->bd_set_debug_mask(DBG_CRIT | DBG_BLURAY | DBG_NAV);
-
-  m_bd = m_dll->bd_open(root.c_str(), NULL);
-
-  if(!m_bd)
-  {
-    CLog::Log(LOGERROR, "CBlurayDirectory::GetDirectory - failed to open %s", root.c_str());
-    return false;
-  }
 
   if(file == "root")
     GetRoot(items);
@@ -203,5 +252,102 @@ CURL CBlurayDirectory::GetUnderlyingCURL(const CURL& url)
   return CURL(host.append(filename));
 }
 
+bool CBlurayDirectory::InitializeBluray(const std::string &root)
+{
+  m_dll = new DllLibbluray();
+  if (!m_dll->Load())
+  {
+    CLog::Log(LOGERROR, "CBlurayDirectory::InitializeBluray - failed to load dll");
+    return false;
+  }
+
+  m_dll->bd_set_debug_handler(DllLibbluray::bluray_logger);
+  m_dll->bd_set_debug_mask(DBG_CRIT | DBG_BLURAY | DBG_NAV);
+
+  m_bd = m_dll->bd_init();
+
+  if (!m_bd)
+  {
+    CLog::Log(LOGERROR, "CBlurayDirectory::InitializeBluray - failed to initialize libbluray");
+    return false;
+  }
+
+  std::string langCode;
+  g_LangCodeExpander.ConvertToISO6392T(g_langInfo.GetDVDMenuLanguage(), langCode);
+  m_dll->bd_set_player_setting_str(m_bd, BLURAY_PLAYER_SETTING_MENU_LANG, langCode.c_str());
+  
+  if (!m_dll->bd_open_files(m_bd, const_cast<std::string*>(&root), DllLibbluray::dir_open, DllLibbluray::file_open))
+  {
+    CLog::Log(LOGERROR, "CBlurayDirectory::InitializeBluray - failed to open %s", CURL::GetRedacted(root).c_str());
+    return false;
+  }
+  m_blurayInitialized = true;
+
+  return true;
+}
+
+std::string CBlurayDirectory::HexToString(const uint8_t *buf, int count)
+{
+  std::array<char, 42> tmp;
+
+  for (int i = 0; i < count; i++)
+  {
+    sprintf(tmp.data() + (i * 2), "%02x", buf[i]);
+  }
+
+  return std::string(std::begin(tmp), std::end(tmp));
+}
+
+std::vector<BLURAY_TITLE_INFO*> CBlurayDirectory::GetUserPlaylists()
+{
+  std::string root = m_url.GetHostName();
+  std::string discInfPath = URIUtils::AddFileToFolder(root, "disc.inf");
+  std::vector<BLURAY_TITLE_INFO*> userTitles;
+  CFile file;
+  char buffer[1025];
+
+  if (file.Open(discInfPath))
+  {
+    CLog::Log(LOGDEBUG, "CBlurayDirectory::GetTitles - disc.inf found");
+
+    CRegExp pl(true);
+    if (!pl.RegComp("(\\d+)"))
+    {
+      file.Close();
+      return userTitles;
+    }
+
+    uint8_t maxLines = 100;
+    while ((maxLines > 0) && file.ReadString(buffer, 1024))
+    {
+      maxLines--;
+      if (StringUtils::StartsWithNoCase(buffer, "playlists"))
+      {
+        int pos = 0;
+        while ((pos = pl.RegFind(buffer, static_cast<unsigned int>(pos))) >= 0)
+        {
+          std::string playlist = pl.GetMatch(0);
+          uint32_t len = static_cast<uint32_t>(playlist.length());
+
+          if (len <= 5)
+          {
+            unsigned long int plNum = strtoul(playlist.c_str(), nullptr, 10);
+
+            BLURAY_TITLE_INFO* t = m_dll->bd_get_playlist_info(m_bd, static_cast<uint32_t>(plNum), 0);
+            if (t)
+              userTitles.emplace_back(t);
+          }
+
+          if (static_cast<int64_t>(pos) + static_cast<int64_t>(len) > INT_MAX)
+            break;
+          else
+            pos += len;
+        }
+      }
+    }
+    file.Close();
+  }
+  return userTitles;
+}
+
 } /* namespace XFILE */
-#endif

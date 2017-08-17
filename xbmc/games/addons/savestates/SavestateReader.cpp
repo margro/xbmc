@@ -24,6 +24,7 @@
 #include "utils/log.h"
 #include "IMemoryStream.h"
 
+using namespace KODI;
 using namespace GAME;
 
 CSavestateReader::CSavestateReader() :
@@ -31,9 +32,7 @@ CSavestateReader::CSavestateReader() :
 {
 }
 
-CSavestateReader::~CSavestateReader()
-{
-}
+CSavestateReader::~CSavestateReader() = default;
 
 bool CSavestateReader::Initialize(const std::string& path, const CGameClient* gameClient)
 {

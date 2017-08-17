@@ -87,7 +87,7 @@ void CVideoInfoTag::Reset()
   m_showLink.clear();
   m_namedSeasons.clear();
   m_streamDetails.Reset();
-  m_playCount = 0;
+  m_playCount = PLAYCOUNT_NOT_SET;
   m_EpBookmark.Reset();
   m_EpBookmark.type = CBookmark::EPISODE;
   m_basePath.clear();
@@ -728,12 +728,12 @@ const std::string& CVideoInfoTag::GetDefaultRating() const
   return m_strDefaultRating;
 }
 
-const bool CVideoInfoTag::HasYear() const
+bool CVideoInfoTag::HasYear() const
 {
   return m_firstAired.IsValid() || m_premiered.IsValid();
 }
 
-const int CVideoInfoTag::GetYear() const
+int CVideoInfoTag::GetYear() const
 {
   if (m_firstAired.IsValid())
     return GetFirstAired().GetYear();
@@ -742,7 +742,7 @@ const int CVideoInfoTag::GetYear() const
   return 0;
 }
 
-const bool CVideoInfoTag::HasPremiered() const
+bool CVideoInfoTag::HasPremiered() const
 {
   return m_bHasPremiered;
 }
@@ -779,7 +779,7 @@ const std::string& CVideoInfoTag::GetDefaultUniqueID() const
   return m_strDefaultUniqueID;
 }
 
-const bool CVideoInfoTag::HasUniqueID() const
+bool CVideoInfoTag::HasUniqueID() const
 {
   return !m_uniqueIDs.empty();
 }
@@ -1538,7 +1538,7 @@ std::vector<std::string> CVideoInfoTag::Trim(std::vector<std::string>&& items)
 
 int CVideoInfoTag::GetPlayCount() const
 {
-  return m_playCount;
+  return IsPlayCountSet() ? m_playCount : 0;
 }
 
 bool CVideoInfoTag::SetPlayCount(int count)
@@ -1549,8 +1549,21 @@ bool CVideoInfoTag::SetPlayCount(int count)
 
 bool CVideoInfoTag::IncrementPlayCount()
 {
+  if (!IsPlayCountSet())
+    m_playCount = 0;
+
   m_playCount++;
   return true;
+}
+
+void CVideoInfoTag::ResetPlayCount()
+{
+  m_playCount = PLAYCOUNT_NOT_SET;
+}
+
+bool CVideoInfoTag::IsPlayCountSet() const
+{
+  return m_playCount != PLAYCOUNT_NOT_SET;
 }
 
 CBookmark CVideoInfoTag::GetResumePoint() const

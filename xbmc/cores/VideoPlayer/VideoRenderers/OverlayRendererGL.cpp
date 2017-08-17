@@ -25,7 +25,7 @@
 #include "OverlayRendererGL.h"
 #ifdef HAS_GL
   #include "LinuxRendererGL.h"
-#elif HAS_GLES == 2
+#elif HAS_GLES >= 2
   #include "LinuxRendererGLES.h"
 #endif
 #include "guilib/MatrixGLES.h"
@@ -39,9 +39,9 @@
 #include "utils/log.h"
 #include "utils/GLUtils.h"
 
-#if defined(HAS_GL) || HAS_GLES == 2
+#if defined(HAS_GL) || HAS_GLES >= 2
 
-#if HAS_GLES == 2
+#if HAS_GLES >= 2
 // GLES2.0 cant do CLAMP, but can do CLAMP_TO_EDGE.
 #define GL_CLAMP	GL_CLAMP_TO_EDGE
 #endif
@@ -91,7 +91,7 @@ static void LoadTexture(GLenum target
       src = (const char*)pixels + y * stride;
       dst = pixelVector + y * bytesPerLine;
 
-      for (unsigned int i = 0; i < width; i++, src+=4, dst+=4)
+      for (GLsizei i = 0; i < width; i++, src+=4, dst+=4)
       {
         dst[0] = src[2];
         dst[1] = src[1];
@@ -301,7 +301,7 @@ COverlayGlyphGL::COverlayGlyphGL(ASS_Image* images, int width, int height)
   m_texture = 0;
 
   SQuads quads;
-  if(!convert_quad(images, quads))
+  if(!convert_quad(images, quads, width))
     return;
 
   glGenTextures(1, &m_texture);

@@ -35,14 +35,14 @@
  *
  */
 
+#include <string>
+#include <vector>
+
 #include "XBDateTime.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "video/VideoInfoTag.h"
 
 #include "pvr/PVRTypes.h"
-
-#include <string>
-#include <vector>
 
 class CVideoDatabase;
 class CVariant;
@@ -74,7 +74,6 @@ namespace PVR
     std::string   m_strChannelName;   /*!< name of the channel this was recorded from */
     int           m_iPriority;        /*!< priority of this recording */
     int           m_iLifetime;        /*!< lifetime of this recording */
-    std::string   m_strStreamURL;     /*!< stream URL. if empty use pvr client */
     std::string   m_strDirectory;     /*!< directory of this recording on the client */
     std::string   m_strIconPath;      /*!< icon path */
     std::string   m_strThumbnailPath; /*!< thumbnail path */
@@ -85,11 +84,11 @@ namespace PVR
     CPVRRecording(const PVR_RECORDING &recording, unsigned int iClientId);
 
   private:
-    CPVRRecording(const CPVRRecording &tag); // intentionally not implemented.
-    CPVRRecording &operator =(const CPVRRecording &other); // intentionally not implemented.
+    CPVRRecording(const CPVRRecording &tag) = delete;
+    CPVRRecording &operator =(const CPVRRecording &other) = delete;
 
   public:
-    virtual ~CPVRRecording() {};
+    ~CPVRRecording() override = default;
 
     bool operator ==(const CPVRRecording& right) const;
     bool operator !=(const CPVRRecording& right) const;
@@ -137,6 +136,13 @@ namespace PVR
      * @return True if play count was increased successfully, false otherwise.
      */
     bool IncrementPlayCount() override;
+
+    /*!
+     * @brief Set this recording's play count without transferring the value to the backend, even if it supports server-side play counts.
+     * @param count play count.
+     * @return True if play count was set successfully, false otherwise.
+     */
+    bool SetLocalPlayCount(int count) { return CVideoInfoTag::SetPlayCount(count); }
 
    /*!
      * @brief Get this recording's local play count. The value will not be obtained from the backend, even if it supports server-side play counts.
@@ -215,6 +221,25 @@ namespace PVR
     CDateTime EndTimeAsLocalTime() const;
 
     /*!
+     * @brief Check whether this recording has an expiration time
+     * @return True if the recording has an expiration time, false otherwise
+     */
+    bool HasExpirationTime() const { return m_iLifetime > 0; }
+
+    /*!
+     * @brief Retrieve the recording expiration time as local time
+     * @return the recording expiration time
+     */
+    CDateTime ExpirationTimeAsLocalTime() const;
+
+    /*!
+     * @brief Check whether this recording will immediately expire if the given lifetime value would be set
+     * @param iLifetime The lifetime value to check
+     * @return True if the recording would immediately expire, false otherwiese
+     */
+    bool WillBeExpiredWithNewLifetime(int iLifetime) const;
+
+    /*!
      * @brief Retrieve the recording title from the URL path
      * @param url the URL for the recording
      * @return Title of the recording
@@ -259,13 +284,21 @@ namespace PVR
      * @brief Retrieve the recording Episode Name
      * @note Returns an empty string if no Episode Name was provided by the PVR client
      */
-    std::string EpisodeName(void) const { return m_strShowTitle; };
+    std::string EpisodeName(void) const { return m_strShowTitle; }
 
     /*!
      * @brief check whether this recording is currently in progress (according to its start time and duration)
      * @return true if the recording is in progress, false otherwise
      */
     bool IsInProgress() const;
+
+    /*!
+    * @brief set the genre for this recording.
+    * @param iGenreType The genre type ID. If set to EPG_GENRE_USE_STRING, set genre to the value provided with strGenre. Otherwise, compile the genre string from the values given by iGenreType and iGenreSubType
+    * @param iGenreSubType The genre subtype ID
+    * @param strGenre The genre
+    */
+   void SetGenre(int iGenreType, int iGenreSubType, const std::string &strGenre);
 
   private:
     CDateTime    m_recordingTime; /*!< start time of the recording */

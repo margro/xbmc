@@ -34,16 +34,11 @@ namespace INFO
 class InfoBool
 {
 public:
-  InfoBool(const std::string &expression, int context);
-  virtual ~InfoBool() {};
+  InfoBool(const std::string &expression, int context, unsigned int &refreshCounter);
+  virtual ~InfoBool() = default;
 
-  /*! \brief Set the info bool dirty.
-   Will cause the info bool to be re-evaluated next call to Get()
-   */
-  void SetDirty()
-  {
-    m_dirty = true;
-  }
+  virtual void Initialize() {};
+
   /*! \brief Get the value of this info bool
    This is called to update (if dirty) and fetch the value of the info bool
    \param item the item used to evaluate the bool
@@ -52,10 +47,10 @@ public:
   {
     if (item && m_listItemDependent)
       Update(item);
-    else if (m_dirty)
+    else if (m_refreshCounter != m_parentRefreshCounter || m_refreshCounter == 0)
     {
       Update(NULL);
-      m_dirty = false;
+      m_refreshCounter = m_parentRefreshCounter;
     }
     return m_value;
   }
@@ -64,6 +59,16 @@ public:
   {
     return (m_context == right.m_context &&
             m_expression == right.m_expression);
+  }
+
+  bool operator<(const InfoBool &right) const
+  {
+    if (m_context < right.m_context)
+      return true;
+    else if (m_context == right.m_context)
+      return m_expression < right.m_expression;
+    else
+      return false;
   }
 
   /*! \brief Update the value of this info bool
@@ -78,10 +83,11 @@ protected:
   bool m_value;                ///< current value
   int m_context;               ///< contextual information to go with the condition
   bool m_listItemDependent;    ///< do not cache if a listitem pointer is given
+  std::string  m_expression;   ///< original expression
 
 private:
-  std::string  m_expression;   ///< original expression
-  bool         m_dirty;        ///< whether we need an update
+  unsigned int m_refreshCounter;
+  unsigned int &m_parentRefreshCounter;
 };
 
 typedef std::shared_ptr<InfoBool> InfoPtr;

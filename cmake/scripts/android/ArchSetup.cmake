@@ -5,8 +5,8 @@ elseif(NOT SDK_PLATFORM)
 endif()
 
 set(ARCH_DEFINES -DTARGET_POSIX -DTARGET_LINUX -D_LINUX -DTARGET_ANDROID)
-set(SYSTEM_DEFINES -D__STDC_CONSTANT_MACROS -D_FILE_DEFINED
-                   -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64)
+set(SYSTEM_DEFINES -D__STDC_CONSTANT_MACROS -D_LARGEFILE64_SOURCE
+                   -D_FILE_OFFSET_BITS=64)
 set(PLATFORM_DIR linux)
 if(WITH_ARCH)
   set(ARCH ${WITH_ARCH})
@@ -17,6 +17,7 @@ else()
     set(NEON_FLAGS "-mfpu=neon -mvectorize-with-neon-quad")
   elseif(CPU STREQUAL arm64-v8a)
     set(ARCH aarch64)
+    set(NEON True)
   elseif(CPU STREQUAL i686)
     set(ARCH i486-linux)
     set(NEON False)

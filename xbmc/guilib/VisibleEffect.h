@@ -89,9 +89,9 @@ class CFadeEffect : public CAnimEffect
 public:
   CFadeEffect(const TiXmlElement *node, bool reverseDefaults);
   CFadeEffect(float start, float end, unsigned int delay, unsigned int length);
-  virtual ~CFadeEffect() {};
+  ~CFadeEffect() override = default;
 private:
-  virtual void ApplyEffect(float offset, const CPoint &center);
+  void ApplyEffect(float offset, const CPoint &center) override;
 
   float m_startAlpha;
   float m_endAlpha;
@@ -100,10 +100,10 @@ private:
 class CSlideEffect : public CAnimEffect
 {
 public:
-  CSlideEffect(const TiXmlElement *node);
-  virtual ~CSlideEffect() {};
+  explicit CSlideEffect(const TiXmlElement *node);
+  ~CSlideEffect() override = default;
 private:
-  virtual void ApplyEffect(float offset, const CPoint &center);
+  void ApplyEffect(float offset, const CPoint &center) override;
 
   float m_startX;
   float m_startY;
@@ -115,9 +115,9 @@ class CRotateEffect : public CAnimEffect
 {
 public:
   CRotateEffect(const TiXmlElement *node, EFFECT_TYPE effect);
-  virtual ~CRotateEffect() {};
+  ~CRotateEffect() override = default;
 private:
-  virtual void ApplyEffect(float offset, const CPoint &center);
+  void ApplyEffect(float offset, const CPoint &center) override;
 
   float m_startAngle;
   float m_endAngle;
@@ -130,9 +130,9 @@ class CZoomEffect : public CAnimEffect
 {
 public:
   CZoomEffect(const TiXmlElement *node, const CRect &rect);
-  virtual ~CZoomEffect() {};
+  ~CZoomEffect() override = default;
 private:
-  virtual void ApplyEffect(float offset, const CPoint &center);
+  void ApplyEffect(float offset, const CPoint &center) override;
 
   float m_startX;
   float m_startY;
@@ -257,7 +257,6 @@ private:
   float        m_startPosition;           //!< Brief starting position of scroll
   bool         m_hasResumePoint;          //!< Brief check if we should tween from middle of the tween
   unsigned int m_startTime;               //!< Brief starting time of scroll
-  unsigned int m_lastTime;                //!< Brief last remember time (updated each time Scroll() method is called)
 
   unsigned int m_duration;                //!< Brief duration of scroll
   std::shared_ptr<Tweener> m_pTweener;

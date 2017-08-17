@@ -25,13 +25,13 @@
 class CVideoSyncDRM : public CVideoSync, IDispResource
 {
 public:
-  CVideoSyncDRM(void *clock) : CVideoSync(clock) {};
-  virtual bool Setup(PUPDATECLOCK func);
-  virtual void Run(std::atomic<bool>& stop);
-  virtual void Cleanup();
-  virtual float GetFps();
-  virtual void OnResetDisplay();
-  virtual void RefreshChanged();
+  explicit CVideoSyncDRM(void *clock) : CVideoSync(clock) {};
+  bool Setup(PUPDATECLOCK func) override;
+  void Run(CEvent& stopEvent) override;
+  void Cleanup() override;
+  float GetFps() override;
+  void OnResetDisplay() override;
+  void RefreshChanged() override;
 private:
   static void EventHandler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data);
   int m_fd;

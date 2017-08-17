@@ -59,7 +59,7 @@ namespace XBMCAddon
       { }
 
 #ifndef SWIG
-      Action(const CAction& caction) { setFromCAction(caction); }
+      explicit Action(const CAction& caction) { setFromCAction(caction); }
 
       void setFromCAction(const CAction& caction);
 
@@ -231,9 +231,9 @@ namespace XBMCAddon
        * the difference.
        * subclasses should use this constructor and not the other.
        */
-      Window(bool discrim);
+      explicit Window(bool discrim);
 
-      virtual void deallocating();
+      void deallocating() override;
 
       /**
        * This helper retrieves the next available id. It is assumed that the
@@ -265,8 +265,9 @@ namespace XBMCAddon
 #endif
 
     public:
-      Window(int existingWindowId = -1);
+      explicit Window(int existingWindowId = -1);
 
+      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
       virtual ~Window();
 
 #ifndef SWIG
@@ -640,9 +641,12 @@ namespace XBMCAddon
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ getHeight() }
       ///-----------------------------------------------------------------------
-      /// Returns the height of this screen.
+      /// Returns the height of this Window instance.
       ///
-      /// @return                       Screen height
+      /// @return                       Window height in pixels
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 Function changed
       ///
       getHeight();
 #else
@@ -654,9 +658,12 @@ namespace XBMCAddon
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ getWidth() }
       ///-----------------------------------------------------------------------
-      /// Returns the width of this screen.
+      /// Returns the width of this Window instance.
       ///
-      /// @return                       Screen width
+      /// @return                       Window width in pixels
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 Function changed
       ///
       getWidth();
 #else
@@ -684,6 +691,9 @@ namespace XBMCAddon
       ///  |   7   | PAL 16:9   (720x576)
       ///  |   8   | PAL60 4:3  (720x480)
       ///  |   9   | PAL60 16:9 (720x480)
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 Deprecated.
       ///
       getResolution();
 #else
@@ -727,6 +737,9 @@ namespace XBMCAddon
       /// win.setCoordinateResolution(0)
       /// ..
       /// ~~~~~~~~~~~~~
+      ///-----------------------------------------------------------------------
+      /// @python_v18 Deprecated.
+      ///
       setCoordinateResolution(...);
 #else
       SWIGHIDDENVIRTUAL void setCoordinateResolution(long res);

@@ -545,22 +545,22 @@ bool CActiveAEStream::HasDSP()
   return false;
 }
 
-const unsigned int CActiveAEStream::GetFrameSize() const
+unsigned int CActiveAEStream::GetFrameSize() const
 {
   return m_format.m_frameSize;
 }
 
-const unsigned int CActiveAEStream::GetChannelCount() const
+unsigned int CActiveAEStream::GetChannelCount() const
 {
   return m_format.m_channelLayout.Count();
 }
 
-const unsigned int CActiveAEStream::GetSampleRate() const
+unsigned int CActiveAEStream::GetSampleRate() const
 {
   return m_format.m_sampleRate;
 }
 
-const enum AEDataFormat CActiveAEStream::GetDataFormat() const
+enum AEDataFormat CActiveAEStream::GetDataFormat() const
 {
   return m_format.m_dataFormat;
 }
@@ -583,7 +583,7 @@ void CActiveAEStream::RegisterSlave(IAEStream *slave)
 // CActiveAEStreamBuffers
 //------------------------------------------------------------------------------
 
-CActiveAEStreamBuffers::CActiveAEStreamBuffers(AEAudioFormat inputFormat, AEAudioFormat outputFormat, AEQuality quality)
+CActiveAEStreamBuffers::CActiveAEStreamBuffers(const AEAudioFormat& inputFormat, const AEAudioFormat& outputFormat, AEQuality quality)
 {
   m_inputFormat = inputFormat;
   m_resampleBuffers = new CActiveAEBufferPoolResample(inputFormat, outputFormat, quality);

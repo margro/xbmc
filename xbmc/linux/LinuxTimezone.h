@@ -34,9 +34,9 @@ class CLinuxTimezone : public ISettingCallback, public ISettingsHandler
 public:
    CLinuxTimezone();
 
-   virtual void OnSettingChanged(const CSetting *setting) override;
+   void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
 
-   virtual void OnSettingsLoaded() override;
+   void OnSettingsLoaded() override;
 
    std::string GetOSConfiguredTimezone();
 
@@ -47,8 +47,8 @@ public:
    void SetTimezone(std::string timezone);
    int m_IsDST;
 
-   static void SettingOptionsTimezoneCountriesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
-   static void SettingOptionsTimezonesFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+   static void SettingOptionsTimezoneCountriesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
+   static void SettingOptionsTimezonesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data);
 
 private:
    std::vector<std::string> m_counties;

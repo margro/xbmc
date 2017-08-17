@@ -68,7 +68,7 @@ enum MsgQueueReturnCode
 class CDVDMessageQueue
 {
 public:
-  CDVDMessageQueue(const std::string &owner);
+  explicit CDVDMessageQueue(const std::string &owner);
   virtual ~CDVDMessageQueue();
 
   void Init();
@@ -76,7 +76,8 @@ public:
   void Abort();
   void End();
 
-  MsgQueueReturnCode Put(CDVDMsg* pMsg, int priority = 0, bool front = true);
+  MsgQueueReturnCode Put(CDVDMsg* pMsg, int priority = 0);
+  MsgQueueReturnCode PutBack(CDVDMsg* pMsg, int priority = 0);
 
   /**
    * msg,       message type from DVDMessage.h
@@ -109,12 +110,16 @@ public:
 
 private:
 
+  MsgQueueReturnCode Put(CDVDMsg* pMsg, int priority, bool front);
+  void UpdateTimeFront();
+  void UpdateTimeBack();
+
   CEvent m_hEvent;
   mutable CCriticalSection m_section;
 
   std::atomic<bool> m_bAbortRequest;
   bool m_bInitialized;
-  bool m_drain;
+  bool m_drain = false;
 
   int m_iDataSize;
   double m_TimeFront;

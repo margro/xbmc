@@ -33,6 +33,7 @@
 
 #include <algorithm>
 
+using namespace KODI;
 using namespace GAME;
 
 #define REWIND_FACTOR  0.25  // Rewind at 25% of gameplay speed
@@ -111,7 +112,7 @@ void CGameClientReversiblePlayback::SetSpeed(double speedFactor)
     m_gameLoop.SetSpeed(speedFactor * REWIND_FACTOR);
 }
 
-std::string CGameClientReversiblePlayback::CreateManualSavestate()
+std::string CGameClientReversiblePlayback::CreateSavestate()
 {
   std::string empty;
 

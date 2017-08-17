@@ -20,33 +20,64 @@
  *
  */
 
-#include <vector>
-#include "cores/VideoPlayer/VideoRenderers/RenderFormats.h"
-#include "cores/VideoPlayer/VideoRenderers/BaseRenderer.h"
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
+#include "cores/AudioEngine/Utils/AEStreamInfo.h"
+
+#include <map>
+#include <string>
+#include <vector>
+
+extern "C" {
+#include "libavutil/pixfmt.h"
+}
 
 class CDVDVideoCodec;
 class CDVDAudioCodec;
 class CDVDOverlayCodec;
+class IHardwareDecoder;
 
 class CDemuxStreamVideo;
 class CDVDStreamInfo;
 class CDVDCodecOption;
 class CDVDCodecOptions;
 
+typedef CDVDVideoCodec* (*CreateHWVideoCodec)(CProcessInfo &processInfo);
+typedef IHardwareDecoder* (*CreateHWAccel)(CDVDStreamInfo &hint, CProcessInfo &processInfo, AVPixelFormat fmt);
+typedef CDVDAudioCodec* (*CreateHWAudioCodec)(CProcessInfo &processInfo);
 
 class CDVDFactoryCodec
 {
 public:
   static CDVDVideoCodec* CreateVideoCodec(CDVDStreamInfo &hint,
-                                          CProcessInfo &processInfo,
-                                          const CRenderInfo &info = CRenderInfo());
-  static CDVDAudioCodec* CreateAudioCodec(CDVDStreamInfo &hint, CProcessInfo &processInfo,
-                                          bool allowpassthrough = true, bool allowdtshddecode = true);
-  static CDVDOverlayCodec* CreateOverlayCodec(CDVDStreamInfo &hint );
+                                          CProcessInfo &processInfo);
 
-  static CDVDAudioCodec* OpenCodec(CDVDAudioCodec* pCodec, CDVDStreamInfo &hint, CDVDCodecOptions &options );
-  static CDVDVideoCodec* OpenCodec(CDVDVideoCodec* pCodec, CDVDStreamInfo &hint, CDVDCodecOptions &options );
-  static CDVDOverlayCodec* OpenCodec(CDVDOverlayCodec* pCodec, CDVDStreamInfo &hint, CDVDCodecOptions &options );
+  static IHardwareDecoder* CreateVideoCodecHWAccel(std::string id, CDVDStreamInfo &hint,
+                                          CProcessInfo &processInfo, AVPixelFormat fmt);
+
+  static CDVDAudioCodec* CreateAudioCodec(CDVDStreamInfo &hint, CProcessInfo &processInfo,
+                                          bool allowpassthrough, bool allowdtshddecode,
+                                          CAEStreamInfo::DataType ptStreamType);
+
+  static CDVDOverlayCodec* CreateOverlayCodec(CDVDStreamInfo &hint);
+
+  static void RegisterHWVideoCodec(std::string id, CreateHWVideoCodec createFunc);
+  static void ClearHWVideoCodecs();
+
+  static void RegisterHWAccel(std::string id, CreateHWAccel createFunc);
+  static std::vector<std::string> GetHWAccels();
+  static void ClearHWAccels();
+
+  static void RegisterHWAudioCodec(std::string id, CreateHWAudioCodec createFunc);
+  static void ClearHWAudioCodecs();
+
+
+protected:
+
+  static CDVDVideoCodec* CreateVideoCodecHW(std::string id, CProcessInfo &processInfo);
+  static CDVDAudioCodec* CreateAudioCodecHW(std::string id, CProcessInfo &processInfo);
+
+  static std::map<std::string, CreateHWVideoCodec> m_hwVideoCodecs;
+  static std::map<std::string, CreateHWAccel> m_hwAccels;
+  static std::map<std::string, CreateHWAudioCodec> m_hwAudioCodecs;
 };
 

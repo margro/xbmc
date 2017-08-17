@@ -1,7 +1,7 @@
 # Kodi Media Center language file
 # Addon Name: Estuary
 # Addon id: skin.estuary
-# Addon Provider: phil65, Piers
+# Addon Provider: phil65, Ichabod Fletchman
 msgid ""
 msgstr ""
 "Project-Id-Version: KODI Main\n"
@@ -47,6 +47,10 @@ msgstr "Satunnaiset elokuvat"
 msgctxt "#31007"
 msgid "Unwatched movies"
 msgstr "Katsomattomat elokuvat"
+
+msgctxt "#31008"
+msgid "Enable category widgets"
+msgstr "Näytä kategoria-widgetit"
 
 msgctxt "#31009"
 msgid "Download icons"
@@ -108,9 +112,17 @@ msgctxt "#31023"
 msgid "Viewtype"
 msgstr "Näkymä"
 
+msgctxt "#31024"
+msgid "Choose rating to display for media items"
+msgstr "Valitse näytettävän arvosanan tyyppi"
+
 msgctxt "#31025"
 msgid "No favourites found. You can add any item from media views to this list by using the context menu."
 msgstr "Suosikkeja ei löytynyt. Avaa sisältövalikko haluamasi mediatiedoston kohdalla ja valitse \"Lisää suosikkeihin\"."
+
+msgctxt "#31026"
+msgid "Timeshift"
+msgstr "Ajansiirto"
 
 msgctxt "#31028"
 msgid "Show fanart"
@@ -436,10 +448,6 @@ msgctxt "#31131"
 msgid "Choose skin fanart pack"
 msgstr "Valitse ulkoasun taustakuvapaketti"
 
-msgctxt "#31132"
-msgid "min"
-msgstr "min"
-
 msgctxt "#31134"
 msgid "Remaining"
 msgstr "Jäljellä"
@@ -539,3 +547,11 @@ msgstr "Näytä mediakuvakkeet"
 msgctxt "#31161"
 msgid "Numeric pad"
 msgstr "Numeronäppäimistö"
+
+msgctxt "#31162"
+msgid "Play your personal games or download one of the many game add-ons from the official repository."
+msgstr "Pelaa omistamiasi pelejä tai lataa pelilisäosia virallisesta ohjelmavarastosta."
+
+msgctxt "#31163"
+msgid "Show Fanart background"
+msgstr "Näytä fanitaide"

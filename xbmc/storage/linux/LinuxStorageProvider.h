@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "storage/IStorageProvider.h"
-#include "DeviceKitDisksProvider.h"
 #include "UDevProvider.h"
 #include "UDisksProvider.h"
 #include "PosixMountProvider.h"
@@ -37,8 +36,6 @@ public:
 #ifdef HAS_DBUS
     if (CUDisksProvider::HasUDisks())
       m_instance = new CUDisksProvider();
-    else if (CDeviceKitDisksProvider::HasDeviceKitDisks())
-      m_instance = new CDeviceKitDisksProvider();
 #endif
 #ifdef HAVE_LIBUDEV
     if (m_instance == NULL)
@@ -49,22 +46,22 @@ public:
       m_instance = new CPosixMountProvider();
   }
 
-  virtual ~CLinuxStorageProvider()
+  ~CLinuxStorageProvider() override
   {
     delete m_instance;
   }
 
-  virtual void Initialize()
+  void Initialize() override
   {
     m_instance->Initialize();
   }
 
-  virtual void Stop()
+  void Stop() override
   {
     m_instance->Stop();
   }
 
-  virtual void GetLocalDrives(VECSOURCES &localDrives)
+  void GetLocalDrives(VECSOURCES &localDrives) override
   {
     // Home directory
     CMediaSource share;
@@ -80,22 +77,22 @@ public:
     m_instance->GetLocalDrives(localDrives);
   }
 
-  virtual void GetRemovableDrives(VECSOURCES &removableDrives)
+  void GetRemovableDrives(VECSOURCES &removableDrives) override
   {
     m_instance->GetRemovableDrives(removableDrives);
   }
 
-  virtual bool Eject(const std::string& mountpath)
+  bool Eject(const std::string& mountpath) override
   {
     return m_instance->Eject(mountpath);
   }
 
-  virtual std::vector<std::string> GetDiskUsage()
+  std::vector<std::string> GetDiskUsage() override
   {
     return m_instance->GetDiskUsage();
   }
 
-  virtual bool PumpDriveChangeEvents(IStorageEventsCallback *callback)
+  bool PumpDriveChangeEvents(IStorageEventsCallback *callback) override
   {
     return m_instance->PumpDriveChangeEvents(callback);
   }

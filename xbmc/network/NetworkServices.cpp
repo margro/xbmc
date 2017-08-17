@@ -118,6 +118,7 @@ CNetworkServices::CNetworkServices()
   , m_httpWebinterfaceAddonsHandler(*new CHTTPWebinterfaceAddonsHandler)
 #endif // HAS_WEB_INTERFACE
 #endif // HAS_WEB_SERVER
+
 {
 #ifdef HAS_WEB_SERVER
   m_webserver.RegisterRequestHandler(&m_httpImageHandler);
@@ -170,7 +171,7 @@ CNetworkServices& CNetworkServices::GetInstance()
   return sNetworkServices;
 }
 
-bool CNetworkServices::OnSettingChanging(const CSetting *setting)
+bool CNetworkServices::OnSettingChanging(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return false;
@@ -194,14 +195,14 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
   }
   else if (settingId == CSettings::SETTING_SERVICES_ESPORT ||
            settingId == CSettings::SETTING_SERVICES_WEBSERVERPORT)
-    return ValidatePort(((CSettingInt*)setting)->GetValue());
+    return ValidatePort(std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
   else
 #endif // HAS_WEB_SERVER
 
 #ifdef HAS_ZEROCONF
   if (settingId == CSettings::SETTING_SERVICES_ZEROCONF)
   {
-    if (((CSettingBool*)setting)->GetValue())
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
       return StartZeroconf();
 #ifdef HAS_AIRPLAY
     else
@@ -223,7 +224,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
 #ifdef HAS_AIRPLAY
   if (settingId == CSettings::SETTING_SERVICES_AIRPLAY)
   {
-    if (((CSettingBool*)setting)->GetValue())
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
     {
 #ifdef HAS_ZEROCONF
       // AirPlay needs zeroconf
@@ -266,7 +267,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
   }
   else if (settingId == CSettings::SETTING_SERVICES_AIRPLAYVIDEOSUPPORT)
   {
-    if (((CSettingBool*)setting)->GetValue())
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
     {
       if (!StartAirPlayServer())
       {
@@ -294,9 +295,26 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
 #endif //HAS_AIRPLAY
 
 #ifdef HAS_UPNP
-  if (settingId == CSettings::SETTING_SERVICES_UPNPSERVER)
+  if (settingId == CSettings::SETTING_SERVICES_UPNP)
   {
-    if (((CSettingBool*)setting)->GetValue())
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
+    {
+      StartUPnPClient();
+      StartUPnPController();
+      StartUPnPServer();
+      StartUPnPRenderer();
+    }
+    else
+    {
+      StopUPnPRenderer();
+      StopUPnPServer();
+      StopUPnPController();
+      StopUPnPClient();
+    }
+  }
+  else if (settingId == CSettings::SETTING_SERVICES_UPNPSERVER)
+  {
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
     {
       if (!StartUPnPServer())
         return false;
@@ -312,7 +330,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
   }
   else if (settingId == CSettings::SETTING_SERVICES_UPNPRENDERER)
   {
-    if (((CSettingBool*)setting)->GetValue())
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
       return StartUPnPRenderer();
     else
       return StopUPnPRenderer();
@@ -321,7 +339,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
   {
     // always stop and restart
     StopUPnPController();
-    if (((CSettingBool*)setting)->GetValue())
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
       return StartUPnPController();
   }
   else
@@ -329,7 +347,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
 
   if (settingId == CSettings::SETTING_SERVICES_ESENABLED)
   {
-    if (((CSettingBool*)setting)->GetValue())
+    if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
     {
       bool result = true;
 #ifdef HAS_EVENT_SERVER
@@ -423,7 +441,7 @@ bool CNetworkServices::OnSettingChanging(const CSetting *setting)
   return true;
 }
 
-void CNetworkServices::OnSettingChanged(const CSetting *setting)
+void CNetworkServices::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -439,7 +457,8 @@ void CNetworkServices::OnSettingChanged(const CSetting *setting)
   else
 #endif // HAS_WEB_SERVER
   if (settingId == CSettings::SETTING_SMB_WINSSERVER ||
-      settingId == CSettings::SETTING_SMB_WORKGROUP)
+      settingId == CSettings::SETTING_SMB_WORKGROUP ||
+      settingId == CSettings::SETTING_SMB_MAXPROTOCOL)
   {
     // okey we really don't need to restart, only deinit samba, but that could be damn hard if something is playing
     //! @todo - General way of handling setting changes that require restart
@@ -451,7 +470,7 @@ void CNetworkServices::OnSettingChanged(const CSetting *setting)
   }
 }
 
-bool CNetworkServices::OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
+bool CNetworkServices::OnSettingUpdate(std::shared_ptr<CSetting> setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
 {
   if (setting == NULL)
     return false;
@@ -482,7 +501,8 @@ void CNetworkServices::Start()
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_WEBSERVER) && !StartWebserver())
     CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(33101), g_localizeStrings.Get(33100));
 #endif // HAS_WEB_SERVER
-  StartUPnP();
+  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNP))
+    StartUPnP();
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_ESENABLED) && !StartEventServer())
     CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_ESENABLED) && !StartJSONRPCServer())
@@ -863,6 +883,9 @@ bool CNetworkServices::StopUPnP(bool bWait)
 bool CNetworkServices::StartUPnPClient()
 {
 #ifdef HAS_UPNP
+  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNP))
+    return false;
+
   CLog::Log(LOGNOTICE, "starting upnp client");
   CUPnP::GetInstance()->StartClient();
   return IsUPnPClientRunning();
@@ -896,7 +919,8 @@ bool CNetworkServices::StartUPnPController()
 {
 #ifdef HAS_UPNP
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNPCONTROLLER) ||
-      !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNPSERVER))
+      !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNPSERVER) ||
+      !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNP))
     return false;
 
   CLog::Log(LOGNOTICE, "starting upnp controller");
@@ -931,7 +955,8 @@ bool CNetworkServices::StopUPnPController()
 bool CNetworkServices::StartUPnPRenderer()
 {
 #ifdef HAS_UPNP
-  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNPRENDERER))
+  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNPRENDERER) ||
+      !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNP))
     return false;
 
   CLog::Log(LOGNOTICE, "starting upnp renderer");
@@ -965,7 +990,8 @@ bool CNetworkServices::StopUPnPRenderer()
 bool CNetworkServices::StartUPnPServer()
 {
 #ifdef HAS_UPNP
-  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNPSERVER))
+  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNPSERVER) ||
+      !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNP))
     return false;
 
   CLog::Log(LOGNOTICE, "starting upnp server");

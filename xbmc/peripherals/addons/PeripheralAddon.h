@@ -19,9 +19,10 @@
  */
 #pragma once
 
-#include "addons/AddonDll.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_types.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_utils.hpp"
+#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/BinaryAddonBase.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/Peripheral.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/PeripheralUtils.h"
 #include "input/joysticks/JoystickTypes.h"
 #include "peripherals/PeripheralTypes.h"
 #include "threads/CriticalSection.h"
@@ -45,25 +46,19 @@ namespace PERIPHERALS
   class CPeripheral;
   class CPeripheralJoystick;
 
-  typedef std::vector<ADDON::DriverPrimitive> PrimitiveVector;
-  typedef std::map<KODI::JOYSTICK::FeatureName, ADDON::JoystickFeature> FeatureMap;
+  typedef std::vector<kodi::addon::DriverPrimitive> PrimitiveVector;
+  typedef std::map<KODI::JOYSTICK::FeatureName, kodi::addon::JoystickFeature> FeatureMap;
 
-  class CPeripheralAddon : public ADDON::CAddonDll
+  class CPeripheralAddon : public ADDON::IAddonInstanceHandler
   {
   public:
-    static std::unique_ptr<CPeripheralAddon> FromExtension(ADDON::AddonProps props, const cp_extension_t* ext);
-
-    CPeripheralAddon(ADDON::AddonProps props, bool bProvidesJoysticks, bool bProvidesButtonMaps);
-
-    virtual ~CPeripheralAddon(void);
-
-    // implementation of IAddon
-    virtual ADDON::AddonPtr GetRunningInstance(void) const override;
+    explicit CPeripheralAddon(const ADDON::BinaryAddonBasePtr& addonInfo);
+    ~CPeripheralAddon(void) override;
 
     /*!
      * @brief Initialise the instance of this add-on
      */
-    ADDON_STATUS CreateAddon(void);
+    bool CreateAddon(void);
 
     /*!
      * \brief Deinitialize the instance of this add-on
@@ -94,7 +89,7 @@ namespace PERIPHERALS
     bool GetJoystickProperties(unsigned int index, CPeripheralJoystick& joystick);
     bool HasButtonMaps(void) const { return m_bProvidesButtonMaps; }
     bool GetFeatures(const CPeripheral* device, const std::string& strControllerId, FeatureMap& features);
-    bool MapFeature(const CPeripheral* device, const std::string& strControllerId, const ADDON::JoystickFeature& feature);
+    bool MapFeature(const CPeripheral* device, const std::string& strControllerId, const kodi::addon::JoystickFeature& feature);
     bool GetIgnoredPrimitives(const CPeripheral* device, PrimitiveVector& primitives);
     bool SetIgnoredPrimitives(const CPeripheral* device, const PrimitiveVector& primitives);
     void SaveButtonMap(const CPeripheral* device);
@@ -107,13 +102,15 @@ namespace PERIPHERALS
     void UnregisterButtonMap(KODI::JOYSTICK::IButtonMap* buttonMap);
     void RefreshButtonMaps(const std::string& strDeviceName = "");
 
-  protected:
-    /*!
-     * @brief Request the API version from the add-on, and check if it's compatible
-     * @return True when compatible, false otherwise.
-     * @remark Implementation of CAddonDll
-     */
-    virtual bool CheckAPIVersion(void) override;
+    static inline bool ProvidesJoysticks(const ADDON::BinaryAddonBasePtr& addonInfo)
+    {
+      return addonInfo->Type(ADDON::ADDON_PERIPHERALDLL)->GetValue("@provides_joysticks").asBoolean();
+    }
+
+    static inline bool ProvidesButtonMaps(const ADDON::BinaryAddonBasePtr& addonInfo)
+    {
+      return addonInfo->Type(ADDON::ADDON_PERIPHERALDLL)->GetValue("@provides_buttonmaps").asBoolean();
+    }
 
   private:
     void UnregisterButtonMap(CPeripheral* device);
@@ -121,10 +118,10 @@ namespace PERIPHERALS
     /*!
      * @brief Helper functions
      */
-    static void GetPeripheralInfo(const CPeripheral* device, ADDON::Peripheral& peripheralInfo);
+    static void GetPeripheralInfo(const CPeripheral* device, kodi::addon::Peripheral& peripheralInfo);
 
-    static void GetJoystickInfo(const CPeripheral* device, ADDON::Joystick& joystickInfo);
-    static void SetJoystickInfo(CPeripheralJoystick& joystick, const ADDON::Joystick& joystickInfo);
+    static void GetJoystickInfo(const CPeripheral* device, kodi::addon::Joystick& joystickInfo);
+    static void SetJoystickInfo(CPeripheralJoystick& joystick, const kodi::addon::Joystick& joystickInfo);
 
     /*!
      * @brief Reset all class members to their defaults. Called by the constructors
@@ -136,14 +133,6 @@ namespace PERIPHERALS
      */
     bool GetAddonProperties(void);
 
-    /*!
-     * @brief Checks whether the provided API version is compatible with XBMC
-     * @param minVersion The add-on's XBMC_PERIPHERAL_MIN_API_VERSION version
-     * @param version The add-on's XBMC_PERIPHERAL_API_VERSION version
-     * @return True when compatible, false otherwise
-     */
-    static bool IsCompatibleAPIVersion(const ADDON::AddonVersion &minVersion, const ADDON::AddonVersion &version);
-
     bool LogError(const PERIPHERAL_ERROR error, const char *strMethod) const;
 
     static std::string GetDeviceName(PeripheralType type);
@@ -153,8 +142,17 @@ namespace PERIPHERALS
     std::string         m_strUserPath;    /*!< @brief translated path to the user profile */
     std::string         m_strClientPath;  /*!< @brief translated path to this add-on */
 
+    /*!
+     * @brief Callback functions from addon to kodi
+     */
+    //@{
+    static void cb_trigger_scan(void* kodiInstance);
+    static void cb_refresh_button_maps(void* kodiInstance, const char* deviceName, const char* controllerId);
+    static unsigned int cb_feature_count(void* kodiInstance, const char* controllerId, JOYSTICK_FEATURE_TYPE type);
+    static JOYSTICK_FEATURE_TYPE cb_feature_type(void* kodiInstance, const char* controllerId, const char* featureName);
+    //@}
+
     /* @brief Add-on properties */
-    ADDON::AddonVersion m_apiVersion;
     bool                m_bProvidesJoysticks;
     bool                m_bSupportsJoystickRumble;
     bool                m_bSupportsJoystickPowerOff;
@@ -170,8 +168,7 @@ namespace PERIPHERALS
     /* @brief Thread synchronization */
     CCriticalSection    m_critSection;
     
-    PERIPHERAL_PROPERTIES m_info;
-    KodiToAddonFuncTable_Peripheral m_struct;
+    AddonInstance_Peripheral m_struct;
 
     CSharedSection      m_dllSection;
   };

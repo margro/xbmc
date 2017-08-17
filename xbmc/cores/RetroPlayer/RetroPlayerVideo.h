@@ -29,23 +29,25 @@ class CDVDVideoCodec;
 class CPixelConverter;
 class CProcessInfo;
 class CRenderManager;
-struct DVDVideoPicture;
+struct VideoPicture;
 
-namespace GAME
+namespace KODI
 {
-  class CRetroPlayerVideo : public IGameVideoCallback
+namespace RETRO
+{
+  class CRetroPlayerVideo : public GAME::IGameVideoCallback
                             //protected CThread
   {
   public:
-    CRetroPlayerVideo(CRenderManager& m_renderManager, CProcessInfo& m_processInfo);
+    CRetroPlayerVideo(CRenderManager& m_renderManager, CProcessInfo& m_processInfo, CDVDClock &clock);
 
-    virtual ~CRetroPlayerVideo();
+    ~CRetroPlayerVideo() override;
 
     // implementation of IGameVideoCallback
-    virtual bool OpenPixelStream(AVPixelFormat pixfmt, unsigned int width, unsigned int height, double framerate, unsigned int orientationDeg) override;
-    virtual bool OpenEncodedStream(AVCodecID codec) override;
-    virtual void AddData(const uint8_t* data, unsigned int size) override;
-    virtual void CloseStream() override;
+    bool OpenPixelStream(AVPixelFormat pixfmt, unsigned int width, unsigned int height, double framerate, unsigned int orientationDeg) override;
+    bool OpenEncodedStream(AVCodecID codec) override;
+    void AddData(const uint8_t* data, unsigned int size) override;
+    void CloseStream() override;
 
     /*
   protected:
@@ -54,13 +56,14 @@ namespace GAME
     */
 
   private:
-    bool Configure(DVDVideoPicture& picture);
-    bool GetPicture(const uint8_t* data, unsigned int size, DVDVideoPicture& picture);
-    void SendPicture(DVDVideoPicture& picture);
+    bool Configure(VideoPicture& picture);
+    bool GetPicture(const uint8_t* data, unsigned int size, VideoPicture& picture);
+    void SendPicture(VideoPicture& picture);
 
     // Construction parameters
     CRenderManager& m_renderManager;
     CProcessInfo&   m_processInfo;
+    CDVDClock       &m_clock;
 
     // Stream properties
     double       m_framerate;
@@ -70,4 +73,5 @@ namespace GAME
     std::unique_ptr<CPixelConverter> m_pixelConverter;
     std::unique_ptr<CDVDVideoCodec>  m_pVideoCodec;
   };
+}
 }

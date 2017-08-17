@@ -18,14 +18,15 @@
  *
  */
 
+#include "PVRTimerType.h"
+
 #include "ServiceBroker.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "guilib/LocalizeStrings.h"
-#include "pvr/timers/PVRTimerType.h"
-#include "pvr/addons/PVRClients.h"
-#include "pvr/PVRManager.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/log.h"
+
+#include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
 
 using namespace PVR;
 
@@ -99,9 +100,7 @@ CPVRTimerType::CPVRTimerType(const PVR_TIMER_TYPE &type, int iClientId) :
   InitAttributeValues(type);
 }
 
-CPVRTimerType::~CPVRTimerType()
-{
-}
+CPVRTimerType::~CPVRTimerType() = default;
 
 bool CPVRTimerType::operator ==(const CPVRTimerType& right) const
 {
@@ -179,13 +178,14 @@ void CPVRTimerType::InitLifetimeValues(const PVR_TIMER_TYPE &type)
   {
     for (unsigned int i = 0; i < type.iLifetimesSize; ++i)
     {
+      int iValue = type.lifetimes[i].iValue;
       std::string strDescr(type.lifetimes[i].strDescription);
       if (strDescr.empty())
       {
         // No description given by addon. Create one from value.
-        strDescr = StringUtils::Format("%d", type.lifetimes[i].iValue);
+        strDescr = StringUtils::Format("%d", iValue);
       }
-      m_lifetimeValues.push_back(std::make_pair(strDescr, type.lifetimes[i].iValue));
+      m_lifetimeValues.push_back(std::make_pair(strDescr, iValue));
     }
 
     m_iLifetimeDefault = type.iLifetimesDefault;

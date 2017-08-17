@@ -29,7 +29,7 @@ class CBusyWaiter : public CThread
 {
   std::shared_ptr<CEvent>  m_done;
 public:
-  CBusyWaiter(IRunnable *runnable) : CThread(runnable, "waiting"), m_done(new CEvent()) {  }
+  explicit CBusyWaiter(IRunnable *runnable) : CThread(runnable, "waiting"), m_done(new CEvent()) {  }
   
   bool Wait(unsigned int displaytime, bool allowCancel)
   {
@@ -40,7 +40,7 @@ public:
   }
 
   // 'this' is actually deleted from the thread where it's on the stack
-  virtual void Process()
+  void Process() override
   {
     std::shared_ptr<CEvent> e_done(m_done);
 
@@ -94,9 +94,7 @@ CGUIDialogBusy::CGUIDialogBusy(void)
   m_progress = -1;
 }
 
-CGUIDialogBusy::~CGUIDialogBusy(void)
-{
-}
+CGUIDialogBusy::~CGUIDialogBusy(void) = default;
 
 void CGUIDialogBusy::Open_Internal(const std::string &param /* = "" */)
 {
@@ -112,14 +110,14 @@ void CGUIDialogBusy::DoProcess(unsigned int currentTime, CDirtyRegionList &dirty
 {
   bool visible = g_windowManager.GetTopMostModalDialogID() == WINDOW_DIALOG_BUSY;
   if(!visible && m_bLastVisible)
-    dirtyregions.push_back(m_renderRegion);
+    dirtyregions.push_back(CDirtyRegion(m_renderRegion));
   m_bLastVisible = visible;
 
   // update the progress control if available
-  const CGUIControl *control = GetControl(PROGRESS_CONTROL);
+  CGUIControl *control = GetControl(PROGRESS_CONTROL);
   if (control && control->GetControlType() == CGUIControl::GUICONTROL_PROGRESS)
   {
-    CGUIProgressControl *progress = (CGUIProgressControl *)control;
+    CGUIProgressControl *progress = static_cast<CGUIProgressControl*>(control);
     progress->SetPercentage(m_progress);
     progress->SetVisible(m_progress > -1);
   }

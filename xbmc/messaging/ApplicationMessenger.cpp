@@ -37,7 +37,7 @@ class CDelayedMessage : public CThread
 {
   public:
     CDelayedMessage(ThreadMessage& msg, unsigned int delay);
-    virtual void Process() override;
+    void Process() override;
 
   private:
     unsigned int   m_delay;
@@ -66,9 +66,7 @@ CApplicationMessenger& CApplicationMessenger::GetInstance()
   return appMessenger;
 }
 
-CApplicationMessenger::CApplicationMessenger()
-{
-}
+CApplicationMessenger::CApplicationMessenger() = default;
 
 CApplicationMessenger::~CApplicationMessenger()
 {

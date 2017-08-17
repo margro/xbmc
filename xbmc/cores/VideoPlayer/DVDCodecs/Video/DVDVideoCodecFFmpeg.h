@@ -37,44 +37,26 @@ extern "C" {
 #include "libpostproc/postprocess.h"
 }
 
-class CCriticalSection;
+class CVideoBufferPoolFFmpeg;
 
-class CDVDVideoCodecFFmpeg : public CDVDVideoCodec
+class CDVDVideoCodecFFmpeg : public CDVDVideoCodec, public ICallbackHWAccel
 {
 public:
-  class IHardwareDecoder : public IDVDResourceCounted<IHardwareDecoder>
-  {
-    public:
-    IHardwareDecoder() {}
-    virtual ~IHardwareDecoder() {};
-    virtual bool Open(AVCodecContext* avctx, AVCodecContext* mainctx, const enum AVPixelFormat, unsigned int surfaces) = 0;
-    virtual int  Decode(AVCodecContext* avctx, AVFrame* frame) = 0;
-    virtual bool GetPicture(AVCodecContext* avctx, AVFrame* frame, DVDVideoPicture* picture) = 0;
-    virtual int  Check(AVCodecContext* avctx) = 0;
-    virtual void Reset() {}
-    virtual unsigned GetAllowedReferences() { return 0; }
-    virtual bool CanSkipDeint() {return false; }
-    virtual const std::string Name() = 0;
-    virtual void SetCodecControl(int flags) {};
-  };
+  explicit CDVDVideoCodecFFmpeg(CProcessInfo &processInfo);
+  ~CDVDVideoCodecFFmpeg() override;
+  bool Open(CDVDStreamInfo &hints, CDVDCodecOptions &options) override;
+  bool AddData(const DemuxPacket &packet) override;
+  void Reset() override;
+  void Reopen() override;
+  CDVDVideoCodec::VCReturn GetPicture(VideoPicture* pVideoPicture) override;
+  const char* GetName() override { return m_name.c_str(); }; // m_name is never changed after open
+  unsigned GetConvergeCount() override;
+  unsigned GetAllowedReferences() override;
+  bool GetCodecStats(double &pts, int &droppedFrames, int &skippedPics) override;
+  void SetCodecControl(int flags) override;
 
-  CDVDVideoCodecFFmpeg(CProcessInfo &processInfo);
-  virtual ~CDVDVideoCodecFFmpeg();
-  virtual bool Open(CDVDStreamInfo &hints, CDVDCodecOptions &options) override;
-  virtual int Decode(uint8_t* pData, int iSize, double dts, double pts) override;
-  virtual void Reset() override;
-  virtual void Reopen() override;
-  bool GetPictureCommon(DVDVideoPicture* pDvdVideoPicture);
-  virtual bool GetPicture(DVDVideoPicture* pDvdVideoPicture) override;
-  virtual void SetDropState(bool bDrop) override;
-  virtual const char* GetName() override { return m_name.c_str(); }; // m_name is never changed after open
-  virtual unsigned GetConvergeCount() override;
-  virtual unsigned GetAllowedReferences() override;
-  virtual bool GetCodecStats(double &pts, int &droppedFrames, int &skippedPics) override;
-  virtual void SetCodecControl(int flags) override;
-
-  IHardwareDecoder * GetHardware() { return m_pHardware; };
-  void SetHardware(IHardwareDecoder* hardware);
+  IHardwareDecoder* GetHWAccel() override;
+  bool GetPictureCommon(VideoPicture* pVideoPicture) override;
 
 protected:
   void Dispose();
@@ -82,21 +64,28 @@ protected:
 
   int  FilterOpen(const std::string& filters, bool scale);
   void FilterClose();
-  int  FilterProcess(AVFrame* frame);
+  CDVDVideoCodec::VCReturn FilterProcess(AVFrame* frame);
   void SetFilters();
   void UpdateName();
+  bool SetPictureParams(VideoPicture* pVideoPicture);
+
+  IHardwareDecoder* CreateVideoDecoderHW(AVPixelFormat pixfmt, CProcessInfo &processInfo);
+  bool HasHardware() { return m_pHardware != nullptr; };
+  void SetHardware(IHardwareDecoder *hardware);
 
   AVFrame* m_pFrame;
   AVFrame* m_pDecodedFrame;
   AVCodecContext* m_pCodecContext;
+  std::shared_ptr<CVideoBufferPoolFFmpeg> m_videoBufferPool;
 
-  std::string       m_filters;
-  std::string       m_filters_next;
-  AVFilterGraph*   m_pFilterGraph;
+  std::string m_filters;
+  std::string m_filters_next;
+  AVFilterGraph* m_pFilterGraph;
   AVFilterContext* m_pFilterIn;
   AVFilterContext* m_pFilterOut;
-  AVFrame*         m_pFilterFrame;
+  AVFrame* m_pFilterFrame;
   bool m_filterEof = false;
+  bool m_eof;
 
   CDVDVideoPPFFmpeg m_postProc;
 
@@ -106,8 +95,6 @@ protected:
   int m_iScreenWidth;
   int m_iScreenHeight;
   int m_iOrientation;// orientation of the video in degrees counter clockwise
-
-  unsigned int m_uSurfacesCount;
 
   std::string m_name;
   int m_decoderState;

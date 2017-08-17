@@ -54,9 +54,6 @@ endmacro()
 
 # -------- Main script --------- 
 message(STATUS "System type: ${CMAKE_SYSTEM_NAME}")
-if(NOT CORE_SYSTEM_NAME)
-  string(TOLOWER ${CMAKE_SYSTEM_NAME} CORE_SYSTEM_NAME)
-endif()
 
 if(WITH_CPU)
   set(CPU ${WITH_CPU})
@@ -146,7 +143,10 @@ if(NOT DEFINED NEON OR NEON)
   option(ENABLE_NEON "Enable NEON optimization" ${NEON})
   if(ENABLE_NEON)
     message(STATUS "NEON optimization enabled")
-    add_options(ALL_LANGUAGES ALL_BUILDS ${NEON_FLAGS})
+    add_definitions(-DHAS_NEON)
+    if(NEON_FLAGS)
+      add_options(ALL_LANGUAGES ALL_BUILDS ${NEON_FLAGS})
+    endif()
   endif()
 endif()
 

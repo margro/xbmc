@@ -28,13 +28,13 @@
 class CVideoLibraryProgressJob : public CProgressJob, public CVideoLibraryJob
 {
 public:
-  virtual ~CVideoLibraryProgressJob();
+  ~CVideoLibraryProgressJob() override;
 
   // implementation of CJob
-  virtual bool DoWork();
-  virtual const char *GetType() const { return "CVideoLibraryProgressJob"; }
-  virtual bool operator==(const CJob* job) const { return false; }
+  bool DoWork() override;
+  const char *GetType() const override { return "CVideoLibraryProgressJob"; }
+  bool operator==(const CJob* job) const override { return false; }
 
 protected:
-  CVideoLibraryProgressJob(CGUIDialogProgressBarHandle* progressBar);
+  explicit CVideoLibraryProgressJob(CGUIDialogProgressBarHandle* progressBar);
 };

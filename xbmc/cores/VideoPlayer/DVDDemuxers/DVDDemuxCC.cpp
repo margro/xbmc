@@ -19,7 +19,7 @@
  */
 
 #include "DVDDemuxUtils.h"
-#include "DVDClock.h"
+#include "TimingConstants.h"
 #include "DVDDemuxCC.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/contrib/cc_decoder708.h"
 
@@ -75,7 +75,7 @@ private:
 class CCaptionBlock
 {
 public:
-  CCaptionBlock(int size)
+  explicit CCaptionBlock(int size)
   {
     m_data = (uint8_t*)malloc(size);
     m_size = size;
@@ -294,7 +294,7 @@ DemuxPacket* CDVDDemuxCC::Read(DemuxPacket *pSrcPacket)
 
 void CDVDDemuxCC::Handler(int service, void *userdata)
 {
-  CDVDDemuxCC *ctx = (CDVDDemuxCC*)userdata;
+  CDVDDemuxCC *ctx = static_cast<CDVDDemuxCC*>(userdata);
 
   unsigned int idx;
 

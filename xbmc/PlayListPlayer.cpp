@@ -264,7 +264,10 @@ bool CPlayListPlayer::Play(const CFileItemPtr &pItem, std::string player)
   else if (pItem->IsVideo())
     playlist = PLAYLIST_VIDEO;
   else
+  {
+    CLog::Log(LOGWARNING,"Playlist Player: ListItem type must be audio or video, use ListItem::setInfo to specify!");
     return false;
+  }
 
   ClearPlaylist(playlist);
   Reset();
@@ -604,18 +607,18 @@ void CPlayListPlayer::ReShuffle(int iPlaylist, int iPosition)
       (g_application.m_pPlayer->IsPlayingVideo() && iPlaylist == PLAYLIST_VIDEO)
       )
     {
-      g_playlistPlayer.GetPlaylist(iPlaylist).Shuffle(m_iCurrentSong + 2);
+      CServiceBroker::GetPlaylistPlayer().GetPlaylist(iPlaylist).Shuffle(m_iCurrentSong + 2);
     }
   }
   // otherwise, shuffle from the passed position
   // which is the position of the first new item added
   else
   {
-    g_playlistPlayer.GetPlaylist(iPlaylist).Shuffle(iPosition);
+    CServiceBroker::GetPlaylistPlayer().GetPlaylist(iPlaylist).Shuffle(iPosition);
   }
 }
 
-void CPlayListPlayer::Add(int iPlaylist, CPlayList& playlist)
+void CPlayListPlayer::Add(int iPlaylist, const CPlayList& playlist)
 {
   if (iPlaylist != PLAYLIST_MUSIC && iPlaylist != PLAYLIST_VIDEO)
     return;
@@ -637,7 +640,7 @@ void CPlayListPlayer::Add(int iPlaylist, const CFileItemPtr &pItem)
     ReShuffle(iPlaylist, iSize);
 }
 
-void CPlayListPlayer::Add(int iPlaylist, CFileItemList& items)
+void CPlayListPlayer::Add(int iPlaylist, const CFileItemList& items)
 {
   if (iPlaylist != PLAYLIST_MUSIC && iPlaylist != PLAYLIST_VIDEO)
     return;
@@ -648,7 +651,7 @@ void CPlayListPlayer::Add(int iPlaylist, CFileItemList& items)
     ReShuffle(iPlaylist, iSize);
 }
 
-void CPlayListPlayer::Insert(int iPlaylist, CPlayList& playlist, int iIndex)
+void CPlayListPlayer::Insert(int iPlaylist, const CPlayList& playlist, int iIndex)
 {
   if (iPlaylist != PLAYLIST_MUSIC && iPlaylist != PLAYLIST_VIDEO)
     return;
@@ -674,7 +677,7 @@ void CPlayListPlayer::Insert(int iPlaylist, const CFileItemPtr &pItem, int iInde
     m_iCurrentSong++;
 }
 
-void CPlayListPlayer::Insert(int iPlaylist, CFileItemList& items, int iIndex)
+void CPlayListPlayer::Insert(int iPlaylist, const CFileItemList& items, int iIndex)
 {
   if (iPlaylist != PLAYLIST_MUSIC && iPlaylist != PLAYLIST_VIDEO)
     return;
@@ -780,7 +783,7 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
   case TMSG_PLAYLISTPLAYER_ADD:
     if (pMsg->lpVoid)
     {
-      CFileItemList *list = (CFileItemList *)pMsg->lpVoid;
+      CFileItemList *list = static_cast<CFileItemList*>(pMsg->lpVoid);
 
       Add(pMsg->param1, (*list));
       delete list;
@@ -790,7 +793,7 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
   case TMSG_PLAYLISTPLAYER_INSERT:
     if (pMsg->lpVoid)
     {
-      CFileItemList *list = (CFileItemList *)pMsg->lpVoid;
+      CFileItemList *list = static_cast<CFileItemList*>(pMsg->lpVoid);
       Insert(pMsg->param1, (*list), pMsg->param2);
       delete list;
     }
@@ -839,7 +842,7 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
     // first check if we were called from the PlayFile() function
     if (pMsg->lpVoid && pMsg->param2 == 0)
     {
-      CFileItem *item = (CFileItem *)pMsg->lpVoid;
+      CFileItem *item = static_cast<CFileItem*>(pMsg->lpVoid);
       g_application.PlayFile(*item, "", pMsg->param1 != 0);
       delete item;
       return;
@@ -857,7 +860,7 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
     // play file
     if (pMsg->lpVoid)
     {
-      CFileItemList *list = (CFileItemList *)pMsg->lpVoid;
+      CFileItemList *list = static_cast<CFileItemList*>(pMsg->lpVoid);
 
       if (list->Size() > 0)
       {

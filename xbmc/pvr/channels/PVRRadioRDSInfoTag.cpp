@@ -19,6 +19,7 @@
  */
 
 #include "PVRRadioRDSInfoTag.h"
+
 #include "GUIUserMessages.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
@@ -39,8 +40,7 @@ CPVRRadioRDSInfoTag::CPVRRadioRDSInfoTag(void)
   Clear();
 }
 
-CPVRRadioRDSInfoTag::~CPVRRadioRDSInfoTag()
-{}
+CPVRRadioRDSInfoTag::~CPVRRadioRDSInfoTag() = default;
 
 void CPVRRadioRDSInfoTag::Serialize(CVariant& value) const
 {

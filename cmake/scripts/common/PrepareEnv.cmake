@@ -1,4 +1,4 @@
-# parse version.txt and libKODI_guilib.h to get the version and API info
+# parse version.txt and versions.h to get the version and API info
 include(${CORE_SOURCE_DIR}/cmake/scripts/common/Macros.cmake)
 core_find_versions()
 
@@ -39,6 +39,10 @@ configure_file(${CORE_SOURCE_DIR}/cmake/KodiConfig.cmake.in ${APP_LIB_DIR}/KodiC
 file(COPY ${CORE_SOURCE_DIR}/cmake/scripts/common/AddonHelpers.cmake
           ${CORE_SOURCE_DIR}/cmake/scripts/common/AddOptions.cmake
      DESTINATION ${APP_LIB_DIR})
+
+# copy standard add-on include files
+file(COPY ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/
+     DESTINATION ${APP_INCLUDE_DIR} REGEX ".txt" EXCLUDE)
 
 ### copy all the addon binding header files to include/kodi
 # parse addon-bindings.mk to get the list of header files to copy

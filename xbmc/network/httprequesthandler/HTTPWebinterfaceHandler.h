@@ -27,11 +27,11 @@
 class CHTTPWebinterfaceHandler : public CHTTPFileHandler
 {
 public:
-  CHTTPWebinterfaceHandler() { }
-  virtual ~CHTTPWebinterfaceHandler() { }
+  CHTTPWebinterfaceHandler() = default;
+  ~CHTTPWebinterfaceHandler() override = default;
   
-  virtual IHTTPRequestHandler* Create(const HTTPRequest &request) { return new CHTTPWebinterfaceHandler(request); }
-  virtual bool CanHandleRequest(const HTTPRequest &request);
+  IHTTPRequestHandler* Create(const HTTPRequest &request) const override { return new CHTTPWebinterfaceHandler(request); }
+  bool CanHandleRequest(const HTTPRequest &request) const override;
 
   static int ResolveUrl(const std::string &url, std::string &path);
   static int ResolveUrl(const std::string &url, std::string &path, ADDON::AddonPtr &addon);

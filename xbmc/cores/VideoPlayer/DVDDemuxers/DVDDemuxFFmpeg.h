@@ -24,6 +24,7 @@
 #include "threads/CriticalSection.h"
 #include "threads/SystemClock.h"
 #include <map>
+#include <memory>
 #include <vector>
 
 extern "C" {
@@ -33,45 +34,48 @@ extern "C" {
 class CDVDDemuxFFmpeg;
 class CURL;
 
-class CDemuxStreamVideoFFmpeg
-  : public CDemuxStreamVideo
+class CDemuxStreamVideoFFmpeg : public CDemuxStreamVideo
 {
-  AVStream*        m_stream;
 public:
-  CDemuxStreamVideoFFmpeg(CDVDDemuxFFmpeg *parent, AVStream* stream)
-    : m_stream(stream)
-  {}
-  std::string      m_description;
+  explicit CDemuxStreamVideoFFmpeg(AVStream* stream) : m_stream(stream) {}
+  std::string GetStreamName() override;
 
-  virtual std::string GetStreamName() override;
+  std::string m_description;
+protected:
+  AVStream* m_stream = nullptr;
 };
 
-
-class CDemuxStreamAudioFFmpeg
-  : public CDemuxStreamAudio
+class CDemuxStreamAudioFFmpeg : public CDemuxStreamAudio
 {
-  AVStream*        m_stream;
 public:
-  CDemuxStreamAudioFFmpeg(CDVDDemuxFFmpeg *parent, AVStream* stream)
-    : m_stream(stream)
-  {}
-  std::string m_description;
+  explicit CDemuxStreamAudioFFmpeg(AVStream* stream) : m_stream(stream) {}
+  std::string GetStreamName() override;
 
-  virtual std::string GetStreamName() override;
+  std::string m_description;
+protected:
+  CDVDDemuxFFmpeg *m_parent;
+  AVStream* m_stream  = nullptr;
 };
 
 class CDemuxStreamSubtitleFFmpeg
   : public CDemuxStreamSubtitle
 {
-  AVStream*        m_stream;
 public:
-  CDemuxStreamSubtitleFFmpeg(CDVDDemuxFFmpeg *parent, AVStream* stream)
-    : m_stream(stream)
-  {}
+  explicit CDemuxStreamSubtitleFFmpeg(AVStream* stream) : m_stream(stream) {}
+  std::string GetStreamName() override;
+
   std::string m_description;
+protected:
+  CDVDDemuxFFmpeg *m_parent;
+  AVStream* m_stream = nullptr;
+};
 
-  virtual std::string GetStreamName() override;
-
+class CDemuxParserFFmpeg
+{
+public:
+  ~CDemuxParserFFmpeg();
+  AVCodecParserContext* m_parserCtx = nullptr;
+  AVCodecContext* m_codecCtx = nullptr;
 };
 
 #define FFMPEG_DVDNAV_BUFFER_SIZE 2048  // for dvd's
@@ -82,7 +86,7 @@ class CDVDDemuxFFmpeg : public CDVDDemux
 {
 public:
   CDVDDemuxFFmpeg();
-  virtual ~CDVDDemuxFFmpeg();
+  ~CDVDDemuxFFmpeg() override;
 
   bool Open(CDVDInputStream* pInput, bool streaminfo = true, bool fileinfo = false);
   void Dispose();
@@ -90,7 +94,7 @@ public:
   void Flush() override;
   void Abort() override;
   void SetSpeed(int iSpeed) override;
-  virtual std::string GetFileName() override;
+  std::string GetFileName() override;
 
   DemuxPacket* Read() override;
 
@@ -101,12 +105,12 @@ public:
   std::vector<CDemuxStream*> GetStreams() const override;
   int GetNrOfStreams() const override;
 
-  bool SeekChapter(int chapter, double* startpts = NULL);
-  int GetChapterCount();
-  int GetChapter();
-  void GetChapterName(std::string& strChapterName, int chapterIdx=-1);
-  int64_t GetChapterPos(int chapterIdx=-1);
-  virtual std::string GetStreamCodecName(int iStreamId) override;
+  bool SeekChapter(int chapter, double* startpts = NULL) override;
+  int GetChapterCount() override;
+  int GetChapter() override;
+  void GetChapterName(std::string& strChapterName, int chapterIdx=-1) override;
+  int64_t GetChapterPos(int chapterIdx=-1) override;
+  std::string GetStreamCodecName(int iStreamId) override;
 
   bool Aborted();
 
@@ -118,7 +122,6 @@ protected:
   friend class CDemuxStreamVideoFFmpeg;
   friend class CDemuxStreamSubtitleFFmpeg;
 
-  int ReadFrame(AVPacket *packet);
   CDemuxStream* AddStream(int streamIdx);
   void AddStream(int streamIdx, CDemuxStream* stream);
   void CreateStreams(unsigned int program = UINT_MAX);
@@ -140,6 +143,7 @@ protected:
 
   CCriticalSection m_critSection;
   std::map<int, CDemuxStream*> m_streams;
+  std::map<int, std::unique_ptr<CDemuxParserFFmpeg>> m_parsers;
 
   AVIOContext* m_ioContext;
 
@@ -162,7 +166,7 @@ protected:
 
   bool m_streaminfo;
   bool m_checkvideo;
-  int m_displayTime;
+  int m_displayTime = 0;
   double m_dtsAtDisplayTime;
 };
 

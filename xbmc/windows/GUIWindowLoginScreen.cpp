@@ -32,6 +32,7 @@
 #include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "dialogs/GUIDialogContextMenu.h"
 #include "dialogs/GUIDialogOK.h"
+#include "favourites/FavouritesService.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -48,7 +49,6 @@
 #include "profiles/ProfilesManager.h"
 #include "profiles/dialogs/GUIDialogProfileSettings.h"
 #include "pvr/PVRManager.h"
-#include "ServiceBroker.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -276,8 +276,7 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
 {
   CServiceBroker::GetContextMenuManager().Deinit();
 
-  // stop service addons and give it some time before we start it again
-  ADDON::CAddonMgr::GetInstance().StopServices(true);
+  CServiceBroker::GetServiceAddons().Stop();
 
   // stop PVR related services
   CServiceBroker::GetPVRManager().Unload();
@@ -300,9 +299,9 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
 
   if (CProfilesManager::GetInstance().GetLastUsedProfileIndex() != profile)
   {
-    g_playlistPlayer.ClearPlaylist(PLAYLIST_VIDEO);
-    g_playlistPlayer.ClearPlaylist(PLAYLIST_MUSIC);
-    g_playlistPlayer.SetCurrentPlaylist(PLAYLIST_NONE);
+    CServiceBroker::GetPlaylistPlayer().ClearPlaylist(PLAYLIST_VIDEO);
+    CServiceBroker::GetPlaylistPlayer().ClearPlaylist(PLAYLIST_MUSIC);
+    CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(PLAYLIST_NONE);
   }
 
   // reload the add-ons, or we will first load all add-ons from the master account without checking disabled status
@@ -329,8 +328,9 @@ void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
   // restart PVR services
   CServiceBroker::GetPVRManager().Reinit();
 
-  // start services which should run on login
-  ADDON::CAddonMgr::GetInstance().StartServices(false);
+  CServiceBroker::GetFavouritesService().ReInit(CProfilesManager::GetInstance().GetProfileUserDataFolder());
+
+  CServiceBroker::GetServiceAddons().Start();
 
   int firstWindow = g_SkinInfo->GetFirstWindow();
   // the startup window is considered part of the initialization as it most likely switches to the final window

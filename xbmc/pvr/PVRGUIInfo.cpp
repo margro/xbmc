@@ -18,10 +18,10 @@
  *
  */
 
+#include "PVRGUIInfo.h"
+
 #include "Application.h"
 #include "ServiceBroker.h"
-#include "GUIInfoManager.h"
-#include "epg/EpgInfoTag.h"
 #include "guiinfo/GUIInfoLabels.h"
 #include "guilib/LocalizeStrings.h"
 #include "settings/AdvancedSettings.h"
@@ -33,10 +33,9 @@
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/epg/EpgInfoTag.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/timers/PVRTimers.h"
-
-#include "PVRGUIInfo.h"
 
 using namespace PVR;
 
@@ -70,7 +69,6 @@ void CPVRGUIInfo::ResetProperties(void)
   m_strBackendChannels          .clear();
   m_iBackendDiskTotal           = 0;
   m_iBackendDiskUsed            = 0;
-  m_ToggleShowInfo.SetInfinite();
   m_iDuration                   = 0;
   m_bIsPlayingTV                = false;
   m_bIsPlayingRadio             = false;
@@ -88,6 +86,7 @@ void CPVRGUIInfo::ResetProperties(void)
 
   ResetPlayingTag();
   ClearQualityInfo(m_qualityInfo);
+  ClearDescrambleInfo(m_descrambleInfo);
 
   m_updateBackendCacheRequested = false;
 }
@@ -97,6 +96,11 @@ void CPVRGUIInfo::ClearQualityInfo(PVR_SIGNAL_STATUS &qualityInfo)
   memset(&qualityInfo, 0, sizeof(qualityInfo));
   strncpy(qualityInfo.strAdapterName, g_localizeStrings.Get(13106).c_str(), PVR_ADDON_NAME_STRING_LENGTH - 1);
   strncpy(qualityInfo.strAdapterStatus, g_localizeStrings.Get(13106).c_str(), PVR_ADDON_NAME_STRING_LENGTH - 1);
+}
+
+void CPVRGUIInfo::ClearDescrambleInfo(PVR_DESCRAMBLE_INFO &descrambleInfo)
+{
+  descrambleInfo = {0};
 }
 
 void CPVRGUIInfo::Start(void)
@@ -118,43 +122,6 @@ void CPVRGUIInfo::Notify(const Observable &obs, const ObservableMessage msg)
     UpdateTimersCache();
 }
 
-void CPVRGUIInfo::ShowPlayerInfo(int iTimeout)
-{
-  {
-    CSingleLock lock(m_critSection);
-
-    if (iTimeout > 0)
-      m_ToggleShowInfo.Set(iTimeout * 1000);
-  }
-
-  g_infoManager.SetShowInfo(true);
-}
-
-void CPVRGUIInfo::ToggleShowInfo(void)
-{
-  CSingleLock lock(m_critSection);
-
-  if (m_ToggleShowInfo.IsTimePast())
-  {
-    m_ToggleShowInfo.SetInfinite();
-
-    /* release our lock while calling into global objects (which have
-       their own locks) to avoid deadlocks */
-    lock.Leave();
-
-    g_infoManager.SetShowInfo(false);
-    CServiceBroker::GetPVRManager().UpdateCurrentChannel();
-  }
-  else if (!g_infoManager.GetShowInfo()) // channel infos (no longer) displayed?
-  {
-    /* release our lock while calling into global objects (which have
-       their own locks) to avoid deadlocks */
-    lock.Leave();
-
-    CServiceBroker::GetPVRManager().UpdateCurrentChannel();
-  }
-}
-
 void CPVRGUIInfo::Process(void)
 {
   unsigned int mLoop(0);
@@ -170,11 +137,11 @@ void CPVRGUIInfo::Process(void)
   while (!g_application.m_bStop && !m_bStop)
   {
     if (!m_bStop)
-      ToggleShowInfo();
+      UpdateQualityData();
     Sleep(0);
 
     if (!m_bStop)
-      UpdateQualityData();
+      UpdateDescrambleData();
     Sleep(0);
 
     if (!m_bStop)
@@ -225,6 +192,17 @@ void CPVRGUIInfo::UpdateQualityData(void)
   }
 
   memcpy(&m_qualityInfo, &qualityInfo, sizeof(m_qualityInfo));
+}
+
+void CPVRGUIInfo::UpdateDescrambleData(void)
+{
+  PVR_DESCRAMBLE_INFO descrambleInfo;
+  ClearDescrambleInfo(descrambleInfo);
+
+  PVR_CLIENT client;
+  if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client) &&
+      client->GetDescrambleInfo(descrambleInfo))
+    memcpy(&m_descrambleInfo, &descrambleInfo, sizeof(m_descrambleInfo));
 }
 
 void CPVRGUIInfo::UpdateMisc(void)
@@ -686,11 +664,23 @@ void CPVRGUIInfo::CharInfoPlayingClientName(std::string &strValue) const
 
 void CPVRGUIInfo::CharInfoEncryption(std::string &strValue) const
 {
-  CPVRChannelPtr channel(CServiceBroker::GetPVRManager().Clients()->GetPlayingChannel());
-  if (channel)
-    strValue = channel->EncryptionName();
+  if (m_descrambleInfo.iCaid != PVR_DESCRAMBLE_INFO_NOT_AVAILABLE)
+  {
+    // prefer dynamically updated info, if available
+    strValue = CPVRChannel::GetEncryptionName(m_descrambleInfo.iCaid);
+    return;
+  }
   else
-    strValue.clear();
+  {
+    const CPVRChannelPtr channel(CServiceBroker::GetPVRManager().Clients()->GetPlayingChannel());
+    if (channel)
+    {
+      strValue = channel->EncryptionName();
+      return;
+    }
+  }
+
+  strValue.clear();
 }
 
 void CPVRGUIInfo::CharInfoService(std::string &strValue) const
@@ -811,8 +801,9 @@ int CPVRGUIInfo::GetStartTime(void) const
     /* Calculate here the position we have of the running live TV event.
      * "position in ms" = ("current UTC" - "event start UTC") * 1000
      */
-    CDateTime current = m_iTimeshiftPlayTime;
-    CDateTime start = m_playingEpgTag ? m_playingEpgTag->StartAsUTC() : m_iTimeshiftStartTime;
+    CDateTime current(m_iTimeshiftPlayTime);
+    CDateTime start = m_playingEpgTag ? CDateTime(m_playingEpgTag->StartAsUTC())
+                                      : CDateTime(m_iTimeshiftStartTime);
     CDateTimeSpan time = current > start ? current - start : CDateTimeSpan(0, 0, 0, 0);
     return (time.GetDays()   * 60 * 60 * 24
          + time.GetHours()   * 60 * 60
@@ -846,26 +837,23 @@ void CPVRGUIInfo::UpdatePlayingTag(void)
     CPVREpgInfoTagPtr epgTag(GetPlayingTag());
     CPVRChannelPtr channel;
     if (epgTag)
-      channel = epgTag->ChannelTag();
+      channel = epgTag->Channel();
 
     if (!epgTag || !epgTag->IsActive() ||
         !channel || *channel != *currentChannel)
     {
+      CSingleLock lock(m_critSection);
+      ResetPlayingTag();
+      CPVREpgInfoTagPtr newTag(currentChannel->GetEPGNow());
+      if (newTag)
       {
-        CSingleLock lock(m_critSection);
-        ResetPlayingTag();
-        CPVREpgInfoTagPtr newTag(currentChannel->GetEPGNow());
-        if (newTag)
-        {
-          m_playingEpgTag = newTag;
-          m_iDuration     = m_playingEpgTag->GetDuration() * 1000;
-        }
-        else if (m_iTimeshiftEndTime > m_iTimeshiftStartTime)
-        {
-          m_iDuration = (m_iTimeshiftEndTime - m_iTimeshiftStartTime) * 1000;
-        }
+        m_playingEpgTag = newTag;
+        m_iDuration     = m_playingEpgTag->GetDuration() * 1000;
       }
-      CServiceBroker::GetPVRManager().UpdateCurrentFile();
+      else if (m_iTimeshiftEndTime > m_iTimeshiftStartTime)
+      {
+        m_iDuration = (m_iTimeshiftEndTime - m_iTimeshiftStartTime) * 1000;
+      }
     }
   }
   else

@@ -43,10 +43,7 @@ CWinSystemBase::CWinSystemBase()
   m_fRefreshRate = 0.0f;
 }
 
-CWinSystemBase::~CWinSystemBase()
-{
-
-}
+CWinSystemBase::~CWinSystemBase() = default;
 
 bool CWinSystemBase::InitWindowSystem()
 {
@@ -60,6 +57,7 @@ bool CWinSystemBase::DestroyWindowSystem()
 #if HAS_GLES
   CGUIFontTTFGL::DestroyStaticVertexBuffers();
 #endif
+  m_screenSaverManager.reset();
   return false;
 }
 
@@ -244,7 +242,7 @@ REFRESHRATE CWinSystemBase::DefaultRefreshRate(int screen, std::vector<REFRESHRA
 bool CWinSystemBase::UseLimitedColor()
 {
 #if defined(HAS_GL) || defined(HAS_DX)
-  static CSettingBool* setting = (CSettingBool*)CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
+  static std::shared_ptr<CSettingBool> setting = std::static_pointer_cast<CSettingBool>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE));
   return setting->GetValue();
 #else
   return false;
@@ -260,4 +258,18 @@ int CWinSystemBase::NoOfBuffers(void)
 {
   int buffers = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOSCREEN_NOOFBUFFERS);
   return buffers;
+}
+
+KODI::WINDOWING::COSScreenSaverManager* CWinSystemBase::GetOSScreenSaver()
+{
+  if (!m_screenSaverManager)
+  {
+    auto impl = GetOSScreenSaverImpl();
+    if (impl)
+    {
+      m_screenSaverManager.reset(new KODI::WINDOWING::COSScreenSaverManager(std::move(impl)));
+    }
+  }
+
+  return m_screenSaverManager.get();
 }

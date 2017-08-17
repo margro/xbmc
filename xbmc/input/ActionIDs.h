@@ -272,6 +272,8 @@
 #define ACTION_VOLUME_SET             245
 #define ACTION_TOGGLE_COMMSKIP        246
 
+#define ACTION_PLAYER_RESET           248 //!< Send a reset command to the active game
+
 // Voice actions
 #define ACTION_VOICE_RECOGNIZE        300
 
@@ -286,6 +288,7 @@
 #define ACTION_GESTURE_ZOOM           502 //!< sendaction with point and currentPinchScale (fingers together < 1.0 -> fingers apart > 1.0)
 #define ACTION_GESTURE_ROTATE         503
 #define ACTION_GESTURE_PAN            504
+#define ACTION_GESTURE_ABORT          505 //!< gesture was interrupted in unspecified state
 
 #define ACTION_GESTURE_SWIPE_LEFT       511
 #define ACTION_GESTURE_SWIPE_LEFT_TEN   520

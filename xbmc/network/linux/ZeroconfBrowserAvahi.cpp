@@ -20,8 +20,6 @@
 
 #include "ZeroconfBrowserAvahi.h"
 
-#ifdef HAS_AVAHI
-
 #include <utils/log.h>
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIMessage.h"
@@ -33,7 +31,7 @@ namespace
 ///helper RAII-struct to block event loop for modifications
 struct ScopedEventLoopBlock
 {
-  ScopedEventLoopBlock ( AvahiThreadedPoll* fp_poll ) : mp_poll ( fp_poll )
+  explicit ScopedEventLoopBlock ( AvahiThreadedPoll* fp_poll ) : mp_poll ( fp_poll )
   {
     avahi_threaded_poll_lock ( mp_poll );
   }
@@ -375,5 +373,3 @@ AvahiServiceBrowser* CZeroconfBrowserAvahi::createServiceBrowser ( const std::st
   }
   return ret;
 }
-
-#endif //HAS_AVAHI

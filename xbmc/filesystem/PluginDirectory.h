@@ -43,14 +43,14 @@ class CPluginDirectory : public IDirectory
 {
 public:
   CPluginDirectory();
-  ~CPluginDirectory(void);
-  virtual bool GetDirectory(const CURL& url, CFileItemList& items);
-  virtual bool AllowAll() const { return true; }
-  virtual bool Exists(const CURL& url) { return true; }
-  virtual float GetProgress() const;
-  virtual void CancelDirectory();
-  static bool RunScriptWithParams(const std::string& strPath);
-  static bool GetPluginResult(const std::string& strPath, CFileItem &resultItem);
+  ~CPluginDirectory(void) override;
+  bool GetDirectory(const CURL& url, CFileItemList& items) override;
+  bool AllowAll() const override { return true; }
+  bool Exists(const CURL& url) override { return true; }
+  float GetProgress() const override;
+  void CancelDirectory() override;
+  static bool RunScriptWithParams(const std::string& strPath, bool resume);
+  static bool GetPluginResult(const std::string& strPath, CFileItem &resultItem, bool resume);
 
   // callbacks from python
   static bool AddItem(int handle, const CFileItem *item, int totalItems);
@@ -66,7 +66,7 @@ public:
 
 private:
   ADDON::AddonPtr m_addon;
-  bool StartScript(const std::string& strPath, bool retrievingDir);
+  bool StartScript(const std::string& strPath, bool retrievingDir, bool resume);
   bool WaitOnScriptResult(const std::string &scriptPath, int scriptId, const std::string &scriptName, bool retrievingDir);
 
   static std::map<int,CPluginDirectory*> globalHandles;

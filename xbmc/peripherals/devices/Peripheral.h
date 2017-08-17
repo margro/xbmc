@@ -23,16 +23,18 @@
 #include <set>
 #include <string>
 #include <vector>
+
+#include "input/joysticks/IInputProvider.h"
 #include "peripherals/PeripheralTypes.h"
 
 class TiXmlDocument;
 class CSetting;
+class IKeymap;
 
 namespace KODI
 {
 namespace JOYSTICK
 {
-  class IActionMap;
   class IButtonMapper;
   class IDriverHandler;
   class IDriverReceiver;
@@ -53,13 +55,13 @@ namespace PERIPHERALS
     STATE_STANDBY
   } CecStateChange;
 
-  class CPeripheral
+  class CPeripheral : public KODI::JOYSTICK::IInputProvider
   {
     friend class CGUIDialogPeripheralSettings;
 
   public:
     CPeripheral(CPeripherals& manager, const PeripheralScanResult& scanResult, CPeripheralBus* bus);
-    virtual ~CPeripheral(void);
+    ~CPeripheral(void) override;
 
     bool operator ==(const CPeripheral &right) const;
     bool operator !=(const CPeripheral &right) const;
@@ -72,8 +74,8 @@ namespace PERIPHERALS
     const char *VendorIdAsString(void) const       { return m_strVendorId.c_str(); }
     int ProductId(void) const                      { return m_iProductId; }
     const char *ProductIdAsString(void) const      { return m_strProductId.c_str(); }
-    const PeripheralType Type(void) const          { return m_type; }
-    const PeripheralBusType GetBusType(void) const { return m_busType; };
+    PeripheralType Type(void) const          { return m_type; }
+    PeripheralBusType GetBusType(void) const { return m_busType; };
     const std::string &DeviceName(void) const       { return m_strDeviceName; }
     bool IsHidden(void) const                      { return m_bHidden; }
     void SetHidden(bool bSetTo = true)             { m_bHidden = bSetTo; }
@@ -150,7 +152,7 @@ namespace PERIPHERALS
      * @param strKey The key of the setting.
      * @param setting The setting.
      */
-    virtual void AddSetting(const std::string &strKey, const CSetting *setting, int order);
+    virtual void AddSetting(const std::string &strKey, std::shared_ptr<const CSetting> setting, int order);
 
     /*!
      * @brief Check whether a setting is known with the given key.
@@ -192,22 +194,23 @@ namespace PERIPHERALS
     virtual void LoadPersistedSettings(void);
     virtual void ResetDefaultSettings(void);
 
-    virtual std::vector<CSetting *> GetSettings(void) const;
+    virtual std::vector<std::shared_ptr<CSetting>> GetSettings(void) const;
 
     virtual bool ErrorOccured(void) const { return m_bError; }
 
     virtual void RegisterJoystickDriverHandler(KODI::JOYSTICK::IDriverHandler* handler, bool bPromiscuous) { }
     virtual void UnregisterJoystickDriverHandler(KODI::JOYSTICK::IDriverHandler* handler) { }
 
-    virtual void RegisterJoystickInputHandler(KODI::JOYSTICK::IInputHandler* handler);
-    virtual void UnregisterJoystickInputHandler(KODI::JOYSTICK::IInputHandler* handler);
+    // implementation of IInputProvider
+    void RegisterInputHandler(KODI::JOYSTICK::IInputHandler* handler, bool bPromiscuous) override;
+    void UnregisterInputHandler(KODI::JOYSTICK::IInputHandler* handler) override;
 
     virtual void RegisterJoystickButtonMapper(KODI::JOYSTICK::IButtonMapper* mapper);
     virtual void UnregisterJoystickButtonMapper(KODI::JOYSTICK::IButtonMapper* mapper);
 
     virtual KODI::JOYSTICK::IDriverReceiver* GetDriverReceiver() { return nullptr; }
 
-    virtual KODI::JOYSTICK::IActionMap* GetActionMap() { return nullptr; }
+    virtual IKeymap *GetKeymap(const std::string &controllerId) { return nullptr; }
 
   protected:
     virtual void ClearSettings(void);

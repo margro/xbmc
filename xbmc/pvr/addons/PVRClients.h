@@ -19,6 +19,10 @@
  *
  */
 
+#include <deque>
+#include <vector>
+
+#include "addons/PVRClient.h"
 #include "threads/CriticalSection.h"
 #include "threads/Thread.h"
 #include "utils/Observer.h"
@@ -26,15 +30,9 @@
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/recordings/PVRRecording.h"
 
-#include "addons/PVRClient.h"
-
-#include <deque>
-#include <vector>
-
 namespace PVR
 {
   class CPVREpg;
-  class CPVRGUIInfo;
 
   typedef std::shared_ptr<CPVRClient> PVR_CLIENT;
   typedef std::map< int, PVR_CLIENT >                 PVR_CLIENTMAP;
@@ -60,16 +58,19 @@ namespace PVR
 
   class CPVRClients : public ADDON::IAddonMgrCallback
   {
-  friend class CPVRClient;
   public:
     CPVRClients(void);
-    virtual ~CPVRClients(void);
+    ~CPVRClients(void) override;
 
     /*!
      * @brief Start the backend.
      */
     void Start(void);
 
+    /*!
+     * @brief Update add-ons from the AddonManager
+     */
+    void UpdateAddons(void);
 
     /*! @name Backend methods */
     //@{
@@ -109,14 +110,14 @@ namespace PVR
      * @param bDataChanged True if the client's data changed, false otherwise (unused).
      * @return True if the client was found and restarted, false otherwise.
      */
-    virtual bool RequestRestart(ADDON::AddonPtr addon, bool bDataChanged) override;
+    bool RequestRestart(ADDON::AddonPtr addon, bool bDataChanged) override;
 
     /*!
      * @brief Remove a single client add-on.
      * @param addon The add-on to remove.
      * @return True if the client was found and removed, false otherwise.
      */
-    virtual bool RequestRemoval(ADDON::AddonPtr addon) override;
+    bool RequestRemoval(ADDON::AddonPtr addon) override;
 
     /*!
      * @brief Unload all loaded add-ons and reset all class properties.
@@ -280,6 +281,20 @@ namespace PVR
     bool IsEncrypted(void) const;
 
     /*!
+     * @brief Fill the file item for a channel with the properties required for playback. Values are obtained from the PVR backend.
+     * @param fileItem The file item to be filled.
+     * @return True if the stream properties have been set, false otherwiese.
+     */
+    bool FillChannelStreamFileItem(CFileItem &fileItem);
+
+    /*!
+     * @brief Fill the file item for a recording with the properties required for playback. Values are obtained from the PVR backend.
+     * @param fileItem The file item to be filled.
+     * @return True if the stream properties have been set, false otherwiese.
+     */
+    bool FillRecordingStreamFileItem(CFileItem &fileItem);
+
+    /*!
      * @brief Open a stream on the given channel.
      * @param channel The channel to start playing.
      * @param bIsSwitchingChannel True when switching channels, false otherwise.
@@ -288,18 +303,15 @@ namespace PVR
     bool OpenStream(const CPVRChannelPtr &channel, bool bIsSwitchingChannel);
 
     /*!
-     * @brief Get the URL for the stream to the given channel.
-     * @param channel The channel to get the stream url for.
-     * @return The requested stream url or an empty string if it wasn't found.
+     * @brief Set the channel that is currently playing.
+     * @param channel The channel that is currently playing.
      */
-    std::string GetStreamURL(const CPVRChannelPtr &channel);
+    void SetPlayingChannel(const CPVRChannelPtr channel);
 
     /*!
-     * @brief Switch an opened live tv stream to another channel.
-     * @param channel The channel to switch to.
-     * @return True if the switch was successful, false otherwise.
+     * @brief Clear the channel that is currently playing, if any.
      */
-    bool SwitchChannel(const CPVRChannelPtr &channel);
+    void ClearPlayingChannel();
 
     /*!
      * @brief Get the channel that is currently playing.
@@ -314,13 +326,24 @@ namespace PVR
 
     /*!
      * @brief Open a stream from the given recording.
-     * @param tag The recording to start playing.
+     * @param recording The recording to start playing.
      * @return True if the stream was opened successfully, false otherwise.
      */
-    bool OpenStream(const CPVRRecordingPtr &tag);
+    bool OpenStream(const CPVRRecordingPtr &recording);
 
     /*!
-     * @brief Get the recordings that is currently playing.
+     * @brief Set the recording that is currently playing.
+     * @param recording The recording that is currently playing.
+     */
+    void SetPlayingRecording(const CPVRRecordingPtr recording);
+
+    /*!
+     * @brief Clear the recording that is currently playing, if any.
+     */
+    void ClearPlayingRecording();
+
+    /*!
+     * @brief Get the recording that is currently playing.
      * @return The recording that is currently playing, NULL otherwise.
      */
     CPVRRecordingPtr GetPlayingRecording(void) const;
@@ -335,13 +358,6 @@ namespace PVR
      * @return True if at least one connected client supports timers, false otherwise.
      */
     bool SupportsTimers() const;
-
-    /*!
-     * @brief Check whether a client supports timers.
-     * @param iClientId The id of the client to check.
-     * @return True if the supports timers, false otherwise.
-     */
-    bool HasTimerSupport(int iClientId);
 
     /*!
      * @brief Get all timers from clients
@@ -406,20 +422,6 @@ namespace PVR
     //@{
 
     /*!
-     * @brief Check whether a client supports recordings.
-     * @param iClientId The id of the client to check.
-     * @return True if the supports recordings, false otherwise.
-     */
-    bool SupportsRecordings(int iClientId) const;
-
-    /*!
-     * @brief Check whether a client supports undelete of recordings.
-     * @param iClientId The id of the client to check.
-     * @return True if the supports undeleted of recordings, false otherwise.
-     */
-    bool SupportsRecordingsUndelete(int iClientId) const;
-
-    /*!
      * @brief Get all recordings from clients
      * @param recordings Store the recordings in this container.
      * @param deleted Return deleted recordings
@@ -456,6 +458,14 @@ namespace PVR
      * @return PVR_ERROR_NO_ERROR if the recordings has been deleted successfully.
      */
     PVR_ERROR DeleteAllRecordingsFromTrash();
+
+    /*!
+     * @brief Set the lifetime of a recording on the backend.
+     * @param recording The recording to set the lifetime for. recording.m_iLifetime contains the new lifetime value.
+     * @param error An error if it occured.
+     * @return True if the recording's lifetime was set successfully, false otherwise.
+     */
+    bool SetRecordingLifetime(const CPVRRecording &recording, PVR_ERROR *error);
 
     /*!
      * @brief Set play count of a recording on the backend.
@@ -507,13 +517,6 @@ namespace PVR
     //@{
 
     /*!
-     * @brief Check whether a client supports EPG transfer.
-     * @param iClientId The id of the client to check.
-     * @return True if the supports EPG transfer, false otherwise.
-     */
-    bool SupportsEPG(int iClientId) const;
-
-    /*!
      * @brief Get the EPG table for a channel.
      * @param channel The channel to get the EPG table for.
      * @param epg Store the EPG in this container.
@@ -545,13 +548,6 @@ namespace PVR
      * @return The amount of channels that were added.
      */
     PVR_ERROR GetChannels(CPVRChannelGroupInternal *group);
-
-    /*!
-     * @brief Check whether a client supports channel groups.
-     * @param iClientId The id of the client to check.
-     * @return True if the supports channel groups, false otherwise.
-     */
-    bool SupportsChannelGroups(int iClientId) const;
 
     /*!
      * @brief Get all channel groups from backends.
@@ -633,16 +629,12 @@ namespace PVR
 
     bool GetClient(const std::string &strId, ADDON::AddonPtr &addon) const;
 
-    bool SupportsChannelScan(int iClientId) const;
-    bool SupportsChannelSettings(int iClientId) const;
-    bool SupportsLastPlayedPosition(int iClientId) const;
-    bool SupportsRadio(int iClientId) const;
-    bool SupportsRecordingPlayCount(int iClientId) const;
-    bool SupportsRecordingEdl(int iClientId) const;
-    bool SupportsTimers(int iClientId) const;
-    bool SupportsTV(int iClientId) const;
-    bool HandlesDemuxing(int iClientId) const;
-    bool HandlesInputStream(int iClientId) const;
+    /*!
+     * @brief Query the the given client's capabilities.
+     * @param iClientId The client id
+     * @return The capabilities.
+     */
+    CPVRClientCapabilities GetClientCapabilities(int iClientId) const;
 
     bool GetPlayingClient(PVR_CLIENT &client) const;
 
@@ -653,6 +645,7 @@ namespace PVR
     time_t GetBufferTimeStart() const;
     time_t GetBufferTimeEnd() const;
 
+    bool GetStreamTimes(PVR_STREAM_TIMES *times) const;
 
     int GetClientId(const std::string& strId) const;
 
@@ -671,11 +664,6 @@ namespace PVR
 
   private:
     /*!
-     * @brief Update add-ons from the AddonManager
-     */
-    void UpdateAddons(void);
-
-    /*!
      * @brief Get the instance of the client.
      * @param iClientId The id of the client to get.
      * @param addon The client.
@@ -690,11 +678,8 @@ namespace PVR
      */
     bool IsKnownClient(const ADDON::AddonPtr &client) const;
 
-
     int GetClientId(const ADDON::AddonPtr &client) const;
 
-
-    bool                  m_bIsSwitchingChannels;        /*!< true while switching channels */
     int                   m_playingClientId;          /*!< the ID of the client that is currently playing */
     bool                  m_bIsPlayingLiveTV;
     bool                  m_bIsPlayingRecording;

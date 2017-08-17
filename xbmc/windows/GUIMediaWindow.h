@@ -35,7 +35,7 @@ class CGUIMediaWindow : public CGUIWindow
 {
 public:
   CGUIMediaWindow(int id, const char *xmlFile);
-  virtual ~CGUIMediaWindow(void);
+  ~CGUIMediaWindow(void) override;
 
   // specializations of CGUIControl
   bool OnAction(const CAction &action) override;
@@ -67,8 +67,7 @@ protected:
   // specializations of CGUIControlGroup
   CGUIControl *GetFirstFocusableControl(int id) override;
 
-  // specializations of CGUIWindow
-  void LoadAdditionalTags(TiXmlElement *root) override;
+  bool Load(TiXmlElement *pRootElement) override;
 
   // custom methods
   virtual void SetupShares();

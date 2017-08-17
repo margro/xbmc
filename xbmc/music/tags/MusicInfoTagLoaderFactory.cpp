@@ -28,19 +28,18 @@
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "FileItem.h"
+#include "ServiceBroker.h"
 
-#include "addons/AddonManager.h"
+#include "addons/binary-addons/BinaryAddonBase.h"
 #include "addons/AudioDecoder.h"
 
 using namespace ADDON;
 
 using namespace MUSIC_INFO;
 
-CMusicInfoTagLoaderFactory::CMusicInfoTagLoaderFactory()
-{}
+CMusicInfoTagLoaderFactory::CMusicInfoTagLoaderFactory() = default;
 
-CMusicInfoTagLoaderFactory::~CMusicInfoTagLoaderFactory()
-{}
+CMusicInfoTagLoaderFactory::~CMusicInfoTagLoaderFactory() = default;
 
 IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const CFileItem& item)
 {
@@ -58,19 +57,22 @@ IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const CFileItem& i
   if (strExtension.empty())
     return NULL;
 
-  VECADDONS codecs;
-  CAddonMgr::GetInstance().GetAddons(codecs, ADDON_AUDIODECODER);
-  for (size_t i=0;i<codecs.size();++i)
+  BinaryAddonBaseList addonInfos;
+  CServiceBroker::GetBinaryAddonManager().GetAddonInfos(addonInfos, true, ADDON_AUDIODECODER);
+  for (const auto& addonInfo : addonInfos)
   {
-    std::shared_ptr<CAudioDecoder> dec(std::static_pointer_cast<CAudioDecoder>(codecs[i]));
-    if (dec->HasTags() && dec->GetExtensions().find("."+strExtension) != std::string::npos)
+    if (CAudioDecoder::HasTags(addonInfo) &&
+        CAudioDecoder::GetExtensions(addonInfo).find("."+strExtension) != std::string::npos)
     {
-      CAudioDecoder* result = new CAudioDecoder(*dec);
-      result->Create();
+      CAudioDecoder* result = new CAudioDecoder(addonInfo);
+      if (!result->CreateDecoder())
+      {
+        delete result;
+        return nullptr;
+      }
       return result;
     }
   }
-
 
   if (strExtension == "aac" ||
       strExtension == "ape" || strExtension == "mac" ||
@@ -88,19 +90,19 @@ IMusicInfoTagLoader* CMusicInfoTagLoaderFactory::CreateLoader(const CFileItem& i
       strExtension == "wv")
   {
     CTagLoaderTagLib *pTagLoader = new CTagLoaderTagLib();
-    return (IMusicInfoTagLoader*)pTagLoader;
+    return pTagLoader;
   }
 #ifdef HAS_DVD_DRIVE
   else if (strExtension == "cdda")
   {
     CMusicInfoTagLoaderCDDA *pTagLoader = new CMusicInfoTagLoaderCDDA();
-    return (IMusicInfoTagLoader*)pTagLoader;
+    return pTagLoader;
   }
 #endif
   else if (strExtension == "shn")
   {
     CMusicInfoTagLoaderSHN *pTagLoader = new CMusicInfoTagLoaderSHN();
-    return (IMusicInfoTagLoader*)pTagLoader;
+    return pTagLoader;
   }
   else if (strExtension == "mka" || strExtension == "dsf" ||
            strExtension == "dff")

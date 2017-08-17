@@ -31,7 +31,7 @@ class CViewModeSettings
 {
 private:
   CViewModeSettings();
-  ~CViewModeSettings() {};
+  ~CViewModeSettings() = default;
 
 public:
   /** Gets the next view mode for quick cycling through the modes
@@ -50,6 +50,6 @@ public:
 
   /** Fills the list with all visible view modes
    */
-  static void ViewModesFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+  static void ViewModesFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
 
 };

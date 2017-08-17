@@ -29,6 +29,7 @@ class CDataCacheCore
 public:
   CDataCacheCore();
   static CDataCacheCore& GetInstance();
+  void Reset();
   bool HasAVInfoChanges();
   void SignalVideoInfoChange();
   void SignalAudioInfoChange();
@@ -66,6 +67,49 @@ public:
   // player states
   void SetStateSeeking(bool active);
   bool IsSeeking();
+  void SetSpeed(float tempo, float speed);
+  float GetSpeed();
+  float GetTempo();
+  bool IsPlayerStateChanged();
+  void SetGuiRender(bool gui);
+  bool GetGuiRender();
+  void SetVideoRender(bool video);
+  bool GetVideoRender();
+  void SetPlayTimes(time_t start, int64_t current, int64_t min, int64_t max);
+
+  /*!
+   * \brief Get the start time
+   *
+   * For a typical video this will be zero. For live TV, this is a reference time
+   * in units of time_t (UTC) from which time elapsed starts. Ideally this would
+   * be the start of the tv show but can be any other time as well.
+   */
+  time_t GetStartTime();
+
+  /*!
+   * \brief Get the current time of playback
+   *
+   * This is the time elapsed, in ms, since the start time.
+   */
+  int64_t GetPlayTime();
+
+  /*!
+   * \brief Get the minumum time
+   *
+   * This will be zero for a typical video. With timeshift, this is the time,
+   * in ms, that the player can go back. This can be before the start time.
+   */
+  int64_t GetMinTime();
+
+  /*!
+   * \brief Get the maximum time
+   *
+   * This is the maximun time, in ms, that the player can skip forward. For a
+   * typical video, this will be the total length. For live TV without
+   * timeshift this is zero, and for live TV with timeshift this will be the
+   * buffer ahead.
+   */
+  int64_t GetMaxTime();
 
 protected:
   std::atomic_bool m_hasAVInfoChanges;
@@ -99,8 +143,21 @@ protected:
   } m_renderInfo;
 
   CCriticalSection m_stateSection;
+  bool m_playerStateChanged = false;
   struct SStateInfo
   {
     bool m_stateSeeking;
+    bool m_renderGuiLayer;
+    bool m_renderVideoLayer;
+    float m_tempo;
+    float m_speed;
   } m_stateInfo;
+
+  struct STimeInfo
+  {
+    time_t m_startTime;
+    int64_t m_time;
+    int64_t m_timeMax;
+    int64_t m_timeMin;
+  } m_timeInfo;
 };

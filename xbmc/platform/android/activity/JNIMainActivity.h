@@ -22,12 +22,11 @@
 #include <androidjni/Activity.h>
 #include <androidjni/InputManager.h>
 #include <androidjni/Rect.h>
-#include <androidjni/Surface.h>
 
 class CJNIMainActivity : public CJNIActivity, public CJNIInputManagerInputDeviceListener
 {
 public:
-  CJNIMainActivity(const ANativeActivity *nativeActivity);
+  explicit CJNIMainActivity(const ANativeActivity *nativeActivity);
   ~CJNIMainActivity();
 
   static CJNIMainActivity* GetAppInstance() { return m_appInstance; }
@@ -35,7 +34,6 @@ public:
   static void _onNewIntent(JNIEnv *env, jobject context, jobject intent);
   static void _onActivityResult(JNIEnv *env, jobject context, jint requestCode, jint resultCode, jobject resultData);
   static void _onVolumeChanged(JNIEnv *env, jobject context, jint volume);
-  static void _onAudioFocusChange(JNIEnv *env, jobject context, jint focusChange);
   static void _doFrame(JNIEnv *env, jobject context, jlong frameTimeNanos);
   static void _onInputDeviceAdded(JNIEnv *env, jobject context, jint deviceId);
   static void _onInputDeviceChanged(JNIEnv *env, jobject context, jint deviceId);
@@ -46,11 +44,8 @@ public:
   static void registerMediaButtonEventReceiver();
   static void unregisterMediaButtonEventReceiver();
 
-  CJNISurface getVideoViewSurface();
-  void clearVideoView();
-  CJNIRect getVideoViewSurfaceRect();
-  void setVideoViewSurfaceRect(int l, int t, int r, int b);
-
+  CJNIRect getDisplayRect();
+  
 private:
   static CJNIMainActivity *m_appInstance;
 
@@ -58,6 +53,5 @@ protected:
   virtual void onNewIntent(CJNIIntent intent)=0;
   virtual void onActivityResult(int requestCode, int resultCode, CJNIIntent resultData)=0;
   virtual void onVolumeChanged(int volume)=0;
-  virtual void onAudioFocusChange(int focusChange)=0;
   virtual void doFrame(int64_t frameTimeNanos)=0;
 };

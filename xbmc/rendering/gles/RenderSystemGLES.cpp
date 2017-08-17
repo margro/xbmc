@@ -21,8 +21,6 @@
 
 #include "system.h"
 
-#if HAS_GLES == 2
-
 #include "guilib/GraphicContext.h"
 #include "settings/AdvancedSettings.h"
 #include "RenderSystemGLES.h"
@@ -137,7 +135,7 @@ bool CRenderSystemGLES::InitRenderSystem()
   return true;
 }
 
-bool CRenderSystemGLES::ResetRenderSystem(int width, int height, bool fullScreen, float refreshRate)
+bool CRenderSystemGLES::ResetRenderSystem(int width, int height)
 {
   m_width = width;
   m_height = height;
@@ -672,5 +670,3 @@ GLint CRenderSystemGLES::GUIShaderGetModel()
 
   return -1;
 }
-
-#endif

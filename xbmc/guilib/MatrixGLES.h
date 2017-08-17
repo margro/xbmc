@@ -29,7 +29,7 @@ class CMatrixGL
 public:
 
   CMatrixGL()                                  { memset(&m_pMatrix, 0, sizeof(m_pMatrix)); };
-  CMatrixGL(const float matrix[16])            { memcpy(m_pMatrix, matrix, sizeof(m_pMatrix)); }
+  explicit CMatrixGL(const float matrix[16])   { memcpy(m_pMatrix, matrix, sizeof(m_pMatrix)); }
   CMatrixGL(const CMatrixGL &rhs )             { memcpy(m_pMatrix, rhs.m_pMatrix, sizeof(m_pMatrix)); }
   CMatrixGL &operator=( const CMatrixGL &rhs ) { memcpy(m_pMatrix, rhs.m_pMatrix, sizeof(m_pMatrix)); return *this;}
   operator float*()                            { return m_pMatrix; }
@@ -55,8 +55,10 @@ public:
 class CMatrixGLStack
 {
 public:
-  CMatrixGLStack(GLenum type)
+  explicit CMatrixGLStack(GLenum type)
+#ifdef HAS_GL
   : m_type(type)
+#endif
   {}
 
   void Push()
@@ -85,7 +87,9 @@ public:
   CMatrixGL* operator->() { return &m_current; }
 
 private:
+#ifdef HAS_GL
   GLint                 m_type;
+#endif
   std::stack<CMatrixGL> m_stack;
   CMatrixGL             m_current;
 };

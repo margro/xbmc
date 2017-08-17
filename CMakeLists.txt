@@ -24,6 +24,7 @@ endif()
 include(cmake/modules/extra/ECMEnableSanitizers.cmake)
 include(cmake/scripts/common/GeneratorSetup.cmake)
 include(cmake/scripts/common/AddOptions.cmake)
+include(cmake/scripts/common/Platform.cmake)
 include(cmake/scripts/common/ArchSetup.cmake)
 include(cmake/scripts/common/Macros.cmake)
 include(cmake/scripts/common/ProjectMacros.cmake)
@@ -50,19 +51,13 @@ if(UNIX)
   option(FFMPEG_PATH        "Path to external ffmpeg?" "")
   option(ENABLE_INTERNAL_CROSSGUID "Enable internal crossguid?" ON)
   option(ENABLE_OPENSSL     "Enable OpenSSL?" ON)
-  option(ENABLE_MIR         "Enable MIR?" OFF)
-  if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
-    option(ENABLE_X11         "Enable X11 support?" ON)
-    option(ENABLE_AML         "Enable AML?" OFF)
-    option(ENABLE_IMX         "Enable IMX?" OFF)
-  endif()
 endif()
 # System options
 if(NOT WIN32)
   option(WITH_ARCH              "build with given arch" OFF)
   option(WITH_CPU               "build with given cpu" OFF)
 endif()
-if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL rbpi)
+if(CORE_SYSTEM_NAME STREQUAL linux)
   option(ENABLE_LIRC            "Enable LIRC support?" ON)
   option(ENABLE_EVENTCLIENTS    "Enable event clients support?" OFF)
 endif()
@@ -99,6 +94,14 @@ endif()
 find_package(Threads REQUIRED QUIET)
 list(APPEND DEPLIBS ${CMAKE_THREAD_LIBS_INIT})
 
+
+foreach(dep ${PLATFORM_REQUIRED_DEPS})
+  # We need to specify ENABLE_${PLATFORM_REQUIRED_DEPS} in order for the
+  # optional subdirectory for the specified platform to get built.
+  string(TOUPPER ${dep} depup)
+  set(ENABLE_${depup} "ON" CACHE BOOL "Force enabling required ${depup} support" FORCE)
+endforeach()
+
 # Required dependencies. Keep in alphabetical order please
 set(required_deps Cdio
                   Cpluff
@@ -113,7 +116,8 @@ set(required_deps Cdio
                   RapidJSON
                   Sqlite3
                   TagLib
-                  TinyXML)
+                  TinyXML
+                  ${PLATFORM_REQUIRED_DEPS})
 if(NOT WIN32)
   list(APPEND required_deps ZLIB)
 else()
@@ -137,11 +141,11 @@ set(optional_deps Alsa
                   PulseAudio
                   Python
                   SmbClient
+                  Sndio
                   SSH
                   UDEV
-                  VAAPI
-                  VDPAU
-                  XSLT)
+                  XSLT
+                  ${PLATFORM_OPTIONAL_DEPS})
 
 # Required, dyloaded deps. Keep in alphabetical order please
 set(required_dyload ASS
@@ -153,36 +157,18 @@ set(dyload_optional Bluray
                     NFS
                     Plist)
 
-# Required by shared objects we link
-set(required_dep_libs EXPAT)
-
 # Required tools
 find_package(TexturePacker REQUIRED)
 find_package(JsonSchemaBuilder REQUIRED)
 
-foreach(dep ${required_dep_libs})
-  find_package(${dep} REQUIRED)
-endforeach()
-
-foreach(dep ${required_deps})
-  core_require_dep(${dep})
-endforeach()
-
-foreach(dep ${optional_deps})
-  core_optional_dep(${dep})
-endforeach()
+core_require_dep(${required_deps})
+core_optional_dep(${optional_deps})
+core_require_dyload_dep(${required_dyload})
+core_optional_dyload_dep(${dyload_optional})
 
 if(NOT UDEV_FOUND)
   core_optional_dep(LibUSB)
 endif()
-
-foreach(dep ${required_dyload})
-  core_require_dyload_dep(${dep})
-endforeach()
-
-foreach(dep ${dyload_optional})
-  core_optional_dyload_dep(${dep})
-endforeach()
 
 if(ENABLE_OPENSSL)
   core_require_dep(OpenSSL)
@@ -213,46 +199,14 @@ if(CORE_SYSTEM_NAME STREQUAL osx)
   core_require_dep(Sdl)
 endif()
 
-if(NOT WIN32)
-  core_optional_dep(OpenGl)
-  if(OPENGL_FOUND AND NOT APPLE)
-    if(ENABLE_MIR)
-      core_require_dep(Mir ENABLE_MIR)
-      core_optional_dep(LibDRM ENABLE_MIR)
-    else()
-      core_optional_dep(X ENABLE_X11)
-      core_optional_dep(XRandR ENABLE_X11)
-      core_optional_dep(LibDRM ENABLE_X11)
-    endif()
-  else()
-    core_optional_dep(OpenGLES)
-    if(OPENGLES_FOUND)
-      if(ENABLE_MIR)
-        core_require_dep(Mir ENABLE_MIR)
-        core_optional_dep(LibDRM ENABLE_MIR)
-      else()
-        core_optional_dep(X ENABLE_X11)
-        core_optional_dep(XRandR ENABLE_X11)
-        core_optional_dep(LibDRM ENABLE_X11)
-      endif()
-    endif()
-  endif()
-  if(NOT APPLE)
-    core_require_dep(EGL)
-  endif()
-endif()
-
-if(CORE_SYSTEM_NAME STREQUAL android OR CORE_SYSTEM_NAME STREQUAL linux)
-  core_optional_dep(AML)
-  core_optional_dep(IMX)
-elseif(CORE_SYSTEM_NAME STREQUAL rbpi)
-  core_require_dep(MMAL)
-endif()
+# find all folders containing addon.xml.in
+# used to define ADDON_XML_OUTPUTS, ADDON_XML_DEPENDS and ADDON_INSTALL_DATA
+# Function defined in ./cmake/scripts/common/Macros.cmake
+find_addon_xml_in_files()
 
 # Compile Info
 add_custom_command(OUTPUT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp
-                          ${CMAKE_BINARY_DIR}/addons/xbmc.addon/addon.xml
-                          ${CMAKE_BINARY_DIR}/addons/kodi.guilib/addon.xml
+                          ${ADDON_XML_OUTPUTS}
                    COMMAND ${CMAKE_COMMAND} -DCORE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
                                             -DCORE_SYSTEM_NAME=${CORE_SYSTEM_NAME}
                                             -DCORE_BUILD_DIR=${CORE_BUILD_DIR}
@@ -262,12 +216,9 @@ add_custom_command(OUTPUT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp
                                             -Dprefix=${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}
                                             -P ${CMAKE_SOURCE_DIR}/cmake/scripts/common/GenerateVersionedFiles.cmake
                    DEPENDS ${CMAKE_SOURCE_DIR}/version.txt
-                           ${CMAKE_SOURCE_DIR}/addons/xbmc.addon/addon.xml.in
-                           ${CMAKE_SOURCE_DIR}/addons/kodi.guilib/addon.xml.in
+                           ${ADDON_XML_DEPENDS}
                            ${CMAKE_SOURCE_DIR}/xbmc/CompileInfo.cpp.in)
-list(APPEND install_data addons/xbmc.addon/addon.xml)
-list(APPEND install_data addons/xbmc.json/addon.xml)
-list(APPEND install_data addons/kodi.guilib/addon.xml)
+list(APPEND install_data ${ADDON_INSTALL_DATA})
 add_library(compileinfo OBJECT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp)
 set_target_properties(compileinfo PROPERTIES FOLDER "Build Utilities")
 target_compile_options(compileinfo PRIVATE "${SYSTEM_DEFINES}")
@@ -288,6 +239,7 @@ add_compile_options(${ARCH_DEFINES} "${SYSTEM_DEFINES}" ${DEP_DEFINES} ${PATH_DE
 set(core_DEPENDS "" CACHE STRING "" FORCE)
 set(test_archives "" CACHE STRING "" FORCE)
 set(test_sources "" CACHE STRING "" FORCE)
+set(sca_sources "" CACHE STRING "" FORCE)
 mark_as_advanced(core_DEPENDS)
 mark_as_advanced(test_archives)
 mark_as_advanced(test_sources)
@@ -342,7 +294,7 @@ target_link_libraries(lib${APP_NAME_LC} PUBLIC ${core_DEPENDS} ${SYSTEM_LDFLAGS}
 set_target_properties(lib${APP_NAME_LC} PROPERTIES PROJECT_LABEL "xbmc")
 source_group_by_folder(lib${APP_NAME_LC} RELATIVE ${CMAKE_SOURCE_DIR}/xbmc)
 if(WIN32)
-  add_precompiled_header(lib${APP_NAME_LC} pch.h ${CMAKE_SOURCE_DIR}/xbmc/platform/win32/pch.cpp PCH_TARGET kodi)
+  add_precompiled_header(lib${APP_NAME_LC} pch.h ${CMAKE_SOURCE_DIR}/xbmc/platform/win32/pch.cpp)
   set_language_cxx(lib${APP_NAME_LC})
 endif()
 
@@ -379,14 +331,14 @@ whole_archive(_TEST_LIBRARIES ${core_DEPENDS} gtest)
 target_link_libraries(${APP_NAME_LC}-test PRIVATE ${SYSTEM_LDFLAGS} ${_TEST_LIBRARIES} lib${APP_NAME_LC} ${DEPLIBS} ${CMAKE_DL_LIBS})
 unset(_TEST_LIBRARIES)
 add_dependencies(${APP_NAME_LC}-test ${APP_NAME_LC}-libraries export-files)
-if(WIN32)
-  add_precompiled_header(${APP_NAME_LC}-test pch.h ${CMAKE_SOURCE_DIR}/xbmc/platform/win32/pch.cpp PCH_TARGET kodi)
-endif()
 
 # Enable unit-test related targets
 if(CORE_HOST_IS_TARGET)
   enable_testing()
   gtest_add_tests(${APP_NAME_LC}-test "" ${test_sources})
+  if(NOT WIN32)
+    sca_add_tests()
+  endif()
   add_custom_target(check ${CMAKE_CTEST_COMMAND} WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
   add_dependencies(check ${APP_NAME_LC}-test)
 
@@ -407,8 +359,8 @@ if(CORE_HOST_IS_TARGET)
 
   # code coverage
   if(CMAKE_BUILD_TYPE STREQUAL Coverage)
-    if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/${CORE_SYSTEM_NAME}/CodeCoverage.cmake)
-      include(${CMAKE_SOURCE_DIR}/scripts/${CORE_SYSTEM_NAME}/CodeCoverage.cmake)
+    if(EXISTS ${CMAKE_SOURCE_DIR}/cmake/scripts/${CORE_SYSTEM_NAME}/CodeCoverage.cmake)
+      include(${CMAKE_SOURCE_DIR}/cmake/scripts/${CORE_SYSTEM_NAME}/CodeCoverage.cmake)
     else()
       message(FATAL_ERROR "Code coverage not (yet) implemented for platform ${CORE_SYSTEM_NAME}")
     endif()
@@ -471,6 +423,13 @@ core_file_read_filtered(bindings ${CMAKE_SOURCE_DIR}/xbmc/addons/addon-bindings.
 foreach(header ${bindings})
   get_filename_component(file ${header} NAME)
   configure_file(${CMAKE_SOURCE_DIR}/${header} ${CORE_BUILD_DIR}/include/${APP_NAME_LC}/${file} COPYONLY)
+endforeach()
+file(GLOB_RECURSE ADDON_HEADERS
+     RELATIVE ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi
+    ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/*.h)
+foreach(header ${ADDON_HEADERS})
+  configure_file(${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/${header}
+                 ${CORE_BUILD_DIR}/include/kodi/${header} COPYONLY)
 endforeach()
 
 set(APP_LIB_DIR ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/lib/${APP_NAME_LC})

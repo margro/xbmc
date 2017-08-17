@@ -51,13 +51,17 @@ CAlbum::CAlbum(const CFileItem& item)
   tag.GetReleaseDate(stTime);
   strAlbum = tag.GetAlbum();
   strMusicBrainzAlbumID = tag.GetMusicBrainzAlbumID();
+  strReleaseGroupMBID = tag.GetMusicBrainzReleaseGroupID();
   genre = tag.GetGenre();
   std::vector<std::string> musicBrainzAlbumArtistHints = tag.GetMusicBrainzAlbumArtistHints();
   strArtistDesc = tag.GetAlbumArtistString();
+  strArtistSort = tag.GetAlbumArtistSort();
+  //Split the artist sort string to try and get sort names for individual artists
+  auto artistSort = StringUtils::Split(strArtistSort, g_advancedSettings.m_musicItemSeparator);
 
   if (!tag.GetMusicBrainzAlbumArtistID().empty())
   { // Have musicbrainz artist info, so use it
-    
+
     // Vector of possible separators in the order least likely to be part of artist name
     const std::vector<std::string> separators{ " feat. ", ";", ":", "|", "#", "/", ",", "&" };
 
@@ -77,18 +81,18 @@ CAlbum::CAlbum(const CFileItem& item)
       expected single item separator (default = space-slash-space) as not been used.
       Comma and slash (no spaces) are poor delimiters as could be in name e.g. AC/DC,
       but here treat them as such in attempt to find artist names.
-      When there are hints they could be poorly formatted using unexpected separators, 
-      so attempt to split them. Or we could have more hints or artist names than 
+      When there are hints they could be poorly formatted using unexpected separators,
+      so attempt to split them. Or we could have more hints or artist names than
       musicbrainz so ignore them but raise warning.
       */
-       
+
       // Do hints exist yet mis-match
       if (!musicBrainzAlbumArtistHints.empty() &&
-          musicBrainzAlbumArtistHints.size() != tag.GetMusicBrainzAlbumArtistID().size())
+        musicBrainzAlbumArtistHints.size() != tag.GetMusicBrainzAlbumArtistID().size())
       {
         if (tag.GetAlbumArtist().size() == tag.GetMusicBrainzAlbumArtistID().size())
           // Album artist name count matches, use that as hints
-          musicBrainzAlbumArtistHints = tag.GetAlbumArtist(); 
+          musicBrainzAlbumArtistHints = tag.GetAlbumArtist();
         else if (musicBrainzAlbumArtistHints.size() < tag.GetMusicBrainzAlbumArtistID().size())
         { // Try splitting the hints until have matching number
           musicBrainzAlbumArtistHints = StringUtils::SplitMulti(musicBrainzAlbumArtistHints, separators, tag.GetMusicBrainzAlbumArtistID().size());
@@ -106,8 +110,8 @@ CAlbum::CAlbum(const CFileItem& item)
       // Try matching on artists or artist hints field, if it is reliable
       if (musicBrainzAlbumArtistHints.size() != tag.GetMusicBrainzAlbumArtistID().size())
       {
-        if (!tag.GetMusicBrainzArtistID().empty() && 
-           (tag.GetMusicBrainzArtistID().size() == tag.GetArtist().size() ||
+        if (!tag.GetMusicBrainzArtistID().empty() &&
+          (tag.GetMusicBrainzArtistID().size() == tag.GetArtist().size() ||
             tag.GetMusicBrainzArtistID().size() == tag.GetMusicBrainzArtistHints().size()))
         {
           for (size_t i = 0; i < tag.GetMusicBrainzAlbumArtistID().size(); i++)
@@ -135,14 +139,19 @@ CAlbum::CAlbum(const CFileItem& item)
         musicBrainzAlbumArtistHints = tag.GetAlbumArtist();
     }
 
+    // Try to get number of artist sort names and musicbrainz ids to match. Split sort names 
+    // further using multiple possible delimiters, over single separator applied in Tag loader
+    if (artistSort.size() != tag.GetMusicBrainzAlbumArtistID().size())
+      artistSort = StringUtils::SplitMulti(artistSort, { ";", ":", "|", "#" });
+
     for (size_t i = 0; i < tag.GetMusicBrainzAlbumArtistID().size(); i++)
     {
       std::string artistId = tag.GetMusicBrainzAlbumArtistID()[i];
       std::string artistName;
       /*
-         We try and get the mbrainzid <-> name matching from the hints and match on the same index.
+         We try and get the musicbrainz id <-> name matching from the hints and match on the same index.
          Some album artist hints could be blank (if populated from artist or artist hints).
-         If not found, use the mbrainzid and hope we later on can update that entry
+         If not found, use the musicbrainz id and hope we later on can update that entry.
          If we have more names than musicbrainz id they are ignored, but raise a warning.
       */
 
@@ -151,7 +160,12 @@ CAlbum::CAlbum(const CFileItem& item)
       if (artistName.empty())
         artistName = artistId;
 
-      artistCredits.emplace_back(StringUtils::Trim(artistName), tag.GetMusicBrainzAlbumArtistID()[i]);
+      // Use artist sort name providing we have as many as we have mbid, 
+      // otherwise something is wrong with them so ignore and leave blank
+      if (artistSort.size() == tag.GetMusicBrainzAlbumArtistID().size())
+        artistCredits.emplace_back(StringUtils::Trim(artistName), StringUtils::Trim(artistSort[i]), artistId);
+      else
+        artistCredits.emplace_back(StringUtils::Trim(artistName), "", artistId);
     }
   }
   else
@@ -166,9 +180,17 @@ CAlbum::CAlbum(const CFileItem& item)
       // Split album artist names further using multiple possible delimiters, over single separator applied in Tag loader
       albumArtists = StringUtils::SplitMulti(albumArtists, g_advancedSettings.m_musicArtistSeparators);
 
-    for (auto artistname : albumArtists)
+    if (artistSort.size() != albumArtists.size())
+      // Split artist sort names further using multiple possible delimiters, over single separator applied in Tag loader
+      artistSort = StringUtils::SplitMulti(artistSort, { ";", ":", "|", "#" });
+
+    for (size_t i = 0; i < albumArtists.size(); i++)
     {
-      artistCredits.emplace_back(StringUtils::Trim(artistname));
+      artistCredits.emplace_back(StringUtils::Trim(albumArtists[i]));
+      // Set artist sort name providing we have as many as we have artists, 
+      // otherwise something is wrong with them so ignore rather than guess.
+      if (artistSort.size() == albumArtists.size())
+        artistCredits.back().SetSortName(StringUtils::Trim(artistSort[i]));
     }
   }
 
@@ -185,12 +207,80 @@ CAlbum::CAlbum(const CFileItem& item)
 void CAlbum::MergeScrapedAlbum(const CAlbum& source, bool override /* = true */)
 {
   /*
-   We don't merge musicbrainz album ID so that a refresh of album information
-   allows a lookup based on name rather than directly (re)using musicbrainz.
-   In future, we may wish to be able to override lookup by musicbrainz so
-   this might be dropped.
-   */
-//  strMusicBrainzAlbumID = source.strMusicBrainzAlbumID;
+   Initial scraping of album information when there is a Musicbrainz album ID derived from 
+   tags is done directly using that ID, otherwise the lookup is based on album and artist names
+   but this can sometimes mis-identify the album (i.e. classical music has many "Symphony No. 5").
+   It is useful to store the scraped mbid, but we need to be able to correct any mistakes. Hence 
+   a manual refresh of album information uses either the mbid as derived from tags or the album 
+   and artist names, not any previously scraped mbid.
+
+   When overwritting the data derived from tags, AND the original and scraped album have the same
+   Musicbrainz album ID, then merging is used to keep Kodi up to date with changes in the Musicbrainz 
+   database including album artist credits, song artist credits and song titles. However it is ony 
+   appropriate when the music files are tagged with mbids, these are taken as definative, scraped
+   mbids can not be depended on in this way.
+
+   When the album is megerd in this deep way it is flagged so that the database album update is aware
+   artist credits and songs need to be updated too.
+  */
+
+  bArtistSongMerge = override && !bScrapedMBID
+    && !source.strMusicBrainzAlbumID.empty() && !strMusicBrainzAlbumID.empty() 
+    && (strMusicBrainzAlbumID.compare(source.strMusicBrainzAlbumID) == 0);
+
+  /*
+   Musicbrainz album (release) ID and release group ID values derived from music file tags are
+   always taken as accurate and so can not be overwritten by a scraped value. When the album does 
+   not already have an mbid or has a previously scraped mbid, merge the new scraped value, 
+   flagging it as being from the scraper rather than derived from music file tags.
+  */
+  if (!source.strMusicBrainzAlbumID.empty() && (strMusicBrainzAlbumID.empty() || bScrapedMBID))
+  {
+    strMusicBrainzAlbumID = source.strMusicBrainzAlbumID;
+    bScrapedMBID = true;
+  }
+  if (!source.strReleaseGroupMBID.empty() && (strReleaseGroupMBID.empty() || bScrapedMBID))
+  {
+    strReleaseGroupMBID = source.strReleaseGroupMBID;
+  }
+
+  /*
+   Scraping can return different album artists from the originals derived from tags, even when doing
+   a lookup on name. 
+
+   When overwritting the data derived from tags, AND the original and scraped album have the same
+   Musicbrainz album ID, then merging an album replaces both the album artsts and the song artists
+   with those scraped. 
+   
+   When not doing that kind of merge, for any matching artist names the Musicbrainz artist id
+   returned by the scraper can be used to populate any previously missing Musicbrainz artist id values.
+  */
+  if (bArtistSongMerge)
+  {
+    artistCredits = source.artistCredits; // Replace artists and store mbid returned by scraper    
+    strArtistDesc.clear();  // @todo: set artist display string e.g. "artist1 & artist2" when scraped 
+  }
+  else
+  {
+    // Compare original album artists with those scraped (ignoring order), and set any missing mbid
+    for (auto &artistCredit : artistCredits)
+    {
+      if (artistCredit.GetMusicBrainzArtistID().empty())
+      {
+        for (auto sourceartistCredit : source.artistCredits)
+        {
+          if (StringUtils::EqualsNoCase(artistCredit.GetArtist(), sourceartistCredit.GetArtist()))
+          {
+            artistCredit.SetMusicBrainzArtistID(sourceartistCredit.GetMusicBrainzArtistID());
+            artistCredit.SetScrapedMBID(true);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  //@todo: scraped album genre needs adding to genre and album_genre tables, this just changes the string
   if ((override && !source.genre.empty()) || genre.empty())
     genre = source.genre;
   if ((override && !source.strAlbum.empty()) || strAlbum.empty())
@@ -200,38 +290,42 @@ void CAlbum::MergeScrapedAlbum(const CAlbum& source, bool override /* = true */)
   if (override)
     bCompilation = source.bCompilation;
   //  iTimesPlayed = source.iTimesPlayed; // times played is derived from songs
+
+  if ((override && !source.strArtistSort.empty()) || strArtistSort.empty())
+    strArtistSort = source.strArtistSort;
   for (std::map<std::string, std::string>::const_iterator i = source.art.begin(); i != source.art.end(); ++i)
   {
     if (override || art.find(i->first) == art.end())
       art[i->first] = i->second;
   }
-  strLabel = source.strLabel;
+  if((override && !source.strLabel.empty()) || strLabel.empty())
+    strLabel = source.strLabel;
   thumbURL = source.thumbURL;
   moods = source.moods;
   styles = source.styles;
   themes = source.themes;
   strReview = source.strReview;
-  strType = source.strType;
+  if ((override && !source.strType.empty()) || strType.empty())
+    strType = source.strType;
 //  strPath = source.strPath; // don't merge the path
   m_strDateOfRelease = source.m_strDateOfRelease;
   fRating = source.fRating;
   iUserrating = source.iUserrating;
   iVotes = source.iVotes;
-  if (override)
+  
+  /*
+   When overwritting the data derived from tags, AND the original and scraped album have the same
+   Musicbrainz album ID, update the local songs with scaped Musicbrainz information including the 
+   artist credits.
+  */
+  if (bArtistSongMerge)
   {
-    artistCredits = source.artistCredits;
-  }
-  else if (source.artistCredits.size() > artistCredits.size())
-    artistCredits.insert(artistCredits.end(), source.artistCredits.begin()+artistCredits.size(), source.artistCredits.end());
-  if (!strMusicBrainzAlbumID.empty())
-  {
-    /* update local songs with MB information */
-    for (VECSONGS::iterator song = songs.begin(); song != songs.end(); ++song)
+    for (auto &song : songs)
     {
-      if (!song->strMusicBrainzTrackID.empty())
-        for (VECSONGS::const_iterator sourceSong = source.infoSongs.begin(); sourceSong != source.infoSongs.end(); ++sourceSong)
-          if (sourceSong->strMusicBrainzTrackID == song->strMusicBrainzTrackID)
-            song->MergeScrapedSong(*sourceSong, override);
+      if (!song.strMusicBrainzTrackID.empty())
+        for (auto sourceSong : source.infoSongs)
+          if ((sourceSong.strMusicBrainzTrackID == song.strMusicBrainzTrackID) && (sourceSong.iTrack == song.iTrack))
+            song.MergeScrapedSong(sourceSong, override);
     }
   }
   infoSongs = source.infoSongs;
@@ -276,6 +370,22 @@ const std::string CAlbum::GetAlbumArtistString() const
   std::string artistString;
   if (!artistvector.empty())
     artistString = StringUtils::Join(artistvector, g_advancedSettings.m_musicItemSeparator);
+  return artistString;
+}
+
+const std::string CAlbum::GetAlbumArtistSort() const
+{
+  //The stored artist sort name string takes precidence but a
+  //value could be created from individual sort names held in artistcredits
+  if (!strArtistSort.empty())
+    return strArtistSort;
+  std::vector<std::string> artistvector;
+  for (auto artistcredit : artistCredits)
+    if (!artistcredit.GetSortName().empty())
+      artistvector.emplace_back(artistcredit.GetSortName());
+  std::string artistString;
+  if (!artistvector.empty())
+    artistString = StringUtils::Join(artistvector, "; ");
   return artistString;
 }
 
@@ -358,7 +468,9 @@ bool CAlbum::Load(const TiXmlElement *album, bool append, bool prioritise)
     Reset();
 
   XMLUtils::GetString(album,              "title", strAlbum);
+  XMLUtils::GetString(album, "musicbrainzalbumid", strMusicBrainzAlbumID);
   XMLUtils::GetString(album, "musicBrainzAlbumID", strMusicBrainzAlbumID);
+  XMLUtils::GetString(album, "musicbrainzreleasegroupid", strReleaseGroupMBID);
   XMLUtils::GetString(album, "artistdesc", strArtistDesc);
   std::vector<std::string> artist; // Support old style <artist></artist> for backwards compatibility
   XMLUtils::GetStringArray(album, "artist", artist, prioritise, g_advancedSettings.m_musicItemSeparator);
@@ -519,7 +631,9 @@ bool CAlbum::Save(TiXmlNode *node, const std::string &tag, const std::string& st
   if (!album) return false;
 
   XMLUtils::SetString(album,                    "title", strAlbum);
-  XMLUtils::SetString(album,       "musicBrainzAlbumID", strMusicBrainzAlbumID);
+  XMLUtils::SetString(album,       "musicbrainzalbumid", strMusicBrainzAlbumID);
+  XMLUtils::SetString(album, "musicBrainzAlbumID", strMusicBrainzAlbumID);
+  XMLUtils::SetString(album, "musicbrainzreleasegroupid", strReleaseGroupMBID);
   XMLUtils::SetString(album,              "artistdesc", strArtistDesc); //Can be different from artist credits
   XMLUtils::SetStringArray(album,               "genre", genre);
   XMLUtils::SetStringArray(album,               "style", styles);

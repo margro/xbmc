@@ -38,6 +38,10 @@
 
 #include <fmt/format.h>
 
+#if FMT_VERSION >= 40000
+#include <fmt/printf.h>
+#endif
+
 #include "LangInfo.h"
 #include "XBDateTime.h"
 #include "utils/params_check_macros.h"
@@ -59,6 +63,7 @@ public:
   template<typename... Args>
   static std::string Format(const std::string& fmt, Args&&... args)
   {
+    // coverity[fun_call_w_exception : FALSE]
     auto result = fmt::format(fmt, std::forward<Args>(args)...);
     if (result == fmt)
       result = fmt::sprintf(fmt, std::forward<Args>(args)...);
@@ -68,6 +73,7 @@ public:
   template<typename... Args>
   static std::wstring Format(const std::wstring& fmt, Args&&... args)
   {
+    // coverity[fun_call_w_exception : FALSE]
     auto result = fmt::format(fmt, std::forward<Args>(args)...);
     if (result == fmt)
       result = fmt::sprintf(fmt, std::forward<Args>(args)...);

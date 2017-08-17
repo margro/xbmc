@@ -18,9 +18,6 @@
  *
  */
 
-#include "system.h"
-#ifdef HAVE_LIBBLURAY
-
 #include "BlurayFile.h"
 #include "URL.h"
 #include <assert.h>
@@ -32,8 +29,7 @@ namespace XFILE
     : COverrideFile(false)
   { }
 
-  CBlurayFile::~CBlurayFile(void)
-  { }
+  CBlurayFile::~CBlurayFile(void) = default;
 
   std::string CBlurayFile::TranslatePath(const CURL& url)
   {
@@ -47,4 +43,3 @@ namespace XFILE
     return host.append(filename);
   }
 } /* namespace XFILE */
-#endif

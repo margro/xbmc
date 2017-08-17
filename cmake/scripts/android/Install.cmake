@@ -34,20 +34,23 @@ set(package_files strings.xml
                   colors.xml
                   searchable.xml
                   AndroidManifest.xml
-                  src/org/xbmc/kodi/Main.java
-                  src/org/xbmc/kodi/Splash.java
-                  src/org/xbmc/kodi/XBMCBroadcastReceiver.java
-                  src/org/xbmc/kodi/XBMCImageContentProvider.java
-                  src/org/xbmc/kodi/XBMCInputDeviceListener.java
-                  src/org/xbmc/kodi/XBMCJsonRPC.java
-                  src/org/xbmc/kodi/XBMCMediaContentProvider.java
-                  src/org/xbmc/kodi/XBMCOnAudioFocusChangeListener.java
-                  src/org/xbmc/kodi/XBMCOnFrameAvailableListener.java
-                  src/org/xbmc/kodi/XBMCRecommendationBuilder.java
-                  src/org/xbmc/kodi/XBMCSearchableActivity.java
-                  src/org/xbmc/kodi/XBMCSettingsContentObserver.java
-                  src/org/xbmc/kodi/XBMCProperties.java
-                  src/org/xbmc/kodi/XBMCVideoView.java
+                  src/Main.java
+                  src/Splash.java
+                  src/XBMCBroadcastReceiver.java
+                  src/XBMCImageContentProvider.java
+                  src/XBMCInputDeviceListener.java
+                  src/XBMCJsonRPC.java
+                  src/XBMCMediaContentProvider.java
+                  src/XBMCRecommendationBuilder.java
+                  src/XBMCSearchableActivity.java
+                  src/XBMCSettingsContentObserver.java
+                  src/XBMCProperties.java
+                  src/XBMCVideoView.java
+                  src/interfaces/XBMCAudioManagerOnAudioFocusChangeListener.java
+                  src/interfaces/XBMCSurfaceTextureOnFrameAvailableListener.java
+                  src/interfaces/XBMCNsdManagerDiscoveryListener.java
+                  src/interfaces/XBMCNsdManagerRegistrationListener.java
+                  src/interfaces/XBMCNsdManagerResolveListener.java
                   )
 foreach(file IN LISTS package_files)
   configure_file(${CMAKE_SOURCE_DIR}/tools/android/packaging/xbmc/${file}.in
@@ -121,6 +124,7 @@ foreach(target apk obb apk-unsigned apk-obb apk-obb-unsigned apk-noobb apk-clean
               CPU=${CPU}
               ARCH=${ARCH}
               PREFIX=${prefix}
+              DEPENDS_PATH=${DEPENDS_PATH}
               NDKROOT=${NDKROOT}
               SDKROOT=${SDKROOT}
               SDK_PLATFORM=${SDK_PLATFORM}

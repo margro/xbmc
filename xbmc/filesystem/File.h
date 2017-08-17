@@ -49,7 +49,7 @@ class IFileCallback
 {
 public:
   virtual bool OnFileCallback(void* pContext, int ipercent, float avgSpeed) = 0;
-  virtual ~IFileCallback() {};
+  virtual ~IFileCallback() = default;
 };
 
 class CFileStreamBuffer;
@@ -124,7 +124,6 @@ public:
       return minimum;
   }
 
-  bool SkipNext();
   BitstreamStats* GetBitstreamStats() { return m_bitStreamStats; }
 
   int IoControl(EIoControl request, void* param);
@@ -197,17 +196,17 @@ class CFileStreamBuffer
   : public std::streambuf
 {
 public:
-  ~CFileStreamBuffer();
-  CFileStreamBuffer(int backsize = 0);
+  ~CFileStreamBuffer() override;
+  explicit CFileStreamBuffer(int backsize = 0);
 
   void Attach(IFile *file);
   void Detach();
 
 private:
-  virtual int_type underflow();
-  virtual std::streamsize showmanyc();
-  virtual pos_type seekoff(off_type, std::ios_base::seekdir,std::ios_base::openmode = std::ios_base::in | std::ios_base::out);
-  virtual pos_type seekpos(pos_type, std::ios_base::openmode = std::ios_base::in | std::ios_base::out);
+  int_type underflow() override;
+  std::streamsize showmanyc() override;
+  pos_type seekoff(off_type, std::ios_base::seekdir,std::ios_base::openmode = std::ios_base::in | std::ios_base::out) override;
+  pos_type seekpos(pos_type, std::ios_base::openmode = std::ios_base::in | std::ios_base::out) override;
 
   IFile* m_file;
   char*  m_buffer;
@@ -220,8 +219,8 @@ class CFileStream
   : public std::istream
 {
 public:
-  CFileStream(int backsize = 0);
-  ~CFileStream();
+  explicit CFileStream(int backsize = 0);
+  ~CFileStream() override;
 
   bool Open(const std::string& filename);
   bool Open(const CURL& filename);

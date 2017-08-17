@@ -158,6 +158,11 @@ CGUIEPGGridContainer::CGUIEPGGridContainer(const CGUIEPGGridContainer &other)
 {
 }
 
+bool CGUIEPGGridContainer::HasData() const
+{
+  return m_gridModel && m_gridModel->HasProgrammeItems();
+}
+
 void CGUIEPGGridContainer::AllocResources()
 {
   IGUIContainer::AllocResources();
@@ -299,7 +304,7 @@ float CGUIEPGGridContainer::GetCurrentTimePositionOnPage() const
 
 float CGUIEPGGridContainer::GetProgressIndicatorWidth() const
 {
-  return (m_orientation == VERTICAL) ? GetCurrentTimePositionOnPage() : m_rulerWidth + m_gridWidth;;
+  return (m_orientation == VERTICAL) ? GetCurrentTimePositionOnPage() : m_rulerWidth + m_gridWidth;
 }
 
 float CGUIEPGGridContainer::GetProgressIndicatorHeight() const
@@ -692,7 +697,7 @@ void CGUIEPGGridContainer::UpdateItems()
       else
         newBlockIndex = (eventStart - gridStart).GetSecondsTotal() / 60 / CGUIEPGGridContainerModel::MINSPERBLOCK + eventOffset;
 
-      const CPVRChannelPtr channel(prevSelectedEpgTag->ChannelTag());
+      const CPVRChannelPtr channel(prevSelectedEpgTag->Channel());
       if (channel)
         channelUid = channel->UniqueID();
 
@@ -702,7 +707,7 @@ void CGUIEPGGridContainer::UpdateItems()
     {
       const GridItem *currItem(GetItem(m_channelCursor));
       if (currItem)
-        channelUid = currItem->item->GetEPGInfoTag()->ChannelTag()->UniqueID();
+        channelUid = currItem->item->GetEPGInfoTag()->Channel()->UniqueID();
 
       const GridItem *prevItem(GetPrevItem(m_channelCursor));
       if (prevItem)
@@ -772,7 +777,7 @@ void CGUIEPGGridContainer::UpdateItems()
         newChannelIndex = iChannelIndex;
       }
       else if (newChannelIndex >= m_gridModel->ChannelItemsSize() ||
-               m_gridModel->GetGridItem(newChannelIndex, newBlockIndex)->GetEPGInfoTag()->ChannelTag() != prevSelectedEpgTag->ChannelTag())
+               m_gridModel->GetGridItem(newChannelIndex, newBlockIndex)->GetEPGInfoTag()->Channel() != prevSelectedEpgTag->Channel())
       {
         // default to first channel
         newChannelIndex = 0;
@@ -1092,6 +1097,7 @@ void CGUIEPGGridContainer::SetChannel(int channel)
     if (m_item)
     {
       m_channelCursor = channel;
+      MarkDirtyRegion();
       SetBlock(GetBlock(m_item->item, channel), false);
     }
   }
@@ -1112,6 +1118,7 @@ void CGUIEPGGridContainer::SetBlock(int block, bool bUpdateBlockTravelAxis /* = 
     m_blockTravelAxis = m_blockOffset + m_blockCursor;
 
   m_item = GetItem(m_channelCursor);
+  MarkDirtyRegion();
 }
 
 CGUIListItemLayout *CGUIEPGGridContainer::GetFocusedLayout() const
@@ -1202,6 +1209,7 @@ EVENT_RESULT CGUIEPGGridContainer::OnMouseEvent(const CPoint &point, const CMous
       return EVENT_RESULT_HANDLED;
     }
   case ACTION_GESTURE_END:
+  case ACTION_GESTURE_ABORT:
     {
       // we're done with exclusive access
       CGUIMessage msg(GUI_MSG_EXCLUSIVE_MOUSE, 0, GetParentID());
@@ -1283,7 +1291,7 @@ bool CGUIEPGGridContainer::OnMouseWheel(char wheel, const CPoint &point)
   return true;
 }
 
-CPVRChannelPtr CGUIEPGGridContainer::GetSelectedChannel()
+CPVRChannelPtr CGUIEPGGridContainer::GetSelectedChannel() const
 {
   CFileItemPtr fileItem;
   {
@@ -1491,6 +1499,7 @@ void CGUIEPGGridContainer::ScrollToChannelOffset(int offset)
 
   m_channelScrollSpeed = (offset * size - m_channelScrollOffset) / m_scrollTime;
   m_channelOffset = offset;
+  MarkDirtyRegion();
 }
 
 void CGUIEPGGridContainer::ScrollToBlockOffset(int offset)
@@ -1520,6 +1529,7 @@ void CGUIEPGGridContainer::ScrollToBlockOffset(int offset)
 
   m_programmeScrollSpeed = (offset * size - m_programmeScrollOffset) / m_scrollTime;
   m_blockOffset = offset;
+  MarkDirtyRegion();
 }
 
 void CGUIEPGGridContainer::ValidateOffset()
@@ -1831,6 +1841,9 @@ void CGUIEPGGridContainer::UpdateScrollOffset(unsigned int currentTime)
   }
 
   m_programmeScrollLastTime = currentTime;
+
+  if (m_channelScrollSpeed || m_programmeScrollSpeed)
+    MarkDirtyRegion();
 }
 
 void CGUIEPGGridContainer::GetCurrentLayouts()

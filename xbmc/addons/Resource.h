@@ -30,7 +30,7 @@ namespace ADDON
 class CResource : public CAddon
 {
 public:
-  virtual ~CResource() { }
+  ~CResource() override = default;
 
   virtual bool IsAllowed(const std::string &file) const = 0;
 
@@ -40,7 +40,7 @@ public:
   }
 
 protected:
-  explicit CResource(AddonProps props) : CAddon(std::move(props)) {}
+  explicit CResource(CAddonInfo addonInfo) : CAddon(std::move(addonInfo)) {}
 
   std::string GetResourcePath() const
   {

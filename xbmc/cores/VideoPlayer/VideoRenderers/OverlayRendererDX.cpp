@@ -24,6 +24,7 @@
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlaySSA.h"
 #include "guilib/D3DResource.h"
 #include "guilib/GraphicContext.h"
+#include "guilib/GUIShaderDX.h"
 #include "OverlayRenderer.h"
 #include "OverlayRendererUtil.h"
 #include "OverlayRendererDX.h"
@@ -34,8 +35,6 @@
 #include <crtdbg.h>
 #define ASSERT(f) _ASSERTE((f))
 #endif
-
-#ifdef HAS_DX
 
 using namespace OVERLAY;
 using namespace DirectX;
@@ -81,7 +80,7 @@ COverlayQuadsDX::COverlayQuadsDX(ASS_Image* images, int width, int height)
   m_count  = 0;
 
   SQuads quads;
-  if(!convert_quad(images, quads))
+  if(!convert_quad(images, quads, width))
     return;
   
   float u, v;
@@ -179,7 +178,9 @@ void COverlayQuadsDX::Render(SRenderState &state)
   {
     CRect rect;
     g_Windowing.GetViewPort(rect);
-    g_Windowing.SetCameraPosition(CPoint(rect.Width()*0.5f, rect.Height()*0.5f), rect.Width(), rect.Height());
+    g_Windowing.SetCameraPosition(CPoint(rect.Width() * 0.5f, rect.Height() * 0.5f),
+                                  static_cast<int>(rect.Width()),
+                                  static_cast<int>(rect.Height()));
   }
 
   XMMATRIX trans = XMMatrixTranslation(state.x, state.y, 0.0f);
@@ -198,8 +199,7 @@ void COverlayQuadsDX::Render(SRenderState &state)
   g_Windowing.SetAlphaBlendEnable(true);
   pGUIShader->Begin(SHADER_METHOD_RENDER_FONT);
 
-  ID3D11ShaderResourceView* views[] = { m_texture.GetShaderResource() };
-  pGUIShader->SetShaderViews(1, views);
+  pGUIShader->SetShaderViews(1, m_texture.GetAddressOfSRV());
   pGUIShader->Draw(m_count * 6, 0);
 
   // restoring transformation
@@ -347,7 +347,9 @@ void COverlayImageDX::Render(SRenderState &state)
   {
     CRect rect;
     g_Windowing.GetViewPort(rect);
-    g_Windowing.SetCameraPosition(CPoint(rect.Width()*0.5f, rect.Height()*0.5f), rect.Width(), rect.Height());
+    g_Windowing.SetCameraPosition(CPoint(rect.Width() * 0.5f, rect.Height() * 0.5f),
+                                  static_cast<int>(rect.Width()),
+                                  static_cast<int>(rect.Height()));
   }
 
   XMMATRIX trans = m_pos == POSITION_RELATIVE
@@ -366,13 +368,10 @@ void COverlayImageDX::Render(SRenderState &state)
   pGUIShader->Begin(SHADER_METHOD_RENDER_TEXTURE_NOBLEND);
   g_Windowing.SetAlphaBlendEnable(true);
 
-  ID3D11ShaderResourceView* views[] = { m_texture.GetShaderResource() };
-  pGUIShader->SetShaderViews(1, views);
+  pGUIShader->SetShaderViews(1, m_texture.GetAddressOfSRV());
   pGUIShader->Draw(4, 0);
 
   // restoring transformation
   pGUIShader->SetWVP(world, view, proj);
   pGUIShader->RestoreBuffers();
 }
-
-#endif

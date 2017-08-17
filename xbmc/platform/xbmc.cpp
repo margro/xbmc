@@ -35,25 +35,18 @@
 #endif
 
 #include "platform/MessagePrinter.h"
+#include "utils/log.h"
 
-
-extern "C" int XBMC_Run(bool renderGUI, CFileItemList &playlist)
+extern "C" int XBMC_Run(bool renderGUI, const CAppParamParser &params)
 {
   int status = -1;
 
   if (!g_advancedSettings.Initialized())
   {
-#ifdef _DEBUG
-  g_advancedSettings.m_logLevel     = LOG_LEVEL_DEBUG;
-  g_advancedSettings.m_logLevelHint = LOG_LEVEL_DEBUG;
-#else
-  g_advancedSettings.m_logLevel     = LOG_LEVEL_NORMAL;
-  g_advancedSettings.m_logLevelHint = LOG_LEVEL_NORMAL;
-#endif
     g_advancedSettings.Initialize();
   }
 
-  if (!g_application.Create())
+  if (!g_application.Create(params))
   {
     CMessagePrinter::DisplayError("ERROR: Unable to create application. Exiting");
     return status;
@@ -92,7 +85,7 @@ extern "C" int XBMC_Run(bool renderGUI, CFileItemList &playlist)
 
   try
   {
-    status = g_application.Run(playlist);
+    status = g_application.Run(params);
   }
 #ifdef TARGET_WINDOWS
   catch (const XbmcCommons::UncheckedException &e)

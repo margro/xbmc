@@ -25,14 +25,12 @@
 #include "DVDCodecs/DVDCodecs.h"
 #include "DVDDemuxFFmpeg.h"
 #include "DVDDemuxPacket.h"
-#include "DVDClock.h"
+#include "TimingConstants.h"
 #include "DVDSubtitles/DVDSubtitleStream.h"
 
 #include <string.h>
 
-CDVDDemuxVobsub::CDVDDemuxVobsub()
-{
-}
+CDVDDemuxVobsub::CDVDDemuxVobsub() = default;
 
 CDVDDemuxVobsub::~CDVDDemuxVobsub()
 {

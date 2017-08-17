@@ -245,7 +245,7 @@ void CEngineStats::SetDSP(bool state)
   m_hasDSP = state;
 }
 
-void CEngineStats::SetCurrentSinkFormat(AEAudioFormat SinkFormat)
+void CEngineStats::SetCurrentSinkFormat(const AEAudioFormat& SinkFormat)
 {
   CSingleLock lock(m_lock);
   m_sinkFormat = SinkFormat;
@@ -365,7 +365,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           return;
         case CActiveAEControlProtocol::STREAMRESAMPLEMODE:
           MsgStreamParameter *par;
-          par = (MsgStreamParameter*)msg->data;
+          par = reinterpret_cast<MsgStreamParameter*>(msg->data);
           if (par->stream)
           {
             par->stream->m_resampleMode = par->parameter.int_par;
@@ -627,20 +627,20 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           return;
         case CActiveAEControlProtocol::STREAMAMP:
           MsgStreamParameter *par;
-          par = (MsgStreamParameter*)msg->data;
+          par = reinterpret_cast<MsgStreamParameter*>(msg->data);
           par->stream->m_limiter.SetAmplification(par->parameter.float_par);
           par->stream->m_amplify = par->parameter.float_par;
           return;
         case CActiveAEControlProtocol::STREAMVOLUME:
-          par = (MsgStreamParameter*)msg->data;
+          par = reinterpret_cast<MsgStreamParameter*>(msg->data);
           par->stream->m_volume = par->parameter.float_par;
           return;
         case CActiveAEControlProtocol::STREAMRGAIN:
-          par = (MsgStreamParameter*)msg->data;
+          par = reinterpret_cast<MsgStreamParameter*>(msg->data);
           par->stream->m_rgain = par->parameter.float_par;
           return;
         case CActiveAEControlProtocol::STREAMRESAMPLERATIO:
-          par = (MsgStreamParameter*)msg->data;
+          par = reinterpret_cast<MsgStreamParameter*>(msg->data);
           if (par->stream->m_processingBuffers)
           {
             par->stream->m_processingBuffers->SetRR(par->parameter.double_par, m_settings.atempoThreshold);
@@ -648,14 +648,14 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
           return;
         case CActiveAEControlProtocol::STREAMFFMPEGINFO:
           MsgStreamFFmpegInfo *info;
-          info = (MsgStreamFFmpegInfo*)msg->data;
+          info = reinterpret_cast<MsgStreamFFmpegInfo*>(msg->data);
           info->stream->m_profile = info->profile;
           info->stream->m_matrixEncoding = info->matrix_encoding;
           info->stream->m_audioServiceType = info->audio_service_type;
           return;
         case CActiveAEControlProtocol::STREAMFADE:
           MsgStreamFade *fade;
-          fade = (MsgStreamFade*)msg->data;
+          fade = reinterpret_cast<MsgStreamFade*>(msg->data);
           fade->stream->m_fadingBase = fade->from;
           fade->stream->m_fadingTarget = fade->target;
           fade->stream->m_fadingTime = fade->millis;
@@ -695,7 +695,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
         case CActiveAEDataProtocol::NEWSTREAM:
           MsgStreamNew *streamMsg;
           CActiveAEStream *stream;
-          streamMsg = (MsgStreamNew*)msg->data;
+          streamMsg = reinterpret_cast<MsgStreamNew*>(msg->data);
           stream = CreateStream(streamMsg);
           if(stream)
           {
@@ -719,7 +719,7 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
         case CActiveAEDataProtocol::STREAMSAMPLE:
           MsgStreamSample *msgData;
           CSampleBuffer *samples;
-          msgData = (MsgStreamSample*)msg->data;
+          msgData = reinterpret_cast<MsgStreamSample*>(msg->data);
           samples = msgData->stream->m_processingSamples.front();
           msgData->stream->m_processingSamples.pop_front();
           if (samples != msgData->buffer)
@@ -1613,32 +1613,31 @@ void CActiveAE::ApplySettingsToFormat(AEAudioFormat &format, AudioSettings &sett
     // consider user channel layout for those cases
     // 1. input stream is multichannel
     // 2. stereo upmix is selected
-    // 3. audio dsp is used
-    // 4. fixed mode
+    // 3. fixed mode
     if ((format.m_channelLayout.Count() > 2) ||
          settings.stereoupmix ||
-         settings.dspaddonsenabled ||
          (settings.config == AE_CONFIG_FIXED))
     {
-      AEStdChLayout stdChannelLayout;
+      CAEChannelInfo stdLayout;
       switch (settings.channels)
       {
         default:
-        case  0: stdChannelLayout = AE_CH_LAYOUT_2_0; break;
-        case  1: stdChannelLayout = AE_CH_LAYOUT_2_0; break;
-        case  2: stdChannelLayout = AE_CH_LAYOUT_2_1; break;
-        case  3: stdChannelLayout = AE_CH_LAYOUT_3_0; break;
-        case  4: stdChannelLayout = AE_CH_LAYOUT_3_1; break;
-        case  5: stdChannelLayout = AE_CH_LAYOUT_4_0; break;
-        case  6: stdChannelLayout = AE_CH_LAYOUT_4_1; break;
-        case  7: stdChannelLayout = AE_CH_LAYOUT_5_0; break;
-        case  8: stdChannelLayout = AE_CH_LAYOUT_5_1; break;
-        case  9: stdChannelLayout = AE_CH_LAYOUT_7_0; break;
-        case 10: stdChannelLayout = AE_CH_LAYOUT_7_1; break;
+        case  0: stdLayout = AE_CH_LAYOUT_2_0; break;
+        case  1: stdLayout = AE_CH_LAYOUT_2_0; break;
+        case  2: stdLayout = AE_CH_LAYOUT_2_1; break;
+        case  3: stdLayout = AE_CH_LAYOUT_3_0; break;
+        case  4: stdLayout = AE_CH_LAYOUT_3_1; break;
+        case  5: stdLayout = AE_CH_LAYOUT_4_0; break;
+        case  6: stdLayout = AE_CH_LAYOUT_4_1; break;
+        case  7: stdLayout = AE_CH_LAYOUT_5_0; break;
+        case  8: stdLayout = AE_CH_LAYOUT_5_1; break;
+        case  9: stdLayout = AE_CH_LAYOUT_7_0; break;
+        case 10: stdLayout = AE_CH_LAYOUT_7_1; break;
       }
 
-      CAEChannelInfo stdLayout(stdChannelLayout);
-      if (m_extKeepConfig && (settings.config == AE_CONFIG_AUTO) && (oldMode != MODE_RAW))
+      if (m_settings.config == AE_CONFIG_FIXED || (settings.stereoupmix && format.m_channelLayout.Count() <= 2))
+        format.m_channelLayout = stdLayout;
+      else if (m_extKeepConfig && (settings.config == AE_CONFIG_AUTO) && (oldMode != MODE_RAW))
         format.m_channelLayout = m_internalFormat.m_channelLayout;
       else
       {
@@ -1744,7 +1743,7 @@ bool CActiveAE::InitSink()
       return false;
     }
     SinkReply *data;
-    data = (SinkReply*)reply->data;
+    data = reinterpret_cast<SinkReply*>(reply->data);
     if (data)
     {
       m_sinkFormat = data->format;
@@ -2179,7 +2178,7 @@ bool CActiveAE::RunStages()
                 break;
               else
               {
-                int samples = buf->pkt->nb_samples;
+                unsigned int samples = static_cast<unsigned int>(buf->pkt->nb_samples);
                 for (auto& it : m_audioCallback)
                   it->OnAudioData((float*)(buf->pkt->data[0]), samples);
                 buf->Return();
@@ -2518,13 +2517,12 @@ void CActiveAE::Deamplify(CSoundPacket &dstSample)
 {
   if (m_volumeScaled < 1.0 || m_muted)
   {
-    float *buffer;
     int nb_floats = dstSample.nb_samples * dstSample.config.channels / dstSample.planes;
     float volume = m_muted ? 0.0f : m_volumeScaled;
 
     for(int j=0; j<dstSample.planes; j++)
     {
-      buffer = (float*)dstSample.data[j];
+      float* buffer = reinterpret_cast<float*>(dstSample.data[j]);
 #if defined(HAVE_SSE) && defined(__SSE__)
       CAEUtil::SSEMulArray(buffer, volume, nb_floats);
 #else

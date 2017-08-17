@@ -20,8 +20,6 @@
 
 #pragma once
 
-#if defined(HAVE_X11)
-
 #include "WinSystemX11.h"
 #include "GL/glx.h"
 #include "EGL/egl.h"
@@ -34,8 +32,8 @@ class CWinSystemX11GLContext : public CWinSystemX11, public CRenderSystemGL
 {
 public:
   CWinSystemX11GLContext();
-  virtual ~CWinSystemX11GLContext();
-  bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res, PHANDLE_EVENT_FUNC userFunction) override;
+  ~CWinSystemX11GLContext() override;
+  bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
   bool DestroyWindowSystem() override;
@@ -44,7 +42,7 @@ public:
   bool IsExtSupported(const char* extension) override;
 
   // videosync
-  virtual std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
+  std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
 
   GLXWindow GetWindow() const;
   GLXContext GetGlxContext() const;
@@ -52,6 +50,8 @@ public:
   EGLSurface GetEGLSurface() const;
   EGLContext GetEGLContext() const;
   EGLConfig GetEGLConfig() const;
+
+  void* GetVaDisplay();
 
 protected:
   bool SetWindow(int width, int height, bool fullscreen, const std::string &output, int *winstate = NULL) override;
@@ -66,5 +66,3 @@ protected:
 
 XBMC_GLOBAL_REF(CWinSystemX11GLContext,g_Windowing);
 #define g_Windowing XBMC_GLOBAL_USE(CWinSystemX11GLContext)
-
-#endif //HAVE_X11

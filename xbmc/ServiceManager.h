@@ -23,9 +23,15 @@
 #include <memory>
 #include "platform/Platform.h"
 
+class CAppParamParser;
+
 namespace ADDON {
 class CAddonMgr;
+class CBinaryAddonManager;
 class CBinaryAddonCache;
+class CVFSAddonCache;
+class CServiceAddonManager;
+class CRepositoryUpdater;
 }
 
 namespace ActiveAE {
@@ -56,9 +62,13 @@ class CSettings;
 class IAE;
 class CFavouritesService;
 
+namespace KODI
+{
 namespace GAME
 {
+  class CControllerManager;
   class CGameServices;
+}
 }
 
 namespace PERIPHERALS
@@ -66,21 +76,29 @@ namespace PERIPHERALS
   class CPeripherals;
 }
 
+class CInputManager;
+
 class CServiceManager
 {
 public:
   CServiceManager();
   ~CServiceManager();
 
-  bool Init1();
-  bool Init2();
+  bool InitStageOne();
+  bool InitStageTwo(const CAppParamParser &params);
   bool CreateAudioEngine();
   bool DestroyAudioEngine();
   bool StartAudioEngine();
-  bool Init3();
-  void Deinit();
+  bool InitStageThree();
+  void DeinitStageThree();
+  void DeinitStageTwo();
+  void DeinitStageOne();
   ADDON::CAddonMgr& GetAddonMgr();
+  ADDON::CBinaryAddonManager& GetBinaryAddonManager();
   ADDON::CBinaryAddonCache& GetBinaryAddonCache();
+  ADDON::CVFSAddonCache& GetVFSAddonCache();
+  ADDON::CServiceAddonManager& GetServiceAddons();
+  ADDON::CRepositoryUpdater& GetRepositoryUpdater();
   ANNOUNCEMENT::CAnnouncementManager& GetAnnouncementManager();
 #ifdef HAS_PYTHON
   XBPython& GetXBPython();
@@ -92,7 +110,8 @@ public:
   /**\brief Get the platform object. This is save to be called after Init1() was called
    */
   CPlatform& GetPlatform();
-  GAME::CGameServices& GetGameServices();
+  KODI::GAME::CControllerManager& GetGameControllerManager();
+  KODI::GAME::CGameServices& GetGameServices();
   PERIPHERALS::CPeripherals& GetPeripherals();
 
   PLAYLIST::CPlayListPlayer& GetPlaylistPlayer();
@@ -100,6 +119,7 @@ public:
 
   CSettings& GetSettings();
   CFavouritesService& GetFavouritesService();
+  CInputManager &GetInputManager();
 
 protected:
   struct delete_dataCacheCore
@@ -123,7 +143,11 @@ protected:
   };
 
   std::unique_ptr<ADDON::CAddonMgr> m_addonMgr;
+  std::unique_ptr<ADDON::CBinaryAddonManager> m_binaryAddonManager;
   std::unique_ptr<ADDON::CBinaryAddonCache> m_binaryAddonCache;
+  std::unique_ptr<ADDON::CVFSAddonCache> m_vfsAddonCache;
+  std::unique_ptr<ADDON::CServiceAddonManager> m_serviceAddons;
+  std::unique_ptr<ADDON::CRepositoryUpdater> m_repositoryUpdater;
   std::unique_ptr<ANNOUNCEMENT::CAnnouncementManager> m_announcementManager;
 #ifdef HAS_PYTHON
   std::unique_ptr<XBPython> m_XBPython;
@@ -135,7 +159,9 @@ protected:
   std::unique_ptr<CPlatform> m_Platform;
   std::unique_ptr<PLAYLIST::CPlayListPlayer> m_playlistPlayer;
   std::unique_ptr<CSettings> m_settings;
-  std::unique_ptr<GAME::CGameServices> m_gameServices;
+  std::unique_ptr<KODI::GAME::CControllerManager> m_gameControllerManager;
+  std::unique_ptr<KODI::GAME::CGameServices> m_gameServices;
   std::unique_ptr<PERIPHERALS::CPeripherals> m_peripherals;
   std::unique_ptr<CFavouritesService, delete_favouritesService> m_favouritesService;
+  std::unique_ptr<CInputManager> m_inputManager;
 };

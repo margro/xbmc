@@ -48,10 +48,8 @@ CDVDInputStreamPVRManager::CDVDInputStreamPVRManager(IVideoPlayer* pPlayer, cons
   : CDVDInputStream(DVDSTREAM_TYPE_PVRMANAGER, fileitem)
 {
   m_pPlayer = pPlayer;
-  m_pOtherStream = nullptr;
   m_eof = true;
   m_ScanTimeout.Set(0);
-  m_isOtherStreamHack = false;
   m_demuxActive = false;
 
   m_StreamProps = new PVR_STREAM_PROPERTIES;
@@ -79,10 +77,7 @@ bool CDVDInputStreamPVRManager::IsEOF()
   if (!m_ScanTimeout.IsTimePast())
     return false;
 
-  if (m_pOtherStream)
-    return m_pOtherStream->IsEOF();
-  else
-    return m_eof;
+  return m_eof;
 }
 
 bool CDVDInputStreamPVRManager::Open()
@@ -90,7 +85,7 @@ bool CDVDInputStreamPVRManager::Open()
   if (!CDVDInputStream::Open())
     return false;
 
-  CURL url(m_item.GetPath());
+  CURL url(m_item.GetDynPath());
 
   std::string strURL = url.Get();
 
@@ -142,158 +137,68 @@ bool CDVDInputStreamPVRManager::Open()
 
   m_eof = false;
 
-  /*
-   * Translate the "pvr://....." entry.
-   * The PVR Client can use http or whatever else is supported by VideoPlayer.
-   * to access streams.
-   * If after translation the file protocol is still "pvr://" use this class
-   * to read the stream data over the CPVRFile class and the PVR Library itself.
-   * Otherwise call CreateInputStream again with the translated filename and looks again
-   * for the right protocol stream handler and swap every call to this input stream
-   * handler.
-   */
-  m_isOtherStreamHack = false;
-  std::string transFile = ThisIsAHack(m_item.GetPath());
-  if(transFile.substr(0, 6) != "pvr://")
+  if (URIUtils::IsPVRChannel(url.Get()))
   {
-    m_isOtherStreamHack = true;
-    
-    m_item.SetPath(transFile);
-    m_item.SetMimeTypeForInternetFile();
-
-    m_pOtherStream = CDVDFactoryInputStream::CreateInputStream(m_pPlayer, m_item);
-    if (!m_pOtherStream)
-    {
-      CLog::Log(LOGERROR, "CDVDInputStreamPVRManager::Open - unable to create input stream for [%s]", CURL::GetRedacted(transFile).c_str());
-      return false;
-    }
-
-    if (!m_pOtherStream->Open())
-    {
-      CLog::Log(LOGERROR, "CDVDInputStreamPVRManager::Open - error opening [%s]", CURL::GetRedacted(transFile).c_str());
-      delete m_pOtherStream;
-      m_pOtherStream = NULL;
-      return false;
-    }
-  }
-  else
-  {
-    if (URIUtils::IsPVRChannel(url.Get()))
-    {
-      std::shared_ptr<CPVRClient> client;
-      if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client) &&
-          client->HandlesDemuxing())
-        m_demuxActive = true;
-    }
+    std::shared_ptr<CPVRClient> client;
+    if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client) &&
+        client->GetClientCapabilities().HandlesDemuxing())
+      m_demuxActive = true;
   }
 
   ResetScanTimeout((unsigned int) CServiceBroker::GetSettings().GetInt(CSettings::SETTING_PVRPLAYBACK_SCANTIME) * 1000);
-  CLog::Log(LOGDEBUG, "CDVDInputStreamPVRManager::Open - stream opened: %s", CURL::GetRedacted(transFile).c_str());
+  CLog::Log(LOGDEBUG, "CDVDInputStreamPVRManager::Open - stream opened: %s", CURL::GetRedacted(m_item.GetDynPath()).c_str());
 
   m_StreamProps->iStreamCount = 0;
   return true;
 }
 
-std::string CDVDInputStreamPVRManager::ThisIsAHack(const std::string& pathFile)
-{
-  std::string FileName = pathFile;
-  if (FileName.substr(0, 14) == "pvr://channels")
-  {
-    CFileItemPtr channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetByPath(FileName);
-    if (channel && channel->HasPVRChannelInfoTag())
-    {
-      std::string stream = channel->GetPVRChannelInfoTag()->StreamURL();
-      if(!stream.empty())
-      {
-        if (stream.compare(6, 7, "stream/") == 0)
-        {
-          // pvr://stream
-          // This function was added to retrieve the stream URL for this item
-          // Is is used for the MediaPortal (ffmpeg) PVR addon
-          // see PVRManager.cpp
-          return CServiceBroker::GetPVRManager().Clients()->GetStreamURL(channel->GetPVRChannelInfoTag());
-        }
-        else
-        {
-          return stream;
-        }
-      }
-    }
-  }
-  return FileName;
-}
-
 // close file and reset everything
 void CDVDInputStreamPVRManager::Close()
 {
-  if (m_pOtherStream)
-  {
-    m_pOtherStream->Close();
-    delete m_pOtherStream;
-  }
-
   CServiceBroker::GetPVRManager().CloseStream();
 
   CDVDInputStream::Close();
 
-  m_pOtherStream    = NULL;
-  m_eof             = true;
+  m_eof = true;
 
   CLog::Log(LOGDEBUG, "CDVDInputStreamPVRManager::Close - stream closed");
 }
 
 int CDVDInputStreamPVRManager::Read(uint8_t* buf, int buf_size)
 {
-  if (m_pOtherStream)
-  {
-    return m_pOtherStream->Read(buf, buf_size);
-  }
-  else
-  {
-    int ret = CServiceBroker::GetPVRManager().Clients()->ReadStream((BYTE*)buf, buf_size);
-    if (ret < 0)
-      ret = -1;
+  int ret = CServiceBroker::GetPVRManager().Clients()->ReadStream((BYTE*)buf, buf_size);
+  if (ret < 0)
+    ret = -1;
 
-    /* we currently don't support non completing reads */
-    if( ret == 0 )
-      m_eof = true;
+  /* we currently don't support non completing reads */
+  if( ret == 0 )
+    m_eof = true;
 
-    return ret;
-  }
+  return ret;
 }
 
 int64_t CDVDInputStreamPVRManager::Seek(int64_t offset, int whence)
 {
-  if (m_pOtherStream)
+  if (whence == SEEK_POSSIBLE)
   {
-    return m_pOtherStream->Seek(offset, whence);
+    if (CServiceBroker::GetPVRManager().Clients()->CanSeekStream())
+      return 1;
+    else
+      return 0;
   }
-  else
-  {
-    if (whence == SEEK_POSSIBLE)
-    {
-      if (CServiceBroker::GetPVRManager().Clients()->CanSeekStream())
-        return 1;
-      else
-        return 0;
-    }
 
-    int64_t ret = CServiceBroker::GetPVRManager().Clients()->SeekStream(offset, whence);
+  int64_t ret = CServiceBroker::GetPVRManager().Clients()->SeekStream(offset, whence);
 
-    // if we succeed, we are not eof anymore
-    if( ret >= 0 )
-      m_eof = false;
+  // if we succeed, we are not eof anymore
+  if( ret >= 0 )
+    m_eof = false;
 
-    return ret;
-  }
+  return ret;
 }
 
 int64_t CDVDInputStreamPVRManager::GetLength()
 {
-  if (m_pOtherStream)
-    return m_pOtherStream->GetLength();
-  else
-    return CServiceBroker::GetPVRManager().Clients()->GetStreamLength();
+  return CServiceBroker::GetPVRManager().Clients()->GetStreamLength();
 }
 
 int CDVDInputStreamPVRManager::GetTotalTime()
@@ -310,75 +215,22 @@ int CDVDInputStreamPVRManager::GetTime()
   return 0;
 }
 
-bool CDVDInputStreamPVRManager::NextChannel(bool preview/* = false*/)
+bool CDVDInputStreamPVRManager::GetTimes(Times &times)
 {
-  PVR_CLIENT client;
-  unsigned int newchannel;
-  if (!preview && IsOtherStreamHack())
-  {
-    CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetCurrentChannel());
-    CFileItemPtr item(CServiceBroker::GetPVRManager().ChannelGroups()->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelUp(channel));
-    if (item)
-      return CloseAndOpen(item->GetPath());
-  }
-  else if (!m_isRecording)
-    return CServiceBroker::GetPVRManager().ChannelUp(&newchannel, preview);
-  return false;
-}
-
-bool CDVDInputStreamPVRManager::PrevChannel(bool preview/* = false*/)
-{
-  PVR_CLIENT client;
-  unsigned int newchannel;
-  if (!preview && IsOtherStreamHack())
-  {
-    CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetCurrentChannel());
-    CFileItemPtr item(CServiceBroker::GetPVRManager().ChannelGroups()->Get(channel->IsRadio())->GetSelectedGroup()->GetByChannelDown(channel));
-    if (item)
-      return CloseAndOpen(item->GetPath());
-  }
-  else if (!m_isRecording)
-    return CServiceBroker::GetPVRManager().ChannelDown(&newchannel, preview);
-  return false;
-}
-
-bool CDVDInputStreamPVRManager::SelectChannelByNumber(unsigned int iChannelNumber)
-{
-  PVR_CLIENT client;
-  CPVRChannelPtr currentChannel(CServiceBroker::GetPVRManager().GetCurrentChannel());
-  CFileItemPtr item(CServiceBroker::GetPVRManager().ChannelGroups()->Get(currentChannel->IsRadio())->GetSelectedGroup()->GetByChannelNumber(iChannelNumber));
-  if (!item)
+  if (m_isRecording)
     return false;
 
-  if (IsOtherStreamHack())
+  PVR_STREAM_TIMES streamTimes;
+  bool ret = CServiceBroker::GetPVRManager().Clients()->GetStreamTimes(&streamTimes);
+  if (ret)
   {
-    return CloseAndOpen(item->GetPath());
-  }
-  else if (!m_isRecording)
-  {
-    if (item->HasPVRChannelInfoTag())
-      return CServiceBroker::GetPVRManager().ChannelSwitchById(item->GetPVRChannelInfoTag()->ChannelID());
-  }
-
-  return false;
-}
-
-bool CDVDInputStreamPVRManager::SelectChannel(const CPVRChannelPtr &channel)
-{
-  assert(channel.get());
-
-  PVR_CLIENT client;
-  if (IsOtherStreamHack())
-  {
-    CFileItem item(channel);
-    return CloseAndOpen(item.GetPath());
-  }
-  else if (!m_isRecording)
-  {
-    return CServiceBroker::GetPVRManager().ChannelSwitchById(channel->ChannelID());
+    times.startTime = streamTimes.startTime;
+    times.ptsStart = streamTimes.ptsStart;
+    times.ptsBegin = streamTimes.ptsBegin;
+    times.ptsEnd = streamTimes.ptsEnd;
   }
 
-  return false;
+  return ret;
 }
 
 CPVRChannelPtr CDVDInputStreamPVRManager::GetSelectedChannel()
@@ -386,19 +238,11 @@ CPVRChannelPtr CDVDInputStreamPVRManager::GetSelectedChannel()
   return CServiceBroker::GetPVRManager().GetCurrentChannel();
 }
 
-bool CDVDInputStreamPVRManager::UpdateItem(CFileItem& item)
-{
-  return CServiceBroker::GetPVRManager().UpdateItem(item);
-}
-
 CDVDInputStream::ENextStream CDVDInputStreamPVRManager::NextStream()
 {
   m_eof = IsEOF();
 
-  CDVDInputStream::ENextStream next;
-  if (m_pOtherStream && ((next = m_pOtherStream->NextStream()) != NEXTSTREAM_NONE))
-    return next;
-  else if(!m_isRecording)
+  if(!m_isRecording)
   {
     if (m_eof)
       return NEXTSTREAM_OPEN;
@@ -442,27 +286,7 @@ void CDVDInputStreamPVRManager::Pause(bool bPaused)
 
 std::string CDVDInputStreamPVRManager::GetInputFormat()
 {
-  if (!m_pOtherStream)
-    return CServiceBroker::GetPVRManager().Clients()->GetCurrentInputFormat();
-  return "";
-}
-
-bool CDVDInputStreamPVRManager::CloseAndOpen(const std::string& strFile)
-{
-  Close();
-
-  m_item.SetPath(strFile);
-  if (Open())
-  {
-    return true;
-  }
-
-  return false;
-}
-
-bool CDVDInputStreamPVRManager::IsOtherStreamHack(void)
-{
-  return m_isOtherStreamHack;
+  return CServiceBroker::GetPVRManager().Clients()->GetCurrentInputFormat();
 }
 
 bool CDVDInputStreamPVRManager::IsRealtime()

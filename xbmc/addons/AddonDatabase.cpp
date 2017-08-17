@@ -47,15 +47,18 @@ static std::string SerializeMetadata(const IAddon& addon)
   variant["size"] = addon.PackageSize();
 
   variant["path"] = addon.Path();
-  variant["fanart"] = addon.FanArt();
   variant["icon"] = addon.Icon();
+
+  variant["art"] = CVariant(CVariant::VariantTypeObject);
+  for (const auto& item : addon.Art())
+    variant["art"][item.first] = item.second;
 
   variant["screenshots"] = CVariant(CVariant::VariantTypeArray);
   for (const auto& item : addon.Screenshots())
     variant["screenshots"].push_back(item);
 
   variant["extensions"] = CVariant(CVariant::VariantTypeArray);
-  variant["extensions"].push_back(ADDON::TranslateType(addon.Type(), false));
+  variant["extensions"].push_back(ADDON::CAddonInfo::TranslateType(addon.Type(), false));
 
   variant["dependencies"] = CVariant(CVariant::VariantTypeArray);
   for (const auto& kv : addon.GetDeps())
@@ -93,15 +96,19 @@ static void DeserializeMetadata(const std::string& document, CAddonBuilder& buil
   builder.SetPackageSize(variant["size"].asUnsignedInteger());
 
   builder.SetPath(variant["path"].asString());
-  builder.SetFanart(variant["fanart"].asString());
   builder.SetIcon(variant["icon"].asString());
+
+  std::map<std::string, std::string> art;
+  for (auto it = variant["art"].begin_map(); it != variant["art"].end_map(); ++it)
+    art.emplace(it->first, it->second.asString());
+  builder.SetArt(std::move(art));
 
   std::vector<std::string> screenshots;
   for (auto it = variant["screenshots"].begin_array(); it != variant["screenshots"].end_array(); ++it)
     screenshots.push_back(it->asString());
   builder.SetScreenshots(std::move(screenshots));
 
-  builder.SetType(TranslateType(variant["extensions"][0].asString()));
+  builder.SetType(CAddonInfo::TranslateType(variant["extensions"][0].asString()));
 
   ADDONDEPS deps;
   for (auto it = variant["dependencies"].begin_array(); it != variant["dependencies"].end_array(); ++it)
@@ -117,13 +124,9 @@ static void DeserializeMetadata(const std::string& document, CAddonBuilder& buil
   builder.SetExtrainfo(std::move(extraInfo));
 }
 
-CAddonDatabase::CAddonDatabase()
-{
-}
+CAddonDatabase::CAddonDatabase() = default;
 
-CAddonDatabase::~CAddonDatabase()
-{
-}
+CAddonDatabase::~CAddonDatabase() = default;
 
 bool CAddonDatabase::Open()
 {

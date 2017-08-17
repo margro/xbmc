@@ -28,20 +28,16 @@ class CDecoderCC708;
 class CDVDDemuxCC : public CDVDDemux
 {
 public:
-  CDVDDemuxCC(AVCodecID codec);
-  virtual ~CDVDDemuxCC();
+  explicit CDVDDemuxCC(AVCodecID codec);
+  ~CDVDDemuxCC() override;
 
-  virtual void Reset() {};
-  virtual void Abort() {};
-  virtual void Flush() {};
-  virtual DemuxPacket* Read() { return NULL; };
-  virtual bool SeekTime(double time, bool backwards = false, double* startpts = NULL) override {return true;};
-  virtual void SetSpeed(int iSpeed) {};
-  virtual int GetStreamLength() {return 0;};
-  virtual CDemuxStream* GetStream(int iStreamId) const override;
-  virtual std::vector<CDemuxStream*> GetStreams() const override;
-  virtual int GetNrOfStreams() const;
-  virtual std::string GetFileName() {return "";};
+  void Reset() override {};
+  void Flush() override {};
+  DemuxPacket* Read() override { return NULL; };
+  bool SeekTime(double time, bool backwards = false, double* startpts = NULL) override {return true;};
+  CDemuxStream* GetStream(int iStreamId) const override;
+  std::vector<CDemuxStream*> GetStreams() const override;
+  int GetNrOfStreams() const override;
 
   DemuxPacket* Read(DemuxPacket *packet);
   static void Handler(int service, void *userdata);

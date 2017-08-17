@@ -53,25 +53,22 @@ namespace XBMCAddonUtils
   class GuiLock
   {
   public:
-    GuiLock();
+    GuiLock(XBMCAddon::LanguageHook* languageHook, bool offScreen);
     ~GuiLock();
 
   protected:
-    XBMCAddon::LanguageHook* languageHook;
+    XBMCAddon::LanguageHook* m_languageHook = nullptr;
+    bool m_offScreen = false;
   };
 
   class InvertSingleLockGuard
   {
     CSingleLock& lock;
   public:
-    InvertSingleLockGuard(CSingleLock& _lock) : lock(_lock) { lock.Leave(); }
+    explicit InvertSingleLockGuard(CSingleLock& _lock) : lock(_lock) { lock.Leave(); }
     ~InvertSingleLockGuard() { lock.Enter(); }
   };
 
-#define LOCKGUI XBMCAddonUtils::GuiLock __gl
-#define LOCKGUIIF(cond) std::unique_ptr<XBMCAddonUtils::GuiLock> __gl; \
-                        if (!(cond)) \
-                          __gl.reset(new XBMCAddonUtils::GuiLock)
 
   /*
    * Looks in references.xml for image name
@@ -89,7 +86,7 @@ namespace XBMCAddonUtils
 
     const char* getSpaces();
 
-    TraceGuard(const char* _function);
+    explicit TraceGuard(const char* _function);
     TraceGuard();
     ~TraceGuard();
   };

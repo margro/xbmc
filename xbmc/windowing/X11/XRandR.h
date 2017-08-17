@@ -22,8 +22,6 @@
 
 #include "system.h"
 
-#ifdef HAVE_X11
-
 #include <string>
 #include <vector>
 #include <map>
@@ -97,7 +95,7 @@ public:
 class CXRandR
 {
 public:
-  CXRandR(bool query=false);
+  explicit CXRandR(bool query=false);
   bool Query(bool force=false, bool ignoreoff=true);
   bool Query(bool force, int screennum, bool ignoreoff=true);
   std::vector<XOutput> GetModes(void);
@@ -126,6 +124,3 @@ private:
 };
 
 extern CXRandR g_xrandr;
-
-#endif
-

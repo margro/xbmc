@@ -152,9 +152,7 @@ static const size_t NUM_GROUPS = sizeof(groups) / sizeof(group);
 
 #define RULE_VALUE_SEPARATOR  " / "
 
-CSmartPlaylistRule::CSmartPlaylistRule()
-{
-}
+CSmartPlaylistRule::CSmartPlaylistRule() = default;
 
 int CSmartPlaylistRule::TranslateField(const char *field) const
 {
@@ -233,7 +231,7 @@ bool CSmartPlaylistRule::Validate(const std::string &input, void *data)
   if (data == NULL)
     return true;
 
-  CSmartPlaylistRule *rule = (CSmartPlaylistRule*)data;
+  CSmartPlaylistRule *rule = static_cast<CSmartPlaylistRule*>(data);
 
   // check if there's a validator for this rule
   StringValidation::Validator validator = NULL;

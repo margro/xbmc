@@ -32,20 +32,20 @@ namespace PERIPHERALS
   class CPeripheralBusUSB : public CPeripheralBus
   {
   public:
-    CPeripheralBusUSB(CPeripherals& manager);
-    virtual ~CPeripheralBusUSB(void);
+    explicit CPeripheralBusUSB(CPeripherals& manager);
+    ~CPeripheralBusUSB(void) override;
 
-    virtual void Clear(void);
+    void Clear(void) override;
 
     /*!
      * @see PeripheralBus::PerformDeviceScan()
      */
-    bool PerformDeviceScan(PeripheralScanResults &results);
+    bool PerformDeviceScan(PeripheralScanResults &results) override;
 
   protected:
     static const PeripheralType GetType(int iDeviceClass);
 
-    virtual void Process(void);
+    void Process(void) override;
     bool WaitForUpdate(void);
 
     struct udev *        m_udev;

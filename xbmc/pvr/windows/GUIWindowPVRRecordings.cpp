@@ -18,11 +18,13 @@
  *
  */
 
+#include "GUIWindowPVRRecordings.h"
+
 #include "GUIInfoManager.h"
 #include "ServiceBroker.h"
-#include "guilib/LocalizeStrings.h"
 #include "guilib/GUIRadioButtonControl.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "input/Key.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
@@ -35,12 +37,10 @@
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/recordings/PVRRecordingsPath.h"
 
-#include "GUIWindowPVRRecordings.h"
-
 using namespace PVR;
 
-CGUIWindowPVRRecordings::CGUIWindowPVRRecordings(bool bRadio) :
-  CGUIWindowPVRBase(bRadio, bRadio ? WINDOW_RADIO_RECORDINGS : WINDOW_TV_RECORDINGS, "MyPVRRecordings.xml") ,
+CGUIWindowPVRRecordingsBase::CGUIWindowPVRRecordingsBase(bool bRadio, int id, const std::string &xmlFile) :
+  CGUIWindowPVRBase(bRadio, id, xmlFile),
   m_bShowDeletedRecordings(false),
   m_settings({
     CSettings::SETTING_PVRRECORD_GROUPRECORDINGS,
@@ -50,23 +50,23 @@ CGUIWindowPVRRecordings::CGUIWindowPVRRecordings(bool bRadio) :
   g_infoManager.RegisterObserver(this);
 }
 
-CGUIWindowPVRRecordings::~CGUIWindowPVRRecordings()
+CGUIWindowPVRRecordingsBase::~CGUIWindowPVRRecordingsBase()
 {
   g_infoManager.UnregisterObserver(this);
 }
 
-void CGUIWindowPVRRecordings::OnWindowLoaded()
+void CGUIWindowPVRRecordingsBase::OnWindowLoaded()
 {
   CONTROL_SELECT(CONTROL_BTNGROUPITEMS);
 }
 
-std::string CGUIWindowPVRRecordings::GetDirectoryPath(void)
+std::string CGUIWindowPVRRecordingsBase::GetDirectoryPath()
 {
   const std::string basePath = CPVRRecordingsPath(m_bShowDeletedRecordings, m_bRadio);
   return URIUtils::PathHasParent(m_vecItems->GetPath(), basePath) ? m_vecItems->GetPath() : basePath;
 }
 
-void CGUIWindowPVRRecordings::GetContextButtons(int itemNumber, CContextButtons &buttons)
+void CGUIWindowPVRRecordingsBase::GetContextButtons(int itemNumber, CContextButtons &buttons)
 {
   if (itemNumber < 0 || itemNumber >= m_vecItems->Size())
     return;
@@ -96,7 +96,7 @@ void CGUIWindowPVRRecordings::GetContextButtons(int itemNumber, CContextButtons 
     CGUIWindowPVRBase::GetContextButtons(itemNumber, buttons);
 }
 
-bool CGUIWindowPVRRecordings::OnAction(const CAction &action)
+bool CGUIWindowPVRRecordingsBase::OnAction(const CAction &action)
 {
   if (action.GetID() == ACTION_PARENT_DIR ||
       action.GetID() == ACTION_NAV_BACK)
@@ -111,7 +111,7 @@ bool CGUIWindowPVRRecordings::OnAction(const CAction &action)
   return CGUIWindowPVRBase::OnAction(action);
 }
 
-bool CGUIWindowPVRRecordings::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
+bool CGUIWindowPVRRecordingsBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
 {
   if (itemNumber < 0 || itemNumber >= m_vecItems->Size())
     return false;
@@ -121,7 +121,7 @@ bool CGUIWindowPVRRecordings::OnContextButton(int itemNumber, CONTEXT_BUTTON but
       CGUIMediaWindow::OnContextButton(itemNumber, button);
 }
 
-bool CGUIWindowPVRRecordings::Update(const std::string &strDirectory, bool updateFilterPath /* = true */)
+bool CGUIWindowPVRRecordingsBase::Update(const std::string &strDirectory, bool updateFilterPath /* = true */)
 {
   m_thumbLoader.StopThread();
 
@@ -159,7 +159,7 @@ bool CGUIWindowPVRRecordings::Update(const std::string &strDirectory, bool updat
   return bReturn;
 }
 
-void CGUIWindowPVRRecordings::UpdateButtons(void)
+void CGUIWindowPVRRecordingsBase::UpdateButtons()
 {
   int iWatchMode = CMediaSettings::GetInstance().GetWatchedMode("recordings");
   int iStringId = 257; // "Error"
@@ -176,7 +176,7 @@ void CGUIWindowPVRRecordings::UpdateButtons(void)
   bool bGroupRecordings = m_settings.GetBoolValue(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
   SET_CONTROL_SELECTED(GetID(), CONTROL_BTNGROUPITEMS, bGroupRecordings);
 
-  CGUIRadioButtonControl *btnShowDeleted = (CGUIRadioButtonControl*) GetControl(CONTROL_BTNSHOWDELETED);
+  CGUIRadioButtonControl *btnShowDeleted = static_cast<CGUIRadioButtonControl*>(GetControl(CONTROL_BTNSHOWDELETED));
   if (btnShowDeleted)
   {
     btnShowDeleted->SetVisible(m_bRadio ? CServiceBroker::GetPVRManager().Recordings()->HasDeletedRadioRecordings() : CServiceBroker::GetPVRManager().Recordings()->HasDeletedTVRecordings());
@@ -190,7 +190,7 @@ void CGUIWindowPVRRecordings::UpdateButtons(void)
   SET_CONTROL_LABEL(CONTROL_LABEL_HEADER2, bGroupRecordings && path.IsValid() ? path.GetUnescapedDirectoryPath() : "");
 }
 
-bool CGUIWindowPVRRecordings::OnMessage(CGUIMessage &message)
+bool CGUIWindowPVRRecordingsBase::OnMessage(CGUIMessage &message)
 {
   bool bReturn = false;
   switch (message.GetMessage())
@@ -283,7 +283,7 @@ bool CGUIWindowPVRRecordings::OnMessage(CGUIMessage &message)
       }
       else if (message.GetSenderId() == CONTROL_BTNSHOWDELETED)
       {
-        CGUIRadioButtonControl *radioButton = (CGUIRadioButtonControl*) GetControl(CONTROL_BTNSHOWDELETED);
+        CGUIRadioButtonControl *radioButton = static_cast<CGUIRadioButtonControl*>(GetControl(CONTROL_BTNSHOWDELETED));
         if (radioButton)
         {
           m_bShowDeletedRecordings = radioButton->IsSelected();
@@ -325,7 +325,7 @@ bool CGUIWindowPVRRecordings::OnMessage(CGUIMessage &message)
   return bReturn || CGUIWindowPVRBase::OnMessage(message);
 }
 
-bool CGUIWindowPVRRecordings::OnContextButtonDeleteAll(CFileItem *item, CONTEXT_BUTTON button)
+bool CGUIWindowPVRRecordingsBase::OnContextButtonDeleteAll(CFileItem *item, CONTEXT_BUTTON button)
 {
   if (button == CONTEXT_BUTTON_DELETE_ALL)
   {
@@ -336,7 +336,7 @@ bool CGUIWindowPVRRecordings::OnContextButtonDeleteAll(CFileItem *item, CONTEXT_
   return false;
 }
 
-void CGUIWindowPVRRecordings::OnPrepareFileItems(CFileItemList& items)
+void CGUIWindowPVRRecordingsBase::OnPrepareFileItems(CFileItemList& items)
 {
   if (items.IsEmpty())
     return;
@@ -362,7 +362,7 @@ void CGUIWindowPVRRecordings::OnPrepareFileItems(CFileItemList& items)
   CGUIWindowPVRBase::OnPrepareFileItems(items);
 }
 
-bool CGUIWindowPVRRecordings::GetFilteredItems(const std::string &filter, CFileItemList &items)
+bool CGUIWindowPVRRecordingsBase::GetFilteredItems(const std::string &filter, CFileItemList &items)
 {
   bool listchanged = CGUIWindowPVRBase::GetFilteredItems(filter, items);
 

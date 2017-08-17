@@ -24,6 +24,7 @@
 
 #include <string>
 
+using namespace KODI;
 using namespace GAME;
 
 void CGameInfoTag::Reset()
@@ -41,7 +42,6 @@ void CGameInfoTag::Reset()
   m_strPublisher.clear();
   m_strFormat.clear();
   m_strCartridgeType.clear();
-  m_strSavestate.clear();
   m_strGameClient.clear();
 }
 
@@ -62,7 +62,6 @@ CGameInfoTag& CGameInfoTag::operator=(const CGameInfoTag& tag)
     m_strPublisher     = tag.m_strPublisher;
     m_strFormat        = tag.m_strFormat;
     m_strCartridgeType = tag.m_strCartridgeType;
-    m_strSavestate     = tag.m_strSavestate;
     m_strGameClient    = tag.m_strGameClient;
   }
   return *this;
@@ -89,7 +88,6 @@ bool CGameInfoTag::operator==(const CGameInfoTag& tag) const
       if (m_strPublisher     != tag.m_strPublisher)     return false;
       if (m_strFormat        != tag.m_strFormat)        return false;
       if (m_strCartridgeType != tag.m_strCartridgeType) return false;
-      if (m_strSavestate     != tag.m_strSavestate)     return false;
       if (m_strGameClient    != tag.m_strGameClient)    return false;
     }
   }
@@ -113,7 +111,6 @@ void CGameInfoTag::Archive(CArchive& ar)
     ar << m_strPublisher;
     ar << m_strFormat;
     ar << m_strCartridgeType;
-    ar << m_strSavestate;
     ar << m_strGameClient;
   }
   else
@@ -131,7 +128,6 @@ void CGameInfoTag::Archive(CArchive& ar)
     ar >> m_strPublisher;
     ar >> m_strFormat;
     ar >> m_strCartridgeType;
-    ar >> m_strSavestate;
     ar >> m_strGameClient;
   }
 }
@@ -151,7 +147,6 @@ void CGameInfoTag::Serialize(CVariant& value) const
   value["publisher"]     = m_strPublisher;
   value["format"]        = m_strFormat;
   value["cartridgetype"] = m_strCartridgeType;
-  value["savestate"]     = m_strSavestate;
   value["gameclient"]    = m_strGameClient;
 }
 

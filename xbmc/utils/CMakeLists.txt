@@ -108,6 +108,7 @@ set(HEADERS ActorProtocol.h
             HttpRangeUtils.h
             HttpResponse.h
             IArchivable.h
+            ILocalizer.h
             InfoLoader.h
             IRssObserver.h
             ISerializable.h
@@ -159,7 +160,6 @@ set(HEADERS ActorProtocol.h
             URIUtils.h
             UrlOptions.h
             Utf8Utils.h
-            uXstrings.h
             Variant.h
             VC1BitstreamParser.h
             Vector.h

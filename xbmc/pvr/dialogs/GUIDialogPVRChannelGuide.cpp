@@ -21,9 +21,9 @@
 #include "GUIDialogPVRChannelGuide.h"
 
 #include "FileItem.h"
+#include "ServiceBroker.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
-#include "ServiceBroker.h"
 #include "view/ViewState.h"
 
 #include "pvr/PVRGUIActions.h"
@@ -40,9 +40,7 @@ CGUIDialogPVRChannelGuide::CGUIDialogPVRChannelGuide()
   m_vecItems.reset(new CFileItemList);
 }
 
-CGUIDialogPVRChannelGuide::~CGUIDialogPVRChannelGuide()
-{
-}
+CGUIDialogPVRChannelGuide::~CGUIDialogPVRChannelGuide() = default;
 
 bool CGUIDialogPVRChannelGuide::OnMessage(CGUIMessage& message)
 {

@@ -45,7 +45,7 @@ public:
 
     if (pConfig)
     {
-      m_config = (TiXmlElement*)pConfig->Clone();
+      m_config = static_cast<TiXmlElement*>(pConfig->Clone());
       const char *sAudio = pConfig->Attribute("audio");
       const char *sVideo = pConfig->Attribute("video");
       m_bPlaysAudio = sAudio && stricmp(sAudio, "true") == 0;
@@ -96,7 +96,7 @@ public:
     }
     else if (m_type.compare("game") == 0)
     {
-      pPlayer = new GAME::CRetroPlayer(callback);
+      pPlayer = new KODI::RETRO::CRetroPlayer(callback);
     }
     else if (m_type.compare("external") == 0)
     {

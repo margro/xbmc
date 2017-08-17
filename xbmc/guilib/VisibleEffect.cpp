@@ -51,9 +51,7 @@ CAnimEffect::CAnimEffect(unsigned int delay, unsigned int length, EFFECT_TYPE ef
   m_pTweener = std::shared_ptr<Tweener>(new LinearTweener());
 }
 
-CAnimEffect::~CAnimEffect()
-{
-}
+CAnimEffect::~CAnimEffect() = default;
 
 CAnimEffect::CAnimEffect(const CAnimEffect &src)
 {
@@ -405,15 +403,15 @@ CAnimation &CAnimation::operator =(const CAnimation &src)
   {
     CAnimEffect *newEffect = NULL;
     if (src.m_effects[i]->GetType() == CAnimEffect::EFFECT_TYPE_FADE)
-      newEffect = new CFadeEffect(*(CFadeEffect *)src.m_effects[i]);
+      newEffect = new CFadeEffect(*static_cast<CFadeEffect*>(src.m_effects[i]));
     else if (src.m_effects[i]->GetType() == CAnimEffect::EFFECT_TYPE_ZOOM)
-      newEffect = new CZoomEffect(*(CZoomEffect *)src.m_effects[i]);
+      newEffect = new CZoomEffect(*static_cast<CZoomEffect*>(src.m_effects[i]));
     else if (src.m_effects[i]->GetType() == CAnimEffect::EFFECT_TYPE_SLIDE)
-      newEffect = new CSlideEffect(*(CSlideEffect *)src.m_effects[i]);
+      newEffect = new CSlideEffect(*static_cast<CSlideEffect*>(src.m_effects[i]));
     else if (src.m_effects[i]->GetType() == CAnimEffect::EFFECT_TYPE_ROTATE_X ||
              src.m_effects[i]->GetType() == CAnimEffect::EFFECT_TYPE_ROTATE_Y ||
              src.m_effects[i]->GetType() == CAnimEffect::EFFECT_TYPE_ROTATE_Z)
-      newEffect = new CRotateEffect(*(CRotateEffect *)src.m_effects[i]);
+      newEffect = new CRotateEffect(*static_cast<CRotateEffect*>(src.m_effects[i]));
     if (newEffect)
       m_effects.push_back(newEffect);
   }
@@ -440,8 +438,7 @@ void CAnimation::Animate(unsigned int time, bool startAnim)
     m_currentProcess = ANIM_PROCESS_REVERSE;
   }
   // reset the queued state once we've rendered to ensure allocation has occured
-  if (startAnim || m_queuedProcess == ANIM_PROCESS_REVERSE)
-    m_queuedProcess = ANIM_PROCESS_NONE;
+  m_queuedProcess = ANIM_PROCESS_NONE;
 
   // Update our animation process
   if (m_currentProcess == ANIM_PROCESS_NORMAL)
@@ -707,7 +704,6 @@ CScroller::CScroller(unsigned int duration /* = 200 */, std::shared_ptr<Tweener>
   m_startTime = 0;
   m_startPosition = 0;
   m_hasResumePoint = false;
-  m_lastTime = 0;
   m_duration = duration > 0 ? duration : 1;
   m_pTweener = tweener;
 }
@@ -727,15 +723,12 @@ CScroller& CScroller::operator=(const CScroller &right)
   m_startTime = right.m_startTime;
   m_startPosition = right.m_startPosition;
   m_hasResumePoint = right.m_hasResumePoint;
-  m_lastTime = right.m_lastTime;
   m_duration = right.m_duration;
   m_pTweener = right.m_pTweener;
   return *this;
 }
 
-CScroller::~CScroller()
-{
-}
+CScroller::~CScroller() = default;
 
 void CScroller::ScrollTo(float endPos)
 {
@@ -745,7 +738,7 @@ void CScroller::ScrollTo(float endPos)
 
   m_delta = delta;
   m_startPosition = m_scrollValue;
-  m_startTime = m_lastTime;
+  m_startTime = 0;
 }
 
 float CScroller::Tween(float progress)
@@ -777,7 +770,8 @@ float CScroller::Tween(float progress)
 
 bool CScroller::Update(unsigned int time)
 {
-  m_lastTime = time;
+  if (!m_startTime)
+    m_startTime = time;
   if (m_delta != 0)
   {
     if (time - m_startTime >= m_duration) // we are finished

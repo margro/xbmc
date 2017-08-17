@@ -20,18 +20,17 @@
 
 #pragma once
 
-#if defined(HAVE_X11)
 #include "X11/Xlib.h"
 #include <string>
 
 class CGLContext
 {
 public:
-  CGLContext(Display *dpy)
+  explicit CGLContext(Display *dpy)
   {
     m_dpy = dpy;
   }
-  virtual ~CGLContext() {};
+  virtual ~CGLContext() = default;
   virtual bool Refresh(bool force, int screen, Window glWindow, bool &newContext) = 0;
   virtual void Destroy() = 0;
   virtual void Detach() = 0;
@@ -46,5 +45,3 @@ public:
 
   Display *m_dpy;
 };
-
-#endif

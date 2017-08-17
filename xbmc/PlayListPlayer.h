@@ -29,8 +29,6 @@
 #define PLAYLIST_VIDEO   1
 #define PLAYLIST_PICTURE 2
 
-#define g_playlistPlayer CServiceBroker::GetPlaylistPlayer()
-
 class CAction;
 class CFileItem; typedef std::shared_ptr<CFileItem> CFileItemPtr;
 class CFileItemList;
@@ -53,11 +51,11 @@ class CPlayListPlayer : public IMsgTargetCallback,
 
 public:
   CPlayListPlayer(void);
-  virtual ~CPlayListPlayer(void);
-  virtual bool OnMessage(CGUIMessage &message) override;
+  ~CPlayListPlayer(void) override;
+  bool OnMessage(CGUIMessage &message) override;
 
-  virtual int GetMessageMask() override;
-  virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
+  int GetMessageMask() override;
+  void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
 
   /*! \brief Play the next (or another) entry in the current playlist
    \param offset The offset from the current entry (defaults to 1, i.e. the next entry).
@@ -171,12 +169,12 @@ public:
   REPEAT_STATE GetRepeat(int iPlaylist) const;
 
   // add items via the playlist player
-  void Add(int iPlaylist, CPlayList& playlist);
+  void Add(int iPlaylist, const CPlayList& playlist);
   void Add(int iPlaylist, const CFileItemPtr &pItem);
-  void Add(int iPlaylist, CFileItemList& items);
-  void Insert(int iPlaylist, CPlayList& playlist, int iIndex);
+  void Add(int iPlaylist, const CFileItemList& items);
+  void Insert(int iPlaylist, const CPlayList& playlist, int iIndex);
   void Insert(int iPlaylist, const CFileItemPtr &pItem, int iIndex);
-  void Insert(int iPlaylist, CFileItemList& items, int iIndex);
+  void Insert(int iPlaylist, const CFileItemList& items, int iIndex);
   void Remove(int iPlaylist, int iPosition);
   void Swap(int iPlaylist, int indexItem1, int indexItem2);
 

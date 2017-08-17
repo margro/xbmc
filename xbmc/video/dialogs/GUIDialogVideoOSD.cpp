@@ -22,8 +22,10 @@
 #include "Application.h"
 #include "GUIUserMessages.h"
 #include "guilib/GUIWindowManager.h"
-#include "input/Key.h"
+#include "guilib/WindowIDs.h"
+#include "input/ActionIDs.h"
 #include "input/InputManager.h"
+#include "ServiceBroker.h"
 
 using namespace PVR;
 
@@ -33,16 +35,14 @@ CGUIDialogVideoOSD::CGUIDialogVideoOSD(void)
   m_loadType = KEEP_IN_MEMORY;
 }
 
-CGUIDialogVideoOSD::~CGUIDialogVideoOSD(void)
-{
-}
+CGUIDialogVideoOSD::~CGUIDialogVideoOSD(void) = default;
 
 void CGUIDialogVideoOSD::FrameMove()
 {
   if (m_autoClosing)
   {
     // check for movement of mouse or a submenu open
-    if (CInputManager::GetInstance().IsMouseActive()
+    if (CServiceBroker::GetInputManager().IsMouseActive()
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_AUDIO_OSD_SETTINGS)
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS)
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_OSD_SETTINGS)

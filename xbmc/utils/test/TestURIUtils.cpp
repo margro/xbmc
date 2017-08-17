@@ -32,8 +32,8 @@ using namespace XFILE;
 class TestURIUtils : public testing::Test
 {
 protected:
-  TestURIUtils(){}
-  ~TestURIUtils()
+  TestURIUtils() = default;
+  ~TestURIUtils() override
   {
     g_advancedSettings.m_pathSubstitutions.clear();
   }

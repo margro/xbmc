@@ -25,10 +25,10 @@
 class CGUIViewStateAddonBrowser : public CGUIViewState
 {
 public:
-  CGUIViewStateAddonBrowser(const CFileItemList& items);
+  explicit CGUIViewStateAddonBrowser(const CFileItemList& items);
 
 protected:
-  virtual void SaveViewState();
-  virtual std::string GetExtensions();
+  void SaveViewState() override;
+  std::string GetExtensions() override;
 };
 

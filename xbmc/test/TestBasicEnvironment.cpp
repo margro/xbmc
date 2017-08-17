@@ -33,13 +33,13 @@
 #include "Util.h"
 #include "Application.h"
 #include "PlayListPlayer.h"
-#include "ServiceBroker.h"
 #include "interfaces/AnnouncementManager.h"
 #include "addons/BinaryAddonCache.h"
 #include "interfaces/python/XBPython.h"
 #include "pvr/PVRManager.h"
+#include "AppParamParser.h"
 
-#if defined(TARGET_WINDOWS) || defined(TARGET_WIN10)
+#if defined(TARGET_WINDOWS)
 #include "platform/win32/WIN32Util.h"
 #include "platform/win32/CharsetConverter.h"
 #endif
@@ -53,7 +53,7 @@ void TestBasicEnvironment::SetUp()
   XFILE::CFile *f;
 
   g_application.m_ServiceManager.reset(new CServiceManager());
-  if (!g_application.m_ServiceManager->Init1())
+  if (!g_application.m_ServiceManager->InitStageOne())
     exit(1);
 
   /* NOTE: The below is done to fix memleak warning about uninitialized variable
@@ -97,6 +97,7 @@ void TestBasicEnvironment::SetUp()
   if (!CreateDirectory(lpTempPathBuffer, NULL))
     SetUpError();
   CSpecialProtocol::SetTempPath(FromW(lpTempPathBuffer));
+  CSpecialProtocol::SetProfilePath(FromW(lpTempPathBuffer));
 #else
   char buf[MAX_PATH];
   char *tmp;
@@ -104,10 +105,8 @@ void TestBasicEnvironment::SetUp()
   if ((tmp = mkdtemp(buf)) == NULL)
     SetUpError();
   CSpecialProtocol::SetTempPath(tmp);
+  CSpecialProtocol::SetProfilePath(tmp);
 #endif
-
-  if (!g_application.m_ServiceManager->Init2())
-	  exit(1);
 
   /* Create and delete a tempfile to initialize the VFS (really to initialize
    * CLibcdio). This is done so that the initialization of the VFS does not
@@ -124,17 +123,22 @@ void TestBasicEnvironment::SetUp()
   }
   g_powerManager.Initialize();
   g_application.m_ServiceManager->CreateAudioEngine();
-  g_application.m_ServiceManager->StartAudioEngine();
   CServiceBroker::GetSettings().Initialize();
+
+  if (!g_application.m_ServiceManager->InitStageTwo(CAppParamParser()))
+    exit(1);
+
+  g_application.m_ServiceManager->StartAudioEngine();
 }
 
 void TestBasicEnvironment::TearDown()
 {
+  g_application.m_ServiceManager->DeinitStageTwo();
   g_application.m_ServiceManager->DestroyAudioEngine();
   std::string xbmcTempPath = CSpecialProtocol::TranslatePath("special://temp/");
   XFILE::CDirectory::Remove(xbmcTempPath);
   CServiceBroker::GetSettings().Uninitialize();
-  g_application.m_ServiceManager->Deinit();
+  g_application.m_ServiceManager->DeinitStageOne();
 }
 
 void TestBasicEnvironment::SetUpError()

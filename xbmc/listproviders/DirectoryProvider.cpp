@@ -35,6 +35,7 @@
 #include "music/MusicThumbLoader.h"
 #include "pictures/PictureThumbLoader.h"
 #include "pvr/PVRManager.h"
+#include "pvr/dialogs/GUIDialogPVRGuideInfo.h"
 #include "pvr/dialogs/GUIDialogPVRRecordingInfo.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
@@ -62,10 +63,10 @@ public:
       m_limit(limit),
       m_parentID(parentID)
   { }
-  virtual ~CDirectoryJob() { }
+  ~CDirectoryJob() override = default;
 
-  virtual const char* GetType() const { return "directory"; }
-  virtual bool operator==(const CJob *job) const
+  const char* GetType() const override { return "directory"; }
+  bool operator==(const CJob *job) const override
   {
     if (strcmp(job->GetType(),GetType()) == 0)
     {
@@ -76,7 +77,7 @@ public:
     return false;
   }
 
-  virtual bool DoWork()
+  bool DoWork() override
   {
     CFileItemList items;
     if (CDirectory::GetDirectory(m_url, items, ""))
@@ -345,9 +346,9 @@ void CDirectoryProvider::OnJobComplete(unsigned int jobID, bool success, CJob *j
   CSingleLock lock(m_section);
   if (success)
   {
-    m_items = ((CDirectoryJob*)job)->GetItems();
-    m_currentTarget = ((CDirectoryJob*)job)->GetTarget();
-    ((CDirectoryJob*)job)->GetItemTypes(m_itemTypes);
+    m_items = static_cast<CDirectoryJob*>(job)->GetItems();
+    m_currentTarget = static_cast<CDirectoryJob*>(job)->GetTarget();
+    static_cast<CDirectoryJob*>(job)->GetItemTypes(m_itemTypes);
     if (m_updateState == OK)
       m_updateState = DONE;
   }
@@ -394,6 +395,11 @@ bool CDirectoryProvider::OnInfo(const CGUIListItemPtr& item)
   else if (fileItem->HasPVRRecordingInfoTag())
   {
     CGUIDialogPVRRecordingInfo::ShowFor(fileItem);
+    return true;
+  }
+  else if (fileItem->HasPVRChannelInfoTag())
+  {
+    CGUIDialogPVRGuideInfo::ShowFor(fileItem);
     return true;
   }
   else if (fileItem->HasVideoInfoTag())

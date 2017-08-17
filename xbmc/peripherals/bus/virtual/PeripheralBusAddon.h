@@ -21,6 +21,7 @@
 
 #include "addons/AddonManager.h"
 #include "addons/IAddon.h"
+#include "addons/binary-addons/BinaryAddonBase.h"
 #include "guilib/IWindowManagerCallback.h"
 #include "peripherals/PeripheralTypes.h"
 #include "peripherals/bus/PeripheralBus.h"
@@ -33,19 +34,13 @@
 
 namespace PERIPHERALS
 {
-  class CPeripheralBusAddon : public CPeripheralBus,
-                              public ADDON::IAddonMgrCallback
+  class CPeripheralBusAddon : public CPeripheralBus
   {
   public:
-    CPeripheralBusAddon(CPeripherals& manager);
-    virtual ~CPeripheralBusAddon(void);
+    explicit CPeripheralBusAddon(CPeripherals& manager);
+    ~CPeripheralBusAddon(void) override;
 
     void UpdateAddons(void);
-
-    /*!
-     * \brief Get peripheral add-on by ID
-     */
-    bool GetAddon(const std::string &strId, ADDON::AddonPtr &addon) const;
 
     /*!
     * \brief Get peripheral add-on that can provide button maps
@@ -71,40 +66,35 @@ namespace PERIPHERALS
     bool SendRumbleEvent(const std::string& strLocation, unsigned int motorIndex, float magnitude);
 
     // Inherited from CPeripheralBus
-    virtual bool         InitializeProperties(CPeripheral& peripheral) override;
-    virtual void         Register(const PeripheralPtr& peripheral) override;
-    virtual void         GetFeatures(std::vector<PeripheralFeature> &features) const override;
-    virtual bool         HasFeature(const PeripheralFeature feature) const override;
-    virtual PeripheralPtr GetPeripheral(const std::string &strLocation) const override;
-    virtual PeripheralPtr GetByPath(const std::string &strPath) const override;
-    virtual bool         SupportsFeature(PeripheralFeature feature) const override;
-    virtual int          GetPeripheralsWithFeature(PeripheralVector &results, const PeripheralFeature feature) const override;
-    virtual size_t       GetNumberOfPeripherals(void) const override;
-    virtual size_t       GetNumberOfPeripheralsWithId(const int iVendorId, const int iProductId) const override;
-    virtual void         GetDirectory(const std::string &strPath, CFileItemList &items) const override;
-    virtual void         ProcessEvents(void) override;
-    virtual void         EnableButtonMapping() override;
-    virtual void         PowerOff(const std::string& strLocation) override;
-
-    // implementation of IAddonMgrCallback
-    bool RequestRestart(ADDON::AddonPtr addon, bool datachanged) override;
-    bool RequestRemoval(ADDON::AddonPtr addon) override;
+    bool InitializeProperties(CPeripheral& peripheral) override;
+    void Register(const PeripheralPtr& peripheral) override;
+    void GetFeatures(std::vector<PeripheralFeature> &features) const override;
+    bool HasFeature(const PeripheralFeature feature) const override;
+    PeripheralPtr GetPeripheral(const std::string &strLocation) const override;
+    PeripheralPtr GetByPath(const std::string &strPath) const override;
+    bool SupportsFeature(PeripheralFeature feature) const override;
+    int GetPeripheralsWithFeature(PeripheralVector &results, const PeripheralFeature feature) const override;
+    size_t GetNumberOfPeripherals(void) const override;
+    size_t GetNumberOfPeripheralsWithId(const int iVendorId, const int iProductId) const override;
+    void GetDirectory(const std::string &strPath, CFileItemList &items) const override;
+    void ProcessEvents(void) override;
+    void EnableButtonMapping() override;
+    void PowerOff(const std::string& strLocation) override;
 
     bool SplitLocation(const std::string& strLocation, PeripheralAddonPtr& addon, unsigned int& peripheralIndex) const;
 
   protected:
     // Inherited from CPeripheralBus
-    virtual bool PerformDeviceScan(PeripheralScanResults &results) override;
-    virtual void UnregisterRemovedDevices(const PeripheralScanResults &results) override;
+    bool PerformDeviceScan(PeripheralScanResults &results) override;
+    void UnregisterRemovedDevices(const PeripheralScanResults &results) override;
 
   private:
     void OnEvent(const ADDON::AddonEvent& event);
 
-    void PromptEnableAddons(const ADDON::VECADDONS& disabledAddons);
+    void PromptEnableAddons(const ADDON::BinaryAddonBaseList& disabledAddons);
 
     PeripheralAddonVector m_addons;
     PeripheralAddonVector m_failedAddons;
-    CCriticalSection      m_critSection;
   };
   using PeripheralBusAddonPtr = std::shared_ptr<CPeripheralBusAddon>;
 }

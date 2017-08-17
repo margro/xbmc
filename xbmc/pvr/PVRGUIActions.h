@@ -19,12 +19,13 @@
  *
  */
 
-#include "pvr/PVRSettings.h"
-#include "pvr/PVRTypes.h"
-#include "pvr/PVRChannelNumberInputHandler.h"
-
 #include <memory>
 #include <string>
+
+#include "pvr/PVRChannelNumberInputHandler.h"
+#include "pvr/PVRGUIChannelNavigator.h"
+#include "pvr/PVRSettings.h"
+#include "pvr/PVRTypes.h"
 
 class CFileItem;
 typedef std::shared_ptr<CFileItem> CFileItemPtr;
@@ -188,6 +189,13 @@ namespace PVR
     bool StopRecording(const CFileItemPtr &item) const;
 
     /*!
+     * @brief Open the recording settings dialog to edit a recording.
+     * @param item containing the recording to edit.
+     * @return true on success, false otherwise.
+     */
+    bool EditRecording(const CFileItemPtr &item) const;
+
+    /*!
      * @brief Rename a recording, showing a text input dialog.
      * @param item containing a recording to rename.
      * @return true, if the recording was renamed successfully, false otherwise.
@@ -260,10 +268,10 @@ namespace PVR
     bool SwitchToChannel(PlaybackType type) const;
 
     /*!
-     * @brief Continue playback of the last played channel.
-     * @return True if playback was continued, false otherwise.
+     * @brief Plays the last played channel or the first channel of TV or Radio on startup.
+     * @return True if playback was started, false otherwise.
      */
-    bool ContinueLastPlayedChannel() const;
+    bool PlayChannelOnStartup() const;
 
     /*!
      * @brief Hide a channel, always showing a confirmation dialog.
@@ -315,6 +323,12 @@ namespace PVR
      * @return the handler.
      */
     CPVRChannelNumberInputHandler &GetChannelNumberInputHandler();
+
+    /*!
+     * @brief Get the channel navigator.
+     * @return the navigator.
+     */
+    CPVRGUIChannelNavigator &GetChannelNavigator();
 
   private:
     CPVRGUIActions(const CPVRGUIActions&) = delete;
@@ -377,6 +391,13 @@ namespace PVR
     bool ConfirmDeleteAllRecordingsFromTrash() const;
 
     /*!
+     * @brief Open the recording settings dialog.
+     * @param recording containing the recording the settings shall be displayed for.
+     * @return true, if the dialog was ended successfully, false otherwise.
+     */
+    bool ShowRecordingSettings(const CPVRRecordingPtr &recording) const;
+
+    /*!
      * @brief Check whether resume play is possible for a given item, display "resume from ..."/"play from start" context menu in case.
      * @param item containing a recording or an epg tag.
      * @return true, to play/resume the item, false otherwise.
@@ -399,14 +420,6 @@ namespace PVR
     bool SwitchToChannel(const CFileItemPtr &item, bool bCheckResume, bool bFullscreen) const;
 
     /*!
-     * @brief Try a fast Live TV/Radio channel switch. Calls directly into active player instead of using messaging
-     * @param channel the channel to switch to.
-     * @param bFullscreen start playback fullscreen or not.
-     * @return true if the switch was succesful, false otherwise.
-     */
-    bool TryFastChannelSwitch(const CPVRChannelPtr &channel, bool bFullscreen) const;
-
-    /*!
      * @brief Start playback of the given item.
      * @param bFullscreen start playback fullscreen or not.
      * @param item containing a channel or a recording.
@@ -417,7 +430,7 @@ namespace PVR
     CPVRChannelSwitchingInputHandler m_channelNumberInputHandler;
     bool m_bChannelScanRunning;
     CPVRSettings m_settings;
-
+    CPVRGUIChannelNavigator m_channelNavigator;
   };
 
 } // namespace PVR

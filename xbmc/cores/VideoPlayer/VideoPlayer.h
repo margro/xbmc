@@ -30,6 +30,7 @@
 #include "IVideoPlayer.h"
 #include "DVDMessageQueue.h"
 #include "DVDClock.h"
+#include "TimingConstants.h"
 #include "VideoPlayerVideo.h"
 #include "VideoPlayerSubtitle.h"
 #include "VideoPlayerTeletext.h"
@@ -42,7 +43,7 @@
 #include "utils/StreamDetails.h"
 #include "guilib/DispResource.h"
 
-#ifdef HAS_OMXPLAYER
+#ifdef TARGET_RASPBERRY_PI
 #include "OMXCore.h"
 #include "OMXClock.h"
 #include "linux/RBP.h"
@@ -92,7 +93,9 @@ struct SPlayerState
   {
     timestamp = 0;
     time = 0;
-    time_total = 0;
+    startTime = 0;
+    timeMin = 0;
+    timeMax = 0;
     time_offset = 0;
     dts = DVD_NOPTS_VALUE;
     player_state  = "";
@@ -117,7 +120,9 @@ struct SPlayerState
   double time_offset;       // difference between time and pts
 
   double time;              // current playback time
-  double time_total;        // total playback time
+  double timeMax;
+  double timeMin;
+  time_t startTime;
   double dts;               // last known dts
 
   std::string player_state; // full player state
@@ -291,129 +296,124 @@ class CProcessInfo;
 class CVideoPlayer : public IPlayer, public CThread, public IVideoPlayer, public IDispResource, public IRenderMsg
 {
 public:
-  CVideoPlayer(IPlayerCallback& callback);
-  virtual ~CVideoPlayer();
-  virtual bool OpenFile(const CFileItem& file, const CPlayerOptions &options);
-  virtual bool CloseFile(bool reopen = false);
-  virtual bool IsPlaying() const;
-  virtual void Pause() override;
-  virtual bool HasVideo() const;
-  virtual bool HasAudio() const;
-  virtual bool HasRDS() const;
-  virtual bool IsPassthrough() const;
-  virtual bool CanSeek();
-  virtual void Seek(bool bPlus, bool bLargeStep, bool bChapterOverride);
-  virtual bool SeekScene(bool bPlus = true);
-  virtual void SeekPercentage(float iPercent);
-  virtual float GetPercentage();
-  virtual float GetCachePercentage();
+  explicit CVideoPlayer(IPlayerCallback& callback);
+  ~CVideoPlayer() override;
+  bool OpenFile(const CFileItem& file, const CPlayerOptions &options) override;
+  bool CloseFile(bool reopen = false) override;
+  bool IsPlaying() const override;
+  void Pause() override;
+  bool HasVideo() const override;
+  bool HasAudio() const override;
+  bool HasRDS() const override;
+  bool IsPassthrough() const override;
+  bool CanSeek() override;
+  void Seek(bool bPlus, bool bLargeStep, bool bChapterOverride) override;
+  bool SeekScene(bool bPlus = true) override;
+  void SeekPercentage(float iPercent) override;
+  float GetCachePercentage() override;
 
-  virtual void SetVolume(float nVolume) override;
-  virtual void SetMute(bool bOnOff) override;
-  virtual void SetDynamicRangeCompression(long drc) override;
-  virtual bool CanRecord();
-  virtual bool IsRecording();
-  virtual bool CanPause();
-  virtual bool Record(bool bOnOff);
-  virtual void SetAVDelay(float fValue = 0.0f);
-  virtual float GetAVDelay();
-  virtual bool IsInMenu() const override;
-  virtual bool HasMenu() const override;
+  void SetVolume(float nVolume) override;
+  void SetMute(bool bOnOff) override;
+  void SetDynamicRangeCompression(long drc) override;
+  bool CanRecord() override;
+  bool IsRecording() override;
+  bool CanPause() override;
+  bool Record(bool bOnOff) override;
+  void SetAVDelay(float fValue = 0.0f) override;
+  float GetAVDelay() override;
+  bool IsInMenu() const override;
+  bool HasMenu() const override;
 
-  virtual void SetSubTitleDelay(float fValue = 0.0f);
-  virtual float GetSubTitleDelay();
-  virtual int GetSubtitleCount();
-  virtual int GetSubtitle();
-  virtual void GetSubtitleStreamInfo(int index, SPlayerSubtitleStreamInfo &info);
-  virtual void SetSubtitle(int iStream);
-  virtual bool GetSubtitleVisible();
-  virtual void SetSubtitleVisible(bool bVisible);
-  virtual void AddSubtitle(const std::string& strSubPath);
+  void SetSubTitleDelay(float fValue = 0.0f) override;
+  float GetSubTitleDelay() override;
+  int GetSubtitleCount() override;
+  int GetSubtitle() override;
+  void GetSubtitleStreamInfo(int index, SPlayerSubtitleStreamInfo &info) override;
+  void SetSubtitle(int iStream) override;
+  bool GetSubtitleVisible() override;
+  void SetSubtitleVisible(bool bVisible) override;
+  void AddSubtitle(const std::string& strSubPath) override;
 
-  virtual int GetAudioStreamCount();
-  virtual int GetAudioStream();
-  virtual void SetAudioStream(int iStream);
+  int GetAudioStreamCount() override;
+  int GetAudioStream() override;
+  void SetAudioStream(int iStream) override;
 
-  virtual int GetVideoStream() const override;
-  virtual int GetVideoStreamCount() const override;
-  virtual void GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info) override;
-  virtual void SetVideoStream(int iStream);
+  int GetVideoStream() const override;
+  int GetVideoStreamCount() const override;
+  void GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info) override;
+  void SetVideoStream(int iStream) override;
 
-  virtual TextCacheStruct_t* GetTeletextCache();
-  virtual void LoadPage(int p, int sp, unsigned char* buffer);
+  TextCacheStruct_t* GetTeletextCache() override;
+  void LoadPage(int p, int sp, unsigned char* buffer) override;
 
-  virtual std::string GetRadioText(unsigned int line);
+  std::string GetRadioText(unsigned int line) override;
 
-  virtual int  GetChapterCount();
-  virtual int  GetChapter();
-  virtual void GetChapterName(std::string& strChapterName, int chapterIdx=-1);
-  virtual int64_t GetChapterPos(int chapterIdx=-1);
-  virtual int  SeekChapter(int iChapter);
+  int  GetChapterCount() override;
+  int  GetChapter() override;
+  void GetChapterName(std::string& strChapterName, int chapterIdx=-1) override;
+  int64_t GetChapterPos(int chapterIdx=-1) override;
+  int  SeekChapter(int iChapter) override;
 
-  virtual void SeekTime(int64_t iTime);
-  virtual bool SeekTimeRelative(int64_t iTime);
-  virtual int64_t GetTime();
-  virtual int64_t GetTotalTime();
-  virtual void SetSpeed(float speed) override;
-  virtual float GetSpeed() override;
-  virtual bool SupportsTempo() override;
-  virtual bool OnAction(const CAction &action);
+  void SeekTime(int64_t iTime) override;
+  bool SeekTimeRelative(int64_t iTime) override;
+  void SetSpeed(float speed) override;
+  void SetTempo(float tempo) override;
+  bool SupportsTempo() override;
+  bool OnAction(const CAction &action) override;
 
-  virtual int GetSourceBitrate();
-  virtual bool GetStreamDetails(CStreamDetails &details);
-  virtual void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info);
+  int GetSourceBitrate() override;
+  void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info) override;
 
-  virtual std::string GetPlayerState();
-  virtual bool SetPlayerState(const std::string& state);
+  std::string GetPlayerState() override;
+  bool SetPlayerState(const std::string& state) override;
 
-  virtual std::string GetPlayingTitle();
+  std::string GetPlayingTitle() override;
 
-  virtual bool SwitchChannel(const PVR::CPVRChannelPtr &channel);
+  void FrameMove() override;
+  void Render(bool clear, uint32_t alpha = 255, bool gui = true) override;
+  void FlushRenderer() override;
+  void SetRenderViewMode(int mode) override;
+  float GetRenderAspectRatio() override;
+  void TriggerUpdateResolution() override;
+  bool IsRenderingVideo() override;
+  bool Supports(EINTERLACEMETHOD method) override;
+  EINTERLACEMETHOD GetDeinterlacingMethodDefault() override;
+  bool Supports(ESCALINGMETHOD method) override;
+  bool Supports(ERENDERFEATURE feature) override;
 
-  virtual void FrameMove();
-  virtual void Render(bool clear, uint32_t alpha = 255, bool gui = true);
-  virtual void FlushRenderer();
-  virtual void SetRenderViewMode(int mode);
-  float GetRenderAspectRatio();
-  virtual void TriggerUpdateResolution();
-  virtual bool IsRenderingVideo();
-  virtual bool IsRenderingGuiLayer();
-  virtual bool IsRenderingVideoLayer();
-  virtual bool Supports(EINTERLACEMETHOD method) override;
-  virtual EINTERLACEMETHOD GetDeinterlacingMethodDefault() override;
-  virtual bool Supports(ESCALINGMETHOD method) override;
-  virtual bool Supports(ERENDERFEATURE feature) override;
-
-  virtual unsigned int RenderCaptureAlloc();
-  virtual void RenderCapture(unsigned int captureId, unsigned int width, unsigned int height, int flags);
-  virtual void RenderCaptureRelease(unsigned int captureId);
-  virtual bool RenderCaptureGetPixels(unsigned int captureId, unsigned int millis, uint8_t *buffer, unsigned int size);
+  unsigned int RenderCaptureAlloc() override;
+  void RenderCapture(unsigned int captureId, unsigned int width, unsigned int height, int flags) override;
+  void RenderCaptureRelease(unsigned int captureId) override;
+  bool RenderCaptureGetPixels(unsigned int captureId, unsigned int millis, uint8_t *buffer, unsigned int size) override;
 
   // IDispResource interface
-  virtual void OnLostDisplay();
-  virtual void OnResetDisplay();
+  void OnLostDisplay() override;
+  void OnResetDisplay() override;
 
-  virtual bool IsCaching() const override;
-  virtual int GetCacheLevel() const override;
+  bool IsCaching() const override;
+  int GetCacheLevel() const override;
 
-  virtual int OnDiscNavResult(void* pData, int iMessage) override;
+  int OnDiscNavResult(void* pData, int iMessage) override;
   void GetVideoResolution(unsigned int &width, unsigned int &height) override;
 
 protected:
   friend class CSelectionStreams;
 
-  virtual void OnStartup();
-  virtual void OnExit();
-  virtual void Process();
-  virtual void VideoParamsChange() override;
-  virtual void GetDebugInfo(std::string &audio, std::string &video, std::string &general) override;
-  virtual void UpdateClockSync(bool enabled) override;
-  virtual void UpdateRenderInfo(CRenderInfo &info) override;
-  virtual void UpdateRenderBuffers(int queued, int discard, int free) override;
+  void OnStartup() override;
+  void OnExit() override;
+  void Process() override;
+  void VideoParamsChange() override;
+  void GetDebugInfo(std::string &audio, std::string &video, std::string &general) override;
+  void UpdateClockSync(bool enabled) override;
+  void UpdateRenderInfo(CRenderInfo &info) override;
+  void UpdateRenderBuffers(int queued, int discard, int free) override;
+  void UpdateGuiRender(bool gui) override;
+  void UpdateVideoRender(bool video) override;
 
   void CreatePlayers();
   void DestroyPlayers();
 
+  void Prepare();
   bool OpenStream(CCurrentStream& current, int64_t demuxerId, int iStream, int source, bool reset = true);
   bool OpenAudioStream(CDVDStreamInfo& hint, bool reset = true);
   bool OpenVideoStream(CDVDStreamInfo& hint, bool reset = true);
@@ -435,8 +435,6 @@ protected:
   void ProcessTeletextData(CDemuxStream* pStream, DemuxPacket* pPacket);
   void ProcessRadioRDSData(CDemuxStream* pStream, DemuxPacket* pPacket);
 
-  bool ShowPVRChannelInfo();
-
   int  AddSubtitleFile(const std::string& filename, const std::string& subfilename = "");
   void SetSubtitleVisibleInternal(bool bVisible);
 
@@ -444,7 +442,6 @@ protected:
    * one of the DVD_PLAYSPEED defines
    */
   void SetPlaySpeed(int iSpeed);
-  int GetPlaySpeed() { return m_playSpeed; }
 
   enum ECacheState
   {
@@ -456,8 +453,6 @@ protected:
   };
 
   void SetCaching(ECacheState state);
-
-  int64_t GetTotalTimeInMsec();
 
   double GetQueueTime();
   bool GetCachingTimes(double& play_left, double& cache_left, double& file_offset);
@@ -482,27 +477,28 @@ protected:
   bool IsBetterStream(CCurrentStream& current, CDemuxStream* stream);
   void CheckBetterStream(CCurrentStream& current, CDemuxStream* stream);
   void CheckStreamChanges(CCurrentStream& current, CDemuxStream* stream);
-  bool CheckDelayedChannelEntry(void);
 
   bool OpenInputStream();
   bool OpenDemuxStream();
   void CloseDemuxer();
   void OpenDefaultStreams(bool reset = true);
 
-  void UpdateApplication(double timeout);
   void UpdatePlayState(double timeout);
-  void UpdateStreamInfos();
   void GetGeneralInfo(std::string& strVideoInfo);
-
-  double m_UpdateApplication;
+  int64_t GetUpdatedTime();
+  int64_t GetTime();
+  float GetPercentage();
 
   bool m_players_created;
+
+  CFileItem m_item;
+  CEvent m_openEvent;
+  CPlayerOptions m_playerOptions;
   bool m_bAbortRequest;
 
   ECacheState  m_caching;
   XbmcThreads::EndTime m_cachingTimer;
-  CFileItem    m_item;
-  XbmcThreads::EndTime m_ChannelEntryTimeOut;
+
   std::unique_ptr<CProcessInfo> m_processInfo;
 
   CCurrentStream m_CurrentAudio;
@@ -513,14 +509,13 @@ protected:
 
   CSelectionStreams m_SelectionStreams;
 
-  std::atomic_int m_playSpeed;
-  std::atomic_int m_newPlaySpeed;
+  int m_playSpeed;
   int m_streamPlayerSpeed;
   struct SSpeedState
   {
     double  lastpts;  // holds last display pts during ff/rw operations
     int64_t lasttime;
-    int lastseekpts;
+    double lastseekpts;
     double  lastabstime;
   } m_SpeedState;
   std::atomic_bool m_canTempo;
@@ -570,7 +565,7 @@ protected:
 
   friend class CVideoPlayerVideo;
   friend class CVideoPlayerAudio;
-#ifdef HAS_OMXPLAYER
+#ifdef TARGET_RASPBERRY_PI
   friend class OMXPlayerVideo;
   friend class OMXPlayerAudio;
 #endif
@@ -579,12 +574,8 @@ protected:
   CCriticalSection m_StateSection;
   XbmcThreads::EndTime m_syncTimer;
 
-  CEvent m_ready;
-
   CEdl m_Edl;
   bool m_SkipCommercials;
-
-  CPlayerOptions m_PlayerOptions;
 
   bool m_HasVideo;
   bool m_HasAudio;
@@ -594,6 +585,4 @@ protected:
   // omxplayer variables
   struct SOmxPlayerState m_OmxPlayerState;
   bool m_omxplayer_mode;            // using omxplayer acceleration
-
-  XbmcThreads::EndTime m_player_status_timer;
 };

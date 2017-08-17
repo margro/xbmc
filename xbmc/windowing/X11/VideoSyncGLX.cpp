@@ -20,8 +20,6 @@
 
 #include "system.h"
 
-#if defined(HAS_GLX)
-
 #include "VideoSyncGLX.h"
 #include <sstream>
 #include <X11/extensions/Xrandr.h>
@@ -183,7 +181,7 @@ bool CVideoSyncGLX::Setup(PUPDATECLOCK func)
   return true;
 }
 
-void CVideoSyncGLX::Run(std::atomic<bool>& stop)
+void CVideoSyncGLX::Run(CEvent& stopEvent)
 {
   unsigned int  PrevVblankCount;
   unsigned int  VblankCount;
@@ -195,7 +193,7 @@ void CVideoSyncGLX::Run(std::atomic<bool>& stop)
   m_glXGetVideoSyncSGI(&VblankCount);
   PrevVblankCount = VblankCount;
 
-  while(!stop && !m_displayLost && !m_displayReset)
+  while(!stopEvent.Signaled() && !m_displayLost && !m_displayReset)
   {
     //wait for the next vblank
     ReturnV = m_glXWaitVideoSyncSGI(2, (VblankCount + 1) % 2, &VblankCount);
@@ -248,7 +246,7 @@ void CVideoSyncGLX::Run(std::atomic<bool>& stop)
     PrevVblankCount = VblankCount;
   }
   m_lostEvent.Set();
-  while(!stop && m_displayLost && !m_displayReset)
+  while(!stopEvent.Signaled() && m_displayLost && !m_displayReset)
   {
     Sleep(10);
   }
@@ -288,5 +286,3 @@ float CVideoSyncGLX::GetFps()
   m_fps = g_graphicsContext.GetFPS();
   return m_fps;
 }
-
-#endif

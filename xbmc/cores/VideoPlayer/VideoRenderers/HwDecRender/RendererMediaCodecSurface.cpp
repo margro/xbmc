@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2007-2015 Team Kodi
+ *      Copyright (C) 2007-2017 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -18,21 +18,70 @@
  *
  */
 
+#if defined(TARGET_ANDROID)
+
 #include "RendererMediaCodecSurface.h"
 
-#if defined(TARGET_ANDROID)
 #include "../RenderCapture.h"
-
+#include "guilib/GraphicContext.h"
+#include "rendering/RenderSystem.h"
+#include "settings/MediaSettings.h"
 #include "platform/android/activity/XBMCApp.h"
 #include "DVDCodecs/Video/DVDVideoCodecAndroidMediaCodec.h"
 #include "utils/log.h"
+#include "../RenderFactory.h"
+
+#include <thread>
+#include <chrono>
 
 CRendererMediaCodecSurface::CRendererMediaCodecSurface()
+ : m_bConfigured(false)
 {
+  CLog::Log(LOGNOTICE, "Instancing CRendererMediaCodecSurface");
 }
 
 CRendererMediaCodecSurface::~CRendererMediaCodecSurface()
 {
+}
+
+CBaseRenderer* CRendererMediaCodecSurface::Create(CVideoBuffer *buffer)
+{
+  if (buffer && dynamic_cast<CMediaCodecVideoBuffer*>(buffer) && !dynamic_cast<CMediaCodecVideoBuffer*>(buffer)->HasSurfaceTexture())
+    return new CRendererMediaCodecSurface();
+  return nullptr;
+}
+
+bool CRendererMediaCodecSurface::Register()
+{
+  VIDEOPLAYER::CRendererFactory::RegisterRenderer("mediacodec_surface", CRendererMediaCodecSurface::Create);
+  return true;
+}
+
+bool CRendererMediaCodecSurface::Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation)
+{
+  CLog::Log(LOGNOTICE, "CRendererMediaCodecSurface::Configure");
+
+  m_sourceWidth = picture.iWidth;
+  m_sourceHeight = picture.iHeight;
+  m_renderOrientation = orientation;
+
+  // Save the flags.
+  m_iFlags = flags;
+
+  // Calculate the input frame aspect ratio.
+  CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
+  SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
+
+  m_bConfigured = true;
+
+  return true;
+}
+
+CRenderInfo CRendererMediaCodecSurface::GetRenderInfo()
+{
+  CRenderInfo info;
+  info.max_buffer_size = info.optimal_buffer_size = 4;
+  return info;
 }
 
 bool CRendererMediaCodecSurface::RenderCapture(CRenderCapture* capture)
@@ -42,190 +91,85 @@ bool CRendererMediaCodecSurface::RenderCapture(CRenderCapture* capture)
   return true;
 }
 
-void CRendererMediaCodecSurface::AddVideoPictureHW(DVDVideoPicture &picture, int index)
+void CRendererMediaCodecSurface::AddVideoPicture(const VideoPicture &picture, int index, double currentClock)
 {
-#ifdef DEBUG_VERBOSE
-  unsigned int time = XbmcThreads::SystemClockMillis();
-  int mindex = -1;
-#endif
+  int64_t nanodiff(static_cast<int64_t>((picture.pts - currentClock) * 1000));
 
-  YUVBUFFER &buf = m_buffers[index];
-  if (picture.mediacodec)
-  {
-    buf.hwDec = picture.mediacodec->Retain();
-#ifdef DEBUG_VERBOSE
-    mindex = ((CDVDMediaCodecInfo *)buf.hwDec)->GetIndex();
-#endif
-  }
-
-#ifdef DEBUG_VERBOSE
-  CLog::Log(LOGDEBUG, "AddProcessor %d: img:%d tm:%d", index, mindex, XbmcThreads::SystemClockMillis() - time);
-#endif
-}
-
-bool CRendererMediaCodecSurface::RenderUpdateCheckForEmptyField()
-{
-  return false;
+  if (dynamic_cast<CMediaCodecVideoBuffer*>(picture.videoBuffer))
+    dynamic_cast<CMediaCodecVideoBuffer*>(picture.videoBuffer)->RenderUpdate(m_surfDestRect,
+      std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + nanodiff);
 }
 
 void CRendererMediaCodecSurface::ReleaseBuffer(int idx)
 {
-  YUVBUFFER &buf = m_buffers[idx];
-  if (buf.hwDec)
-  {
-    CDVDMediaCodecInfo *mci = static_cast<CDVDMediaCodecInfo *>(buf.hwDec);
-    SAFE_RELEASE(mci);
-    buf.hwDec = NULL;
-  }
 }
 
-int CRendererMediaCodecSurface::GetImageHook(YV12Image *image, int source, bool readonly)
+void CRendererMediaCodecSurface::FlipPage(int source)
 {
-  return source;
 }
 
-bool CRendererMediaCodecSurface::Supports(EINTERLACEMETHOD method)
+bool CRendererMediaCodecSurface::Supports(ERENDERFEATURE feature)
 {
+  if (feature == RENDERFEATURE_ZOOM ||
+    feature == RENDERFEATURE_STRETCH ||
+    feature == RENDERFEATURE_PIXEL_RATIO ||
+    feature == RENDERFEATURE_ROTATION)
+    return true;
+
   return false;
 }
 
-EINTERLACEMETHOD CRendererMediaCodecSurface::AutoInterlaceMethod()
+void CRendererMediaCodecSurface::Reset()
 {
-  return VS_INTERLACEMETHOD_NONE;
 }
 
-CRenderInfo CRendererMediaCodecSurface::GetRenderInfo()
+void CRendererMediaCodecSurface::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
 {
-  CRenderInfo info;
-  info.formats = m_formats;
-  info.max_buffer_size = 4;
-  info.optimal_buffer_size = 3;
-  return info;
+  CXBMCApp::get()->WaitVSync(100);
+  ManageRenderArea();
 }
 
-bool CRendererMediaCodecSurface::LoadShadersHook()
+void CRendererMediaCodecSurface::ReorderDrawPoints()
 {
-  CLog::Log(LOGNOTICE, "GL: Using MediaCodec (Surface) render method");
-  m_renderMethod = RENDER_MEDIACODECSURFACE;
-  m_textureTarget = GL_TEXTURE_2D;
-  return true;
-}
+  CBaseRenderer::ReorderDrawPoints();
 
-bool CRendererMediaCodecSurface::RenderHook(int index)
-{
-  glClearColor(0,0,0,0);
-  glClear(GL_COLOR_BUFFER_BIT);
+  // this hack is needed to get the 2D mode of a 3D movie going
+  RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
+  if (stereo_mode)
+    g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_LEFT);
 
-  CDVDMediaCodecInfo *mci = static_cast<CDVDMediaCodecInfo *>(m_buffers[index].hwDec);
-  if (mci && !mci->IsReleased())
+  if (stereo_mode)
+    g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_OFF);
+
+  m_surfDestRect = m_destRect;
+  CRect srcRect(m_sourceRect);
+  switch (stereo_mode)
   {
-    // this hack is needed to get the 2D mode of a 3D movie going
-    RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
-    if (stereo_mode)
-      g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_LEFT);
-
-    ManageRenderArea();
-
-    if (stereo_mode)
-      g_graphicsContext.SetStereoView(RENDER_STEREO_VIEW_OFF);
-
-    CRect dstRect(m_destRect);
-    CRect srcRect(m_sourceRect);
-    switch (stereo_mode)
-    {
-      case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
-        dstRect.y2 *= 2.0;
-        srcRect.y2 *= 2.0;
+    case RENDER_STEREO_MODE_SPLIT_HORIZONTAL:
+      m_surfDestRect.y2 *= 2.0;
+      srcRect.y2 *= 2.0;
       break;
-
-      case RENDER_STEREO_MODE_SPLIT_VERTICAL:
-        dstRect.x2 *= 2.0;
-        srcRect.x2 *= 2.0;
+    case RENDER_STEREO_MODE_SPLIT_VERTICAL:
+      m_surfDestRect.x2 *= 2.0;
+      srcRect.x2 *= 2.0;
       break;
-
-      case RENDER_STEREO_MODE_MONO:
-        dstRect.y2 = dstRect.y2 * (dstRect.y2 / m_sourceRect.y2);
-        dstRect.x2 = dstRect.x2 * (dstRect.x2 / m_sourceRect.x2);
+    default:
       break;
-
-      default:
-      break;
-    }
-
-
-    // Handle orientation
-    switch (m_renderOrientation)
-    {
-      case 90:
-      case 270:
-      {
-        int diffX = 0;
-        int diffY = 0;
-        int centerX = 0;
-        int centerY = 0;
-
-        int newWidth = dstRect.Height(); // new width is old height
-        int newHeight = dstRect.Width(); // new height is old width
-        int diffWidth = newWidth - dstRect.Width(); // difference between old and new width
-        int diffHeight = newHeight - dstRect.Height(); // difference between old and new height
-
-        // if the new width is bigger then the old or
-        // the new height is bigger then the old - we need to scale down
-        if (diffWidth > 0 || diffHeight > 0 )
-        {
-          float aspectRatio = GetAspectRatio();
-          // scale to fit screen width because
-          // the difference in width is bigger then the
-          // difference in height
-          if (diffWidth > diffHeight)
-          {
-            newWidth = dstRect.Width(); // clamp to the width of the old dest rect
-            newHeight *= aspectRatio;
-          }
-          else // scale to fit screen height
-          {
-            newHeight = dstRect.Height(); // clamp to the height of the old dest rect
-            newWidth /= aspectRatio;
-          }
-        }
-
-        // calculate the center point of the view
-        centerX = m_viewRect.x1 + m_viewRect.Width() / 2;
-        centerY = m_viewRect.y1 + m_viewRect.Height() / 2;
-
-        // calculate the number of pixels we need to go in each
-        // x direction from the center point
-        diffX = newWidth / 2;
-        // calculate the number of pixels we need to go in each
-        // y direction from the center point
-        diffY = newHeight / 2;
-
-        dstRect = CRect(centerX - diffX, centerY - diffY, centerX + diffX, centerY + diffY);
-
-        break;
-      }
-
-      default:
-        break;
-    }
-
-    mci->RenderUpdate(srcRect, dstRect);
   }
-  return true;
+
+  // Handle orientation
+  switch (m_renderOrientation)
+  {
+    case 90:
+    case 270:
+    {
+      double scale = (double)m_surfDestRect.Height() / m_surfDestRect.Width();
+      int diff = (int) ((m_surfDestRect.Height()*scale - m_surfDestRect.Width()) / 2);
+      m_surfDestRect = CRect(m_surfDestRect.x1 - diff, m_surfDestRect.y1, m_surfDestRect.x2 + diff, m_surfDestRect.y2);
+    }
+    default:
+      break;
+  }
 }
 
-bool CRendererMediaCodecSurface::CreateTexture(int index)
-{
-  return true; // nothing todo
-}
-
-void CRendererMediaCodecSurface::DeleteTexture(int index)
-{
-  return; // nothing todo
-}
-
-bool CRendererMediaCodecSurface::UploadTexture(int index)
-{
-  return true; // nothing todo
-}
 #endif

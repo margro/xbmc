@@ -22,10 +22,8 @@
 #include "system.h"
 #include "utils/URIUtils.h"
 #include "FileDirectoryFactory.h"
-#ifdef HAS_FILESYSTEM
 #include "UDFDirectory.h"
 #include "RSSDirectory.h"
-#endif
 #if defined(TARGET_ANDROID)
 #include "APKDirectory.h"
 #endif
@@ -44,17 +42,16 @@
 #include "addons/AudioDecoder.h"
 #include "addons/VFSEntry.h"
 #include "addons/BinaryAddonCache.h"
+#include "addons/binary-addons/BinaryAddonBase.h"
 #include "AudioBookFileDirectory.h"
 
 using namespace ADDON;
 using namespace XFILE;
 using namespace PLAYLIST;
 
-CFileDirectoryFactory::CFileDirectoryFactory(void)
-{}
+CFileDirectoryFactory::CFileDirectoryFactory(void) = default;
 
-CFileDirectoryFactory::~CFileDirectoryFactory(void)
-{}
+CFileDirectoryFactory::~CFileDirectoryFactory(void) = default;
 
 // return NULL + set pItem->m_bIsFolder to remove it completely from list.
 IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem, const std::string& strMask)
@@ -66,36 +63,32 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
   StringUtils::ToLower(strExtension);
   if (!strExtension.empty())
   {
-    VECADDONS codecs;
-    CBinaryAddonCache &addonCache = CServiceBroker::GetBinaryAddonCache();
-    addonCache.GetAddons(codecs, ADDON_AUDIODECODER);
-    for (size_t i=0;i<codecs.size();++i)
+    BinaryAddonBaseList addonInfos;
+    CServiceBroker::GetBinaryAddonManager().GetAddonInfos(addonInfos, true, ADDON_AUDIODECODER);
+    for (const auto& addonInfo : addonInfos)
     {
-      std::shared_ptr<CAudioDecoder> dec(std::static_pointer_cast<CAudioDecoder>(codecs[i]));
-      if (dec->HasTracks() && dec->GetExtensions().find(strExtension) != std::string::npos)
+      if (CAudioDecoder::HasTags(addonInfo) &&
+          CAudioDecoder::GetExtensions(addonInfo).find(strExtension) != std::string::npos)
       {
-        CAudioDecoder* result = new CAudioDecoder(*dec);
-        result->Create();
-        if (result->ContainsFiles(url))
-          return result;
-        delete result;
-        return NULL;
+        CAudioDecoder* result = new CAudioDecoder(addonInfo);
+        if (!result->CreateDecoder() || !result->ContainsFiles(url))
+        {
+          delete result;
+          return nullptr;
+        }
+        return result;
       }
     }
   }
 
-  if (CServiceBroker::IsBinaryAddonCacheUp())
+  if (!strExtension.empty() && CServiceBroker::IsBinaryAddonCacheUp())
   {
-    VECADDONS vfs;
-    CBinaryAddonCache &addonCache = CServiceBroker::GetBinaryAddonCache();
-    addonCache.GetAddons(vfs, ADDON_VFS);
-    for (size_t i=0;i<vfs.size();++i)
+    for (const auto& vfsAddon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
     {
-      std::shared_ptr<CVFSEntry> dec(std::static_pointer_cast<CVFSEntry>(vfs[i]));
-      if (!strExtension.empty() && dec->HasFileDirectories() &&
-          dec->GetExtensions().find(strExtension) != std::string::npos)
+      if (vfsAddon->HasFileDirectories() &&
+          vfsAddon->GetExtensions().find(strExtension) != std::string::npos)
       {
-        CVFSEntryIFileDirectoryWrapper* wrap = new CVFSEntryIFileDirectoryWrapper(dec);
+        CVFSEntryIFileDirectoryWrapper* wrap = new CVFSEntryIFileDirectoryWrapper(vfsAddon);
         if (wrap->ContainsFiles(url))
         {
           if (wrap->m_items.Size() == 1)
@@ -113,7 +106,7 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
           pItem->m_bIsFolder = true;
 
         delete wrap;
-        return NULL;
+        return nullptr;
       }
     }
   }

@@ -64,23 +64,37 @@ public:
 
   class IDisplayTime
   {
-    public:
-    virtual ~IDisplayTime() {};
+  public:
+    virtual ~IDisplayTime() = default;
     virtual int GetTotalTime() = 0;
     virtual int GetTime() = 0;
   };
 
+  class ITimes
+  {
+  public:
+    struct Times
+    {
+      time_t startTime;
+      double ptsStart;
+      double ptsBegin;
+      double ptsEnd;
+    };
+    virtual ~ITimes() = default;
+    virtual bool GetTimes(Times &times) = 0;
+  };
+
   class IPosTime
   {
-    public:
-    virtual ~IPosTime() {};
+  public:
+    virtual ~IPosTime() = default;
     virtual bool PosTime(int ms) = 0;
   };
 
   class IChapter
   {
-    public:
-    virtual ~IChapter() {};
+  public:
+    virtual ~IChapter() = default;
     virtual int  GetChapter() = 0;
     virtual int  GetChapterCount() = 0;
     virtual void GetChapterName(std::string& name, int ch=-1) = 0;
@@ -90,8 +104,8 @@ public:
 
   class IMenus
   {
-    public:
-    virtual ~IMenus() {};
+  public:
+    virtual ~IMenus() = default;
     virtual void ActivateButton() = 0;
     virtual void SelectButton(int iButton) = 0;
     virtual int  GetCurrentButton() = 0;
@@ -116,13 +130,14 @@ public:
 
   class IDemux
   {
-    public:
-    virtual ~IDemux() {}
+  public:
+    virtual ~IDemux() = default;
     virtual bool OpenDemux() = 0;
     virtual DemuxPacket* ReadDemux() = 0;
     virtual CDemuxStream* GetStream(int iStreamId) const = 0;
     virtual std::vector<CDemuxStream*> GetStreams() const = 0;
-    virtual void EnableStream(int iStreamId, bool enable) = 0;
+    virtual void EnableStream(int iStreamId, bool enable) {};
+    virtual bool OpenStream(int iStreamId) { return false; };
     virtual int GetNrOfStreams() const = 0;
     virtual void SetSpeed(int iSpeed) = 0;
     virtual bool SeekTime(double time, bool backward = false, double* startpts = NULL) = 0;
@@ -181,6 +196,7 @@ public:
   virtual IDemux* GetIDemux() { return nullptr; }
   virtual IPosTime* GetIPosTime() { return nullptr; }
   virtual IDisplayTime* GetIDisplayTime() { return nullptr; }
+  virtual ITimes* GetITimes() { return nullptr; }
 
   const CVariant &GetProperty(const std::string key){ return m_item.GetProperty(key); }
 

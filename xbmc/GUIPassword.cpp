@@ -48,8 +48,7 @@ CGUIPassword::CGUIPassword(void)
   iMasterLockRetriesLeft = -1;
   bMasterUser = false;
 }
-CGUIPassword::~CGUIPassword(void)
-{}
+CGUIPassword::~CGUIPassword(void) = default;
 
 bool CGUIPassword::IsItemUnlocked(CFileItem* pItem, const std::string &strType)
 {
@@ -494,7 +493,7 @@ bool CGUIPassword::IsDatabasePathUnlocked(const std::string& strPath, VECSOURCES
   return false;
 }
 
-void CGUIPassword::OnSettingAction(const CSetting *setting)
+void CGUIPassword::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;

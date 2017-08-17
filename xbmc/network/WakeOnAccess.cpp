@@ -88,9 +88,9 @@ CWakeOnAccess::WakeUpEntry::WakeUpEntry (bool isAwake)
 class CMACDiscoveryJob : public CJob
 {
 public:
-  CMACDiscoveryJob(const std::string& host) : m_host(host) {}
+  explicit CMACDiscoveryJob(const std::string& host) : m_host(host) {}
 
-  virtual bool DoWork();
+  bool DoWork() override;
 
   const std::string& GetMAC() const { return m_macAddress; }
   const std::string& GetHost() const { return m_host; }
@@ -125,6 +125,7 @@ bool CMACDiscoveryJob::DoWork()
 class WaitCondition
 {
 public:
+  virtual ~WaitCondition() = default;
   virtual bool SuccessWaiting () const { return false; }
 };
 
@@ -163,7 +164,7 @@ int NestDetect::m_nest = 0;
 class ProgressDialogHelper
 {
 public:
-  ProgressDialogHelper (const std::string& heading) : m_dialog(0)
+  explicit ProgressDialogHelper (const std::string& heading) : m_dialog(0)
   {
     if (g_application.IsCurrentThread())
       m_dialog = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
@@ -236,7 +237,7 @@ public:
   NetworkStartWaiter (unsigned settle_time_ms, const std::string& host) : m_settle_time_ms (settle_time_ms), m_host(host)
   {
   }
-  virtual bool SuccessWaiting () const
+  bool SuccessWaiting () const override
   {
     unsigned long address = ntohl(HostToIP(m_host));
     bool online = g_application.getNetwork().HasInterfaceForIP(address);
@@ -264,16 +265,16 @@ public:
       m_jobId = CJobManager::GetInstance().AddJob(job, this);
     }
   }
-  ~PingResponseWaiter()
+  ~PingResponseWaiter() override
   {
     CJobManager::GetInstance().CancelJob(m_jobId);
   }
-  virtual bool SuccessWaiting () const
+  bool SuccessWaiting () const override
   {
     return m_jobId ? m_hostOnline : Ping(m_server);
   }
 
-  virtual void OnJobComplete(unsigned int jobID, bool success, CJob *job)
+  void OnJobComplete(unsigned int jobID, bool success, CJob *job) override
   {
     m_hostOnline = success;
   }
@@ -289,9 +290,9 @@ private:
   class CHostProberJob : public CJob
   {
     public:
-      CHostProberJob(const CWakeOnAccess::WakeUpEntry& server) : m_server (server) {}
+      explicit CHostProberJob(const CWakeOnAccess::WakeUpEntry& server) : m_server (server) {}
 
-      virtual bool DoWork()
+      bool DoWork() override
       {
         while (!ShouldCancel(0,0))
         {
@@ -607,7 +608,7 @@ void CWakeOnAccess::SaveMACDiscoveryResult(const std::string& host, const std::s
 
 void CWakeOnAccess::OnJobComplete(unsigned int jobID, bool success, CJob *job)
 {
-  CMACDiscoveryJob* discoverJob = (CMACDiscoveryJob*)job;
+  CMACDiscoveryJob* discoverJob = static_cast<CMACDiscoveryJob*>(job);
 
   const std::string& host = discoverJob->GetHost();
   const std::string& mac = discoverJob->GetMAC();
@@ -631,7 +632,7 @@ void CWakeOnAccess::OnJobComplete(unsigned int jobID, bool success, CJob *job)
   }
 }
 
-void CWakeOnAccess::OnSettingChanged(const CSetting *setting)
+void CWakeOnAccess::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == nullptr)
     return;
@@ -639,7 +640,7 @@ void CWakeOnAccess::OnSettingChanged(const CSetting *setting)
   const std::string& settingId = setting->GetId();
   if (settingId == CSettings::SETTING_POWERMANAGEMENT_WAKEONACCESS)
   {
-    bool enabled = static_cast<const CSettingBool*>(setting)->GetValue();
+    bool enabled = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
 
     SetEnabled(enabled);
 

@@ -80,8 +80,7 @@ namespace VIDEO
   }
 
   CVideoInfoScanner::~CVideoInfoScanner()
-  {
-  }
+  = default;
 
   void CVideoInfoScanner::Process()
   {
@@ -1294,6 +1293,7 @@ namespace VIDEO
 
     CFileItemPtr itemCopy = CFileItemPtr(new CFileItem(*pItem));
     CVariant data;
+    data["added"] = true;
     if (m_bRunning)
       data["transaction"] = true;
     ANNOUNCEMENT::CAnnouncementManager::GetInstance().Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", itemCopy, data);

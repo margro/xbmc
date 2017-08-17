@@ -35,14 +35,13 @@ CGUIControlGroupList::CGUIControlGroupList(int parentID, int controlID, float po
   m_totalSize = 0;
   m_orientation = orientation;
   m_alignment = alignment;
+  m_lastScrollerValue = -1;
   m_useControlPositions = useControlPositions;
   ControlType = GUICONTROL_GROUPLIST;
   m_minSize = 0;
 }
 
-CGUIControlGroupList::~CGUIControlGroupList(void)
-{
-}
+CGUIControlGroupList::~CGUIControlGroupList(void) = default;
 
 void CGUIControlGroupList::Process(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
@@ -55,17 +54,18 @@ void CGUIControlGroupList::Process(unsigned int currentTime, CDirtyRegionList &d
   {
     CGUIControl *control = *it;
     GUIPROFILER_VISIBILITY_BEGIN(control);
-    control->UpdateVisibility();
+    control->UpdateVisibility(nullptr);
     GUIPROFILER_VISIBILITY_END(control);
   }
 
   ValidateOffset();
-  if (m_pageControl)
+  if (m_pageControl && m_lastScrollerValue != m_scroller.GetValue())
   {
     CGUIMessage message(GUI_MSG_LABEL_RESET, GetParentID(), m_pageControl, (int)Size(), (int)m_totalSize);
     SendWindowMessage(message);
     CGUIMessage message2(GUI_MSG_ITEM_SELECT, GetParentID(), m_pageControl, (int)m_scroller.GetValue());
     SendWindowMessage(message2);
+    m_lastScrollerValue = static_cast<int>(m_scroller.GetValue());
   }
   // we run through the controls, rendering as we go
   int index = 0;
@@ -152,7 +152,7 @@ bool CGUIControlGroupList::OnMessage(CGUIMessage& message)
         CGUIControl *control = *it;
         if (!control->IsVisible())
           continue;
-        if (control->HasID(message.GetControlId()))
+        if (control->GetControl(message.GetControlId()))
         {
           // find out whether this is the first or last control
           if (IsFirstFocusableControl(control))
@@ -181,7 +181,7 @@ bool CGUIControlGroupList::OnMessage(CGUIMessage& message)
         CGUIControl *control = *it;
         if (!control->IsVisible())
           continue;
-        if (control->HasID(m_focusedControl))
+        if (control->GetControl(m_focusedControl))
         {
           if (IsControlOnScreen(offset, control))
             return CGUIControlGroup::OnMessage(message);
@@ -356,11 +356,19 @@ inline float CGUIControlGroupList::Size() const
   return (m_orientation == VERTICAL) ? m_height : m_width;
 }
 
+void CGUIControlGroupList::SetInvalid()
+{
+  CGUIControl::SetInvalid();
+  // Force a message to the scrollbar
+  m_lastScrollerValue = -1;
+}
+
 void CGUIControlGroupList::ScrollTo(float offset)
 {
   m_scroller.ScrollTo(offset);
   if (m_scroller.IsScrolling())
     SetInvalid();
+  MarkDirtyRegion();
 }
 
 EVENT_RESULT CGUIControlGroupList::SendMouseEvent(const CPoint &point, const CMouseEvent &event)
@@ -567,7 +575,7 @@ EVENT_RESULT CGUIControlGroupList::OnMouseEvent(const CPoint &point, const CMous
     SendWindowMessage(msg);
     return EVENT_RESULT_HANDLED;
   }
-  else if (event.m_id == ACTION_GESTURE_END)
+  else if (event.m_id == ACTION_GESTURE_END || event.m_id == ACTION_GESTURE_ABORT)
   { // release exclusive access
     CGUIMessage msg(GUI_MSG_EXCLUSIVE_MOUSE, 0, GetParentID());
     SendWindowMessage(msg);

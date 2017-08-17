@@ -1,6 +1,3 @@
-#ifndef CCHARSET_CONVERTER
-#define CCHARSET_CONVERTER
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://xbmc.org
@@ -21,13 +18,14 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "settings/lib/ISettingCallback.h"
 #include "utils/GlobalsHandling.h"
-#include "utils/uXstrings.h"
 
 class CSetting;
 
@@ -36,7 +34,7 @@ class CCharsetConverter : public ISettingCallback
 public:
   CCharsetConverter();
 
-  virtual void OnSettingChanged(const CSetting* setting) override;
+  void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
 
   static void reset();
   static void resetSystemCharset();
@@ -128,6 +126,7 @@ public:
   static bool utf8ToW(const std::string& utf8StringSrc, std::wstring& wStringDst,
                 bool bVisualBiDiFlip = true, bool forceLTRReadingOrder = false,
                 bool failOnBadChar = false);
+  static bool utf8ToASCII(const std::string& utf8StringSrc, std::string& asciiStringDst, bool failOnBadChar = false);
 
   static bool utf16LEtoW(const std::u16string& utf16String, std::wstring& wString);
 
@@ -146,6 +145,7 @@ public:
   static bool ToUtf8(const std::string& strSourceCharset, const std::string& stringSrc, std::string& utf8StringDst, bool failOnBadChar = false);
 
   static bool wToUTF8(const std::wstring& wStringSrc, std::string& utf8StringDst, bool failOnBadChar = false);
+  static bool wToASCII(const std::wstring& wStringSrc, std::string& asciiStringDst, bool failOnBadChar = false);
   static bool utf16BEtoUTF8(const std::u16string& utf16StringSrc, std::string& utf8StringDst);
   static bool utf16LEtoUTF8(const std::u16string& utf16StringSrc, std::string& utf8StringDst);
   static bool ucs2ToUTF8(const std::u16string& ucs2StringSrc, std::string& utf8StringDst);
@@ -164,7 +164,7 @@ public:
   static bool toW(const std::string& stringSrc, std::wstring& wStringDst, const std::string& enc);
   static bool fromW(const std::wstring& wStringSrc, std::string& stringDst, const std::string& enc);
 
-  static void SettingOptionsCharsetsFiller(const CSetting* setting, std::vector< std::pair<std::string, std::string> >& list, std::string& current, void *data);
+  static void SettingOptionsCharsetsFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, std::string> >& list, std::string& current, void *data);
 private:
   static void resetUserCharset(void);
   static void resetSubtitleCharset(void);
@@ -175,4 +175,3 @@ private:
 
 XBMC_GLOBAL_REF(CCharsetConverter,g_charsetConverter);
 #define g_charsetConverter XBMC_GLOBAL_USE(CCharsetConverter)
-#endif

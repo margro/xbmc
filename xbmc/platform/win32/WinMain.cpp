@@ -18,11 +18,14 @@
  *
  */
 
+#include "AppParamParser.h"
 #include "CompileInfo.h"
 #include "threads/Thread.h"
 #include "threads/platform/win/Win32Exception.h"
 #include "platform/win32/CharsetConverter.h"
 #include "platform/xbmc.h"
+#include "platform/XbmcContext.h"
+#include "settings/AdvancedSettings.h"
 #include "utils/CPUInfo.h"
 #include "utils/Environment.h"
 #include "utils/CharsetConverter.h" // Required to initialize converters before usage
@@ -31,8 +34,6 @@
 #include <dbghelp.h>
 #include <shellapi.h>
 
-
-extern "C" int main(int argc, char* argv[]);
 
 // Minidump creation function
 LONG WINAPI CreateMiniDump(EXCEPTION_POINTERS* pEp)
@@ -70,7 +71,7 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR commandLine, INT)
 
   // check if Kodi is already running
   std::string appName = CCompileInfo::GetAppName();
-  CreateMutex(nullptr, FALSE, ToW(appName + " Media Center").c_str());
+  HANDLE appRunningMutex = CreateMutex(nullptr, FALSE, ToW(appName + " Media Center").c_str());
   if (GetLastError() == ERROR_ALREADY_EXISTS)
   {
     auto appNameW = ToW(appName);
@@ -121,8 +122,18 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR commandLine, INT)
   SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
 #endif
 
-  // Create and run the app
-  int status = main(argc, argv);
+  int status;
+  {
+    // set up some xbmc specific relationships
+    XBMC::Context context;
+    // Initialize before CAppParamParser so it can set the log level
+    g_advancedSettings.Initialize();
+    
+    CAppParamParser appParamParser;
+    appParamParser.Parse(argv, argc);
+    // Create and run the app
+    status = XBMC_Run(true, appParamParser);
+  }
 
   for (int i = 0; i < argc; ++i)
     delete[] argv[i];
@@ -133,6 +144,7 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR commandLine, INT)
 
   WSACleanup();
   CoUninitialize();
+  ReleaseMutex(appRunningMutex);
 
   return status;
 }

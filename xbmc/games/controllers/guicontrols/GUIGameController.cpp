@@ -20,9 +20,11 @@
 
 #include "GUIGameController.h"
 #include "games/controllers/Controller.h"
+#include "games/controllers/ControllerLayout.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 
+using namespace KODI;
 using namespace GAME;
 
 CGUIGameController::CGUIGameController(int parentID, int controlID, float posX, float posY, float width, float height)
@@ -67,6 +69,6 @@ void CGUIGameController::ActivateController(const ControllerPtr& controller)
     lock.Leave();
 
     //! @todo Sometimes this fails on window init
-    SetFileName(m_currentController->ImagePath());
+    SetFileName(m_currentController->Layout().ImagePath());
   }
 }

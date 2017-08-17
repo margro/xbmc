@@ -26,6 +26,8 @@
 
 class TiXmlElement;
 
+namespace KODI
+{
 namespace GAME
 {
 
@@ -39,27 +41,28 @@ public:
 
   CControllerFeature& operator=(const CControllerFeature& rhs);
 
-  KODI::JOYSTICK::FEATURE_TYPE Type(void) const { return m_type; }
-  KODI::JOYSTICK::FEATURE_CATEGORY Category(void) const { return m_category; }
-  const std::string&     CategoryLabel(void) const { return m_strCategory; }
+  JOYSTICK::FEATURE_TYPE Type(void) const { return m_type; }
+  JOYSTICK::FEATURE_CATEGORY Category(void) const { return m_category; }
+  std::string            CategoryLabel(void) const;
   const std::string&     Name(void) const       { return m_strName; }
-  const std::string&     Label(void) const      { return m_strLabel; }
-  unsigned int           LabelID(void) const    { return m_labelId; }
-  KODI::JOYSTICK::INPUT_TYPE InputType(void) const { return m_inputType; }
+  std::string            Label(void) const;
+  int                    LabelID(void) const    { return m_labelId; }
+  JOYSTICK::INPUT_TYPE InputType(void) const { return m_inputType; }
 
   bool Deserialize(const TiXmlElement* pElement,
                    const CController* controller,
-                   KODI::JOYSTICK::FEATURE_CATEGORY category,
-                   const std::string& strCategory);
+                   JOYSTICK::FEATURE_CATEGORY category,
+                   int categoryLabelId);
 
 private:
-  KODI::JOYSTICK::FEATURE_TYPE m_type;
-  KODI::JOYSTICK::FEATURE_CATEGORY m_category;
-  std::string            m_strCategory;
+  const CController *m_controller; // To get the controller ID for translating labels
+  JOYSTICK::FEATURE_TYPE m_type;
+  JOYSTICK::FEATURE_CATEGORY m_category;
+  int m_categoryLabelId;
   std::string            m_strName;
-  std::string            m_strLabel;
-  unsigned int           m_labelId;
-  KODI::JOYSTICK::INPUT_TYPE m_inputType;
+  int                    m_labelId;
+  JOYSTICK::INPUT_TYPE m_inputType;
 };
 
+}
 }

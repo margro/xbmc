@@ -29,16 +29,19 @@
 #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
 #include "cores/VideoPlayer/DVDStreamInfo.h"
+#include "cores/VideoPlayer/TimingConstants.h"
 #include "utils/log.h"
 
 #include <atomic> //! @todo
 
-using namespace GAME;
+using namespace KODI;
+using namespace RETRO;
 
-CRetroPlayerVideo::CRetroPlayerVideo(CRenderManager& renderManager, CProcessInfo& processInfo) :
+CRetroPlayerVideo::CRetroPlayerVideo(CRenderManager& renderManager, CProcessInfo& processInfo, CDVDClock &clock) :
   //CThread("RetroPlayerVideo"),
   m_renderManager(renderManager),
   m_processInfo(processInfo),
+  m_clock(clock),
   m_framerate(0.0),
   m_orientation(0),
   m_bConfigured(false),
@@ -105,17 +108,21 @@ bool CRetroPlayerVideo::OpenEncodedStream(AVCodecID codec)
   */
 
   CDVDStreamInfo hint(videoStream);
-  m_pVideoCodec.reset(CDVDFactoryCodec::CreateVideoCodec(hint, m_processInfo, m_renderManager.GetRenderInfo()));
+  // FIXME
+  //m_pVideoCodec.reset(CDVDFactoryCodec::CreateVideoCodec(hint, m_processInfo, m_renderManager.GetRenderInfo()));
 
   return m_pVideoCodec.get() != nullptr;
 }
 
 void CRetroPlayerVideo::AddData(const uint8_t* data, unsigned int size)
 {
-  DVDVideoPicture picture = { };
+  VideoPicture picture;
 
   if (GetPicture(data, size, picture))
   {
+    picture.pts = m_clock.GetClock(); // Show immediately
+    picture.iDuration = DVD_SEC_TO_TIME(1.0 / m_framerate);
+
     if (!Configure(picture))
     {
       CLog::Log(LOGERROR, "RetroPlayerVideo: Failed to configure renderer");
@@ -130,12 +137,12 @@ void CRetroPlayerVideo::AddData(const uint8_t* data, unsigned int size)
 
 void CRetroPlayerVideo::CloseStream()
 {
-  m_renderManager.Flush();
+  m_renderManager.Flush(true);
   m_pixelConverter.reset();
   m_pVideoCodec.reset();
 }
 
-bool CRetroPlayerVideo::Configure(DVDVideoPicture& picture)
+bool CRetroPlayerVideo::Configure(VideoPicture& picture)
 {
   if (!m_bConfigured)
   {
@@ -150,12 +157,6 @@ bool CRetroPlayerVideo::Configure(DVDVideoPicture& picture)
     if (m_bConfigured)
     {
       // Update process info
-      AVPixelFormat pixfmt = static_cast<AVPixelFormat>(CDVDCodecUtils::PixfmtFromEFormat(picture.format));
-      if (pixfmt != AV_PIX_FMT_NONE)
-      {
-        //! @todo
-        //m_processInfo.SetVideoPixelFormat(CDVDVideoCodecFFmpeg::GetPixelFormatName(pixfmt));
-      }
       m_processInfo.SetVideoDimensions(picture.iWidth, picture.iHeight);
       m_processInfo.SetVideoFps(static_cast<float>(m_framerate));
     }
@@ -164,7 +165,7 @@ bool CRetroPlayerVideo::Configure(DVDVideoPicture& picture)
   return m_bConfigured;
 }
 
-bool CRetroPlayerVideo::GetPicture(const uint8_t* data, unsigned int size, DVDVideoPicture& picture)
+bool CRetroPlayerVideo::GetPicture(const uint8_t* data, unsigned int size, VideoPicture& picture)
 {
   bool bHasPicture = false;
 
@@ -189,12 +190,11 @@ bool CRetroPlayerVideo::GetPicture(const uint8_t* data, unsigned int size, DVDVi
   }
   else if (m_pVideoCodec)
   {
-    int iDecoderState = m_pVideoCodec->Decode(const_cast<uint8_t*>(data), size, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE);
-    if (iDecoderState & VC_PICTURE)
+    DemuxPacket packet(const_cast<uint8_t*>(data), size, DVD_NOPTS_VALUE, DVD_NOPTS_VALUE);
+    if (m_pVideoCodec->AddData(packet))
     {
-      m_pVideoCodec->ClearPicture(&picture);
-
-      if (m_pVideoCodec->GetPicture(&picture))
+      CDVDVideoCodec::VCReturn ret = m_pVideoCodec->GetPicture(&picture);
+      if (ret == CDVDVideoCodec::VC_PICTURE)
       {
         // Drop frame if requested by the decoder
         const bool bDropped = (picture.iFlags & DVP_FLAG_DROPPED) != 0;
@@ -208,18 +208,13 @@ bool CRetroPlayerVideo::GetPicture(const uint8_t* data, unsigned int size, DVDVi
   return bHasPicture;
 }
 
-void CRetroPlayerVideo::SendPicture(DVDVideoPicture& picture)
+void CRetroPlayerVideo::SendPicture(VideoPicture& picture)
 {
   std::atomic_bool bAbortOutput(false); //! @todo
 
-  int index = m_renderManager.AddVideoPicture(picture);
-  if (index < 0)
+  if (!m_renderManager.AddVideoPicture(picture, bAbortOutput, VS_INTERLACEMETHOD_NONE, false))
   {
     // Video device might not be done yet, drop the frame
     m_droppedFrames++;
-  }
-  else
-  {
-    m_renderManager.FlipPage(bAbortOutput, 0.0, VS_INTERLACEMETHOD_NONE, FS_NONE, false);
   }
 }

@@ -30,19 +30,15 @@ CGUIListLabel::CGUIListLabel(int parentID, int controlID, float posX, float posY
   m_scroll = scroll;
   if (m_info.IsConstant())
     SetLabel(m_info.GetLabel(m_parentID, true));
+  m_label.SetScrollLoopCount(2);
   ControlType = GUICONTROL_LISTLABEL;
 }
 
-CGUIListLabel::~CGUIListLabel(void)
-{
-}
+CGUIListLabel::~CGUIListLabel(void) = default;
 
 void CGUIListLabel::SetScrolling(bool scrolling)
 {
-  if (m_scroll == CGUIControl::FOCUS)
-    m_label.SetScrolling(scrolling);
-  else
-    m_label.SetScrolling((m_scroll == CGUIControl::ALWAYS) ? true : false);
+  m_label.SetScrolling(scrolling);
 }
 
 void CGUIListLabel::SetSelected(bool selected)
@@ -54,8 +50,7 @@ void CGUIListLabel::SetSelected(bool selected)
 void CGUIListLabel::SetFocus(bool focus)
 {
   CGUIControl::SetFocus(focus);
-  if (!focus)
-    SetScrolling(false);
+  SetScrolling(focus);
 }
 
 CRect CGUIListLabel::CalcRenderRegion() const

@@ -426,10 +426,10 @@ public:
   };
 
   CVideoDatabase(void);
-  virtual ~CVideoDatabase(void);
+  ~CVideoDatabase(void) override;
 
-  virtual bool Open();
-  virtual bool CommitTransaction();
+  bool Open() override;
+  bool CommitTransaction() override;
 
   int AddMovie(const std::string& strFilenameAndPath);
   int AddEpisode(int idShow, const std::string& strFilenameAndPath);
@@ -503,7 +503,7 @@ public:
   bool LoadVideoInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int getDetails = VideoDbDetailsAll);
   bool GetMovieInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idMovie = -1, int getDetails = VideoDbDetailsAll);
   bool GetTvShowInfo(const std::string& strPath, CVideoInfoTag& details, int idTvShow = -1, CFileItem* item = NULL, int getDetails = VideoDbDetailsAll);
-  bool GetSeasonInfo(int idSeason, CVideoInfoTag& details);
+  bool GetSeasonInfo(int idSeason, CVideoInfoTag& details, bool allDetails = true);
   bool GetEpisodeInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idEpisode = -1, int getDetails = VideoDbDetailsAll);
   bool GetMusicVideoInfo(const std::string& strFilenameAndPath, CVideoInfoTag& details, int idMVideo = -1, int getDetails = VideoDbDetailsAll);
   bool GetSetInfo(int idSet, CVideoInfoTag& details);
@@ -839,14 +839,14 @@ public:
   void RemoveTagFromItem(int idItem, int idTag, const std::string &type);
   void RemoveTagsFromItem(int idItem, const std::string &type);
 
-  virtual bool GetFilter(CDbUrl &videoUrl, Filter &filter, SortDescription &sorting);
+  bool GetFilter(CDbUrl &videoUrl, Filter &filter, SortDescription &sorting) override;
 
   /*! \brief Will check if the season exists and if that is not the case add it to the database.
   \param showID The id of the show in question.
   \param season The season number we want to add.
   \return The dbId of the season.
   */
-  int AddSeason(int showID, int season);
+  int AddSeason(int showID, int season, const std::string& name = "");
   int AddSet(const std::string& strSet, const std::string& strOverview = "");
   void ClearMovieSet(int idMovie);
   void SetMovieSet(int idMovie, int idSet);
@@ -928,9 +928,9 @@ protected:
   std::string GetValueString(const CVideoInfoTag &details, int min, int max, const SDbTableOffsets *offsets) const;
 
 private:
-  virtual void CreateTables();
-  virtual void CreateAnalytics();
-  virtual void UpdateTables(int version);
+  void CreateTables() override;
+  void CreateAnalytics() override;
+  void UpdateTables(int version) override;
   void CreateLinkIndex(const char *table);
   void CreateForeignLinkIndex(const char *table, const char *foreignkey);
 
@@ -969,10 +969,10 @@ private:
    */
   int GetPlayCount(int iFileId);
 
-  virtual int GetMinSchemaVersion() const { return 75; };
-  virtual int GetSchemaVersion() const;
+  int GetMinSchemaVersion() const override { return 75; };
+  int GetSchemaVersion() const override;
   virtual int GetExportVersion() const { return 1; };
-  const char *GetBaseDBName() const { return "MyVideos"; };
+  const char *GetBaseDBName() const override { return "MyVideos"; };
 
   void ConstructPath(std::string& strDest, const std::string& strPath, const std::string& strFileName);
   void SplitPath(const std::string& strFileNameAndPath, std::string& strPath, std::string& strFileName);

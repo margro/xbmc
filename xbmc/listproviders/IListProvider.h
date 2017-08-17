@@ -34,8 +34,8 @@ typedef std::shared_ptr<CGUIListItem> CGUIListItemPtr;
 class IListProvider
 {
 public:
-  IListProvider(int parentID) : m_parentID(parentID) {}
-  virtual ~IListProvider() {}
+  explicit IListProvider(int parentID) : m_parentID(parentID) {}
+  virtual ~IListProvider() = default;
 
   /*! \brief Factory to create list providers.
    \param parent a parent TiXmlNode for the container.

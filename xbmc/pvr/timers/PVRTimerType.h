@@ -19,11 +19,13 @@
  *
  */
 
-#include "pvr/PVRTypes.h"
-
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+
+#include "pvr/PVRTypes.h"
 
 struct PVR_TIMER_TYPE;
 
@@ -166,13 +168,20 @@ namespace PVR
      * @return True if new instances require EPG info, false otherwise.
      */
     bool RequiresEpgTagOnCreate() const { return (m_iAttributes & (PVR_TIMER_TYPE_REQUIRES_EPG_TAG_ON_CREATE |
-                                                                   PVR_TIMER_TYPE_REQUIRES_EPG_SERIES_ON_CREATE)) > 0; }
+                                                                   PVR_TIMER_TYPE_REQUIRES_EPG_SERIES_ON_CREATE |
+                                                                   PVR_TIMER_TYPE_REQUIRES_EPG_SERIESLINK_ON_CREATE)) > 0; }
 
     /*!
      * @brief Check whether this timer type requires epg tag info including series attributes to be present.
      * @return True if new instances require an EPG tag with series attributes, false otherwise.
      */
     bool RequiresEpgSeriesOnCreate() const { return (m_iAttributes & PVR_TIMER_TYPE_REQUIRES_EPG_SERIES_ON_CREATE) > 0; }
+
+    /*!
+     * @brief Check whether this timer type requires epg tag info including a series link to be present.
+     * @return True if new instances require an EPG tag with a series link, false otherwise.
+     */
+    bool RequiresEpgSeriesLinkOnCreate() const { return (m_iAttributes & PVR_TIMER_TYPE_REQUIRES_EPG_SERIESLINK_ON_CREATE) > 0; }
 
     /*!
      * @brief Check whether this type supports the "enabling/disabling" of timers of its type.
@@ -277,6 +286,12 @@ namespace PVR
     bool SupportsRecordingGroup() const { return (m_iAttributes & PVR_TIMER_TYPE_SUPPORTS_RECORDING_GROUP) > 0; }
 
     /*!
+     * @brief Check whether this type supports 'any channel', for example for defining a timer rule that should match any channel instead of a particular channel.
+     * @return True if any channel is supported, false otherwise.
+     */
+    bool SupportsAnyChannel() const { return (m_iAttributes & PVR_TIMER_TYPE_SUPPORTS_ANY_CHANNEL) > 0; }
+
+    /*!
      * @brief Obtain a list with all possible values for the priority attribute.
      * @param list out, the list with the values or an empty list, if priority is not supported by this type.
      */
@@ -335,7 +350,6 @@ namespace PVR
      * @return the default value.
      */
     int GetRecordingGroupDefault() const { return m_iRecordingGroupDefault; }
-
 
   private:
     void InitAttributeValues(const PVR_TIMER_TYPE &type);

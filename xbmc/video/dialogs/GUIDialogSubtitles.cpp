@@ -32,6 +32,7 @@
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/StackDirectory.h"
 #include "guilib/GUIKeyboardFactory.h"
+#include "guilib/LocalizeStrings.h"
 #include "input/Key.h"
 #include "settings/Settings.h"
 #include "settings/lib/Setting.h"
@@ -66,16 +67,16 @@ public:
   {
     m_items = new CFileItemList;
   }
-  virtual ~CSubtitlesJob()
+  ~CSubtitlesJob() override
   {
     delete m_items;
   }
-  virtual bool DoWork()
+  bool DoWork() override
   {
     CDirectory::GetDirectory(m_url.Get(), *m_items);
     return true;
   }
-  virtual bool operator==(const CJob *job) const
+  bool operator==(const CJob *job) const override
   {
     if (strcmp(job->GetType(),GetType()) == 0)
     {
@@ -329,7 +330,7 @@ void CGUIDialogSubtitles::Search(const std::string &search/*=""*/)
   else
     url.SetOption("action", "search");
 
-  const CSetting *setting = CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_SUBTITLES_LANGUAGES);
+  SettingConstPtr setting = CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_SUBTITLES_LANGUAGES);
   if (setting)
     url.SetOption("languages", setting->ToString());
 
@@ -361,9 +362,9 @@ void CGUIDialogSubtitles::Search(const std::string &search/*=""*/)
 
 void CGUIDialogSubtitles::OnJobComplete(unsigned int jobID, bool success, CJob *job)
 {
-  const CURL &url             = ((CSubtitlesJob *)job)->GetURL();
-  const CFileItemList *items  = ((CSubtitlesJob *)job)->GetItems();
-  const std::string &language = ((CSubtitlesJob *)job)->GetLanguage();
+  const CURL &url             = static_cast<CSubtitlesJob*>(job)->GetURL();
+  const CFileItemList *items  = static_cast<CSubtitlesJob*>(job)->GetItems();
+  const std::string &language = static_cast<CSubtitlesJob*>(job)->GetLanguage();
   if (url.GetOption("action") == "search" || url.GetOption("action") == "manualsearch")
     OnSearchComplete(items);
   else

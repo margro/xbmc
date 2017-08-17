@@ -27,20 +27,22 @@ class CDVDAudioCodec;
 class CProcessInfo;
 class IAEStream;
 
-namespace GAME
+namespace KODI
 {
-  class CRetroPlayerAudio : public IGameAudioCallback
+namespace RETRO
+{
+  class CRetroPlayerAudio : public GAME::IGameAudioCallback
   {
   public:
-    CRetroPlayerAudio(CProcessInfo& processInfo);
-    virtual ~CRetroPlayerAudio();
+    explicit CRetroPlayerAudio(CProcessInfo& processInfo);
+    ~CRetroPlayerAudio() override;
 
     // implementation of IGameAudioCallback
-    virtual unsigned int NormalizeSamplerate(unsigned int samplerate) const override;
-    virtual bool OpenPCMStream(AEDataFormat format, unsigned int samplerate, const CAEChannelInfo& channelLayout) override;
-    virtual bool OpenEncodedStream(AVCodecID codec, unsigned int samplerate, const CAEChannelInfo& channelLayout) override;
-    virtual void AddData(const uint8_t* data, unsigned int size) override;
-    virtual void CloseStream() override;
+    unsigned int NormalizeSamplerate(unsigned int samplerate) const override;
+    bool OpenPCMStream(AEDataFormat format, unsigned int samplerate, const CAEChannelInfo& channelLayout) override;
+    bool OpenEncodedStream(AVCodecID codec, unsigned int samplerate, const CAEChannelInfo& channelLayout) override;
+    void AddData(const uint8_t* data, unsigned int size) override;
+    void CloseStream() override;
 
     void Enable(bool bEnabled) { m_bAudioEnabled = bEnabled; }
 
@@ -50,4 +52,5 @@ namespace GAME
     std::unique_ptr<CDVDAudioCodec> m_pAudioCodec;
     bool       m_bAudioEnabled;
   };
+}
 }

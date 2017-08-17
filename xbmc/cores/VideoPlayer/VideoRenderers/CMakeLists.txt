@@ -4,6 +4,7 @@ set(SOURCES BaseRenderer.cpp
             OverlayRendererGUI.cpp
             OverlayRendererUtil.cpp
             RenderCapture.cpp
+            RenderFactory.cpp
             RenderFlags.cpp
             RenderManager.cpp
             DebugRenderer.cpp)
@@ -14,15 +15,18 @@ set(HEADERS BaseRenderer.h
             OverlayRendererGUI.h
             OverlayRendererUtil.h
             RenderCapture.h
+            RenderFactory.h
             RenderFlags.h
-            RenderFormats.h
+            RenderInfo.h
             RenderManager.h
             DebugRenderer.h)
 
 if(CORE_SYSTEM_NAME STREQUAL windows)
   list(APPEND SOURCES WinRenderer.cpp
+                      WinRenderBuffer.cpp
                       OverlayRendererDX.cpp)
   list(APPEND HEADERS WinRenderer.h
+                      WinRenderBuffer.h
                       OverlayRendererDX.h)
 endif()
 

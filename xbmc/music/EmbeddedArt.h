@@ -32,10 +32,10 @@ namespace MUSIC_INFO
   public:
     EmbeddedArtInfo() : size(0) { }
     EmbeddedArtInfo(size_t size, const std::string &mime);
-    ~EmbeddedArtInfo() { }
+    ~EmbeddedArtInfo() override = default;
 
     // implementation of IArchivable
-    virtual void Archive(CArchive& ar);
+    void Archive(CArchive& ar) override;
 
     void set(size_t size, const std::string &mime);
     void clear();
@@ -49,9 +49,9 @@ namespace MUSIC_INFO
   class EmbeddedArt : public EmbeddedArtInfo
   {
   public:
-    EmbeddedArt() { }
+    EmbeddedArt() = default;
     EmbeddedArt(const uint8_t *data, size_t size, const std::string &mime);
-    ~EmbeddedArt() { }
+    ~EmbeddedArt() override = default;
 
     void set(const uint8_t *data, size_t size, const std::string &mime);
 

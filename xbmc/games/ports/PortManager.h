@@ -20,47 +20,56 @@
 #pragma once
 
 #include "peripherals/PeripheralTypes.h"
-#include "threads/CriticalSection.h"
+#include "threads/SharedSection.h"
 #include "utils/Observer.h"
 
 #include <map>
 #include <vector>
 
+namespace PERIPHERALS
+{
+  class CPeripheral;
+  class CPeripherals;
+}
+
 namespace KODI
 {
+namespace HARDWARE
+{
+  class IHardwareInput;
+}
+
 namespace JOYSTICK
 {
   class IInputHandler;
 }
-}
-
-namespace PERIPHERALS
-{
-  class CPeripheral;
-}
 
 namespace GAME
 {
+  class CGameClient;
+  class CPortMapper;
+
   /*!
    * \brief Class to manage ports opened by game clients
    */
   class CPortManager : public Observable
   {
-  private:
-    CPortManager(void) = default;
-
   public:
-    static CPortManager& GetInstance();
+    explicit CPortManager(PERIPHERALS::CPeripherals& peripheralManager);
+    virtual ~CPortManager();
 
     /*!
      * \brief Request a new port be opened with input on that port sent to the
      *        specified handler.
      *
      * \param handler      The instance accepting all input delivered to the port
+     * \param gameClient   The game client opening the port
      * \param port         The port number belonging to the game client
      * \param requiredType Used to restrict port to devices of only a certain type
      */
-    void OpenPort(KODI::JOYSTICK::IInputHandler* handler,
+    void OpenPort(JOYSTICK::IInputHandler* handler,
+                  HARDWARE::IHardwareInput *hardwareInput,
+                  CGameClient* gameClient,
                   unsigned int port,
                   PERIPHERALS::PeripheralType requiredType = PERIPHERALS::PERIPHERAL_UNKNOWN);
 
@@ -69,7 +78,7 @@ namespace GAME
      *
      * \param handler  The handler used to open the port
      */
-    void ClosePort(KODI::JOYSTICK::IInputHandler* handler);
+    void ClosePort(JOYSTICK::IInputHandler* handler);
 
     /*!
      * \brief Map a list of devices to the available ports
@@ -82,20 +91,36 @@ namespace GAME
      * attempt to honor that request.
      */
     void MapDevices(const PERIPHERALS::PeripheralVector& devices,
-                    std::map<PERIPHERALS::PeripheralPtr, KODI::JOYSTICK::IInputHandler*>& deviceToPortMap);
+                    std::map<PERIPHERALS::CPeripheral*, JOYSTICK::IInputHandler*>& deviceToPortMap);
+
+    //! @todo Return game client from MapDevices()
+    CGameClient* GameClient(JOYSTICK::IInputHandler* handler);
+
+    /*!
+     * \brief Send a hardware reset command for the specified input handler
+     *
+     * \param handler  The handler associated the user who pressed reset, or
+     *                 nullptr if it's unknown who presesd reset
+     */
+    void HardwareReset(JOYSTICK::IInputHandler *handler = nullptr);
 
   private:
-    KODI::JOYSTICK::IInputHandler* AssignToPort(const PERIPHERALS::PeripheralPtr& device, bool checkPortNumber = true);
+    JOYSTICK::IInputHandler* AssignToPort(const PERIPHERALS::PeripheralPtr& device, bool checkPortNumber = true);
+
+    std::unique_ptr<CPortMapper> m_portMapper;
 
     struct SPort
     {
-      KODI::JOYSTICK::IInputHandler*    handler; // Input handler for this port
+      JOYSTICK::IInputHandler*    handler; // Input handler for this port
+      HARDWARE::IHardwareInput    *hardwareInput; // Callbacks for hardware input
       unsigned int                port;    // Port number belonging to the game client
       PERIPHERALS::PeripheralType requiredType;
       void*                       device;
+      CGameClient*                gameClient;
     };
 
     std::vector<SPort> m_ports;
-    CCriticalSection   m_mutex;
+    CSharedSection     m_mutex;
   };
+}
 }

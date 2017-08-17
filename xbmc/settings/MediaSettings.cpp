@@ -27,6 +27,7 @@
 #include "PlayListPlayer.h"
 #include "dialogs/GUIDialogContextMenu.h"
 #include "dialogs/GUIDialogFileBrowser.h"
+#include "guilib/LocalizeStrings.h"
 #include "interfaces/builtins/Builtins.h"
 #include "music/MusicDatabase.h"
 #include "messaging/ApplicationMessenger.h"
@@ -68,8 +69,7 @@ CMediaSettings::CMediaSettings()
   m_videoNeedsUpdate = 0;
 }
 
-CMediaSettings::~CMediaSettings()
-{ }
+CMediaSettings::~CMediaSettings() = default;
 
 CMediaSettings& CMediaSettings::GetInstance()
 {
@@ -153,6 +153,19 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     }
   }
 
+  m_defaultGameSettings.Reset();
+  pElement = settings->FirstChildElement("defaultgamesettings");
+  if (pElement != nullptr)
+  {
+    int scalingMethod;
+    if (XMLUtils::GetInt(pElement, "scalingmethod", scalingMethod, VS_SCALINGMETHOD_NEAREST, VS_SCALINGMETHOD_MAX))
+      m_defaultGameSettings.SetScalingMethod(static_cast<ESCALINGMETHOD>(scalingMethod));
+
+    int viewMode;
+    if (XMLUtils::GetInt(pElement, "viewmode", viewMode, ViewModeNormal, ViewModeZoom110Width))
+      m_defaultGameSettings.SetViewMode(viewMode);
+  }
+
   // mymusic settings
   pElement = settings->FirstChildElement("mymusic");
   if (pElement != NULL)
@@ -196,10 +209,10 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
 
 void CMediaSettings::OnSettingsLoaded()
 {
-  g_playlistPlayer.SetRepeat(PLAYLIST_MUSIC, m_musicPlaylistRepeat ? PLAYLIST::REPEAT_ALL : PLAYLIST::REPEAT_NONE);
-  g_playlistPlayer.SetShuffle(PLAYLIST_MUSIC, m_musicPlaylistShuffle);
-  g_playlistPlayer.SetRepeat(PLAYLIST_VIDEO, m_videoPlaylistRepeat ? PLAYLIST::REPEAT_ALL : PLAYLIST::REPEAT_NONE);
-  g_playlistPlayer.SetShuffle(PLAYLIST_VIDEO, m_videoPlaylistShuffle);
+  CServiceBroker::GetPlaylistPlayer().SetRepeat(PLAYLIST_MUSIC, m_musicPlaylistRepeat ? PLAYLIST::REPEAT_ALL : PLAYLIST::REPEAT_NONE);
+  CServiceBroker::GetPlaylistPlayer().SetShuffle(PLAYLIST_MUSIC, m_musicPlaylistShuffle);
+  CServiceBroker::GetPlaylistPlayer().SetRepeat(PLAYLIST_VIDEO, m_videoPlaylistRepeat ? PLAYLIST::REPEAT_ALL : PLAYLIST::REPEAT_NONE);
+  CServiceBroker::GetPlaylistPlayer().SetShuffle(PLAYLIST_VIDEO, m_videoPlaylistShuffle);
 }
 
 bool CMediaSettings::Save(TiXmlNode *settings) const
@@ -254,6 +267,15 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
     }
   }
 
+  // Default game settings
+  TiXmlElement gameSettingsNode("defaultgamesettings");
+  pNode = settings->InsertEndChild(gameSettingsNode);
+  if (pNode == nullptr)
+    return false;
+
+  XMLUtils::SetInt(pNode, "scalingmethod", m_defaultGameSettings.ScalingMethod());
+  XMLUtils::SetInt(pNode, "viewmode", m_defaultGameSettings.ViewMode());
+
   // mymusic
   pNode = settings->FirstChild("mymusic");
   if (pNode == NULL)
@@ -300,7 +322,7 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
   return true;
 }
 
-void CMediaSettings::OnSettingAction(const CSetting *setting)
+void CMediaSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;

@@ -60,7 +60,7 @@ class NPT_XbmcFileStream
 {
 public:
     // constructors and destructor
-    NPT_XbmcFileStream(NPT_XbmcFileReference file) :
+    explicit NPT_XbmcFileStream(NPT_XbmcFileReference file) :
       m_FileReference(file) {}
 
     // NPT_FileInterface methods
@@ -70,7 +70,7 @@ public:
 
 protected:
     // constructors and destructors
-    virtual ~NPT_XbmcFileStream() {}
+    virtual ~NPT_XbmcFileStream() = default;
 
     // members
     NPT_XbmcFileReference m_FileReference;
@@ -126,21 +126,21 @@ class NPT_XbmcFileInputStream : public NPT_InputStream,
 {
 public:
     // constructors and destructor
-    NPT_XbmcFileInputStream(NPT_XbmcFileReference& file) :
+    explicit NPT_XbmcFileInputStream(NPT_XbmcFileReference& file) :
         NPT_XbmcFileStream(file) {}
 
     // NPT_InputStream methods
     NPT_Result Read(void*     buffer, 
                     NPT_Size  bytes_to_read, 
-                    NPT_Size* bytes_read);
-    NPT_Result Seek(NPT_Position offset) {
+                    NPT_Size* bytes_read) override;
+    NPT_Result Seek(NPT_Position offset) override {
         return NPT_XbmcFileStream::Seek(offset);
     }
-    NPT_Result Tell(NPT_Position& offset) {
+    NPT_Result Tell(NPT_Position& offset) override {
         return NPT_XbmcFileStream::Tell(offset);
     }
-    NPT_Result GetSize(NPT_LargeSize& size);
-    NPT_Result GetAvailable(NPT_LargeSize& available);
+    NPT_Result GetSize(NPT_LargeSize& size) override;
+    NPT_Result GetAvailable(NPT_LargeSize& available) override;
 };
 
 /*----------------------------------------------------------------------
@@ -208,20 +208,20 @@ class NPT_XbmcFileOutputStream : public NPT_OutputStream,
 {
 public:
     // constructors and destructor
-    NPT_XbmcFileOutputStream(NPT_XbmcFileReference& file) :
+    explicit NPT_XbmcFileOutputStream(NPT_XbmcFileReference& file) :
         NPT_XbmcFileStream(file) {}
 
     // NPT_OutputStream methods
     NPT_Result Write(const void* buffer, 
                      NPT_Size    bytes_to_write, 
-                     NPT_Size*   bytes_written);
-    NPT_Result Seek(NPT_Position offset) {
+                     NPT_Size*   bytes_written) override;
+    NPT_Result Seek(NPT_Position offset) override {
         return NPT_XbmcFileStream::Seek(offset);
     }
-    NPT_Result Tell(NPT_Position& offset) {
+    NPT_Result Tell(NPT_Position& offset) override {
         return NPT_XbmcFileStream::Tell(offset);
     }
-    NPT_Result Flush() {
+    NPT_Result Flush() override {
         return NPT_XbmcFileStream::Flush();
     }
 };
@@ -253,14 +253,14 @@ class NPT_XbmcFile: public NPT_FileInterface
 {
 public:
     // constructors and destructor
-    NPT_XbmcFile(NPT_File& delegator);
-   ~NPT_XbmcFile();
+    explicit NPT_XbmcFile(NPT_File& delegator);
+   ~NPT_XbmcFile() override;
 
     // NPT_FileInterface methods
-    NPT_Result Open(OpenMode mode);
-    NPT_Result Close();
-    NPT_Result GetInputStream(NPT_InputStreamReference& stream);
-    NPT_Result GetOutputStream(NPT_OutputStreamReference& stream);
+    NPT_Result Open(OpenMode mode) override;
+    NPT_Result Close() override;
+    NPT_Result GetInputStream(NPT_InputStreamReference& stream) override;
+    NPT_Result GetOutputStream(NPT_OutputStreamReference& stream) override;
 
 private:
     // members

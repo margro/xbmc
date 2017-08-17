@@ -18,10 +18,6 @@
  *
  */
 
-#if defined(TARGET_WINDOWS)
-#include "system.h"
-#endif
-
 #include "OMXVideo.h"
 
 #include "ServiceBroker.h"
@@ -34,6 +30,7 @@
 #include "xbmc/guilib/GraphicContext.h"
 #include "settings/Settings.h"
 #include "utils/BitstreamConverter.h"
+#include "TimingConstants.h"
 
 #include "linux/RBP.h"
 

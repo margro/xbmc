@@ -31,17 +31,17 @@ class CGUIDialogAddonInfo : public CGUIDialog
 {
 public:
   CGUIDialogAddonInfo(void);
-  virtual ~CGUIDialogAddonInfo(void);
-  virtual bool OnMessage(CGUIMessage& message);
-  virtual bool OnAction(const CAction &action);
+  ~CGUIDialogAddonInfo(void) override;
+  bool OnMessage(CGUIMessage& message) override;
+  bool OnAction(const CAction &action) override;
   
-  virtual CFileItemPtr GetCurrentListItem(int offset = 0) { return m_item; }
-  virtual bool HasListItems() const { return true; }
+  CFileItemPtr GetCurrentListItem(int offset = 0) override { return m_item; }
+  bool HasListItems() const override { return true; }
 
   static bool ShowForItem(const CFileItemPtr& item);
 
 private:
-  void OnInitWindow();
+  void OnInitWindow() override;
 
   /*! \brief Set the item to display addon info on.
    \param item to display
@@ -76,6 +76,13 @@ private:
    \return true if prompted, false otherwise.
    */
   bool PromptIfDependency(int heading, int line2);
+
+  /*! \brief Show a dialog with the addon's dependencies.
+   *  \param deps List of dependencies
+   *  \param reactivate If true, reactivate info dialog when done
+   *  \return True if okay was selected, false otherwise
+   */
+  bool ShowDependencyList(const ADDON::ADDONDEPS& deps, bool reactivate);
 
   CFileItemPtr m_item;
   ADDON::AddonPtr m_localAddon;

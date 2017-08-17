@@ -23,6 +23,13 @@
 
 struct KodiToAddonFuncTable_Game;
 
+namespace KODI
+{
+namespace KEYBOARD
+{
+  class IKeyboardInputProvider;
+}
+
 namespace GAME
 {
   class CGameClient;
@@ -33,20 +40,21 @@ namespace GAME
    *
    * Listens to keyboard events and forwards them to the games (as game_input_event).
    */
-  class CGameClientKeyboard : public KODI::KEYBOARD::IKeyboardHandler
+  class CGameClientKeyboard : public KEYBOARD::IKeyboardHandler
   {
   public:
     /*!
      * \brief Constructor registers for keyboard events at CInputManager.
      * \param gameClient The game client implementation.
      * \param dllStruct The emulator or game to which the events are sent.
+     * \param inputProvider The interface providing us with keyboard input.
      */
-    CGameClientKeyboard(const CGameClient* gameClient, const KodiToAddonFuncTable_Game* dllStruct);
+    CGameClientKeyboard(const CGameClient* gameClient, const KodiToAddonFuncTable_Game* dllStruct, KEYBOARD::IKeyboardInputProvider *inputProvider);
 
     /*!
      * \brief Destructor unregisters from keyboard events from CInputManager.
      */
-    ~CGameClientKeyboard();
+    virtual ~CGameClientKeyboard();
 
     // implementation of IKeyboardHandler
     virtual bool OnKeyPress(const CKey& key) override;
@@ -56,5 +64,7 @@ namespace GAME
     // Construction parameters
     const CGameClient* const m_gameClient;
     const KodiToAddonFuncTable_Game* const m_dllStruct;
+    KEYBOARD::IKeyboardInputProvider *const m_inputProvider;
   };
+}
 }

@@ -39,9 +39,7 @@
 #ifdef HAS_FILESYSTEM_CDDA
 #include "CDDAFile.h"
 #endif
-#ifdef HAS_FILESYSTEM
 #include "ISOFile.h"
-#endif
 #if defined(TARGET_ANDROID)
 #include "APKFile.h"
 #endif
@@ -77,18 +75,13 @@
 #include "utils/StringUtils.h"
 #include "ServiceBroker.h"
 #include "addons/VFSEntry.h"
-#include "addons/BinaryAddonCache.h"
 
 using namespace ADDON;
 using namespace XFILE;
 
-CFileFactory::CFileFactory()
-{
-}
+CFileFactory::CFileFactory() = default;
 
-CFileFactory::~CFileFactory()
-{
-}
+CFileFactory::~CFileFactory() = default;
 
 IFile* CFileFactory::CreateLoader(const std::string& strFileName)
 {
@@ -102,18 +95,13 @@ IFile* CFileFactory::CreateLoader(const CURL& url)
     return NULL;
 
   std::string strProtocol = url.GetProtocol();
-  StringUtils::ToLower(strProtocol);
-
   if (!strProtocol.empty() && CServiceBroker::IsBinaryAddonCacheUp())
   {
-    VECADDONS addons;
-    ADDON::CBinaryAddonCache &addonCache = CServiceBroker::GetBinaryAddonCache();
-    addonCache.GetAddons(addons, ADDON::ADDON_VFS);
-    for (size_t i=0;i<addons.size();++i)
+    StringUtils::ToLower(strProtocol);
+    for (const auto& vfsAddon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
     {
-      VFSEntryPtr vfs(std::static_pointer_cast<CVFSEntry>(addons[i]));
-      if (vfs->HasFiles() && vfs->GetProtocols().find(strProtocol) != std::string::npos)
-        return new CVFSEntryIFileWrapper(vfs);
+      if (vfsAddon->HasFiles() && vfsAddon->GetProtocols().find(strProtocol) != std::string::npos)
+        return new CVFSEntryIFileWrapper(vfsAddon);
     }
   }
 
@@ -136,9 +124,7 @@ IFile* CFileFactory::CreateLoader(const CURL& url)
 #if defined(HAS_FILESYSTEM_CDDA) && defined(HAS_DVD_DRIVE)
   else if (url.IsProtocol("cdda")) return new CFileCDDA();
 #endif
-#ifdef HAS_FILESYSTEM
   else if (url.IsProtocol("iso9660")) return new CISOFile();
-#endif
   else if(url.IsProtocol("udf")) return new CUDFFile();
 #if defined(TARGET_ANDROID)
   else if (url.IsProtocol("androidapp")) return new CFileAndroidApp();

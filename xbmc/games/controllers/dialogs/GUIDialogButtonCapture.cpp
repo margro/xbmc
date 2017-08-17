@@ -22,11 +22,11 @@
 #include "dialogs/GUIDialogOK.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
-#include "input/joysticks/DefaultJoystick.h"
-#include "input/joysticks/IActionMap.h"
+#include "input/joysticks/JoystickIDs.h"
 #include "input/joysticks/IButtonMap.h"
 #include "input/joysticks/IButtonMapCallback.h"
 #include "input/joysticks/JoystickUtils.h"
+#include "input/IKeymap.h"
 #include "input/ActionIDs.h"
 #include "peripherals/Peripherals.h"
 #include "utils/Variant.h"
@@ -50,8 +50,6 @@ std::string CGUIDialogButtonCapture::ControllerID(void) const
 
 void CGUIDialogButtonCapture::Show()
 {
-  using namespace KODI::MESSAGING;
-
   if (!IsRunning())
   {
     InstallHooks();
@@ -87,31 +85,35 @@ void CGUIDialogButtonCapture::Process()
 }
 
 bool CGUIDialogButtonCapture::MapPrimitive(JOYSTICK::IButtonMap* buttonMap,
-                                           JOYSTICK::IActionMap* actionMap,
+                                           IKeymap* keymap,
                                            const JOYSTICK::CDriverPrimitive& primitive)
 {
   if (m_bStop)
     return false;
 
   // First check to see if driver primitive closes the dialog
-  if (actionMap && actionMap->ControllerID() == buttonMap->ControllerID())
+  if (keymap && keymap->ControllerID() == buttonMap->ControllerID())
   {
     std::string feature;
     if (buttonMap->GetFeature(primitive, feature))
     {
-      switch (actionMap->GetActionID(feature))
+      const auto &actions = keymap->GetActions(JOYSTICK::CJoystickUtils::MakeKeyName(feature));
+      if (!actions.empty())
       {
+        switch (actions.begin()->actionId)
+        {
         case ACTION_SELECT_ITEM:
         case ACTION_NAV_BACK:
         case ACTION_PREVIOUS_MENU:
           return false;
         default:
           break;
+        }
       }
     }
   }
 
-  return MapPrimitiveInternal(buttonMap, actionMap, primitive);
+  return MapPrimitiveInternal(buttonMap, keymap, primitive);
 }
 
 void CGUIDialogButtonCapture::InstallHooks(void)

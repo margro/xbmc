@@ -121,6 +121,8 @@ static KeyMap keyMap[] = {
   { AKEYCODE_MUTE            , XBMCK_LAST },
   { AKEYCODE_PAGE_UP         , XBMCK_PAGEUP },
   { AKEYCODE_PAGE_DOWN       , XBMCK_PAGEDOWN },
+  { AKEYCODE_MOVE_HOME       , XBMCK_HOME },
+  { AKEYCODE_MOVE_END        , XBMCK_END },
   { AKEYCODE_PICTSYMBOLS     , XBMCK_LAST },
   { AKEYCODE_SWITCH_CHARSET  , XBMCK_LAST },
   { AKEYCODE_BUTTON_A        , XBMCK_LAST },
@@ -202,8 +204,10 @@ bool CAndroidKey::onKeyboardEvent(AInputEvent *event)
   int32_t keycode = AKeyEvent_getKeyCode(event);
 
   int32_t deviceId = AInputEvent_getDeviceId(event);
+  uint16_t unicode = 0;
   CJNIKeyCharacterMap map = CJNIKeyCharacterMap::load(deviceId);
-  uint16_t unicode = map.get(keycode, state);
+  if (map)
+    unicode = map.get(keycode, state);
 
   // Check if we got some special key
   uint16_t sym = XBMCK_UNKNOWN;
@@ -325,7 +329,6 @@ void CAndroidKey::XBMC_Key(uint8_t code, uint16_t key, uint16_t modifiers, uint1
 
   unsigned char type = up ? XBMC_KEYUP : XBMC_KEYDOWN;
   newEvent.type = type;
-  newEvent.key.type = type;
   newEvent.key.keysym.scancode = code;
   newEvent.key.keysym.sym = (XBMCKey)key;
   newEvent.key.keysym.unicode = unicode;

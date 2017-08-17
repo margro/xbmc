@@ -26,6 +26,7 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 #include "libavutil/avutil.h"
+#include "libavutil/channel_layout.h"
 #include "libswresample/swresample.h"
 }
 
@@ -34,40 +35,37 @@ class CProcessInfo;
 class CDVDAudioCodecFFmpeg : public CDVDAudioCodec
 {
 public:
-  CDVDAudioCodecFFmpeg(CProcessInfo &processInfo);
-  virtual ~CDVDAudioCodecFFmpeg();
-  virtual bool Open(CDVDStreamInfo &hints, CDVDCodecOptions &options);
-  virtual void Dispose();
-  virtual int Decode(uint8_t* pData, int iSize, double dts, double pts);
-  virtual void GetData(DVDAudioFrame &frame);
-  virtual int GetData(uint8_t** dst);
-  virtual void Reset();
-  virtual AEAudioFormat GetFormat() { return m_format; }
-  virtual const char* GetName() { return "FFmpeg"; }
-  virtual enum AVMatrixEncoding GetMatrixEncoding();
-  virtual enum AVAudioServiceType GetAudioServiceType();
-  virtual int GetProfile();
+  explicit CDVDAudioCodecFFmpeg(CProcessInfo &processInfo);
+  ~CDVDAudioCodecFFmpeg() override;
+  bool Open(CDVDStreamInfo &hints,
+                    CDVDCodecOptions &options) override;
+  void Dispose() override;
+  bool AddData(const DemuxPacket &packet) override;
+  void GetData(DVDAudioFrame &frame) override;
+  int GetData(uint8_t** dst) override;
+  void Reset() override;
+  AEAudioFormat GetFormat() override { return m_format; }
+  const char* GetName() override { return "FFmpeg"; }
+  enum AVMatrixEncoding GetMatrixEncoding() override;
+  enum AVAudioServiceType GetAudioServiceType() override;
+  int GetProfile() override;
 
 protected:
   enum AEDataFormat GetDataFormat();
   int GetSampleRate();
   int GetChannels();
   CAEChannelInfo GetChannelMap();
-  int GetBitRate();
+  int GetBitRate() override;
+  void BuildChannelMap();
 
   AEAudioFormat m_format;
   AVCodecContext* m_pCodecContext;
   enum AVSampleFormat m_iSampleFormat;
   CAEChannelInfo m_channelLayout;
-  enum AVMatrixEncoding m_matrixEncoding;
-
-  AVFrame* m_pFrame1;
-  int m_gotFrame;
-
+  enum AVMatrixEncoding m_matrixEncoding = AV_MATRIX_ENCODING_NONE;
+  AVFrame* m_pFrame;
+  bool m_eof;
   int m_channels;
   uint64_t m_layout;
-
-  void BuildChannelMap();
-  void ConvertToFloat();
 };
 

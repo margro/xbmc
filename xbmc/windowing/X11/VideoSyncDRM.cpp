@@ -20,8 +20,6 @@
 
 #include "system.h"
 
-#if defined(HAVE_X11)
-
 #include "VideoSyncDRM.h"
 #include "xf86drm.h"
 #include <sys/poll.h>
@@ -78,7 +76,7 @@ bool CVideoSyncDRM::Setup(PUPDATECLOCK func)
   return true;
 }
 
-void CVideoSyncDRM::Run(std::atomic<bool>& stop)
+void CVideoSyncDRM::Run(CEvent& stopEvent)
 {
   drmVBlank vbl;
   VblInfo info;
@@ -118,7 +116,7 @@ void CVideoSyncDRM::Run(std::atomic<bool>& stop)
   FD_ZERO(&fds);
   FD_SET(m_fd, &fds);
 
-  while (!stop && !m_abort)
+  while (!stopEvent.Signaled() && !m_abort)
   {
     timeout.tv_sec = 1;
     timeout.tv_usec = 0;
@@ -148,7 +146,7 @@ void CVideoSyncDRM::EventHandler(int fd, unsigned int frame, unsigned int sec,
                                  unsigned int usec, void *data)
 {
   drmVBlank vbl;
-  VblInfo *info = (VblInfo*)data;
+  VblInfo *info = static_cast<VblInfo*>(data);
   drmVBlankSeqType crtcSel = CrtcSel();
 
   vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT | crtcSel);
@@ -181,5 +179,3 @@ void CVideoSyncDRM::RefreshChanged()
   if (m_fps != g_graphicsContext.GetFPS())
     m_abort = true;
 }
-
-#endif

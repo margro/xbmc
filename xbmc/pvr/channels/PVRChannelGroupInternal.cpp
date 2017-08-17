@@ -20,14 +20,14 @@
 
 #include "PVRChannelGroupInternal.h"
 
-#include <cassert>
 #include <utility>
 
-#include "dialogs/GUIDialogOK.h"
 #include "ServiceBroker.h"
+#include "dialogs/GUIDialogOK.h"
+#include "guilib/LocalizeStrings.h"
 #include "settings/AdvancedSettings.h"
-#include "utils/log.h"
 #include "utils/Variant.h"
+#include "utils/log.h"
 
 #include "pvr/PVRDatabase.h"
 #include "pvr/PVRManager.h"
@@ -99,8 +99,6 @@ void CPVRChannelGroupInternal::UpdateChannelPaths(void)
 
 CPVRChannelPtr CPVRChannelGroupInternal::UpdateFromClient(const CPVRChannelPtr &channel, unsigned int iChannelNumber /* = 0 */)
 {
-  assert(channel.get());
-
   CSingleLock lock(m_critSection);
   const PVRChannelGroupMember& realChannel(GetByUniqueID(channel->StorageId()));
   if (realChannel.channel)
@@ -161,8 +159,6 @@ bool CPVRChannelGroupInternal::AddToGroup(const CPVRChannelPtr &channel, int iCh
 
 bool CPVRChannelGroupInternal::RemoveFromGroup(const CPVRChannelPtr &channel)
 {
-  assert(channel.get());
-
   if (!IsGroupMember(channel))
     return false;
 
@@ -312,23 +308,8 @@ bool CPVRChannelGroupInternal::UpdateGroupEntries(const CPVRChannelGroup &channe
 
 void CPVRChannelGroupInternal::CreateChannelEpg(const CPVRChannelPtr &channel, bool bForce /* = false */)
 {
-  if (!channel)
-    return;
-
-  CSingleLock lock(channel->m_critSection);
-  if (!channel->m_bEPGCreated || bForce)
-  {
-    CPVREpgPtr epg = CServiceBroker::GetPVRManager().EpgContainer().CreateChannelEpg(channel);
-    if (epg)
-    {
-      channel->m_bEPGCreated = true;
-      if (epg->EpgID() != channel->m_iEpgId)
-      {
-        channel->m_iEpgId = epg->EpgID();
-        channel->m_bChanged = true;
-      }
-    }
-  }
+  if (channel)
+    channel->CreateEPG(bForce);
 }
 
 bool CPVRChannelGroupInternal::CreateChannelEpgs(bool bForce /* = false */)

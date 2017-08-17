@@ -21,12 +21,16 @@
 
 #include "view/GUIViewState.h"
 
+namespace KODI
+{
 namespace GAME
 {
   class CGUIViewStateWindowGames : public CGUIViewState
   {
   public:
-    CGUIViewStateWindowGames(const CFileItemList& items);
+    explicit CGUIViewStateWindowGames(const CFileItemList& items);
+
+    virtual ~CGUIViewStateWindowGames() = default;
 
     // implementation of CGUIViewState
     virtual std::string GetLockType() override;
@@ -37,4 +41,5 @@ namespace GAME
     // implementation of CGUIViewState
     virtual void SaveViewState() override;
   };
+}
 }

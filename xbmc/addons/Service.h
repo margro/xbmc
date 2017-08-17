@@ -18,42 +18,76 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #include "Addon.h"
+#include "AddonEvents.h"
+#include "threads/CriticalSection.h"
 
 namespace ADDON
 {
 
+  enum class START_OPTION
+  {
+    STARTUP,
+    LOGIN
+  };
+
   class CService: public CAddon
   {
   public:
+    static std::unique_ptr<CService> FromExtension(CAddonInfo addonInfo, const cp_extension_t* ext);
 
-    enum TYPE
-    {
-      UNKNOWN,
-      PYTHON
-    };
+    explicit CService(CAddonInfo addonInfo) : CAddon(std::move(addonInfo)),
+        m_startOption(START_OPTION::LOGIN) {}
 
-    enum START_OPTION
-    {
-      STARTUP,
-      LOGIN
-    };
+    CService(CAddonInfo addonInfo, START_OPTION startOption);
 
-    static std::unique_ptr<CService> FromExtension(AddonProps props, const cp_extension_t* ext);
-
-    explicit CService(AddonProps props) : CAddon(std::move(props)), m_type(UNKNOWN), m_startOption(LOGIN) {}
-    CService(AddonProps props, TYPE type, START_OPTION startOption);
-
-    bool Start();
-    bool Stop();
-    TYPE GetServiceType() { return m_type; }
     START_OPTION GetStartOption() { return m_startOption; }
 
-  protected:
-    void BuildServiceType();
+  private:
+    START_OPTION m_startOption;
+  };
+
+  class CServiceAddonManager
+  {
+  public:
+    explicit CServiceAddonManager(CAddonMgr& addonMgr);
+    ~CServiceAddonManager();
+
+    /**
+     * Start all services.
+     */
+    void Start();
+
+    /**
+     * Start services that have start option 'startup'.
+     */
+    void StartBeforeLogin();
+
+    /**
+     * Start service by add-on id.
+     */
+    void Start(const AddonPtr& addon);
+    void Start(const std::string& addonId);
+
+    /**
+     * Stop all services.
+     */
+    void Stop();
+
+    /**
+     * Stop service by add-on id.
+     */
+    void Stop(const std::string& addonId);
 
   private:
-    TYPE m_type;
-    START_OPTION m_startOption;
+    void OnEvent(const AddonEvent& event);
+
+    void Stop(std::map<std::string, int>::value_type service);
+
+    CAddonMgr& m_addonMgr;
+    CCriticalSection m_criticalSection;
+    /** add-on id -> script id */
+    std::map<std::string, int> m_services;
   };
 }

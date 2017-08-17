@@ -51,7 +51,7 @@ configure_file(${CMAKE_SOURCE_DIR}/tools/Linux/kodi.desktop.in
 install(TARGETS ${APP_NAME_LC}
         DESTINATION ${libdir}/${APP_NAME_LC}
         COMPONENT kodi-bin)
-if(ENABLE_X11 AND XRANDR_FOUND)
+if(X_FOUND AND XRANDR_FOUND)
   install(TARGETS ${APP_NAME_LC}-xrandr
           DESTINATION ${libdir}/${APP_NAME_LC}
           COMPONENT kodi-bin)
@@ -146,23 +146,16 @@ if(NOT WITH_TEXTUREPACKER)
 endif()
 
 # Install kodi-addon-dev headers
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_vfs_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_vfs_utils.hpp
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_adsp.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_audioengine.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_guilib.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_inputstream.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_peripheral.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libXBMC_addon.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libXBMC_codec.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libXBMC_pvr.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/libKODI_game.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_addon_cpp_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_addon_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_addon_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_codec_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/
+        DESTINATION ${includedir}/${APP_NAME_LC}
+        COMPONENT kodi-addon-dev
+        REGEX ".txt" EXCLUDE)
+
+install(FILES ${CMAKE_SOURCE_DIR}/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h
+              ${CMAKE_SOURCE_DIR}/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxCrypto.h
+              ${CMAKE_SOURCE_DIR}/xbmc/cores/AudioEngine/Utils/AEChannelData.h
               ${CMAKE_SOURCE_DIR}/xbmc/filesystem/IFileTypes.h
+              ${CMAKE_SOURCE_DIR}/xbmc/input/ActionIDs.h
               ${CMAKE_SOURCE_DIR}/xbmc/input/XBMC_vkeys.h
         DESTINATION ${includedir}/${APP_NAME_LC}
         COMPONENT kodi-addon-dev)
@@ -183,24 +176,6 @@ install(FILES ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/scripts/${APP_NAME}Config.cm
               ${CMAKE_SOURCE_DIR}/cmake/scripts/linux/PathSetup.cmake
         DESTINATION ${datarootdir}/${APP_NAME_LC}/cmake
         COMPONENT kodi-addon-dev)
-
-# Install kodi-audio-dev
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/cores/AudioEngine/Utils/AEChannelData.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_adsp_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_adsp_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_audiodec_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_audiodec_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_audioenc_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_audioenc_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_audioengine_types.h
-        DESTINATION ${includedir}/${APP_NAME_LC}
-        COMPONENT kodi-audio-dev)
-
-# Install kodi-image-dev
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_imagedec_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_imagedec_dll.h
-        DESTINATION ${includedir}/${APP_NAME_LC}
-        COMPONENT kodi-image-dev)
 
 if(ENABLE_EVENTCLIENTS)
   execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(prefix='')"
@@ -293,51 +268,6 @@ if(ENABLE_EVENTCLIENTS)
           COMPONENT kodi-eventclients-xbmc-send)
 endif()
 
-# Install kodi-inputstream-dev
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_inputstream_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_inputstream_types.h
-        DESTINATION ${includedir}/${APP_NAME_LC}
-        COMPONENT kodi-inputstream-dev)
-
-# Install kodi-pvr-dev
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_epg_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h
-        DESTINATION ${includedir}/${APP_NAME_LC}
-        COMPONENT kodi-pvr-dev)
-
-# Install kodi-screensaver-dev
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_scr_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_scr_types.h
-        DESTINATION ${includedir}/${APP_NAME_LC}
-        COMPONENT kodi-screensaver-dev)
-
-# Install kodi-visualization-dev
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_vis_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/xbmc_vis_types.h
-        DESTINATION ${includedir}/${APP_NAME_LC}
-        COMPONENT kodi-visualization-dev)
-
-# Install kodi-peripheral-dev
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_types.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_peripheral_utils.hpp
-        DESTINATION ${includedir}/${APP_NAME_LC}
-        COMPONENT kodi-peripheral-dev)
-
-# Install kodi-game-dev
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_dll.h
-              ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h
-        DESTINATION ${includedir}/${APP_NAME_LC}
-        COMPONENT kodi-game-dev)
-
-# Install kodi-vfs-dev
-install(FILES ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_vfs_dll.h
-              ${CORE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/kodi_vfs_types.h
-              ${CORE_SOURCE_DIR}/xbmc/filesystem/IFileTypes.h
-        DESTINATION include/${APP_NAME_LC}
-        COMPONENT kodi-vfs-dev)
-
 # Install XBT skin files
 foreach(texture ${XBT_FILES})
   string(REPLACE "${CMAKE_BINARY_DIR}/" "" dir ${texture})
@@ -372,7 +302,7 @@ endforeach()
 
 # generate packages? yes please, if everything checks out
 if(CPACK_GENERATOR)
-  if(CPACK_GENERATOR STREQUAL DEB AND ( CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL rbpi ) )
+  if(CPACK_GENERATOR STREQUAL DEB AND CORE_SYSTEM_NAME STREQUAL linux)
     if(CMAKE_BUILD_TYPE STREQUAL Debug)
       message(STATUS "DEB Generator: Build type is set to 'Debug'. Packaged binaries will be unstripped.")
     endif()

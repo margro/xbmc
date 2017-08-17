@@ -31,16 +31,16 @@
 class CInputCodingTableBaiduPY : public IInputCodingTable, public CThread
 {
 public:
-  CInputCodingTableBaiduPY(const std::string& strUrl);
-  virtual ~CInputCodingTableBaiduPY() {}
+  explicit CInputCodingTableBaiduPY(const std::string& strUrl);
+  ~CInputCodingTableBaiduPY() override = default;
 
-  virtual void Initialize() override;
-  virtual void Deinitialize() override;
-  virtual bool IsInitialized() const override;
-  virtual bool GetWordListPage(const std::string& strCode, bool isFirstPage) override;
-  virtual void Process() override;
+  void Initialize() override;
+  void Deinitialize() override;
+  bool IsInitialized() const override;
+  bool GetWordListPage(const std::string& strCode, bool isFirstPage) override;
+  void Process() override;
 
-  virtual std::vector<std::wstring> GetResponse(int response) override;
+  std::vector<std::wstring> GetResponse(int response) override;
 private:
   std::wstring UnicodeToWString(const std::string& unicode);
   void HandleResponse(const std::string& strCode, const std::string& response);

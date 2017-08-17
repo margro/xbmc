@@ -25,59 +25,59 @@
 class CGUIViewStateWindowMusic : public CGUIViewState
 {
 public:
-  CGUIViewStateWindowMusic(const CFileItemList& items) : CGUIViewState(items) {}
+  explicit CGUIViewStateWindowMusic(const CFileItemList& items) : CGUIViewState(items) {}
 protected:
-  virtual VECSOURCES& GetSources();
-  virtual int GetPlaylist();
-  virtual bool AutoPlayNextItem();
-  virtual std::string GetLockType();
-  virtual std::string GetExtensions();
+  VECSOURCES& GetSources() override;
+  int GetPlaylist() override;
+  bool AutoPlayNextItem() override;
+  std::string GetLockType() override;
+  std::string GetExtensions() override;
 };
 
 class CGUIViewStateMusicSearch : public CGUIViewStateWindowMusic
 {
 public:
-  CGUIViewStateMusicSearch(const CFileItemList& items);
+  explicit CGUIViewStateMusicSearch(const CFileItemList& items);
 
 protected:
-  virtual void SaveViewState();
+  void SaveViewState() override;
 };
 
 class CGUIViewStateMusicDatabase : public CGUIViewStateWindowMusic
 {
 public:
-  CGUIViewStateMusicDatabase(const CFileItemList& items);
+  explicit CGUIViewStateMusicDatabase(const CFileItemList& items);
 
 protected:
-  virtual void SaveViewState();
+  void SaveViewState() override;
 };
 
 class CGUIViewStateMusicSmartPlaylist : public CGUIViewStateWindowMusic
 {
 public:
-  CGUIViewStateMusicSmartPlaylist(const CFileItemList& items);
+  explicit CGUIViewStateMusicSmartPlaylist(const CFileItemList& items);
 
 protected:
-  virtual void SaveViewState();
+  void SaveViewState() override;
 };
 
 class CGUIViewStateMusicPlaylist : public CGUIViewStateWindowMusic
 {
 public:
-  CGUIViewStateMusicPlaylist(const CFileItemList& items);
+  explicit CGUIViewStateMusicPlaylist(const CFileItemList& items);
 
 protected:
-  virtual void SaveViewState();
+  void SaveViewState() override;
 };
 
 class CGUIViewStateWindowMusicNav : public CGUIViewStateWindowMusic
 {
 public:
-  CGUIViewStateWindowMusicNav(const CFileItemList& items);
+  explicit CGUIViewStateWindowMusicNav(const CFileItemList& items);
 
 protected:
-  virtual void SaveViewState();
-  virtual VECSOURCES& GetSources();
+  void SaveViewState() override;
+  VECSOURCES& GetSources() override;
 
 private:
   void AddOnlineShares();
@@ -86,12 +86,12 @@ private:
 class CGUIViewStateWindowMusicPlaylist : public CGUIViewStateWindowMusic
 {
 public:
-  CGUIViewStateWindowMusicPlaylist(const CFileItemList& items);
+  explicit CGUIViewStateWindowMusicPlaylist(const CFileItemList& items);
 
 protected:
-  virtual void SaveViewState();
-  virtual int GetPlaylist();
-  virtual bool AutoPlayNextItem();
-  virtual bool HideParentDirItems();
-  virtual VECSOURCES& GetSources();
+  void SaveViewState() override;
+  int GetPlaylist() override;
+  bool AutoPlayNextItem() override;
+  bool HideParentDirItems() override;
+  VECSOURCES& GetSources() override;
 };

@@ -26,13 +26,13 @@
 class CInfoLoader : public IJobCallback
 {
 public:
-  CInfoLoader(unsigned int timeToRefresh = 5 * 60 * 1000);
-  virtual ~CInfoLoader();
+  explicit CInfoLoader(unsigned int timeToRefresh = 5 * 60 * 1000);
+  ~CInfoLoader() override;
 
   std::string GetInfo(int info);
   void Refresh();
 
-  virtual void OnJobComplete(unsigned int jobID, bool success, CJob *job);
+  void OnJobComplete(unsigned int jobID, bool success, CJob *job) override;
 protected:
   virtual CJob *GetJob() const=0;
   virtual std::string TranslateInfo(int info) const;

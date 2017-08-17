@@ -33,7 +33,7 @@ namespace XBMCAddon
   class CallbackHandler : public AddonClass
   {
   protected:
-    inline CallbackHandler() {}
+    inline CallbackHandler() = default;
 
   public:
     virtual void invokeCallback(Callback* cb) = 0;
@@ -54,12 +54,12 @@ namespace XBMCAddon
   class RetardedAsyncCallbackHandler : public CallbackHandler
   {
   protected:
-    inline RetardedAsyncCallbackHandler() {}
+    inline RetardedAsyncCallbackHandler() = default;
   public:
 
-    virtual ~RetardedAsyncCallbackHandler();
+    ~RetardedAsyncCallbackHandler() override;
 
-    virtual void invokeCallback(Callback* cb);
+    void invokeCallback(Callback* cb) override;
     static void makePendingCalls();
     static void clearPendingCalls(void* userData);
 

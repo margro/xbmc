@@ -53,6 +53,7 @@
 #define LOGCEC        (1 << (LOGMASKBIT + 9))
 #define LOGVIDEO      (1 << (LOGMASKBIT + 10))
 #define LOGWEBSERVER  (1 << (LOGMASKBIT + 11))
+#define LOGDATABASE   (1 << (LOGMASKBIT + 12))
 
 #include "utils/params_check_macros.h"
 
@@ -61,7 +62,7 @@ namespace XbmcCommons
   class ILogger
   {
   public:
-    virtual ~ILogger() {}
+    virtual ~ILogger() = default;
     void Log(int loglevel, PRINTF_FORMAT_STRING const char *format, ...) PARAM3_PRINTF_FORMAT;
 
     virtual void log(int loglevel, IN_STRING const char* message) = 0;

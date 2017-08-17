@@ -32,7 +32,7 @@
 #include "FileItem.h"
 #include "music/MusicThumbLoader.h"
 #include "music/tags/MusicInfoTag.h"
-#if defined(HAS_OMXPLAYER)
+#if defined(TARGET_RASPBERRY_PI)
 #include "cores/omxplayer/OMXImage.h"
 #endif
 
@@ -43,9 +43,7 @@ CTextureCacheJob::CTextureCacheJob(const std::string &url, const std::string &ol
 {
 }
 
-CTextureCacheJob::~CTextureCacheJob()
-{
-}
+CTextureCacheJob::~CTextureCacheJob() = default;
 
 bool CTextureCacheJob::operator==(const CJob* job) const
 {
@@ -90,7 +88,7 @@ bool CTextureCacheJob::CacheTexture(CBaseTexture **out_texture)
   else if (m_details.hash == m_oldHash)
     return true;
 
-#if defined(HAS_OMXPLAYER)
+#if defined(TARGET_RASPBERRY_PI)
   if (COMXImage::CreateThumb(image, width, height, additional_info, CTextureCache::GetCachedPath(m_cachePath + ".jpg")))
   {
     m_details.width = width;
@@ -231,6 +229,10 @@ bool CTextureCacheJob::UpdateableURL(const std::string &url) const
 
 std::string CTextureCacheJob::GetImageHash(const std::string &url)
 {
+  // silently ignore - we cannot state these
+  if (URIUtils::IsProtocol(url,"addons") || URIUtils::IsProtocol(url,"plugin"))
+    return "";
+
   struct __stat64 st;
   if (XFILE::CFile::Stat(url, &st) == 0)
   {

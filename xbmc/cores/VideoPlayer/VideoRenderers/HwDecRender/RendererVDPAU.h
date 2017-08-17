@@ -22,33 +22,38 @@
 
 #include "system.h"
 
-#ifdef HAVE_LIBVDPAU
-
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h"
+#include "VdpauGL.h"
 
 class CRendererVDPAU : public CLinuxRendererGL
 {
 public:
   CRendererVDPAU();
-  virtual ~CRendererVDPAU();
+  ~CRendererVDPAU() override;
+
+  static CBaseRenderer* Create(CVideoBuffer *buffer);
+  static bool Register();
+
+  bool Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation) override;
 
   // Player functions
-  virtual void AddVideoPictureHW(DVDVideoPicture &picture, int index);
-  virtual void ReleaseBuffer(int idx);
-  virtual CRenderInfo GetRenderInfo();
+  void ReleaseBuffer(int idx) override;
+  bool ConfigChanged(const VideoPicture &picture) override;
+  bool NeedBuffer(int idx) override;
 
   // Feature support
-  virtual bool Supports(ERENDERFEATURE feature);
-  virtual bool Supports(ESCALINGMETHOD method);
+  bool Supports(ERENDERFEATURE feature) override;
+  bool Supports(ESCALINGMETHOD method) override;
 
 protected:
-  virtual bool LoadShadersHook();
-  virtual bool RenderHook(int idx);
+  bool LoadShadersHook() override;
+  bool RenderHook(int idx) override;
+  void AfterRenderHook(int idx) override;
 
   // textures
-  virtual bool UploadTexture(int index);
-  virtual void DeleteTexture(int index);
-  virtual bool CreateTexture(int index);
+  bool UploadTexture(int index) override;
+  void DeleteTexture(int index) override;
+  bool CreateTexture(int index) override;
 
   bool CreateVDPAUTexture(int index);
   void DeleteVDPAUTexture(int index);
@@ -57,7 +62,14 @@ protected:
   bool CreateVDPAUTexture420(int index);
   void DeleteVDPAUTexture420(int index);
   bool UploadVDPAUTexture420(int index);
+
+  EShaderFormat GetShaderFormat() override;
+
+  bool m_isYuv = false;
+
+  VDPAU::CInteropState m_interopState;
+  VDPAU::CVdpauTexture m_vdpauTextures[NUM_BUFFERS];
+  GLsync m_fences[NUM_BUFFERS];
 };
 
-#endif
 

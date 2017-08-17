@@ -56,8 +56,7 @@ CGUIWindowSettingsScreenCalibration::CGUIWindowSettingsScreenCalibration(void)
   m_needsScaling = false;         // we handle all the scaling
 }
 
-CGUIWindowSettingsScreenCalibration::~CGUIWindowSettingsScreenCalibration(void)
-{}
+CGUIWindowSettingsScreenCalibration::~CGUIWindowSettingsScreenCalibration(void) = default;
 
 
 bool CGUIWindowSettingsScreenCalibration::OnAction(const CAction &action)
@@ -102,6 +101,7 @@ bool CGUIWindowSettingsScreenCalibration::OnAction(const CAction &action)
   // ignore all gesture meta actions
   case ACTION_GESTURE_BEGIN:
   case ACTION_GESTURE_END:
+  case ACTION_GESTURE_ABORT:
   case ACTION_GESTURE_NOTIFY:
   case ACTION_GESTURE_PAN:
   case ACTION_GESTURE_ROTATE:

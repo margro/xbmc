@@ -74,6 +74,11 @@ if(PULSEAUDIO_FOUND)
   list(APPEND HEADERS Sinks/AESinkPULSE.h)
 endif()
 
+if(SNDIO_FOUND)
+  list(APPEND SOURCES Sinks/AESinkSNDIO.cpp)
+  list(APPEND HEADERS Sinks/AESinkSNDIO.h)
+endif()
+
 if(FFMPEG_FOUND)
   list(APPEND SOURCES Engines/ActiveAE/ActiveAEResampleFFMPEG.cpp)
   list(APPEND HEADERS Engines/ActiveAE/ActiveAEResampleFFMPEG.h)
@@ -86,7 +91,7 @@ if(CORE_SYSTEM_NAME STREQUAL windows)
                       Sinks/AESinkWASAPI.h)
 endif()
 
-if(CORE_SYSTEM_NAME STREQUAL rbpi)
+if(CORE_PLATFORM_NAME_LC STREQUAL rbpi)
   list(APPEND SOURCES Engines/ActiveAE/ActiveAEResamplePi.cpp
                       Sinks/AESinkPi.cpp)
   list(APPEND HEADERS Engines/ActiveAE/ActiveAEResamplePi.h

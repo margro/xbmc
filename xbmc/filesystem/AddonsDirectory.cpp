@@ -26,6 +26,7 @@
 #include "ServiceBroker.h"
 #include "addons/AddonDatabase.h"
 #include "addons/AddonSystemSettings.h"
+#include "guilib/LocalizeStrings.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "FileItem.h"
 #include "addons/AddonInstaller.h"
@@ -37,21 +38,21 @@
 #include "games/GameUtils.h"
 #include "guilib/TextureManager.h"
 #include "File.h"
-#include "ServiceBroker.h"
 #include "settings/Settings.h"
 #include "SpecialProtocol.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "URL.h"
 
+using namespace KODI;
 using namespace ADDON;
 
 namespace XFILE
 {
 
-CAddonsDirectory::CAddonsDirectory(void) {}
+CAddonsDirectory::CAddonsDirectory(void) = default;
 
-CAddonsDirectory::~CAddonsDirectory(void) {}
+CAddonsDirectory::~CAddonsDirectory(void) = default;
 
 const auto CATEGORY_INFO_PROVIDERS = "category.infoproviders";
 const auto CATEGORY_LOOK_AND_FEEL = "category.lookandfeel";
@@ -164,7 +165,6 @@ static bool IsUserInstalled(const AddonPtr& addon)
       [&](TYPE type){ return addon->IsType(type); }) == dependencyTypes.end();
 }
 
-
 static bool IsOrphaned(const AddonPtr& addon, const VECADDONS& all)
 {
   if (CAddonMgr::GetInstance().IsSystemAddon(addon->ID()) || IsUserInstalled(addon))
@@ -179,7 +179,6 @@ static bool IsOrphaned(const AddonPtr& addon, const VECADDONS& all)
   return true;
 }
 
-
 // Creates categories from addon types, if we have any addons with that type.
 static void GenerateTypeListing(const CURL& path, const std::set<TYPE>& types,
     const VECADDONS& addons, CFileItemList& items)
@@ -190,12 +189,12 @@ static void GenerateTypeListing(const CURL& path, const std::set<TYPE>& types,
     {
       if (addon->IsType(type))
       {
-        CFileItemPtr item(new CFileItem(TranslateType(type, true)));
+        CFileItemPtr item(new CFileItem(CAddonInfo::TranslateType(type, true)));
         CURL itemPath = path;
-        itemPath.SetFileName(TranslateType(type, false));
+        itemPath.SetFileName(CAddonInfo::TranslateType(type, false));
         item->SetPath(itemPath.Get());
         item->m_bIsFolder = true;
-        std::string thumb = GetIcon(type);
+        std::string thumb = CAddonInfo::TranslateIconType(type);
         if (!thumb.empty() && g_TextureManager.HasTexture(thumb))
           item->SetArt("thumb", thumb);
         items.Add(item);
@@ -213,12 +212,12 @@ static void GenerateGameListing(const CURL& path, const VECADDONS& addons, CFile
   {
     if (addon->Type() == ADDON_GAME_CONTROLLER)
     {
-      CFileItemPtr item(new CFileItem(TranslateType(ADDON_GAME_CONTROLLER, true)));
+      CFileItemPtr item(new CFileItem(CAddonInfo::TranslateType(ADDON_GAME_CONTROLLER, true)));
       CURL itemPath = path;
-      itemPath.SetFileName(TranslateType(ADDON_GAME_CONTROLLER, false));
+      itemPath.SetFileName(CAddonInfo::TranslateType(ADDON_GAME_CONTROLLER, false));
       item->SetPath(itemPath.Get());
       item->m_bIsFolder = true;
-      std::string thumb = GetIcon(ADDON_GAME_CONTROLLER);
+      std::string thumb = CAddonInfo::TranslateIconType(ADDON_GAME_CONTROLLER);
       if (!thumb.empty() && g_TextureManager.HasTexture(thumb))
         item->SetArt("thumb", thumb);
       items.Add(item);
@@ -235,7 +234,7 @@ static void GenerateGameListing(const CURL& path, const VECADDONS& addons, CFile
       itemPath.SetFileName(CATEGORY_EMULATORS);
       item->SetPath(itemPath.Get());
       item->m_bIsFolder = true;
-      std::string thumb = GetIcon(ADDON_GAMEDLL);
+      std::string thumb = CAddonInfo::TranslateIconType(ADDON_GAMEDLL);
       if (!thumb.empty() && g_TextureManager.HasTexture(thumb))
         item->SetArt("thumb", thumb);
       items.Add(item);
@@ -252,7 +251,7 @@ static void GenerateGameListing(const CURL& path, const VECADDONS& addons, CFile
       itemPath.SetFileName(CATEGORY_STANDALONE_GAMES);
       item->SetPath(itemPath.Get());
       item->m_bIsFolder = true;
-      std::string thumb = GetIcon(ADDON_GAMEDLL);
+      std::string thumb = CAddonInfo::TranslateIconType(ADDON_GAMEDLL);
       if (!thumb.empty() && g_TextureManager.HasTexture(thumb))
         item->SetArt("thumb", thumb);
       items.Add(item);
@@ -269,7 +268,7 @@ static void GenerateGameListing(const CURL& path, const VECADDONS& addons, CFile
       itemPath.SetFileName(CATEGORY_GAME_PROVIDERS);
       item->SetPath(itemPath.Get());
       item->m_bIsFolder = true;
-      std::string thumb = GetIcon(ADDON_GAMEDLL);
+      std::string thumb = CAddonInfo::TranslateIconType(ADDON_GAMEDLL);
       if (!thumb.empty() && g_TextureManager.HasTexture(thumb))
         item->SetArt("thumb", thumb);
       items.Add(item);
@@ -286,7 +285,7 @@ static void GenerateGameListing(const CURL& path, const VECADDONS& addons, CFile
       itemPath.SetFileName(CATEGORY_GAME_RESOURCES);
       item->SetPath(itemPath.Get());
       item->m_bIsFolder = true;
-      std::string thumb = GetIcon(ADDON_GAMEDLL);
+      std::string thumb = CAddonInfo::TranslateIconType(ADDON_GAMEDLL);
       if (!thumb.empty() && g_TextureManager.HasTexture(thumb))
         item->SetArt("thumb", thumb);
       items.Add(item);
@@ -303,7 +302,7 @@ static void GenerateGameListing(const CURL& path, const VECADDONS& addons, CFile
       itemPath.SetFileName(CATEGORY_GAME_SUPPORT_ADDONS);
       item->SetPath(itemPath.Get());
       item->m_bIsFolder = true;
-      std::string thumb = GetIcon(ADDON_GAMEDLL);
+      std::string thumb = CAddonInfo::TranslateIconType(ADDON_GAMEDLL);
       if (!thumb.empty() && g_TextureManager.HasTexture(thumb))
         item->SetArt("thumb", thumb);
       items.Add(item);
@@ -338,10 +337,10 @@ static void GenerateMainCategoryListing(const CURL& path, const VECADDONS& addon
   }
   if (std::any_of(addons.begin(), addons.end(), IsGameAddon))
   {
-    CFileItemPtr item(new CFileItem(TranslateType(ADDON_GAME, true)));
+    CFileItemPtr item(new CFileItem(CAddonInfo::TranslateType(ADDON_GAME, true)));
     item->SetPath(URIUtils::AddFileToFolder(path.Get(), CATEGORY_GAME_ADDONS));
     item->m_bIsFolder = true;
-    const std::string thumb = GetIcon(ADDON_GAME);
+    const std::string thumb = CAddonInfo::TranslateIconType(ADDON_GAME);
     if (g_TextureManager.HasTexture(thumb))
       item->SetArt("thumb", thumb);
     items.Add(item);
@@ -376,8 +375,8 @@ static void GenerateCategoryListing(const CURL& path, VECADDONS& addons,
   }
   else if (category == CATEGORY_GAME_ADDONS)
   {
-    items.SetProperty("addoncategory", TranslateType(ADDON_GAME, true));
-    items.SetLabel(TranslateType(ADDON_GAME, true));
+    items.SetProperty("addoncategory", CAddonInfo::TranslateType(ADDON_GAME, true));
+    items.SetLabel(CAddonInfo::TranslateType(ADDON_GAME, true));
     GenerateGameListing(path, addons, items);
   }
   else if (category == CATEGORY_EMULATORS)
@@ -417,11 +416,11 @@ static void GenerateCategoryListing(const CURL& path, VECADDONS& addons,
   }
   else
   { // fallback to addon type
-    TYPE type = TranslateType(category);
-    items.SetProperty("addoncategory", TranslateType(type, true));
+    TYPE type = CAddonInfo::TranslateType(category);
+    items.SetProperty("addoncategory", CAddonInfo::TranslateType(type, true));
     addons.erase(std::remove_if(addons.begin(), addons.end(),
         [type](const AddonPtr& addon){ return !addon->IsType(type); }), addons.end());
-    CAddonsDirectory::GenerateAddonListing(path, addons, items, TranslateType(type, true));
+    CAddonsDirectory::GenerateAddonListing(path, addons, items, CAddonInfo::TranslateType(type, true));
   }
 }
 
@@ -510,7 +509,7 @@ static void OutdatedAddons(const CURL& path, CFileItemList &items)
   VECADDONS addons = CAddonMgr::GetInstance().GetAvailableUpdates();
   CAddonsDirectory::GenerateAddonListing(path, addons, items, g_localizeStrings.Get(24043));
 
-  if (items.Size() > 1)
+  if (!items.IsEmpty())
   {
     CFileItemPtr item(new CFileItem("addons://update_all/", false));
     item->SetLabel(g_localizeStrings.Get(24122));
@@ -554,8 +553,8 @@ static bool Browse(const CURL& path, CFileItemList &items)
     if (!database.GetRepositoryContent(addon->ID(), addons))
     {
       //Repo content is invalid. Ask for update and wait.
-      CRepositoryUpdater::GetInstance().CheckForUpdates(std::static_pointer_cast<CRepository>(addon));
-      CRepositoryUpdater::GetInstance().Await();
+      CServiceBroker::GetRepositoryUpdater().CheckForUpdates(std::static_pointer_cast<CRepository>(addon));
+      CServiceBroker::GetRepositoryUpdater().Await();
 
       if (!database.GetRepositoryContent(addon->ID(), addons))
       {
@@ -711,7 +710,7 @@ bool CAddonsDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 
     if (type != ADDON_UNKNOWN && CAddonMgr::GetInstance().GetInstalledAddons(addons, type))
     {
-      CAddonsDirectory::GenerateAddonListing(path, addons, items, TranslateType(type, true));
+      CAddonsDirectory::GenerateAddonListing(path, addons, items, CAddonInfo::TranslateType(type, true));
       return true;
     }
     return false;
@@ -746,7 +745,6 @@ bool CAddonsDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 
     CAddonsDirectory::GenerateAddonListing(path, addons, items, g_localizeStrings.Get(24004));
     return true;
-
   }
   else if (endpoint == "downloading")
   {
@@ -832,12 +830,11 @@ CFileItemPtr CAddonsDirectory::FileItemFromAddon(const AddonPtr &addon,
 
   std::string strLabel(addon->Name());
   if (CURL(path).GetHostName() == "search")
-    strLabel = StringUtils::Format("%s - %s", TranslateType(addon->Type(), true).c_str(), addon->Name().c_str());
+    strLabel = StringUtils::Format("%s - %s", CAddonInfo::TranslateType(addon->Type(), true).c_str(), addon->Name().c_str());
   item->SetLabel(strLabel);
+  item->SetArt(addon->Art());
   item->SetArt("thumb", addon->Icon());
   item->SetIconImage("DefaultAddon.png");
-  if (URIUtils::IsInternetStream(addon->FanArt()) || CFile::Exists(addon->FanArt()))
-    item->SetArt("fanart", addon->FanArt());
 
   //! @todo fix hacks that depends on these
   item->SetProperty("Addon.ID", addon->ID());

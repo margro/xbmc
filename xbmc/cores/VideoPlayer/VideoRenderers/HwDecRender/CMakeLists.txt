@@ -4,13 +4,22 @@ if(CORE_SYSTEM_NAME STREQUAL windows)
 endif()
 
 if(VAAPI_FOUND)
-  list(APPEND SOURCES RendererVAAPI.cpp)
-  list(APPEND HEADERS RendererVAAPI.h)
+  if(OPENGL_FOUND)
+    list(APPEND SOURCES RendererVAAPIGL.cpp)
+    list(APPEND HEADERS RendererVAAPIGL.h)
+  elseif(OPENGLES_FOUND)
+    list(APPEND SOURCES RendererVAAPIGLES.cpp)
+    list(APPEND HEADERS RendererVAAPIGLES.h)
+  endif()
+  list(APPEND SOURCES VaapiEGL.cpp)
+  list(APPEND HEADERS VaapiEGL.h)
 endif()
 
 if(VDPAU_FOUND)
-  list(APPEND SOURCES RendererVDPAU.cpp)
-  list(APPEND HEADERS RendererVDPAU.h)
+  list(APPEND SOURCES RendererVDPAU.cpp
+                      VdpauGL.cpp)
+  list(APPEND HEADERS RendererVDPAU.h
+                      VdpauGL.h)
 endif()
 
 if(CORE_SYSTEM_NAME STREQUAL osx)
@@ -31,11 +40,6 @@ endif()
 if(AML_FOUND)
   list(APPEND SOURCES RendererAML.cpp)
   list(APPEND HEADERS RendererAML.h)
-endif()
-
-if(OPENMAX_FOUND)
-  list(APPEND SOURCES RendererOpenMax.cpp)
-  list(APPEND HEADERS RendererOpenMax.h)
 endif()
 
 if(IMX_FOUND)

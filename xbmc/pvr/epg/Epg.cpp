@@ -27,15 +27,15 @@
 #include "EpgDatabase.h"
 #include "ServiceBroker.h"
 #include "guilib/LocalizeStrings.h"
-#include "pvr/addons/PVRClients.h"
-#include "pvr/PVRManager.h"
-#include "pvr/recordings/PVRRecordings.h"
-#include "pvr/timers/PVRTimers.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 
+#include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
+#include "pvr/recordings/PVRRecordings.h"
+#include "pvr/timers/PVRTimers.h"
 
 using namespace PVR;
 
@@ -310,7 +310,7 @@ void CPVREpg::AddEntry(const CPVREpgInfoTag &tag)
   if (newTag)
   {
     newTag->Update(tag);
-    newTag->SetPVRChannel(channel);
+    newTag->SetChannel(channel);
     newTag->SetEpg(this);
     newTag->SetTimer(CServiceBroker::GetPVRManager().Timers()->GetTimerForEpgTag(newTag));
     newTag->SetRecording(CServiceBroker::GetPVRManager().Recordings()->GetRecordingForEpgTag(newTag));
@@ -438,7 +438,7 @@ bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, bool bUpdateDatabase /* 
 
     infoTag->Update(*tag, bNewTag);
     infoTag->SetEpg(this);
-    infoTag->SetPVRChannel(m_pvrChannel);
+    infoTag->SetChannel(m_pvrChannel);
 
     if (bUpdateDatabase)
       m_changedTags.insert(std::make_pair(infoTag->UniqueBroadcastID(), infoTag));
@@ -729,7 +729,7 @@ bool CPVREpg::UpdateFromScraper(time_t start, time_t end)
 #endif
       bGrabSuccess = true;
     }
-    else if (!CServiceBroker::GetPVRManager().Clients()->SupportsEPG(channel->ClientID()))
+    else if (!CServiceBroker::GetPVRManager().Clients()->GetClientCapabilities(channel->ClientID()).SupportsEPG())
     {
       CLog::Log(LOGDEBUG, "EPG - %s - the backend for channel '%s' on client '%i' does not support EPGs", __FUNCTION__, channel->ChannelName().c_str(), channel->ClientID());
     }
@@ -856,7 +856,7 @@ void CPVREpg::SetChannel(const PVR::CPVRChannelPtr &channel)
     }
     m_pvrChannel = channel;
     for (std::map<CDateTime, CPVREpgInfoTagPtr>::iterator it = m_tags.begin(); it != m_tags.end(); ++it)
-      it->second->SetPVRChannel(m_pvrChannel);
+      it->second->SetChannel(m_pvrChannel);
   }
 }
 

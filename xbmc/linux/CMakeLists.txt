@@ -1,29 +1,18 @@
 set(SOURCES ConvUtils.cpp
-            DBusMessage.cpp
-            DBusReserve.cpp
-            DBusUtil.cpp
-            FDEventMonitor.cpp
             LinuxResourceCounter.cpp
             LinuxTimezone.cpp
             PosixMountProvider.cpp
-            RBP.cpp
             XFileUtils.cpp
             XHandle.cpp
             XMemUtils.cpp
             XTimeUtils.cpp)
 
 set(HEADERS ConvUtils.h
-            DBusMessage.h
-            DBusReserve.h
-            DBusUtil.h
-            DllBCM.h
-            FDEventMonitor.h
             LinuxResourceCounter.h
             LinuxTimezone.h
             PlatformDefs.h
             PlatformInclude.h
             PosixMountProvider.h
-            RBP.h
             stat_utf8.h
             stdio_utf8.h
             XFileUtils.h
@@ -32,12 +21,33 @@ set(HEADERS ConvUtils.h
             XMemUtils.h
             XTimeUtils.h)
 
-if(OMXLIB_FOUND)
-  list(APPEND SOURCES OMXClock.cpp
+if(ALSA_FOUND)
+  list(APPEND SOURCES FDEventMonitor.cpp)
+  list(APPEND HEADERS FDEventMonitor.h)
+endif()
+
+if(DBUS_FOUND)
+  list(APPEND SOURCES DBusMessage.cpp
+                      DBusReserve.cpp
+                      DBusUtil.cpp)
+  list(APPEND HEADERS DBusMessage.h
+                      DBusReserve.h
+                      DBusUtil.h)
+endif()
+
+if(CORE_PLATFORM_NAME_LC STREQUAL rbpi)
+  list(APPEND SOURCES RBP.cpp
+                      OMXClock.cpp
                       OMXCore.cpp)
-  list(APPEND HEADERS DllOMX.h
+  list(APPEND HEADERS RBP.h
+                      DllBCM.h
+                      DllOMX.h
                       OMXClock.h
                       OMXCore.h)
+endif()
+
+if(HAVE_SSE4_1)
+  add_subdirectory(sse4)
 endif()
 
 if(IMX_FOUND)

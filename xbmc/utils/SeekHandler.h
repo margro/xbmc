@@ -40,10 +40,10 @@ class CSeekHandler : public ISettingCallback, public IActionListener
 public:
   static CSeekHandler& GetInstance();
 
-  static void SettingOptionsSeekStepsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
+  static void SettingOptionsSeekStepsFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data);
   
-  virtual void OnSettingChanged(const CSetting *setting) override;
-  virtual bool OnAction(const CAction &action) override;
+  void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
+  bool OnAction(const CAction &action) override;
 
   void Seek(bool forward, float amount, float duration = 0, bool analogSeek = false, SeekType type = SEEK_TYPE_VIDEO);
   void SeekSeconds(int seconds);
@@ -61,7 +61,7 @@ protected:
   CSeekHandler();
   CSeekHandler(const CSeekHandler&);
   CSeekHandler& operator=(CSeekHandler const&);
-  virtual ~CSeekHandler();
+  ~CSeekHandler() override;
   bool SeekTimeCode(const CAction &action);
   void ChangeTimeCode(int remote);
 
@@ -72,6 +72,7 @@ private:
   int m_seekDelay;
   std::map<SeekType, int > m_seekDelays;
   bool m_requireSeek;
+  bool m_seekChanged = false;
   bool m_analogSeek;
   double m_seekSize;
   int m_seekStep;

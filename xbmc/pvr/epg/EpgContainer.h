@@ -27,9 +27,8 @@
 #include "utils/Observer.h"
 
 #include "pvr/PVRSettings.h"
-
-#include "Epg.h"
-#include "EpgDatabase.h"
+#include "pvr/epg/Epg.h"
+#include "pvr/epg/EpgDatabase.h"
 
 class CFileItemList;
 class CGUIDialogProgressBarHandle;
@@ -55,7 +54,7 @@ namespace PVR
     /*!
      * @brief Destroy this instance.
      */
-    virtual ~CPVREpgContainer(void);
+    ~CPVREpgContainer(void) override;
 
     /*!
      * @brief Get a pointer to the database instance.
@@ -110,7 +109,7 @@ namespace PVR
      * @param obs The observable that sent the update.
      * @param msg The update message.
      */
-    virtual void Notify(const Observable &obs, const ObservableMessage msg) override;
+    void Notify(const Observable &obs, const ObservableMessage msg) override;
 
     CPVREpgPtr CreateChannelEpg(const PVR::CPVRChannelPtr &channel);
 
@@ -221,7 +220,7 @@ namespace PVR
      */
     void UpdateRequest(int clientID, unsigned int channelID);
 
-  protected:
+  private:
     /*!
      * @brief Load the EPG settings.
      * @return True if the settings were loaded successfully, false otherwise.
@@ -249,7 +248,7 @@ namespace PVR
     /*!
      * @brief EPG update thread
      */
-    virtual void Process(void) override;
+    void Process(void) override;
 
     /*!
      * @brief Load all tables from the database
@@ -282,7 +281,6 @@ namespace PVR
     std::list<SUpdateRequest> m_updateRequests; /*!< list of update requests triggered by addon */
     CCriticalSection m_updateRequestsLock;      /*!< protect update requests */
 
-  private:
     bool m_bUpdateNotificationPending; /*!< true while an epg updated notification to observers is pending. */
     CPVRSettings m_settings;
   };

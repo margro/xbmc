@@ -38,6 +38,7 @@
 #include "utils/Variant.h"
 #include "ServiceBroker.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
+#include "cores/DataCacheCore.h"
 #include "input/InputManager.h"
 #if defined(TARGET_WINDOWS)
   #include "utils/CharsetConverter.h"
@@ -319,7 +320,7 @@ void CExternalPlayer::Process()
 
   m_callback.OnPlayBackStarted();
 
-  BOOL ret = TRUE;
+  bool ret = true;
 #if defined(TARGET_WINDOWS)
   ret = ExecuteAppW32(strFName.c_str(),strFArgs.c_str());
 #elif defined(TARGET_ANDROID)
@@ -401,7 +402,7 @@ void CExternalPlayer::Process()
 }
 
 #if defined(TARGET_WINDOWS)
-BOOL CExternalPlayer::ExecuteAppW32(const char* strPath, const char* strSwitches)
+bool CExternalPlayer::ExecuteAppW32(const char* strPath, const char* strSwitches)
 {
   CLog::Log(LOGNOTICE, "%s: %s %s", __FUNCTION__, strPath, strSwitches);
 
@@ -452,35 +453,34 @@ BOOL CExternalPlayer::ExecuteAppW32(const char* strPath, const char* strSwitches
     CloseHandle(m_processInfo.hProcess);
     m_processInfo.hProcess = 0;
   }
-
-  return ret;
+  return (ret == 0);
 }
 #endif
 
 #if !defined(TARGET_ANDROID) && (defined(TARGET_POSIX) || defined(TARGET_DARWIN_OSX))
-BOOL CExternalPlayer::ExecuteAppLinux(const char* strSwitches)
+bool CExternalPlayer::ExecuteAppLinux(const char* strSwitches)
 {
   CLog::Log(LOGNOTICE, "%s: %s", __FUNCTION__, strSwitches);
 
-  bool remoteUsed = CInputManager::GetInstance().IsRemoteControlEnabled();
-  CInputManager::GetInstance().DisableRemoteControl();
+  bool remoteUsed = CServiceBroker::GetInputManager().IsRemoteControlEnabled();
+  CServiceBroker::GetInputManager().DisableRemoteControl();
 
   int ret = system(strSwitches);
 
   if (remoteUsed)
-    CInputManager::GetInstance().EnableRemoteControl();
+    CServiceBroker::GetInputManager().EnableRemoteControl();
 
   if (ret != 0)
   {
     CLog::Log(LOGNOTICE, "%s: Failure: %d", __FUNCTION__, ret);
   }
 
-  return ret == 0;
+  return (ret == 0);
 }
 #endif
 
 #if defined(TARGET_ANDROID)
-BOOL CExternalPlayer::ExecuteAppAndroid(const char* strSwitches,const char* strPath)
+bool CExternalPlayer::ExecuteAppAndroid(const char* strSwitches,const char* strPath)
 {
   CLog::Log(LOGNOTICE, "%s: %s", __FUNCTION__, strSwitches);
 
@@ -491,7 +491,7 @@ BOOL CExternalPlayer::ExecuteAppAndroid(const char* strSwitches,const char* strP
     CLog::Log(LOGNOTICE, "%s: Failure", __FUNCTION__);
   }
 
-  return ret;
+  return (ret == 0);
 }
 #endif
 
@@ -509,14 +509,6 @@ bool CExternalPlayer::HasAudio() const
   return false;
 }
 
-void CExternalPlayer::SwitchToNextLanguage()
-{
-}
-
-void CExternalPlayer::ToggleSubtitles()
-{
-}
-
 bool CExternalPlayer::CanSeek()
 {
   return false;
@@ -526,18 +518,14 @@ void CExternalPlayer::Seek(bool bPlus, bool bLargeStep, bool bChapterOverride)
 {
 }
 
-void CExternalPlayer::SwitchToNextAudioLanguage()
-{
-}
-
 void CExternalPlayer::SeekPercentage(float iPercent)
 {
 }
 
 float CExternalPlayer::GetPercentage()
 {
-  int64_t iTime = GetTime();
-  int64_t iTotalTime = GetTotalTime();
+  int64_t iTime = 0;
+  int64_t iTotalTime = 0;
 
   if (iTotalTime != 0)
   {
@@ -570,33 +558,10 @@ void CExternalPlayer::SeekTime(int64_t iTime)
 {
 }
 
-int64_t CExternalPlayer::GetTime() // in millis
+void CExternalPlayer::SetSpeed(float speed)
 {
-  if ((XbmcThreads::SystemClockMillis() - m_playbackStartTime) / 1000 > m_playCountMinTime)
-  {
-    m_time = m_totalTime * 1000;
-  }
-
-  return m_time;
-}
-
-int64_t CExternalPlayer::GetTotalTime() // in milliseconds
-{
-  return (int64_t)m_totalTime * 1000;
-}
-
-void CExternalPlayer::SetSpeed(float iSpeed)
-{
-  m_speed = static_cast<int>(iSpeed);
-}
-
-float CExternalPlayer::GetSpeed()
-{
-  return m_speed;
-}
-
-void CExternalPlayer::ShowOSD(bool bOnoff)
-{
+  m_speed = speed;
+  CDataCacheCore::GetInstance().SetSpeed(1.0, speed);
 }
 
 std::string CExternalPlayer::GetPlayerState()

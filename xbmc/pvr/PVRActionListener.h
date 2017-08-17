@@ -26,22 +26,26 @@
 namespace PVR
 {
 
+enum class ChannelSwitchMode;
+
 class CPVRActionListener : public IActionListener, public ISettingCallback
 {
 public:
   CPVRActionListener();
-  virtual ~CPVRActionListener();
+  ~CPVRActionListener() override;
 
   // IActionListener implementation
   bool OnAction(const CAction &action) override;
 
   // ISettingCallback implementation
-  void OnSettingChanged(const CSetting *setting) override;
-  void OnSettingAction(const CSetting *setting) override;
+  void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
+  void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
 
 private:
   CPVRActionListener(const CPVRActionListener&) = delete;
   CPVRActionListener& operator=(const CPVRActionListener&) = delete;
+
+  static ChannelSwitchMode GetChannelSwitchMode(int iAction);
 };
 
 } // namespace PVR

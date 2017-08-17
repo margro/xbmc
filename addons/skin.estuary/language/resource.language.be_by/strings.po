@@ -1,7 +1,7 @@
 # Kodi Media Center language file
 # Addon Name: Estuary
 # Addon id: skin.estuary
-# Addon Provider: phil65, Piers
+# Addon Provider: phil65, Ichabod Fletchman
 msgid ""
 msgstr ""
 "Project-Id-Version: KODI Main\n"
@@ -23,6 +23,10 @@ msgstr "Search..."
 msgctxt "#31019"
 msgid "Forecast"
 msgstr "Прагноз"
+
+msgctxt "#31020"
+msgid "Actions"
+msgstr "Дзеянні"
 
 msgctxt "#31038"
 msgid "Rewind"
@@ -47,3 +51,7 @@ msgstr "Даступныя лакальныя субтытры"
 msgctxt "#31100"
 msgid "Shift"
 msgstr "Shift"
+
+msgctxt "#31137"
+msgid "PVR info"
+msgstr "Звесткі PVR"

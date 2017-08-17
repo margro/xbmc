@@ -34,7 +34,7 @@ class CDatabaseQueryRule
 {
 public:
   CDatabaseQueryRule();
-  virtual ~CDatabaseQueryRule() { };
+  virtual ~CDatabaseQueryRule() = default;
 
   enum SEARCH_OPERATOR { OPERATOR_START = 0,
                          OPERATOR_CONTAINS,
@@ -108,6 +108,7 @@ typedef std::vector< std::shared_ptr<CDatabaseQueryRuleCombination> > CDatabaseQ
 class IDatabaseQueryRuleFactory
 {
 public:
+  virtual ~IDatabaseQueryRuleFactory() = default;
   virtual CDatabaseQueryRule *CreateRule() const=0;
   virtual CDatabaseQueryRuleCombination *CreateCombination() const=0;
 };
@@ -116,7 +117,7 @@ class CDatabaseQueryRuleCombination
 {
 public:
   CDatabaseQueryRuleCombination();
-  virtual ~CDatabaseQueryRuleCombination() { };
+  virtual ~CDatabaseQueryRuleCombination() = default;
 
   typedef enum {
     CombinationOr = 0,

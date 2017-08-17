@@ -37,7 +37,7 @@ enum DVDOverlayType
 class CDVDOverlay
 {
 public:
-  CDVDOverlay(DVDOverlayType type)
+  explicit CDVDOverlay(DVDOverlayType type)
   {
     m_type = type;
 
@@ -122,7 +122,7 @@ class CDVDOverlayGroup : public CDVDOverlay
 {
 
 public:
-  virtual ~CDVDOverlayGroup()
+  ~CDVDOverlayGroup() override
   {
     for(VecOverlaysIter it = m_overlays.begin(); it != m_overlays.end(); ++it)
       (*it)->Release();

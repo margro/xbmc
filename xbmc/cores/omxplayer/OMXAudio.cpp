@@ -20,10 +20,6 @@
  *
  */
 
-#if defined(TARGET_WINDOWS)
-#include "system.h"
-#endif
-
 #include "OMXAudio.h"
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -38,8 +34,8 @@
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "guilib/LocalizeStrings.h"
-#include "ServiceBroker.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
+#include "TimingConstants.h"
 #include "Util.h"
 #include <algorithm>
 #include <cassert>

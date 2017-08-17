@@ -26,17 +26,17 @@
 class CHTTPWebinterfaceAddonsHandler : public IHTTPRequestHandler
 {
 public:
-  CHTTPWebinterfaceAddonsHandler() { }
-  virtual ~CHTTPWebinterfaceAddonsHandler() { }
+  CHTTPWebinterfaceAddonsHandler() = default;
+  ~CHTTPWebinterfaceAddonsHandler() override = default;
   
-  virtual IHTTPRequestHandler* Create(const HTTPRequest &request) { return new CHTTPWebinterfaceAddonsHandler(request); }
-  virtual bool CanHandleRequest(const HTTPRequest &request);
+  IHTTPRequestHandler* Create(const HTTPRequest &request) const override { return new CHTTPWebinterfaceAddonsHandler(request); }
+  bool CanHandleRequest(const HTTPRequest &request) const override;
 
-  virtual int HandleRequest();
+  int HandleRequest() override;
 
-  virtual HttpResponseRanges GetResponseData() const;
+  HttpResponseRanges GetResponseData() const override;
 
-  virtual int GetPriority() const { return 4; }
+  int GetPriority() const override { return 4; }
 
 protected:
   explicit CHTTPWebinterfaceAddonsHandler(const HTTPRequest &request)

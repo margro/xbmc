@@ -34,7 +34,7 @@ namespace XCURL
   class DllLibCurlInterface
   {
   public:
-    virtual ~DllLibCurlInterface() {}
+    virtual ~DllLibCurlInterface() = default;
     virtual CURLcode global_init(long flags)=0;
     virtual void global_cleanup(void)=0;
     virtual CURL_HANDLE * easy_init(void)=0;
@@ -55,6 +55,11 @@ namespace XCURL
     virtual CURLMcode multi_cleanup(CURLM * handle )=0;
     virtual struct curl_slist* slist_append(struct curl_slist *, const char *)=0;
     virtual void  slist_free_all(struct curl_slist *)=0;
+    virtual const char* easy_strerror(CURLcode)=0;
+#if defined(HAS_CURL_STATIC)
+    virtual void crypto_set_id_callback(unsigned long (*)(void))=0;
+    virtual void crypto_set_locking_callback(void (*)(int, int, const char*, int))=0;
+#endif
   };
 
   class DllLibCurl : public DllDynamic, DllLibCurlInterface
@@ -122,12 +127,12 @@ namespace XCURL
     void easy_acquire(const char *protocol, const char *hostname, CURL_HANDLE** easy_handle, CURLM** multi_handle);
     void easy_release(CURL_HANDLE** easy_handle, CURLM** multi_handle);
     void easy_duplicate(CURL_HANDLE* easy, CURLM* multi, CURL_HANDLE** easy_out, CURLM** multi_out);
-    CURL_HANDLE* easy_duphandle(CURL_HANDLE* easy_handle);
+    CURL_HANDLE* easy_duphandle(CURL_HANDLE* easy_handle) override;
     void CheckIdle();
 
     /* overloaded load and unload with reference counter */
-    virtual bool Load();
-    virtual void Unload();
+    bool Load() override;
+    void Unload() override;
 
     /* structure holding a session info */
     typedef struct SSession

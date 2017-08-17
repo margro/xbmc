@@ -33,7 +33,7 @@ namespace XFILE { class CFile; }
 class CEncoder
 {
 public:
-  CEncoder(std::shared_ptr<IEncoder> encoder);
+  explicit CEncoder(std::shared_ptr<IEncoder> encoder);
   virtual ~CEncoder();
   virtual bool Init(const char* strFile, int iInChannels, int iInRate, int iInBits);
   virtual int Encode(int nNumBytesRead, uint8_t* pbtStream);
@@ -58,7 +58,7 @@ protected:
   int WriteStream(const void *pBuffer, uint32_t iBytes);
   int FlushStream();
 
-  static int WriteCallback(void *opaque, uint8_t *data, int size);
+  static int WriteCallback(void *opaque, const uint8_t *data, int size);
   static int64_t SeekCallback(void *opaque, int64_t offset, int whence);
 
   std::shared_ptr<IEncoder> m_impl;

@@ -161,7 +161,7 @@ void CGUIBaseContainer::ProcessItem(float posX, float posY, CGUIListItemPtr& ite
   {
     if (!item->GetFocusedLayout())
     {
-      CGUIListItemLayout *layout = new CGUIListItemLayout(*m_focusedLayout);
+      CGUIListItemLayout *layout = new CGUIListItemLayout(*m_focusedLayout, this);
       item->SetFocusedLayout(layout);
     }
     if (item->GetFocusedLayout())
@@ -189,6 +189,7 @@ void CGUIBaseContainer::ProcessItem(float posX, float posY, CGUIListItemPtr& ite
     if (!item->GetLayout())
     {
       CGUIListItemLayout *layout = new CGUIListItemLayout(*m_layout);
+      layout->SetParentControl(this);
       item->SetLayout(layout);
     }
     if (item->GetFocusedLayout())
@@ -411,7 +412,7 @@ bool CGUIBaseContainer::OnMessage(CGUIMessage& message)
       if (message.GetMessage() == GUI_MSG_LABEL_BIND && message.GetPointer())
       { // bind our items
         Reset();
-        CFileItemList *items = (CFileItemList *)message.GetPointer();
+        CFileItemList *items = static_cast<CFileItemList*>(message.GetPointer());
         for (int i = 0; i < items->Size(); i++)
           m_items.push_back(items->Get(i));
         UpdateLayout(true); // true to refresh all items
@@ -737,7 +738,7 @@ EVENT_RESULT CGUIBaseContainer::OnMouseEvent(const CPoint &point, const CMouseEv
     ValidateOffset();
     return EVENT_RESULT_HANDLED;
   }
-  else if (event.m_id == ACTION_GESTURE_END)
+  else if (event.m_id == ACTION_GESTURE_END || event.m_id == ACTION_GESTURE_ABORT)
   { // release exclusive access
     CGUIMessage msg(GUI_MSG_EXCLUSIVE_MOUSE, 0, GetParentID());
     SendWindowMessage(msg);
@@ -1149,6 +1150,7 @@ void CGUIBaseContainer::LoadLayout(TiXmlElement *layout)
     m_layouts.emplace_back();
     m_layouts.back().LoadLayout(itemElement, GetParentID(), false, m_width, m_height);
     itemElement = itemElement->NextSiblingElement("itemlayout");
+    m_layouts.back().SetParentControl(this);
   }
   itemElement = layout->FirstChildElement("focusedlayout");
   while (itemElement)
@@ -1156,6 +1158,7 @@ void CGUIBaseContainer::LoadLayout(TiXmlElement *layout)
     m_focusedLayouts.emplace_back();
     m_focusedLayouts.back().LoadLayout(itemElement, GetParentID(), true, m_width, m_height);
     itemElement = itemElement->NextSiblingElement("focusedlayout");
+    m_focusedLayouts.back().SetParentControl(this);
   }
 }
 
@@ -1361,6 +1364,8 @@ void CGUIBaseContainer::GetCacheOffsets(int &cacheBefore, int &cacheAfter) const
 
 void CGUIBaseContainer::SetCursor(int cursor)
 {
+  if (m_cursor != cursor)
+    MarkDirtyRegion();
   m_cursor = cursor;
 }
 

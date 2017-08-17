@@ -78,9 +78,7 @@ CGUIDialogContextMenu::CGUIDialogContextMenu(void)
   m_coordY = 0.0f;
 }
 
-CGUIDialogContextMenu::~CGUIDialogContextMenu(void)
-{
-}
+CGUIDialogContextMenu::~CGUIDialogContextMenu(void) = default;
 
 bool CGUIDialogContextMenu::OnMessage(CGUIMessage &message)
 {
@@ -152,7 +150,7 @@ void CGUIDialogContextMenu::SetupButtons()
   }
 
   // fix up background images placement and size
-  CGUIControl *pControl = (CGUIControl *)GetControl(BACKGROUND_IMAGE);
+  CGUIControl *pControl = GetControl(BACKGROUND_IMAGE);
   if (pControl)
   {
     // first set size of background image
@@ -189,18 +187,16 @@ void CGUIDialogContextMenu::SetPosition(float posX, float posY)
 
 float CGUIDialogContextMenu::GetHeight() const
 {
-  const CGUIControl *backMain = GetControl(BACKGROUND_IMAGE);
-  if (backMain)
-    return backMain->GetHeight();
+  if (m_backgroundImage)
+    return m_backgroundImage->GetHeight();
   else
     return CGUIDialog::GetHeight();
 }
 
 float CGUIDialogContextMenu::GetWidth() const
 {
-  const CGUIControl *pControl = GetControl(BACKGROUND_IMAGE);
-  if (pControl)
-    return pControl->GetWidth();
+  if (m_backgroundImage)
+    return m_backgroundImage->GetWidth();
   else
     return CGUIDialog::GetWidth();
 }
@@ -535,13 +531,13 @@ void CGUIDialogContextMenu::OnWindowLoaded()
   m_coordY = m_posY;
   
   const CGUIControlGroupList* pGroupList = dynamic_cast<const CGUIControlGroupList *>(GetControl(GROUP_LIST));
-  const CGUIControl *pControl = GetControl(BACKGROUND_IMAGE);
-  if (pControl && pGroupList)
+  m_backgroundImage = GetControl(BACKGROUND_IMAGE);
+  if (m_backgroundImage && pGroupList)
   {
     if (pGroupList->GetOrientation() == VERTICAL)
-      m_backgroundImageSize = pControl->GetHeight();
+      m_backgroundImageSize = m_backgroundImage->GetHeight();
     else
-      m_backgroundImageSize = pControl->GetWidth();
+      m_backgroundImageSize = m_backgroundImage->GetWidth();
   }
 
   CGUIDialog::OnWindowLoaded();

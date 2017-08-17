@@ -94,7 +94,9 @@ namespace XBMCAddon
                bool offscreen = false);
 
 #ifndef SWIG
-      inline ListItem(CFileItemPtr pitem) : item(pitem) {}
+      inline explicit ListItem(CFileItemPtr pitem) :
+        item(pitem), m_offscreen(false)
+      {}
 
       static inline AddonClass::Ref<ListItem> fromString(const String& str)
       {
@@ -104,6 +106,7 @@ namespace XBMCAddon
       }
 #endif
 
+      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
       virtual ~ListItem();
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -1132,6 +1135,9 @@ namespace XBMCAddon
 
 private:
       std::vector<std::string> getStringArray(const InfoLabelValue& alt, const std::string& tag, std::string value = "");
+
+      CVideoInfoTag* GetVideoInfoTag();
+      const CVideoInfoTag* GetVideoInfoTag() const;
     };
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

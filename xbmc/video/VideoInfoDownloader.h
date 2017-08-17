@@ -42,8 +42,8 @@ typedef std::vector<CScraperUrl> MOVIELIST;
 class CVideoInfoDownloader : public CThread
 {
 public:
-  CVideoInfoDownloader(const ADDON::ScraperPtr &scraper);
-  virtual ~CVideoInfoDownloader();
+  explicit CVideoInfoDownloader(const ADDON::ScraperPtr &scraper);
+  ~CVideoInfoDownloader() override;
 
   // threaded lookup functions
 
@@ -85,7 +85,7 @@ protected:
   ADDON::ScraperPtr   m_info;
 
   // threaded stuff
-  void Process();
+  void Process() override;
   void CloseThread();
 
   int InternalFindMovie(const std::string& strMovie, MOVIELIST& movielist, bool cleanChars = true);

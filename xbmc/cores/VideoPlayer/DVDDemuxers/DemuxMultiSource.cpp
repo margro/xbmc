@@ -18,7 +18,7 @@
  *
  */
 
-#include "DVDClock.h"
+#include "TimingConstants.h"
 #include "DemuxMultiSource.h"
 #include "DVDDemuxUtils.h"
 #include "DVDFactoryDemuxer.h"
@@ -27,9 +27,7 @@
 #include "Util.h"
 
 
-CDemuxMultiSource::CDemuxMultiSource()
-{
-}
+CDemuxMultiSource::CDemuxMultiSource() = default;
 
 CDemuxMultiSource::~CDemuxMultiSource()
 {

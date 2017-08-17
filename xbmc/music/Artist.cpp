@@ -26,15 +26,29 @@
 
 void CArtist::MergeScrapedArtist(const CArtist& source, bool override /* = true */)
 {
-  /*
-   We don't merge musicbrainz artist ID so that a refresh of artist information
-   allows a lookup based on name rather than directly (re)using musicbrainz.
-   In future, we may wish to be able to override lookup by musicbrainz so
-   this might be dropped.
+  /*   
+  Initial scraping of artist information when the mbid is derived from tags is done directly
+  using that ID, otherwise the lookup is based on name and can mis-identify the artist
+  (many have same name). It is useful to store the scraped mbid, but we need to be
+  able to correct any mistakes. Hence a manual refresh of artist information uses either 
+  the mbid is derived from tags or the artist name, not any previously scraped mbid.
+
+   A Musicbrainz artist ID derived from music file tags is always taken as accurate and so can
+   not be overwritten by a scraped value. When the artist does not already have an mbid or has
+   a previously scraped mbid, merge the new scraped value, flagging it as being from the 
+   scraper rather than derived from music file tags.
    */
-  //  strMusicBrainzArtistID = source.strMusicBrainzArtistID;
+  if (!source.strMusicBrainzArtistID.empty() && (strMusicBrainzArtistID.empty() || bScrapedMBID))
+  {
+    strMusicBrainzArtistID = source.strMusicBrainzArtistID;
+    bScrapedMBID = true;
+  }
+
   if ((override && !source.strArtist.empty()) || strArtist.empty())
     strArtist = source.strArtist;
+
+  if ((override && !source.strSortName.empty()) || strSortName.empty())
+    strSortName = source.strSortName;
 
   genre = source.genre;
   strBiography = source.strBiography;
@@ -60,7 +74,7 @@ bool CArtist::Load(const TiXmlElement *artist, bool append, bool prioritise)
 
   XMLUtils::GetString(artist,                "name", strArtist);
   XMLUtils::GetString(artist, "musicBrainzArtistID", strMusicBrainzArtistID);
-
+  XMLUtils::GetString(artist,            "sortname", strSortName);
   XMLUtils::GetStringArray(artist,       "genre", genre, prioritise, g_advancedSettings.m_musicItemSeparator);
   XMLUtils::GetStringArray(artist,       "style", styles, prioritise, g_advancedSettings.m_musicItemSeparator);
   XMLUtils::GetStringArray(artist,        "mood", moods, prioritise, g_advancedSettings.m_musicItemSeparator);
@@ -143,6 +157,7 @@ bool CArtist::Save(TiXmlNode *node, const std::string &tag, const std::string& s
 
   XMLUtils::SetString(artist,                      "name", strArtist);
   XMLUtils::SetString(artist,       "musicBrainzArtistID", strMusicBrainzArtistID);
+  XMLUtils::SetString(artist,                  "sortname", strSortName);
   XMLUtils::SetStringArray(artist,                "genre", genre);
   XMLUtils::SetStringArray(artist,                "style", styles);
   XMLUtils::SetStringArray(artist,                 "mood", moods);

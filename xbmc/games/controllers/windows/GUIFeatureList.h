@@ -22,6 +22,7 @@
 #include "IConfigurationWindow.h"
 #include "games/controllers/ControllerFeature.h"
 #include "games/controllers/ControllerTypes.h"
+#include "input/joysticks/JoystickTypes.h"
 
 class CGUIButtonControl;
 class CGUIControlGroupList;
@@ -29,6 +30,8 @@ class CGUIImage;
 class CGUILabelControl;
 class CGUIWindow;
 
+namespace KODI
+{
 namespace GAME
 {
   class CGUIFeatureList : public IFeatureList
@@ -40,6 +43,7 @@ namespace GAME
     // implementation of IFeatureList
     virtual bool Initialize(void) override;
     virtual void Deinitialize(void) override;
+    virtual bool HasButton(JOYSTICK::FEATURE_TYPE type) const override;
     virtual void Load(const ControllerPtr& controller) override;
     virtual void OnFocus(unsigned int index) override { }
     virtual void OnSelect(unsigned int index) override;
@@ -53,6 +57,7 @@ namespace GAME
     struct FeatureGroup
     {
       std::string groupName;
+      JOYSTICK::FEATURE_CATEGORY category = JOYSTICK::FEATURE_CATEGORY::UNKNOWN;
       std::vector<CControllerFeature> features;
     };
     static std::vector<FeatureGroup> GetFeatureGroups(const std::vector<CControllerFeature>& features);
@@ -69,4 +74,5 @@ namespace GAME
     ControllerPtr           m_controller;
     IConfigurationWizard*   m_wizard;
   };
+}
 }

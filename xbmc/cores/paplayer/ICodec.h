@@ -43,7 +43,7 @@ public:
     m_bitsPerSample = 0;
     m_bitsPerCodedSample = 0;
   };
-  virtual ~ICodec() {};
+  virtual ~ICodec() = default;
 
   // Virtual functions that all codecs should implement.  Note that these may need
   // enhancing and or refactoring at a later date.  It works currently well for MP3 and
@@ -76,10 +76,6 @@ public:
   // Should return true if the codec can be initialized
   // eg. check if a dll needed for the codec exists
   virtual bool CanInit()=0;
-
-  // SkipNext()
-  // Skip to next track/item inside the current media (if supported).
-  virtual bool SkipNext(){return false;}
 
   // set the total time - useful when info comes from a preset tag
   virtual void SetTotalTime(int64_t totaltime) {}

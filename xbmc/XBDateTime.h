@@ -92,12 +92,12 @@ class CDateTime : public IArchivable
 public:
   CDateTime();
   CDateTime(const CDateTime& time);
-  CDateTime(const SYSTEMTIME& time);
-  CDateTime(const FILETIME& time);
-  CDateTime(const time_t& time);
-  CDateTime(const tm& time);
+  explicit CDateTime(const SYSTEMTIME& time);
+  explicit CDateTime(const FILETIME& time);
+  explicit CDateTime(const time_t& time);
+  explicit CDateTime(const tm& time);
   CDateTime(int year, int month, int day, int hour, int minute, int second);
-  virtual ~CDateTime() {}
+  ~CDateTime() override = default;
 
   static CDateTime GetCurrentDateTime();
   static CDateTime GetUTCDateTime();
@@ -163,7 +163,7 @@ public:
 
   operator FILETIME() const;
 
-  virtual void Archive(CArchive& ar);
+  void Archive(CArchive& ar) override;
 
   void Reset();
 
@@ -203,6 +203,7 @@ public:
   std::string GetAsSaveString() const;
   std::string GetAsDBDateTime() const;
   std::string GetAsDBDate() const;
+  std::string GetAsDBTime() const;
   std::string GetAsLocalizedDate(bool longDate=false) const;
   std::string GetAsLocalizedDate(const std::string &strFormat) const;
   std::string GetAsLocalizedTime(const std::string &format, bool withSeconds=true) const;

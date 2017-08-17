@@ -19,9 +19,9 @@
  *
  */
 
-#include "pvr/PVRTypes.h"
-
 #include "guilib/GUIDialog.h"
+
+#include "pvr/PVRTypes.h"
 
 namespace PVR
 {
@@ -29,23 +29,25 @@ namespace PVR
   {
   public:
     CGUIDialogPVRGuideInfo(void);
-    virtual ~CGUIDialogPVRGuideInfo(void);
-    virtual bool OnMessage(CGUIMessage& message) override;
-    virtual bool OnInfo(int actionID) override;
-    virtual bool HasListItems() const override { return true; };
-    virtual CFileItemPtr GetCurrentListItem(int offset = 0) override;
+    ~CGUIDialogPVRGuideInfo(void) override;
+    bool OnMessage(CGUIMessage& message) override;
+    bool OnInfo(int actionID) override;
+    bool HasListItems() const override { return true; }
+    CFileItemPtr GetCurrentListItem(int offset = 0) override;
 
     void SetProgInfo(const CPVREpgInfoTagPtr &tag);
 
-  protected:
-    virtual void OnInitWindow() override;
+    static void ShowFor(const CFileItemPtr& item);
 
+  protected:
+    void OnInitWindow() override;
+
+  private:
     bool OnClickButtonOK(CGUIMessage &message);
     bool OnClickButtonRecord(CGUIMessage &message);
     bool OnClickButtonPlay(CGUIMessage &message);
     bool OnClickButtonFind(CGUIMessage &message);
     bool OnClickButtonAddTimer(CGUIMessage &message);
-    bool OnClickButtonChannelGuide(CGUIMessage &message);
 
     CPVREpgInfoTagPtr m_progItem;
   };

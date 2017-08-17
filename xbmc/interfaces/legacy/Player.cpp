@@ -115,9 +115,9 @@ namespace XBMCAddon
       CMediaSettings::GetInstance().SetVideoStartWindowed(windowed);
 
       // play current file in playlist
-      if (g_playlistPlayer.GetCurrentPlaylist() != iPlayList)
-        g_playlistPlayer.SetCurrentPlaylist(iPlayList);
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_PLAY, g_playlistPlayer.GetCurrentSong());
+      if (CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() != iPlayList)
+        CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(iPlayList);
+      CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_PLAY, CServiceBroker::GetPlaylistPlayer().GetCurrentSong());
     }
 
     void Player::playPlaylist(const PlayList* playlist, bool windowed, int startpos)
@@ -131,9 +131,9 @@ namespace XBMCAddon
 
         // play a python playlist (a playlist from playlistplayer.cpp)
         iPlayList = playlist->getPlayListId();
-        g_playlistPlayer.SetCurrentPlaylist(iPlayList);
+        CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(iPlayList);
         if (startpos > -1)
-          g_playlistPlayer.SetCurrentSong(startpos);
+          CServiceBroker::GetPlaylistPlayer().SetCurrentSong(startpos);
         CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_PLAY, startpos);
       }
       else
@@ -173,15 +173,15 @@ namespace XBMCAddon
       XBMC_TRACE;
       DelayedCallGuard dc(languageHook);
 
-      if (g_playlistPlayer.GetCurrentPlaylist() != iPlayList)
+      if (CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() != iPlayList)
       {
-        g_playlistPlayer.SetCurrentPlaylist(iPlayList);
+        CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(iPlayList);
       }
-      g_playlistPlayer.SetCurrentSong(selected);
+      CServiceBroker::GetPlaylistPlayer().SetCurrentSong(selected);
 
       CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_PLAY, selected);
-      //g_playlistPlayer.Play(selected);
-      //CLog::Log(LOGNOTICE, "Current Song After Play: %i", g_playlistPlayer.GetCurrentSong());
+      //CServiceBroker::GetPlaylistPlayer().Play(selected);
+      //CLog::Log(LOGNOTICE, "Current Song After Play: %i", CServiceBroker::GetPlaylistPlayer().GetCurrentSong());
     }
 
     void Player::OnPlayBackStarted()
@@ -226,10 +226,10 @@ namespace XBMCAddon
       invokeCallback(new CallbackFunction<Player,int>(this,&Player::onPlayBackSpeedChanged,speed));
     }
 
-    void Player::OnPlayBackSeek(int time, int seekOffset)
+    void Player::OnPlayBackSeek(int64_t time, int64_t seekOffset)
     { 
       XBMC_TRACE;
-      invokeCallback(new CallbackFunction<Player,int,int>(this,&Player::onPlayBackSeek,time,seekOffset));
+      invokeCallback(new CallbackFunction<Player,int,int>(this,&Player::onPlayBackSeek,static_cast<int>(time),static_cast<int>(seekOffset)));
     }
 
     void Player::OnPlayBackSeekChapter(int chapter)

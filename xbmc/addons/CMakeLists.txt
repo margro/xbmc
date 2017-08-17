@@ -2,7 +2,7 @@ set(SOURCES Addon.cpp
             AddonBuilder.cpp
             BinaryAddonCache.cpp
             AddonDatabase.cpp
-            AddonDll.cpp
+            AddonInfo.cpp
             AddonInstaller.cpp
             AddonManager.cpp
             AddonStatusHandler.cpp
@@ -15,12 +15,10 @@ set(SOURCES Addon.cpp
             FilesystemInstaller.cpp
             GameResource.cpp
             GUIDialogAddonInfo.cpp
-            GUIDialogAddonSettings.cpp
             GUIViewStateAddonBrowser.cpp
             GUIWindowAddonBrowser.cpp
             ImageDecoder.cpp
             ImageResource.cpp
-            InputStream.cpp
             LanguageResource.cpp
             PluginSource.cpp
             PVRClient.cpp
@@ -32,7 +30,7 @@ set(SOURCES Addon.cpp
             Skin.cpp
             UISoundsResource.cpp
             VFSEntry.cpp
-            Visualisation.cpp
+            Visualization.cpp
             Webinterface.cpp)
 
 set(HEADERS Addon.h
@@ -40,9 +38,10 @@ set(HEADERS Addon.h
             AddonEvents.h
             BinaryAddonCache.h
             AddonDatabase.h
-            AddonDll.h
+            AddonInfo.h
             AddonInstaller.h
             AddonManager.h
+            AddonProvider.h
             AddonStatusHandler.h
             AddonSystemSettings.h
             AddonVersion.h
@@ -50,18 +49,15 @@ set(HEADERS Addon.h
             AudioEncoder.h
             ContextMenuAddon.h
             ContextMenus.h
-            DllAddon.h
             DllLibCPluff.h
             FilesystemInstaller.h
             GameResource.h
             GUIDialogAddonInfo.h
-            GUIDialogAddonSettings.h
             GUIViewStateAddonBrowser.h
             GUIWindowAddonBrowser.h
             IAddon.h
             ImageDecoder.h
             ImageResource.h
-            InputStream.h
             LanguageResource.h
             PluginSource.h
             PVRClient.h
@@ -74,7 +70,7 @@ set(HEADERS Addon.h
             Skin.h
             UISoundsResource.h
             VFSEntry.h
-            Visualisation.h
+            Visualization.h
             Webinterface.h)
 
 core_add_library(addons)

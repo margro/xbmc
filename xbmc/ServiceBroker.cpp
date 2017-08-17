@@ -21,14 +21,26 @@
 #include "ServiceBroker.h"
 #include "Application.h"
 
+using namespace KODI;
+
 ADDON::CAddonMgr &CServiceBroker::GetAddonMgr()
 {
   return g_application.m_ServiceManager->GetAddonMgr();
 }
 
+ADDON::CBinaryAddonManager &CServiceBroker::GetBinaryAddonManager()
+{
+  return g_application.m_ServiceManager->GetBinaryAddonManager();
+}
+
 ADDON::CBinaryAddonCache &CServiceBroker::GetBinaryAddonCache()
 {
   return g_application.m_ServiceManager->GetBinaryAddonCache();
+}
+
+ADDON::CVFSAddonCache &CServiceBroker::GetVFSAddonCache()
+{
+  return g_application.m_ServiceManager->GetVFSAddonCache();
 }
 
 ANNOUNCEMENT::CAnnouncementManager &CServiceBroker::GetAnnouncementManager()
@@ -73,6 +85,11 @@ CSettings& CServiceBroker::GetSettings()
   return g_application.m_ServiceManager->GetSettings();
 }
 
+GAME::CControllerManager& CServiceBroker::GetGameControllerManager()
+{
+  return g_application.m_ServiceManager->GetGameControllerManager();
+}
+
 GAME::CGameServices& CServiceBroker::GetGameServices()
 {
   return g_application.m_ServiceManager->GetGameServices();
@@ -86,6 +103,21 @@ PERIPHERALS::CPeripherals& CServiceBroker::GetPeripherals()
 CFavouritesService& CServiceBroker::GetFavouritesService()
 {
   return g_application.m_ServiceManager->GetFavouritesService();
+}
+
+ADDON::CServiceAddonManager& CServiceBroker::GetServiceAddons()
+{
+  return g_application.m_ServiceManager->GetServiceAddons();
+}
+
+ADDON::CRepositoryUpdater& CServiceBroker::GetRepositoryUpdater()
+{
+  return g_application.m_ServiceManager->GetRepositoryUpdater();
+}
+
+CInputManager& CServiceBroker::GetInputManager()
+{
+  return g_application.m_ServiceManager->GetInputManager();
 }
 
 bool CServiceBroker::IsBinaryAddonCacheUp()

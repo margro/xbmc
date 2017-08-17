@@ -66,7 +66,7 @@ class CGUIWindowManager : public KODI::MESSAGING::IMessageTarget
   friend CGUIMediaWindow;
 public:
   CGUIWindowManager();
-  virtual ~CGUIWindowManager();
+  ~CGUIWindowManager() override;
   bool SendMessage(CGUIMessage& message);
   bool SendMessage(int message, int senderID, int destID, int param1 = 0, int param2 = 0);
   bool SendMessage(CGUIMessage& message, int window);
@@ -85,8 +85,8 @@ public:
   void CloseDialogs(bool forceClose = false) const;
   void CloseInternalModalDialogs(bool forceClose = false) const;
 
-  virtual void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
-  virtual int GetMessageMask() override;
+  void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
+  int GetMessageMask() override;
 
   // OnAction() runs through our active dialogs and windows and sends the message
   // off to the callbacks (application, python, playlist player) and to the
@@ -104,10 +104,6 @@ public:
   /*! \brief Mark a region as dirty, forcing a redraw at the next Render()
    */
   void MarkDirty(const CRect& rect);
-
-  /*! \brief Get the current dirty region
-   */
-  CDirtyRegionList GetDirty() { return m_tracker.GetDirtyRegions(); }
 
   /*! \brief Rendering of the current window and any dialogs
    Render is called every frame to draw the current window and any dialogs.
@@ -214,7 +210,9 @@ public:
    * \return true if the given window is a python window, otherwise false.
    */
   bool IsPythonWindow(int id) const { return (id >= WINDOW_PYTHON_START && id <= WINDOW_PYTHON_END); };
-  void GetActiveModelessWindows(std::vector<int> &ids);
+
+  bool HasVisibleControls();
+
 #ifdef _DEBUG
   void DumpTextureUse();
 #endif
@@ -224,6 +222,15 @@ private:
   void LoadNotOnDemandWindows();
   void UnloadNotOnDemandWindows();
   void AddToWindowHistory(int newWindowID);
+
+  /*!
+   \brief Check if the given window id is in the window history, and if so, remove this
+    window and all overlying windows from the history so that we always have a predictable
+    "Back" behaviour for each window.
+
+   \param windowID the window id to remove from the window history
+   */
+  void RemoveFromWindowHistory(int windowID);
   void ClearWindowHistory();
   void CloseWindowSync(CGUIWindow *window, int nextWindowID = 0);
   CGUIWindow *GetTopMostDialog() const;
@@ -241,6 +248,8 @@ private:
 
   void ProcessRenderLoop(bool renderOnly = false);
 
+  bool HandleAction(const CAction &action) const;
+
   std::unordered_map<int, CGUIWindow*> m_mapWindows;
   std::vector<CGUIWindow*> m_vecCustomWindows;
   std::vector<CGUIWindow*> m_activeDialogs;
@@ -255,7 +264,10 @@ private:
 
   int  m_iNested;
   bool m_initialized;
+  mutable bool m_touchGestureActive{false};
+  mutable bool m_inhibitTouchGestureEvents{false};
 
+  CDirtyRegionList m_dirtyregions;
   CDirtyRegionTracker m_tracker;
 };
 

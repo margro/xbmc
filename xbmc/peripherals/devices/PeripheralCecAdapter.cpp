@@ -31,7 +31,6 @@
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
 #include "pictures/GUIWindowSlideShow.h"
-#include "settings/AdvancedSettings.h"
 #include "utils/JobManager.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
@@ -58,6 +57,7 @@ using namespace CEC;
 #define LOCALISED_ID_PAUSE        36045
 #define LOCALISED_ID_POWEROFF     13005
 #define LOCALISED_ID_SUSPEND      13011
+#define LOCALISED_ID_HIBERNATE    13010
 #define LOCALISED_ID_QUIT         13009
 #define LOCALISED_ID_IGNORE       36028
 
@@ -69,7 +69,7 @@ using namespace CEC;
 class DllLibCECInterface
 {
 public:
-  virtual ~DllLibCECInterface() {}
+  virtual ~DllLibCECInterface() = default;
   virtual ICECAdapter* CECInitialise(libcec_configuration *configuration)=0;
   virtual void*        CECDestroy(ICECAdapter *adapter)=0;
 };
@@ -631,21 +631,25 @@ void CPeripheralCecAdapter::OnTvStandby(void)
   {
   case LOCALISED_ID_POWEROFF:
     m_bStarted = false;
-    g_application.ExecuteXBMCAction("Shutdown");
+    KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_SHUTDOWN);
     break;
   case LOCALISED_ID_SUSPEND:
     m_bStarted = false;
-    g_application.ExecuteXBMCAction("Suspend");
+    KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_SUSPEND);
     break;
+  case LOCALISED_ID_HIBERNATE:
+    m_bStarted = false;
+    KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_HIBERNATE);
+    break;    
   case LOCALISED_ID_QUIT:
     m_bStarted = false;
-    g_application.ExecuteXBMCAction("Quit");
+    KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_QUIT);
     break;
   case LOCALISED_ID_PAUSE:
-    g_application.OnAction(CAction(ACTION_PAUSE));
+    KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PAUSE);
     break;
   case LOCALISED_ID_STOP:
-    g_application.StopPlaying();
+    KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP);
     break;
   default:
     CLog::Log(LOGERROR, "%s - Unexpected [standby_pc_on_tv_standby] setting value", __FUNCTION__);
@@ -1248,8 +1252,8 @@ void CPeripheralCecAdapter::CecLogMessage(void *cbParam, const cec_log_message* 
     break;
   }
 
-  if (iLevel >= CEC_LOG_NOTICE || (iLevel >= 0 && CLog::IsLogLevelLogged(LOGDEBUG) && g_advancedSettings.CanLogComponent(LOGCEC)))
-    CLog::Log(iLevel, "%s - %s", __FUNCTION__, message->message);
+  if (iLevel >= CEC_LOG_NOTICE || (iLevel >= 0 && CLog::IsLogLevelLogged(LOGDEBUG)))
+    CLog::Log(iLevel, LOGCEC, "%s - %s", __FUNCTION__, message->message);
 }
 
 void CPeripheralCecAdapter::SetConfigurationFromLibCEC(const CEC::libcec_configuration &config)
@@ -1389,7 +1393,7 @@ void CPeripheralCecAdapter::SetConfigurationFromSettings(void)
 
   // read the mutually exclusive boolean settings
   int iStandbyAction(GetSettingInt("standby_pc_on_tv_standby"));
-  m_configuration.bPowerOffOnStandby = iStandbyAction == LOCALISED_ID_SUSPEND ? 1 : 0;
+  m_configuration.bPowerOffOnStandby = (iStandbyAction == LOCALISED_ID_SUSPEND || iStandbyAction == LOCALISED_ID_HIBERNATE) ? 1 : 0;
   m_bShutdownOnStandby = iStandbyAction == LOCALISED_ID_POWEROFF;
 
 #if defined(CEC_DOUBLE_TAP_TIMEOUT_MS_OLD)
@@ -1689,9 +1693,9 @@ class CPeripheralCecAdapterReopenJob : public CJob
 public:
   CPeripheralCecAdapterReopenJob(CPeripheralCecAdapter *adapter)
     : m_adapter(adapter) {}
-  virtual ~CPeripheralCecAdapterReopenJob() {}
+  ~CPeripheralCecAdapterReopenJob() override = default;
 
-  bool DoWork(void)
+  bool DoWork(void) override
   {
     return m_adapter->ReopenConnection(false);
   }

@@ -69,6 +69,7 @@
 #include <assert.h>
 #include <algorithm>
 
+using namespace KODI;
 using namespace XFILE;
 using namespace PLAYLIST;
 using namespace MUSIC_INFO;
@@ -138,8 +139,8 @@ CFileItem::CFileItem(const CPVREpgInfoTagPtr& tag)
 
   if (!tag->Icon().empty())
     SetIconImage(tag->Icon());
-  else if (tag->HasPVRChannel() && !tag->ChannelTag()->IconPath().empty())
-    SetIconImage(tag->ChannelTag()->IconPath());
+  else if (tag->HasChannel() && !tag->Channel()->IconPath().empty())
+    SetIconImage(tag->Channel()->IconPath());
 
   FillInMimeType(false);
 }
@@ -257,7 +258,7 @@ CFileItem::CFileItem(const CGUIListItem& item)
   Initialize();
   // not particularly pretty, but it gets around the issue of Initialize() defaulting
   // parameters in the CGUIListItem base class.
-  *((CGUIListItem *)this) = item;
+  *static_cast<CGUIListItem*>(this) = item;
 
   FillInMimeType(false);
 }
@@ -352,7 +353,7 @@ CFileItem::~CFileItem(void)
   m_gameInfoTag = NULL;
 }
 
-const CFileItem& CFileItem::operator=(const CFileItem& item)
+CFileItem& CFileItem::operator=(const CFileItem& item)
 {
   if (this == &item)
     return *this;
@@ -360,7 +361,8 @@ const CFileItem& CFileItem::operator=(const CFileItem& item)
   CGUIListItem::operator=(item);
   m_bLabelPreformatted=item.m_bLabelPreformatted;
   FreeMemory();
-  m_strPath = item.GetPath();
+  m_strPath = item.m_strPath;
+  m_strDynPath = item.m_strDynPath;
   m_bIsParentFolder = item.m_bIsParentFolder;
   m_iDriveType = item.m_iDriveType;
   m_bIsShareOrDrive = item.m_bIsShareOrDrive;
@@ -485,6 +487,7 @@ void CFileItem::Reset()
   m_strDVDLabel.clear();
   m_strTitle.clear();
   m_strPath.clear();
+  m_strDynPath.clear();
   m_dateTime.Reset();
   m_strLockCode.clear();
   m_mimetype.clear();
@@ -509,6 +512,7 @@ void CFileItem::Reset()
   SetInvalid();
 }
 
+// do not archive dynamic path
 void CFileItem::Archive(CArchive& ar)
 {
   CGUIListItem::Archive(ar);
@@ -846,6 +850,11 @@ bool CFileItem::IsDeletedPVRRecording() const
   return (m_pvrRecordingInfoTag && m_pvrRecordingInfoTag->IsDeleted());
 }
 
+bool CFileItem::IsInProgressPVRRecording() const
+{
+  return (m_pvrRecordingInfoTag && m_pvrRecordingInfoTag->IsInProgress());
+}
+
 bool CFileItem::IsPVRTimer() const
 {
   return HasPVRTimerInfoTag();
@@ -1055,7 +1064,7 @@ bool CFileItem::IsNFO() const
 
 bool CFileItem::IsDiscImage() const
 {
-  return URIUtils::HasExtension(m_strPath, ".img|.iso|.nrg");
+  return URIUtils::HasExtension(m_strPath, ".img|.iso|.nrg|.udf");
 }
 
 bool CFileItem::IsOpticalMediaFile() const
@@ -1689,7 +1698,7 @@ std::string CFileItem::GetOpticalMediaPath() const
 * @todo Ideally this (and SetPath) would not be available outside of construction
 * for CFileItem objects, or at least restricted to essentially be equivalent
 * to construction. This would require re-formulating a bunch of CFileItem
-* construction, and also allowing CFileItemList to have it's own (public)
+* construction, and also allowing CFileItemList to have its own (public)
 * SetURL() function, so for now we give direct access.
 */
 void CFileItem::SetURL(const CURL& url)
@@ -1711,6 +1720,38 @@ bool CFileItem::IsURL(const CURL& url) const
 bool CFileItem::IsPath(const std::string& path, bool ignoreURLOptions /* = false */) const
 {
   return URIUtils::PathEquals(m_strPath, path, false, ignoreURLOptions);
+}
+
+void CFileItem::SetDynURL(const CURL& url)
+{
+  m_strDynPath = url.Get();
+}
+
+const CURL CFileItem::GetDynURL() const
+{
+  if (!m_strDynPath.empty())
+  {
+    CURL url(m_strDynPath);
+    return url;
+  }
+  else
+  {
+    CURL url(m_strPath);
+    return url;
+  }
+}
+
+const std::string &CFileItem::GetDynPath() const
+{
+  if (!m_strDynPath.empty())
+    return m_strDynPath;
+  else
+    return m_strPath;
+}
+
+void CFileItem::SetDynPath(const std::string &path)
+{
+  m_strDynPath = path;
 }
 
 void CFileItem::SetCueDocument(const CCueDocumentPtr& cuePtr)
@@ -1736,6 +1777,8 @@ void CFileItem::LoadEmbeddedCue()
         cuesheet->UpdateMediaFile(*itMedia, GetPath());
       SetCueDocument(cuesheet);
     }
+    // Clear cuesheet tag having added it to item
+    tag.SetCueSheet(""); 
   }
 }
 
@@ -2029,7 +2072,7 @@ void CFileItemList::Assign(const CFileItemList& itemlist, bool append)
 bool CFileItemList::Copy(const CFileItemList& items, bool copyItems /* = true */)
 {
   // assign all CFileItem parts
-  *(CFileItem*)this = *(CFileItem*)&items;
+  *static_cast<CFileItem*>(this) = static_cast<const CFileItem&>(items);
 
   // assign the rest of the CFileItemList properties
   m_replaceListing  = items.m_replaceListing;
@@ -3546,7 +3589,7 @@ CFileItem CFileItem::GetItemToPlay() const
 {
   if (HasEPGInfoTag())
   {
-    const CPVRChannelPtr channel(GetEPGInfoTag()->ChannelTag());
+    const CPVRChannelPtr channel(GetEPGInfoTag()->Channel());
     if (channel)
       return CFileItem(channel);
   }

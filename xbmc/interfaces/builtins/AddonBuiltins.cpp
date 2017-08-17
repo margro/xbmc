@@ -25,7 +25,7 @@
 #include "addons/AddonManager.h"
 #include "addons/AddonInstaller.h"
 #include "addons/AddonSystemSettings.h"
-#include "addons/GUIDialogAddonSettings.h"
+#include "addons/settings/GUIDialogAddonSettings.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "addons/PluginSource.h"
 #include "addons/RepositoryUpdater.h"
@@ -74,7 +74,7 @@ static int RunPlugin(const std::vector<std::string>& params)
     if (!item.m_bIsFolder)
     {
       item.SetPath(params[0]);
-      XFILE::CPluginDirectory::RunScriptWithParams(item.GetPath());
+      XFILE::CPluginDirectory::RunScriptWithParams(item.GetPath(), false);
     }
   }
   else
@@ -244,10 +244,10 @@ static int RunScript(const std::vector<std::string>& params)
 static int OpenDefaultSettings(const std::vector<std::string>& params)
 {
   AddonPtr addon;
-  ADDON::TYPE type = TranslateType(params[0]);
+  ADDON::TYPE type = CAddonInfo::TranslateType(params[0]);
   if (CAddonSystemSettings::GetInstance().GetActive(type, addon))
   {
-    bool changed = CGUIDialogAddonSettings::ShowAndGetInput(addon);
+    bool changed = CGUIDialogAddonSettings::ShowForAddon(addon);
     if (type == ADDON_VIZ && changed)
       g_windowManager.SendMessage(GUI_MSG_VISUALISATION_RELOAD, 0, 0);
   }
@@ -262,7 +262,7 @@ static int OpenDefaultSettings(const std::vector<std::string>& params)
 static int SetDefaultAddon(const std::vector<std::string>& params)
 {
   std::string addonID;
-  TYPE type = TranslateType(params[0]);
+  TYPE type = CAddonInfo::TranslateType(params[0]);
   bool allowNone = false;
   if (type == ADDON_VIZ)
     allowNone = true;
@@ -286,7 +286,7 @@ static int AddonSettings(const std::vector<std::string>& params)
 {
   AddonPtr addon;
   if (CAddonMgr::GetInstance().GetAddon(params[0], addon))
-    CGUIDialogAddonSettings::ShowAndGetInput(addon);
+    CGUIDialogAddonSettings::ShowForAddon(addon);
 
   return 0;
 }
@@ -316,7 +316,7 @@ static int StopScript(const std::vector<std::string>& params)
  */
 static int UpdateRepos(const std::vector<std::string>& params)
 {
-  CRepositoryUpdater::GetInstance().CheckForUpdates();
+  CServiceBroker::GetRepositoryUpdater().CheckForUpdates();
 
   return 0;
 }

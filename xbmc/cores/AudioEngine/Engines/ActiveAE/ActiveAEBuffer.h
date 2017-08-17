@@ -80,7 +80,7 @@ public:
 class CActiveAEBufferPool
 {
 public:
-  CActiveAEBufferPool(AEAudioFormat format);
+  explicit CActiveAEBufferPool(const AEAudioFormat& format);
   virtual ~CActiveAEBufferPool();
   virtual bool Create(unsigned int totaltime);
   CSampleBuffer *GetFreeBuffer();
@@ -95,8 +95,9 @@ class IAEResample;
 class CActiveAEBufferPoolResample : public CActiveAEBufferPool
 {
 public:
-  CActiveAEBufferPoolResample(AEAudioFormat inputFormat, AEAudioFormat outputFormat, AEQuality quality);
-  virtual ~CActiveAEBufferPoolResample();
+  CActiveAEBufferPoolResample(const AEAudioFormat& inputFormat, const AEAudioFormat& outputFormat, AEQuality quality);
+  ~CActiveAEBufferPoolResample() override;
+  using CActiveAEBufferPool::Create;
   bool Create(unsigned int totaltime, bool remap, bool upmix, bool normalize = true);
   bool ResampleBuffers(int64_t timestamp = 0);
   void ConfigureResampler(bool normalizelevels, bool stereoupmix, AEQuality quality);
@@ -136,8 +137,8 @@ class CActiveAEFilter;
 class CActiveAEBufferPoolAtempo : public CActiveAEBufferPool
 {
 public:
-  CActiveAEBufferPoolAtempo(AEAudioFormat format);
-  virtual ~CActiveAEBufferPoolAtempo();
+  explicit CActiveAEBufferPoolAtempo(const AEAudioFormat& format);
+  ~CActiveAEBufferPoolAtempo() override;
   bool Create(unsigned int totaltime) override;
   bool ProcessBuffers();
   float GetDelay();

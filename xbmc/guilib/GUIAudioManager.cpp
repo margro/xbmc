@@ -21,9 +21,12 @@
 #include "system.h"
 #include "GUIAudioManager.h"
 #include "ServiceBroker.h"
+#include "input/ActionIDs.h"
+#include "input/ActionTranslator.h"
 #include "input/Key.h"
-#include "input/ButtonTranslator.h"
+#include "input/WindowTranslator.h"
 #include "settings/lib/Setting.h"
+#include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/URIUtils.h"
 #include "utils/XBMCTinyXML.h"
@@ -31,7 +34,6 @@
 #include "addons/AddonManager.h"
 #include "addons/Skin.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
-#include "ServiceBroker.h"
 #include "utils/log.h"
 
 CGUIAudioManager g_audioManager;
@@ -41,11 +43,9 @@ CGUIAudioManager::CGUIAudioManager()
   m_bEnabled = false;
 }
 
-CGUIAudioManager::~CGUIAudioManager()
-{
-}
+CGUIAudioManager::~CGUIAudioManager() = default;
 
-void CGUIAudioManager::OnSettingChanged(const CSetting *setting)
+void CGUIAudioManager::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 {
   if (setting == NULL)
     return;
@@ -58,7 +58,7 @@ void CGUIAudioManager::OnSettingChanged(const CSetting *setting)
   }
 }
 
-bool CGUIAudioManager::OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
+bool CGUIAudioManager::OnSettingUpdate(std::shared_ptr<CSetting> setting, const char *oldSettingId, const TiXmlNode *oldSettingNode)
 {
   if (setting == NULL)
     return false;
@@ -66,10 +66,10 @@ bool CGUIAudioManager::OnSettingUpdate(CSetting* &setting, const char *oldSettin
   if (setting->GetId() == CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN)
   {
     //Migrate the old settings
-    if (((CSettingString*)setting)->GetValue() == "SKINDEFAULT")
-      ((CSettingString*)setting)->Reset();
-    else if (((CSettingString*)setting)->GetValue() == "OFF")
-      ((CSettingString*)setting)->SetValue("");
+    if (std::static_pointer_cast<CSettingString>(setting)->GetValue() == "SKINDEFAULT")
+      std::static_pointer_cast<CSettingString>(setting)->Reset();
+    else if (std::static_pointer_cast<CSettingString>(setting)->GetValue() == "OFF")
+      std::static_pointer_cast<CSettingString>(setting)->SetValue("");
   }
   return true;
 }
@@ -223,7 +223,7 @@ void CGUIAudioManager::UnLoad()
 
 std::string GetSoundSkinPath()
 {
-  auto setting = static_cast<CSettingString*>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN));
+  auto setting = std::static_pointer_cast<CSettingString>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_LOOKANDFEEL_SOUNDSKIN));
   auto value = setting->GetValue();
   if (value.empty())
     return "";
@@ -280,10 +280,10 @@ bool CGUIAudioManager::Load()
     while (pAction)
     {
       TiXmlNode* pIdNode = pAction->FirstChild("name");
-      int id = 0;    // action identity
+      unsigned int id = ACTION_NONE;    // action identity
       if (pIdNode && pIdNode->FirstChild())
       {
-        CButtonTranslator::TranslateActionString(pIdNode->FirstChild()->Value(), id);
+        CActionTranslator::TranslateString(pIdNode->FirstChild()->Value(), id);
       }
 
       TiXmlNode* pFileNode = pAction->FirstChild("file");
@@ -291,7 +291,7 @@ bool CGUIAudioManager::Load()
       if (pFileNode && pFileNode->FirstChild())
         strFile += pFileNode->FirstChild()->Value();
 
-      if (id > 0 && !strFile.empty())
+      if (id != ACTION_NONE && !strFile.empty())
       {
         std::string filename = URIUtils::AddFileToFolder(m_strMediaDir, strFile);
         IAESound *sound = LoadSound(filename);
@@ -317,7 +317,7 @@ bool CGUIAudioManager::Load()
       if (pIdNode)
       {
         if (pIdNode->FirstChild())
-          id = CButtonTranslator::TranslateWindow(pIdNode->FirstChild()->Value());
+          id = CWindowTranslator::TranslateWindow(pIdNode->FirstChild()->Value());
       }
 
       CWindowSounds sounds;

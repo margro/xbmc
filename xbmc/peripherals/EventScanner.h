@@ -31,7 +31,7 @@ namespace PERIPHERALS
   class IEventScannerCallback
   {
   public:
-    virtual ~IEventScannerCallback(void) { }
+    virtual ~IEventScannerCallback(void) = default;
 
     virtual void ProcessEvents(void) = 0;
   };
@@ -50,9 +50,9 @@ namespace PERIPHERALS
                         protected CThread
   {
   public:
-    CEventScanner(IEventScannerCallback* callback);
+    explicit CEventScanner(IEventScannerCallback* callback);
 
-    virtual ~CEventScanner(void) { }
+    ~CEventScanner(void) override = default;
 
     void Start(void);
     void Stop(void);
@@ -60,11 +60,11 @@ namespace PERIPHERALS
     EventRateHandle SetRate(double rateHz);
 
     // implementation of IEventRateCallback
-    virtual void Release(CEventRateHandle* handle) override;
+    void Release(CEventRateHandle* handle) override;
 
   protected:
     // implementation of CThread
-    virtual void Process(void) override;
+    void Process(void) override;
 
   private:
     double GetRateHz(void) const;

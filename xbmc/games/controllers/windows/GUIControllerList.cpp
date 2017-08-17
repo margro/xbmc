@@ -30,6 +30,8 @@
 #include "addons/AddonManager.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "games/controllers/Controller.h"
+#include "games/controllers/ControllerFeature.h"
+#include "games/controllers/ControllerLayout.h"
 #include "games/controllers/guicontrols/GUIControllerButton.h"
 #include "games/controllers/guicontrols/GUIGameController.h"
 #include "games/GameServices.h"
@@ -37,14 +39,13 @@
 #include "guilib/GUIControlGroupList.h"
 #include "guilib/GUIWindow.h"
 #include "guilib/WindowIDs.h"
-#include "input/joysticks/DefaultJoystick.h" // for DEFAULT_CONTROLLER_ID
+#include "input/joysticks/JoystickIDs.h"
 #include "messaging/ApplicationMessenger.h"
 #include "peripherals/Peripherals.h"
+#include "utils/StringUtils.h"
 #include "ServiceBroker.h"
 
-#include <algorithm>
-#include <iterator>
-
+using namespace KODI;
 using namespace ADDON;
 using namespace GAME;
 
@@ -97,7 +98,7 @@ bool CGUIControllerList::Refresh(void)
     {
       const ControllerPtr& controller = *it;
 
-      CGUIButtonControl* pButton = new CGUIControllerButton(*m_controllerButton, controller->Label(), buttonId++);
+      CGUIButtonControl* pButton = new CGUIControllerButton(*m_controllerButton, controller->Layout().Label(), buttonId++);
       m_controllerList->AddControl(pButton);
 
       // Just in case
@@ -151,7 +152,7 @@ void CGUIControllerList::OnEvent(const ADDON::AddonEvent& event)
 {
   if (typeid(event) == typeid(ADDON::AddonEvents::InstalledChanged))
   {
-    using namespace KODI::MESSAGING;
+    using namespace MESSAGING;
     CGUIMessage msg(GUI_MSG_REFRESH_LIST, m_guiWindow->GetID(), CONTROL_CONTROLLER_LIST);
     CApplicationMessenger::GetInstance().SendGUIMessage(msg);
   }
@@ -162,6 +163,21 @@ bool CGUIControllerList::RefreshControllers(void)
   // Get current controllers
   CGameServices& gameServices = CServiceBroker::GetGameServices();
   ControllerVector newControllers = gameServices.GetControllers();
+
+  // Don't show an empty list in the GUI
+  auto HasButtonForFeature = [this](const CControllerFeature &feature)
+    {
+      return m_featureList->HasButton(feature.Type());
+    };
+
+  auto HasButtonForController = [&](const ControllerPtr &controller)
+    {
+      const auto &features = controller->Features();
+      auto it = std::find_if(features.begin(), features.end(), HasButtonForFeature);
+      return it == features.end();
+    };
+
+  newControllers.erase(std::remove_if(newControllers.begin(), newControllers.end(), HasButtonForController), newControllers.end());
 
   // Check for changes
   std::set<std::string> oldControllerIds;
@@ -187,7 +203,7 @@ bool CGUIControllerList::RefreshControllers(void)
         if (i->ID() == DEFAULT_CONTROLLER_ID && j->ID() != DEFAULT_CONTROLLER_ID) return true;
         if (i->ID() != DEFAULT_CONTROLLER_ID && j->ID() == DEFAULT_CONTROLLER_ID) return false;
 
-        return i->Name() < j->Name();
+        return StringUtils::CompareNoCase(i->Layout().Label(), j->Layout().Label()) < 0;
       });
   }
 

@@ -23,6 +23,7 @@
 #include "filesystem/File.h"
 #include "filesystem/Directory.h"
 #include "filesystem/PluginDirectory.h"
+#include "guilib/LocalizeStrings.h"
 #include "AddonManager.h"
 #include "utils/ScraperParser.h"
 #include "utils/ScraperUrl.h"
@@ -127,7 +128,7 @@ static void CheckScraperError(const TiXmlElement *pxeRoot)
   throw CScraperError(sTitle, sMessage);
 }
 
-std::unique_ptr<CScraper> CScraper::FromExtension(AddonProps props, const cp_extension_t* ext)
+std::unique_ptr<CScraper> CScraper::FromExtension(CAddonInfo addonInfo, const cp_extension_t* ext)
 {
   bool requiressettings = CAddonMgr::GetInstance().GetExtValue(ext->configuration,"@requiressettings") == "true";
 
@@ -137,7 +138,7 @@ std::unique_ptr<CScraper> CScraper::FromExtension(AddonProps props, const cp_ext
     persistence.SetFromTimeString(tmp);
 
   CONTENT_TYPE pathContent(CONTENT_NONE);
-  switch (props.type)
+  switch (addonInfo.MainType())
   {
     case ADDON_SCRAPER_ALBUMS:
       pathContent = CONTENT_ALBUMS;
@@ -158,11 +159,11 @@ std::unique_ptr<CScraper> CScraper::FromExtension(AddonProps props, const cp_ext
       break;
   }
 
-  return std::unique_ptr<CScraper>(new CScraper(std::move(props), requiressettings, persistence, pathContent));
+  return std::unique_ptr<CScraper>(new CScraper(std::move(addonInfo), requiressettings, persistence, pathContent));
 }
 
-CScraper::CScraper(AddonProps props)
-  : CAddon(std::move(props)),
+CScraper::CScraper(CAddonInfo addonInfo)
+  : CAddon(std::move(addonInfo)),
     m_fLoaded(false),
     m_requiressettings(false),
     m_pathContent(CONTENT_NONE)
@@ -170,8 +171,8 @@ CScraper::CScraper(AddonProps props)
   m_isPython = URIUtils::GetExtension(LibPath()) == ".py";
 }
 
-CScraper::CScraper(AddonProps props, bool requiressettings, CDateTimeSpan persistence, CONTENT_TYPE pathContent)
-  : CAddon(std::move(props)),
+CScraper::CScraper(CAddonInfo addonInfo, bool requiressettings, CDateTimeSpan persistence, CONTENT_TYPE pathContent)
+  : CAddon(std::move(addonInfo)),
     m_fLoaded(false),
     m_requiressettings(requiressettings),
     m_persistence(persistence),
@@ -188,7 +189,7 @@ bool CScraper::Supports(const CONTENT_TYPE &content) const
 bool CScraper::SetPathSettings(CONTENT_TYPE content, const std::string& xml)
 {
   m_pathContent = content;
-  if (!LoadSettings())
+  if (!LoadSettings(false, false))
     return false;
 
   if (xml.empty())
@@ -196,14 +197,12 @@ bool CScraper::SetPathSettings(CONTENT_TYPE content, const std::string& xml)
 
   CXBMCTinyXML doc;
   doc.Parse(xml);
-  m_userSettingsLoaded = SettingsFromXML(doc);
-
-  return m_userSettingsLoaded;
+  return SettingsFromXML(doc);
 }
 
 std::string CScraper::GetPathSettings()
 {
-  if (!LoadSettings())
+  if (!LoadSettings(false))
     return "";
 
   std::stringstream stream;
@@ -504,7 +503,7 @@ CScraperUrl CScraper::ResolveIDToUrl(const std::string& externalID)
 
     CFileItem item("resolve me", false);
 
-    if (XFILE::CPluginDirectory::GetPluginResult(str.str(), item))
+    if (XFILE::CPluginDirectory::GetPluginResult(str.str(), item, false))
       scurlRet.ParseString(item.GetPath());
 
     return scurlRet;
@@ -720,6 +719,7 @@ void DetailsFromFileItem<CAlbum>(const CFileItem& item, CAlbum& album)
 {
   album.strAlbum = item.GetLabel();
   album.strMusicBrainzAlbumID = FromString(item, "album.musicbrainzid");
+  album.strReleaseGroupMBID = FromString(item, "album.releasegroupid");
 
   int nArtists = item.GetProperty("album.artists").asInteger();
   album.artistCredits.reserve(nArtists);
@@ -883,7 +883,7 @@ static bool PythonDetails(const std::string& ID,
 
   CFileItem item(url, false);
 
-  if (!XFILE::CPluginDirectory::GetPluginResult(str.str(), item))
+  if (!XFILE::CPluginDirectory::GetPluginResult(str.str(), item, false))
     return false;
 
   DetailsFromFileItem(item, result);

@@ -66,7 +66,7 @@ bool CVideoSyncD3D::Setup(PUPDATECLOCK func)
   return true;
 }
 
-void CVideoSyncD3D::Run(std::atomic<bool>& stop)
+void CVideoSyncD3D::Run(CEvent& stopEvent)
 {
   int64_t Now;
   int64_t LastVBlankTime;
@@ -78,10 +78,12 @@ void CVideoSyncD3D::Run(std::atomic<bool>& stop)
   Now = CurrentHostCounter();
   LastVBlankTime = Now;
   m_lastUpdateTime = Now - systemFrequency;
-  while (!stop && !m_displayLost && !m_displayReset)
+  while (!stopEvent.Signaled() && !m_displayLost && !m_displayReset)
   {
     // sleep until vblank
-    HRESULT hr = g_Windowing.GetCurrentOutput()->WaitForVBlank();
+    Microsoft::WRL::ComPtr<IDXGIOutput> pOutput;
+    DX::DeviceResources::Get()->GetOutput(&pOutput);
+    HRESULT hr = pOutput->WaitForVBlank();
 
     // calculate how many vblanks happened
     Now = CurrentHostCounter();
@@ -111,7 +113,7 @@ void CVideoSyncD3D::Run(std::atomic<bool>& stop)
   }
 
   m_lostEvent.Set();
-  while (!stop && m_displayLost && !m_displayReset)
+  while (!stopEvent.Signaled() && m_displayLost && !m_displayReset)
   {
     Sleep(10);
   }
@@ -128,7 +130,7 @@ void CVideoSyncD3D::Cleanup()
 float CVideoSyncD3D::GetFps()
 {
   DXGI_MODE_DESC DisplayMode;
-  g_Windowing.GetDisplayMode(&DisplayMode, true);
+  DX::DeviceResources::Get()->GetDisplayMode(&DisplayMode);
 
   m_fps = (DisplayMode.RefreshRate.Denominator != 0) ? (float)DisplayMode.RefreshRate.Numerator / (float)DisplayMode.RefreshRate.Denominator : 0.0f;
 
@@ -143,17 +145,5 @@ float CVideoSyncD3D::GetFps()
     m_fps *= 2;
   }
   return m_fps;
-}
-
-std::string CVideoSyncD3D::GetErrorDescription(HRESULT hr)
-{
-  WCHAR buff[1024];
-  DXGetErrorDescription(hr, buff, 1024);
-  std::wstring error(DXGetErrorString(hr));
-  std::wstring descr(buff);
-  std::wstring errMsgW = StringUtils::Format(L"%s: %s", error.c_str(), descr.c_str());
-  std::string errMsg;
-  g_charsetConverter.wToUTF8(errMsgW, errMsg);
-  return errMsg;
 }
 
