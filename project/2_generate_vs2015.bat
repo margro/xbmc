@@ -18,7 +18,7 @@ IF NOT EXIST %SOLUTION_DIR% (
 
 cd %SOLUTION_DIR%
 
-cmake -G "Visual Studio 14" %KODI_SRC%
+cmake %KODI_SRC% -G "Visual Studio 14" -DCMAKE_SYSTEM_VERSION="8.1"
 
 set KODI_HOME=%SOLUTION_DIR%
 set PATH=%SOLUTION_DIR%\system;%PATH%
