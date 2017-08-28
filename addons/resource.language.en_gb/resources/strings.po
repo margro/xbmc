@@ -8789,6 +8789,7 @@ msgctxt "#16315"
 msgid "Lanczos3 - Optimised"
 msgstr ""
 
+#: xbmc/games/dialogs/osd/DialogGameVideoFilter.cpp
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#16316"
 msgid "Auto"
@@ -10106,7 +10107,18 @@ msgctxt "#19188"
 msgid "All your guide data will be cleared. Are you sure?"
 msgstr ""
 
-#empty strings from id 19189 to 19190
+#. message box text stating that the PVR backend forbids to record a given epg event.
+#: xbmc/pvr/PVRGUIActions.cpp
+msgctxt "#19189"
+msgid "The PVR backend does not allow to record this event."
+msgstr ""
+
+#. generic "play program" label used in different places
+#: addons/skin.estuary/xml/DialogPVRInfo.xml
+#: xbmc/pvr/PVRContextMenus.cpp
+msgctxt "#19190"
+msgid "Play programme"
+msgstr ""
 
 #: addons/skin.estuary/xml/SettingsSystemInfo.xml
 msgctxt "#19191"
@@ -17067,7 +17079,19 @@ msgctxt "#35223"
 msgid "Input settings"
 msgstr ""
 
-#empty strings from id 35224 to 35249
+#. Label of button in the in-game menu for pausing and resuming playback
+#: addons/skin.estuary/xml/GameOSD.xml
+msgctxt "#35224"
+msgid "Pause / Resume"
+msgstr ""
+
+#. Label of button in the in-game menu for changing the video filter (also called a video shader)
+#: addons/skin.estuary/xml/Custom_1101_SettingsList.xml
+msgctxt "#35225"
+msgid "Video filter"
+msgstr ""
+
+#empty strings from id 35226 to 35249
 
 #: xbmc/windows/GUIMediaWindow.cpp
 msgctxt "#35250"

@@ -255,7 +255,7 @@ macro (build_addon target prefix libs)
 
         if(CMAKE_BUILD_TYPE MATCHES Debug)
           # for debug builds also install the PDB file
-          install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${target}.pdb DESTINATION ${target}
+          install(FILES $<TARGET_PDB_FILE:${target}> DESTINATION ${target}
                   COMPONENT ${target}-${${prefix}_VERSION})
         endif()
       endif()
