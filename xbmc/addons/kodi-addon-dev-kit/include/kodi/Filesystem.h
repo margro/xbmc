@@ -110,6 +110,7 @@ extern "C"
     double (*get_file_download_speed)(void* kodiBase, void* file);
     void (*close_file)(void* kodiBase, void* file);
     int (*get_file_chunk_size)(void* kodiBase, void* file);
+    char* (*get_property)(void* kodiBase, void* file, int type, const char *name);
 
     void* (*curl_create)(void* kodiBase, const char* url);
     bool (*curl_add_option)(void* kodiBase, void* file, int type, const char* name, const char* value);
@@ -192,6 +193,25 @@ typedef enum CURLOptiontype
   /// Add a Header
   ADDON_CURL_OPTION_HEADER
 } CURLOptiontype;
+//------------------------------------------------------------------------------
+
+//==============================================================================
+/// \ingroup cpp_kodi_vfs_Defs
+/// @brief Used CURL message types
+///
+typedef enum FilePropertyTypes
+{
+  /// Get protocol response line
+  ADDON_FILE_PROPERTY_RESPONSE_PROTOCOL,
+  /// Get a response header
+  ADDON_FILE_PROPERTY_RESPONSE_HEADER,
+  /// Get file content type
+  ADDON_FILE_PROPERTY_CONTENT_TYPE,
+  /// Get file content charset
+  ADDON_FILE_PROPERTY_CONTENT_CHARSET,
+  /// Get file mime type
+  ADDON_FILE_PROPERTY_MIME_TYPE
+} FilePropertyTypes;
 //------------------------------------------------------------------------------
 
 //============================================================================
@@ -906,6 +926,37 @@ namespace vfs
   }
   //----------------------------------------------------------------------------
 
+
+  //============================================================================
+  ///
+  /// @ingroup cpp_kodi_vfs
+  /// @brief Remove the slash on given path name
+  ///
+  /// @param[in,out] path The complete path
+  ///
+  ///
+  /// ------------------------------------------------------------------------
+  ///
+  /// **Example:**
+  /// ~~~~~~~~~~~~~{.cpp}
+  /// #include <kodi/Filesystem.h>
+  /// ...
+  /// std::string dirName = "special://temp/";
+  /// kodi::vfs::RemoveSlashAtEnd(dirName);
+  /// fprintf(stderr, "Directory name is '%s'\n", dirName.c_str());
+  /// ~~~~~~~~~~~~~
+  ///
+  inline void RemoveSlashAtEnd(std::string& path)
+  {
+    if (!path.empty())
+    {
+      char last = path[path.size() - 1];
+      if (last == '/' || last == '\\')
+        path.erase(path.size() - 1);
+    }
+  }
+  //----------------------------------------------------------------------------
+
   //============================================================================
   ///
   /// @ingroup cpp_kodi_vfs
@@ -1477,6 +1528,34 @@ namespace vfs
       if (!m_file)
         return -1;
       return ::kodi::addon::CAddonBase::m_interface->toKodi->kodi_filesystem->get_file_chunk_size(::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, m_file);
+    }
+    //--------------------------------------------------------------------------
+
+    //==========================================================================
+    ///
+    /// @ingroup cpp_kodi_vfs_CFile
+    /// @brief retrieve a file property
+    ///
+    /// @param[in] type         The type of the file property to retrieve the value for
+    /// @param[in] name         The name of a named property value (e.g. Header)
+    /// @return                 value of requested property, empty on failure / non-existance
+    ///
+    const std::string GetProperty(FilePropertyTypes type, const std::string &name) const
+    {
+      if (!m_file)
+      {
+        kodi::Log(ADDON_LOG_ERROR, "kodi::vfs::CURLCreate(...) needed to call before GetProperty!");
+        return "";
+      }
+      char *res(::kodi::addon::CAddonBase::m_interface->toKodi->kodi_filesystem->get_property(
+        ::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, m_file, type, name.c_str()));
+      if (res)
+      {
+        std::string strReturn(res);
+        ::kodi::addon::CAddonBase::m_interface->toKodi->free_string(::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, res);
+        return strReturn;
+      }
+      return "";
     }
     //--------------------------------------------------------------------------
 
