@@ -167,10 +167,11 @@ public:
   bool OnMessage(CGUIMessage& message) override;
   std::string GetCurrentPlayer();
   void OnPlayBackEnded() override;
-  void OnPlayBackStarted() override;
+  void OnPlayBackStarted(const CFileItem &file) override;
   void OnPlayBackPaused() override;
   void OnPlayBackResumed() override;
   void OnPlayBackStopped() override;
+  void OnPlayBackError() override;
   void OnQueueNextItem() override;
   void OnPlayBackSeek(int64_t iTime, int64_t seekOffset) override;
   void OnPlayBackSeekChapter(int iChapter) override;
@@ -190,7 +191,6 @@ public:
   void DelayedPlayerRestart();
   void CheckDelayedPlayerRestart();
   bool IsPlayingFullScreenVideo() const;
-  bool IsStartingPlayback() const { return m_bPlaybackStarting; }
   bool IsFullScreen();
   bool OnAppCommand(const CAction &action);
   bool OnAction(const CAction &action);
@@ -307,18 +307,6 @@ public:
 
   inline bool IsDPMSActive() { return m_dpmsIsActive; };
   int m_iScreenSaveLock; // spiff: are we checking for a lock? if so, ignore the screensaver state, if -1 we have failed to input locks
-
-  bool m_bPlaybackStarting;
-  typedef enum
-  {
-    PLAY_STATE_NONE = 0,
-    PLAY_STATE_STARTING,
-    PLAY_STATE_PLAYING,
-    PLAY_STATE_STOPPED,
-    PLAY_STATE_ENDED,
-  } PlayState;
-  PlayState m_ePlayState;
-  CCriticalSection m_playStateMutex;
 
   std::string m_strPlayListFile;
 

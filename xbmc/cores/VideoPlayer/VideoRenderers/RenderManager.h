@@ -116,8 +116,6 @@ public:
    * AddVideoPicture and AddOverlay. It waits for max 50 ms before it returns -1
    * in case no buffer is available. Player may call this in a loop and decides
    * by itself when it wants to drop a frame.
-   * If no buffering is requested in Configure, player does not need to call this,
-   * because FlipPage will block.
    */
   int WaitForBuffer(volatile std::atomic_bool& bStop, int timeout = 100);
 
@@ -153,8 +151,6 @@ protected:
   void UpdateLatencyTweak();
   void CheckEnableClockSync();
 
-  void FlipPage(volatile std::atomic_bool& bStop, double pts, EINTERLACEMETHOD deintMethod, EFIELDSYNC sync, bool wait);
-
   CBaseRenderer *m_pRenderer = nullptr;
   OVERLAY::CRenderer m_overlays;
   CDebugRenderer m_debugRenderer;
@@ -163,7 +159,6 @@ protected:
   CCriticalSection m_datalock;
   bool m_bTriggerUpdateResolution = false;
   bool m_bRenderGUI = true;
-  int m_waitForBufferCount = 0;
   int m_rendermethod = 0;
   bool m_renderedOverlay = false;
   bool m_renderDebug = false;
@@ -183,7 +178,6 @@ protected:
   {
     PRESENT_METHOD_SINGLE = 0,
     PRESENT_METHOD_BLEND,
-    PRESENT_METHOD_WEAVE,
     PRESENT_METHOD_BOB,
   };
 
@@ -193,7 +187,7 @@ protected:
     STATE_CONFIGURING,
     STATE_CONFIGURED,
   };
-  ERENDERSTATE m_renderState;
+  ERENDERSTATE m_renderState = STATE_UNCONFIGURED;
   CEvent m_stateEvent;
 
   /// Display latency tweak value from AdvancedSettings for the current refresh rate
@@ -233,6 +227,7 @@ protected:
   XbmcThreads::EndTime m_presentTimer;
   bool m_forceNext = false;
   int m_presentsource = 0;
+  int m_presentsourcePast = -1;
   XbmcThreads::ConditionVariable m_presentevent;
   CEvent m_flushEvent;
   CDVDClock &m_dvdClock;

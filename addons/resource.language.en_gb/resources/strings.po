@@ -9990,11 +9990,7 @@ msgctxt "#19169"
 msgid "Hide video information box"
 msgstr ""
 
-#. pvr settings "playback timeout" setting label
-#: system/settings/settings.xml
-msgctxt "#19170"
-msgid "Timeout when starting playback"
-msgstr ""
+#empty string with id 19170
 
 #. pvr settings "start playback full screen" setting label
 #: system/settings/settings.xml
@@ -16383,8 +16379,20 @@ msgctxt "#34128"
 msgid "192.0"
 msgstr ""
 
+#. SPDIF max sampling rate
+#: system/settings/settings.xml
+msgctxt "#34129"
+msgid "352.8"
+msgstr ""
+
+#. SPDIF max sampling rate
+#: system/settings/settings.xml
+msgctxt "#34130"
+msgid "384.0"
+msgstr ""
+
 #empty strings from id 34129 to 34200
-#34129-34200 reserved for future use
+#34131-34200 reserved for future use
 
 #: xbmc/PlayListPlayer.cpp
 msgctxt "#34201"
@@ -18146,10 +18154,7 @@ msgctxt "#36229"
 msgid "Display signal quality information in the codec information window (if supported by the add-on and backend)."
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#36230"
-msgid "Time to wait for a channel to be received after a channel change. Useful for over-the-air channels that occasionally lose signal strength."
-msgstr ""
+#empty string with id 36230
 
 #: system/settings/settings.xml
 msgctxt "#36231"
@@ -20656,7 +20661,13 @@ msgctxt "#38208"
 msgid "If EXIF information exists (date, time, camera used, etc.), it will be displayed."
 msgstr ""
 
-#empty strings from id 38209 to 38999
+#. Contextmenu entry to remove the resume point of the currently selected item
+#: xbmc/video/ContextMenus.h
+msgctxt "#38209"
+msgid "Reset resume position"
+msgstr ""
+
+#empty strings from id 38210 to 38999
 
 #: system/settings/settings.xml
 msgctxt "#39000"

@@ -22,6 +22,7 @@
 #include "AddonBase.h"
 
 #include <map>
+#include <vector>
 
 #if !defined(_WIN32)
   #include <sys/stat.h>
@@ -110,7 +111,7 @@ extern "C"
     double (*get_file_download_speed)(void* kodiBase, void* file);
     void (*close_file)(void* kodiBase, void* file);
     int (*get_file_chunk_size)(void* kodiBase, void* file);
-    char* (*get_property)(void* kodiBase, void* file, int type, const char *name);
+    char** (*get_property_values)(void* kodiBase, void* file, int type, const char *name, int *numValues);
 
     void* (*curl_create)(void* kodiBase, const char* url);
     bool (*curl_add_option)(void* kodiBase, void* file, int type, const char* name, const char* value);
@@ -186,7 +187,7 @@ typedef enum CURLOptiontype
 {
   /// Set a general option
   ADDON_CURL_OPTION_OPTION,
-  /// Set a protocol option
+  /// Set a protocol option (see below)
   ADDON_CURL_OPTION_PROTOCOL,
   /// Set User and password
   ADDON_CURL_OPTION_CREDENTIALS,
@@ -194,6 +195,25 @@ typedef enum CURLOptiontype
   ADDON_CURL_OPTION_HEADER
 } CURLOptiontype;
 //------------------------------------------------------------------------------
+
+///
+// The following names for ADDON_CURL_OPTION_PROTOCOL are possible:
+//
+// accept-charset: Set the "accept-charset" header
+// acceptencoding or encoding: Set the "accept-encoding" header
+// active-remote: Set the "active-remote" header
+// auth: Set the authentication method. Possible values: any, anysafe, digest, ntlm
+// connection-timeout: Set the connection timeout in seconds
+// cookie: Set the "cookie" header
+// customrequest: Set a custom HTTP request like DELETE
+// noshout: Set to true if kodi detects a stream as shoutcast by mistake.
+// postdata: Set the post body (value needs to be base64 encoded). (Implicitly sets the request to POST)
+// referer: Set the "referer" header
+// user-agent: Set the "user-agent" header
+// seekable: Set the stream seekable. 1: enable, 0: disable
+// sslcipherlist: Set list of accepted SSL ciphers.
+//
+///
 
 //==============================================================================
 /// \ingroup cpp_kodi_vfs_Defs
@@ -1540,22 +1560,51 @@ namespace vfs
     /// @param[in] name         The name of a named property value (e.g. Header)
     /// @return                 value of requested property, empty on failure / non-existance
     ///
-    const std::string GetProperty(FilePropertyTypes type, const std::string &name) const
+    const std::string GetPropertyValue(FilePropertyTypes type, const std::string &name) const
     {
       if (!m_file)
       {
-        kodi::Log(ADDON_LOG_ERROR, "kodi::vfs::CURLCreate(...) needed to call before GetProperty!");
+        kodi::Log(ADDON_LOG_ERROR, "kodi::vfs::CURLCreate(...) needed to call before GetPropertyValue!");
         return "";
       }
-      char *res(::kodi::addon::CAddonBase::m_interface->toKodi->kodi_filesystem->get_property(
-        ::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, m_file, type, name.c_str()));
+      std::vector<std::string> values = GetPropertyValues(type, name);
+      if (values.empty()) {
+        return "";
+      }
+      return values[0];
+    }
+    //--------------------------------------------------------------------------
+
+    //==========================================================================
+    ///
+    /// @ingroup cpp_kodi_vfs_CFile
+    /// @brief retrieve file property values
+    ///
+    /// @param[in] type         The type of the file property values to retrieve the value for
+    /// @param[in] name         The name of the named property (e.g. Header)
+    /// @return                 values of requested property, empty vector on failure / non-existance
+    ///
+    const std::vector<std::string> GetPropertyValues(FilePropertyTypes type, const std::string &name) const
+    {
+      if (!m_file)
+      {
+        kodi::Log(ADDON_LOG_ERROR, "kodi::vfs::CURLCreate(...) needed to call before GetPropertyValues!");
+        return std::vector<std::string>();
+      }
+      int numValues;
+      char **res(::kodi::addon::CAddonBase::m_interface->toKodi->kodi_filesystem->get_property_values(
+        ::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, m_file, type, name.c_str(), &numValues));
       if (res)
       {
-        std::string strReturn(res);
-        ::kodi::addon::CAddonBase::m_interface->toKodi->free_string(::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, res);
-        return strReturn;
+        std::vector<std::string> vecReturn;
+        for (int i = 0; i < numValues; ++i)
+        {
+          vecReturn.emplace_back(res[i]);
+        }
+        ::kodi::addon::CAddonBase::m_interface->toKodi->free_string_array(::kodi::addon::CAddonBase::m_interface->toKodi->kodiBase, res, numValues);
+        return vecReturn;
       }
-      return "";
+      return std::vector<std::string>();
     }
     //--------------------------------------------------------------------------
 

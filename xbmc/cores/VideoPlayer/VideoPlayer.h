@@ -359,6 +359,7 @@ public:
   void SetSpeed(float speed) override;
   void SetTempo(float tempo) override;
   bool SupportsTempo() override;
+  void FrameAdvance(int frames) override;
   bool OnAction(const CAction &action) override;
 
   int GetSourceBitrate() override;
@@ -492,9 +493,9 @@ protected:
   bool m_players_created;
 
   CFileItem m_item;
-  CEvent m_openEvent;
   CPlayerOptions m_playerOptions;
   bool m_bAbortRequest;
+  bool m_error;
 
   ECacheState  m_caching;
   XbmcThreads::EndTime m_cachingTimer;

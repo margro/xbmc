@@ -184,7 +184,7 @@ namespace XBMCAddon
       //CLog::Log(LOGNOTICE, "Current Song After Play: %i", CServiceBroker::GetPlaylistPlayer().GetCurrentSong());
     }
 
-    void Player::OnPlayBackStarted()
+    void Player::OnPlayBackStarted(const CFileItem &file)
     { 
       XBMC_TRACE;
       invokeCallback(new CallbackFunction<Player>(this,&Player::onPlayBackStarted));
@@ -200,6 +200,12 @@ namespace XBMCAddon
     { 
       XBMC_TRACE;
       invokeCallback(new CallbackFunction<Player>(this,&Player::onPlayBackStopped));
+    }
+
+    void Player::OnPlayBackError()
+    {
+      XBMC_TRACE;
+      invokeCallback(new CallbackFunction<Player>(this,&Player::onPlayBackError));
     }
 
     void Player::OnPlayBackPaused()
@@ -249,6 +255,11 @@ namespace XBMCAddon
     }
 
     void Player::onPlayBackStopped()
+    {
+      XBMC_TRACE;
+    }
+
+    void Player::onPlayBackError()
     {
       XBMC_TRACE;
     }

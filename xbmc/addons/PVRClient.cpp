@@ -541,16 +541,24 @@ const std::string& CPVRClient::GetFriendlyName(void) const
   return m_strFriendlyName;
 }
 
-PVR_ERROR CPVRClient::GetDriveSpace(long long *iTotal, long long *iUsed)
+PVR_ERROR CPVRClient::GetDriveSpace(long long &iTotal, long long &iUsed)
 {
   /* default to 0 in case of error */
-  *iTotal = 0;
-  *iUsed  = 0;
+  iTotal = 0;
+  iUsed  = 0;
 
   if (!m_bReadyToUse)
     return PVR_ERROR_SERVER_ERROR;
 
-  return m_struct.toAddon.GetDriveSpace(iTotal, iUsed);
+  long long iTotalSpace = 0;
+  long long iUsedSpace = 0;
+  PVR_ERROR error = m_struct.toAddon.GetDriveSpace(&iTotalSpace, &iUsedSpace);
+  if (error == PVR_ERROR_NO_ERROR)
+  {
+    iTotal = iTotalSpace;
+    iUsed = iUsedSpace;
+  }
+  return error;
 }
 
 PVR_ERROR CPVRClient::StartChannelScan(void)
@@ -628,7 +636,7 @@ PVR_ERROR CPVRClient::RenameChannel(const CPVRChannelPtr &channel)
   return retVal;
 }
 
-void CPVRClient::CallMenuHook(const PVR_MENUHOOK &hook, const CFileItem *item)
+void CPVRClient::CallMenuHook(const PVR_MENUHOOK &hook, const CFileItemPtr item)
 {
   if (!m_bReadyToUse)
     return;
@@ -808,6 +816,24 @@ PVR_ERROR CPVRClient::IsPlayable(const CConstPVREpgInfoTagPtr &tag, bool &bIsPla
   return retVal;
 }
 
+void CPVRClient::WriteFileItemProperties(const PVR_NAMED_VALUE *properties, unsigned int iPropertyCount, CFileItem &fileItem)
+{
+  for (unsigned int i = 0; i < iPropertyCount; ++i)
+  {
+    if (strncmp(properties[i].strName, PVR_STREAM_PROPERTY_STREAMURL, strlen(PVR_STREAM_PROPERTY_STREAMURL)) == 0)
+    {
+        fileItem.SetDynPath(properties[i].strValue);
+    }
+    else if (strncmp(properties[i].strName, PVR_STREAM_PROPERTY_MIMETYPE, strlen(PVR_STREAM_PROPERTY_MIMETYPE)) == 0)
+    {
+      fileItem.SetMimeType(properties[i].strValue);
+      fileItem.SetContentLookup(false);
+    }
+
+    fileItem.SetProperty(properties[i].strName, properties[i].strValue);
+  }
+}
+
 bool CPVRClient::FillEpgTagStreamFileItem(CFileItem &fileItem)
 {
   if (!m_bReadyToUse)
@@ -821,14 +847,7 @@ bool CPVRClient::FillEpgTagStreamFileItem(CFileItem &fileItem)
   if (m_struct.toAddon.GetEPGTagStreamProperties(&addonTag, properties, &iPropertyCount) != PVR_ERROR_NO_ERROR)
     return false;
 
-  for (unsigned int i = 0; i < iPropertyCount; ++i)
-  {
-    if (strncmp(properties[i].strName, PVR_STREAM_PROPERTY_STREAMURL, strlen(PVR_STREAM_PROPERTY_STREAMURL)) == 0)
-      fileItem.SetDynPath(properties[i].strValue);
-
-    fileItem.SetProperty(properties[i].strName, properties[i].strValue);
-  }
-
+  WriteFileItemProperties(properties, iPropertyCount, fileItem);
   return true;
 }
 
@@ -1295,13 +1314,7 @@ bool CPVRClient::FillChannelStreamFileItem(CFileItem &fileItem)
   if (m_struct.toAddon.GetChannelStreamProperties(&tag, properties, &iPropertyCount) != PVR_ERROR_NO_ERROR)
     return false;
 
-  for (unsigned int i = 0; i < iPropertyCount; ++i)
-  {
-    if (strncmp(properties[i].strName, PVR_STREAM_PROPERTY_STREAMURL, strlen(PVR_STREAM_PROPERTY_STREAMURL)) == 0)
-      fileItem.SetDynPath(properties[i].strValue);
-
-    fileItem.SetProperty(properties[i].strName, properties[i].strValue);
-  }
+  WriteFileItemProperties(properties, iPropertyCount, fileItem);
   return true;
 }
 
@@ -1324,13 +1337,7 @@ bool CPVRClient::FillRecordingStreamFileItem(CFileItem &fileItem)
   if (m_struct.toAddon.GetRecordingStreamProperties(&tag, properties, &iPropertyCount) != PVR_ERROR_NO_ERROR)
     return false;
 
-  for (unsigned int i = 0; i < iPropertyCount; ++i)
-  {
-    if (strncmp(properties[i].strName, PVR_STREAM_PROPERTY_STREAMURL, strlen(PVR_STREAM_PROPERTY_STREAMURL)) == 0)
-      fileItem.SetDynPath(properties[i].strValue);
-
-    fileItem.SetProperty(properties[i].strName, properties[i].strValue);
-  }
+  WriteFileItemProperties(properties, iPropertyCount, fileItem);
   return true;
 }
 
@@ -1392,9 +1399,9 @@ bool CPVRClient::HasMenuHooks(PVR_MENUHOOK_CAT cat) const
   return bReturn;
 }
 
-PVR_MENUHOOKS *CPVRClient::GetMenuHooks(void)
+PVR_MENUHOOKS& CPVRClient::GetMenuHooks(void)
 {
-  return &m_menuhooks;
+  return m_menuhooks;
 }
 
 const char *CPVRClient::ToString(const PVR_ERROR error)
@@ -1425,7 +1432,7 @@ const char *CPVRClient::ToString(const PVR_ERROR error)
   }
 }
 
-bool CPVRClient::LogError(const PVR_ERROR error, const char *strMethod) const
+bool CPVRClient::LogError(PVR_ERROR error, const char *strMethod) const
 {
   if (error != PVR_ERROR_NO_ERROR && error != PVR_ERROR_NOT_IMPLEMENTED)
   {
@@ -1548,7 +1555,7 @@ void CPVRClient::ClearPlayingEpgTag()
   m_bIsPlayingEpgTag = false;
 }
 
-bool CPVRClient::OpenStream(const CPVRChannelPtr &channel, bool bIsSwitchingChannel)
+bool CPVRClient::OpenStream(const CPVRChannelPtr &channel)
 {
   bool bReturn(false);
   CloseStream();
@@ -1590,10 +1597,12 @@ void CPVRClient::CloseStream(void)
   if (IsPlayingLiveStream())
   {
     m_struct.toAddon.CloseLiveStream();
+    ClearPlayingChannel();
   }
   else if (IsPlayingRecording())
   {
     m_struct.toAddon.CloseRecordedStream();
+    ClearPlayingRecording();
   }
 }
 
@@ -1882,17 +1891,15 @@ void CPVRClient::cb_add_menu_hook(void *kodiInstance, PVR_MENUHOOK *hook)
     return;
   }
 
-  PVR_MENUHOOKS *hooks = client->GetMenuHooks();
-  if (hooks)
-  {
-    PVR_MENUHOOK hookInt;
-    hookInt.iHookId            = hook->iHookId;
-    hookInt.iLocalizedStringId = hook->iLocalizedStringId;
-    hookInt.category           = hook->category;
+  PVR_MENUHOOKS& hooks = client->GetMenuHooks();
 
-    /* add this new hook */
-    hooks->push_back(hookInt);
-  }
+  PVR_MENUHOOK hookInt;
+  hookInt.iHookId            = hook->iHookId;
+  hookInt.iLocalizedStringId = hook->iLocalizedStringId;
+  hookInt.category           = hook->category;
+
+  /* add this new hook */
+  hooks.emplace_back(hookInt);
 }
 
 void CPVRClient::cb_recording(void *kodiInstance, const char *strName, const char *strFileName, bool bOnOff)

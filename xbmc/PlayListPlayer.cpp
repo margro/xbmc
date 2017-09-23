@@ -25,7 +25,6 @@
 #include "settings/AdvancedSettings.h"
 #include "GUIUserMessages.h"
 #include "guilib/GUIWindowManager.h"
-#include "dialogs/GUIDialogOK.h"
 #include "playlists/PlayList.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -38,6 +37,7 @@
 #include "URL.h"
 #include "messaging/ApplicationMessenger.h"
 #include "filesystem/VideoDatabaseFile.h"
+#include "messaging/helpers/DialogOKHelper.h"
 
 using namespace PLAYLIST;
 using namespace KODI::MESSAGING;
@@ -107,6 +107,11 @@ bool CPlayListPlayer::OnMessage(CGUIMessage &message)
         m_iCurrentPlayList = PLAYLIST_NONE;
         return true;
       }
+    }
+    break;
+  case GUI_MSG_PLAYBACK_STARTED:
+    {
+      m_bPlaybackStarted = true;
     }
     break;
   }
@@ -293,10 +298,10 @@ bool CPlayListPlayer::Play(int iSong, std::string player, bool bAutoPlay /* = fa
   // check if the item itself is a playlist, and can be expanded
   // only allow a few levels, this could end up in a loop
   // if they refer to each other in a loop
-  for(int i=0;i<5;i++)
+  for (int i=0;i<5;i++)
   {
-     if(!playlist.Expand(iSong))
-        break;
+    if(!playlist.Expand(iSong))
+      break;
   }
 
   m_iCurrentSong = iSong;
@@ -327,7 +332,7 @@ bool CPlayListPlayer::Play(int iSong, std::string player, bool bAutoPlay /* = fa
       CLog::Log(LOGDEBUG,"Playlist Player: one or more items failed to play... aborting playback");
 
       // open error dialog
-      CGUIDialogOK::ShowAndGetInput(CVariant{16026}, CVariant{16027});
+      HELPERS::ShowOKDialogText(CVariant{16026}, CVariant{16027});
 
       CGUIMessage msg(GUI_MSG_PLAYLISTPLAYER_STOPPED, 0, 0, m_iCurrentPlayList, m_iCurrentSong);
       g_windowManager.SendThreadMessage(msg);
@@ -367,7 +372,6 @@ bool CPlayListPlayer::Play(int iSong, std::string player, bool bAutoPlay /* = fa
   // consecutive error counter so reset if the current item is playing
   m_iFailedSongs = 0;
   m_failedSongsStart = 0;
-  m_bPlaybackStarted = true;
   m_bPlayedFirstFile = true;
   return true;
 }
@@ -850,6 +854,7 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
     // restore to previous window if needed
     if (g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW ||
       g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
+      g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME ||
       g_windowManager.GetActiveWindow() == WINDOW_VISUALISATION)
       g_windowManager.PreviousWindow();
 
@@ -929,6 +934,7 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
 
     if ((stopSlideshow && g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW) ||
       (stopVideo && g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO) ||
+      (stopVideo && g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME) ||
       (stopMusic && g_windowManager.GetActiveWindow() == WINDOW_VISUALISATION))
       g_windowManager.PreviousWindow();
 

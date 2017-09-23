@@ -114,7 +114,6 @@ public:
   virtual bool Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation) override;
   virtual bool IsConfigured() override { return m_bConfigured; }
   virtual void AddVideoPicture(const VideoPicture &picture, int index, double currentClock) override;
-  virtual void FlipPage(int source) override;
   virtual void UnInit() override;
   virtual void Reset() override;
   virtual void Flush() override;
@@ -122,7 +121,7 @@ public:
   virtual void SetBufferSize(int numBuffers) override { m_NumYV12Buffers = numBuffers; }
   virtual bool IsGuiLayer() override;
   virtual void ReleaseBuffer(int idx) override;
-  virtual void RenderUpdate(bool clear, DWORD flags = 0, DWORD alpha = 255) override;
+  virtual void RenderUpdate(int index, int index2, bool clear, unsigned int flags, unsigned int alpha) override;
   virtual void Update() override;
   virtual bool RenderCapture(CRenderCapture* capture) override;
   virtual CRenderInfo GetRenderInfo() override;
@@ -161,7 +160,8 @@ protected:
   void CalculateTextureSourceRects(int source, int num_planes);
 
   // renderers
-  void RenderMultiPass(int index, int field);     // multi pass glsl renderer
+  void RenderToFBO(int index, int field, bool weave = false);
+  void RenderFromFBO();
   void RenderSinglePass(int index, int field);    // single pass glsl renderer
 
   // hooks for HwDec Renderered
@@ -169,11 +169,14 @@ protected:
   virtual bool RenderHook(int idx) { return false; };
   virtual void AfterRenderHook(int idx) {};
 
-  CFrameBufferObject m_fbo;
+  struct
+  {
+    CFrameBufferObject fbo;
+    float width, height;
+  } m_fbo;
 
   int m_iYV12RenderBuffer;
   int m_NumYV12Buffers;
-  int m_iLastRenderBuffer;
 
   bool m_bConfigured;
   bool m_bValidated;

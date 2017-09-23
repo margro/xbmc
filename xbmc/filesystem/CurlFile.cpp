@@ -427,6 +427,7 @@ CCurlFile::CCurlFile()
   m_seekable = true;
   m_useOldHttpVersion = false;
   m_connecttimeout = 0;
+  m_redirectlimit = 5;
   m_lowspeedtime = 0;
   m_ftpauth = "";
   m_ftpport = "";
@@ -503,9 +504,9 @@ void CCurlFile::SetCommonOptions(CReadState* state)
 
   g_curlInterface.easy_setopt(h, CURLOPT_FTP_USE_EPSV, 0); // turn off epsv
 
-  // Allow us to follow two redirects
-  g_curlInterface.easy_setopt(h, CURLOPT_FOLLOWLOCATION, TRUE);
-  g_curlInterface.easy_setopt(h, CURLOPT_MAXREDIRS, 5);
+  // Allow us to follow redirects
+  g_curlInterface.easy_setopt(h, CURLOPT_FOLLOWLOCATION, m_redirectlimit != 0);
+  g_curlInterface.easy_setopt(h, CURLOPT_MAXREDIRS, m_redirectlimit);
 
   // Enable cookie engine for current handle
   g_curlInterface.easy_setopt(h, CURLOPT_COOKIEFILE, "");
@@ -821,6 +822,8 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
           m_cipherlist = value;
         else if (name == "connection-timeout")
           m_connecttimeout = strtol(value.c_str(), NULL, 10);
+        else if (name == "redirect-limit")
+          m_redirectlimit = strtol(value.c_str(), NULL, 10);
         else if (name == "postdata")
         {
           m_postdata = Base64::Decode(value);
@@ -829,6 +832,10 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
         else if (name == "active-remote")// needed for DACP!
         {
           SetRequestHeader(it->first, value);
+        }
+        else if (name == "customrequest")
+        {
+          SetCustomRequest(value);
         }
         else
         {
@@ -1927,6 +1934,21 @@ const std::string CCurlFile::GetProperty(XFILE::FileProperty type, const std::st
   default:
     return "";
   }
+}
+
+const std::vector<std::string> CCurlFile::GetPropertyValues(XFILE::FileProperty type, const std::string &name) const
+{
+  if (type == FILE_PROPERTY_RESPONSE_HEADER)
+  {
+    return m_state->m_httpheader.GetValues(name);
+  }
+  std::vector<std::string> values;
+  std::string value = GetProperty(type, name);
+  if (!value.empty())
+  {
+    values.emplace_back(value);
+  }
+  return values;
 }
 
 double CCurlFile::GetDownloadSpeed()

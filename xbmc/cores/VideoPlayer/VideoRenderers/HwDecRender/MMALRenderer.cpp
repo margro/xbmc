@@ -544,7 +544,6 @@ CMMALRenderer::CMMALRenderer() : CThread("MMALRenderer"), m_processThread(this, 
   memset(m_buffers, 0, sizeof m_buffers);
   m_iFlags = 0;
   m_bConfigured = false;
-  m_iYV12RenderBuffer = 0;
   m_queue_render = nullptr;
   m_error = 0.0;
   m_fps = 0.0;
@@ -904,7 +903,6 @@ void CMMALRenderer::Flush()
   if (m_vout_input)
     mmal_port_flush(m_vout_input);
   ReleaseBuffers();
-  m_iYV12RenderBuffer = 0;
 }
 
 void CMMALRenderer::Update()
@@ -914,19 +912,18 @@ void CMMALRenderer::Update()
   ManageRenderArea();
 }
 
-void CMMALRenderer::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
+void CMMALRenderer::RenderUpdate(int index, int index2, bool clear, unsigned int flags, unsigned int alpha)
 {
   CSingleLock lock(m_sharedSection);
-  int source = m_iYV12RenderBuffer;
   CMMALBuffer *omvb = nullptr;
 
   if (!m_bConfigured)
   {
-    CLog::Log(LOGDEBUG, LOGVIDEO, "%s::%s - not configured: clear:%d flags:%x alpha:%d source:%d", CLASSNAME, __func__, clear, flags, alpha, source);
+    CLog::Log(LOGDEBUG, LOGVIDEO, "%s::%s - not configured: clear:%d flags:%x alpha:%d source:%d", CLASSNAME, __func__, clear, flags, alpha, index);
     goto exit;
   }
 
-  omvb = m_buffers[source];
+  omvb = m_buffers[index];
 
   if (g_graphicsContext.GetStereoView() != RENDER_STEREO_VIEW_RIGHT)
   {
@@ -938,7 +935,7 @@ void CMMALRenderer::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
   // we only want to upload frames once
   if (omvb && omvb->m_rendered)
   {
-    CLog::Log(LOGDEBUG, LOGVIDEO, "%s::%s - MMAL: clear:%d flags:%x alpha:%d source:%d omvb:%p mmal:%p mflags:%x skipping", CLASSNAME, __func__, clear, flags, alpha, source, omvb, omvb->mmal_buffer, omvb->mmal_buffer->flags);
+    CLog::Log(LOGDEBUG, LOGVIDEO, "%s::%s - MMAL: clear:%d flags:%x alpha:%d source:%d omvb:%p mmal:%p mflags:%x skipping", CLASSNAME, __func__, clear, flags, alpha, index, omvb, omvb->mmal_buffer, omvb->mmal_buffer->flags);
     SetVideoRect(m_cachedSourceRect, m_cachedDestRect);
     goto exit;
   }
@@ -947,7 +944,7 @@ void CMMALRenderer::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
   {
     // dummy buffer from omxplayer
     if (VERBOSE && g_advancedSettings.CanLogComponent(LOGVIDEO))
-      CLog::Log(LOGDEBUG, "%s::%s - OMX: clear:%d flags:%x alpha:%d source:%d omvb:%p", CLASSNAME, __func__, clear, flags, alpha, source, omvb);
+      CLog::Log(LOGDEBUG, "%s::%s - OMX: clear:%d flags:%x alpha:%d source:%d omvb:%p", CLASSNAME, __func__, clear, flags, alpha, index, omvb);
   }
   else if (omvb && omvb->mmal_buffer)
   {
@@ -955,7 +952,7 @@ void CMMALRenderer::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
       omvb->mmal_buffer->flags |= MMAL_BUFFER_HEADER_VIDEO_FLAG_INTERLACED | MMAL_BUFFER_HEADER_VIDEO_FLAG_TOP_FIELD_FIRST;
     else if (flags & RENDER_FLAG_BOT)
       omvb->mmal_buffer->flags |= MMAL_BUFFER_HEADER_VIDEO_FLAG_INTERLACED;
-    CLog::Log(LOGDEBUG, LOGVIDEO, "%s::%s - MMAL: clear:%d flags:%x alpha:%d source:%d omvb:%p mmal:%p mflags:%x len:%d data:%p enc:%.4s", CLASSNAME, __func__, clear, flags, alpha, source, omvb, omvb->mmal_buffer, omvb->mmal_buffer->flags, omvb->mmal_buffer->length, omvb->mmal_buffer->data, (char *)&omvb->Encoding());
+    CLog::Log(LOGDEBUG, LOGVIDEO, "%s::%s - MMAL: clear:%d flags:%x alpha:%d source:%d omvb:%p mmal:%p mflags:%x len:%d data:%p enc:%.4s", CLASSNAME, __func__, clear, flags, alpha, index, omvb, omvb->mmal_buffer, omvb->mmal_buffer->flags, omvb->mmal_buffer->length, omvb->mmal_buffer->data, (char *)&omvb->Encoding());
     assert(omvb->mmal_buffer && omvb->mmal_buffer->data && omvb->mmal_buffer->length);
     omvb->Acquire();
     omvb->m_rendered = true;
@@ -963,7 +960,7 @@ void CMMALRenderer::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
     mmal_queue_put(m_queue_process, omvb->mmal_buffer);
   }
   else
-    CLog::Log(LOGDEBUG, "%s::%s - MMAL: No buffer to update clear:%d flags:%x alpha:%d source:%d omvb:%p mmal:%p", CLASSNAME, __func__, clear, flags, alpha, source, omvb, omvb ? omvb->mmal_buffer : nullptr);
+    CLog::Log(LOGDEBUG, "%s::%s - MMAL: No buffer to update clear:%d flags:%x alpha:%d source:%d omvb:%p mmal:%p", CLASSNAME, __func__, clear, flags, alpha, index, omvb, omvb ? omvb->mmal_buffer : nullptr);
 
 exit:
    lock.Leave();
@@ -976,21 +973,6 @@ exit:
    }
    else
      m_vsync_count++;
-}
-
-void CMMALRenderer::FlipPage(int source)
-{
-  CSingleLock lock(m_sharedSection);
-  if (!m_bConfigured)
-  {
-    CLog::Log(LOGDEBUG, LOGVIDEO, "%s::%s - not configured: source:%d", CLASSNAME, __func__, source);
-    return;
-  }
-
-  if (VERBOSE && g_advancedSettings.CanLogComponent(LOGVIDEO))
-    CLog::Log(LOGDEBUG, "%s::%s - source:%d", CLASSNAME, __func__, source);
-
-  m_iYV12RenderBuffer = source;
 }
 
 void CMMALRenderer::ReleaseBuffers()

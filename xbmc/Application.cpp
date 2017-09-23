@@ -66,6 +66,7 @@
 #include "messaging/ThreadMessage.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "SectionLoader.h"
 #include "cores/DllLoader/DllLoaderContainer.h"
 #include "GUIUserMessages.h"
@@ -139,7 +140,6 @@
 
 // Dialog includes
 #include "video/dialogs/GUIDialogVideoBookmarks.h"
-#include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogSubMenu.h"
 #include "dialogs/GUIDialogButtonMenu.h"
@@ -250,8 +250,6 @@ CApplication::CApplication(void)
   , m_Autorun(new CAutorun())
 #endif
   , m_iScreenSaveLock(0)
-  , m_bPlaybackStarting(false)
-  , m_ePlayState(PLAY_STATE_NONE)
   , m_confirmSkinChange(true)
   , m_ignoreSkinSettingChanges(false)
   , m_saveSkinOnUnloading(true)
@@ -287,7 +285,7 @@ CApplication::CApplication(void)
 {
   TiXmlBase::SetCondenseWhiteSpace(false);
 
-#ifdef HAS_GLX
+#ifdef HAVE_X11
   XInitThreads();
 #endif
 }
@@ -1570,7 +1568,14 @@ bool CApplication::LoadSkin(const std::string& skinID)
 
   // store player and rendering state
   bool bPreviousPlayingState = false;
-  bool bPreviousRenderingState = false;
+
+  enum class RENDERING_STATE
+  {
+    NONE,
+    VIDEO,
+    GAME,
+  } previousRenderingState = RENDERING_STATE::NONE;
+
   if (m_pPlayer->IsPlayingVideo())
   {
     bPreviousPlayingState = !m_pPlayer->IsPausedPlayback();
@@ -1580,8 +1585,14 @@ bool CApplication::LoadSkin(const std::string& skinID)
     if (g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO)
     {
       g_windowManager.ActivateWindow(WINDOW_HOME);
-      bPreviousRenderingState = true;
+      previousRenderingState = RENDERING_STATE::VIDEO;
     }
+    else if (g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME)
+    {
+      g_windowManager.ActivateWindow(WINDOW_HOME);
+      previousRenderingState = RENDERING_STATE::GAME;
+    }
+
   }
 
   CSingleLock lock(g_graphicsContext);
@@ -1683,8 +1694,18 @@ bool CApplication::LoadSkin(const std::string& skinID)
   {
     if (bPreviousPlayingState)
       m_pPlayer->Pause();
-    if (bPreviousRenderingState)
+
+    switch (previousRenderingState)
+    {
+    case RENDERING_STATE::VIDEO:
       g_windowManager.ActivateWindow(WINDOW_FULLSCREEN_VIDEO);
+      break;
+    case RENDERING_STATE::GAME:
+      g_windowManager.ActivateWindow(WINDOW_FULLSCREEN_GAME);
+      break;
+    default:
+      break;
+    }
   }
   
   return true;
@@ -2101,6 +2122,7 @@ bool CApplication::OnAction(const CAction &action)
   // Now check with the player if action can be handled.
   bool bIsPlayingPVRChannel = (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().IsPVRChannel());
   if (g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
+      g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME ||
       (g_windowManager.GetActiveWindow() == WINDOW_VISUALISATION && bIsPlayingPVRChannel) ||
       ((g_windowManager.GetActiveWindow() == WINDOW_DIALOG_VIDEO_OSD || (g_windowManager.GetActiveWindow() == WINDOW_DIALOG_MUSIC_OSD && bIsPlayingPVRChannel)) &&
         (action.GetID() == ACTION_NEXT_ITEM || action.GetID() == ACTION_PREV_ITEM || action.GetID() == ACTION_CHANNEL_UP || action.GetID() == ACTION_CHANNEL_DOWN)) ||
@@ -2438,7 +2460,8 @@ void CApplication::OnApplicationMessage(ThreadMessage* pMsg)
 
 
   case TMSG_SWITCHTOFULLSCREEN:
-    if (g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_VIDEO)
+    if (g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_VIDEO &&
+        g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_GAME)
       SwitchToFullScreen(true);
     break;
 
@@ -3201,7 +3224,7 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
     }
     else
 #endif
-      CGUIDialogOK::ShowAndGetInput(CVariant{435}, CVariant{436});
+      HELPERS::ShowOKDialogText(CVariant{435}, CVariant{436});
 
     return PLAYBACK_OK;
   }
@@ -3352,10 +3375,6 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
   CMediaSettings::GetInstance().SetVideoStartWindowed(false);
 
   {
-    CSingleLock lock(m_playStateMutex);
-    // tell system we are starting a file
-    m_bPlaybackStarting = true;
-
     // for playing a new item, previous playing item's callback may already
     // pushed some delay message into the threadmessage list, they are not
     // expected be processed after or during the new item playback starting.
@@ -3387,10 +3406,6 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
   // We should restart the player, unless the previous and next tracks are using
   // one of the players that allows gapless playback (paplayer, VideoPlayer)
   m_pPlayer->ClosePlayerGapless(newPlayer);
-
-  // now reset play state to starting, since we already stopped the previous playing item if there is.
-  // and from now there should be no playback callback from previous playing item be called.
-  m_ePlayState = PLAY_STATE_STARTING;
 
   m_pPlayer->CreatePlayer(newPlayer, *this);
 
@@ -3432,13 +3447,15 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
     {
       // if player didn't manage to switch to fullscreen by itself do it here
       if (options.fullscreen && m_pPlayer->IsRenderingVideo() &&
-          g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_VIDEO )
+          g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_VIDEO &&
+          g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_GAME)
        SwitchToFullScreen(true);
     }
     else
     {
       if (g_windowManager.GetActiveWindow() == WINDOW_VISUALISATION ||
-          g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO)
+          g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
+          g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME)
         g_windowManager.PreviousWindow();
     }
 
@@ -3450,60 +3467,12 @@ PlayBackRet CApplication::PlayFile(CFileItem item, const std::string& player, bo
       CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(PLAYLIST_NONE);
   }
 
-  CSingleLock lock(m_playStateMutex);
-  m_bPlaybackStarting = false;
-
-  if (iResult == PLAYBACK_OK)
-  {
-    // play state: none, starting; playing; stopped; ended.
-    // last 3 states are set by playback callback, they are all ignored during starting,
-    // but we recorded the state, here we can make up the callback for the state.
-    CLog::LogF(LOGDEBUG,"OpenFile succeed, play state %d", m_ePlayState);
-    switch (m_ePlayState)
-    {
-      case PLAY_STATE_PLAYING:
-        OnPlayBackStarted();
-        break;
-      // FIXME: it seems no meaning to callback started here if there was an started callback
-      //        before this stopped/ended callback we recorded. if we callback started here
-      //        first, it will delay send OnPlay announce, but then we callback stopped/ended
-      //        which will send OnStop announce at once, so currently, just call stopped/ended.
-      case PLAY_STATE_ENDED:
-        OnPlayBackEnded();
-        break;
-      case PLAY_STATE_STOPPED:
-        OnPlayBackStopped();
-        break;
-      case PLAY_STATE_STARTING:
-        // neither started nor stopped/ended callback be called, that means the item still
-        // not started, we need not make up any callback, just leave this and
-        // let the player callback do its work.
-        break;
-      default:
-        break;
-    }
-  }
-  else if (iResult == PLAYBACK_FAIL)
-  {
-    // we send this if it isn't playlistplayer that is doing this
-    int next = CServiceBroker::GetPlaylistPlayer().GetNextSong();
-    int size = CServiceBroker::GetPlaylistPlayer().GetPlaylist(CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist()).size();
-    if(next < 0
-    || next >= size)
-      OnPlayBackStopped();
-    m_ePlayState = PLAY_STATE_NONE;
-  }
-
   return iResult;
 }
 
 void CApplication::OnPlayBackEnded()
 {
-  CSingleLock lock(m_playStateMutex);
-  CLog::LogF(LOGDEBUG,"play state was %d, starting %d", m_ePlayState, m_bPlaybackStarting);
-  m_ePlayState = PLAY_STATE_ENDED;
-  if(m_bPlaybackStarting)
-    return;
+  CLog::LogF(LOGDEBUG ,"CApplication::OnPlayBackEnded");
 
   // informs python script currently running playback has ended
   // (does nothing if python is not loaded)
@@ -3524,24 +3493,21 @@ void CApplication::OnPlayBackEnded()
   g_windowManager.SendThreadMessage(msg);
 }
 
-void CApplication::OnPlayBackStarted()
+void CApplication::OnPlayBackStarted(const CFileItem &file)
 {
-  CSingleLock lock(m_playStateMutex);
-  CLog::LogF(LOGDEBUG,"play state was %d, starting %d", m_ePlayState, m_bPlaybackStarting);
-  m_ePlayState = PLAY_STATE_PLAYING;
-  if(m_bPlaybackStarting)
-    return;
+  CLog::LogF(LOGDEBUG,"CApplication::OnPlayBackStarted");
 
 #ifdef HAS_PYTHON
   // informs python script currently running playback has started
   // (does nothing if python is not loaded)
-  g_pythonParser.OnPlayBackStarted();
+  g_pythonParser.OnPlayBackStarted(file);
 #endif
 #if defined(TARGET_DARWIN_IOS)
   if (m_pPlayer->IsPlayingVideo())
     CDarwinUtils::EnableOSScreenSaver(false);
 #endif
 
+  m_itemCurrentFile.reset(new CFileItem(file));
   CServiceBroker::GetPVRManager().OnPlaybackStarted(m_itemCurrentFile);
 
   CGUIMessage msg(GUI_MSG_PLAYBACK_STARTED, 0, 0);
@@ -3550,10 +3516,8 @@ void CApplication::OnPlayBackStarted()
 
 void CApplication::OnQueueNextItem()
 {
-  CSingleLock lock(m_playStateMutex);
-  CLog::LogF(LOGDEBUG,"play state was %d, starting %d", m_ePlayState, m_bPlaybackStarting);
-  if(m_bPlaybackStarting)
-    return;
+  CLog::LogF(LOGDEBUG,"CApplication::OnQueueNextItem");
+
   // informs python script currently running that we are requesting the next track
   // (does nothing if python is not loaded)
 #ifdef HAS_PYTHON
@@ -3566,11 +3530,7 @@ void CApplication::OnQueueNextItem()
 
 void CApplication::OnPlayBackStopped()
 {
-  CSingleLock lock(m_playStateMutex);
-  CLog::LogF(LOGDEBUG, "play state was %d, starting %d", m_ePlayState, m_bPlaybackStarting);
-  m_ePlayState = PLAY_STATE_STOPPED;
-  if(m_bPlaybackStarting)
-    return;
+  CLog::LogF(LOGDEBUG, "CApplication::OnPlayBackStopped");
 
   // informs python script currently running playback has ended
   // (does nothing if python is not loaded)
@@ -3589,6 +3549,14 @@ void CApplication::OnPlayBackStopped()
 
   CGUIMessage msg( GUI_MSG_PLAYBACK_STOPPED, 0, 0 );
   g_windowManager.SendThreadMessage(msg);
+}
+
+void CApplication::OnPlayBackError()
+{
+  //@todo Playlists can be continued by calling OnPlaybackEnded instead
+  // open error dialog
+  HELPERS::ShowOKDialogText(CVariant{16026}, CVariant{16027});
+  OnPlayBackStopped();
 }
 
 void CApplication::OnPlayBackPaused()
@@ -3787,14 +3755,15 @@ void CApplication::LoadVideoSettings(const CFileItem& item)
 void CApplication::StopPlaying()
 {
   int iWin = g_windowManager.GetActiveWindow();
-  if ( m_pPlayer->IsPlaying() )
+  if (m_pPlayer->IsPlaying())
   {
-    m_pPlayer->CloseFile();
+    m_pPlayer->ClosePlayer();
 
     // turn off visualisation window when stopping
-    if ((iWin == WINDOW_VISUALISATION
-    ||  iWin == WINDOW_FULLSCREEN_VIDEO)
-    && !m_bStop)
+    if ((iWin == WINDOW_VISUALISATION ||
+         iWin == WINDOW_FULLSCREEN_VIDEO ||
+         iWin == WINDOW_FULLSCREEN_GAME) &&
+         !m_bStop)
       g_windowManager.PreviousWindow();
 
     g_partyModeManager.Disable();
@@ -4165,7 +4134,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
         {
           auto addonList = StringUtils::Join(m_incompatibleAddons, ", ");
           auto msg = StringUtils::Format(g_localizeStrings.Get(24149).c_str(), addonList.c_str());
-          CGUIDialogOK::ShowAndGetInput(CVariant{24148}, CVariant{std::move(msg)});
+          HELPERS::ShowOKDialogText(CVariant{24148}, CVariant{std::move(msg)});
           m_incompatibleAddons.clear();
         }
 
@@ -4202,7 +4171,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
         CServiceBroker::GetPlaylistPlayer().SetCurrentSong(m_nextPlaylistItem);
         m_itemCurrentFile.reset(new CFileItem(*item));
       }
-      g_infoManager.SetCurrentItem(m_itemCurrentFile);
+      g_infoManager.SetCurrentItem(*m_itemCurrentFile);
       g_partyModeManager.OnSongChange(true);
 
       CVariant param;
@@ -4297,11 +4266,8 @@ bool CApplication::OnMessage(CGUIMessage& message)
 
       if (message.GetMessage() == GUI_MSG_PLAYBACK_ENDED)
       {
-        CServiceBroker::GetPlaylistPlayer().PlayNext(1, true);
-      }
-      else
-      {
-        m_pPlayer->ClosePlayer();
+        if (!CServiceBroker::GetPlaylistPlayer().PlayNext(1, true))
+          m_pPlayer->ClosePlayer();
       }
 
       if (!m_pPlayer->IsPlaying())
@@ -4311,7 +4277,8 @@ bool CApplication::OnMessage(CGUIMessage& message)
 
       if (!m_pPlayer->IsPlayingVideo())
       {
-        if(g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO)
+        if(g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
+           g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME)
         {
           g_windowManager.PreviousWindow();
         }
@@ -4428,7 +4395,7 @@ void CApplication::ShowAppMigrationMessage()
   if (CFile::Exists("special://home/.kodi_data_was_migrated") &&
       !CFile::Exists("special://home/.kodi_migration_info_shown"))
   {
-    CGUIDialogOK::ShowAndGetInput(CVariant{24128}, CVariant{24129});
+    HELPERS::ShowOKDialogText(CVariant{24128}, CVariant{24129});
     CFile tmpFile;
     // create the file which will prevent this dialog from appearing in the future
     tmpFile.OpenForWrite("special://home/.kodi_migration_info_shown");
@@ -4505,7 +4472,11 @@ void CApplication::ProcessSlow()
 
   // Temporarily pause pausable jobs when viewing video/picture
   int currentWindow = g_windowManager.GetActiveWindow();
-  if (CurrentFileItem().IsVideo() || CurrentFileItem().IsPicture() || currentWindow == WINDOW_FULLSCREEN_VIDEO || currentWindow == WINDOW_SLIDESHOW)
+  if (CurrentFileItem().IsVideo() ||
+      CurrentFileItem().IsPicture() ||
+      currentWindow == WINDOW_FULLSCREEN_VIDEO ||
+      currentWindow == WINDOW_FULLSCREEN_GAME ||
+      currentWindow == WINDOW_SLIDESHOW)
   {
     CJobManager::GetInstance().PauseJobs();
   }
@@ -4953,8 +4924,13 @@ bool CApplication::SwitchToFullScreen(bool force /* = false */)
   }
 
   int windowID = WINDOW_INVALID;
+
+  // See if we're playing a game, and are in GUI mode
+  if (m_pPlayer->IsPlayingGame() && g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_GAME)
+    windowID = WINDOW_FULLSCREEN_GAME;
+
   // See if we're playing a video, and are in GUI mode
-  if (m_pPlayer->IsPlayingVideo() && g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_VIDEO)
+  else if (m_pPlayer->IsPlayingVideo() && g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_VIDEO)
     windowID = WINDOW_FULLSCREEN_VIDEO;
 
   // special case for switching between GUI & visualisation mode. (only if we're playing an audio song)

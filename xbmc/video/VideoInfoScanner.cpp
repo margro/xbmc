@@ -24,7 +24,6 @@
 
 #include "ServiceBroker.h"
 #include "dialogs/GUIDialogExtendedProgressBar.h"
-#include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "events/EventLog.h"
 #include "events/MediaLibraryEvent.h"
@@ -40,6 +39,7 @@
 #include "interfaces/AnnouncementManager.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "NfoFile.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
@@ -429,8 +429,8 @@ namespace VIDEO
         continue;
 
       // Discard all exclude files defined by regExExclude
-      if (CUtil::ExcludeFileOrFolder(pItem->GetPath(), (content == CONTENT_TVSHOWS) ? g_advancedSettings.m_tvshowExcludeFromScanRegExps
-                                                                                    : g_advancedSettings.m_moviesExcludeFromScanRegExps))
+      if (IsExcluded(pItem->GetPath(), (content == CONTENT_TVSHOWS) ? g_advancedSettings.m_tvshowExcludeFromScanRegExps
+                                                                    : g_advancedSettings.m_moviesExcludeFromScanRegExps))
         continue;
 
       if (info2->Content() == CONTENT_MOVIES || info2->Content() == CONTENT_MUSICVIDEOS)
@@ -881,7 +881,7 @@ namespace VIDEO
         continue;
 
       // Discard all exclude files defined by regExExcludes
-      if (CUtil::ExcludeFileOrFolder(items[i]->GetPath(), regexps))
+      if (IsExcluded(items[i]->GetPath(), regexps))
         continue;
 
       /*
@@ -2078,7 +2078,7 @@ namespace VIDEO
 
     if (pDialog)
     {
-      CGUIDialogOK::ShowAndGetInput(CVariant{20448}, CVariant{20449});
+      HELPERS::ShowOKDialogText(CVariant{20448}, CVariant{20449});
       return false;
     }
     return HELPERS::ShowYesNoDialogText(CVariant{20448}, CVariant{20450}) == DialogResponse::YES;

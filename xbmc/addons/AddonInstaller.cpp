@@ -34,6 +34,7 @@
 #include "settings/Settings.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "favourites/FavouritesService.h"
 #include "FilesystemInstaller.h"
 #include "utils/JobManager.h"
@@ -42,7 +43,6 @@
 #include "guilib/GUIWindowManager.h"      // for callback
 #include "GUIUserMessages.h"              // for callback
 #include "utils/StringUtils.h"
-#include "dialogs/GUIDialogOK.h"
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "URL.h"
 #ifdef TARGET_POSIX
@@ -604,11 +604,17 @@ bool CAddonInstallJob::DoWork()
   // run any pre-install functions
   ADDON::OnPreInstall(m_addon);
 
+  if (!CAddonMgr::GetInstance().UnloadAddon(m_addon))
+  {
+    CLog::Log(LOGERROR, "CAddonInstallJob[%s]: failed to unload addon.", m_addon->ID().c_str());
+    return false;
+  }
+
   // perform install
   if (!Install(installFrom, m_repo))
     return false;
 
-  if (!CAddonMgr::GetInstance().ReloadAddon(m_addon))
+  if (!CAddonMgr::GetInstance().LoadAddon(m_addon->ID()))
   {
     CLog::Log(LOGERROR, "CAddonInstallJob[%s]: failed to reload addon", m_addon->ID().c_str());
     return false;
@@ -809,7 +815,7 @@ void CAddonInstallJob::ReportInstallError(const std::string& addonID, const std:
 
     activity = EventPtr(new CAddonManagementEvent(addon, EventLevel::Error, msg));
     if (IsModal())
-      CGUIDialogOK::ShowAndGetInput(CVariant{m_addon->Name()}, CVariant{msg});
+      HELPERS::ShowOKDialogText(CVariant{m_addon->Name()}, CVariant{msg});
   }
   else
   {
@@ -818,7 +824,7 @@ void CAddonInstallJob::ReportInstallError(const std::string& addonID, const std:
         EventLevel::Error));
 
     if (IsModal())
-      CGUIDialogOK::ShowAndGetInput(CVariant{fileName}, CVariant{msg});
+      HELPERS::ShowOKDialogText(CVariant{fileName}, CVariant{msg});
   }
 
   CEventLog::GetInstance().Add(activity, !IsModal(), false);

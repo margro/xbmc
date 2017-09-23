@@ -769,7 +769,7 @@ bool CPVRManager::OpenLiveStream(const CFileItem &fileItem)
   // check if we're allowed to play this file
   const CPVRChannelPtr channel = fileItem.GetPVRChannelInfoTag();
   if (!IsParentalLocked(channel))
-    bReturn = m_addons->OpenStream(channel, false);
+    bReturn = m_addons->OpenStream(channel);
 
   return bReturn;
 }
@@ -786,16 +786,17 @@ void CPVRManager::CloseStream(void)
 
 void CPVRManager::OnPlaybackStarted(const CFileItemPtr item)
 {
+  m_addons->ClearPlayingChannel();
+  m_addons->ClearPlayingRecording();
+  m_addons->ClearPlayingEpgTag();
+
   if (item->HasPVRChannelInfoTag())
   {
     const CPVRChannelPtr channel(item->GetPVRChannelInfoTag());
 
-    m_addons->ClearPlayingRecording();
-    m_addons->ClearPlayingEpgTag();
     m_addons->SetPlayingChannel(channel);
 
     m_guiActions->GetChannelNavigator().SetPlayingChannel(channel);
-
     SetPlayingGroup(channel);
     UpdateLastWatched(channel);
 
@@ -804,19 +805,11 @@ void CPVRManager::OnPlaybackStarted(const CFileItemPtr item)
   }
   else if (item->HasPVRRecordingInfoTag())
   {
-    m_addons->ClearPlayingEpgTag();
-    m_addons->ClearPlayingChannel();
     m_addons->SetPlayingRecording(item->GetPVRRecordingInfoTag());
   }
   else if (item->HasEPGInfoTag())
   {
-    m_addons->ClearPlayingRecording();
-    m_addons->ClearPlayingChannel();
     m_addons->SetPlayingEpgTag(item->GetEPGInfoTag());
-  }
-  else
-  {
-    CLog::Log(LOGERROR,"PVRManager - %s - unsupported item type", __FUNCTION__);
   }
 }
 
@@ -841,10 +834,6 @@ void CPVRManager::OnPlaybackStopped(const CFileItemPtr item)
   else if (item->HasEPGInfoTag())
   {
     m_addons->ClearPlayingEpgTag();
-  }
-  else
-  {
-    CLog::Log(LOGERROR,"PVRManager - %s - unsupported item type", __FUNCTION__);
   }
 }
 

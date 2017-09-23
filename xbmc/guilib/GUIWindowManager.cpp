@@ -147,6 +147,7 @@
 #include "addons/interfaces/AddonInterfaces.h"
 
 /* Game related include files */
+#include "cores/RetroPlayer/windows/GameWindowFullScreen.h"
 #include "games/controllers/windows/GUIControllerWindow.h"
 #include "games/windows/GUIWindowGames.h"
 #include "games/dialogs/osd/DialogGameOSD.h"
@@ -305,6 +306,7 @@ void CGUIWindowManager::CreateWindows()
   Add(new GAME::CDialogGameOSD);
   Add(new GAME::CDialogGameVideoFilter);
   Add(new GAME::CDialogGameViewMode);
+  Add(new RETRO::CGameWindowFullScreen);
 }
 
 bool CGUIWindowManager::DestroyWindows()
@@ -410,6 +412,7 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_GAME_OSD);
     DestroyWindow(WINDOW_DIALOG_GAME_VIDEO_FILTER);
     DestroyWindow(WINDOW_DIALOG_GAME_VIEW_MODE);
+    DestroyWindow(WINDOW_FULLSCREEN_GAME);
 
     Remove(WINDOW_SETTINGS_SERVICE);
     Remove(WINDOW_SETTINGS_MYPVR);
@@ -808,9 +811,9 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector
   // pause game when leaving fullscreen or resume game when entering fullscreen
   if (g_application.m_pPlayer->IsPlayingGame())
   {
-    if (GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO && !g_application.m_pPlayer->IsPaused())
+    if (GetActiveWindow() == WINDOW_FULLSCREEN_GAME && !g_application.m_pPlayer->IsPaused())
       g_application.OnAction(ACTION_PAUSE);
-    else if (iWindowID == WINDOW_FULLSCREEN_VIDEO && g_application.m_pPlayer->IsPaused())
+    else if (iWindowID == WINDOW_FULLSCREEN_GAME && g_application.m_pPlayer->IsPaused())
       g_application.OnAction(ACTION_PAUSE);
   }
 
@@ -956,6 +959,8 @@ void CGUIWindowManager::OnApplicationMessage(ThreadMessage* pMsg)
     break;
 
   case TMSG_GUI_DIALOG_YESNO:
+  {
+
     if (!pMsg->lpVoid && pMsg->param1 < 0 && pMsg->param2 < 0)
       return;
 
@@ -973,7 +978,31 @@ void CGUIWindowManager::OnApplicationMessage(ThreadMessage* pMsg)
       pMsg->SetResult(dialog->ShowAndGetInput(options));
     }
 
-    break;
+  }
+  break;
+
+  case TMSG_GUI_DIALOG_OK:
+  {
+
+    if (!pMsg->lpVoid && pMsg->param1 < 0 && pMsg->param2 < 0)
+      return;
+
+    auto dialogOK = static_cast<CGUIDialogOK*>(GetWindow(WINDOW_DIALOG_OK));
+    if (!dialogOK)
+      return;
+
+    if (pMsg->lpVoid)
+      dialogOK->ShowAndGetInput(*static_cast<HELPERS::DialogOKMessage*>(pMsg->lpVoid));
+    else
+    {
+      HELPERS::DialogOKMessage options;
+      options.heading = pMsg->param1;
+      options.text = pMsg->param2;
+      dialogOK->ShowAndGetInput(options);
+    }
+    pMsg->SetResult(static_cast<int>(dialogOK->IsConfirmed()));
+  }
+  break;
   }
 }
 
@@ -1474,9 +1503,6 @@ int CGUIWindowManager::GetActiveWindowID() const
     // special casing for numeric seek
     else if (CSeekHandler::GetInstance().HasTimeCode())
       iWin = WINDOW_VIDEO_TIME_SEEK;
-    // check if a game is playing
-    else if (g_application.m_pPlayer->IsPlayingGame())
-      iWin = WINDOW_FULLSCREEN_GAME;
   }
   if (iWin == WINDOW_VISUALISATION)
   {

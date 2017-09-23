@@ -257,6 +257,20 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
       /// \ingroup python_PlayerCB
+      /// @brief \python_func{ onPlayBackError() }
+      ///-----------------------------------------------------------------------
+      /// onPlayBackError method.
+      ///
+      /// Will be called when playback stops due to an error.
+      ///
+      onPlayBackError();
+#else
+      virtual void onPlayBackError();
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_PlayerCB
       /// @brief \python_func{ onPlayBackPaused() }
       ///-----------------------------------------------------------------------
       /// onPlayBackPaused method.
@@ -712,9 +726,10 @@ namespace XBMCAddon
 #endif
 
 #if !defined SWIG && !defined DOXYGEN_SHOULD_SKIP_THIS
-      SWIGHIDDENVIRTUAL void OnPlayBackStarted() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackStarted(const CFileItem &file) override;
       SWIGHIDDENVIRTUAL void OnPlayBackEnded() override;
       SWIGHIDDENVIRTUAL void OnPlayBackStopped() override;
+      SWIGHIDDENVIRTUAL void OnPlayBackError() override;
       SWIGHIDDENVIRTUAL void OnPlayBackPaused() override;
       SWIGHIDDENVIRTUAL void OnPlayBackResumed() override;
       SWIGHIDDENVIRTUAL void OnQueueNextItem() override;

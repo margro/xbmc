@@ -52,7 +52,8 @@ macro (build_addon target prefix libs)
     # Read used headers from addon, needed to identitfy used kodi addon interface headers
     if(${prefix}_HEADERS)
       # Add the used header files defined with CMakeLists.txt from addon itself
-      if(${prefix}_HEADERS MATCHES ${PROJECT_SOURCE_DIR})
+      string(FIND "${${prefix}_HEADERS}" "${PROJECT_SOURCE_DIR}" position)
+      if(position GREATER -1)
         # include path name already complete
         list(APPEND USED_SOURCES ${${prefix}_HEADERS})
       else()
@@ -75,7 +76,8 @@ macro (build_addon target prefix libs)
     endif()
 
     # Add the used source files defined with CMakeLists.txt from addon itself
-    if(${prefix}_SOURCES MATCHES ${PROJECT_SOURCE_DIR})
+    string(FIND "${${prefix}_SOURCES}" "${PROJECT_SOURCE_DIR}" position)
+    if(position GREATER -1)
       # include path name already complete
       list(APPEND USED_SOURCES ${${prefix}_SOURCES})
     else()
@@ -228,7 +230,9 @@ macro (build_addon target prefix libs)
     set(CPACK_COMPONENTS_IGNORE_GROUPS 1)
     list(APPEND CPACK_COMPONENTS_ALL ${target}-${${prefix}_VERSION})
     # Pack files together to create an archive
-    install(DIRECTORY ${target} DESTINATION ./ COMPONENT ${target}-${${prefix}_VERSION} PATTERN "*.xml.in" EXCLUDE)
+    install(DIRECTORY ${target} DESTINATION ./
+                                COMPONENT ${target}-${${prefix}_VERSION}
+                                REGEX ".+\\.xml\\.in(clude)?$" EXCLUDE)
     if(WIN32)
       if(NOT CPACK_PACKAGE_DIRECTORY)
         # determine the temporary path
@@ -321,7 +325,8 @@ macro (build_addon target prefix libs)
     if (${prefix}_CUSTOM_BINARY)
       install(FILES ${LIBRARY_LOCATION} DESTINATION ${CMAKE_INSTALL_LIBDIR}/addons/${target} RENAME ${LIBRARY_FILENAME})
     endif()
-    install(DIRECTORY ${target} DESTINATION ${CMAKE_INSTALL_DATADIR}/addons PATTERN "*.xml.in" EXCLUDE)
+    install(DIRECTORY ${target} DESTINATION ${CMAKE_INSTALL_DATADIR}/addons
+                                REGEX ".+\\.xml\\.in(clude)?$" EXCLUDE)
     if(${prefix}_CUSTOM_DATA)
       install(DIRECTORY ${${prefix}_CUSTOM_DATA} DESTINATION ${CMAKE_INSTALL_DATADIR}/addons/${target}/resources)
     endif()

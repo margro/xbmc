@@ -28,11 +28,11 @@
 #include "events/EventLog.h"
 #include "events/NotificationEvent.h"
 #include "guilib/GUIWindowManager.h"
-#include "dialogs/GUIDialogOK.h"
 #include "utils/URIUtils.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/Directory.h"
+#include "messaging/helpers/DialogOKHelper.h" 
 #include "settings/lib/SettingSection.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -46,6 +46,7 @@
 #include "addons/interfaces/Network.h"
 #include "addons/interfaces/GUI/General.h"
 
+using namespace KODI::MESSAGING;
 
 namespace ADDON
 {
@@ -135,16 +136,8 @@ bool CAddonDll::LoadDll()
     delete m_pDll;
     m_pDll = NULL;
 
-    CGUIDialogOK* pDialog = g_windowManager.GetWindow<CGUIDialogOK>(WINDOW_DIALOG_OK);
-    if (pDialog)
-    {
-      std::string heading = StringUtils::Format("%s: %s", CAddonInfo::TranslateType(Type(), true).c_str(), Name().c_str());
-      pDialog->SetHeading(CVariant{heading});
-      pDialog->SetLine(1, CVariant{24070});
-      pDialog->SetLine(2, CVariant{24071});
-      pDialog->SetLine(2, CVariant{"Can't load shared library"});
-      pDialog->Open();
-    }
+    std::string heading = StringUtils::Format("%s: %s", CAddonInfo::TranslateType(Type(), true).c_str(), Name().c_str());
+    HELPERS::ShowOKDialogLines(CVariant{heading}, CVariant{24070}, CVariant{24071});
 
     return false;
   }
@@ -202,16 +195,9 @@ ADDON_STATUS CAddonDll::Create(ADDON_TYPE type, void* funcTable, void* info)
   else
   { // Addon failed initialization
     CLog::Log(LOGERROR, "ADDON: Dll %s - Client returned bad status (%i) from Create and is not usable", Name().c_str(), status);
-    
-    CGUIDialogOK* pDialog = g_windowManager.GetWindow<CGUIDialogOK>(WINDOW_DIALOG_OK);
-    if (pDialog)
-    {
-      std::string heading = StringUtils::Format("%s: %s", CAddonInfo::TranslateType(Type(), true).c_str(), Name().c_str());
-      pDialog->SetHeading(CVariant{heading});
-      pDialog->SetLine(1, CVariant{24070});
-      pDialog->SetLine(2, CVariant{24071});
-      pDialog->Open();
-    }
+
+    std::string heading = StringUtils::Format("%s: %s", CAddonInfo::TranslateType(Type(), true).c_str(), Name().c_str());
+    HELPERS::ShowOKDialogLines(CVariant{ heading }, CVariant{ 24070 }, CVariant{ 24071 });
   }
 
   return status;
@@ -258,15 +244,8 @@ ADDON_STATUS CAddonDll::Create(KODI_HANDLE firstKodiInstance)
     CLog::Log(LOGERROR, "ADDON: Dll %s - Client returned bad status (%i) from Create and is not usable", Name().c_str(), status);
 
     // @todo currently a copy and paste from other function and becomes improved.
-    CGUIDialogOK* pDialog = g_windowManager.GetWindow<CGUIDialogOK>(WINDOW_DIALOG_OK);
-    if (pDialog)
-    {
-      std::string heading = StringUtils::Format("%s: %s", CAddonInfo::TranslateType(Type(), true).c_str(), Name().c_str());
-      pDialog->SetHeading(CVariant{heading});
-      pDialog->SetLine(1, CVariant{24070});
-      pDialog->SetLine(2, CVariant{24071});
-      pDialog->Open();
-    }
+    std::string heading = StringUtils::Format("%s: %s", CAddonInfo::TranslateType(Type(), true).c_str(), Name().c_str());
+    HELPERS::ShowOKDialogLines(CVariant{ heading }, CVariant{ 24070 }, CVariant{ 24071 });
   }
 
   return status;
@@ -519,6 +498,7 @@ bool CAddonDll::InitInterface(KODI_HANDLE firstKodiInstance)
   m_interface.toKodi->set_setting_float = set_setting_float;
   m_interface.toKodi->set_setting_string = set_setting_string;
   m_interface.toKodi->free_string = free_string;
+  m_interface.toKodi->free_string_array = free_string_array;
 
   // Create function list from addon to kodi, generated with calloc to have
   // compatible with other versions and everything with "0"
@@ -856,6 +836,19 @@ void CAddonDll::free_string(void* kodiBase, char* str)
   if (str)
     free(str);
 }
+
+void CAddonDll::free_string_array(void* kodiBase, char** arr, int numElements)
+{
+  if (arr)
+  {
+    for (int i = 0; i < numElements; ++i)
+    {
+      free(arr[i]);
+    }
+    free(arr);
+  }
+}
+
 
 //@}
 

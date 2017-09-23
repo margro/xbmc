@@ -69,10 +69,11 @@ public:
   XBPython();
   ~XBPython() override;
   void OnPlayBackEnded() override;
-  void OnPlayBackStarted() override;
+  void OnPlayBackStarted(const CFileItem &file) override;
   void OnPlayBackPaused() override;
   void OnPlayBackResumed() override;
   void OnPlayBackStopped() override;
+  void OnPlayBackError() override;
   void OnPlayBackSpeedChanged(int iSpeed) override;
   void OnPlayBackSeek(int64_t iTime, int64_t seekOffset) override;
   void OnPlayBackSeekChapter(int iChapter) override;

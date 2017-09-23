@@ -112,6 +112,13 @@ public:
   void MarkAsWatched(const CFileItemPtr &item, bool watched);
 
   /*!
+   \brief Queue a reset resume point job.
+
+   \param[in] item Item to reset the resume point for
+   */
+  void ResetResumePoint(const CFileItemPtr item);
+
+  /*!
    \brief Adds the given job to the queue.
 
    \param[in] job Video library job to be queued.
@@ -146,8 +153,8 @@ protected:
 
 private:
   CVideoLibraryQueue();
-  CVideoLibraryQueue(const CVideoLibraryQueue&);
-  CVideoLibraryQueue const& operator=(CVideoLibraryQueue const&);
+  CVideoLibraryQueue(const CVideoLibraryQueue&) = delete;
+  CVideoLibraryQueue const& operator=(CVideoLibraryQueue const&) = delete;
 
   typedef std::set<CVideoLibraryJob*> VideoLibraryJobs;
   typedef std::map<std::string, VideoLibraryJobs> VideoLibraryJobMap;
