@@ -26,13 +26,12 @@
 // For HAS_SDL
 #include "system.h"
 
-#if defined(TARGET_DARWIN_OSX)
+#if defined(TARGET_DARWIN_OSX) || defined(TARGET_FREEBSD)
   #include "Util.h"
   // SDL redefines main as SDL_main 
   #ifdef HAS_SDL
     #include <SDL/SDL.h>
   #endif
-#include <locale.h>
 #endif
 
 #include "AppParamParser.h"
@@ -46,9 +45,10 @@
 #include "utils/log.h"
 
 #ifdef HAS_LIRC
-#include "input/linux/LIRC.h"
+#include "platform/linux/input/LIRC.h"
 #endif
 
+#include <locale.h>
 
 namespace
 {

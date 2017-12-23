@@ -22,8 +22,9 @@
 
 #include "GLUtils.h"
 #include "log.h"
+#include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/RenderSystem.h"
 
 void _VerifyGLState(const char* szfile, const char* szfunction, int lineno){
 #if defined(HAS_GL) && defined(_DEBUG)
@@ -98,7 +99,7 @@ void LogGraphicsInfo()
 #define GL_GPU_MEMORY_INFO_EVICTION_COUNT_NVX            0x904A
 #define GL_GPU_MEMORY_INFO_EVICTED_MEMORY_NVX            0x904B
 
-  if (g_Windowing.IsExtSupported("GL_NVX_gpu_memory_info"))
+  if (CServiceBroker::GetRenderSystem().IsExtSupported("GL_NVX_gpu_memory_info"))
   {
     GLint mem = 0;
 
@@ -110,11 +111,36 @@ void LogGraphicsInfo()
     CLog::Log(LOGNOTICE, "GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX = %i", mem);
   }
 
-  s = glGetString(GL_EXTENSIONS);
-  if (s)
-    CLog::Log(LOGNOTICE, "GL_EXTENSIONS = %s", s);
+  std::string extensions;
+#if defined(HAS_GL)
+  unsigned int renderVersionMajor, renderVersionMinor;
+  CServiceBroker::GetRenderSystem().GetRenderVersion(renderVersionMajor, renderVersionMinor);
+  if (renderVersionMajor > 3 ||
+      (renderVersionMajor == 3 && renderVersionMinor >= 2))
+  {
+    GLint n;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+    if (n > 0)
+    {
+      GLint i;
+      for (i = 0; i < n; i++)
+      {
+        extensions += (const char*)glGetStringi(GL_EXTENSIONS, i);
+        extensions += " ";
+      }
+    }
+  }
+  else
+#endif
+  {
+    extensions += (const char*) glGetString(GL_EXTENSIONS);
+  }
+
+  if (!extensions.empty())
+    CLog::Log(LOGNOTICE, "GL_EXTENSIONS = %s", extensions.c_str());
   else
     CLog::Log(LOGNOTICE, "GL_EXTENSIONS = NULL");
+
 
 #else /* !HAS_GL */
   CLog::Log(LOGNOTICE,
@@ -126,14 +152,20 @@ int glFormatElementByteCount(GLenum format)
 {
   switch (format)
   {
-#ifndef HAS_GLES
+#ifdef HAS_GL
   case GL_BGRA:
+    return 4;
+  case GL_RED:
+    return 1;
+  case GL_GREEN:
+    return 1;
+  case GL_RG:
+    return 2;
+  case GL_BGR:
+    return 3;
 #endif
   case GL_RGBA:
     return 4;
-#ifndef HAS_GLES
-  case GL_BGR:
-#endif
   case GL_RGB:
     return 3;
   case GL_LUMINANCE_ALPHA:

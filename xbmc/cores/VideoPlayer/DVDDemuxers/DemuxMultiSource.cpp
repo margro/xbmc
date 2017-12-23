@@ -18,7 +18,7 @@
  *
  */
 
-#include "TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "DemuxMultiSource.h"
 #include "DVDDemuxUtils.h"
 #include "DVDFactoryDemuxer.h"
@@ -156,10 +156,15 @@ bool CDemuxMultiSource::Open(CDVDInputStream* pInput)
   return !m_demuxerMap.empty();
 }
 
-void CDemuxMultiSource::Reset()
+bool CDemuxMultiSource::Reset()
 {
+  bool ret = true;
   for (auto& iter : m_demuxerMap)
-    iter.second->Reset();
+  {
+    if (!iter.second->Reset())
+      ret = false;
+  }
+  return ret;
 }
 
 DemuxPacket* CDemuxMultiSource::Read()
@@ -230,9 +235,9 @@ void CDemuxMultiSource::SetMissingStreamDetails(DemuxPtr demuxer)
   {
     ExternalStreamInfo info = CUtil::GetExternalStreamDetailsFromFilename(baseFileName, fileName);
 
-    if (stream->flags == CDemuxStream::FLAG_NONE)
+    if (stream->flags == StreamFlags::FLAG_NONE)
     {
-      stream->flags = static_cast<CDemuxStream::EFlags>(info.flag);
+      stream->flags = static_cast<StreamFlags>(info.flag);
     }
     if (stream->language[0] == '\0')
     {

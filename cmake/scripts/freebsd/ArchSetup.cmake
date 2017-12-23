@@ -1,7 +1,7 @@
 set(ARCH_DEFINES -D_LINUX -DTARGET_POSIX -DTARGET_FREEBSD)
 set(SYSTEM_DEFINES -D__STDC_CONSTANT_MACROS -D_LARGEFILE64_SOURCE
                    -D_FILE_OFFSET_BITS=64)
-set(PLATFORM_DIR linux)
+set(PLATFORM_DIR platform/linux)
 set(SYSTEM_LDFLAGS -L/usr/local/lib)
 if(WITH_ARCH)
   set(ARCH ${WITH_ARCH})
@@ -14,3 +14,6 @@ else()
     message(WARNING "unknown CPU: ${CPU}")
   endif()
 endif()
+
+# Additional SYSTEM_DEFINES
+list(APPEND SYSTEM_DEFINES -DHAS_LINUX_NETWORK)

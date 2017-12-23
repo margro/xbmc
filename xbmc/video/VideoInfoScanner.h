@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "InfoScanner.h"
-#include "NfoFile.h"
 #include "VideoDatabase.h"
 #include "addons/Scraper.h"
 
@@ -34,6 +33,8 @@ class CFileItemList;
 
 namespace VIDEO
 {
+  class IVideoInfoTagLoader;
+
   typedef struct SScanSettings
   {
     SScanSettings() { parent_name = parent_name_root = noupdate = exclude = false; recurse = 1;}
@@ -43,15 +44,6 @@ namespace VIDEO
     bool noupdate;          /* exclude from update library function */
     bool exclude;           /* exclude this path from scraping */
   } SScanSettings;
-
-  /*! \brief return values from the information lookup functions
-   */
-  enum INFO_RET { INFO_CANCELLED,
-                  INFO_ERROR,
-                  INFO_NOT_NEEDED,
-                  INFO_HAVE_ALREADY,
-                  INFO_NOT_FOUND,
-                  INFO_ADDED };
 
   class CVideoInfoScanner : public CInfoScanner
   {
@@ -64,11 +56,7 @@ namespace VIDEO
      \param scanAll whether to scan everything not already scanned (regardless of whether the user normally doesn't want a folder scanned.) Defaults to false.
      */
     void Start(const std::string& strDirectory, bool scanAll = false);
-    bool IsScanning() const { return m_bRunning; }
     void Stop();
-
-    //! \brief Set whether or not to show a progress dialog
-    void ShowDialog(bool show) { m_showDialog = show; }
 
     /*! \brief Add an item to the database.
      \param pItem item to add to the database.
@@ -95,7 +83,6 @@ namespace VIDEO
 
     static void ApplyThumbToFolder(const std::string &folder, const std::string &imdbThumb);
     static bool DownloadFailed(CGUIDialogProgress* pDlgProgress);
-    CNfoFile::NFOResult CheckForNFOFile(CFileItem* pItem, bool bGrabAny, ADDON::ScraperPtr& scraper, CScraperUrl& scrUrl);
 
     /*! \brief Retrieve any artwork associated with an item
      \param pItem item to find artwork for.
@@ -161,7 +148,10 @@ namespace VIDEO
      \param pDialog progress dialog to update and check for cancellation during processing. Defaults to NULL.
      \return true if information is found, false if an error occurred, the lookup was cancelled, or no information was found.
      */
-    bool GetDetails(CFileItem *pItem, CScraperUrl &url, const ADDON::ScraperPtr &scraper, CNfoFile *nfoFile=NULL, CGUIDialogProgress* pDialog=NULL);
+    bool GetDetails(CFileItem *pItem, CScraperUrl &url,
+                    const ADDON::ScraperPtr &scraper,
+                    VIDEO::IVideoInfoTagLoader* nfoFile = nullptr,
+                    CGUIDialogProgress* pDialog = nullptr);
 
     /*! \brief Extract episode and season numbers from a processed regexp
      \param reg Regular expression object with at least 2 matches
@@ -237,23 +227,12 @@ namespace VIDEO
     bool EnumerateSeriesFolder(CFileItem* item, EPISODELIST& episodeList);
     bool ProcessItemByVideoInfoTag(const CFileItem *item, EPISODELIST &episodeList);
 
-    std::string GetnfoFile(CFileItem *item, bool bGrabAny=false) const;
-
-    bool m_showDialog;
-    CGUIDialogProgressBarHandle* m_handle;
-    int m_currentItem;
-    int m_itemCount;
     bool m_bStop;
-    bool m_bRunning;
-    bool m_bCanInterrupt;
-    bool m_bClean;
     bool m_scanAll;
     std::string m_strStartDir;
     CVideoDatabase m_database;
-    std::set<std::string> m_pathsToScan;
     std::set<std::string> m_pathsToCount;
     std::set<int> m_pathsToClean;
-    CNfoFile m_nfoReader;
   };
 }
 

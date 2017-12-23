@@ -18,12 +18,9 @@
  *
  */
 
-#include "system.h"
-#ifdef HAS_ALSA
-
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "ALSAHControlMonitor.h"
-#include "linux/FDEventMonitor.h"
+#include "platform/linux/FDEventMonitor.h"
 #include "utils/log.h"
 #include "ServiceBroker.h"
 
@@ -177,6 +174,3 @@ void CALSAHControlMonitor::PutHandle(const std::string& ctlHandleName)
     m_ctlHandles.erase(ctlHandleName);
   }
 }
-
-
-#endif

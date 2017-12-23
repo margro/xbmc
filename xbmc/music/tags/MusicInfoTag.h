@@ -31,7 +31,6 @@ class CVariant;
 #include "XBDateTime.h"
 #include "music/Album.h"
 #include "music/Artist.h"
-#include "music/EmbeddedArt.h"
 #include "utils/IArchivable.h"
 #include "utils/ISerializable.h"
 #include "utils/ISortable.h"
@@ -45,7 +44,7 @@ public:
   CMusicInfoTag(void);
   CMusicInfoTag(const CMusicInfoTag& tag);
   ~CMusicInfoTag() override;
-  const CMusicInfoTag& operator =(const CMusicInfoTag& tag);
+  CMusicInfoTag& operator =(const CMusicInfoTag& tag);
   bool operator !=(const CMusicInfoTag& tag) const;
   bool Loaded() const;
   const std::string& GetTitle() const;
@@ -108,8 +107,8 @@ public:
   void SetAlbumArtist(const std::vector<std::string>& albumArtists, bool FillDesc = false);
   void SetAlbumArtistDesc(const std::string& strAlbumArtistDesc);
   void SetAlbumArtistSort(const std::string& strAlbumArtistSort);
-  void SetGenre(const std::string& strGenre);
-  void SetGenre(const std::vector<std::string>& genres);
+  void SetGenre(const std::string& strGenre, bool bTrim = false);
+  void SetGenre(const std::vector<std::string>& genres, bool bTrim = false);
   void SetYear(int year);
   void SetDatabaseId(long id, const std::string &type);
   void SetReleaseDate(SYSTEMTIME& dateTime);

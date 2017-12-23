@@ -71,7 +71,11 @@
 #include "settings/DisplaySettings.h"
 #include "guilib/GraphicContext.h"
 #include "guilib/GUIWindowManager.h"
+// Audio Engine includes for Factory and interfaces
 #include "cores/AudioEngine/Interfaces/AE.h"
+#include "cores/AudioEngine/AESinkFactory.h"
+#include "cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h"
+
 #include "ServiceBroker.h"
 #include "GUIInfoManager.h"
 #include "guiinfo/GUIInfoLabels.h"
@@ -101,6 +105,7 @@
 #define PLAYBACK_STATE_PLAYING  0x0001
 #define PLAYBACK_STATE_VIDEO    0x0100
 #define PLAYBACK_STATE_AUDIO    0x0200
+#define PLAYBACK_STATE_CANNOT_PAUSE 0x0400
 
 using namespace KODI::MESSAGING;
 using namespace ANNOUNCEMENT;
@@ -193,6 +198,9 @@ void CXBMCApp::onStart()
 
   if (m_firstrun)
   {
+    // Register sink
+    AE::CAESinkFactory::ClearSinks();
+    CAESinkAUDIOTRACK::Register();
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -208,7 +216,6 @@ void CXBMCApp::onStart()
     intentFilter.addAction("android.intent.action.SCREEN_OFF");
     intentFilter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
     registerReceiver(*this, intentFilter);
-
     m_mediaSession.reset(new CJNIXBMCMediaSession());
   }
 }
@@ -257,8 +264,13 @@ void CXBMCApp::onStop()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
 
-  if ((m_playback_state & PLAYBACK_STATE_PLAYING) && (m_playback_state & PLAYBACK_STATE_VIDEO) && !m_hasReqVisible)
-    CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+  if ((m_playback_state & PLAYBACK_STATE_PLAYING) && !m_hasReqVisible)
+  {
+    if (m_playback_state & PLAYBACK_STATE_CANNOT_PAUSE)
+      CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
+    else if (m_playback_state & PLAYBACK_STATE_VIDEO)
+      CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+  }
 }
 
 void CXBMCApp::onDestroy()
@@ -697,6 +709,8 @@ void CXBMCApp::OnPlayBackStarted()
     m_playback_state |= PLAYBACK_STATE_VIDEO;
   if (g_application.m_pPlayer->HasAudio())
     m_playback_state |= PLAYBACK_STATE_AUDIO;
+  if (!g_application.m_pPlayer->CanPause())
+    m_playback_state |= PLAYBACK_STATE_CANNOT_PAUSE;
 
   m_mediaSession->activate(true);
   UpdateSessionState();
@@ -1021,7 +1035,7 @@ void CXBMCApp::onReceive(CJNIIntent intent)
   {
     if (g_application.IsInitialized())
     {
-      CNetwork& net = g_application.getNetwork();
+      CNetwork& net = CServiceBroker::GetNetwork();
       CNetworkAndroid* netdroid = static_cast<CNetworkAndroid*>(&net);
       netdroid->RetrieveInterfaces();
     }
@@ -1099,8 +1113,13 @@ void CXBMCApp::onVisibleBehindCanceled()
   m_hasReqVisible = false;
 
   // Pressing the pause button calls OnStop() (cf. https://code.google.com/p/android/issues/detail?id=186469)
-  if ((m_playback_state & PLAYBACK_STATE_PLAYING) && (m_playback_state & PLAYBACK_STATE_VIDEO))
-    CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+  if ((m_playback_state & PLAYBACK_STATE_PLAYING))
+  {
+    if (m_playback_state & PLAYBACK_STATE_CANNOT_PAUSE)
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
+    else if (m_playback_state & PLAYBACK_STATE_VIDEO)
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+  }
 }
 
 int CXBMCApp::WaitForActivityResult(const CJNIIntent &intent, int requestCode, CJNIIntent &result)
@@ -1131,8 +1150,13 @@ void CXBMCApp::onAudioFocusChange(int focusChange)
   CXBMCApp::android_printf("Audio Focus changed: %d", focusChange);
   if (focusChange == CJNIAudioManager::AUDIOFOCUS_LOSS)
   {
-    if (m_playback_state & PLAYBACK_STATE_PLAYING)
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+    if ((m_playback_state & PLAYBACK_STATE_PLAYING))
+    {
+      if (m_playback_state & PLAYBACK_STATE_CANNOT_PAUSE)
+        CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
+      else
+        CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+    }
   }
 }
 

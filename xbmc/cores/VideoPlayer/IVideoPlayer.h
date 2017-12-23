@@ -32,10 +32,6 @@
 #define VideoPlayer_TELETEXT 4
 #define VideoPlayer_RDS      5
 
-
-template <typename T> class CRectGen;
-typedef CRectGen<float>  CRect;
-
 class CDVDMsg;
 class CDVDStreamInfo;
 class CProcessInfo;
@@ -110,7 +106,6 @@ public:
   virtual double GetOutputDelay() = 0;
   virtual std::string GetPlayerInfo() = 0;
   virtual int GetVideoBitrate() = 0;
-  virtual std::string GetStereoMode() = 0;
   virtual void SetSpeed(int iSpeed) = 0;
   virtual bool IsEOS() { return false; };
 };

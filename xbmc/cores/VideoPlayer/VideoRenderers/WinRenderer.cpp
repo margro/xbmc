@@ -35,9 +35,9 @@
 #include "ServiceBroker.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
-#include "utils/win32/gpu_memcpy_sse4.h"
 #include "VideoShaders/WinVideoFilter.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/dx/DeviceResources.h"
+#include "rendering/dx/RenderContext.h"
 
 typedef struct
 {
@@ -245,7 +245,7 @@ bool CWinRenderer::Configure(const VideoPicture &picture, float fps, unsigned fl
 
   // calculate the input frame aspect ratio
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
-  SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
+  SetViewMode(m_videoSettings.m_ViewMode);
   ManageRenderArea();
 
   SelectRenderMethod();
@@ -301,15 +301,15 @@ void CWinRenderer::RenderUpdate(int index, int index2, bool clear, unsigned int 
   m_iYV12RenderBuffer = index;
 
   if (clear)
-    g_graphicsContext.Clear(g_Windowing.UseLimitedColor() ? 0x101010 : 0);
+    g_graphicsContext.Clear(DX::Windowing().UseLimitedColor() ? 0x101010 : 0);
 
   if (!m_bConfigured)
     return;
 
-  g_Windowing.SetAlphaBlendEnable(alpha < 255);
+  DX::Windowing().SetAlphaBlendEnable(alpha < 255);
   ManageTextures();
   ManageRenderArea();
-  Render(flags, g_Windowing.GetBackBuffer());
+  Render(flags, DX::Windowing().GetBackBuffer());
 }
 
 void CWinRenderer::PreInit()
@@ -380,8 +380,8 @@ bool CWinRenderer::CreateIntermediateRenderTarget(unsigned int width, unsigned i
 
   DXGI_FORMAT format = DXGI_FORMAT_B8G8R8X8_UNORM;
   if      (m_renderMethod == RENDER_DXVA)                                   format = DXGI_FORMAT_B8G8R8X8_UNORM;
-  else if (g_Windowing.IsFormatSupport(DXGI_FORMAT_B8G8R8A8_UNORM, usage))  format = DXGI_FORMAT_B8G8R8A8_UNORM;
-  else if (g_Windowing.IsFormatSupport(DXGI_FORMAT_B8G8R8X8_UNORM, usage))  format = DXGI_FORMAT_B8G8R8X8_UNORM;
+  else if (DX::Windowing().IsFormatSupport(DXGI_FORMAT_B8G8R8A8_UNORM, usage))  format = DXGI_FORMAT_B8G8R8A8_UNORM;
+  else if (DX::Windowing().IsFormatSupport(DXGI_FORMAT_B8G8R8X8_UNORM, usage))  format = DXGI_FORMAT_B8G8R8X8_UNORM;
 
   // don't create new one if it exists with requested size and format
   if ( m_IntermediateTarget.Get() && m_IntermediateTarget.GetFormat() == format
@@ -429,8 +429,8 @@ EBufferFormat CWinRenderer::SelectBufferFormat(AVPixelFormat format, const Rende
   }
 
   // check shared formats and processor formats
-  if ( method != RENDER_SW && Contains(g_Windowing.m_sharedFormats, decoderFormat)
-    || (method == RENDER_DXVA && Contains(g_Windowing.m_processorFormats, decoderFormat)) )
+  if ( method != RENDER_SW && Contains(DX::Windowing().m_sharedFormats, decoderFormat)
+    || (method == RENDER_DXVA && Contains(DX::Windowing().m_processorFormats, decoderFormat)) )
   {
     switch (format)
     {
@@ -467,7 +467,7 @@ EBufferFormat CWinRenderer::SelectBufferFormat(AVPixelFormat format, const Rende
   }
 
   // check common formats (SW rendering or win7)
-  if ( method == RENDER_SW || (method == RENDER_PS && Contains(g_Windowing.m_shaderFormats, decoderFormat)))
+  if ( method == RENDER_SW || (method == RENDER_PS && Contains(DX::Windowing().m_shaderFormats, decoderFormat)))
   {
     switch (format)
     {
@@ -644,12 +644,12 @@ void CWinRenderer::UpdateVideoFilter()
                  || m_cmsOn && !m_colorManager->CheckConfiguration(m_cmsToken, m_iFlags);
   cmsChanged &= m_clutLoaded;
 
-  if (m_scalingMethodGui == CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ScalingMethod
+  if (m_scalingMethodGui == m_videoSettings.m_ScalingMethod
    && m_bFilterInitialized && !cmsChanged)
     return;
 
   m_bFilterInitialized = true;
-  m_scalingMethodGui = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ScalingMethod;
+  m_scalingMethodGui = m_videoSettings.m_ScalingMethod;
   m_scalingMethod    = m_scalingMethodGui;
 
   if (!Supports(m_scalingMethod))
@@ -725,7 +725,7 @@ void CWinRenderer::Render(DWORD flags, CD3DTexture* target)
   if (m_bUseHQScaler)
     RenderHQ(target);
 
-  g_Windowing.ApplyStateBlock();
+  DX::Windowing().ApplyStateBlock();
 }
 
 void CWinRenderer::RenderSW(CD3DTexture* target)
@@ -790,9 +790,8 @@ void CWinRenderer::RenderSW(CD3DTexture* target)
 
   // 2. output to display
 
-  CVideoSettings settings = CMediaSettings::GetInstance().GetCurrentVideoSettings();
   m_outputShader->Render(m_IntermediateTarget, m_sourceWidth, m_sourceHeight, m_sourceRect, m_rotatedDestCoords, target,
-                         g_Windowing.UseLimitedColor(), settings.m_Contrast * 0.01f, settings.m_Brightness * 0.01f);
+                         DX::Windowing().UseLimitedColor(), m_videoSettings.m_Contrast * 0.01f, m_videoSettings.m_Brightness * 0.01f);
 }
 
 void CWinRenderer::RenderPS(CD3DTexture* target)
@@ -803,10 +802,10 @@ void CWinRenderer::RenderPS(CD3DTexture* target)
   CD3D11_VIEWPORT viewPort(0.0f, 0.0f, static_cast<float>(target->GetWidth()), static_cast<float>(target->GetHeight()));
 
   if (m_bUseHQScaler)
-    g_Windowing.ResetScissors();
+    DX::Windowing().ResetScissors();
 
   // reset view port
-  g_Windowing.Get3D11Context()->RSSetViewports(1, &viewPort);
+  DX::DeviceResources::Get()->GetD3DContext()->RSSetViewports(1, &viewPort);
 
   // select destination rectangle
   CPoint destPoints[4];
@@ -826,11 +825,11 @@ void CWinRenderer::RenderPS(CD3DTexture* target)
 
   // render video frame
   m_colorShader->Render(m_sourceRect, destPoints,
-                        CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast,
-                        CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness,
+                        m_videoSettings.m_Contrast,
+                        m_videoSettings.m_Brightness,
                         &m_renderBuffers[m_iYV12RenderBuffer], target);
   // Restore our view port.
-  g_Windowing.RestoreViewPort();
+  DX::Windowing().RestoreViewPort();
 }
 
 void CWinRenderer::RenderHQ(CD3DTexture* target)
@@ -922,7 +921,7 @@ void CWinRenderer::RenderHW(DWORD flags, CD3DTexture* target)
                        static_cast<float>(m_IntermediateTarget.GetWidth()),
                        static_cast<float>(m_IntermediateTarget.GetHeight()));
 
-  if (target != g_Windowing.GetBackBuffer())
+  if (target != DX::Windowing().GetBackBuffer())
   {
     // rendering capture
     targetRect.x2 = target->GetWidth();
@@ -930,21 +929,22 @@ void CWinRenderer::RenderHW(DWORD flags, CD3DTexture* target)
   }
   CWIN32Util::CropSource(src, dst, targetRect, m_renderOrientation);
 
-  m_processor->Render(src, dst, m_IntermediateTarget.Get(), views, flags, image->frameIdx, m_renderOrientation);
+  m_processor->Render(src, dst, m_IntermediateTarget.Get(), views, flags, image->frameIdx, m_renderOrientation,
+                      m_videoSettings.m_Contrast, m_videoSettings.m_Brightness);
 
   if (!m_bUseHQScaler)
   {
     if ( g_graphicsContext.GetStereoMode() == RENDER_STEREO_MODE_SPLIT_HORIZONTAL
       || g_graphicsContext.GetStereoMode() == RENDER_STEREO_MODE_SPLIT_VERTICAL)
     {
-      CD3DTexture *backBuffer = g_Windowing.GetBackBuffer();
+      CD3DTexture *backBuffer = DX::Windowing().GetBackBuffer();
       CD3D11_VIEWPORT bbSize(0.f, 0.f, static_cast<float>(backBuffer->GetWidth()), static_cast<float>(backBuffer->GetHeight()));
-      g_Windowing.Get3D11Context()->RSSetViewports(1, &bbSize);
+      DX::DeviceResources::Get()->GetD3DContext()->RSSetViewports(1, &bbSize);
     }
 
     // render frame
     m_outputShader->Render(m_IntermediateTarget, m_destWidth, m_destHeight, dst, dst, target);
-    g_Windowing.RestoreViewPort();
+    DX::Windowing().RestoreViewPort();
   }
 }
 
@@ -1040,7 +1040,7 @@ bool CWinRenderer::Supports(ESCALINGMETHOD method)
      || (method == VS_SCALINGMETHOD_LINEAR && m_renderMethod == RENDER_PS))
         return true;
 
-    if (g_Windowing.GetFeatureLevel() >= D3D_FEATURE_LEVEL_9_3 && !m_renderOrientation)
+    if (DX::DeviceResources::Get()->GetDeviceFeatureLevel() >= D3D_FEATURE_LEVEL_9_3 && !m_renderOrientation)
     {
       if (method == VS_SCALINGMETHOD_CUBIC
        || method == VS_SCALINGMETHOD_LANCZOS2
@@ -1079,21 +1079,6 @@ bool CWinRenderer::WantsDoublePass()
 bool CWinRenderer::ConfigChanged(const VideoPicture& picture)
 {
   if (picture.videoBuffer->GetFormat() != m_format)
-    return true;
-
-  return false;
-}
-
-bool CWinRenderer::HandlesVideoBuffer(CVideoBuffer* buffer)
-{
-  AVPixelFormat format = buffer->GetFormat();
-  if ( format == AV_PIX_FMT_D3D11VA_VLD
-    || format == AV_PIX_FMT_NV12
-    || format == AV_PIX_FMT_P010
-    || format == AV_PIX_FMT_P016
-    || format == AV_PIX_FMT_YUV420P
-    || format == AV_PIX_FMT_YUV420P10
-    || format == AV_PIX_FMT_YUV420P16)
     return true;
 
   return false;

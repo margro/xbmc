@@ -1,4 +1,4 @@
-xbmc/linux                       linuxsupport
+xbmc/platform/linux              platform/linux
 xbmc/input/touch                 input/touch
 xbmc/input/touch/generic         input/touch/generic
 xbmc/network/linux               network/linux
@@ -13,4 +13,5 @@ xbmc/platform/darwin/ios-common  platform_ios-common
 xbmc/filesystem/posix            filesystem/posix
 xbmc/utils/posix                 utils_posix
 xbmc/windowing/osx               windowing/osx
+xbmc/cores/RetroPlayer/process/ios cores/RetroPlayer/process/ios
 xbmc/cores/VideoPlayer/Process/ios cores/VideoPlayer/Process/ios

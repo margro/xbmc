@@ -20,8 +20,9 @@
 #pragma once
 
 #include "rendering/gl/RenderSystemGL.h"
-#include "utils/GlobalsHandling.h"
 #include "WinSystemWaylandEGLContext.h"
+
+class CVaapiProxy;
 
 namespace KODI
 {
@@ -38,11 +39,13 @@ protected:
   void SetContextSize(CSizeInt size) override;
   void SetVSyncImpl(bool enable) override;
   void PresentRenderImpl(bool rendered) override;
+  struct delete_CVaapiProxy
+  {
+    void operator()(CVaapiProxy *p) const;
+  };
+  std::unique_ptr<CVaapiProxy, delete_CVaapiProxy> m_vaapiProxy;
 };
 
 }
 }
 }
-
-XBMC_GLOBAL_REF(KODI::WINDOWING::WAYLAND::CWinSystemWaylandEGLContextGL, g_Windowing);
-#define g_Windowing XBMC_GLOBAL_USE(KODI::WINDOWING::WAYLAND::CWinSystemWaylandEGLContextGL)

@@ -72,11 +72,15 @@ function(core_add_library name)
     add_library(${name} STATIC ${SOURCES} ${HEADERS} ${OTHERS})
     set_target_properties(${name} PROPERTIES PREFIX "")
     set(core_DEPENDS ${name} ${core_DEPENDS} CACHE STRING "" FORCE)
-    add_dependencies(${name} libcpluff ffmpeg dvdnav crossguid ${PLATFORM_GLOBAL_TARGET_DEPS})
+    set(lib_DEPS libcpluff ffmpeg crossguid ${PLATFORM_GLOBAL_TARGET_DEPS})
+    if(NOT CORE_SYSTEM_NAME STREQUAL windowsstore)
+      list(APPEND lib_DEPS dvdnav)
+    endif()
+    add_dependencies(${name} ${lib_DEPS})
     set(CORE_LIBRARY ${name} PARENT_SCOPE)
 
     # Add precompiled headers to Kodi main libraries
-    if(CORE_SYSTEM_NAME STREQUAL windows)
+    if(CORE_SYSTEM_NAME MATCHES windows)
       add_precompiled_header(${name} pch.h ${CMAKE_SOURCE_DIR}/xbmc/platform/win32/pch.cpp PCH_TARGET kodi)
       set_language_cxx(${name})
       target_link_libraries(${name} PUBLIC effects11)
@@ -102,7 +106,11 @@ function(core_add_test_library name)
     set_target_properties(${name} PROPERTIES PREFIX ""
                                              EXCLUDE_FROM_ALL 1
                                              FOLDER "Build Utilities/tests")
-    add_dependencies(${name} libcpluff ffmpeg dvdnav crossguid)
+    set(lib_DEPS libcpluff ffmpeg crossguid ${PLATFORM_GLOBAL_TARGET_DEPS})
+    if(NOT CORE_SYSTEM_NAME STREQUAL windowsstore)
+      list(APPEND lib_DEPS dvdnav)
+    endif()
+    add_dependencies(${name} ${lib_DEPS})
     set(test_archives ${test_archives} ${name} CACHE STRING "" FORCE)
   endif()
   foreach(src IN LISTS SOURCES SUPPORTED_SOURCES HEADERS OTHERS)
@@ -314,6 +322,7 @@ function(copy_files_from_filelist_to_buildtree pattern)
             copy_file_to_buildtree(${CMAKE_SOURCE_DIR}/${file} DIRECTORY ${dest} ${DIR_OPTION})
           endif()
         endforeach()
+        set(DIR_OPTION)
       endforeach()
     endforeach()
   endforeach()
@@ -583,7 +592,8 @@ function(core_find_git_rev stamp)
   else()
     find_package(Git)
     if(GIT_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.git)
-      execute_process(COMMAND ${GIT_EXECUTABLE} update-index --ignore-submodules --refresh -q)
+      execute_process(COMMAND ${GIT_EXECUTABLE} update-index --ignore-submodules -q --refresh
+                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
       execute_process(COMMAND ${GIT_EXECUTABLE} diff-files --ignore-submodules --quiet --
                       RESULT_VARIABLE status_code
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -610,7 +620,11 @@ function(core_find_git_rev stamp)
       string(REPLACE "-" "" DATE ${DATE})
     else()
       string(TIMESTAMP DATE "%Y%m%d" UTC)
-      set(HASH "nogitfound")
+      if(EXISTS ${CMAKE_SOURCE_DIR}/VERSION)
+        file(STRINGS ${CMAKE_SOURCE_DIR}/VERSION HASH LIMIT_INPUT 16)
+      else()
+        set(HASH "nogitfound")
+      endif()
     endif()
     cmake_parse_arguments(arg "FULL" "" "" ${ARGN})
     if(arg_FULL)
@@ -637,6 +651,7 @@ endfunction()
 #   APP_VERSION - the app version (${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}-${APP_VERSION_TAG})
 #   APP_ADDON_API - the addon API version in the form of 16.9.702
 #   FILE_VERSION - file version in the form of 16,9,702,0 - Windows only
+#   JSONRPC_VERSION - the json api version in the form of 8.3.0
 #
 # Set various variables defined in "versions.h"
 macro(core_find_versions)
@@ -651,9 +666,28 @@ macro(core_find_versions)
 
   include(CMakeParseArguments)
   core_file_read_filtered(version_list ${CORE_SOURCE_DIR}/version.txt)
-  string(REPLACE " " ";" version_list "${version_list}")
-  cmake_parse_arguments(APP "" "APP_NAME;COMPANY_NAME;WEBSITE;VERSION_MAJOR;VERSION_MINOR;VERSION_TAG;VERSION_CODE;ADDON_API;APP_PACKAGE" "" ${version_list})
+  core_file_read_filtered(json_version ${CORE_SOURCE_DIR}/xbmc/interfaces/json-rpc/schema/version.txt)
+  string(REGEX REPLACE "([^ ;]*) ([^;]*)" "\\1;\\2" version_list "${version_list};${json_version}")
+  set(version_props 
+    ADDON_API
+    APP_NAME
+    APP_PACKAGE
+    COMPANY_NAME
+    JSONRPC_VERSION
+    PACKAGE_DESCRIPTION
+    PACKAGE_IDENTITY
+    PACKAGE_PUBLISHER
+    VERSION_MAJOR
+    VERSION_MINOR
+    VERSION_TAG
+    VERSION_CODE
+    WEBSITE
+  )
+  cmake_parse_arguments(APP "" "${version_props}" "" ${version_list})
 
+  if(NOT ${APP_VERSION_CODE} MATCHES "^[0-9]+\\.[0-9][0-9]?\\.[0-9][0-9]?[0-9]?$")
+    message(FATAL_ERROR "VERSION_CODE was set to ${APP_VERSION_CODE} in version.txt, but it has to match '^\\d+\\.\\d{1,2}\\.\\d{1,3}$'")
+  endif()
   set(APP_NAME ${APP_APP_NAME}) # inconsistency but APP_APP_NAME looks weird
   string(TOLOWER ${APP_APP_NAME} APP_NAME_LC)
   string(TOUPPER ${APP_APP_NAME} APP_NAME_UC)
@@ -665,6 +699,7 @@ macro(core_find_versions)
     string(TOLOWER ${APP_VERSION_TAG} APP_VERSION_TAG_LC)
   endif()
   string(REPLACE "." "," FILE_VERSION ${APP_ADDON_API}.0)
+  set(JSONRPC_VERSION ${APP_JSONRPC_VERSION})
 
   # Set defines used in addon.xml.in and read from versions.h to set add-on
   # version parts automatically
@@ -688,6 +723,9 @@ macro(core_find_versions)
   # bail if we can't parse version.txt
   if(NOT DEFINED APP_VERSION_MAJOR OR NOT DEFINED APP_VERSION_MINOR)
     message(FATAL_ERROR "Could not determine app version! Make sure that ${CORE_SOURCE_DIR}/version.txt exists")
+  endif()
+  if(NOT DEFINED JSONRPC_VERSION)
+    message(FATAL_ERROR "Could not determine json-rpc version! Make sure that ${CORE_SOURCE_DIR}/xbmc/interfaces/json-rpc/schema/version.txt exists")
   endif()
 endmacro()
 

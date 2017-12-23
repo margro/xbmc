@@ -50,20 +50,18 @@ CPVRRecordings::CPVRRecordings(void) :
     m_iTVRecordings(0),
     m_iRadioRecordings(0)
 {
-  m_database.Open();
 }
 
 CPVRRecordings::~CPVRRecordings()
 {
-  Clear();
-  if (m_database.IsOpen())
-    m_database.Close();
+  if (m_database && m_database->IsOpen())
+    m_database->Close();
 }
 
 void CPVRRecordings::UpdateFromClients(void)
 {
   CSingleLock lock(m_critSection);
-  Clear();
+  Unload();
   CServiceBroker::GetPVRManager().Clients()->GetRecordings(this, false);
   CServiceBroker::GetPVRManager().Clients()->GetRecordings(this, true);
 }
@@ -115,10 +113,9 @@ void CPVRRecordings::GetSubDirectories(const CPVRRecordingsPath &recParentPath, 
     recChildPath.AppendSegment(strCurrent);
     std::string strFilePath(recChildPath);
 
-    CFileItemPtr pFileItem;
-    if (m_database.IsOpen())
-      current->UpdateMetadata(m_database);
+    current->UpdateMetadata(GetVideoDatabase());
 
+    CFileItemPtr pFileItem;
     if (!results->Contains(strFilePath))
     {
       pFileItem.reset(new CFileItem(strCurrent, true));
@@ -149,9 +146,19 @@ void CPVRRecordings::GetSubDirectories(const CPVRRecordingsPath &recParentPath, 
 
 int CPVRRecordings::Load(void)
 {
+  Unload();
   Update();
-
   return m_recordings.size();
+}
+
+void CPVRRecordings::Unload()
+{
+  CSingleLock lock(m_critSection);
+  m_bDeletedTVRecordings = false;
+  m_bDeletedRadioRecordings = false;
+  m_iTVRecordings = 0;
+  m_iRadioRecordings = 0;
+  m_recordings.clear();
 }
 
 void CPVRRecordings::Update(void)
@@ -314,8 +321,8 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
           current->IsRadio() != recPath.IsRadio())
         continue;
 
-      if (m_database.IsOpen())
-        current->UpdateMetadata(m_database);
+      current->UpdateMetadata(GetVideoDatabase());
+
       CFileItemPtr pFileItem(new CFileItem(current));
       pFileItem->SetLabel2(current->RecordingTimeAsLocalTime().GetAsLocalizedDateTime(true, false));
       pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
@@ -355,8 +362,7 @@ void CPVRRecordings::GetAll(CFileItemList &items, bool bDeleted)
     if (current->IsDeleted() != bDeleted)
       continue;
 
-    if (m_database.IsOpen())
-      current->UpdateMetadata(m_database);
+    current->UpdateMetadata(GetVideoDatabase());
 
     CFileItemPtr pFileItem(new CFileItem(current));
     pFileItem->SetLabel2(current->RecordingTimeAsLocalTime().GetAsLocalizedDateTime(true, false));
@@ -417,16 +423,6 @@ CPVRRecordingPtr CPVRRecordings::GetById(int iClientId, const std::string &strRe
     retVal = it->second;
 
   return retVal;
-}
-
-void CPVRRecordings::Clear()
-{
-  CSingleLock lock(m_critSection);
-  m_bDeletedTVRecordings = false;
-  m_bDeletedRadioRecordings = false;
-  m_iTVRecordings = 0;
-  m_iRadioRecordings = 0;
-  m_recordings.clear();
 }
 
 void CPVRRecordings::UpdateFromClient(const CPVRRecordingPtr &tag)
@@ -509,7 +505,8 @@ bool CPVRRecordings::ChangeRecordingsPlayCount(const CFileItemPtr &item, int cou
 {
   bool bResult = false;
 
-  if (m_database.IsOpen())
+  CVideoDatabase& db = GetVideoDatabase();
+  if (db.IsOpen())
   {
     bResult = true;
 
@@ -552,14 +549,14 @@ bool CPVRRecordings::ChangeRecordingsPlayCount(const CFileItemPtr &item, int cou
         // Clear resume bookmark
         if (recording->GetPlayCount() > 0)
         {
-          m_database.ClearBookMarksOfFile(pItem->GetPath(), CBookmark::RESUME);
+          db.ClearBookMarksOfFile(pItem->GetPath(), CBookmark::RESUME);
           recording->SetResumePoint(CBookmark());
         }
 
         if (count == INCREMENT_PLAY_COUNT)
-          m_database.IncrementPlayCount(*pItem);
+          db.IncrementPlayCount(*pItem);
         else
-          m_database.SetPlayCount(*pItem, count);
+          db.SetPlayCount(*pItem, count);
       }
     }
 
@@ -582,15 +579,32 @@ bool CPVRRecordings::ResetResumePoint(const CFileItemPtr item)
   bool bResult = false;
 
   const CPVRRecordingPtr recording = item->GetPVRRecordingInfoTag();
-  if (recording && m_database.IsOpen())
+  if (recording)
   {
-    bResult = true;
+    CVideoDatabase& db = GetVideoDatabase();
+    if (db.IsOpen())
+    {
+      bResult = true;
 
-    m_database.ClearBookMarksOfFile(item->GetPath(), CBookmark::RESUME);
-    recording->SetResumePoint(CBookmark());
+      db.ClearBookMarksOfFile(item->GetPath(), CBookmark::RESUME);
+      recording->SetResumePoint(CBookmark());
 
-    CServiceBroker::GetPVRManager().PublishEvent(RecordingsInvalidated);
+      CServiceBroker::GetPVRManager().PublishEvent(RecordingsInvalidated);
+    }
+  }
+  return bResult;
+}
+
+CVideoDatabase& CPVRRecordings::GetVideoDatabase()
+{
+  if (!m_database)
+  {
+    m_database.reset(new CVideoDatabase());
+    m_database->Open();
+
+    if (!m_database->IsOpen())
+      CLog::Log(LOGERROR, "CPVRRecordings - %s - failed to open the video database", __FUNCTION__);
   }
 
-  return bResult;
+  return *m_database;
 }

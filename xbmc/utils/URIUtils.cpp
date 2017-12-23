@@ -20,7 +20,6 @@
 
 #include "network/Network.h"
 #include "URIUtils.h"
-#include "Application.h"
 #include "FileItem.h"
 #include "filesystem/MultiPathDirectory.h"
 #include "filesystem/SpecialProtocol.h"
@@ -28,12 +27,16 @@
 #include "network/DNSNameCache.h"
 #include "settings/AdvancedSettings.h"
 #include "URL.h"
+#include "utils/FileExtensionProvider.h"
+#include "ServiceBroker.h"
 #include "StringUtils.h"
+#include "utils/log.h"
 
 #if defined(TARGET_WINDOWS)
 #include "platform/win32/CharsetConverter.h"
 #endif
 
+#include <algorithm>
 #include <cassert>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -131,10 +134,10 @@ void URIUtils::RemoveExtension(std::string& strFileName)
     strExtension += "|";
 
     std::string strFileMask;
-    strFileMask = g_advancedSettings.GetPictureExtensions();
-    strFileMask += "|" + g_advancedSettings.GetMusicExtensions();
-    strFileMask += "|" + g_advancedSettings.m_videoExtensions;
-    strFileMask += "|" + g_advancedSettings.m_subtitlesExtensions;
+    strFileMask = CServiceBroker::GetFileExtensionProvider().GetPictureExtensions();
+    strFileMask += "|" + CServiceBroker::GetFileExtensionProvider().GetMusicExtensions();
+    strFileMask += "|" + CServiceBroker::GetFileExtensionProvider().GetVideoExtensions();
+    strFileMask += "|" + CServiceBroker::GetFileExtensionProvider().GetSubtitleExtensions();
 #if defined(TARGET_DARWIN)
     strFileMask += "|.py|.xml|.milk|.xbt|.cdg|.app|.applescript|.workflow";
 #else
@@ -216,16 +219,19 @@ void URIUtils::Split(const std::string& strFileNameAndPath,
   // everything to the right of the directory separator
   strFileName = strFileNameAndPath.substr(i+1);
 
-  // ignore options
-  i = strFileName.size() - 1;
-  while (i > 0)
+  // if actual uri, ignore options
+  if (IsURL(strFileNameAndPath))
   {
-    char ch = strFileName[i];
-    if (ch == '?') break;
-    else i--;
+    i = strFileName.size() - 1;
+    while (i > 0)
+    {
+      char ch = strFileName[i];
+      if (ch == '?') break;
+      else i--;
+    }
+    if (i > 0)
+      strFileName = strFileName.substr(0, i);
   }
-  if (i > 0)
-    strFileName = strFileName.substr(0, i);
 }
 
 std::vector<std::string> URIUtils::SplitPath(const std::string& strPath)
@@ -270,6 +276,7 @@ bool URIUtils::HasParentInHostname(const CURL& url)
 {
   return url.IsProtocol("zip")
       || url.IsProtocol("rar")
+      || url.IsProtocol("archive")
       || url.IsProtocol("apk")
       || url.IsProtocol("bluray")
       || url.IsProtocol("udf")
@@ -595,12 +602,6 @@ bool URIUtils::IsRemote(const std::string& strFile)
 
 bool URIUtils::IsOnDVD(const std::string& strFile)
 {
-#ifdef TARGET_WINDOWS
-  using KODI::PLATFORM::WINDOWS::ToW;
-  if (strFile.size() >= 2 && strFile.substr(1,1) == ":")
-    return (GetDriveType(ToW(strFile.substr(0, 3)).c_str()) == DRIVE_CDROM);
-#endif
-
   if (IsProtocol(strFile, "dvd"))
     return true;
 
@@ -613,6 +614,13 @@ bool URIUtils::IsOnDVD(const std::string& strFile)
   if (IsProtocol(strFile, "cdda"))
     return true;
 
+#if defined(TARGET_WINDOWS_STORE)
+  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
+#elif defined(TARGET_WINDOWS_DESKTOP)
+  using KODI::PLATFORM::WINDOWS::ToW;
+  if (strFile.size() >= 2 && strFile.substr(1, 1) == ":")
+    return (GetDriveType(ToW(strFile.substr(0, 3)).c_str()) == DRIVE_CDROM);
+#endif
   return false;
 }
 
@@ -682,10 +690,10 @@ bool URIUtils::IsHostOnLAN(const std::string& host, bool offLineCheck)
         return true;
     }
     // check if we are on the local subnet
-    if (!g_application.getNetwork().GetFirstConnectedInterface())
+    if (!CServiceBroker::GetNetwork().GetFirstConnectedInterface())
       return false;
 
-    if (g_application.getNetwork().HasInterfaceForIP(address))
+    if (CServiceBroker::GetNetwork().HasInterfaceForIP(address))
       return true;
   }
 
@@ -710,7 +718,7 @@ bool URIUtils::IsHD(const std::string& strFileName)
   if (HasParentInHostname(url))
     return IsHD(url.GetHostName());
 
-  return url.GetProtocol().empty() || url.IsProtocol("file");
+  return url.GetProtocol().empty() || url.IsProtocol("file") || url.IsProtocol("win-lib");
 }
 
 bool URIUtils::IsDVD(const std::string& strFile)
@@ -727,8 +735,10 @@ bool URIUtils::IsDVD(const std::string& strFile)
   if(strFile.size() < 2 || (strFile.substr(1) != ":\\" && strFile.substr(1) != ":"))
     return false;
 
+#ifndef TARGET_WINDOWS_STORE
   if(GetDriveType(KODI::PLATFORM::WINDOWS::ToW(strFile).c_str()) == DRIVE_CDROM)
     return true;
+#endif
 #else
   if (strFileLow == "iso9660://" || strFileLow == "udf://" || strFileLow == "dvd://1" )
     return true;
@@ -760,7 +770,10 @@ bool URIUtils::IsRAR(const std::string& strFile)
 
 bool URIUtils::IsInArchive(const std::string &strFile)
 {
-  return IsInZIP(strFile) || IsInRAR(strFile) || IsInAPK(strFile);
+  CURL url(strFile);
+
+  bool archiveProto = url.IsProtocol("archive") && !url.GetFileName().empty();
+  return archiveProto || IsInZIP(strFile) || IsInRAR(strFile) || IsInAPK(strFile);
 }
 
 bool URIUtils::IsInAPK(const std::string& strFile)
@@ -774,14 +787,26 @@ bool URIUtils::IsInZIP(const std::string& strFile)
 {
   CURL url(strFile);
 
-  return url.IsProtocol("zip") && !url.GetFileName().empty();
+  if (url.GetFileName().empty())
+    return false;
+
+  if (url.IsProtocol("archive"))
+    return IsZIP(url.GetHostName());
+
+  return url.IsProtocol("zip");
 }
 
 bool URIUtils::IsInRAR(const std::string& strFile)
 {
   CURL url(strFile);
 
-  return url.IsProtocol("rar") && !url.GetFileName().empty();
+  if (url.GetFileName().empty())
+    return false;
+
+  if (url.IsProtocol("archive"))
+    return IsRAR(url.GetHostName());
+
+  return url.IsProtocol("rar");
 }
 
 bool URIUtils::IsAPK(const std::string& strFile)

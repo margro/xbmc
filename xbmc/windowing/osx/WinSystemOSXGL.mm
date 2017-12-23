@@ -18,12 +18,18 @@
  *
  */
 
-#if defined(TARGET_DARWIN_OSX)
-
 #include "guilib/Texture.h"
 #include "WinSystemOSXGL.h"
 #include "rendering/gl/RenderSystemGL.h"
 
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+{
+  std::unique_ptr<CWinSystemBase> winSystem(new CWinSystemOSXGL());
+  return winSystem;
+}
 
 CWinSystemOSXGL::CWinSystemOSXGL()
 {
@@ -37,6 +43,11 @@ void CWinSystemOSXGL::PresentRenderImpl(bool rendered)
 {
   if (rendered)
     FlushBuffer();
+
+  // FlushBuffer does not block if window is obscured
+  // in this case we need to throttle the render loop
+  if (IsObscured())
+    usleep(10000);
 
   if (m_delayDispReset && m_dispResetTimer.IsTimePast())
   {
@@ -81,4 +92,3 @@ bool CWinSystemOSXGL::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool 
   return true;
 }
 
-#endif

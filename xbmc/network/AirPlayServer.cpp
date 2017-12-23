@@ -23,8 +23,6 @@
 #include "network/Network.h"
 #include "AirPlayServer.h"
 
-#ifdef HAS_AIRPLAY
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "DllLibPlist.h"
@@ -1165,7 +1163,7 @@ int CAirPlayServer::CTCPClient::ProcessRequest( std::string& responseHeader,
   else if (uri == "/server-info")
   {
     CLog::Log(LOGDEBUG, "AIRPLAY: got request %s", uri.c_str());
-    responseBody = StringUtils::Format(SERVER_INFO, g_application.getNetwork().GetFirstConnectedInterface()->GetMacAddress().c_str());
+    responseBody = StringUtils::Format(SERVER_INFO, CServiceBroker::GetNetwork().GetFirstConnectedInterface()->GetMacAddress().c_str());
     responseHeader = "Content-Type: text/x-apple-plist+xml\r\n";
   }
 
@@ -1211,5 +1209,3 @@ int CAirPlayServer::CTCPClient::ProcessRequest( std::string& responseHeader,
 
   return status;
 }
-
-#endif

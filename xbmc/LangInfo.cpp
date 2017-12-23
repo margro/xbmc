@@ -42,9 +42,9 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
-#include "utils/Weather.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
+#include "weather/WeatherManager.h"
 
 using namespace PVR;
 using namespace KODI::MESSAGING;
@@ -651,7 +651,7 @@ LanguageResourcePtr CLangInfo::GetLanguageAddon(const std::string& locale /* = "
     addonId = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOCALE_LANGUAGE);
 
   ADDON::AddonPtr addon;
-  if (ADDON::CAddonMgr::GetInstance().GetAddon(addonId, addon, ADDON::ADDON_RESOURCE_LANGUAGE, true) && addon != NULL)
+  if (CServiceBroker::GetAddonMgr().GetAddon(addonId, addon, ADDON::ADDON_RESOURCE_LANGUAGE, true) && addon != NULL)
     return std::dynamic_pointer_cast<ADDON::CLanguageResource>(addon);
 
   return NULL;
@@ -672,13 +672,13 @@ bool CLangInfo::SetLanguage(std::string language /* = "" */, bool reloadServices
     language = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOCALE_LANGUAGE);
 
   ADDON::AddonPtr addon;
-  if (!ADDON::CAddonMgr::GetInstance().GetAddon(language, addon, ADDON::ADDON_RESOURCE_LANGUAGE, false))
+  if (!CServiceBroker::GetAddonMgr().GetAddon(language, addon, ADDON::ADDON_RESOURCE_LANGUAGE, false))
   {
     CLog::Log(LOGWARNING, "CLangInfo: could not find language add-on '%s', loading default..", language.c_str());
     language = std::static_pointer_cast<const CSettingString>(CServiceBroker::GetSettings().GetSetting(
         CSettings::SETTING_LOCALE_LANGUAGE))->GetDefault();
 
-    if (!ADDON::CAddonMgr::GetInstance().GetAddon(language, addon, ADDON::ADDON_RESOURCE_LANGUAGE, false))
+    if (!CServiceBroker::GetAddonMgr().GetAddon(language, addon, ADDON::ADDON_RESOURCE_LANGUAGE, false))
     {
       CLog::Log(LOGFATAL, "CLangInfo: could not find default language add-on '%s'", language.c_str());
       return false;
@@ -700,7 +700,7 @@ bool CLangInfo::SetLanguage(std::string language /* = "" */, bool reloadServices
   }
 
   ADDON::VECADDONS addons;
-  if (ADDON::CAddonMgr::GetInstance().GetInstalledAddons(addons))
+  if (CServiceBroker::GetAddonMgr().GetInstalledAddons(addons))
   {
     auto locale = CServiceBroker::GetSettings().GetString(CSettings::SETTING_LOCALE_LANGUAGE);
     for (const auto& addon : addons)
@@ -713,7 +713,7 @@ bool CLangInfo::SetLanguage(std::string language /* = "" */, bool reloadServices
   if (reloadServices)
   {
     // also tell our weather and skin to reload as these are localized
-    g_weatherManager.Refresh();
+    CServiceBroker::GetWeatherManager().Refresh();
     CServiceBroker::GetPVRManager().LocalizationChanged();
     CApplicationMessenger::GetInstance().PostMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "ReloadSkin");
   }
@@ -993,7 +993,7 @@ void CLangInfo::SetTemperatureUnit(CTemperature::Unit temperatureUnit)
   m_temperatureUnit = temperatureUnit;
 
   // need to reset our weather as temperatures need re-translating
-  g_weatherManager.Refresh();
+  CServiceBroker::GetWeatherManager().Refresh();
 }
 
 void CLangInfo::SetTemperatureUnit(const std::string& temperatureUnit)
@@ -1035,7 +1035,7 @@ void CLangInfo::SetSpeedUnit(CSpeed::Unit speedUnit)
   m_speedUnit = speedUnit;
 
   // need to reset our weather as speeds need re-translating
-  g_weatherManager.Refresh();
+  CServiceBroker::GetWeatherManager().Refresh();
 }
 
 void CLangInfo::SetSpeedUnit(const std::string& speedUnit)
@@ -1123,7 +1123,7 @@ void CLangInfo::SettingOptionsLanguageNamesFiller(SettingConstPtr setting, std::
 {
   // find languages...
   ADDON::VECADDONS addons;
-  if (!ADDON::CAddonMgr::GetInstance().GetAddons(addons, ADDON::ADDON_RESOURCE_LANGUAGE))
+  if (!CServiceBroker::GetAddonMgr().GetAddons(addons, ADDON::ADDON_RESOURCE_LANGUAGE))
     return;
 
   for (ADDON::VECADDONS::const_iterator addon = addons.begin(); addon != addons.end(); ++addon)

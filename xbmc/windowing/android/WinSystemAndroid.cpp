@@ -23,6 +23,7 @@
 #include <string.h>
 #include <float.h>
 
+#include "WinEventsAndroid.h"
 #include "ServiceBroker.h"
 #include "guilib/GraphicContext.h"
 #include "guilib/Resolution.h"
@@ -33,6 +34,8 @@
 #include "threads/SingleLock.h"
 #include "platform/android/activity/XBMCApp.h"
 
+#include "cores/RetroPlayer/process/android/RPProcessInfoAndroid.h"
+#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAndroidMediaCodec.h"
 #include "cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecAndroidMediaCodec.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererMediaCodec.h"
@@ -41,10 +44,10 @@
 #include <EGL/egl.h>
 #include <EGL/eglplatform.h>
 
+using namespace KODI;
+
 CWinSystemAndroid::CWinSystemAndroid()
 {
-  m_eWindowSystem = WINDOW_SYSTEM_ANDROID;
-
   m_nativeDisplay = EGL_NO_DISPLAY;
   m_nativeWindow = nullptr;
 
@@ -55,6 +58,8 @@ CWinSystemAndroid::CWinSystemAndroid()
   m_delayDispReset = false;
 
   m_android = nullptr;
+
+  m_winEvents.reset(new CWinEventsAndroid());
 }
 
 CWinSystemAndroid::~CWinSystemAndroid()
@@ -75,6 +80,8 @@ bool CWinSystemAndroid::InitWindowSystem()
   CDVDAudioCodecAndroidMediaCodec::Register();
 
   CLinuxRendererGLES::Register();
+  RETRO::CRPProcessInfoAndroid::Register();
+  RETRO::CRPProcessInfoAndroid::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
   CRendererMediaCodec::Register();
   CRendererMediaCodecSurface::Register();
 
@@ -249,4 +256,9 @@ void CWinSystemAndroid::Unregister(IDispResource *resource)
   std::vector<IDispResource*>::iterator i = find(m_resources.begin(), m_resources.end(), resource);
   if (i != m_resources.end())
     m_resources.erase(i);
+}
+
+void CWinSystemAndroid::MessagePush(XBMC_Event *newEvent)
+{
+  dynamic_cast<CWinEventsAndroid&>(*m_winEvents).MessagePush(newEvent);
 }

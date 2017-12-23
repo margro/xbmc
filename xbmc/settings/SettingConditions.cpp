@@ -39,16 +39,17 @@
 #include "profiles/ProfilesManager.h"
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
+#include "pvr/PVRSettings.h"
 #include "settings/SettingAddon.h"
 #if defined(HAS_LIBAMCODEC)
 #include "utils/AMLUtils.h"
 #endif // defined(HAS_LIBAMCODEC)
 #include "utils/StringUtils.h"
 #include "utils/SystemInfo.h"
-#include "windowing/WindowingFactory.h"
 #if defined(TARGET_DARWIN_OSX)
 #include "platform/darwin/DarwinUtils.h"
 #endif// defined(TARGET_DARWIN_OSX)
+#include "windowing/WinSystem.h"
 
 bool AddonHasSettings(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
@@ -60,7 +61,7 @@ bool AddonHasSettings(const std::string &condition, const std::string &value, Se
     return false;
 
   ADDON::AddonPtr addon;
-  if (!ADDON::CAddonMgr::GetInstance().GetAddon(settingAddon->GetValue(), addon, settingAddon->GetAddonType()) || addon == NULL)
+  if (!CServiceBroker::GetAddonMgr().GetAddon(settingAddon->GetValue(), addon, settingAddon->GetAddonType()) || addon == NULL)
     return false;
 
   if (addon->Type() == ADDON::ADDON_SKIN)
@@ -106,7 +107,7 @@ bool HasPowerOffFeature(const std::string &condition, const std::string &value, 
 
 bool IsFullscreen(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return g_Windowing.IsFullScreen();
+  return CServiceBroker::GetWinSystem().IsFullScreen();
 }
 
 bool IsMasterUser(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
@@ -282,9 +283,6 @@ void CSettingConditions::Initialize()
 #ifdef HAS_AIRPLAY
   m_simpleConditions.insert("has_airplay");
 #endif
-#ifdef HAS_EVENT_SERVER
-  m_simpleConditions.insert("has_event_server");
-#endif
 #ifdef HAVE_X11
   m_simpleConditions.insert("have_x11");
 #endif
@@ -346,8 +344,7 @@ void CSettingConditions::Initialize()
     m_simpleConditions.insert("isstandalone");
 #endif
 
-  if(ActiveAE::CActiveAESettings::SupportsQualitySetting())
-    m_simpleConditions.insert("has_ae_quality_levels");
+  m_simpleConditions.insert("has_ae_quality_levels");
 
   // add complex conditions
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("addonhassettings",              AddonHasSettings));
@@ -380,6 +377,7 @@ void CSettingConditions::Initialize()
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("gte",                           GreaterThanOrEqual));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("lt",                            LessThan));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("lte",                           LessThanOrEqual));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("pvrsettingvisible",             PVR::CPVRSettings::IsSettingVisible));
 }
 
 bool CSettingConditions::Check(const std::string &condition, const std::string &value /* = "" */, SettingConstPtr setting /* = NULL */)

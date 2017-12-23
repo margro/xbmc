@@ -25,6 +25,11 @@
 
 #include "gtest/gtest.h"
 
+#ifdef TARGET_WINDOWS_STORE
+#include <algorithm>
+using namespace Windows::Storage;
+#endif
+
 class TestSystemInfo : public testing::Test
 {
 protected:
@@ -85,7 +90,7 @@ TEST_F(TestSystemInfo, GetKernelVersionFull)
   EXPECT_FALSE(g_sysinfo.GetKernelVersionFull().empty()) << "'GetKernelVersionFull()' must not return empty string";
   EXPECT_STRNE("0.0.0", g_sysinfo.GetKernelVersionFull().c_str()) << "'GetKernelVersionFull()' must not return '0.0.0'";
   EXPECT_STRNE("0.0", g_sysinfo.GetKernelVersionFull().c_str()) << "'GetKernelVersionFull()' must not return '0.0'";
-  EXPECT_EQ(0, g_sysinfo.GetKernelVersionFull().find_first_of("0123456789")) << "'GetKernelVersionFull()' must not return version not starting from digit";
+  EXPECT_EQ(0U, g_sysinfo.GetKernelVersionFull().find_first_of("0123456789")) << "'GetKernelVersionFull()' must not return version not starting from digit";
 }
 
 TEST_F(TestSystemInfo, GetKernelVersion)
@@ -93,7 +98,7 @@ TEST_F(TestSystemInfo, GetKernelVersion)
   EXPECT_FALSE(g_sysinfo.GetKernelVersion().empty()) << "'GetKernelVersion()' must not return empty string";
   EXPECT_STRNE("0.0.0", g_sysinfo.GetKernelVersion().c_str()) << "'GetKernelVersion()' must not return '0.0.0'";
   EXPECT_STRNE("0.0", g_sysinfo.GetKernelVersion().c_str()) << "'GetKernelVersion()' must not return '0.0'";
-  EXPECT_EQ(0, g_sysinfo.GetKernelVersion().find_first_of("0123456789")) << "'GetKernelVersion()' must not return version not starting from digit";
+  EXPECT_EQ(0U, g_sysinfo.GetKernelVersion().find_first_of("0123456789")) << "'GetKernelVersion()' must not return version not starting from digit";
   EXPECT_EQ(std::string::npos, g_sysinfo.GetKernelVersion().find_first_not_of("0123456789.")) << "'GetKernelVersion()' must not return version with not only digits and dots";
 }
 
@@ -130,7 +135,7 @@ TEST_F(TestSystemInfo, DISABLED_GetOsVersion)
   EXPECT_FALSE(g_sysinfo.GetOsVersion().empty()) << "'GetOsVersion()' must not return empty string";
   EXPECT_STRNE("0.0.0", g_sysinfo.GetOsVersion().c_str()) << "'GetOsVersion()' must not return '0.0.0'";
   EXPECT_STRNE("0.0", g_sysinfo.GetOsVersion().c_str()) << "'GetOsVersion()' must not return '0.0'";
-  EXPECT_EQ(0, g_sysinfo.GetOsVersion().find_first_of("0123456789")) << "'GetOsVersion()' must not return version not starting from digit";
+  EXPECT_EQ(0U, g_sysinfo.GetOsVersion().find_first_of("0123456789")) << "'GetOsVersion()' must not return version not starting from digit";
   EXPECT_EQ(std::string::npos, g_sysinfo.GetOsVersion().find_first_not_of("0123456789.")) << "'GetOsVersion()' must not return version with not only digits and dots";
 }
 
@@ -312,7 +317,18 @@ TEST_F(TestSystemInfo, GetDiskSpace)
 #ifdef TARGET_WINDOWS
   using KODI::PLATFORM::WINDOWS::FromW;
   wchar_t sysDrive[300];
+#if defined(TARGET_WINDOWS_STORE)
+  DWORD res = 0;
+  auto values = ApplicationData::Current->LocalSettings->Values;
+  if (values->HasKey(L"SystemDrive"))
+  {
+    auto value = safe_cast<Platform::String^>(values->Lookup(L"SystemDrive"));
+    wcscpy_s(sysDrive, value->Data());
+    res = value->Length();
+  }
+#else
   DWORD res = GetEnvironmentVariableW(L"SystemDrive", sysDrive, sizeof(sysDrive) / sizeof(wchar_t));
+#endif
   std::string sysDriveLtr;
   if (res != 0 && res <= sizeof(sysDrive) / sizeof(wchar_t))
     sysDriveLtr.assign(FromW(sysDrive), 0, 1);

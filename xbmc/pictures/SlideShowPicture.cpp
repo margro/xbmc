@@ -25,12 +25,21 @@
 #include "guilib/Texture.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
-#include "windowing/WindowingFactory.h"
 #include "threads/SingleLock.h"
+#include "windowing/WinSystem.h"
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
 #endif
 #include <math.h>
+
+#if defined(HAS_GL)
+#include "rendering/gl/RenderSystemGL.h"
+#elif defined(HAS_GLES)
+#include "rendering/gles/RenderSystemGLES.h"
+#elif defined(TARGET_WINDOWS)
+#include "rendering/dx/DeviceResources.h"
+#include "rendering/dx/RenderContext.h"
+#endif
 
 #define IMMEDIATE_TRANSITION_TIME          20
 
@@ -40,6 +49,8 @@
 #define PICTURE_VIEW_BOX_BACKGROUND 0xff000000 // BLACK
 
 #define FPS                                 25
+
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
 static float zoomamount[10] = { 1.0f, 1.2f, 1.5f, 2.0f, 2.8f, 4.0f, 6.0f, 9.0f, 13.5f, 20.0f };
 
@@ -763,12 +774,12 @@ bool CSlideShowPic::UpdateVertexBuffer(Vertex* vertices)
     D3D11_SUBRESOURCE_DATA initData = {};
     initData.pSysMem = vertices;
     initData.SysMemPitch = sizeof(Vertex) * 5;
-    if (SUCCEEDED(g_Windowing.Get3D11Device()->CreateBuffer(&desc, &initData, &m_vb)))
+    if (SUCCEEDED(DX::DeviceResources::Get()->GetD3DDevice()->CreateBuffer(&desc, &initData, &m_vb)))
       return true;
   }
   else // update 
   {
-    ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
+    ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
     D3D11_MAPPED_SUBRESOURCE res;
     if (SUCCEEDED(pContext->Map(m_vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &res)))
     {
@@ -806,7 +817,7 @@ void CSlideShowPic::Render(float *x, float *y, CBaseTexture* pTexture, color_t c
   }
   vertex[4] = vertex[0]; // Not used when pTexture != NULL
 
-  CGUIShaderDX* pGUIShader = g_Windowing.GetGUIShader();
+  CGUIShaderDX* pGUIShader = DX::Windowing().GetGUIShader();
   pGUIShader->Begin(SHADER_METHOD_RENDER_TEXTURE_BLEND);
 
   // Set state to render the image
@@ -823,7 +834,7 @@ void CSlideShowPic::Render(float *x, float *y, CBaseTexture* pTexture, color_t c
     if (!UpdateVertexBuffer(vertex))
       return;
 
-    ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
+    ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
 
     unsigned stride = sizeof(Vertex);
     unsigned offset = 0;
@@ -835,85 +846,7 @@ void CSlideShowPic::Render(float *x, float *y, CBaseTexture* pTexture, color_t c
   }
 
 #elif defined(HAS_GL)
-  if (pTexture)
-  {
-    int unit = 0;
-    pTexture->LoadToGPU();
-    pTexture->BindToUnit(unit++);
-
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);          // Turn Blending On
-
-    // diffuse coloring
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-    glTexEnvf(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-    glTexEnvf(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0);
-    glTexEnvf(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-    glTexEnvf(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_PRIMARY_COLOR);
-    glTexEnvf(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-
-    if(g_Windowing.UseLimitedColor())
-    {
-      // compress range
-      pTexture->BindToUnit(unit++); // dummy bind
-      const GLfloat rgba1[4] = {(235.0 - 16.0f) / 255.0f, (235.0 - 16.0f) / 255.0f, (235.0 - 16.0f) / 255.0f, 1.0f};
-      glTexEnvi (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE , GL_COMBINE);
-      glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, rgba1);
-      glTexEnvi (GL_TEXTURE_ENV, GL_COMBINE_RGB , GL_MODULATE);
-      glTexEnvi (GL_TEXTURE_ENV, GL_SOURCE0_RGB , GL_PREVIOUS);
-      glTexEnvi (GL_TEXTURE_ENV, GL_SOURCE1_RGB , GL_CONSTANT);
-      glTexEnvi (GL_TEXTURE_ENV, GL_OPERAND0_RGB , GL_SRC_COLOR);
-      glTexEnvi (GL_TEXTURE_ENV, GL_OPERAND1_RGB , GL_SRC_COLOR);
-      glTexEnvi (GL_TEXTURE_ENV, GL_COMBINE_ALPHA , GL_REPLACE);
-      glTexEnvi (GL_TEXTURE_ENV, GL_SOURCE0_ALPHA , GL_PREVIOUS);
-
-      // transition
-      pTexture->BindToUnit(unit++); // dummy bind
-      const GLfloat rgba2[4] = {16.0f / 255.0f, 16.0f / 255.0f, 16.0f / 255.0f, 0.0f};
-      glTexEnvi (GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE , GL_COMBINE);
-      glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, rgba2);
-      glTexEnvi (GL_TEXTURE_ENV, GL_COMBINE_RGB , GL_ADD);
-      glTexEnvi (GL_TEXTURE_ENV, GL_SOURCE0_RGB , GL_PREVIOUS);
-      glTexEnvi (GL_TEXTURE_ENV, GL_SOURCE1_RGB , GL_CONSTANT);
-      glTexEnvi (GL_TEXTURE_ENV, GL_OPERAND0_RGB , GL_SRC_COLOR);
-      glTexEnvi (GL_TEXTURE_ENV, GL_OPERAND1_RGB , GL_SRC_COLOR);
-      glTexEnvi (GL_TEXTURE_ENV, GL_COMBINE_ALPHA , GL_REPLACE);
-      glTexEnvi (GL_TEXTURE_ENV, GL_SOURCE0_ALPHA , GL_PREVIOUS);
-    }
-  }
-  else
-    glDisable(GL_TEXTURE_2D);
-  glPolygonMode(GL_FRONT_AND_BACK, pTexture ? GL_FILL : GL_LINE);
-
-  glBegin(GL_QUADS);
-  float u1 = 0, u2 = 1, v1 = 0, v2 = 1;
-  if (pTexture)
-  {
-    u2 = (float)pTexture->GetWidth() / pTexture->GetTextureWidth();
-    v2 = (float)pTexture->GetHeight() / pTexture->GetTextureHeight();
-  }
-
-  glColor4ub((GLubyte)GET_R(color), (GLubyte)GET_G(color), (GLubyte)GET_B(color), (GLubyte)GET_A(color));
-  glTexCoord2f(u1, v1);
-  glVertex3f(x[0], y[0], 0);
-
-  // Bottom-left vertex (corner)
-  glColor4ub((GLubyte)GET_R(color), (GLubyte)GET_G(color), (GLubyte)GET_B(color), (GLubyte)GET_A(color));
-  glTexCoord2f(u2, v1);
-  glVertex3f(x[1], y[1], 0);
-
-  // Bottom-right vertex (corner)
-  glColor4ub((GLubyte)GET_R(color), (GLubyte)GET_G(color), (GLubyte)GET_B(color), (GLubyte)GET_A(color));
-  glTexCoord2f(u2, v2);
-  glVertex3f(x[2], y[2], 0);
-
-  // Top-right vertex (corner)
-  glColor4ub((GLubyte)GET_R(color), (GLubyte)GET_G(color), (GLubyte)GET_B(color), (GLubyte)GET_A(color));
-  glTexCoord2f(u1, v2);
-  glVertex3f(x[3], y[3], 0);
-
-  glEnd();
-#elif defined(HAS_GLES)
+  CRenderSystemGL *renderSystem = dynamic_cast<CRenderSystemGL*>(&CServiceBroker::GetRenderSystem());
   if (pTexture)
   {
     pTexture->LoadToGPU();
@@ -922,13 +855,116 @@ void CSlideShowPic::Render(float *x, float *y, CBaseTexture* pTexture, color_t c
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);          // Turn Blending On
 
-    g_Windowing.EnableGUIShader(SM_TEXTURE);
+    renderSystem->EnableShader(SM_TEXTURE);
   }
   else
   {
-    glDisable(GL_TEXTURE_2D);
+    renderSystem->EnableShader(SM_DEFAULT);
+  }
 
-    g_Windowing.EnableGUIShader(SM_DEFAULT);
+  float u1 = 0, u2 = 1, v1 = 0, v2 = 1;
+  if (pTexture)
+  {
+    u2 = (float)pTexture->GetWidth() / pTexture->GetTextureWidth();
+    v2 = (float)pTexture->GetHeight() / pTexture->GetTextureHeight();
+  }
+
+  GLubyte colour[4];
+  GLubyte idx[4] = {0, 1, 3, 2};  //determines order of the vertices
+  GLuint vertexVBO;
+  GLuint indexVBO;
+  struct PackedVertex
+  {
+    float x, y, z;
+    float u1, v1;
+  } vertex[4];
+
+  // Setup vertex position values
+  vertex[0].x = x[0];
+  vertex[0].y = y[0];
+  vertex[0].z = 0;
+  vertex[0].u1 = u1;
+  vertex[0].v1 = v1;
+
+  vertex[1].x = x[1];
+  vertex[1].y = y[1];
+  vertex[1].z = 0;
+  vertex[1].u1 = u2;
+  vertex[1].v1 = v1;
+
+  vertex[2].x = x[2];
+  vertex[2].y = y[2];
+  vertex[2].z = 0;
+  vertex[2].u1 = u2;
+  vertex[2].v1 = v2;
+
+  vertex[3].x = x[3];
+  vertex[3].y = y[3];
+  vertex[3].z = 0;
+  vertex[3].u1 = u1;
+  vertex[3].v1 = v2;
+
+  GLint posLoc  = renderSystem->ShaderGetPos();
+  GLint tex0Loc = renderSystem->ShaderGetCoord0();
+  GLint uniColLoc= renderSystem->ShaderGetUniCol();
+
+  glGenBuffers(1, &vertexVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(PackedVertex)*4, &vertex[0], GL_STATIC_DRAW);
+
+  glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, sizeof(PackedVertex), BUFFER_OFFSET(offsetof(PackedVertex, x)));
+  glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, sizeof(PackedVertex), BUFFER_OFFSET(offsetof(PackedVertex, u1)));
+
+  glEnableVertexAttribArray(posLoc);
+  glEnableVertexAttribArray(tex0Loc);
+
+  // Setup Colour values
+  colour[0] = (GLubyte)GET_R(color);
+  colour[1] = (GLubyte)GET_G(color);
+  colour[2] = (GLubyte)GET_B(color);
+  colour[3] = (GLubyte)GET_A(color);
+
+  if (CServiceBroker::GetWinSystem().UseLimitedColor())
+  {
+    colour[0] = (235 - 16) * colour[0] / 255 + 16.0f / 255.0f;
+    colour[1] = (235 - 16) * colour[1] / 255 + 16.0f / 255.0f;
+    colour[2] = (235 - 16) * colour[2] / 255 + 16.0f / 255.0f;
+  }
+
+  glUniform4f(uniColLoc,(colour[0] / 255.0f), (colour[1] / 255.0f),
+                        (colour[2] / 255.0f), (colour[3] / 255.0f));
+
+  glGenBuffers(1, &indexVBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexVBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLubyte)*4, idx, GL_STATIC_DRAW);
+
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, 0);
+
+  glDisableVertexAttribArray(posLoc);
+  glDisableVertexAttribArray(tex0Loc);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDeleteBuffers(1, &vertexVBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glDeleteBuffers(1, &indexVBO);
+
+  renderSystem->DisableShader();
+
+#elif defined(HAS_GLES)
+  CRenderSystemGLES *renderSystem = dynamic_cast<CRenderSystemGLES*>(&CServiceBroker::GetRenderSystem());
+  if (pTexture)
+  {
+    pTexture->LoadToGPU();
+    pTexture->BindToUnit(0);
+
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);          // Turn Blending On
+
+    renderSystem->EnableGUIShader(SM_TEXTURE);
+  }
+  else
+  {
+    renderSystem->EnableGUIShader(SM_DEFAULT);
   }
 
   float u1 = 0, u2 = 1, v1 = 0, v2 = 1;
@@ -943,9 +979,9 @@ void CSlideShowPic::Render(float *x, float *y, CBaseTexture* pTexture, color_t c
   GLfloat tex[4][2];
   GLubyte idx[4] = {0, 1, 3, 2};        //determines order of triangle strip
 
-  GLint posLoc  = g_Windowing.GUIShaderGetPos();
-  GLint tex0Loc = g_Windowing.GUIShaderGetCoord0();
-  GLint uniColLoc= g_Windowing.GUIShaderGetUniCol();
+  GLint posLoc  = renderSystem->GUIShaderGetPos();
+  GLint tex0Loc = renderSystem->GUIShaderGetCoord0();
+  GLint uniColLoc= renderSystem->GUIShaderGetUniCol();
 
   glVertexAttribPointer(posLoc,  3, GL_FLOAT, 0, 0, ver);
   glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, 0, tex);
@@ -978,9 +1014,7 @@ void CSlideShowPic::Render(float *x, float *y, CBaseTexture* pTexture, color_t c
   glDisableVertexAttribArray(posLoc);
   glDisableVertexAttribArray(tex0Loc);
 
-  g_Windowing.DisableGUIShader();
-#else
-// SDL render
-  g_Windowing.BlitToScreen(m_pImage, NULL, NULL);
+  renderSystem->DisableGUIShader();
+
 #endif
 }

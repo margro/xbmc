@@ -47,9 +47,6 @@
 using namespace PVR;
 using namespace KODI::MESSAGING;
 
-CCriticalSection CGUIWindowPVRBase::m_selectedItemPathsLock;
-std::string CGUIWindowPVRBase::m_selectedItemPaths[2];
-
 CGUIWindowPVRBase::CGUIWindowPVRBase(bool bRadio, int id, const std::string &xmlFile) :
   CGUIMediaWindow(id, xmlFile.c_str()),
   m_bRadio(bRadio),
@@ -57,9 +54,6 @@ CGUIWindowPVRBase::CGUIWindowPVRBase(bool bRadio, int id, const std::string &xml
 {
   // prevent removable drives to appear in directory listing (base class default behavior).
   m_rootDir.AllowNonLocalSources(false);
-
-  m_selectedItemPaths[false] = "";
-  m_selectedItemPaths[true] = "";
 
   RegisterObservers();
 }
@@ -69,22 +63,9 @@ CGUIWindowPVRBase::~CGUIWindowPVRBase(void)
   UnregisterObservers();
 }
 
-void CGUIWindowPVRBase::SetSelectedItemPath(bool bRadio, const std::string &path)
-{
-  CSingleLock lock(m_selectedItemPathsLock);
-  m_selectedItemPaths[bRadio] = path;
-}
-
-std::string CGUIWindowPVRBase::GetSelectedItemPath(bool bRadio)
-{
-  CSingleLock lock(m_selectedItemPathsLock);
-  return m_selectedItemPaths[bRadio];
-}
-
 void CGUIWindowPVRBase::UpdateSelectedItemPath()
 {
-  CSingleLock lock(m_selectedItemPathsLock);
-  m_selectedItemPaths[m_bRadio] = m_viewControl.GetSelectedItemPath();
+  CServiceBroker::GetPVRManager().GUIActions()->SetSelectedItemPath(m_bRadio, m_viewControl.GetSelectedItemPath());
 }
 
 void CGUIWindowPVRBase::RegisterObservers(void)
@@ -111,7 +92,7 @@ void CGUIWindowPVRBase::Notify(const Observable &obs, const ObservableMessage ms
   if (msg == ObservableMessageManagerStopped)
     ClearData();
 
-  if (IsActive())
+  if (m_active)
   {
     CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, msg);
     CApplicationMessenger::GetInstance().SendGUIMessage(m);
@@ -163,7 +144,7 @@ void CGUIWindowPVRBase::OnInitWindow(void)
     CGUIMediaWindow::OnInitWindow();
 
     // mark item as selected by channel path
-    m_viewControl.SetSelectedItem(GetSelectedItemPath(m_bRadio));
+    m_viewControl.SetSelectedItem(CServiceBroker::GetPVRManager().GUIActions()->GetSelectedItemPath(m_bRadio));
   }
   else
   {
@@ -253,7 +234,7 @@ void CGUIWindowPVRBase::SetInvalid()
 bool CGUIWindowPVRBase::CanBeActivated() const
 {
   // check if there is at least one enabled PVR add-on
-  if (!ADDON::CAddonMgr::GetInstance().HasAddons(ADDON::ADDON_PVRDLL))
+  if (!CServiceBroker::GetAddonMgr().HasAddons(ADDON::ADDON_PVRDLL))
   {
     HELPERS::ShowOKDialogText(CVariant{19296}, CVariant{19272}); // No PVR add-on enabled, You need a tuner, backend software...
     return false;

@@ -31,60 +31,6 @@
 
 using namespace MUSIC_INFO;
 
-EmbeddedArtInfo::EmbeddedArtInfo(size_t siz, const std::string &mim)
-{
-  set(siz, mim);
-}
-
-void EmbeddedArtInfo::set(size_t siz, const std::string &mim)
-{
-  size = siz;
-  mime = mim;
-}
-
-void EmbeddedArtInfo::clear()
-{
-  mime.clear();
-  size = 0;
-}
-
-bool EmbeddedArtInfo::empty() const
-{
-  return size == 0;
-}
-
-bool EmbeddedArtInfo::matches(const EmbeddedArtInfo &right) const
-{
-  return (size == right.size &&
-          mime == right.mime);
-}
-
-void EmbeddedArtInfo::Archive(CArchive &ar)
-{
-  if (ar.IsStoring())
-  {
-    ar << size;
-    ar << mime;
-  }
-  else
-  {
-    ar >> size;
-    ar >> mime;
-  }
-}
-
-EmbeddedArt::EmbeddedArt(const uint8_t *dat, size_t siz, const std::string &mim)
-{
-  set(dat, siz, mim);
-}
-
-void EmbeddedArt::set(const uint8_t *dat, size_t siz, const std::string &mim)
-{
-  EmbeddedArtInfo::set(siz, mim);
-  data.resize(siz);
-  memcpy(&data[0], dat, siz);
-}
-
 CMusicInfoTag::CMusicInfoTag(void)
 {
   Clear();
@@ -97,7 +43,7 @@ CMusicInfoTag::CMusicInfoTag(const CMusicInfoTag& tag)
 
 CMusicInfoTag::~CMusicInfoTag() = default;
 
-const CMusicInfoTag& CMusicInfoTag::operator =(const CMusicInfoTag& tag)
+CMusicInfoTag& CMusicInfoTag::operator =(const CMusicInfoTag& tag)
 {
   if (this == &tag) return * this;
 
@@ -446,17 +392,20 @@ void CMusicInfoTag::SetAlbumArtistSort(const std::string& strAlbumArtistSort)
   m_strAlbumArtistSort = strAlbumArtistSort;
 }
 
-void CMusicInfoTag::SetGenre(const std::string& strGenre)
+void CMusicInfoTag::SetGenre(const std::string& strGenre, bool bTrim /* = false*/)
 {
   if (!strGenre.empty())
-    SetGenre(StringUtils::Split(strGenre, g_advancedSettings.m_musicItemSeparator));
+    SetGenre(StringUtils::Split(strGenre, g_advancedSettings.m_musicItemSeparator), bTrim);
   else
     m_genre.clear();
 }
 
-void CMusicInfoTag::SetGenre(const std::vector<std::string>& genres)
+void CMusicInfoTag::SetGenre(const std::vector<std::string>& genres, bool bTrim /* = false*/)
 {
   m_genre = genres;
+  if (bTrim)
+    for (auto genre : m_genre)
+      StringUtils::Trim(genre);
 }
 
 void CMusicInfoTag::SetYear(int year)
@@ -671,7 +620,7 @@ void CMusicInfoTag::SetMusicBrainzReleaseType(const std::string& ReleaseType)
 
 void CMusicInfoTag::SetCoverArtInfo(size_t size, const std::string &mimeType)
 {
-  m_coverArt.set(size, mimeType);
+  m_coverArt.Set(size, mimeType);
 }
 
 void CMusicInfoTag::SetReplayGain(const ReplayGain& aGain)
@@ -770,7 +719,7 @@ void CMusicInfoTag::SetSong(const CSong& song)
   SetPlayCount(song.iTimesPlayed);
   SetLastPlayed(song.lastPlayed);
   SetDateAdded(song.dateAdded);
-  SetCoverArtInfo(song.embeddedArt.size, song.embeddedArt.mime);
+  SetCoverArtInfo(song.embeddedArt.m_size, song.embeddedArt.m_mime);
   SetRating(song.rating);
   SetUserrating(song.userrating);
   SetVotes(song.votes);
@@ -813,10 +762,10 @@ void CMusicInfoTag::Serialize(CVariant& value) const
 
   value["displayartist"] = GetArtistString();
   value["displayalbumartist"] = GetAlbumArtistString();
-  value["artistsort"] = GetArtistSort();
+  value["sortartist"] = GetArtistSort();
   value["album"] = m_strAlbum;
   value["albumartist"] = m_albumArtist;
-  value["albumartistsort"] = m_strAlbumArtistSort;
+  value["sortalbumartist"] = m_strAlbumArtistSort;
   value["genre"] = m_genre;
   value["duration"] = m_iDuration;
   value["track"] = GetTrackNumber();
@@ -1037,7 +986,7 @@ void CMusicInfoTag::Clear()
   m_iTimesPlayed = 0;
   memset(&m_dwReleaseDate, 0, sizeof(m_dwReleaseDate));
   m_iAlbumId = -1;
-  m_coverArt.clear();
+  m_coverArt.Clear();
   m_replayGain = ReplayGain();
   m_albumReleaseType = CAlbum::Album;
   m_listeners = 0;

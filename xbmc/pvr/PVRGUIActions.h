@@ -22,6 +22,8 @@
 #include <memory>
 #include <string>
 
+#include "threads/CriticalSection.h"
+
 #include "pvr/PVRChannelNumberInputHandler.h"
 #include "pvr/PVRGUIChannelNavigator.h"
 #include "pvr/PVRSettings.h"
@@ -45,14 +47,15 @@ namespace PVR
   {
   public:
     // CPVRChannelNumberInputHandler implementation
+    void AppendChannelNumberCharacter(char cCharacter) override;
     void OnInputDone() override;
 
   private:
     /*!
      * @brief Switch to the channel with the given number.
-     * @param iChannelNumber the channel number
+     * @param channelNumber the channel number
      */
-    void SwitchToChannel(int iChannelNumber);
+    void SwitchToChannel(const CPVRChannelNumber& channelNumber);
 
     /*!
      * @brief Switch to the previously played channel.
@@ -172,6 +175,12 @@ namespace PVR
      * @return true on success, false otherwise.
      */
     bool ShowRecordingInfo(const CFileItemPtr &item) const;
+
+    /*!
+     * @brief Toggle recording on the currently playing channel, if any.
+     * @return True if the recording was started or stopped successfully, false otherwise.
+     */
+    bool ToggleRecordingOnPlayingChannel();
 
     /*!
      * @brief Start or stop recording on a given channel.
@@ -326,6 +335,32 @@ namespace PVR
     bool CheckParentalPIN() const;
 
     /*!
+     * @brief Check whether the system Kodi is running on can be powered down
+     *        (shutdown/reboot/suspend/hibernate) without stopping any active
+     *        recordings and/or without preventing the start of recordings
+     *        scheduled for now + pvrpowermanagement.backendidletime.
+     * @param bAskUser True to informs user in case of potential
+     *        data loss. User can decide to allow powerdown anyway. False to
+     *        not to ask user and to not confirm power down.
+     * @return True if system can be safely powered down, false otherwise.
+     */
+    bool CanSystemPowerdown(bool bAskUser = true) const;
+
+    /*!
+     * @brief Get the currently selected item path; used across several windows/dialogs to share item selection.
+     * @param bRadio True to query the selected path for PVR radio, false for Live TV.
+     * @return the path.
+     */
+    std::string GetSelectedItemPath(bool bRadio) const;
+
+    /*!
+     * @brief Set the currently selected item path; used across several windows/dialogs to share item selection.
+     * @param bRadio True to set the selected path for PVR radio, false for Live TV.
+     * @param path The new path to set.
+     */
+    void SetSelectedItemPath(bool bRadio, const std::string &path);
+
+    /*!
      * @brief Get the currently active channel number input handler.
      * @return the handler.
      */
@@ -336,6 +371,18 @@ namespace PVR
      * @return the navigator.
      */
     CPVRGUIChannelNavigator &GetChannelNavigator();
+
+    /*!
+     * @brief Inform GUI actions that playback of an item just started.
+     * @param item The item that started to play.
+     */
+    void OnPlaybackStarted(const CFileItemPtr &item);
+
+    /*!
+     * @brief Inform GUI actions manager that playback of an item was stopped due to user interaction.
+     * @param item The item that stopped to play.
+     */
+    void OnPlaybackStopped(const CFileItemPtr &item);
 
   private:
     CPVRGUIActions(const CPVRGUIActions&) = delete;
@@ -365,6 +412,15 @@ namespace PVR
      * @return true, if the timer or timer rule was deleted successfully, false otherwise.
     */
     bool DeleteTimer(const CFileItemPtr &item, bool bIsRecording, bool bDeleteRule) const;
+
+    /*!
+     * @brief Delete a timer or timer rule, showing a confirmation dialog in case a timer currently recording shall be deleted.
+     * @param timer containing a timer or timer rule to delete.
+     * @param bIsRecording denotes whether the timer is currently recording (controls correct confirmation dialog).
+     * @param bDeleteRule denotes to delete a timer rule. For convenience, one can pass a timer created by a rule.
+     * @return true, if the timer or timer rule was deleted successfully, false otherwise.
+     */
+    bool DeleteTimer(const CPVRTimerInfoTagPtr &timer, bool bIsRecording, bool bDeleteRule) const;
 
     /*!
      * @brief Open a dialog to confirm timer delete.
@@ -433,11 +489,17 @@ namespace PVR
      */
     void StartPlayback(CFileItem *item, bool bFullscreen) const;
 
-  private:
+    bool AllLocalBackendsIdle(CPVRTimerInfoTagPtr& causingEvent) const;
+    bool EventOccursOnLocalBackend(const CFileItemPtr& item) const;
+    bool IsNextEventWithinBackendIdleTime(void) const;
+
+    CCriticalSection m_critSection;
     CPVRChannelSwitchingInputHandler m_channelNumberInputHandler;
     bool m_bChannelScanRunning;
     CPVRSettings m_settings;
     CPVRGUIChannelNavigator m_channelNavigator;
+    std::string m_selectedItemPathTV;
+    std::string m_selectedItemPathRadio;
   };
 
 } // namespace PVR

@@ -23,6 +23,7 @@ set(SOURCES Application.cpp
             PlayListPlayer.cpp
             PartyModeManager.cpp
             SectionLoader.cpp
+            SeekHandler.cpp
             ServiceBroker.cpp
             ServiceManager.cpp
             SystemGlobals.cpp
@@ -30,7 +31,6 @@ set(SOURCES Application.cpp
             TextureCacheJob.cpp
             TextureDatabase.cpp
             ThumbLoader.cpp
-            ThumbnailCache.cpp
             URL.cpp
             Util.cpp
             XBApplicationEx.cpp
@@ -67,6 +67,7 @@ set(HEADERS AppParamParser.h
             PasswordManager.h
             PlayListPlayer.h
             SectionLoader.h
+            SeekHandler.h
             ServiceBroker.h
             ServiceManager.h
             SortFileItem.h
@@ -74,7 +75,6 @@ set(HEADERS AppParamParser.h
             TextureCacheJob.h
             TextureDatabase.h
             ThumbLoader.h
-            ThumbnailCache.h
             URL.h
             Util.h
             XBApplicationEx.h
@@ -91,3 +91,8 @@ core_add_library(xbmc)
 if(CAP_FOUND)
   target_compile_definitions(${CORE_LIBRARY} PRIVATE -DHAVE_LIBCAP=1)
 endif()
+
+if(CORE_SYSTEM_NAME STREQUAL windowsstore)
+  set_target_properties(${CORE_LIBRARY} PROPERTIES STATIC_LIBRARY_FLAGS "/ignore:4264")
+endif()
+

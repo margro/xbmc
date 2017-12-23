@@ -29,6 +29,7 @@
 #include "Album.h"
 #include "dbwrappers/Database.h"
 #include "MusicDbUrl.h"
+#include "settings/LibExportSettings.h"
 #include "utils/SortUtils.h"
 
 class CArtist;
@@ -101,7 +102,7 @@ public:
   bool CommitTransaction() override;
   void EmptyCache();
   void Clean();
-  int  Cleanup(bool bShowProgress=true);
+  int  Cleanup(CGUIDialogProgress* progressDialog = nullptr);
   bool LookupCDDBInfo(bool bRequery=false);
   void DeleteCDDBInfo();
 
@@ -147,18 +148,12 @@ public:
               const ReplayGain& replayGain);
   bool GetSong(int idSong, CSong& song);
 
-  /*! \brief Update a song in the database.
-
-   NOTE: This function assumes that song.artist contains the artist string to be concatenated.
-         Most internal functions should instead use the long-form function as the artist string
-         should be constructed from the artist credits.
-         This function will eventually be demised.
-
-   \param idSong  the database ID of the song to update
-   \param song the song
-   \return the id of the song.
+   /*! \brief Update a song and all its nested entities (genres, artists, contributors)
+    \param song [in/out] the song to update, artist ids are returned in artist credits
+    \param bArtists to update artist credits and contributors, default is true
+    \return true if sucessfull
    */
-  int UpdateSong(int idSong, const CSong &song);
+  bool UpdateSong(CSong& song, bool bArtists = true);
 
   /*! \brief Update a song in the database
    \param idSong [in] the database ID of the song to update
@@ -245,7 +240,6 @@ public:
    \return true if the album is retrieved, false otherwise.
    */
   bool GetAlbum(int idAlbum, CAlbum& album, bool getSongs = true);
-  int  UpdateAlbum(int idAlbum, const CAlbum &album);
   int  UpdateAlbum(int idAlbum,
                    const std::string& strAlbum, const std::string& strMusicBrainzAlbumID,
                    const std::string& strReleaseGroupMBID,
@@ -278,6 +272,7 @@ public:
   bool GetAlbumFromSong(int idSong, CAlbum &album);
   int  GetAlbumByName(const std::string& strAlbum, const std::string& strArtist="");
   int  GetAlbumByName(const std::string& strAlbum, const std::vector<std::string>& artist);
+  int  GetAlbumByMatch(const CAlbum &album);
   std::string GetAlbumById(int id);
   bool SetAlbumUserrating(const int idAlbum, int userrating);
 
@@ -290,9 +285,12 @@ public:
   int  AddArtist(const std::string& strArtist, const std::string& strMusicBrainzArtistID, bool bScrapedMBID = false);
   bool GetArtist(int idArtist, CArtist& artist, bool fetchAll = true);
   bool GetArtistExists(int idArtist);
+  int GetLastArtist();
   int  UpdateArtist(int idArtist,
                     const std::string& strArtist, const std::string& strSortName,
                     const std::string& strMusicBrainzArtistID, bool bScrapedMBID,
+                    const std::string& strType, const std::string& strGender,
+                    const std::string& strDisambiguation,
                     const std::string& strBorn, const std::string& strFormed,
                     const std::string& strGenres, const std::string& strMoods,
                     const std::string& strStyles, const std::string& strInstruments,
@@ -309,6 +307,7 @@ public:
 
   std::string GetArtistById(int id);
   int GetArtistByName(const std::string& strArtist);
+  int GetArtistByMatch(const CArtist& artist);
   std::string GetRoleById(int id);
 
   /*! \brief Propagate artist sort name into the concatenated artist sort name strings
@@ -325,13 +324,17 @@ public:
   bool GetPaths(std::set<std::string> &paths);
   bool SetPathHash(const std::string &path, const std::string &hash);
   bool GetPathHash(const std::string &path, std::string &hash);
-  bool GetAlbumPath(int idAlbum, std::string &path);
-  bool GetArtistPath(int idArtist, std::string &path);
+  bool GetAlbumPath(int idAlbum, std::string &basePath);
+  bool GetOldArtistPath(int idArtist, std::string &path);
+  bool GetArtistPath(const CArtist& artist, std::string &path);
+  bool GetAlbumFolder(const CAlbum& album, const std::string &strAlbumPath, std::string &strFolder);
+  bool GetArtistFolderName(const CArtist& artist, std::string &strFolder);
+  bool GetArtistFolderName(const std::string &strArtist, const std::string &strMusicBrainzArtistID, std::string &strFolder);
 
   /////////////////////////////////////////////////
   // Genres
   /////////////////////////////////////////////////
-  int AddGenre(const std::string& strGenre);
+  int AddGenre(std::string& strGenre);
   std::string GetGenreById(int id);
   int GetGenreByName(const std::string& strGenre);
 
@@ -354,12 +357,10 @@ public:
   bool GetArtistsBySong(int idSong, std::vector<int>& artists);
   bool DeleteSongArtistsBySong(int idSong);
 
-  bool AddSongGenre(int idGenre, int idSong, int iOrder);
+  bool AddSongGenres(int idSong, const std::vector<std::string>& genres);
   bool GetGenresBySong(int idSong, std::vector<int>& genres);
 
-  bool AddAlbumGenre(int idGenre, int idAlbum, int iOrder);
-  bool GetGenresByAlbum(int idAlbum, std::vector<int>& genres);
-  bool DeleteAlbumGenresByAlbum(int idAlbum);
+  bool GetGenresByAlbum(int idAlbum, CFileItem* item);
 
   bool GetGenresByArtist(int idArtist, CFileItem* item);
   bool GetIsAlbumArtist(int idArtist, CFileItem* item);
@@ -445,7 +446,7 @@ public:
   /////////////////////////////////////////////////
   // XML
   /////////////////////////////////////////////////
-  void ExportToXML(const std::string &xmlFile, bool singleFile = false, bool images=false, bool overwrite=false);
+  void ExportToXML(const CLibExportSettings& settings, CGUIDialogProgress* progressDialog = NULL);
   void ImportFromXML(const std::string &xmlFile);
 
   /////////////////////////////////////////////////
@@ -571,7 +572,7 @@ private:
   void GetFileItemFromDataset(CFileItem* item, const CMusicDbUrl &baseUrl);
   void GetFileItemFromDataset(const dbiplus::sql_record* const record, CFileItem* item, const CMusicDbUrl &baseUrl);
   void GetFileItemFromArtistCredits(VECARTISTCREDITS& artistCredits, CFileItem* item);
-  bool CleanupSongs();
+  bool CleanupSongs(CGUIDialogProgress* progressDialog = nullptr);
   bool CleanupSongsByIds(const std::string &strSongIds);
   bool CleanupPaths();
   bool CleanupAlbums();
@@ -678,6 +679,9 @@ private:
     artist_strArtist,
     artist_strSortName,
     artist_strMusicBrainzArtistID,
+    artist_strType,
+    artist_strGender,
+    artist_strDisambiguation,
     artist_strBorn,
     artist_strFormed,
     artist_strGenres,

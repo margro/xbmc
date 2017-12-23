@@ -18,11 +18,8 @@
  *
  */
 
-//#define DEBUG_VERBOSE 1
-
 #include "system.h"
 
-#if HAS_GLES >= 2
 #include "system_gl.h"
 
 #include <locale.h>
@@ -38,13 +35,14 @@
 #include "settings/Settings.h"
 #include "VideoShaders/YUV2RGBShaderGLES.h"
 #include "VideoShaders/VideoFilterShaderGLES.h"
-#include "windowing/WindowingFactory.h"
+#include "rendering/gles/RenderSystemGLES.h"
 #include "guilib/Texture.h"
 #include "threads/SingleLock.h"
 #include "RenderCapture.h"
 #include "Application.h"
 #include "RenderFactory.h"
 #include "cores/IPlayer.h"
+#include "windowing/WinSystem.h"
 
 #if defined(__ARM_NEON__) && !defined(__LP64__)
 #include "yuv2rgb.neon.h"
@@ -100,6 +98,8 @@ CLinuxRendererGLES::CLinuxRendererGLES()
 
   m_fbo.width = 0.0;
   m_fbo.height = 0.0;
+
+  m_renderSystem = dynamic_cast<CRenderSystemGLES*>(&CServiceBroker::GetRenderSystem());
 
 #if defined(EGL_KHR_reusable_sync) && !defined(EGL_EGLEXT_PROTOTYPES)
   if (!eglCreateSyncKHR) {
@@ -171,7 +171,7 @@ bool CLinuxRendererGLES::Configure(const VideoPicture &picture, float fps, unsig
 
   // Calculate the input frame aspect ratio.
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
-  SetViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode);
+  SetViewMode(m_videoSettings.m_ViewMode);
   ManageRenderArea();
 
   m_bConfigured = true;
@@ -430,9 +430,9 @@ void CLinuxRendererGLES::RenderUpdateVideo(bool clear, DWORD flags, DWORD alpha)
 
 void CLinuxRendererGLES::UpdateVideoFilter()
 {
-  if (m_scalingMethodGui == CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ScalingMethod)
+  if (m_scalingMethodGui == m_videoSettings.m_ScalingMethod)
     return;
-  m_scalingMethodGui = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ScalingMethod;
+  m_scalingMethodGui = m_videoSettings.m_ScalingMethod;
   m_scalingMethod    = m_scalingMethodGui;
 
   if(!Supports(m_scalingMethod))
@@ -566,16 +566,6 @@ void CLinuxRendererGLES::LoadShaders(int field)
         }
     }
   }
-
-  // determine whether GPU supports NPOT textures
-  if (!g_Windowing.IsExtSupported("GL_TEXTURE_NPOT"))
-  {
-    CLog::Log(LOGNOTICE, "GL: GL_ARB_texture_rectangle not supported and OpenGL version is not 2.x");
-    CLog::Log(LOGNOTICE, "GL: Reverting to POT textures");
-    m_renderMethod |= RENDER_POT;
-  }
-  else
-    CLog::Log(LOGNOTICE, "GL: NPOT texture support detected");
 
   if (m_oldRenderMethod != m_renderMethod)
   {
@@ -751,8 +741,8 @@ void CLinuxRendererGLES::RenderSinglePass(int index, int field)
   else
     pYUVShader = m_pYUVProgShader;
 
-  pYUVShader->SetBlack(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness * 0.01f - 0.5f);
-  pYUVShader->SetContrast(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast * 0.02f);
+  pYUVShader->SetBlack(m_videoSettings.m_Brightness * 0.01f - 0.5f);
+  pYUVShader->SetContrast(m_videoSettings.m_Contrast * 0.02f);
   pYUVShader->SetWidth(planes[0].texwidth);
   pYUVShader->SetHeight(planes[0].texheight);
   if     (field == FIELD_TOP)
@@ -761,7 +751,7 @@ void CLinuxRendererGLES::RenderSinglePass(int index, int field)
     pYUVShader->SetField(0);
 
   pYUVShader->SetMatrices(glMatrixProject.Get(), glMatrixModview.Get());
-  pYUVShader->SetConvertFullColorRange(!g_Windowing.UseLimitedColor());
+  pYUVShader->SetConvertFullColorRange(!CServiceBroker::GetWinSystem().UseLimitedColor());
   pYUVShader->Enable();
 
   GLubyte idx[4] = {0, 1, 3, 2};        //determines order of triangle strip
@@ -882,8 +872,8 @@ void CLinuxRendererGLES::RenderToFBO(int index, int field, bool weave /*= false*
   m_fbo.fbo.BeginRender();
   VerifyGLState();
 
-  pYUVShader->SetBlack(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Brightness * 0.01f - 0.5f);
-  pYUVShader->SetContrast(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_Contrast * 0.02f);
+  pYUVShader->SetBlack(m_videoSettings.m_Brightness * 0.01f - 0.5f);
+  pYUVShader->SetContrast(m_videoSettings.m_Contrast * 0.02f);
   pYUVShader->SetWidth(planes[0].texwidth);
   pYUVShader->SetHeight(planes[0].texheight);
   pYUVShader->SetNonLinStretch(1.0);
@@ -892,7 +882,7 @@ void CLinuxRendererGLES::RenderToFBO(int index, int field, bool weave /*= false*
   else if(field == FIELD_BOT)
     pYUVShader->SetField(0);
 
-  pYUVShader->SetConvertFullColorRange(!g_Windowing.UseLimitedColor());
+  pYUVShader->SetConvertFullColorRange(!CServiceBroker::GetWinSystem().UseLimitedColor());
 
   VerifyGLState();
 
@@ -908,7 +898,7 @@ void CLinuxRendererGLES::RenderToFBO(int index, int field, bool weave /*= false*
   pYUVShader->SetMatrices(glMatrixProject.Get(), glMatrixModview.Get());
 
   CRect viewport;
-  g_Windowing.GetViewPort(viewport);
+  m_renderSystem->GetViewPort(viewport);
   glViewport(0, 0, m_sourceWidth, m_sourceHeight);
   glScissor (0, 0, m_sourceWidth, m_sourceHeight);
 
@@ -983,7 +973,7 @@ void CLinuxRendererGLES::RenderToFBO(int index, int field, bool weave /*= false*
   glDisableVertexAttribArray(Uloc);
   glDisableVertexAttribArray(Vloc);
 
-  g_Windowing.SetViewPort(viewport);
+  m_renderSystem->SetViewPort(viewport);
 
   m_fbo.fbo.EndRender();
 
@@ -1001,7 +991,6 @@ void CLinuxRendererGLES::RenderToFBO(int index, int field, bool weave /*= false*
 
 void CLinuxRendererGLES::RenderFromFBO()
 {
-  glEnable(GL_TEXTURE_2D);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, m_fbo.fbo.Texture());
   VerifyGLState();
@@ -1282,15 +1271,6 @@ bool CLinuxRendererGLES::CreateYV12Texture(int index)
       planes[p].pixpertex_y = 1;
     }
 
-    if(m_renderMethod & RENDER_POT)
-    {
-      for(int p = 0; p < 3; p++)
-      {
-        planes[p].texwidth  = NP2(planes[p].texwidth);
-        planes[p].texheight = NP2(planes[p].texheight);
-      }
-    }
-
     for(int p = 0; p < 3; p++)
     {
       YUVPLANE &plane = planes[p];
@@ -1455,15 +1435,6 @@ bool CLinuxRendererGLES::CreateNV12Texture(int index)
       planes[p].pixpertex_y = 1;
     }
 
-    if(m_renderMethod & RENDER_POT)
-    {
-      for(int p = 0; p < 3; p++)
-      {
-        planes[p].texwidth  = NP2(planes[p].texwidth);
-        planes[p].texheight = NP2(planes[p].texheight);
-      }
-    }
-
     for(int p = 0; p < 2; p++)
     {
       YUVPLANE &plane = planes[p];
@@ -1625,4 +1596,3 @@ bool CLinuxRendererGLES::IsGuiLayer()
   return true;
 }
 
-#endif

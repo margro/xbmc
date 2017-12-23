@@ -31,6 +31,7 @@
 #include "ServiceManager.h"
 
 #include <atomic>
+#include <deque>
 #include <map>
 #include <memory>
 #include <string>
@@ -70,9 +71,6 @@ namespace PLAYLIST
 #include "platform/win32/WIN32Util.h"
 #endif
 #include "utils/Stopwatch.h"
-#ifdef HAS_PERFORMANCE_SAMPLE
-#include "utils/PerformanceStats.h"
-#endif
 #include "windowing/OSScreenSaver.h"
 #include "windowing/XBMC_events.h"
 #include "threads/Thread.h"
@@ -85,7 +83,6 @@ class CInertialScrollingHandler;
 class DPMSSupport;
 class CSplash;
 class CBookmark;
-class CNetwork;
 class IActionListener;
 
 namespace VIDEO
@@ -168,6 +165,7 @@ public:
   std::string GetCurrentPlayer();
   void OnPlayBackEnded() override;
   void OnPlayBackStarted(const CFileItem &file) override;
+  void OnPlayerCloseFile(const CFileItem &file, const CBookmark &bookmark) override;
   void OnPlayBackPaused() override;
   void OnPlayBackResumed() override;
   void OnPlayBackStopped() override;
@@ -176,6 +174,9 @@ public:
   void OnPlayBackSeek(int64_t iTime, int64_t seekOffset) override;
   void OnPlayBackSeekChapter(int iChapter) override;
   void OnPlayBackSpeedChanged(int iSpeed) override;
+  void OnAVChange() override;
+  void RequestVideoSettings(const CFileItem &fileItem) override;
+  void StoreVideoSettings(const CFileItem &fileItem, CVideoSettings vs) override;
 
   int  GetMessageMask() override;
   void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
@@ -183,9 +184,6 @@ public:
   bool PlayMedia(const CFileItem& item, const std::string &player, int iPlaylist);
   bool ProcessAndStartPlaylist(const std::string& strPlayList, PLAYLIST::CPlayList& playlist, int iPlaylist, int track=0);
   PlayBackRet PlayFile(CFileItem item, const std::string& player, bool bRestart = false);
-  void SaveFileState(bool bForeground = false);
-  void UpdateFileState();
-  void LoadVideoSettings(const CFileItem& item);
   void StopPlaying();
   void Restart(bool bSamePosition = true);
   void DelayedPlayerRestart();
@@ -200,7 +198,6 @@ public:
   // Checks whether the screensaver and / or DPMS should become active.
   void CheckScreenSaverAndDPMS();
   void ActivateScreenSaver(bool forceType = false);
-  bool SetupNetwork();
   void CloseNetworkShares();
 
   void ShowAppMigrationMessage();
@@ -253,8 +250,9 @@ public:
   /*!
    \brief Starts a video library cleanup.
    \param userInitiated Whether the action was initiated by the user (either via GUI or any other method) or not.  It is meant to hide or show dialogs.
+   \param content Content type to clean, blank for everything
    */
-  void StartVideoCleanup(bool userInitiated = true);
+  void StartVideoCleanup(bool userInitiated = true, const std::string& content = "");
 
   /*!
    \brief Starts a video library update.
@@ -284,13 +282,7 @@ public:
 
   bool ExecuteXBMCAction(std::string action, const CGUIListItemPtr &item = NULL);
 
-  static bool OnEvent(XBMC_Event& newEvent);
-
-  CNetwork& getNetwork();
-
-#ifdef HAS_PERFORMANCE_SAMPLE
-  CPerformanceStats &GetPerformanceStats();
-#endif
+  bool OnEvent(XBMC_Event& newEvent);
 
   std::unique_ptr<CApplicationPlayer> m_pPlayer;
 
@@ -460,10 +452,6 @@ protected:
   bool m_bInitializing;
   bool m_bPlatformDirectories;
 
-  CBookmark& m_progressTrackingVideoResumeBookmark;
-  CFileItemPtr m_progressTrackingItem;
-  bool m_progressTrackingPlayCountUpdate;
-
   int m_currentStackPosition;
   int m_nextPlaylistItem;
 
@@ -490,27 +478,22 @@ protected:
   PlayBackRet PlayStack(const CFileItem& item, bool bRestart);
 
   float NavigationIdleTime();
-
   bool InitDirectoriesLinux();
   bool InitDirectoriesOSX();
   bool InitDirectoriesWin32();
   void CreateUserDirs() const;
+  void HandleWinEvents();
 
   /*! \brief Helper method to determine how to handle TMSG_SHUTDOWN
   */
   void HandleShutdownMessage();
 
   CInertialScrollingHandler *m_pInertialScrollingHandler;
-  CNetwork    *m_network;
-#ifdef HAS_PERFORMANCE_SAMPLE
-  CPerformanceStats m_perfStats;
-#endif
 
   ReplayGainSettings m_replayGainSettings;
-  
   std::vector<IActionListener *> m_actionListeners;
-
   std::vector<std::string> m_incompatibleAddons;  /*!< Result of addon migration */
+  std::deque<XBMC_Event> m_winEvents;
 
 private:
   CCriticalSection m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */

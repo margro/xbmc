@@ -68,23 +68,12 @@ public:
   int GetTotalTime() override;
   int GetTime() override;
 
-  bool CanRecord();
-  bool IsRecording();
-  void Record(bool bOnOff);
   bool CanSeek() override;
   bool CanPause() override;
   void Pause(bool bPaused);
 
   /* overloaded is streamtype to support m_pOtherStream */
   bool IsStreamType(DVDStreamType type) const;
-
-  /*! \brief Get the input format from the Backend
-   If it is empty ffmpeg scanning the stream to find the right input format.
-   See "xbmc/cores/VideoPlayer/Codecs/ffmpeg/libavformat/allformats.c" for a
-   list of the input formats.
-   \return The name of the input format
-   */
-  std::string GetInputFormat();
 
   // Demux interface
   CDVDInputStream::IDemux* GetIDemux() override;

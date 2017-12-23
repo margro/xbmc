@@ -45,7 +45,7 @@
 #include "utils/StringUtils.h"
 #include "XBDateTime.h"
 #include "input/InputManager.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "cores/IPlayer.h"
 #include "guiinfo/GUIInfoLabels.h"
 #include "video/ViewModeSettings.h"
@@ -53,7 +53,7 @@
 #include <stdio.h>
 #include <algorithm>
 #if defined(TARGET_DARWIN)
-#include "linux/LinuxResourceCounter.h"
+#include "platform/linux/LinuxResourceCounter.h"
 #endif
 
 using namespace KODI::MESSAGING;
@@ -148,7 +148,11 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
     { // toggle the aspect ratio mode (only if the info is onscreen)
       if (m_dwShowViewModeTimeout)
       {
-        g_application.m_pPlayer->SetRenderViewMode(CViewModeSettings::GetNextQuickCycleViewMode(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_ViewMode));
+        CVideoSettings vs = g_application.m_pPlayer->GetVideoSettings();
+        vs.m_ViewMode = CViewModeSettings::GetNextQuickCycleViewMode(vs.m_ViewMode);
+        g_application.m_pPlayer->SetRenderViewMode(vs.m_ViewMode, vs.m_CustomZoomAmount,
+                                                   vs.m_CustomPixelRatio, vs.m_CustomVerticalShift,
+                                                   vs.m_CustomNonLinStretch);
       }
       else
         m_viewModeChanged = true;
@@ -185,11 +189,7 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
 void CGUIWindowFullScreen::ClearBackground()
 {
   if (g_application.m_pPlayer->IsRenderingVideoLayer())
-#ifdef HAS_IMXVPU
-    g_graphicsContext.Clear((16 << 16)|(8 << 8)|16);
-#else
     g_graphicsContext.Clear(0);
-#endif
 }
 
 void CGUIWindowFullScreen::OnWindowLoaded()
@@ -263,9 +263,7 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
 
       CServiceBroker::GetSettings().Save();
 
-      CSingleLock lock (g_graphicsContext);
       g_graphicsContext.SetFullScreenVideo(false);
-      lock.Leave();
 
       return true;
     }
@@ -323,8 +321,8 @@ void CGUIWindowFullScreen::FrameMove()
     {
       // get the "View Mode" string
       std::string strTitle = g_localizeStrings.Get(629);
-      const auto& settings = CMediaSettings::GetInstance().GetCurrentVideoSettings();
-      int sId = CViewModeSettings::GetViewModeStringIndex(settings.m_ViewMode);
+      const auto& vs = g_application.m_pPlayer->GetVideoSettings();
+      int sId = CViewModeSettings::GetViewModeStringIndex(vs.m_ViewMode);
       std::string strMode = g_localizeStrings.Get(sId);
       std::string strInfo = StringUtils::Format("%s : %s", strTitle.c_str(), strMode.c_str());
       CGUIMessage msg(GUI_MSG_LABEL_SET, GetID(), LABEL_ROW1);
@@ -332,7 +330,7 @@ void CGUIWindowFullScreen::FrameMove()
       OnMessage(msg);
     }
     // show sizing information
-    SPlayerVideoStreamInfo info;
+    VideoStreamInfo info;
     g_application.m_pPlayer->GetVideoStreamInfo(CURRENT_STREAM,info);
     {
       // Splitres scaling factor
@@ -355,7 +353,7 @@ void CGUIWindowFullScreen::FrameMove()
     // show resolution information
     {
       std::string strStatus;
-      if (g_Windowing.IsFullScreen())
+      if (CServiceBroker::GetWinSystem().IsFullScreen())
         strStatus = StringUtils::Format("%s %ix%i@%.2fHz - %s",
                                         g_localizeStrings.Get(13287).c_str(),
                                         res.iScreenWidth,

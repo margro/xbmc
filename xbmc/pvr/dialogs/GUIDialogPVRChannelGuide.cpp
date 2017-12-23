@@ -78,7 +78,7 @@ void CGUIDialogPVRChannelGuide::OnInitWindow()
 {
   // no user-specific channel is set use current playing channel
   if (!m_channel)
-    m_channel = CServiceBroker::GetPVRManager().GetCurrentChannel();
+    m_channel = CServiceBroker::GetPVRManager().GetPlayingChannel();
 
   // no channel at all, close the dialog
   if (!m_channel)
@@ -87,8 +87,6 @@ void CGUIDialogPVRChannelGuide::OnInitWindow()
     return;
   }
 
-  // lock our display, as this window is rendered from the player thread
-  g_graphicsContext.Lock();
   m_viewControl.SetCurrentView(DEFAULT_VIEW_LIST);
 
   // empty the list ready for population
@@ -96,8 +94,6 @@ void CGUIDialogPVRChannelGuide::OnInitWindow()
 
   m_channel->GetEPG(*m_vecItems);
   m_viewControl.SetItems(*m_vecItems);
-
-  g_graphicsContext.Unlock();
 
   // call init
   CGUIDialog::OnInitWindow();

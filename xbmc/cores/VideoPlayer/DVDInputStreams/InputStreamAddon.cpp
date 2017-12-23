@@ -19,14 +19,14 @@
  */
 
 #include "InputStreamAddon.h"
-#include "TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "addons/binary-addons/AddonDll.h"
 #include "addons/binary-addons/BinaryAddonBase.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/VideoCodec.h"
 #include "cores/VideoPlayer/DVDClock.h"
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemux.h"
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.h"
-#include "cores/VideoPlayer/DVDDemuxers/DemuxCrypto.h"
+#include "cores/VideoPlayer/Interface/Addon/DemuxCrypto.h"
 #include "filesystem/SpecialProtocol.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -371,7 +371,7 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
   {
     demuxStream->ExtraData = new uint8_t[stream.m_ExtraSize];
     demuxStream->ExtraSize = stream.m_ExtraSize;
-    demuxStream->flags = static_cast<CDemuxStream::EFlags>(stream.m_flags);
+    demuxStream->flags = static_cast<StreamFlags>(stream.m_flags);
     for (unsigned int j = 0; j < stream.m_ExtraSize; ++j)
       demuxStream->ExtraData[j] = stream.m_ExtraData[j];
   }

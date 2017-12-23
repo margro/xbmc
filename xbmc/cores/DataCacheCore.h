@@ -42,6 +42,8 @@ public:
   std::string GetVideoDeintMethod();
   void SetVideoPixelFormat(std::string pixFormat);
   std::string GetVideoPixelFormat();
+  void SetVideoStereoMode(std::string mode);
+  std::string GetVideoStereoMode();
   void SetVideoDimensions(int width, int height);
   int GetVideoWidth();
   int GetVideoHeight();
@@ -121,6 +123,7 @@ protected:
     bool isHwDecoder;
     std::string deintMethod;
     std::string pixFormat;
+    std::string stereoMode;
     int width;
     int height;
     float fps;
@@ -159,5 +162,5 @@ protected:
     int64_t m_time;
     int64_t m_timeMax;
     int64_t m_timeMin;
-  } m_timeInfo;
+  } m_timeInfo = {};
 };

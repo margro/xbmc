@@ -19,12 +19,15 @@
  */
 
 #include "RenderCapture.h"
+#include "ServiceBroker.h"
 #include "utils/log.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "settings/AdvancedSettings.h"
 #include "cores/IPlayer.h"
-#ifdef HAS_DX
-#include "rendering/dx/DirectXHelper.h"
+#include "rendering/RenderSystem.h"
+#ifdef TARGET_WINDOWS
+#include "rendering/dx/DeviceResources.h"
+#include "rendering/dx/RenderContext.h"
 #endif
 
 extern "C" {
@@ -52,49 +55,13 @@ bool CRenderCaptureBase::UseOcclusionQuery()
     return false;
   else if ((g_advancedSettings.m_videoCaptureUseOcclusionQuery == 0) ||
            (g_advancedSettings.m_videoCaptureUseOcclusionQuery == -1 &&
-            g_Windowing.GetRenderQuirks() & RENDER_QUIRKS_BROKEN_OCCLUSION_QUERY))
+            CServiceBroker::GetRenderSystem().GetRenderQuirks() & RENDER_QUIRKS_BROKEN_OCCLUSION_QUERY))
     return false;
   else
     return true;
 }
 
-
-#if defined(HAS_IMXVPU)
-CRenderCaptureIMX::CRenderCaptureIMX()
-{
-}
-
-CRenderCaptureIMX::~CRenderCaptureIMX()
-{
-}
-
-int CRenderCaptureIMX::GetCaptureFormat()
-{
-  return CAPTUREFORMAT_BGRA;
-}
-
-void CRenderCaptureIMX::BeginRender()
-{
-}
-
-void CRenderCaptureIMX::EndRender()
-{
-  if (g_IMXContext.CaptureDisplay(m_pixels, m_width, m_height))
-    SetState(CAPTURESTATE_DONE);
-  else
-    SetState(CAPTURESTATE_FAILED);
-}
-
-void* CRenderCaptureIMX::GetRenderBuffer()
-{
-  return m_pixels;
-}
-
-void CRenderCaptureIMX::ReadOut()
-{
-}
-
-#elif defined(TARGET_RASPBERRY_PI)
+#if defined(TARGET_RASPBERRY_PI)
 
 CRenderCaptureDispmanX::CRenderCaptureDispmanX()
 {
@@ -172,14 +139,14 @@ void CRenderCaptureGL::BeginRender()
   if (!m_asyncChecked)
   {
 #ifndef HAS_GLES
-    m_asyncSupported = g_Windowing.IsExtSupported("GL_ARB_pixel_buffer_object");
-    m_occlusionQuerySupported = g_Windowing.IsExtSupported("GL_ARB_occlusion_query");
+    m_asyncSupported = CServiceBroker::GetRenderSystem().IsExtSupported("GL_ARB_pixel_buffer_object");
+    m_occlusionQuerySupported = CServiceBroker::GetRenderSystem().IsExtSupported("GL_ARB_occlusion_query");
 
     if (m_flags & CAPTUREFLAG_CONTINUOUS)
     {
       if (!m_occlusionQuerySupported)
         CLog::Log(LOGWARNING, "CRenderCaptureGL: GL_ARB_occlusion_query not supported, performance might suffer");
-      if (!g_Windowing.IsExtSupported("GL_ARB_pixel_buffer_object"))
+      if (!CServiceBroker::GetRenderSystem().IsExtSupported("GL_ARB_pixel_buffer_object"))
         CLog::Log(LOGWARNING, "CRenderCaptureGL: GL_ARB_pixel_buffer_object not supported, performance might suffer");
       if (UseOcclusionQuery())
         CLog::Log(LOGWARNING, "CRenderCaptureGL: GL_ARB_occlusion_query disabled, performance might suffer");
@@ -320,14 +287,14 @@ CRenderCaptureDX::CRenderCaptureDX()
   m_query         = nullptr;
   m_surfaceWidth  = 0;
   m_surfaceHeight = 0;
-  g_Windowing.Register(this);
+  DX::Windowing().Register(this);
 }
 
 CRenderCaptureDX::~CRenderCaptureDX()
 {
   CleanupDX();
   av_freep(&m_pixels);
-  g_Windowing.Unregister(this);
+  DX::Windowing().Unregister(this);
 }
 
 int CRenderCaptureDX::GetCaptureFormat()
@@ -337,8 +304,8 @@ int CRenderCaptureDX::GetCaptureFormat()
 
 void CRenderCaptureDX::BeginRender()
 {
-  ID3D11DeviceContext* pContext = g_Windowing.Get3D11Context();
-  ID3D11Device* pDevice = g_Windowing.Get3D11Device();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetD3DContext();
+  ID3D11Device* pDevice = DX::DeviceResources::Get()->GetD3DDevice();
   CD3D11_QUERY_DESC queryDesc(D3D11_QUERY_EVENT);
 
   if (!m_asyncChecked)
@@ -433,7 +400,7 @@ void CRenderCaptureDX::ReadOut()
   if (m_query)
   {
     //if the result of the occlusion query is available, the data is probably also written into m_copySurface
-    HRESULT result = g_Windowing.GetImmediateContext()->GetData(m_query, nullptr, 0, 0);
+    HRESULT result = DX::DeviceResources::Get()->GetImmediateContext()->GetData(m_query, nullptr, 0, 0);
     if (SUCCEEDED(result))
     {
       if (S_OK == result)
@@ -474,12 +441,6 @@ void CRenderCaptureDX::SurfaceToBuffer()
     CLog::Log(LOGERROR, "%s: locking m_copySurface failed.", __FUNCTION__);
     SetState(CAPTURESTATE_FAILED);
   }
-}
-
-void CRenderCaptureDX::OnLostDevice()
-{
-  CleanupDX();
-  SetState(CAPTURESTATE_FAILED);
 }
 
 void CRenderCaptureDX::OnDestroyDevice(bool fatal)

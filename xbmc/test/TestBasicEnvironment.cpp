@@ -20,28 +20,23 @@
 
 #include "TestBasicEnvironment.h"
 #include "TestUtils.h"
-#include "cores/DataCacheCore.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
-#include "cores/AudioEngine/Interfaces/AE.h"
 #include "ServiceBroker.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
-#include "powermanagement/PowerManager.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
-#include "Util.h"
 #include "Application.h"
-#include "PlayListPlayer.h"
-#include "interfaces/AnnouncementManager.h"
-#include "addons/BinaryAddonCache.h"
-#include "interfaces/python/XBPython.h"
-#include "pvr/PVRManager.h"
 #include "AppParamParser.h"
+#include "windowing/WinSystem.h"
 
 #if defined(TARGET_WINDOWS)
 #include "platform/win32/WIN32Util.h"
 #include "platform/win32/CharsetConverter.h"
+#endif
+
+#ifdef TARGET_DARWIN
+#include "Util.h"
 #endif
 
 #include <cstdio>
@@ -52,17 +47,12 @@ void TestBasicEnvironment::SetUp()
 {
   XFILE::CFile *f;
 
-  g_application.m_ServiceManager.reset(new CServiceManager());
-  if (!g_application.m_ServiceManager->InitStageOne())
-    exit(1);
-
   /* NOTE: The below is done to fix memleak warning about uninitialized variable
    * in xbmcutil::GlobalsSingleton<CAdvancedSettings>::getInstance().
    */
   g_advancedSettings.Initialize();
 
-  // Need to configure the network as some tests access the network member
-  g_application.SetupNetwork();
+  g_application.m_ServiceManager.reset(new CServiceManager());
 
   if (!CXBMCTestUtils::Instance().SetReferenceFileBasePath())
     SetUpError();
@@ -121,24 +111,19 @@ void TestBasicEnvironment::SetUp()
     TearDown();
     SetUpError();
   }
-  g_powerManager.Initialize();
-  g_application.m_ServiceManager->CreateAudioEngine();
-  CServiceBroker::GetSettings().Initialize();
 
-  if (!g_application.m_ServiceManager->InitStageTwo(CAppParamParser()))
+  if (!g_application.m_ServiceManager->InitForTesting())
     exit(1);
 
-  g_application.m_ServiceManager->StartAudioEngine();
+  CServiceBroker::GetSettings().Initialize();
 }
 
 void TestBasicEnvironment::TearDown()
 {
-  g_application.m_ServiceManager->DeinitStageTwo();
-  g_application.m_ServiceManager->DestroyAudioEngine();
   std::string xbmcTempPath = CSpecialProtocol::TranslatePath("special://temp/");
   XFILE::CDirectory::Remove(xbmcTempPath);
   CServiceBroker::GetSettings().Uninitialize();
-  g_application.m_ServiceManager->DeinitStageOne();
+  g_application.m_ServiceManager->DeinitTesting();
 }
 
 void TestBasicEnvironment::SetUpError()

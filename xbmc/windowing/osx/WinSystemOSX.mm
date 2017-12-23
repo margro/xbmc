@@ -26,6 +26,10 @@
 #include "ServiceBroker.h"
 #include "messaging/ApplicationMessenger.h"
 #include "CompileInfo.h"
+#include "cores/AudioEngine/AESinkFactory.h"
+#include "cores/AudioEngine/Sinks/AESinkDARWINOSX.h"
+#include "cores/RetroPlayer/process/osx/RPProcessInfoOSX.h"
+#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/VTB.h"
 #include "cores/VideoPlayer/Process/osx/ProcessInfoOSX.h"
@@ -61,8 +65,9 @@
 // turn off deprecated warning spew.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-using namespace KODI::MESSAGING;
-using namespace KODI::WINDOWING;
+using namespace KODI;
+using namespace MESSAGING;
+using namespace WINDOWING;
 
 //------------------------------------------------------------------------------------------
 // special object-c class for handling the NSWindowDidMoveNotification callback.
@@ -592,11 +597,10 @@ static void DisplayReconfigured(CGDirectDisplayID display,
     winsys->UpdateResolutions();
 }
 
-//---------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 CWinSystemOSX::CWinSystemOSX() : CWinSystemBase(), m_lostDeviceTimer(this)
 {
-  m_eWindowSystem = WINDOW_SYSTEM_OSX;
   m_glContext = 0;
   m_SDLSurface = NULL;
   m_osx_events = NULL;
@@ -608,6 +612,11 @@ CWinSystemOSX::CWinSystemOSX() : CWinSystemBase(), m_lostDeviceTimer(this)
   m_movedToOtherScreen = false;
   m_refreshRate = 0.0;
   m_delayDispReset = false;
+
+  m_winEvents.reset(new CWinEventsOSX());
+
+  AE::CAESinkFactory::ClearSinks();
+  CAESinkDARWINOSX::Register();
 }
 
 CWinSystemOSX::~CWinSystemOSX()
@@ -787,7 +796,8 @@ bool CWinSystemOSX::CreateNewWindow(const std::string& name, bool fullScreen, RE
   CLinuxRendererGL::Register();
   CRendererVTB::Register();
   VIDEOPLAYER::CProcessInfoOSX::Register();
-
+  RETRO::CRPProcessInfoOSX::Register();
+  RETRO::CRPProcessInfoOSX::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
   return true;
 }
 
@@ -1200,17 +1210,28 @@ void* CWinSystemOSX::CreateWindowedContext(void* shareCtx)
 {
   NSOpenGLContext* newContext = NULL;
 
+  NSOpenGLPixelFormatAttribute wattrs_gl3[] =
+  {
+    NSOpenGLPFADoubleBuffer,
+    NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core,
+    NSOpenGLPFANoRecovery,
+    NSOpenGLPFAAccelerated,
+    NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)24,
+    (NSOpenGLPixelFormatAttribute)0
+  };
+
   NSOpenGLPixelFormatAttribute wattrs[] =
   {
     NSOpenGLPFADoubleBuffer,
-    NSOpenGLPFAWindow,
     NSOpenGLPFANoRecovery,
     NSOpenGLPFAAccelerated,
     NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)8,
     (NSOpenGLPixelFormatAttribute)0
   };
 
-  NSOpenGLPixelFormat* pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:wattrs];
+  NSOpenGLPixelFormat* pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:wattrs_gl3];
+  if (!getenv("KODI_GL_PROFILE_3_2"))
+    pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:wattrs];
 
   newContext = [[NSOpenGLContext alloc] initWithFormat:(NSOpenGLPixelFormat*)pixFmt
     shareContext:(NSOpenGLContext*)shareCtx];
@@ -1222,7 +1243,6 @@ void* CWinSystemOSX::CreateWindowedContext(void* shareCtx)
     NSOpenGLPixelFormatAttribute wattrs2[] =
     {
       NSOpenGLPFADoubleBuffer,
-      NSOpenGLPFAWindow,
       NSOpenGLPFANoRecovery,
       NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)8,
       (NSOpenGLPixelFormatAttribute)0
@@ -1247,10 +1267,20 @@ void* CWinSystemOSX::CreateFullScreenContext(int screen_index, void* shareCtx)
   CGGetActiveDisplayList(MAX_DISPLAYS, displayArray, &numDisplays);
   displayID = displayArray[screen_index];
 
+  NSOpenGLPixelFormatAttribute fsattrs_gl3[] =
+  {
+    NSOpenGLPFADoubleBuffer,
+    NSOpenGLPFANoRecovery,
+    NSOpenGLPFAAccelerated,
+    NSOpenGLPFADepthSize,  (NSOpenGLPixelFormatAttribute)24,
+    NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core,
+    NSOpenGLPFAScreenMask, (NSOpenGLPixelFormatAttribute)CGDisplayIDToOpenGLDisplayMask(displayID),
+    (NSOpenGLPixelFormatAttribute)0
+  };
+
   NSOpenGLPixelFormatAttribute fsattrs[] =
   {
     NSOpenGLPFADoubleBuffer,
-    NSOpenGLPFAFullScreen,
     NSOpenGLPFANoRecovery,
     NSOpenGLPFAAccelerated,
     NSOpenGLPFADepthSize,  (NSOpenGLPixelFormatAttribute)8,
@@ -1258,7 +1288,10 @@ void* CWinSystemOSX::CreateFullScreenContext(int screen_index, void* shareCtx)
     (NSOpenGLPixelFormatAttribute)0
   };
 
-  NSOpenGLPixelFormat* pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:fsattrs];
+  NSOpenGLPixelFormat* pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:fsattrs_gl3];
+  if (!getenv("KODI_GL_PROFILE_3_2"))
+    pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:fsattrs];
+
   if (!pixFmt)
     return nil;
 
@@ -1688,20 +1721,7 @@ std::unique_ptr<IOSScreenSaver> CWinSystemOSX::GetOSScreenSaverImpl()
   return std::unique_ptr<IOSScreenSaver> (new COSScreenSaverOSX);
 }
 
-void CWinSystemOSX::EnableTextInput(bool bEnable)
-{
-  if (bEnable)
-    StartTextInput();
-  else
-    StopTextInput();
-}
-
 OSXTextInputResponder *g_textInputResponder = nil;
-
-bool CWinSystemOSX::IsTextInputEnabled()
-{
-  return g_textInputResponder != nil && [[g_textInputResponder superview] isEqual: [[NSApp keyWindow] contentView]];
-}
 
 void CWinSystemOSX::StartTextInput()
 {

@@ -20,6 +20,14 @@
 
 #include "GUIDialogTextViewer.h"
 #include "GUIUserMessages.h"
+#include "filesystem/File.h"
+#include "guilib/GUIWindowManager.h"
+#include "input/Action.h"
+#include "input/ActionIDs.h"
+#include "utils/log.h"
+#include "utils/URIUtils.h"
+
+using namespace XFILE;
 
 #define CONTROL_HEADING  1
 #define CONTROL_TEXTAREA 5
@@ -34,6 +42,12 @@ CGUIDialogTextViewer::~CGUIDialogTextViewer(void) = default;
 
 bool CGUIDialogTextViewer::OnAction(const CAction &action)
 {
+  if (action.GetID() == ACTION_TOGGLE_FONT)
+  {
+    UseMonoFont(!m_mono);
+    return true;
+  }
+
   return CGUIDialog::OnAction(action);
 }
 
@@ -46,6 +60,7 @@ bool CGUIDialogTextViewer::OnMessage(CGUIMessage& message)
       CGUIDialog::OnMessage(message);
       SetHeading();
       SetText();
+      UseMonoFont(m_mono);
       return true;
     }
     break;
@@ -79,6 +94,13 @@ void CGUIDialogTextViewer::SetHeading()
   OnMessage(msg);
 }
 
+void CGUIDialogTextViewer::UseMonoFont(bool use)
+{
+  m_mono = use;
+  CGUIMessage msg(GUI_MSG_SET_TYPE, GetID(), CONTROL_TEXTAREA, use ? 1 : 0);
+  OnMessage(msg);
+}
+
 void CGUIDialogTextViewer::OnDeinitWindow(int nextWindowID)
 {
   CGUIDialog::OnDeinitWindow(nextWindowID);
@@ -89,4 +111,31 @@ void CGUIDialogTextViewer::OnDeinitWindow(int nextWindowID)
 
   // reset heading
   SET_CONTROL_LABEL(CONTROL_HEADING, "");
+}
+
+void CGUIDialogTextViewer::ShowForFile(const std::string& path, bool useMonoFont)
+{
+  CFile file;
+  if (file.Open(path))
+  {
+    std::string data;
+    try
+    {
+      data.resize(file.GetLength()+1);
+      file.Read(&data[0], file.GetLength());
+      CGUIDialogTextViewer* pDialog = g_windowManager.GetWindow<CGUIDialogTextViewer>(WINDOW_DIALOG_TEXT_VIEWER);
+      pDialog->SetHeading(URIUtils::GetFileName(path));
+      pDialog->SetText(data);
+      pDialog->UseMonoFont(useMonoFont);
+      pDialog->Open();
+    }
+    catch(std::bad_alloc& ie)
+    {
+      CLog::Log(LOGERROR, "Not enough memory to load text file %s", path.c_str());
+    }
+    catch(...)
+    {
+      CLog::Log(LOGERROR, "Exception while trying to view text file %s", path.c_str());
+    }
+  }
 }

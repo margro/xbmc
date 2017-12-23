@@ -22,10 +22,13 @@
 #include <ppltasks.h>
 
 #include "utils/log.h"
+#if defined(HAVE_SSE2)
 #include "utils/win32/gpu_memcpy_sse4.h"
-#include "utils/CPUInfo.h"
+#endif
 #include "utils/win32/memcpy_sse2.h"
-#include "windowing/WindowingFactory.h"
+#include "utils/CPUInfo.h"
+#include "rendering/dx/DeviceResources.h"
+#include "rendering/dx/RenderContext.h"
 #include "WinRenderer.h"
 #include "WinRenderBuffer.h"
 
@@ -62,6 +65,7 @@ CRenderBuffer::~CRenderBuffer()
 
 void CRenderBuffer::Release()
 {
+  loaded = false;
   SAFE_RELEASE(videoBuffer);
   SAFE_RELEASE(m_staging);
   for (unsigned i = 0; i < m_activePlanes; i++)
@@ -217,7 +221,7 @@ bool CRenderBuffer::CreateBuffer(EBufferFormat fmt, unsigned width, unsigned hei
   {
     DXGI_FORMAT uvFormat = DXGI_FORMAT_R8G8_UNORM;
     // FL 9.x doesn't support DXGI_FORMAT_R8G8_UNORM, so we have to use SNORM and correct values in shader
-    if (!g_Windowing.IsFormatSupport(uvFormat, D3D11_FORMAT_SUPPORT_TEXTURE2D))
+    if (!DX::Windowing().IsFormatSupport(uvFormat, D3D11_FORMAT_SUPPORT_TEXTURE2D))
       uvFormat = DXGI_FORMAT_R8G8_SNORM;
     if ( !m_textures[PLANE_Y].Create(m_widthTex,       m_heightTex,      1, usage, DXGI_FORMAT_R8_UNORM)
       || !m_textures[PLANE_UV].Create(m_widthTex >> 1, m_heightTex >> 1, 1, usage, uvFormat))
@@ -511,7 +515,7 @@ bool CRenderBuffer::CopyToStaging(ID3D11View* view)
       sDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
       sDesc.BindFlags = 0;
 
-      hr = g_Windowing.Get3D11Device()->CreateTexture2D(&sDesc, nullptr, &m_staging);
+      hr = DX::DeviceResources::Get()->GetD3DDevice()->CreateTexture2D(&sDesc, nullptr, &m_staging);
       if (SUCCEEDED(hr))
         m_sDesc = sDesc;
     }
@@ -519,7 +523,7 @@ bool CRenderBuffer::CopyToStaging(ID3D11View* view)
 
   if (m_staging)
   {
-    ID3D11DeviceContext* pContext = g_Windowing.GetImmediateContext();
+    ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetImmediateContext();
     // queue copying content from decoder texture to temporary texture.
     // actual data copying will be performed before rendering
     pContext->CopySubresourceRegion(m_staging,
@@ -540,12 +544,15 @@ void CRenderBuffer::CopyFromStaging() const
   if (!m_locked)
     return;
 
-  ID3D11DeviceContext* pContext = g_Windowing.GetImmediateContext();
+  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetImmediateContext();
   D3D11_MAPPED_SUBRESOURCE rectangle;
   if (SUCCEEDED(pContext->Map(m_staging, 0, D3D11_MAP_READ, 0, &rectangle)))
   {
     void* (*copy_func)(void* d, const void* s, size_t size) =
-      ((g_cpuInfo.GetCPUFeatures() & CPU_FEATURE_SSE4) != 0) ? gpu_memcpy : memcpy;
+#if defined(HAVE_SSE2)
+      ((g_cpuInfo.GetCPUFeatures() & CPU_FEATURE_SSE4) != 0) ? gpu_memcpy :
+#endif
+      memcpy;
 
     uint8_t* s_y = static_cast<uint8_t*>(rectangle.pData);
     uint8_t* s_uv = static_cast<uint8_t*>(rectangle.pData) + m_sDesc.Height * rectangle.RowPitch;

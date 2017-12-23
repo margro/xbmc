@@ -22,7 +22,7 @@
 
 #include "DVDCodecs/DVDFactoryCodec.h"
 #include "DVDVideoCodecAmlogic.h"
-#include "TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "DVDStreamInfo.h"
 #include "AMLCodec.h"
 #include "ServiceBroker.h"
@@ -236,6 +236,11 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
     case AV_CODEC_ID_CAVS:
       m_pFormatName = "am-avs";
       break;
+    case AV_CODEC_ID_VP9:
+      if (!aml_support_vp9())
+        return false;
+      m_pFormatName = "am-vp9";
+      break;
     case AV_CODEC_ID_HEVC:
       if (aml_support_hevc()) {
         if (!aml_support_hevc_4k2k() && ((m_hints.width > 1920) || (m_hints.height > 1088)))
@@ -267,7 +272,7 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
 
   m_aspect_ratio = m_hints.aspect;
 
-  m_Codec = std::shared_ptr<CAMLCodec>(new CAMLCodec());
+  m_Codec = std::shared_ptr<CAMLCodec>(new CAMLCodec(m_processInfo));
   if (!m_Codec)
   {
     CLog::Log(LOGERROR, "%s: Failed to create Amlogic Codec", __MODULE_NAME__);
@@ -522,7 +527,7 @@ void CDVDVideoCodecAmlogic::FrameQueuePush(double dts, double pts)
     }
   }
   m_queue_depth++;
-  pthread_mutex_unlock(&m_queue_mutex);	
+  pthread_mutex_unlock(&m_queue_mutex);
 }
 
 void CDVDVideoCodecAmlogic::FrameRateTracking(uint8_t *pData, int iSize, double dts, double pts)

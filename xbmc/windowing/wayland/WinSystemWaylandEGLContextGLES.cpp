@@ -19,19 +19,23 @@
  */
 
 #include "WinSystemWaylandEGLContextGLES.h"
+#include "OptionalsReg.h"
 
 #include <EGL/egl.h>
 
+#include "cores/RetroPlayer/process/RPProcessInfo.h"
+#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
 #include "utils/log.h"
 
-#if defined(HAVE_LIBVA)
-#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
-#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.h"
-#endif
-
 using namespace KODI::WINDOWING::WAYLAND;
+
+std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+{
+  std::unique_ptr<CWinSystemBase> winSystem(new CWinSystemWaylandEGLContextGLES());
+  return winSystem;
+}
 
 bool CWinSystemWaylandEGLContextGLES::InitWindowSystem()
 {
@@ -41,15 +45,17 @@ bool CWinSystemWaylandEGLContextGLES::InitWindowSystem()
   }
 
   CLinuxRendererGLES::Register();
+  RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
 
-#if defined(HAVE_LIBVA)
   bool general, hevc;
-  CRendererVAAPI::Register(GetVaDisplay(), m_eglContext.GetEGLDisplay(), general, hevc);
+  m_vaapiProxy.reset(::WAYLAND::VaapiProxyCreate());
+  ::WAYLAND::VaapiProxyConfig(m_vaapiProxy.get(),GetConnection()->GetDisplay(),
+                              m_eglContext.GetEGLDisplay());
+  ::WAYLAND::VAAPIRegisterRender(m_vaapiProxy.get(), general, hevc);
   if (general)
   {
-    VAAPI::CDecoder::Register(hevc);
+    ::WAYLAND::VAAPIRegister(m_vaapiProxy.get(), hevc);
   }
-#endif
 
   return true;
 }
@@ -74,4 +80,9 @@ void CWinSystemWaylandEGLContextGLES::SetVSyncImpl(bool enable)
 void CWinSystemWaylandEGLContextGLES::PresentRenderImpl(bool rendered)
 {
   PresentFrame(rendered);
+}
+
+void CWinSystemWaylandEGLContextGLES::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
+{
+  ::WAYLAND::VaapiProxyDelete(p);
 }

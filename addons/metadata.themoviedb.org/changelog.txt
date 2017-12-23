@@ -1,3 +1,28 @@
+[B]5.0.2[/B]
+- changed: made tmdb uniqueid consistent with documentation
+
+[B]5.0.1[/B]
+- changed: simplified ratings code
+
+[B]5.0.0[/B]
+Version bump for Krypton
+
+[B]4.0.3[/B]
+- changed: split zh-cn and zh-tw
+
+[B]4.0.1[/B]
+- switched API queries to https
+
+[B]4.0.0[/B]
+- added: multiple ratings and uniqueid support (requires Kodi v17) -thanks phate89
+- added: premiered date (requires Kodi v17) -thanks phate89
+
+[B]3.9.4[/B]
+- Fixed after API layout changes
+
+[B]3.9.3[/B]
+- Update
+
 [B]3.9.2[/B]
 - added: some new languages
 
@@ -104,7 +129,7 @@
 - fixed: movies without release date won't find
 
 [B]3.0.7[/B]
-- fixed: keep originaltitle; IMDb ID; remove TMDb title fallback, because it became obsolete
+- fixed: keep originaltitle; IMDb ID; remove TMDb title fallback, because it became obsolate
 
 [B]3.0.6[/B]
 - updated chinese translation

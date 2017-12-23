@@ -20,7 +20,9 @@
 
 #include "ActiveAE.h"
 
+using namespace AE;
 using namespace ActiveAE;
+#include "ActiveAESettings.h"
 #include "ActiveAESound.h"
 #include "ActiveAEStream.h"
 #include "ServiceBroker.h"
@@ -32,7 +34,7 @@ using namespace ActiveAE;
 #include "cores/AudioEngine/Encoders/AEEncoderFFmpeg.h"
 
 #include "settings/Settings.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "utils/log.h"
 
 #define MAX_CACHE_LEVEL 0.4   // total cache time of stream in seconds
@@ -291,16 +293,20 @@ CActiveAE::CActiveAE() :
   m_aeGUISoundForce = false;
   m_stats.Reset(44100, true);
   m_streamIdGen = 0;
+
+  CActiveAESettings::m_hasAE = true;
 }
 
 CActiveAE::~CActiveAE()
 {
+  CActiveAESettings::m_hasAE = false;
+
   Dispose();
 }
 
 void CActiveAE::Dispose()
 {
-  g_Windowing.Unregister(this);
+  CServiceBroker::GetWinSystem().Unregister(this);
 
   m_bStop = true;
   m_outMsgEvent.Set();
@@ -317,11 +323,12 @@ void CActiveAE::Dispose()
 enum AE_STATES
 {
   AE_TOP = 0,                      // 0
-  AE_TOP_ERROR,                    // 1
-  AE_TOP_UNCONFIGURED,             // 2
-  AE_TOP_RECONFIGURING,            // 3
-  AE_TOP_CONFIGURED,               // 4
-  AE_TOP_CONFIGURED_SUSPEND,       // 5
+  AE_TOP_WAIT_PRECOND,             // 1
+  AE_TOP_ERROR,                    // 2
+  AE_TOP_UNCONFIGURED,             // 3
+  AE_TOP_RECONFIGURING,            // 4
+  AE_TOP_CONFIGURED,               // 5
+  AE_TOP_CONFIGURED_SUSPEND,       // 6
   AE_TOP_CONFIGURED_IDLE,          // 6
   AE_TOP_CONFIGURED_PLAY,          // 7
 };
@@ -329,12 +336,13 @@ enum AE_STATES
 int AE_parentStates[] = {
     -1,
     0, //TOP_ERROR
+    0, //AE_TOP_WAIT_PRECOND
     0, //TOP_UNCONFIGURED
     0, //TOP_CONFIGURED
     0, //TOP_RECONFIGURING
-    4, //TOP_CONFIGURED_SUSPEND
-    4, //TOP_CONFIGURED_IDLE
-    4, //TOP_CONFIGURED_PLAY
+    5, //TOP_CONFIGURED_SUSPEND
+    5, //TOP_CONFIGURED_IDLE
+    5, //TOP_CONFIGURED_PLAY
 };
 
 void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
@@ -436,6 +444,31 @@ void CActiveAE::StateMachine(int signal, Protocol *port, Message *msg)
         CLog::Log(LOGWARNING, "CActiveAE::%s - signal: %d from port: %s not handled for state: %d", __FUNCTION__, signal, portName.c_str(), m_state);
       }
       return;
+
+    case AE_TOP_WAIT_PRECOND:
+      if (port == &m_controlPort)
+      {
+        switch (signal)
+        {
+          case CActiveAEControlProtocol::INIT:
+            LoadSettings();
+            if (!m_settings.device.empty())
+            {
+              m_state = AE_TOP_UNCONFIGURED;
+              m_bStateMachineSelfTrigger = true;
+            }
+            else
+            {
+              // Application can't handle error case and work without an AE
+              msg->Reply(CActiveAEControlProtocol::ACC);
+            }
+            return;
+
+          default:
+            break;
+        }
+      }
+      break;
 
     case AE_TOP_ERROR:
       if (port == NULL) // timeout
@@ -960,7 +993,7 @@ void CActiveAE::Process()
   bool gotMsg;
   XbmcThreads::EndTime timer;
 
-  m_state = AE_TOP_UNCONFIGURED;
+  m_state = AE_TOP_WAIT_PRECOND;
   m_extTimeout = 1000;
   m_bStateMachineSelfTrigger = false;
   m_extDrain = false;
@@ -2613,7 +2646,7 @@ bool CActiveAE::Initialize()
   }
 
   // hook into windowing for receiving display reset events
-  g_Windowing.Register(this);
+  CServiceBroker::GetWinSystem().Register(this);
 
   m_inMsgEvent.Reset();
   return true;
@@ -2622,11 +2655,6 @@ bool CActiveAE::Initialize()
 void CActiveAE::EnumerateOutputDevices(AEDeviceList &devices, bool passthrough)
 {
   m_sink.EnumerateOutputDevices(devices, passthrough);
-}
-
-std::string CActiveAE::GetDefaultDevice(bool passthrough)
-{
-  return m_sink.GetDefaultDevice(passthrough);
 }
 
 void CActiveAE::OnSettingsChange(const std::string& setting)
@@ -2999,7 +3027,7 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
   int fileSize = sound->GetFileSize();
 
   fmt_ctx = avformat_alloc_context();
-  unsigned char* buffer = (unsigned char*)av_malloc(SOUNDBUFFER_SIZE+FF_INPUT_BUFFER_PADDING_SIZE);
+  unsigned char* buffer = (unsigned char*)av_malloc(SOUNDBUFFER_SIZE+AV_INPUT_BUFFER_PADDING_SIZE);
   io_ctx = avio_alloc_context(buffer, SOUNDBUFFER_SIZE, 0,
                                             sound, CActiveAESound::Read, NULL, CActiveAESound::Seek);
   io_ctx->max_packet_size = sound->GetChunkSize();
@@ -3021,7 +3049,7 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
       av_freep(&io_ctx);
     }
     delete sound;
-    return NULL;
+    return nullptr;
   }
 
   // find decoder
@@ -3030,14 +3058,14 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
     fmt_ctx->flags |= AVFMT_FLAG_NOPARSE;
     if (avformat_find_stream_info(fmt_ctx, NULL) >= 0)
     {
-      dec_ctx = fmt_ctx->streams[0]->codec;
-      dec = avcodec_find_decoder(dec_ctx->codec_id);
-      config.sample_rate = dec_ctx->sample_rate;
-      config.channels = dec_ctx->channels;
-      config.channel_layout = dec_ctx->channel_layout;
+      AVCodecID codecId = fmt_ctx->streams[0]->codecpar->codec_id;
+      dec = avcodec_find_decoder(codecId);
+      config.sample_rate = fmt_ctx->streams[0]->codecpar->sample_rate;
+      config.channels = fmt_ctx->streams[0]->codecpar->channels;
+      config.channel_layout = fmt_ctx->streams[0]->codecpar->channel_layout;
     }
   }
-  if (dec == NULL)
+  if (dec == nullptr)
   {
     avformat_close_input(&fmt_ctx);
     if (io_ctx)
@@ -3046,7 +3074,7 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
       av_freep(&io_ctx);
     }
     delete sound;
-    return NULL;
+    return nullptr;
   }
 
   dec_ctx = avcodec_alloc_context3(dec);

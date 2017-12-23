@@ -18,14 +18,11 @@
  *
  */
 
-#ifndef WINDOW_EVENTS_LINUX_H
-#define WINDOW_EVENTS_LINUX_H
-
 #pragma once
 #include <memory>
 #include "utils/Observer.h"
 #include "windowing/WinEvents.h"
-#include "input/linux/LinuxInputDevices.h"
+#include "platform/linux/input/LinuxInputDevices.h"
 
 class CWinEventsLinux : public IWinEvents, public Observer
 {
@@ -46,5 +43,3 @@ private:
   static CLinuxInputDevices m_devices;
   std::unique_ptr<CLinuxInputDevicesCheckHotplugged> m_checkHotplug;
 };
-
-#endif

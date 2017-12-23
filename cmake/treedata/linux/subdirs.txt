@@ -1,5 +1,5 @@
-xbmc/linux                 linuxsupport
-xbmc/input/linux           input/linux
+xbmc/platform/linux        platform/linux
+xbmc/platform/linux/input  platform/linux/input
 xbmc/input/touch           input/touch
 xbmc/input/touch/generic   input/touch/generic
 xbmc/network/linux         network/linux
@@ -9,5 +9,6 @@ xbmc/storage/linux         storage/linux
 xbmc/filesystem/posix      filesystem/posix
 xbmc/utils/posix           utils_posix
 xbmc/platform/posix        posix
+xbmc/cores/RetroPlayer/process/rbpi cores/RetroPlayer/process/rbpi
 xbmc/cores/VideoPlayer/Process/rbpi cores/VideoPlayer/Process/rbpi
 xbmc/windowing/linux       windowing/linux

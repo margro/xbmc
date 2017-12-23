@@ -18,7 +18,7 @@
  *
  */
 
-#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
+#include "cores/AudioEngine/AESinkFactory.h"
 #include "cores/AudioEngine/Sinks/AESinkDARWINOSX.h"
 #include "cores/AudioEngine/Utils/AERingBuffer.h"
 #include "cores/AudioEngine/Sinks/osx/CoreAudioHelpers.h"
@@ -27,7 +27,7 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/TimeUtils.h"
-#include "linux/XMemUtils.h"
+#include "platform/linux/XMemUtils.h"
 #include "ServiceBroker.h"
 
 
@@ -172,6 +172,25 @@ CAESinkDARWINOSX::~CAESinkDARWINOSX()
 {
   CCoreAudioDevice::RegisterDeviceChangedCB(false, deviceChangedCB, this);
   CCoreAudioDevice::RegisterDefaultOutputDeviceChangedCB(false, deviceChangedCB, this);
+}
+
+void CAESinkDARWINOSX::Register()
+{
+  AE::AESinkRegEntry reg;
+  reg.sinkName = "DARWINOSX";
+  reg.createFunc = CAESinkDARWINOSX::Create;
+  reg.enumerateFunc = CAESinkDARWINOSX::EnumerateDevicesEx;
+  AE::CAESinkFactory::RegisterSink(reg);
+}
+
+IAESink* CAESinkDARWINOSX::Create(std::string &device, AEAudioFormat &desiredFormat)
+{
+  IAESink *sink = new CAESinkDARWINOSX();
+  if (sink->Initialize(desiredFormat, device))
+    return sink;
+
+  delete sink;
+  return nullptr;
 }
 
 bool CAESinkDARWINOSX::Initialize(AEAudioFormat &format, std::string &device)

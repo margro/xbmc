@@ -61,6 +61,10 @@ class CDataCacheCore;
 class CSettings;
 class IAE;
 class CFavouritesService;
+class CNetwork;
+class CWinSystemBase;
+class CPowerManager;
+class CWeatherManager;
 
 namespace KODI
 {
@@ -68,6 +72,11 @@ namespace GAME
 {
   class CControllerManager;
   class CGameServices;
+}
+
+namespace RETRO
+{
+  class CGUIGameRenderManager;
 }
 }
 
@@ -77,6 +86,7 @@ namespace PERIPHERALS
 }
 
 class CInputManager;
+class CFileExtensionProvider;
 
 class CServiceManager
 {
@@ -84,12 +94,14 @@ public:
   CServiceManager();
   ~CServiceManager();
 
+  bool InitForTesting();
   bool InitStageOne();
   bool InitStageTwo(const CAppParamParser &params);
   bool CreateAudioEngine();
   bool DestroyAudioEngine();
   bool StartAudioEngine();
   bool InitStageThree();
+  void DeinitTesting();
   void DeinitStageThree();
   void DeinitStageTwo();
   void DeinitStageOne();
@@ -100,6 +112,7 @@ public:
   ADDON::CServiceAddonManager& GetServiceAddons();
   ADDON::CRepositoryUpdater& GetRepositoryUpdater();
   ANNOUNCEMENT::CAnnouncementManager& GetAnnouncementManager();
+  CNetwork& GetNetwork();
 #ifdef HAS_PYTHON
   XBPython& GetXBPython();
 #endif
@@ -112,6 +125,7 @@ public:
   CPlatform& GetPlatform();
   KODI::GAME::CControllerManager& GetGameControllerManager();
   KODI::GAME::CGameServices& GetGameServices();
+  KODI::RETRO::CGUIGameRenderManager& GetGameRenderManager();
   PERIPHERALS::CPeripherals& GetPeripherals();
 
   PLAYLIST::CPlayListPlayer& GetPlaylistPlayer();
@@ -120,6 +134,14 @@ public:
   CSettings& GetSettings();
   CFavouritesService& GetFavouritesService();
   CInputManager &GetInputManager();
+  CFileExtensionProvider &GetFileExtensionProvider();
+
+  CWinSystemBase &GetWinSystem();
+  void SetWinSystem(std::unique_ptr<CWinSystemBase> winSystem);
+
+  CPowerManager &GetPowerManager();
+
+  CWeatherManager &GetWeatherManager();
 
 protected:
   struct delete_dataCacheCore
@@ -142,6 +164,9 @@ protected:
     void operator()(CFavouritesService *p) const;
   };
 
+  //! \brief Initialize appropriate networking instance.
+  CNetwork* SetupNetwork() const;
+
   std::unique_ptr<ADDON::CAddonMgr> m_addonMgr;
   std::unique_ptr<ADDON::CBinaryAddonManager> m_binaryAddonManager;
   std::unique_ptr<ADDON::CBinaryAddonCache> m_binaryAddonCache;
@@ -161,7 +186,13 @@ protected:
   std::unique_ptr<CSettings> m_settings;
   std::unique_ptr<KODI::GAME::CControllerManager> m_gameControllerManager;
   std::unique_ptr<KODI::GAME::CGameServices> m_gameServices;
+  std::unique_ptr<KODI::RETRO::CGUIGameRenderManager> m_gameRenderManager;
   std::unique_ptr<PERIPHERALS::CPeripherals> m_peripherals;
   std::unique_ptr<CFavouritesService, delete_favouritesService> m_favouritesService;
   std::unique_ptr<CInputManager> m_inputManager;
+  std::unique_ptr<CFileExtensionProvider> m_fileExtensionProvider;
+  std::unique_ptr<CNetwork> m_network;
+  std::unique_ptr<CWinSystemBase> m_winSystem;
+  std::unique_ptr<CPowerManager> m_powerManager;
+  std::unique_ptr<CWeatherManager> m_weatherManager;
 };

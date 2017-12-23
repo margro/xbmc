@@ -14,9 +14,6 @@ passed_cxxflags="$CXXFLAGS"
 
 m4_include([m4/xbmc_arch.m4])
 m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
-AX_CXX_COMPILE_STDCXX_11(,[mandatory])
-c11_flags=$(echo "$CFLAGS" | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ //g')
-cxx11_flags=$(echo "$CXXFLAGS" | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ //g')
 
 # check for not same cpu value
 AC_DEFUN([MC_CHECK_NOT_CPU],
@@ -100,6 +97,16 @@ AC_ARG_ENABLE([wayland],
   [enable_wayland=$enableval],
   [enable_wayland=no])
 
+
+OLD_PATH="${PATH}"
+if test -n "$use_toolchain"; then
+  PATH="${use_toolchain}/bin:${use_toolchain}/usr/bin:$PATH"
+fi
+AX_CXX_COMPILE_STDCXX_11(,[mandatory])
+c11_flags=$(echo "$CFLAGS" | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ //g')
+cxx11_flags=$(echo "$CXXFLAGS" | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ //g')
+PATH="${OLD_PATH}"
+
 if test "$use_ccache" = "yes"; then
   AC_CHECK_PROG(HAVE_CCACHE,ccache,"yes","no",)
   if test "x$HAVE_CCACHE" = "xno" ; then
@@ -161,10 +168,12 @@ case $host in
     if test "x$use_cpu" = "xauto"; then
       use_cpu="armeabi-v7a"
     fi
+    platform_cc=clang
+    platform_cxx=clang++
     use_sdk="${use_sdk:-android-24}"
     use_ndk_api="${use_ndk_api:-21}"
     deps_dir="$use_host-$use_ndk_api-$build_type"
-    platform_cflags="-DANDROID -fexceptions -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
+    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
     optimize_flags="-Os"
     if test "x$use_cpu" = "xarmeabi-v7a"; then
       platform_cflags+=" -march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=neon"
@@ -180,10 +189,12 @@ case $host in
     if test "x$use_cpu" = "xauto"; then
       use_cpu="arm64-v8a"
     fi
+    platform_cc=clang
+    platform_cxx=clang++
     use_sdk="${use_sdk:-android-24}"
     use_ndk_api="${use_ndk_api:-21}"
     deps_dir="$use_host-$use_ndk_api-$build_type"
-    platform_cflags="-DANDROID -fexceptions -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
+    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
     optimize_flags="-Os"
     if test "x$use_cpu" = "xarm64-v8a"; then
       platform_cflags+=" -march=armv8-a -mtune=cortex-a53"
@@ -199,10 +210,12 @@ case $host in
     if test "x$use_cpu" = "xauto"; then
       use_cpu=$host_cpu
     fi
+    platform_cc=clang
+    platform_cxx=clang++
     use_sdk="${use_sdk:-android-24}"
     use_ndk_api="${use_ndk_api:-21}"
     deps_dir="$use_host-$use_ndk_api-$build_type"
-    platform_cflags="-DANDROID -fexceptions -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
+    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
     optimize_flags="-Os"
     platform_ldflags="-L$prefix/$deps_dir/lib/android-$use_ndk_api"
     platform_cxxflags="$platform_cflags -frtti"
@@ -257,6 +270,8 @@ case $host in
     if test "x$prefix" = "xNONE"; then
       prefix=/Users/Shared/xbmc-depends
     fi
+
+    native_platform_min_version=-mmacosx-version-min=`sw_vers | grep ProductVersion | sed -E "s/.*:.*(10\..*)\.?.*/\1/"`
     use_xcodepath=`xcode-select -print-path`
     use_xcodebuild=$use_xcodepath/usr/bin/xcodebuild
     use_xcode=[`$use_xcodebuild -version | grep Xcode | awk '{ print $2}'`]
@@ -322,6 +337,7 @@ case $host in
           10.10);;
           10.11);;
           10.12);;
+          10.13);;
           *)
             AC_MSG_ERROR(error in configure of --with-sdk=$use_sdk)
         esac
@@ -381,6 +397,7 @@ case $host in
           8.*);;
           9.*);;
           10.*);;
+          11.*);;
             *)
               AC_MSG_ERROR(error in configure of --with-sdk=$use_sdk)
             ;;
@@ -634,16 +651,23 @@ if test "$platform_os" == "android"; then
   fi
 fi
 
+
 # remove unwanted optimization flags
 tmp_cflags=$(echo $c11_flags $platform_cflags | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ \{2,\}//g')
 tmp_cxxflags=$(echo $cxx11_flags $platform_cxxflags | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ \{2,\}//g')
 
 release_cflags="-DNDEBUG=1"
-CFLAGS="$tmp_cflags -Og -g -D_DEBUG"
-AC_COMPILE_IFELSE(
-  [AC_LANG_SOURCE([int foo;])],
-  [debug_cflags="-Og -g -D_DEBUG"],
-  [debug_cflags="-g -D_DEBUG"])
+
+# newer xcode version accept -Og flag, but debugging doesn't work with it
+if test "$platform_os" = "osx" || test "$platform_os" = "ios"; then
+  debug_cflags="-g -D_DEBUG"
+else
+  CFLAGS="$tmp_cflags -Og -g -D_DEBUG"
+  AC_COMPILE_IFELSE(
+    [AC_LANG_SOURCE([int foo;])],
+    [debug_cflags="-Og -g -D_DEBUG"],
+    [debug_cflags="-g -D_DEBUG"])
+fi
 
 # add user supplied flags to the end, so they override our defaults
 platform_cflags_release="$tmp_cflags $relase_cflags $optimize_flags $passed_cflags"
@@ -698,6 +722,7 @@ AC_SUBST(enable_wayland)
 AC_SUBST(has_libcrystax)
 AC_SUBST(use_xcode)
 AC_SUBST(use_ccache)
+AC_SUBST(native_platform_min_version)
 
 AC_OUTPUT
 echo -e "ccache:\t $use_ccache"

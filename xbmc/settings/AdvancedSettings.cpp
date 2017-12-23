@@ -25,11 +25,6 @@
 #include <string>
 #include <vector>
 
-#include "addons/AudioDecoder.h"
-#include "addons/BinaryAddonCache.h"
-#include "addons/IAddon.h"
-#include "addons/ImageDecoder.h"
-#include "addons/binary-addons/BinaryAddonBase.h"
 #include "Application.h"
 #include "ServiceBroker.h"
 #include "filesystem/File.h"
@@ -278,7 +273,6 @@ void CAdvancedSettings::Initialize()
 
   m_bMusicLibraryAllItemsOnBottom = false;
   m_bMusicLibraryCleanOnUpdate = false;
-  m_bMusicLibraryPromptFullTagScan = false;
   m_bMusicLibraryArtistSortOnUpdate = false;
   m_iMusicLibraryRecentlyAddedItems = 25;
   m_strMusicLibraryAlbumFormat = "";
@@ -385,7 +379,7 @@ void CAdvancedSettings::Initialize()
 
   m_pictureExtensions = ".png|.jpg|.jpeg|.bmp|.gif|.ico|.tif|.tiff|.tga|.pcx|.cbz|.zip|.cbr|.rar|.rss|.webp|.jp2|.apng";
   m_musicExtensions = ".nsv|.m4a|.flac|.aac|.strm|.pls|.rm|.rma|.mpa|.wav|.wma|.ogg|.mp3|.mp2|.m3u|.gdm|.imf|.m15|.sfx|.uni|.ac3|.dts|.cue|.aif|.aiff|.wpl|.ape|.mac|.mpc|.mp+|.mpp|.shn|.zip|.rar|.wv|.dsp|.xsp|.xwav|.waa|.wvs|.wam|.gcm|.idsp|.mpdsp|.mss|.spt|.rsd|.sap|.cmc|.cmr|.dmc|.mpt|.mpd|.rmt|.tmc|.tm8|.tm2|.oga|.url|.pxml|.tta|.rss|.wtv|.mka|.tak|.opus|.dff|.dsf|.m4b";
-  m_videoExtensions = ".m4v|.3g2|.3gp|.nsv|.tp|.ts|.ty|.strm|.pls|.rm|.rmvb|.mpd|.m3u|.m3u8|.ifo|.mov|.qt|.divx|.xvid|.bivx|.vob|.nrg|.img|.iso|.udf|.pva|.wmv|.asf|.asx|.ogm|.m2v|.avi|.bin|.dat|.mpg|.mpeg|.mp4|.mkv|.mk3d|.avc|.vp3|.svq3|.nuv|.viv|.dv|.fli|.flv|.rar|.001|.wpl|.zip|.vdr|.dvr-ms|.xsp|.mts|.m2t|.m2ts|.evo|.ogv|.sdp|.avs|.rec|.url|.pxml|.vc1|.h264|.rcv|.rss|.mpls|.webm|.bdmv|.wtv";
+  m_videoExtensions = ".m4v|.3g2|.3gp|.nsv|.tp|.ts|.ty|.strm|.pls|.rm|.rmvb|.mpd|.m3u|.m3u8|.ifo|.mov|.qt|.divx|.xvid|.bivx|.vob|.nrg|.img|.iso|.udf|.pva|.wmv|.asf|.asx|.ogm|.m2v|.avi|.bin|.dat|.mpg|.mpeg|.mp4|.mkv|.mk3d|.avc|.vp3|.svq3|.nuv|.viv|.dv|.fli|.flv|.rar|.001|.wpl|.zip|.vdr|.dvr-ms|.xsp|.mts|.m2t|.m2ts|.evo|.ogv|.sdp|.avs|.rec|.url|.pxml|.vc1|.h264|.rcv|.rss|.mpls|.webm|.bdmv|.wtv|.trp|.f4v";
   m_subtitlesExtensions = ".utf|.utf8|.utf-8|.sub|.srt|.smi|.rt|.txt|.ssa|.text|.ssa|.aqt|.jss|.ass|.idx|.ifo|.rar|.zip";
   m_discStubExtensions = ".disc";
   // internal music extensions
@@ -730,7 +724,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetBoolean(pElement, "prioritiseapetags", m_prioritiseAPEv2tags);
     XMLUtils::GetBoolean(pElement, "allitemsonbottom", m_bMusicLibraryAllItemsOnBottom);
     XMLUtils::GetBoolean(pElement, "cleanonupdate", m_bMusicLibraryCleanOnUpdate);
-    XMLUtils::GetBoolean(pElement, "promptfulltagscan", m_bMusicLibraryPromptFullTagScan);
     XMLUtils::GetBoolean(pElement, "artistsortonupdate", m_bMusicLibraryArtistSortOnUpdate);
     XMLUtils::GetBoolean(pElement, "useartistsortname", m_musicUseArtistSortName);
     XMLUtils::GetString(pElement, "albumformat", m_strMusicLibraryAlbumFormat);
@@ -1388,14 +1381,12 @@ void CAdvancedSettings::SettingOptionsLoggingComponentsFiller(SettingConstPtr se
   list.push_back(std::make_pair(g_localizeStrings.Get(669), LOGSAMBA));
   list.push_back(std::make_pair(g_localizeStrings.Get(670), LOGCURL));
   list.push_back(std::make_pair(g_localizeStrings.Get(672), LOGFFMPEG));
+  list.push_back(std::make_pair(g_localizeStrings.Get(675), LOGJSONRPC));
   list.push_back(std::make_pair(g_localizeStrings.Get(676), LOGAUDIO));
   list.push_back(std::make_pair(g_localizeStrings.Get(680), LOGVIDEO));
   list.push_back(std::make_pair(g_localizeStrings.Get(683), LOGAVTIMING));
 #ifdef HAS_DBUS
   list.push_back(std::make_pair(g_localizeStrings.Get(674), LOGDBUS));
-#endif
-#ifdef HAS_JSONRPC
-  list.push_back(std::make_pair(g_localizeStrings.Get(675), LOGJSONRPC));
 #endif
 #ifdef HAS_WEB_SERVER
   list.push_back(std::make_pair(g_localizeStrings.Get(681), LOGWEBSERVER));
@@ -1422,34 +1413,4 @@ void CAdvancedSettings::setExtraLogLevel(const std::vector<CVariant> &components
 
     m_extraLogLevels |= static_cast<int>(it->asInteger());
   }
-}
-
-std::string CAdvancedSettings::GetMusicExtensions() const
-{
-  std::string result(m_musicExtensions);
-
-  BinaryAddonBaseList addonInfos;
-  CServiceBroker::GetBinaryAddonManager().GetAddonInfos(addonInfos, true, ADDON_AUDIODECODER);
-  for (const auto& addonInfo : addonInfos)
-  {
-    result += '|';
-    result += CAudioDecoder::GetExtensions(addonInfo);
-  }
-
-  return result;
-}
-
-std::string CAdvancedSettings::GetPictureExtensions() const
-{
-  std::string result(m_pictureExtensions);
-
-  BinaryAddonBaseList addonInfos;
-  CServiceBroker::GetBinaryAddonManager().GetAddonInfos(addonInfos, true, ADDON_IMAGEDECODER);
-  for (auto addonInfo : addonInfos)
-  {
-    result += '|';
-    result += addonInfo->Type(ADDON_IMAGEDECODER)->GetValue("@extension").asString();
-  }
-
-  return result;
 }

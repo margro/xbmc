@@ -35,7 +35,6 @@
 #include "threads/SingleLock.h"
 #include "utils/TimeUtils.h"
 #include "utils/StringUtils.h"
-#include "windowing/WindowingFactory.h"
 #include "CompileInfo.h"
 #include "messaging/ApplicationMessenger.h"
 #include <X11/Xatom.h>
@@ -52,7 +51,6 @@ using namespace KODI::WINDOWING;
 
 CWinSystemX11::CWinSystemX11() : CWinSystemBase()
 {
-  m_eWindowSystem = WINDOW_SYSTEM_X11;
   m_dpy = NULL;
   m_glWindow = 0;
   m_mainWindow = 0;
@@ -64,6 +62,9 @@ CWinSystemX11::CWinSystemX11() : CWinSystemBase()
   m_delayDispReset = false;
 
   XSetErrorHandler(XErrorHandler);
+
+  m_winEventsX11 = new CWinEventsX11(*this);
+  m_winEvents.reset(m_winEventsX11);
 }
 
 CWinSystemX11::~CWinSystemX11() = default;
@@ -120,7 +121,7 @@ bool CWinSystemX11::DestroyWindow()
     m_invisibleCursor = 0;
   }
 
-  CWinEventsX11Imp::Quit();
+  m_winEventsX11->Quit();
 
   XUnmapWindow(m_dpy, m_mainWindow);
   XDestroyWindow(m_dpy, m_glWindow);
@@ -159,25 +160,54 @@ bool CWinSystemX11::ResizeWindow(int newWidth, int newHeight, int newLeft, int n
     }
   }
 
-  if(m_nWidth  == newWidth &&
-     m_nHeight == newHeight &&
-     m_userOutput.compare(m_currentOutput) == 0)
-  {
-    UpdateCrtc();
-    return true;
-  }
-
   if (!SetWindow(newWidth, newHeight, false, m_userOutput))
   {
     return false;
   }
 
-  m_nWidth  = newWidth;
+  m_nWidth = newWidth;
   m_nHeight = newHeight;
   m_bFullScreen = false;
   m_currentOutput = m_userOutput;
 
-  return false;
+  return true;
+}
+
+void CWinSystemX11::FinishWindowResize(int newWidth, int newHeight)
+{
+  m_userOutput = CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
+  XOutput *out = NULL;
+  if (m_userOutput.compare("Default") != 0)
+  {
+    out = g_xrandr.GetOutput(m_userOutput);
+    if (out)
+    {
+      XMode mode = g_xrandr.GetCurrentMode(m_userOutput);
+      if (!mode.isCurrent)
+      {
+        out = NULL;
+      }
+    }
+  }
+  if (!out)
+  {
+    std::vector<XOutput> outputs = g_xrandr.GetModes();
+    if (!outputs.empty())
+    {
+      m_userOutput = outputs[0].name;
+    }
+  }
+
+  XResizeWindow(m_dpy, m_glWindow, newWidth, newHeight);
+  UpdateCrtc();
+
+  if (m_userOutput.compare(m_currentOutput) != 0)
+  {
+    SetWindow(newWidth, newHeight, false, m_userOutput);
+  }
+
+  m_nWidth = newWidth;
+  m_nHeight = newHeight;
 }
 
 bool CWinSystemX11::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
@@ -201,7 +231,7 @@ bool CWinSystemX11::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
     mode.hz  = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP).fRefreshRate;
     mode.id  = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP).strId;
   }
- 
+
   XMode   currmode = g_xrandr.GetCurrentMode(out.name);
   if (!currmode.name.empty())
   {
@@ -590,7 +620,7 @@ void CWinSystemX11::OnLostDevice()
       (*i)->OnLostDisplay();
   }
 
-  CWinEventsX11Imp::SetXRRFailSafeTimer(3000);
+  m_winEventsX11->SetXRRFailSafeTimer(3000);
 }
 
 void CWinSystemX11::Register(IDispResource *resource)
@@ -753,13 +783,13 @@ bool CWinSystemX11::SetWindow(int width, int height, bool fullscreen, const std:
     XFree(vi);
 
     //init X11 events
-    CWinEventsX11Imp::Init(m_dpy, m_mainWindow);
+    m_winEventsX11->Init(m_dpy, m_mainWindow);
 
     changeWindow = true;
     changeSize = true;
   }
 
-  if (!CWinEventsX11Imp::HasStructureChanged() && ((width != m_nWidth) || (height != m_nHeight)))
+  if (!m_winEventsX11->HasStructureChanged() && ((width != m_nWidth) || (height != m_nHeight)))
   {
     changeSize = true;
   }
@@ -1029,5 +1059,3 @@ void CWinSystemX11::UpdateCrtc()
   m_crtc = g_xrandr.GetCrtc(posx+winattr.width/2, posy+winattr.height/2, fps);
   g_graphicsContext.SetFPS(fps);
 }
-
-

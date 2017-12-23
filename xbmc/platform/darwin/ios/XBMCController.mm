@@ -21,6 +21,7 @@
 #include <sys/resource.h>
 #include <signal.h>
 
+#include "ServiceBroker.h"
 #include "system.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
@@ -33,7 +34,8 @@
 #include "input/touch/generic/GenericTouchActionHandler.h"
 #include "guilib/GUIControl.h"
 #include "input/Key.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/osx/WinSystemIOS.h"
+#include "windowing/XBMC_events.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "Util.h"
@@ -96,10 +98,10 @@ XBMCController *g_xbmcController;
 - (void) sendKeypressEvent: (XBMC_Event) event
 {
   event.type = XBMC_KEYDOWN;
-  CWinEvents::MessagePush(&event);
+  g_application.OnEvent(event);
 
   event.type = XBMC_KEYUP;
-  CWinEvents::MessagePush(&event);
+  g_application.OnEvent(event);
 }
 
 // START OF UIKeyInput protocol
@@ -691,6 +693,19 @@ XBMCController *g_xbmcController;
 
   [self becomeFirstResponder];
   [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
+  // Notifies UIKit that our view controller updated its preference
+  // regarding the visual indicator
+  // this should make ios call prefersHomeIndicatorAutoHidden and
+  // hide the home indicator on iPhoneX and other devices without
+  // home button
+  if ([self respondsToSelector:@selector(setNeedsUpdateOfHomeIndicatorAutoHidden)]) {
+    [self performSelector:@selector(setNeedsUpdateOfHomeIndicatorAutoHidden)];
+  }
+}
+//--------------------------------------------------------------
+- (BOOL)prefersHomeIndicatorAutoHidden
+{
+  return YES;
 }
 //--------------------------------------------------------------
 - (void)viewWillDisappear:(BOOL)animated
@@ -909,13 +924,15 @@ XBMCController *g_xbmcController;
     m_isPlayingBeforeInactive = YES;
     CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_PAUSE_IF_PLAYING);
   }
-  g_Windowing.OnAppFocusChange(false);
+  CWinSystemIOS& winSystem = dynamic_cast<CWinSystemIOS&>(CServiceBroker::GetWinSystem());
+  winSystem.OnAppFocusChange(false);
 }
 
 - (void)enterForeground
 {
   PRINT_SIGNATURE();
-  g_Windowing.OnAppFocusChange(true);
+  CWinSystemIOS& winSystem = dynamic_cast<CWinSystemIOS&>(CServiceBroker::GetWinSystem());
+  winSystem.OnAppFocusChange(true);
   // when we come back, restore playing if we were.
   if (m_isPlayingBeforeInactive)
   {

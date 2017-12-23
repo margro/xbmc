@@ -47,7 +47,6 @@ CPVRGUIInfo::CPVRGUIInfo(void) :
 
 CPVRGUIInfo::~CPVRGUIInfo(void)
 {
-  Stop();
 }
 
 void CPVRGUIInfo::ResetProperties(void)
@@ -75,6 +74,8 @@ void CPVRGUIInfo::ResetProperties(void)
   m_bIsPlayingRecording         = false;
   m_bIsPlayingEpgTag            = false;
   m_bIsPlayingEncryptedStream   = false;
+  m_bIsRecordingPlayingChannel  = false;
+  m_bCanRecordPlayingChannel    = false;
   m_bHasTVChannels              = false;
   m_bHasRadioChannels           = false;
   m_bIsTimeshifting             = false;
@@ -185,14 +186,11 @@ void CPVRGUIInfo::UpdateQualityData(void)
   PVR_SIGNAL_STATUS qualityInfo;
   ClearQualityInfo(qualityInfo);
 
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRPLAYBACK_SIGNALQUALITY) &&
-      CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client))
-  {
-    client->SignalQuality(qualityInfo);
-  }
-
-  memcpy(&m_qualityInfo, &qualityInfo, sizeof(m_qualityInfo));
+      CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client) &&
+      client->SignalQuality(qualityInfo) == PVR_ERROR_NO_ERROR)
+    memcpy(&m_qualityInfo, &qualityInfo, sizeof(m_qualityInfo));
 }
 
 void CPVRGUIInfo::UpdateDescrambleData(void)
@@ -200,9 +198,9 @@ void CPVRGUIInfo::UpdateDescrambleData(void)
   PVR_DESCRAMBLE_INFO descrambleInfo;
   ClearDescrambleInfo(descrambleInfo);
 
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client) &&
-      client->GetDescrambleInfo(descrambleInfo))
+      client->GetDescrambleInfo(descrambleInfo) == PVR_ERROR_NO_ERROR)
     memcpy(&m_descrambleInfo, &descrambleInfo, sizeof(m_descrambleInfo));
 }
 
@@ -213,13 +211,15 @@ void CPVRGUIInfo::UpdateMisc(void)
   std::string strPlayingClientName     = bStarted ? CServiceBroker::GetPVRManager().Clients()->GetPlayingClientName() : "";
   bool       bHasTVRecordings          = bStarted && CServiceBroker::GetPVRManager().Recordings()->GetNumTVRecordings() > 0;
   bool       bHasRadioRecordings       = bStarted && CServiceBroker::GetPVRManager().Recordings()->GetNumRadioRecordings() > 0;
-  bool       bIsPlayingTV              = bStarted && CServiceBroker::GetPVRManager().Clients()->IsPlayingTV();
-  bool       bIsPlayingRadio           = bStarted && CServiceBroker::GetPVRManager().Clients()->IsPlayingRadio();
-  bool       bIsPlayingRecording       = bStarted && CServiceBroker::GetPVRManager().Clients()->IsPlayingRecording();
-  bool       bIsPlayingEpgTag          = bStarted && CServiceBroker::GetPVRManager().Clients()->IsPlayingEpgTag();
-  bool       bIsPlayingEncryptedStream = bStarted && CServiceBroker::GetPVRManager().Clients()->IsEncrypted();
+  bool       bIsPlayingTV              = bStarted && CServiceBroker::GetPVRManager().IsPlayingTV();
+  bool       bIsPlayingRadio           = bStarted && CServiceBroker::GetPVRManager().IsPlayingRadio();
+  bool       bIsPlayingRecording       = bStarted && CServiceBroker::GetPVRManager().IsPlayingRecording();
+  bool       bIsPlayingEpgTag          = bStarted && CServiceBroker::GetPVRManager().IsPlayingEpgTag();
+  bool       bIsPlayingEncryptedStream = bStarted && CServiceBroker::GetPVRManager().IsPlayingEncryptedChannel();
   bool       bHasTVChannels            = bStarted && CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllTV()->HasChannels();
   bool       bHasRadioChannels         = bStarted && CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllRadio()->HasChannels();
+  bool bCanRecordPlayingChannel        = bStarted && CServiceBroker::GetPVRManager().CanRecordOnPlayingChannel();
+  bool bIsRecordingPlayingChannel      = bStarted && CServiceBroker::GetPVRManager().IsRecordingOnPlayingChannel();
   std::string strPlayingTVGroup        = (bStarted && bIsPlayingTV) ? CServiceBroker::GetPVRManager().GetPlayingGroup(false)->GroupName() : "";
 
   CSingleLock lock(m_critSection);
@@ -234,6 +234,8 @@ void CPVRGUIInfo::UpdateMisc(void)
   m_bHasTVChannels            = bHasTVChannels;
   m_bHasRadioChannels         = bHasRadioChannels;
   m_strPlayingTVGroup         = strPlayingTVGroup;
+  m_bCanRecordPlayingChannel  = bCanRecordPlayingChannel;
+  m_bIsRecordingPlayingChannel = bIsRecordingPlayingChannel;
 }
 
 void CPVRGUIInfo::UpdateTimeshift(void)
@@ -491,6 +493,12 @@ bool CPVRGUIInfo::TranslateBoolInfo(DWORD dwInfo) const
   case PVR_IS_TIMESHIFTING:
     bReturn = m_bIsTimeshifting;
     break;
+  case PVR_CAN_RECORD_PLAYING_CHANNEL:
+    bReturn = m_bCanRecordPlayingChannel;
+    break;
+  case PVR_IS_RECORDING_PLAYING_CHANNEL:
+    bReturn = m_bIsRecordingPlayingChannel;
+    break;
   default:
     break;
   }
@@ -607,22 +615,12 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
         strValue = recording->m_strChannelName;
         return true;
       }
-      case VIDEOPLAYER_SUB_CHANNEL_NUMBER:
+      case VIDEOPLAYER_CHANNEL_NUMBER:
       {
         const CPVRChannelPtr channel = recording->Channel();
         if (channel)
         {
-          strValue = StringUtils::Format("%i", channel->SubChannelNumber());
-          return true;
-        }
-        break;
-      }
-      case VIDEOPLAYER_CHANNEL_NUMBER_LBL:
-      {
-        const CPVRChannelPtr channel = recording->Channel();
-        if (channel)
-        {
-          strValue = channel->FormattedChannelNumber();
+          strValue = channel->ChannelNumber().FormattedChannelNumber();
           return true;
         }
         break;
@@ -657,7 +655,7 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
       }
       case VIDEOPLAYER_GENRE:
       {
-        GET_CURRENT_VIDEO_LABEL(StringUtils::Join(epgTag->Genre(), g_advancedSettings.m_videoItemSeparator));
+        GET_CURRENT_VIDEO_LABEL(epgTag->GetGenresLabel());
       }
       case VIDEOPLAYER_PLOT:
       {
@@ -715,15 +713,15 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
       }
       case VIDEOPLAYER_CAST:
       {
-        GET_CURRENT_VIDEO_LABEL(epgTag->Cast());
+        GET_CURRENT_VIDEO_LABEL(epgTag->GetCastLabel());
       }
       case VIDEOPLAYER_DIRECTOR:
       {
-        GET_CURRENT_VIDEO_LABEL(epgTag->Director());
+        GET_CURRENT_VIDEO_LABEL(epgTag->GetDirectorsLabel());
       }
       case VIDEOPLAYER_WRITER:
       {
-        GET_CURRENT_VIDEO_LABEL(epgTag->Writer());
+        GET_CURRENT_VIDEO_LABEL(epgTag->GetWritersLabel());
       }
       case VIDEOPLAYER_PARENTAL_RATING:
       {
@@ -740,7 +738,7 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
       }
       case VIDEOPLAYER_NEXT_GENRE:
       {
-        GET_NEXT_VIDEO_LABEL(StringUtils::Join(epgTag->Genre(), g_advancedSettings.m_videoItemSeparator));
+        GET_NEXT_VIDEO_LABEL(epgTag->GetGenresLabel());
       }
       case VIDEOPLAYER_NEXT_PLOT:
       {
@@ -783,31 +781,7 @@ bool CPVRGUIInfo::GetVideoLabel(const CFileItem &item, int iLabel, std::string &
 
         if (channel)
         {
-          strValue = StringUtils::Format("%i", channel->ChannelNumber());
-          return true;
-        }
-        break;
-      }
-      case VIDEOPLAYER_SUB_CHANNEL_NUMBER:
-      {
-        if (!channel && epgTag)
-          channel = epgTag->Channel();
-
-        if (channel)
-        {
-          strValue = StringUtils::Format("%i", channel->SubChannelNumber());
-          return true;
-        }
-        break;
-      }
-      case VIDEOPLAYER_CHANNEL_NUMBER_LBL:
-      {
-        if (!channel && epgTag)
-          channel = epgTag->Channel();
-
-        if (channel)
-        {
-          strValue = channel->FormattedChannelNumber();
+          strValue = channel->ChannelNumber().FormattedChannelNumber();
           return true;
         }
         break;
@@ -983,7 +957,7 @@ void CPVRGUIInfo::CharInfoEncryption(std::string &strValue) const
   }
   else
   {
-    const CPVRChannelPtr channel(CServiceBroker::GetPVRManager().Clients()->GetPlayingChannel());
+    const CPVRChannelPtr channel(CServiceBroker::GetPVRManager().GetPlayingChannel());
     if (channel)
     {
       strValue = channel->EncryptionName();
@@ -1142,8 +1116,8 @@ CPVREpgInfoTagPtr CPVRGUIInfo::GetPlayingTag() const
 
 void CPVRGUIInfo::UpdatePlayingTag(void)
 {
-  const CPVRChannelPtr currentChannel(CServiceBroker::GetPVRManager().GetCurrentChannel());
-  const CPVREpgInfoTagPtr currentTag(CServiceBroker::GetPVRManager().Clients()->GetPlayingEpgTag());
+  const CPVRChannelPtr currentChannel(CServiceBroker::GetPVRManager().GetPlayingChannel());
+  const CPVREpgInfoTagPtr currentTag(CServiceBroker::GetPVRManager().GetPlayingEpgTag());
   if (currentChannel || currentTag)
   {
     CPVREpgInfoTagPtr epgTag(GetPlayingTag());
@@ -1170,7 +1144,7 @@ void CPVRGUIInfo::UpdatePlayingTag(void)
   }
   else
   {
-    const CPVRRecordingPtr recording(CServiceBroker::GetPVRManager().Clients()->GetPlayingRecording());
+    const CPVRRecordingPtr recording(CServiceBroker::GetPVRManager().GetPlayingRecording());
     if (recording)
     {
       ResetPlayingTag();

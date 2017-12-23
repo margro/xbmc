@@ -20,7 +20,7 @@
 
 #include "DVDFactoryInputStream.h"
 #include "DVDInputStreamPVRManager.h"
-#include "DVDDemuxers/DVDDemuxPacket.h"
+#include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
 #include "ServiceBroker.h"
 #include "URL.h"
 #include "pvr/PVRManager.h"
@@ -226,7 +226,7 @@ bool CDVDInputStreamPVRManager::GetTimes(Times &times)
 
 CPVRChannelPtr CDVDInputStreamPVRManager::GetSelectedChannel()
 {
-  return CServiceBroker::GetPVRManager().GetCurrentChannel();
+  return CServiceBroker::GetPVRManager().GetPlayingChannel();
 }
 
 CDVDInputStream::ENextStream CDVDInputStreamPVRManager::NextStream()
@@ -241,23 +241,6 @@ CDVDInputStream::ENextStream CDVDInputStreamPVRManager::NextStream()
       return NEXTSTREAM_RETRY;
   }
   return NEXTSTREAM_NONE;
-}
-
-bool CDVDInputStreamPVRManager::CanRecord()
-{
-  if (!m_isRecording)
-    return CServiceBroker::GetPVRManager().Clients()->CanRecordInstantly();
-  return false;
-}
-
-bool CDVDInputStreamPVRManager::IsRecording()
-{
-  return CServiceBroker::GetPVRManager().Clients()->IsRecordingOnPlayingChannel();
-}
-
-void CDVDInputStreamPVRManager::Record(bool bOnOff)
-{
-  CServiceBroker::GetPVRManager().StartRecordingOnPlayingChannel(bOnOff);
 }
 
 bool CDVDInputStreamPVRManager::CanPause()
@@ -275,11 +258,6 @@ void CDVDInputStreamPVRManager::Pause(bool bPaused)
   CServiceBroker::GetPVRManager().Clients()->PauseStream(bPaused);
 }
 
-std::string CDVDInputStreamPVRManager::GetInputFormat()
-{
-  return CServiceBroker::GetPVRManager().Clients()->GetCurrentInputFormat();
-}
-
 bool CDVDInputStreamPVRManager::IsRealtime()
 {
   return CServiceBroker::GetPVRManager().Clients()->IsRealTimeStream();
@@ -295,7 +273,7 @@ inline CDVDInputStream::IDemux* CDVDInputStreamPVRManager::GetIDemux()
 
 bool CDVDInputStreamPVRManager::OpenDemux()
 {
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (!CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client))
   {
     return false;
@@ -308,13 +286,14 @@ bool CDVDInputStreamPVRManager::OpenDemux()
 
 DemuxPacket* CDVDInputStreamPVRManager::ReadDemux()
 {
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (!CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client))
   {
     return nullptr;
   }
 
-  DemuxPacket* pPacket = client->DemuxRead();
+  DemuxPacket* pPacket = nullptr;
+  client->DemuxRead(pPacket);
   if (!pPacket)
   {
     return nullptr;
@@ -363,7 +342,7 @@ int CDVDInputStreamPVRManager::GetNrOfStreams() const
 
 void CDVDInputStreamPVRManager::SetSpeed(int Speed)
 {
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client))
   {
     client->SetSpeed(Speed);
@@ -372,7 +351,7 @@ void CDVDInputStreamPVRManager::SetSpeed(int Speed)
 
 bool CDVDInputStreamPVRManager::SeekTime(double timems, bool backwards, double *startpts)
 {
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client))
   {
     return client->SeekTime(timems, backwards, startpts);
@@ -382,7 +361,7 @@ bool CDVDInputStreamPVRManager::SeekTime(double timems, bool backwards, double *
 
 void CDVDInputStreamPVRManager::AbortDemux()
 {
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client))
   {
     client->DemuxAbort();
@@ -391,7 +370,7 @@ void CDVDInputStreamPVRManager::AbortDemux()
 
 void CDVDInputStreamPVRManager::FlushDemux()
 {
-  PVR_CLIENT client;
+  CPVRClientPtr client;
   if (CServiceBroker::GetPVRManager().Clients()->GetPlayingClient(client))
   {
     client->DemuxFlush();

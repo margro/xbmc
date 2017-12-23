@@ -30,7 +30,7 @@
 #include "IVideoPlayer.h"
 #include "DVDMessageQueue.h"
 #include "DVDClock.h"
-#include "TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "VideoPlayerVideo.h"
 #include "VideoPlayerSubtitle.h"
 #include "VideoPlayerTeletext.h"
@@ -46,7 +46,7 @@
 #ifdef TARGET_RASPBERRY_PI
 #include "OMXCore.h"
 #include "OMXClock.h"
-#include "linux/RBP.h"
+#include "platform/linux/RBP.h"
 #else
 
 
@@ -103,8 +103,6 @@ struct SPlayerState
     hasMenu = false;
     chapter = 0;
     chapters.clear();
-    canrecord = false;
-    recording = false;
     canpause = false;
     canseek = false;
     caching = false;
@@ -132,8 +130,6 @@ struct SPlayerState
   int chapter;              // current chapter
   std::vector<std::pair<std::string, int64_t>> chapters; // name and position for chapters
 
-  bool canrecord;           // can input stream record
-  bool recording;           // are we currently recording
   bool canpause;            // pvr: can pause the current playing item
   bool canseek;             // pvr: can seek in the current playing item
   bool caching;
@@ -152,11 +148,6 @@ class CDemuxStreamAudio;
 class CStreamInfo;
 class CDVDDemuxCC;
 class CVideoPlayer;
-
-namespace PVR
-{
-  class CPVRChannel;
-}
 
 #define DVDSTATE_NORMAL           0x00000001 // normal dvd state
 #define DVDSTATE_STILL            0x00000002 // currently displaying a still frame
@@ -231,69 +222,70 @@ public:
   }
 };
 
-typedef struct SelectionStream
+//------------------------------------------------------------------------------
+// selection streams
+//------------------------------------------------------------------------------
+struct SelectionStream
 {
-  StreamType   type = STREAM_NONE;
-  int          type_index = 0;
-  std::string  filename;
-  std::string  filename2;  // for vobsub subtitles, 2 files are necessary (idx/sub)
-  std::string  language;
-  std::string  name;
-  CDemuxStream::EFlags flags = CDemuxStream::FLAG_NONE;
-  int          source = 0;
-  int          id = 0;
-  int64_t      demuxerId = -1;
-  std::string  codec;
-  int          channels = 0;
-  int          bitrate = 0;
-  int          width = 0;
-  int          height = 0;
-  CRect        SrcRect;
-  CRect        DestRect;
-  std::string  stereo_mode;
-  float        aspect_ratio = 0.0f;
-} SelectionStream;
-
-typedef std::vector<SelectionStream> SelectionStreams;
+  StreamType type = STREAM_NONE;
+  int type_index = 0;
+  std::string filename;
+  std::string filename2;  // for vobsub subtitles, 2 files are necessary (idx/sub)
+  std::string language;
+  std::string name;
+  StreamFlags flags = StreamFlags::FLAG_NONE;
+  int source = 0;
+  int id = 0;
+  int64_t demuxerId = -1;
+  std::string codec;
+  int channels = 0;
+  int bitrate = 0;
+  int width = 0;
+  int height = 0;
+  CRect SrcRect;
+  CRect DestRect;
+  std::string stereo_mode;
+  float aspect_ratio = 0.0f;
+};
 
 class CSelectionStreams
 {
-  SelectionStream  m_invalid;
 public:
-  CSelectionStreams()
-  {
-    m_invalid.id = -1;
-    m_invalid.source = STREAM_SOURCE_NONE;
-    m_invalid.type = STREAM_NONE;
-  }
-  std::vector<SelectionStream> m_Streams;
-  CCriticalSection m_section;
+  CSelectionStreams() = default;
 
-  int              IndexOf (StreamType type, int source, int64_t demuxerId, int id) const;
-  int              IndexOf (StreamType type, const CVideoPlayer& p) const;
-  int              Count   (StreamType type) const { return IndexOf(type, STREAM_SOURCE_NONE, -1, -1) + 1; }
-  int              CountSource(StreamType type, StreamSource source) const;
-  SelectionStream& Get     (StreamType type, int index);
-  bool             Get     (StreamType type, CDemuxStream::EFlags flag, SelectionStream& out);
+  int IndexOf(StreamType type, int source, int64_t demuxerId, int id) const;
+  int Count(StreamType type) const;
+  int CountSource(StreamType type, StreamSource source) const;
+  SelectionStream& Get(StreamType type, int index);
+  bool Get(StreamType type, StreamFlags flag, SelectionStream& out);
+  void Clear(StreamType type, StreamSource source);
+  int Source(StreamSource source, std::string filename);
+  void Update(SelectionStream& s);
+  void Update(CDVDInputStream* input, CDVDDemux* demuxer);
+  void Update(CDVDInputStream* input, CDVDDemux* demuxer, std::string filename2);
 
-  SelectionStreams Get(StreamType type);
-  template<typename Compare> SelectionStreams Get(StreamType type, Compare compare)
+  std::vector<SelectionStream> Get(StreamType type);
+  template<typename Compare> std::vector<SelectionStream> Get(StreamType type, Compare compare)
   {
-    SelectionStreams streams = Get(type);
+    std::vector<SelectionStream> streams = Get(type);
     std::stable_sort(streams.begin(), streams.end(), compare);
     return streams;
   }
 
-  void             Clear   (StreamType type, StreamSource source);
-  int              Source  (StreamSource source, std::string filename);
+  std::vector<SelectionStream> m_Streams;
 
-  void             Update  (SelectionStream& s);
-  void             Update  (CDVDInputStream* input, CDVDDemux* demuxer, std::string filename2 = "");
+protected:
+  SelectionStream m_invalid;
 };
+
+//------------------------------------------------------------------------------
+// main class
+//------------------------------------------------------------------------------
 
 class CProcessInfo;
 
-class CVideoPlayer : public IPlayer, public CThread, public IVideoPlayer, public IDispResource, public IRenderMsg
+class CVideoPlayer : public IPlayer, public CThread, public IVideoPlayer,
+                     public IDispResource, public IRenderLoop, public IRenderMsg
 {
 public:
   explicit CVideoPlayer(IPlayerCallback& callback);
@@ -315,10 +307,7 @@ public:
   void SetVolume(float nVolume) override;
   void SetMute(bool bOnOff) override;
   void SetDynamicRangeCompression(long drc) override;
-  bool CanRecord() override;
-  bool IsRecording() override;
   bool CanPause() override;
-  bool Record(bool bOnOff) override;
   void SetAVDelay(float fValue = 0.0f) override;
   float GetAVDelay() override;
   bool IsInMenu() const override;
@@ -328,7 +317,7 @@ public:
   float GetSubTitleDelay() override;
   int GetSubtitleCount() override;
   int GetSubtitle() override;
-  void GetSubtitleStreamInfo(int index, SPlayerSubtitleStreamInfo &info) override;
+  void GetSubtitleStreamInfo(int index, SubtitleStreamInfo &info) override;
   void SetSubtitle(int iStream) override;
   bool GetSubtitleVisible() override;
   void SetSubtitleVisible(bool bVisible) override;
@@ -340,8 +329,12 @@ public:
 
   int GetVideoStream() const override;
   int GetVideoStreamCount() const override;
-  void GetVideoStreamInfo(int streamId, SPlayerVideoStreamInfo &info) override;
+  void GetVideoStreamInfo(int streamId, VideoStreamInfo &info) override;
   void SetVideoStream(int iStream) override;
+
+  int GetPrograms(std::vector<ProgramInfo>& programs) override;
+  void SetProgram(int progId) override;
+  int GetProgramsCount() override;
 
   TextCacheStruct_t* GetTeletextCache() override;
   void LoadPage(int p, int sp, unsigned char* buffer) override;
@@ -362,18 +355,15 @@ public:
   void FrameAdvance(int frames) override;
   bool OnAction(const CAction &action) override;
 
-  int GetSourceBitrate() override;
-  void GetAudioStreamInfo(int index, SPlayerAudioStreamInfo &info) override;
+  void GetAudioStreamInfo(int index, AudioStreamInfo &info) override;
 
   std::string GetPlayerState() override;
   bool SetPlayerState(const std::string& state) override;
 
-  std::string GetPlayingTitle() override;
-
   void FrameMove() override;
   void Render(bool clear, uint32_t alpha = 255, bool gui = true) override;
   void FlushRenderer() override;
-  void SetRenderViewMode(int mode) override;
+  void SetRenderViewMode(int mode, float zoom, float par, float shift, bool stretch) override;
   float GetRenderAspectRatio() override;
   void TriggerUpdateResolution() override;
   bool IsRenderingVideo() override;
@@ -396,6 +386,9 @@ public:
 
   int OnDiscNavResult(void* pData, int iMessage) override;
   void GetVideoResolution(unsigned int &width, unsigned int &height) override;
+
+  CVideoSettings GetVideoSettings() override;
+  void SetVideoSettings(CVideoSettings& settings) override;
 
 protected:
   friend class CSelectionStreams;
@@ -490,6 +483,9 @@ protected:
   int64_t GetTime();
   float GetPercentage();
 
+  void UpdateContent();
+  void UpdateContentState();
+
   bool m_players_created;
 
   CFileItem m_item;
@@ -509,6 +505,18 @@ protected:
   CCurrentStream m_CurrentRadioRDS;
 
   CSelectionStreams m_SelectionStreams;
+  std::vector<ProgramInfo> m_programs;
+
+  struct SContent
+  {
+    CCriticalSection m_section;
+    CSelectionStreams m_selectionStreams;
+    std::vector<ProgramInfo> m_programs;
+    int m_program;
+    int m_videoIndex;
+    int m_audioIndex;
+    int m_subtitleIndex;
+  } m_content;
 
   int m_playSpeed;
   int m_streamPlayerSpeed;
@@ -564,13 +572,6 @@ protected:
     int iSelectedVideoStream; // mpeg stream id or angle, -1 if disabled
   } m_dvd;
 
-  friend class CVideoPlayerVideo;
-  friend class CVideoPlayerAudio;
-#ifdef TARGET_RASPBERRY_PI
-  friend class OMXPlayerVideo;
-  friend class OMXPlayerAudio;
-#endif
-
   SPlayerState m_State;
   CCriticalSection m_StateSection;
   XbmcThreads::EndTime m_syncTimer;
@@ -583,7 +584,13 @@ protected:
 
   std::atomic<bool> m_displayLost;
 
+  //@todo remove!
+  // RPI specific stuff
   // omxplayer variables
   struct SOmxPlayerState m_OmxPlayerState;
   bool m_omxplayer_mode;            // using omxplayer acceleration
+#ifdef TARGET_RASPBERRY_PI
+  friend class OMXPlayerVideo;
+  friend class OMXPlayerAudio;
+#endif
 };

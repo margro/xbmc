@@ -26,6 +26,8 @@
 #include "Application.h"
 #include "messaging/ApplicationMessenger.h"
 #include "GUIInfoManager.h"
+#include "GUIUserMessages.h"
+#include "guilib/GUIWindowManager.h"
 #include "AddonUtils.h"
 #include "utils/log.h"
 #include "cores/IPlayer.h"
@@ -353,6 +355,16 @@ namespace XBMCAddon
       return new InfoTagMusic();
     }
 
+    void Player::updateInfoTag(const XBMCAddon::xbmcgui::ListItem* item)
+    {
+      XBMC_TRACE;
+      if (!g_application.m_pPlayer->IsPlaying())
+        throw PlayerException("Kodi is not playing any file");
+
+      CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM, 0, item->item);
+      g_windowManager.SendMessage(msg);
+    }
+
     InfoTagRadioRDS* Player::getRadioRDSInfoTag() throw (PlayerException)
     {
       XBMC_TRACE;
@@ -416,7 +428,7 @@ namespace XBMCAddon
       XBMC_TRACE;
       if (g_application.m_pPlayer->HasPlayer())
       {
-        SPlayerSubtitleStreamInfo info;
+        SubtitleStreamInfo info;
         g_application.m_pPlayer->GetSubtitleStreamInfo(g_application.m_pPlayer->GetSubtitle(), info);
 
         if (info.language.length() > 0)
@@ -436,7 +448,7 @@ namespace XBMCAddon
         std::vector<String> ret(subtitleCount);
         for (int iStream=0; iStream < subtitleCount; iStream++)
         {
-          SPlayerSubtitleStreamInfo info;
+          SubtitleStreamInfo info;
           g_application.m_pPlayer->GetSubtitleStreamInfo(iStream, info);
 
           if (info.language.length() > 0)
@@ -471,7 +483,7 @@ namespace XBMCAddon
         std::vector<String> ret(streamCount);
         for (int iStream=0; iStream < streamCount; iStream++)
         {
-          SPlayerAudioStreamInfo info;
+          AudioStreamInfo info;
           g_application.m_pPlayer->GetAudioStreamInfo(iStream, info);
 
           if (info.language.length() > 0)
@@ -501,7 +513,7 @@ namespace XBMCAddon
       std::vector<String> ret(streamCount);
       for (int iStream = 0; iStream < streamCount; ++iStream)
       {
-        SPlayerVideoStreamInfo info;
+        VideoStreamInfo info;
         g_application.m_pPlayer->GetVideoStreamInfo(iStream, info);
 
         if (info.language.length() > 0)

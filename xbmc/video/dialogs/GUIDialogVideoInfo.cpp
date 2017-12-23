@@ -30,6 +30,7 @@
 #include "video/windows/GUIWindowVideoNav.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "video/VideoInfoScanner.h"
+#include "video/tags/VideoTagLoaderFFmpeg.h"
 #include "messaging/ApplicationMessenger.h"
 #include "video/VideoInfoTag.h"
 #include "guilib/GUIKeyboardFactory.h"
@@ -725,6 +726,26 @@ void CGUIDialogVideoInfo::OnGetArt()
       items.Add(item);
     }
 
+    std::string embeddedArt;
+    if (URIUtils::HasExtension(m_movieItem->GetVideoInfoTag()->m_strFileNameAndPath, ".mkv"))
+    {
+      CFileItem item(m_movieItem->GetVideoInfoTag()->m_strFileNameAndPath, false);
+      CVideoTagLoaderFFmpeg loader(item, nullptr, false);
+      CVideoInfoTag tag;
+      loader.Load(tag, false, nullptr);
+      for (const auto& it : tag.m_coverArt)
+      {
+        if (it.m_type == type)
+        {
+          CFileItemPtr itemF(new CFileItem("thumb://Embedded", false));
+          embeddedArt = CTextureUtils::GetWrappedImageURL(item.GetPath(), "video_" + type);
+          itemF->SetArt("thumb", embeddedArt);
+          itemF->SetLabel(g_localizeStrings.Get(13519));
+          items.Add(itemF);
+        }
+      }
+    }
+
     // Grab the thumbnails from the web
     std::vector<std::string> thumbs;
     int season = (m_movieItem->GetVideoInfoTag()->m_type == MediaTypeSeason) ? m_movieItem->GetVideoInfoTag()->m_iSeason : -1;
@@ -779,6 +800,8 @@ void CGUIDialogVideoInfo::OnGetArt()
         newThumb = currentArt["thumb"];
       else if (result == "thumb://Local")
         newThumb = localThumb;
+      else if (result == "thumb://Embedded")
+        newThumb = embeddedArt;
       else if (CFile::Exists(result))
         newThumb = result;
       else // none
@@ -826,9 +849,31 @@ void CGUIDialogVideoInfo::OnGetFanart()
     items.Add(itemCurrent);
   }
 
+  std::string embeddedArt;
+  if (URIUtils::HasExtension(m_movieItem->GetVideoInfoTag()->m_strFileNameAndPath, ".mkv"))
+  {
+    CFileItem item(m_movieItem->GetVideoInfoTag()->m_strFileNameAndPath, false);
+    CVideoTagLoaderFFmpeg loader(item, nullptr, false);
+    CVideoInfoTag tag;
+    loader.Load(tag, false, nullptr);
+    for (const auto& it : tag.m_coverArt)
+    {
+      if (it.m_type == "fanart")
+      {
+        CFileItemPtr itemF(new CFileItem("fanart://Embedded", false));
+        embeddedArt = CTextureUtils::GetWrappedImageURL(item.GetPath(), "video_fanart");
+        itemF->SetArt("thumb", embeddedArt);
+        itemF->SetLabel(g_localizeStrings.Get(13520));
+        items.Add(itemF);
+      }
+    }
+  }
+
   // Grab the thumbnails from the web
   for (unsigned int i = 0; i < m_movieItem->GetVideoInfoTag()->m_fanart.GetNumFanarts(); i++)
   {
+    if (URIUtils::IsProtocol(m_movieItem->GetVideoInfoTag()->m_fanart.GetPreviewURL(i), "image"))
+      continue;
     std::string strItemPath = StringUtils::Format("fanart://Remote%i",i);
     CFileItemPtr item(new CFileItem(strItemPath, false));
     std::string thumb = m_movieItem->GetVideoInfoTag()->m_fanart.GetPreviewURL(i);
@@ -873,6 +918,30 @@ void CGUIDialogVideoInfo::OnGetFanart()
 
   if (StringUtils::EqualsNoCase(result, "fanart://Local"))
     result = strLocal;
+
+  if (StringUtils::EqualsNoCase(result, "fanart://Embedded"))
+  {
+    unsigned int current = m_movieItem->GetVideoInfoTag()->m_fanart.GetNumFanarts();
+    int found = -1;
+    for (size_t i = 0; i < current; ++i)
+      if (URIUtils::IsProtocol(m_movieItem->GetVideoInfoTag()->m_fanart.GetImageURL(), "image"))
+        found = i;
+    if (found != -1)
+    {
+      m_movieItem->GetVideoInfoTag()->m_fanart.AddFanart(embeddedArt, "", "");
+      found = current;
+    }
+
+    m_movieItem->GetVideoInfoTag()->m_fanart.SetPrimaryFanart(found);
+
+    CVideoDatabase db;
+    if (db.Open())
+    {
+      db.UpdateFanart(*m_movieItem, static_cast<VIDEODB_CONTENT_TYPE>(m_movieItem->GetVideoContentType()));
+      db.Close();
+    }
+    result = embeddedArt;
+  }
 
   if (StringUtils::StartsWith(result, "fanart://Remote"))
   {
@@ -1703,15 +1772,22 @@ bool CGUIDialogVideoInfo::ManageVideoItemArtwork(const CFileItemPtr &item, const
   std::string currentThumb;
   int idArtist = -1;
   std::string artistPath;
+  std::string artistOldPath;
   std::string artType = "thumb";
   if (type == MediaTypeArtist)
   {
     CMusicDatabase musicdb;
     if (musicdb.Open())
     {
-      idArtist = musicdb.GetArtistByName(item->GetLabel());
-      if (idArtist >= 0 && musicdb.GetArtistPath(idArtist, artistPath))
+      idArtist = musicdb.GetArtistByName(item->GetLabel()); // Fails when name not unique
+      if (idArtist >= 0 )
       {
+        // Get artist paths - possible locations for thumb - while music db open
+        musicdb.GetOldArtistPath(idArtist, artistOldPath);  // Old artist path, local to music files
+        CArtist artist;
+        musicdb.GetArtist(idArtist, artist); // Need name and mbid for artist folder name
+        musicdb.GetArtistPath(artist, artistPath);  // Artist path in artist info folder      
+        
         currentThumb = musicdb.GetArtForItem(idArtist, MediaTypeArtist, "thumb");
         if (currentThumb.empty())
           currentThumb = videodb.GetArtForItem(item->GetVideoInfoTag()->m_iDbId, item->GetVideoInfoTag()->m_type, artType);
@@ -1808,9 +1884,23 @@ bool CGUIDialogVideoInfo::ManageVideoItemArtwork(const CFileItemPtr &item, const
       noneitem->SetIconImage("DefaultVideo.png");
   }
   else
-  {
-    std::string strThumb = URIUtils::AddFileToFolder(artistPath, "folder.jpg");
-    if (XFILE::CFile::Exists(strThumb))
+  {    
+    std::string strThumb;
+    bool existsThumb = false;
+    // First look for artist thumb in the primary location       
+    if (!artistPath.empty())
+    {
+      strThumb = URIUtils::AddFileToFolder(artistPath, "folder.jpg");
+      existsThumb = CFile::Exists(strThumb);
+    }
+    // If not there fall back local to music files (historic location for those album artists with a unique folder)
+    if (!existsThumb && !artistOldPath.empty())
+    {
+      strThumb = URIUtils::AddFileToFolder(artistOldPath, "folder.jpg");
+      existsThumb = CFile::Exists(strThumb);
+    }
+
+    if (existsThumb)
     {
       CFileItemPtr pItem(new CFileItem(strThumb, false));
       pItem->SetLabel(g_localizeStrings.Get(13514));

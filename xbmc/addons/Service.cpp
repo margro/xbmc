@@ -19,6 +19,7 @@
  */
 #include "Service.h"
 #include "AddonManager.h"
+#include "ServiceBroker.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "system.h"
 #include "utils/log.h"
@@ -31,7 +32,7 @@ namespace ADDON
 std::unique_ptr<CService> CService::FromExtension(CAddonInfo addonInfo, const cp_extension_t* ext)
 {
   START_OPTION startOption(START_OPTION::LOGIN);
-  std::string start = CAddonMgr::GetInstance().GetExtValue(ext->configuration, "@start");
+  std::string start = CServiceBroker::GetAddonMgr().GetExtValue(ext->configuration, "@start");
   if (start == "startup")
     startOption = START_OPTION::STARTUP;
   return std::unique_ptr<CService>(new CService(std::move(addonInfo), startOption));
@@ -50,44 +51,23 @@ CServiceAddonManager::CServiceAddonManager(CAddonMgr& addonMgr) :
 CServiceAddonManager::~CServiceAddonManager()
 {
   m_addonMgr.Events().Unsubscribe(this);
-  m_addonMgr.UnloadEvents().Unsubscribe(this);
 }
 
 void CServiceAddonManager::OnEvent(const ADDON::AddonEvent& event)
 {
-  if (auto enableEvent = dynamic_cast<const AddonEvents::Enabled*>(&event))
+  if (typeid(event) == typeid(ADDON::AddonEvents::Enabled))
   {
-    Start(enableEvent->id);
+    Start(event.id);
   }
-  else if (auto disableEvent = dynamic_cast<const AddonEvents::Disabled*>(&event))
+  else if (typeid(event) == typeid(ADDON::AddonEvents::ReInstalled))
   {
-    Stop(disableEvent->id);
+    Stop(event.id);
+    Start(event.id);
   }
-  else if (auto uninstallEvent = dynamic_cast<const AddonEvents::UnInstalled*>(&event))
+  else if (typeid(event) == typeid(ADDON::AddonEvents::Disabled) ||
+           typeid(event) == typeid(ADDON::AddonEvents::UnInstalled))
   {
-    Stop(uninstallEvent->id);
-  }
-  else if (auto reinstallEvent = dynamic_cast<const AddonEvents::ReInstalled*>(&event))
-  {
-    Start(reinstallEvent->id);
-  }
-
-  else if (auto e = dynamic_cast<const ADDON::AddonEvents::Unload*>(&event))
-  {
-    CLog::Log(LOGINFO, "CServiceAddonManager: Unloading %s", e->id.c_str());
-    CSingleLock lock(m_criticalSection);
-    Stop(e->id);
-    m_blacklistedAddons.push_back(e->id);
-  }
-  else if (auto e = dynamic_cast<const ADDON::AddonEvents::Load*>(&event))
-  {
-    CLog::Log(LOGINFO, "CServiceAddonManager: Removing %s from blacklist", e->id.c_str());
-    CSingleLock lock(m_criticalSection);
-    auto it = std::find(m_blacklistedAddons.begin(), m_blacklistedAddons.end(), e->id);
-    if (it != m_blacklistedAddons.end())
-    {
-      m_blacklistedAddons.erase(it);
-    }
+    Stop(event.id);
   }
 }
 
@@ -110,7 +90,6 @@ void CServiceAddonManager::StartBeforeLogin()
 void CServiceAddonManager::Start()
 {
   m_addonMgr.Events().Subscribe(this, &CServiceAddonManager::OnEvent);
-  m_addonMgr.UnloadEvents().Subscribe(this, &CServiceAddonManager::OnEvent);
   VECADDONS addons;
   if (m_addonMgr.GetAddons(addons, ADDON_SERVICE))
   {
@@ -136,12 +115,6 @@ void CServiceAddonManager::Start(const AddonPtr& addon)
   if (m_services.find(addon->ID()) != m_services.end())
   {
     CLog::Log(LOGDEBUG, "CServiceAddonManager: %s already started.", addon->ID().c_str());
-    return;
-  }
-
-  if (std::find(m_blacklistedAddons.begin(), m_blacklistedAddons.end(), addon->ID()) != m_blacklistedAddons.end())
-  {
-    CLog::Log(LOGINFO, "CServiceAddonManager: Not executing blacklisted addon %s", addon->ID().c_str());
     return;
   }
 

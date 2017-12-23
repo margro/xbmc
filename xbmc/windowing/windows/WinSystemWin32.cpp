@@ -22,6 +22,9 @@
 #include "WinEventsWin32.h"
 #include "resource.h"
 #include "Application.h"
+#include "cores/AudioEngine/AESinkFactory.h"
+#include "cores/AudioEngine/Sinks/AESinkDirectSound.h"
+#include "cores/AudioEngine/Sinks/AESinkWASAPI.h"
 #include "ServiceBroker.h"
 #include "guilib/gui3d.h"
 #include "messaging/ApplicationMessenger.h"
@@ -38,7 +41,7 @@
 #include <tpcshrd.h>
 #include "guilib/GraphicContext.h"
 
-CWinSystemWin32::CWinSystemWin32() 
+CWinSystemWin32::CWinSystemWin32()
   : CWinSystemBase()
   , PtrGetGestureInfo(nullptr)
   , PtrSetGestureConfig(nullptr)
@@ -59,7 +62,10 @@ CWinSystemWin32::CWinSystemWin32()
   , m_inFocus(false)
   , m_bMinimized(false)
 {
-  m_eWindowSystem = WINDOW_SYSTEM_WIN32;
+  m_winEvents.reset(new CWinEventsWin32());
+  AE::CAESinkFactory::ClearSinks();
+  CAESinkDirectSound::Register();
+  CAESinkWASAPI::Register();
 }
 
 CWinSystemWin32::~CWinSystemWin32()
@@ -186,7 +192,7 @@ bool CWinSystemWin32::CreateNewWindow(const std::string& name, bool fullScreen, 
   CreateBlankWindows();
 
   m_state = state;
-  AdjustWindow();
+  AdjustWindow(true);
 
   // Show the window
   ShowWindow( m_hWnd, SW_SHOWDEFAULT );
@@ -312,6 +318,12 @@ bool CWinSystemWin32::ResizeWindow(int newWidth, int newHeight, int newLeft, int
   return true;
 }
 
+void CWinSystemWin32::FinishWindowResize(int newWidth, int newHeight)
+{
+  m_nWidth = newWidth;
+  m_nHeight = newHeight;
+}
+
 void CWinSystemWin32::AdjustWindow(bool forceResize)
 {
   CLog::Log(LOGDEBUG, __FUNCTION__": adjusting window if required.");
@@ -358,7 +370,7 @@ void CWinSystemWin32::AdjustWindow(bool forceResize)
   RECT wr = wi.rcWindow;
 
   if ( wr.bottom - wr.top == rc.bottom - rc.top
-    && wr.right - wr.left == rc.right - rc.left 
+    && wr.right - wr.left == rc.right - rc.left
     && (wi.dwStyle & WS_CAPTION) == (m_windowStyle & WS_CAPTION)
     && !forceResize)
   {
@@ -421,9 +433,9 @@ bool CWinSystemWin32::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool 
   bool changeScreen = false;   // display is changed
   bool stereoChange = IsStereoEnabled() != (g_graphicsContext.GetStereoMode() == RENDER_STEREO_MODE_HARDWAREBASED);
 
-  if ( m_nWidth != res.iWidth 
-    || m_nHeight != res.iHeight 
-    || m_fRefreshRate != res.fRefreshRate 
+  if ( m_nWidth != res.iWidth
+    || m_nHeight != res.iHeight
+    || m_fRefreshRate != res.fRefreshRate
     || m_nScreen != res.iScreen
     || stereoChange)
   {
@@ -653,7 +665,7 @@ bool CWinSystemWin32::ChangeResolution(const RESOLUTION_INFO& res, bool forceCha
       sDevMode.dmPelsWidth != res.iWidth || sDevMode.dmPelsHeight != res.iHeight ||
       sDevMode.dmDisplayFrequency != static_cast<int>(res.fRefreshRate) ||
       ((sDevMode.dmDisplayFlags & DM_INTERLACED) && !(res.dwFlags & D3DPRESENTFLAG_INTERLACED)) ||
-      (!(sDevMode.dmDisplayFlags & DM_INTERLACED) && (res.dwFlags & D3DPRESENTFLAG_INTERLACED)) 
+      (!(sDevMode.dmDisplayFlags & DM_INTERLACED) && (res.dwFlags & D3DPRESENTFLAG_INTERLACED))
       || forceChange)
   {
     ZeroMemory(&sDevMode, sizeof(sDevMode));
@@ -669,7 +681,10 @@ bool CWinSystemWin32::ChangeResolution(const RESOLUTION_INFO& res, bool forceCha
     bool bResChanged = false;
 
     // Windows 8 refresh rate workaround for 24.0, 48.0 and 60.0 Hz
-    if (CSysInfo::IsWindowsVersionAtLeast(CSysInfo::WindowsVersionWin8) && (res.fRefreshRate == 24.0 || res.fRefreshRate == 48.0 || res.fRefreshRate == 60.0))
+    // using this on Win10 Fall Creators Update causes black screen issue on refresh mode change
+    if ( CSysInfo::IsWindowsVersionAtLeast(CSysInfo::WindowsVersionWin8)
+      && !CSysInfo::IsWindowsVersionAtLeast(CSysInfo::WindowsVersionWin10_FCU)
+      && (res.fRefreshRate == 24.0 || res.fRefreshRate == 48.0 || res.fRefreshRate == 60.0))
     {
       CLog::Log(LOGDEBUG, "%s : Using Windows 8+ workaround for refresh rate %d Hz", __FUNCTION__, static_cast<int>(res.fRefreshRate));
 
@@ -716,8 +731,8 @@ bool CWinSystemWin32::ChangeResolution(const RESOLUTION_INFO& res, bool forceCha
       else
         CLog::Log(LOGERROR, "%s : ChangeDisplaySettingsEx failed with %d", __FUNCTION__, rc);
     }
-    
-    if (bResChanged) 
+
+    if (bResChanged)
       ResolutionChanged();
 
     return bResChanged;
@@ -945,7 +960,7 @@ bool CWinSystemWin32::Show(bool raise)
 
   SetWindowPos(m_hWnd, windowAfter, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW);
   UpdateWindow(m_hWnd);
-  
+
   if (raise)
   {
     SetForegroundWindow(m_hWnd);

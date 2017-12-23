@@ -19,15 +19,16 @@
  */
 
 #include "cores/AudioEngine/Sinks/AESinkDARWINIOS.h"
-
+#include "cores/AudioEngine/AESinkFactory.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/AudioEngine/Utils/AERingBuffer.h"
 #include "cores/AudioEngine/Sinks/osx/CoreAudioHelpers.h"
+#include "ServiceBroker.h"
 #include "platform/darwin/DarwinUtils.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "threads/Condition.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 
 #include <sstream>
 #include <AudioToolbox/AudioToolbox.h>
@@ -545,7 +546,7 @@ static void EnumerateDevices(AEDeviceInfoList &list)
   device.m_displayNameExtra = "";
   // TODO screen changing on ios needs to call
   // devices changed once this is available in active
-  if (g_Windowing.GetCurrentScreen() > 0)
+  if (CServiceBroker::GetWinSystem().GetCurrentScreen() > 0)
   {
     device.m_deviceType = AE_DEVTYPE_IEC958; //allow passthrough for tvout
     device.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_AC3);
@@ -595,6 +596,25 @@ CAESinkDARWINIOS::CAESinkDARWINIOS()
 
 CAESinkDARWINIOS::~CAESinkDARWINIOS()
 {
+}
+
+void CAESinkDARWINIOS::Register()
+{
+  AE::AESinkRegEntry reg;
+  reg.sinkName = "DARWINIOS";
+  reg.createFunc = CAESinkDARWINIOS::Create;
+  reg.enumerateFunc = CAESinkDARWINIOS::EnumerateDevicesEx;
+  AE::CAESinkFactory::RegisterSink(reg);
+}
+
+IAESink* CAESinkDARWINIOS::Create(std::string &device, AEAudioFormat &desiredFormat)
+{
+  IAESink *sink = new CAESinkDARWINIOS();
+  if (sink->Initialize(desiredFormat, device))
+    return sink;
+
+  delete sink;
+  return nullptr;
 }
 
 bool CAESinkDARWINIOS::Initialize(AEAudioFormat &format, std::string &device)

@@ -51,7 +51,7 @@ namespace ADDON
     bool CanInit() override { return true; }
     bool Load(const std::string& strFileName,
                       MUSIC_INFO::CMusicInfoTag& tag,
-                      MUSIC_INFO::EmbeddedArt *art = nullptr) override;
+                      EmbeddedArt *art = nullptr) override;
     int GetTrackCount(const std::string& strPath) override;
 
     static inline std::string GetExtensions(const BinaryAddonBasePtr& addonInfo)
@@ -77,6 +77,7 @@ namespace ADDON
   private:
     const AEChannel* m_channel;
     AddonInstance_AudioDecoder m_struct;
+    bool m_hasTags;
   };
 
 } /*namespace ADDON*/

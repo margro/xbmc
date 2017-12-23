@@ -23,8 +23,8 @@
 #include <string.h>
 #include <float.h>
 
-#include "linux/DllBCM.h"
-#include "linux/RBP.h"
+#include "platform/linux/DllBCM.h"
+#include "platform/linux/RBP.h"
 #include "ServiceBroker.h"
 #include "guilib/GraphicContext.h"
 #include "guilib/Resolution.h"
@@ -32,14 +32,15 @@
 #include "settings/DisplaySettings.h"
 #include "guilib/DispResource.h"
 #include "utils/log.h"
+#include "../WinEventsLinux.h"
+#include "cores/AudioEngine/AESinkFactory.h"
+#include "cores/AudioEngine/Sinks/AESinkPi.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglplatform.h>
 
 CWinSystemRpi::CWinSystemRpi()
 {
-  m_eWindowSystem = WINDOW_SYSTEM_RPI;
-
   m_nativeDisplay = EGL_NO_DISPLAY;
   m_nativeWindow = EGL_NO_SURFACE;
 
@@ -50,6 +51,10 @@ CWinSystemRpi::CWinSystemRpi()
   m_delayDispReset = false;
 
   m_rpi = new CRPIUtils();
+
+  m_winEvents.reset(new CWinEventsLinux());
+  AE::CAESinkFactory::ClearSinks();
+  CAESinkPi::Register();
 }
 
 CWinSystemRpi::~CWinSystemRpi()

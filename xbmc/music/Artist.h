@@ -37,7 +37,7 @@ class CMusicDatabase;
 class CArtist
 {
 public:
-  long idArtist;
+  long idArtist = -1;
   bool operator<(const CArtist& a) const
   {
     if (strMusicBrainzArtistID.empty() && a.strMusicBrainzArtistID.empty())
@@ -58,6 +58,9 @@ public:
   {
     strArtist.clear();
     strSortName.clear();
+    strType.clear();
+    strGender.clear();
+    strDisambiguation.clear();
     genre.clear();
     strBiography.clear();
     styles.clear();
@@ -69,6 +72,7 @@ public:
     strDisbanded.clear();
     yearsActive.clear();
     thumbURL.Clear();
+    art.clear();
     discography.clear();
     idArtist = -1;
     strPath.clear();
@@ -92,6 +96,9 @@ public:
   std::string strArtist;
   std::string strSortName;
   std::string strMusicBrainzArtistID;
+  std::string strType;
+  std::string strGender;
+  std::string strDisambiguation;
   std::vector<std::string> genre;
   std::string strBiography;
   std::vector<std::string> styles;
@@ -103,11 +110,12 @@ public:
   std::string strDisbanded;
   std::vector<std::string> yearsActive;
   std::string strPath;
-  CScraperUrl thumbURL;
-  CFanart fanart;
+  CScraperUrl thumbURL; // Data for available thumbs
+  CFanart fanart;  // Data for available fanart, urls etc.
+  std::map<std::string, std::string> art;  // Current artwork - thumb, fanart etc.
   std::vector<std::pair<std::string,std::string> > discography;
   CDateTime dateAdded;
-  bool bScrapedMBID;
+  bool bScrapedMBID = false;
   std::string strLastScraped;
 };
 
@@ -150,11 +158,11 @@ public:
   void SetScrapedMBID(bool scrapedMBID) { this->m_bScrapedMBID = scrapedMBID; }
 
 private:
-  long idArtist;
+  long idArtist = -1;
   std::string m_strArtist;
   std::string m_strSortName;
   std::string m_strMusicBrainzArtistID;
-  bool m_bScrapedMBID; // Flag that mbid is from album merge of scarper results not derived from tags
+  bool m_bScrapedMBID = false; // Flag that mbid is from album merge of scarper results not derived from tags
 };
 
 typedef std::vector<CArtist> VECARTISTS;

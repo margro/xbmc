@@ -29,7 +29,7 @@
 
 static const DWORD WINDOWED_STYLE = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN;
 static const DWORD WINDOWED_EX_STYLE = NULL;
-static const DWORD FULLSCREEN_WINDOW_STYLE = WS_POPUP | WS_CLIPCHILDREN;
+static const DWORD FULLSCREEN_WINDOW_STYLE = WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN;
 static const DWORD FULLSCREEN_WINDOW_EX_STYLE = WS_EX_APPWINDOW;
 
 /* Controls the way the window appears and behaves. */
@@ -173,6 +173,7 @@ public:
   bool InitWindowSystem() override;
   bool DestroyWindowSystem() override;
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
+  void FinishWindowResize(int newWidth, int newHeight) override;
   void UpdateResolutions() override;
   bool CenterWindow() override;
   virtual void NotifyAppFocusChange(bool bGaining) override;
@@ -207,6 +208,9 @@ public:
   pSetGestureConfig       PtrSetGestureConfig;
   pCloseGestureInfoHandle PtrCloseGestureInfoHandle;
   pEnableNonClientDpiScaling PtrEnableNonClientDpiScaling;
+
+  void SetSizeMoveMode(bool mode) { m_bSizeMoveEnabled = mode; }
+  bool IsInSizeMoveMode() const { return m_bSizeMoveEnabled; }
 
 protected:
   bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override = 0;
@@ -264,6 +268,7 @@ protected:
   DWORD m_windowExStyle;                      // the ex style of the window
   bool m_inFocus;
   bool m_bMinimized;
+  bool m_bSizeMoveEnabled{ false };
 };
 
 extern HWND g_hWnd;

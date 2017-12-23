@@ -21,7 +21,7 @@
 #include "DVDAudioCodecFFmpeg.h"
 #ifdef TARGET_POSIX
 #include "XMemUtils.h"
-#include "linux/XTimeUtils.h"
+#include "platform/linux/XTimeUtils.h"
 #endif
 #include "../../DVDStreamInfo.h"
 #include "utils/log.h"
@@ -83,8 +83,8 @@ bool CDVDAudioCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
   m_pCodecContext->debug = 0;
   m_pCodecContext->workaround_bugs = 1;
 
-  if (pCodec->capabilities & CODEC_CAP_TRUNCATED)
-    m_pCodecContext->flags |= CODEC_FLAG_TRUNCATED;
+  if (pCodec->capabilities & AV_CODEC_CAP_TRUNCATED)
+    m_pCodecContext->flags |= AV_CODEC_FLAG_TRUNCATED;
 
   m_matrixEncoding = AV_MATRIX_ENCODING_NONE;
   m_channels = 0;
@@ -99,7 +99,7 @@ bool CDVDAudioCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
 
   if( hints.extradata && hints.extrasize > 0 )
   {
-    m_pCodecContext->extradata = (uint8_t*)av_mallocz(hints.extrasize + FF_INPUT_BUFFER_PADDING_SIZE);
+    m_pCodecContext->extradata = (uint8_t*)av_mallocz(hints.extrasize + AV_INPUT_BUFFER_PADDING_SIZE);
     if(m_pCodecContext->extradata)
     {
       m_pCodecContext->extradata_size = hints.extrasize;
@@ -153,6 +153,9 @@ bool CDVDAudioCodecFFmpeg::AddData(const DemuxPacket &packet)
   avpkt.size = packet.iSize;
   avpkt.dts = (packet.dts == DVD_NOPTS_VALUE) ? AV_NOPTS_VALUE : static_cast<int64_t>(packet.dts / DVD_TIME_BASE * AV_TIME_BASE);
   avpkt.pts = (packet.pts == DVD_NOPTS_VALUE) ? AV_NOPTS_VALUE : static_cast<int64_t>(packet.pts / DVD_TIME_BASE * AV_TIME_BASE);
+  avpkt.side_data = static_cast<AVPacketSideData*>(packet.pSideData);
+  avpkt.side_data_elems = packet.iSideDataElems;
+
   int ret = avcodec_send_packet(m_pCodecContext, &avpkt);
 
   // try again

@@ -70,6 +70,12 @@
       <rightstick direction="down">VolumeDown</rightstick>
     </joystick>
   </global>
+  <Home>
+    <joystick profile="game.controller.default">
+      <b>Back</b>
+      <b holdtime="500">ActivateWindow(ShutdownMenu)</b>
+    </joystick>
+  </Home>
   <FileManager>
     <joystick profile="game.controller.default">
       <rightbumper>Highlight</rightbumper>
@@ -85,7 +91,8 @@
   <FullscreenVideo>
     <joystick profile="game.controller.default">
       <a>Pause</a>
-      <b>Stop</b>
+      <b>Fullscreen</b>
+      <b holdtime="500">Stop</b>
       <x>OSD</x>
       <y>FullScreen</y>
       <start>Info</start>
@@ -239,10 +246,10 @@
       <down>ZoomOut</down>
       <left>PreviousPicture</left>
       <right>NextPicture</right>
-      <leftstick direction="left">AnalogMoveX</leftstick>
-      <leftstick direction="right">AnalogMoveX</leftstick>
-      <leftstick direction="up">AnalogMoveY</leftstick>
-      <leftstick direction="down">AnalogMoveY</leftstick>
+      <leftstick direction="left">AnalogMoveXLeft</leftstick>
+      <leftstick direction="right">AnalogMoveXRight</leftstick>
+      <leftstick direction="up">AnalogMoveYUp</leftstick>
+      <leftstick direction="down">AnalogMoveYDown</leftstick>
       <lefttrigger>ZoomOut</lefttrigger>
       <righttrigger>ZoomIn</righttrigger>
     </joystick>
@@ -308,6 +315,8 @@
       <leftthumb>Enter</leftthumb>
       <lefttrigger>CursorLeft</lefttrigger>
       <righttrigger>CursorRight</righttrigger>
+      <x>VoiceRecognizer</x>
+      <start>VoiceRecognizer</start>
     </joystick>
   </VirtualKeyboard>
   <ContextMenu>

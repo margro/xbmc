@@ -38,7 +38,7 @@ namespace ADDON
     void Init();
     void Deinit();
     const std::vector<VFSEntryPtr> GetAddonInstances();
-    VFSEntryPtr GetAddonInstance(const std::string& strId, TYPE type);
+    VFSEntryPtr GetAddonInstance(const std::string& strId);
 
   protected:
     void Update();
@@ -52,6 +52,23 @@ namespace ADDON
   class CVFSEntry : public IAddonInstanceHandler
   {
   public:
+    //! \brief A structure encapsulating properties of supplied protocol.
+    struct ProtocolInfo
+    {
+      bool supportPath;      //!< Protocol has path in addition to server name
+      bool supportUsername;  //!< Protocol uses logins
+      bool supportPassword;  //!< Protocol supports passwords
+      bool supportPort;      //!< Protocol supports port customization
+      bool supportBrowsing;  //!< Protocol supports server browsing
+      bool supportWrite;     //!< Protocol supports write operations
+      int defaultPort;       //!< Default port to use for protocol
+      std::string type;      //!< URL type for protocol
+      int label;             //!< String ID to use as label in dialog
+
+      //! \brief The constructor reads the info from an add-on info structure.
+      ProtocolInfo(BinaryAddonBasePtr addonInfo);
+    };
+
     //! \brief Construct from add-on properties.
     //! \param addonInfo General addon properties
     explicit CVFSEntry(BinaryAddonBasePtr addonInfo);
@@ -88,12 +105,16 @@ namespace ADDON
     bool HasFiles() const { return m_files; }
     bool HasDirectories() const { return m_directories; }
     bool HasFileDirectories() const { return m_filedirectories; }
+    const std::string& GetZeroconfType() const { return m_zeroconf; }
+    const ProtocolInfo& GetProtocolInfo() const { return m_protocolInfo; }
   protected:
-    std::string m_protocols; //!< Protocols for VFS entry.
+    std::string m_protocols;  //!< Protocols for VFS entry.
     std::string m_extensions; //!< Extensions for VFS entry.
+    std::string m_zeroconf;   //!< Zero conf announce string for VFS protocol.
     bool m_files;             //!< Vfs entry can read files.
     bool m_directories;       //!< VFS entry can list directories.
     bool m_filedirectories;   //!< VFS entry contains file directories.
+    ProtocolInfo m_protocolInfo; //!< Info about protocol for network dialog.
     AddonInstance_VFSEntry m_struct; //!< VFS callback table
   };
 

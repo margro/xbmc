@@ -28,13 +28,14 @@
 #include "GUIUserMessages.h"
 #include "PartyModeManager.h"
 #include "PlayListPlayer.h"
+#include "SeekHandler.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "storage/MediaManager.h"
 #include "system.h"
+#include "utils/FileExtensionProvider.h"
 #include "utils/log.h"
-#include "utils/SeekHandler.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "view/GUIViewState.h"
@@ -242,11 +243,6 @@ static int PlayerControl(const std::vector<std::string>& params)
     if( g_application.m_pPlayer->IsPlaying() )
       g_application.m_pPlayer->OnAction(CAction(ACTION_SHOW_VIDEOMENU));
   }
-  else if (paramlow == "record")
-  {
-    if( g_application.m_pPlayer->IsPlaying() && g_application.m_pPlayer->CanRecord())
-      g_application.m_pPlayer->Record(!g_application.m_pPlayer->IsRecording());
-  }
   else if (StringUtils::StartsWithNoCase(params[0], "partymode"))
   {
     std::string strXspPath;
@@ -448,8 +444,8 @@ static int PlayMedia(const std::vector<std::string>& params)
   if (item.m_bIsFolder)
   {
     CFileItemList items;
-    std::string extensions = g_advancedSettings.m_videoExtensions + "|" + g_advancedSettings.GetMusicExtensions();
-    XFILE::CDirectory::GetDirectory(item.GetPath(),items,extensions);
+    std::string extensions = CServiceBroker::GetFileExtensionProvider().GetVideoExtensions() + "|" + CServiceBroker::GetFileExtensionProvider().GetMusicExtensions();
+    XFILE::CDirectory::GetDirectory(item.GetPath(), items, extensions);
 
     bool containsMusic = false, containsVideo = false;
     for (int i = 0; i < items.Size(); i++)
@@ -509,7 +505,7 @@ static int PlayWith(const std::vector<std::string>& params)
 static int Seek(const std::vector<std::string>& params)
 {
   if (g_application.m_pPlayer->IsPlaying())
-    CSeekHandler::GetInstance().SeekSeconds(atoi(params[0].c_str()));
+    g_application.m_pPlayer->GetSeekHandler().SeekSeconds(atoi(params[0].c_str()));
 
   return 0;
 }

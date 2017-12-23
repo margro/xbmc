@@ -17,15 +17,14 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h"
-#ifdef HAS_PULSEAUDIO
 #include "AESinkPULSE.h"
 #include "utils/log.h"
 #include "Util.h"
 #include "guilib/LocalizeStrings.h"
 #include "Application.h"
-#include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
+#include "cores/AudioEngine/AESinkFactory.h"
 #include "ServiceBroker.h"
+#include "utils/StringUtils.h"
 
 static const char *ContextStateToString(pa_context_state s)
 {
@@ -165,7 +164,7 @@ static unsigned int defaultSampleRates[] = {
 
 static void ContextStateCallback(pa_context *c, void *userdata)
 {
-  pa_threaded_mainloop *m = (pa_threaded_mainloop *)userdata;
+  pa_threaded_mainloop* m = static_cast<pa_threaded_mainloop*>(userdata);
   switch (pa_context_get_state(c))
   {
     case PA_CONTEXT_READY:
@@ -182,7 +181,7 @@ static void ContextStateCallback(pa_context *c, void *userdata)
 
 static void StreamStateCallback(pa_stream *s, void *userdata)
 {
-  pa_threaded_mainloop *m = (pa_threaded_mainloop *)userdata;
+  pa_threaded_mainloop* m = static_cast<pa_threaded_mainloop*>(userdata);
   switch (pa_stream_get_state(s))
   {
     case PA_STREAM_UNCONNECTED:
@@ -197,20 +196,20 @@ static void StreamStateCallback(pa_stream *s, void *userdata)
 
 static void StreamRequestCallback(pa_stream *s, size_t length, void *userdata)
 {
-  pa_threaded_mainloop *m = (pa_threaded_mainloop *)userdata;
+  pa_threaded_mainloop* m = static_cast<pa_threaded_mainloop*>(userdata);
   pa_threaded_mainloop_signal(m, 0);
 }
 
 static void StreamLatencyUpdateCallback(pa_stream *s, void *userdata)
 {
-  pa_threaded_mainloop *m = (pa_threaded_mainloop *)userdata;
+  pa_threaded_mainloop* m = static_cast<pa_threaded_mainloop*>(userdata);
   pa_threaded_mainloop_signal(m, 0);
 }
 
 
 static void SinkInputInfoCallback(pa_context *c, const pa_sink_input_info *i, int eol, void *userdata)
 {
-  CAESinkPULSE *p = (CAESinkPULSE*) userdata;
+  CAESinkPULSE *p = static_cast<CAESinkPULSE*>(userdata);
   if (!p || !p->IsInitialized())
     return;
 
@@ -220,7 +219,7 @@ static void SinkInputInfoCallback(pa_context *c, const pa_sink_input_info *i, in
 
 static void SinkInputInfoChangedCallback(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
 {
-  CAESinkPULSE* p = (CAESinkPULSE*) userdata;
+  CAESinkPULSE* p = static_cast<CAESinkPULSE*>(userdata);
   if (!p || !p->IsInitialized())
     return;
 
@@ -236,7 +235,7 @@ static void SinkInputInfoChangedCallback(pa_context *c, pa_subscription_event_ty
 
 static void SinkChangedCallback(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
 {
-  CAESinkPULSE* p = (CAESinkPULSE*) userdata;
+  CAESinkPULSE* p = static_cast<CAESinkPULSE*>(userdata);
   if(!p)
     return;
 
@@ -270,18 +269,29 @@ struct SinkInfoStruct
   pa_channel_map map;
   SinkInfoStruct()
   {
-    list = NULL;
+    list = nullptr;
     isHWDevice = false;
     device_found = true;
-    mainloop = NULL;
+    mainloop = NULL; //called into C
     samplerate = 0;
     pa_channel_map_init(&map);
   }
 };
 
+struct ModuleInfoStruct
+{
+  pa_threaded_mainloop *mainloop;
+  bool hasAllowPT;
+  ModuleInfoStruct()
+  {
+    mainloop = NULL; //called into C
+    hasAllowPT = false;
+  }
+};
+
 static void SinkInfoCallback(pa_context *c, const pa_sink_info *i, int eol, void *userdata)
 {
-  SinkInfoStruct *sinkStruct = (SinkInfoStruct *)userdata;
+  SinkInfoStruct *sinkStruct = static_cast<SinkInfoStruct*>(userdata);
   if (!sinkStruct)
     return;
 
@@ -384,10 +394,25 @@ static CAEChannelInfo PAChannelToAEChannelMap(const pa_channel_map& channels)
   return info;
 }
 
+#if PA_CHECK_VERSION(10,0,0)
+static void ModuleInfoCallback(pa_context* c, const pa_module_info *i, int eol, void *userdata)
+{
+  ModuleInfoStruct *mis = static_cast<ModuleInfoStruct*>(userdata);
+  if (!mis)
+    return;
+
+  if (i)
+  {
+    if (strcmp(i->name, "module-allow-passthrough") == 0)
+      mis->hasAllowPT = true;
+  }
+  pa_threaded_mainloop_signal(mis->mainloop, 0);
+}
+#endif
 static void SinkInfoRequestCallback(pa_context *c, const pa_sink_info *i, int eol, void *userdata)
 {
 
-  SinkInfoStruct *sinkStruct = (SinkInfoStruct *)userdata;
+  SinkInfoStruct *sinkStruct = static_cast<SinkInfoStruct*>(userdata);
   if (!sinkStruct)
     return;
 
@@ -477,7 +502,43 @@ static void SinkInfoRequestCallback(pa_context *c, const pa_sink_info *i, int eo
 
 /* PulseAudio class memberfunctions*/
 
+bool CAESinkPULSE::Register()
+{
+  // check if pulseaudio is actually available
+  pa_simple *s;
+  pa_sample_spec ss;
+  ss.format = PA_SAMPLE_S16NE;
+  ss.channels = 2;
+  ss.rate = 44100;
+  s = pa_simple_new(NULL, "Kodi-Tester", PA_STREAM_PLAYBACK, NULL, "Test", &ss, NULL, NULL, NULL);
+  if (!s)
+  {
+    CLog::Log(LOGNOTICE, "PulseAudio: Server not running");
+    return false;
+  }
+  else
+  {
+    CLog::Log(LOGNOTICE, "PulseAudio: Server found running - will try to use Pulse");
+    pa_simple_free(s);
+  }
 
+  AE::AESinkRegEntry entry;
+  entry.sinkName = "PULSE";
+  entry.createFunc = CAESinkPULSE::Create;
+  entry.enumerateFunc = CAESinkPULSE::EnumerateDevicesEx;
+  AE::CAESinkFactory::RegisterSink(entry);
+  return true;
+}
+
+IAESink* CAESinkPULSE::Create(std::string &device, AEAudioFormat& desiredFormat)
+{
+  IAESink* sink = new CAESinkPULSE();
+  if (sink->Initialize(desiredFormat, device))
+    return sink;
+
+  delete sink;
+  return nullptr;
+}
 CAESinkPULSE::CAESinkPULSE()
 {
   m_IsAllocated = false;
@@ -550,7 +611,10 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
   sinkStruct.device_found = false;
 
   // get real sample rate of the device we want to open - to avoid resampling
-  bool isDefaultDevice = (device == "Default");
+  bool isDefaultDevice = false;
+  if(StringUtils::EndsWithNoCase(device, std::string("default")))
+    isDefaultDevice = true;
+
   WaitForOperation(pa_context_get_sink_info_by_name(m_Context, isDefaultDevice ? NULL : device.c_str(), SinkInfoCallback, &sinkStruct), m_MainLoop, "Get Sink Info");
   // only check if the device is existing - don't alter the sample rate
   if (!sinkStruct.device_found)
@@ -570,6 +634,14 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
   }
   else
   {
+    // version 11 got the new option "remixing-use-all-sink-channels" which
+    // can be set to "no". Therefore we give the choice back to user and let
+    // him configure the soundserver the way he likes - this makes the pre 11
+    // workaround obsolete
+#if PA_CHECK_VERSION(11,0,0)
+    use_pa_mixing = true;
+    map = AEChannelMapToPAChannel(format.m_channelLayout);
+#else
     // as we mix for PA now to avoid default upmixing, we need to care for
     // channel resolving
     CAEChannelInfo target_layout = format.m_channelLayout;
@@ -587,6 +659,7 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
       // use our layout to update AE
       map = AEChannelMapToPAChannel(target_layout);
     }
+#endif
     format.m_channelLayout = PAChannelToAEChannelMap(map);
   }
   m_Channels = format.m_channelLayout.Count();
@@ -961,6 +1034,17 @@ void CAESinkPULSE::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
   SinkInfoStruct sinkStruct;
   sinkStruct.mainloop = mainloop;
   sinkStruct.list = &list;
+
+  ModuleInfoStruct mis;
+  mis.mainloop = mainloop;
+
+#if PA_CHECK_VERSION(10,0,0)
+  WaitForOperation(pa_context_get_module_info_list(context, ModuleInfoCallback, &mis), mainloop, "Check PA Modules");
+#endif
+  if (!mis.hasAllowPT)
+  {
+    CLog::Log(LOGWARNING, "Pulseaudio module module-allow-passthrough not loaded - opening PT devices might fail");
+  }
   WaitForOperation(pa_context_get_sink_info_list(context, SinkInfoRequestCallback, &sinkStruct), mainloop, "EnumerateAudioSinks");
 
   pa_threaded_mainloop_unlock(mainloop);
@@ -1067,4 +1151,3 @@ bool CAESinkPULSE::SetupContext(const char *host, pa_context **context, pa_threa
   pa_threaded_mainloop_unlock(*mainloop);
   return true;
 }
-#endif

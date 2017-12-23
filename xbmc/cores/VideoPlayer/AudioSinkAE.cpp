@@ -28,7 +28,7 @@
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
 #include "settings/MediaSettings.h"
 #ifdef TARGET_POSIX
-#include "linux/XTimeUtils.h"
+#include "platform/linux/XTimeUtils.h"
 #endif
 
 CAudioSinkAE::CAudioSinkAE(CDVDClock *clock) : m_pClock(clock)
@@ -75,6 +75,7 @@ bool CAudioSinkAE::Create(const DVDAudioFrame &audioframe, AVCodecID codec, bool
   if (!m_pAudioStream)
     return false;
 
+  m_dataFormat = audioframe.format.m_dataFormat;
   m_sampleRate = audioframe.format.m_sampleRate;
   m_iBitsPerSample = audioframe.bits_per_sample;
   m_bPassthrough = audioframe.passthrough;
@@ -82,8 +83,6 @@ bool CAudioSinkAE::Create(const DVDAudioFrame &audioframe, AVCodecID codec, bool
 
   if (m_pAudioStream->HasDSP())
     m_pAudioStream->SetFFmpegInfo(audioframe.profile, audioframe.matrix_encoding, audioframe.audio_service_type);
-
-  SetDynamicRangeCompression((long)(CMediaSettings::GetInstance().GetCurrentVideoSettings().m_VolumeAmplification * 100));
 
   return true;
 }
@@ -241,9 +240,10 @@ bool CAudioSinkAE::IsValidFormat(const DVDAudioFrame &audioframe)
   if (audioframe.passthrough != m_bPassthrough)
     return false;
 
-  if (m_sampleRate != audioframe.format.m_sampleRate ||
-     m_iBitsPerSample != audioframe.bits_per_sample ||
-     m_channelLayout != audioframe.format.m_channelLayout)
+  if (m_dataFormat != audioframe.format.m_dataFormat ||
+      m_sampleRate != audioframe.format.m_sampleRate ||
+      m_iBitsPerSample != audioframe.bits_per_sample ||
+      m_channelLayout != audioframe.format.m_channelLayout)
     return false;
 
   return true;

@@ -19,6 +19,7 @@
  */
 
 #include "GUIDialogFileBrowser.h"
+#include "ServiceBroker.h"
 #include "Util.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
@@ -30,7 +31,6 @@
 #include "network/Network.h"
 #include "GUIPassword.h"
 #include "guilib/GUIWindowManager.h"
-#include "Application.h"
 #include "GUIDialogYesNo.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "GUIUserMessages.h"
@@ -45,6 +45,7 @@
 #include "utils/log.h"
 #include "URL.h"
 #include "utils/Variant.h"
+#include "utils/FileExtensionProvider.h"
 #include "settings/AdvancedSettings.h"
 #include "messaging/helpers/DialogOKHelper.h"
 
@@ -576,7 +577,7 @@ bool CGUIDialogFileBrowser::HaveDiscOrConnection( int iDriveType )
   else if ( iDriveType == CMediaSource::SOURCE_TYPE_REMOTE )
   {
     //! @todo Handle not connected to a remote share
-    if ( !g_application.getNetwork().IsConnected() )
+    if ( !CServiceBroker::GetNetwork().IsConnected() )
     {
       HELPERS::ShowOKDialogText(CVariant{220}, CVariant{221});
       return false;
@@ -654,12 +655,12 @@ bool CGUIDialogFileBrowser::ShowAndGetImage(const CFileItemList &items, const VE
 
 bool CGUIDialogFileBrowser::ShowAndGetImage(const VECSOURCES &shares, const std::string &heading, std::string &path)
 {
-  return ShowAndGetFile(shares, g_advancedSettings.GetPictureExtensions(), heading, path, true); // true for use thumbs
+  return ShowAndGetFile(shares, CServiceBroker::GetFileExtensionProvider().GetPictureExtensions(), heading, path, true); // true for use thumbs
 }
 
 bool CGUIDialogFileBrowser::ShowAndGetImageList(const VECSOURCES &shares, const std::string &heading, std::vector<std::string> &path)
 {
-  return ShowAndGetFileList(shares, g_advancedSettings.GetPictureExtensions(), heading, path, true); // true for use thumbs
+  return ShowAndGetFileList(shares, CServiceBroker::GetFileExtensionProvider().GetPictureExtensions(), heading, path, true); // true for use thumbs
 }
 
 bool CGUIDialogFileBrowser::ShowAndGetDirectory(const VECSOURCES &shares, const std::string &heading, std::string &path, bool bWriteOnly)

@@ -23,6 +23,7 @@
 #include <mmdeviceapi.h>
 #include <Audioclient.h>
 #include "cores/AudioEngine/Interfaces/AESink.h"
+#include "cores/AudioEngine/Sinks/windows/AESinkFactoryWin.h"
 #include "cores/AudioEngine/Utils/AEDeviceInfo.h"
 
 
@@ -34,26 +35,25 @@ public:
     CAESinkWASAPI();
     virtual ~CAESinkWASAPI();
 
-    virtual bool Initialize  (AEAudioFormat &format, std::string &device);
+    static void Register();
+    static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
+
+    virtual bool Initialize(AEAudioFormat &format, std::string &device);
     virtual void Deinitialize();
 
-    virtual void         GetDelay(AEDelayStatus& status);
-    virtual double       GetCacheTotal               ();
-    virtual unsigned int AddPackets                  (uint8_t **data, unsigned int frames, unsigned int offset);
-    virtual void         Drain                       ();
-    static  void         EnumerateDevicesEx          (AEDeviceInfoList &deviceInfoList, bool force = false);
+    virtual void GetDelay(AEDelayStatus& status);
+    virtual double GetCacheTotal();
+    virtual unsigned int AddPackets(uint8_t **data, unsigned int frames, unsigned int offset);
+    virtual void Drain();
+    static  void EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool force = false);
+
 private:
     bool         InitializeExclusive(AEAudioFormat &format);
-    void         AEChannelsFromSpeakerMask(DWORD speakers);
-    static DWORD        SpeakerMaskFromAEChannels(const CAEChannelInfo &channels);
-    static void         BuildWaveFormatExtensible(AEAudioFormat &format, WAVEFORMATEXTENSIBLE &wfxex);
     static void         BuildWaveFormatExtensibleIEC61397(AEAudioFormat &format, WAVEFORMATEXTENSIBLE_IEC61937 &wfxex);
     bool IsUSBDevice();
 
-    static const char  *WASAPIErrToStr(HRESULT err);
-
     HANDLE              m_needDataEvent;
-    IMMDevice          *m_pDevice;
+    IAEWASAPIDevice    *m_pDevice;
     IAudioClient       *m_pAudioClient;
     IAudioRenderClient *m_pRenderClient;
     IAudioClock        *m_pAudioClock;

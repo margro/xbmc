@@ -19,7 +19,6 @@
  */
 
 #include "TextureDX.h"
-#include "windowing/WindowingFactory.h"
 #include "utils/log.h"
 
 /************************************************************************/
@@ -181,8 +180,12 @@ void CDXTexture::LoadToGPU()
     if (usage != D3D11_USAGE_STAGING && IsMipmapped())
       m_texture.GenerateMipmaps();
   }
-  _aligned_free(m_pixels);
-  m_pixels = nullptr;
+
+  if (!m_bCacheMemory)
+  {
+    _aligned_free(m_pixels);
+    m_pixels = nullptr;
+  }
 
   m_loadedToGPU = true;
 }

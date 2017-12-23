@@ -22,13 +22,13 @@
 #include "RenderManager.h"
 #include "RenderFlags.h"
 #include "RenderFactory.h"
-#include "cores/VideoPlayer/TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "guilib/GraphicContext.h"
 #include "utils/MathUtils.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -39,7 +39,7 @@
 
 
 #if defined(TARGET_POSIX)
-#include "linux/XTimeUtils.h"
+#include "platform/linux/XTimeUtils.h"
 #endif
 
 #include "RenderCapture.h"
@@ -86,6 +86,15 @@ float CRenderManager::GetAspectRatio()
     return m_pRenderer->GetAspectRatio();
   else
     return 1.0f;
+}
+
+void CRenderManager::SetVideoSettings(CVideoSettings settings)
+{
+  CSingleLock lock(m_statelock);
+  if (m_pRenderer)
+  {
+    m_pRenderer->SetVideoSettings(settings);
+  }
 }
 
 bool CRenderManager::Configure(const VideoPicture& picture, float fps, unsigned flags, unsigned int orientation, int buffers)
@@ -188,6 +197,7 @@ bool CRenderManager::Configure()
       return false;
   }
 
+  m_pRenderer->SetVideoSettings(m_playerPort->GetVideoSettings());
   bool result = m_pRenderer->Configure(*m_pConfigPicture, m_fps, m_flags, m_orientation);
   if (result)
   {
@@ -274,6 +284,7 @@ bool CRenderManager::IsPresenting()
 
 void CRenderManager::FrameMove()
 {
+  bool firstFrame = false;
   UpdateResolution();
 
   {
@@ -287,6 +298,7 @@ void CRenderManager::FrameMove()
       if (!Configure())
         return;
 
+      firstFrame = true;
       FrameWait(50);
 
       if (m_flags & CONF_FLAGS_FULLSCREEN)
@@ -337,7 +349,7 @@ void CRenderManager::FrameMove()
     m_bRenderGUI = true;
   }
 
-  m_playerPort->UpdateGuiRender(IsGuiLayer());
+  m_playerPort->UpdateGuiRender(IsGuiLayer() || firstFrame);
 
   ManageCaptures();
 }
@@ -346,8 +358,12 @@ void CRenderManager::PreInit()
 {
   if (!g_application.IsCurrentThread())
   {
-    CLog::Log(LOGERROR, "CRenderManager::PreInit - not called from render thread");
-    return;
+    m_initEvent.Reset();
+    CApplicationMessenger::GetInstance().PostMsg(TMSG_RENDERER_PREINIT);
+    if (!m_initEvent.WaitMSec(2000))
+    {
+      CLog::Log(LOGERROR, "%s - timed out waiting for renderer to preinit", __FUNCTION__);
+    }
   }
 
   CSingleLock lock(m_statelock);
@@ -362,14 +378,20 @@ void CRenderManager::PreInit()
   m_QueueSize   = 2;
   m_QueueSkip   = 0;
   m_presentstep = PRESENT_IDLE;
+
+  m_initEvent.Set();
 }
 
 void CRenderManager::UnInit()
 {
   if (!g_application.IsCurrentThread())
   {
-    CLog::Log(LOGERROR, "CRenderManager::UnInit - not called from render thread");
-    return;
+    m_initEvent.Reset();
+    CApplicationMessenger::GetInstance().PostMsg(TMSG_RENDERER_UNINIT);
+    if (!m_initEvent.WaitMSec(2000))
+    {
+      CLog::Log(LOGERROR, "%s - timed out waiting for renderer to uninit", __FUNCTION__);
+    }
   }
 
   CSingleLock lock(m_statelock);
@@ -383,6 +405,8 @@ void CRenderManager::UnInit()
   m_width = 0;
   m_height = 0;
   RemoveCaptures();
+
+  m_initEvent.Set();
 }
 
 bool CRenderManager::Flush(bool wait)
@@ -845,7 +869,7 @@ void CRenderManager::UpdateResolution()
       if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
       {
         RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, CONF_FLAGS_STEREO_MODE_MASK(m_flags) != 0);
-        g_graphicsContext.SetVideoResolution(res);
+        g_graphicsContext.SetVideoResolution(res, false);
         UpdateLatencyTweak();
       }
       m_bTriggerUpdateResolution = false;
@@ -1058,7 +1082,7 @@ void CRenderManager::PrepareNextRender()
   double frameOnScreen = m_dvdClock.GetClock();
   double frametime = 1.0 / g_graphicsContext.GetFPS() * DVD_TIME_BASE;
 
-  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + g_graphicsContext.GetDisplayLatency() - m_videoDelay - g_Windowing.GetFrameLatencyAdjustment());
+  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + g_graphicsContext.GetDisplayLatency() - m_videoDelay - CServiceBroker::GetWinSystem().GetFrameLatencyAdjustment());
 
   double renderPts = frameOnScreen + m_displayLatency;
 

@@ -42,12 +42,10 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIMessage.h"
 
-#ifdef HAS_EVENT_SERVER
 #include "network/EventServer.h"
-#endif
 
 #ifdef HAS_LIRC
-#include "input/linux/LIRC.h"
+#include "platform/linux/input/LIRC.h"
 #endif
 
 #ifdef HAS_IRSERVERSUITE
@@ -64,17 +62,9 @@
 #include "settings/Settings.h"
 #include "AppParamParser.h"
 
-#ifdef HAS_PERFORMANCE_SAMPLE
-#include "utils/PerformanceSample.h"
-#else
-#define MEASURE_FUNCTION
-#endif
-
 #include <algorithm>
 
-#ifdef HAS_EVENT_SERVER
 using EVENTSERVER::CEventServer;
-#endif
 
 using namespace KODI;
 using namespace MESSAGING;
@@ -163,8 +153,6 @@ bool CInputManager::ProcessPeripherals(float frameTime)
 
 bool CInputManager::ProcessMouse(int windowId)
 {
-  MEASURE_FUNCTION;
-
   if (!m_Mouse.IsActive() || !g_application.IsAppFocused())
     return false;
 
@@ -225,7 +213,6 @@ bool CInputManager::ProcessMouse(int windowId)
 
 bool CInputManager::ProcessEventServer(int windowId, float frameTime)
 {
-#ifdef HAS_EVENT_SERVER
   CEventServer* es = CEventServer::GetInstance();
   if (!es || !es->Running() || es->GetNumberOfClients() == 0)
     return false;
@@ -335,7 +322,7 @@ bool CInputManager::ProcessEventServer(int windowId, float frameTime)
       return g_application.OnAction(CAction(ACTION_MOUSE_MOVE, pos.x, pos.y));
     }
   }
-#endif
+
   return false;
 }
 
@@ -395,37 +382,11 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
   {
     m_Keyboard.ProcessKeyDown(newEvent.key.keysym);
     CKey key = m_Keyboard.TranslateKey(newEvent.key.keysym);
-    if (key.GetButtonCode() == m_LastKey.GetButtonCode() && (m_LastKey.GetButtonCode() & CKey::MODIFIER_LONG))
-    {
-      // Do not repeat long presses
-      break;
-    }
-    if (!m_buttonTranslator->HasLongpressMapping(g_windowManager.GetActiveWindowID(), key))
-    {
-      m_LastKey.Reset();
-      OnKey(key);
-    }
-    else
-    {
-      if (key.GetButtonCode() != m_LastKey.GetButtonCode() && (key.GetButtonCode() & CKey::MODIFIER_LONG))
-      {
-        m_LastKey = key;  // OnKey is reentrant; need to do this before entering
-        OnKey(key);
-      }
-      m_LastKey = key;
-    }
+    OnKey(key);
     break;
   }
   case XBMC_KEYUP:
     m_Keyboard.ProcessKeyUp();
-    if (m_LastKey.GetButtonCode() != KEY_INVALID && !(m_LastKey.GetButtonCode() & CKey::MODIFIER_LONG))
-    {
-      CKey key = m_LastKey;
-      m_LastKey.Reset();  // OnKey is reentrant; need to do this before entering
-      OnKey(key);
-    }
-    else
-      m_LastKey.Reset();
     OnKeyUp(m_Keyboard.TranslateKey(newEvent.key.keysym));
     break;
   case XBMC_MOUSEBUTTONDOWN:
@@ -518,12 +479,52 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
 
 bool CInputManager::OnKey(const CKey& key)
 {
+  bool bHandled = false;
+
   for (std::vector<KEYBOARD::IKeyboardHandler*>::iterator it = m_keyboardHandlers.begin(); it != m_keyboardHandlers.end(); ++it)
   {
     if ((*it)->OnKeyPress(key))
-      return true;
+    {
+      bHandled = true;
+      break;
+    }
   }
 
+  if (bHandled)
+  {
+    m_LastKey.Reset();
+  }
+  else
+  {
+    if (key.GetButtonCode() == m_LastKey.GetButtonCode() && (m_LastKey.GetButtonCode() & CKey::MODIFIER_LONG))
+    {
+      // Do not repeat long presses
+    }
+    else
+    {
+      if (!m_buttonTranslator->HasLongpressMapping(g_windowManager.GetActiveWindowID(), key))
+      {
+        m_LastKey.Reset();
+        bHandled = HandleKey(key);
+      }
+      else
+      {
+        if (key.GetButtonCode() != m_LastKey.GetButtonCode() && (key.GetButtonCode() & CKey::MODIFIER_LONG))
+        {
+          m_LastKey = key;  // OnKey is reentrant; need to do this before entering
+          bHandled = HandleKey(key);
+        }
+
+        m_LastKey = key;
+      }
+    }
+  }
+
+  return bHandled;
+}
+
+bool CInputManager::HandleKey(const CKey& key)
+{
   // Turn the mouse off, as we've just got a keypress from controller or remote
   m_Mouse.SetActive(false);
 
@@ -672,6 +673,15 @@ void CInputManager::OnKeyUp(const CKey& key)
 {
   for (std::vector<KEYBOARD::IKeyboardHandler*>::iterator it = m_keyboardHandlers.begin(); it != m_keyboardHandlers.end(); ++it)
     (*it)->OnKeyRelease(key);
+
+  if (m_LastKey.GetButtonCode() != KEY_INVALID && !(m_LastKey.GetButtonCode() & CKey::MODIFIER_LONG))
+  {
+    CKey key = m_LastKey;
+    m_LastKey.Reset();  // OnKey is reentrant; need to do this before entering
+    HandleKey(key);
+  }
+  else
+    m_LastKey.Reset();
 }
 
 bool CInputManager::AlwaysProcess(const CAction& action)

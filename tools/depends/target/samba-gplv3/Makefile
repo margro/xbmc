@@ -1,5 +1,5 @@
 include ../../Makefile.include
-DEPS= ../../Makefile.include Makefile autotools41.patch configureEndian.patch samba_android.patch samba_off64_t.patch no_fork_and_exec.patch
+DEPS= ../../Makefile.include Makefile autotools41.patch configureEndian.patch samba_android.patch samba_off64_t.patch no_fork_and_exec.patch crt_extensions.patch
 
 # lib name, version
 LIBNAME=samba
@@ -32,9 +32,7 @@ CONFIGURE= cp -f $(CONFIG_SUB) $(CONFIG_GUESS) .; \
 # Then xbmc will correctly access smb shares with LFS enabled
 # using the altered libsmbclient.h.
 ifeq ($(OS),android)
-ifeq ($(findstring arm64, $(CPU)), arm64)
 export CFLAGS+=-DHAVE_BZERO
-endif
 endif
 
 LIBDYLIB=$(PLATFORM)/source3/bin/libsmbclient.a
@@ -57,8 +55,9 @@ ifeq ($(OS),android)
 	cd $(PLATFORM); patch -p0 < ../samba_android.patch
 	cd $(PLATFORM); patch -p1 < ../samba_off64_t.patch
 endif
-ifeq ($(TARGET_PLATFORM),appletvos)
+ifeq ($(OS), ios)
 	cd $(PLATFORM); patch -p0 < ../no_fork_and_exec.patch
+	cd $(PLATFORM); patch -p0 < ../crt_extensions.patch
 endif
 ifeq (darwin, $(findstring darwin, $(HOST)))
 	sed -ie "s|ifndef HAVE_CLOCK_GETTIME|if !defined(HAVE_CLOCK_GETTIME) \&\& !defined(CLOCK_REALTIME)|" "$(PLATFORM)/lib/replace/system/time.h"

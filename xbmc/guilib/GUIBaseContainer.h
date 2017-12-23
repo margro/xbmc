@@ -38,6 +38,7 @@
  */
 
 class IListProvider;
+class TiXmlNode;
 
 class CGUIBaseContainer : public IGUIContainer
 {
@@ -134,7 +135,6 @@ protected:
 
   int ScrollCorrectionRange() const;
   inline float Size() const;
-  void MoveToRow(int row);
   void FreeMemory(int keepStart, int keepEnd);
   void GetCurrentLayouts();
   CGUIListItemLayout *GetFocusedLayout() const;

@@ -28,6 +28,7 @@
 #include "GUIInfoManager.h"
 #include "threads/SingleLock.h"
 #include "utils/URIUtils.h"
+#include "SeekHandler.h"
 #include "settings/AdvancedSettings.h"
 #include "addons/Skin.h"
 #include "GUITexture.h"
@@ -35,7 +36,6 @@
 #include "input/Key.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
-#include "utils/SeekHandler.h"
 
 #include "windows/GUIWindowHome.h"
 #include "events/windows/GUIWindowEventLog.h"
@@ -47,6 +47,7 @@
 #include "music/windows/GUIWindowMusicNav.h"
 #include "music/windows/GUIWindowMusicPlaylistEditor.h"
 #include "video/windows/GUIWindowVideoPlaylist.h"
+#include "music/dialogs/GUIDialogInfoProviderSettings.h"
 #include "music/dialogs/GUIDialogMusicInfo.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "video/windows/GUIWindowVideoNav.h"
@@ -60,7 +61,7 @@
 #include "settings/windows/GUIWindowSettingsScreenCalibration.h"
 #include "programs/GUIWindowPrograms.h"
 #include "pictures/GUIWindowPictures.h"
-#include "windows/GUIWindowWeather.h"
+#include "weather/GUIWindowWeather.h"
 #include "windows/GUIWindowLoginScreen.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "music/windows/GUIWindowVisualisation.h"
@@ -90,6 +91,7 @@
 #include "profiles/dialogs/GUIDialogProfileSettings.h"
 #include "profiles/dialogs/GUIDialogLockSettings.h"
 #include "settings/dialogs/GUIDialogContentSettings.h"
+#include "settings/dialogs/GUIDialogLibExportSettings.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogKeyboardGeneric.h"
 #include "dialogs/GUIDialogKeyboardTouch.h"
@@ -128,6 +130,7 @@
 #include "pvr/windows/GUIWindowPVRSearch.h"
 #include "pvr/dialogs/GUIDialogPVRChannelManager.h"
 #include "pvr/dialogs/GUIDialogPVRChannelsOSD.h"
+#include "pvr/dialogs/GUIDialogPVRClientPriorities.h"
 #include "pvr/dialogs/GUIDialogPVRGroupManager.h"
 #include "pvr/dialogs/GUIDialogPVRGuideInfo.h"
 #include "pvr/dialogs/GUIDialogPVRChannelGuide.h"
@@ -143,6 +146,7 @@
 #include "dialogs/GUIDialogMediaFilter.h"
 #include "video/dialogs/GUIDialogSubtitles.h"
 
+#include "peripherals/dialogs/GUIDialogPeripherals.h"
 #include "peripherals/dialogs/GUIDialogPeripheralSettings.h"
 #include "addons/interfaces/AddonInterfaces.h"
 
@@ -153,6 +157,7 @@
 #include "games/dialogs/osd/DialogGameOSD.h"
 #include "games/dialogs/osd/DialogGameVideoFilter.h"
 #include "games/dialogs/osd/DialogGameViewMode.h"
+#include "games/dialogs/osd/DialogGameVolume.h"
 
 using namespace KODI;
 using namespace PVR;
@@ -247,9 +252,14 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogLockSettings);
 
   Add(new CGUIDialogContentSettings);
+  
+  Add(new CGUIDialogLibExportSettings);
+
+  Add(new CGUIDialogInfoProviderSettings);
 
   Add(new CGUIDialogPlayEject);
 
+  Add(new CGUIDialogPeripherals);
   Add(new CGUIDialogPeripheralSettings);
 
   Add(new CGUIDialogMediaFilter);
@@ -283,6 +293,7 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogPVRChannelsOSD);
   Add(new CGUIDialogPVRChannelGuide);
   Add(new CGUIDialogPVRRecordingSettings);
+  Add(new CGUIDialogPVRClientPriorities);
 
   Add(new CGUIDialogSelect);
   Add(new CGUIDialogMusicInfo);
@@ -306,6 +317,7 @@ void CGUIWindowManager::CreateWindows()
   Add(new GAME::CDialogGameOSD);
   Add(new GAME::CDialogGameVideoFilter);
   Add(new GAME::CDialogGameViewMode);
+  Add(new GAME::CDialogGameVolume);
   Add(new RETRO::CGameWindowFullScreen);
 }
 
@@ -347,6 +359,8 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_AUDIO_OSD_SETTINGS);
     DestroyWindow(WINDOW_DIALOG_VIDEO_BOOKMARKS);
     DestroyWindow(WINDOW_DIALOG_CONTENT_SETTINGS);
+    DestroyWindow(WINDOW_DIALOG_INFOPROVIDER_SETTINGS);
+    DestroyWindow(WINDOW_DIALOG_LIBEXPORT_SETTINGS);
     DestroyWindow(WINDOW_DIALOG_FAVOURITES);
     DestroyWindow(WINDOW_DIALOG_SONG_INFO);
     DestroyWindow(WINDOW_DIALOG_SMART_PLAYLIST_EDITOR);
@@ -386,6 +400,7 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_PVR_CHANNEL_GUIDE);
     DestroyWindow(WINDOW_DIALOG_OSD_TELETEXT);
     DestroyWindow(WINDOW_DIALOG_PVR_RECORDING_SETTING);
+    DestroyWindow(WINDOW_DIALOG_PVR_CLIENT_PRIORITIES);
 
     DestroyWindow(WINDOW_DIALOG_TEXT_VIEWER);
     DestroyWindow(WINDOW_DIALOG_PLAY_EJECT);
@@ -412,6 +427,7 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_GAME_OSD);
     DestroyWindow(WINDOW_DIALOG_GAME_VIDEO_FILTER);
     DestroyWindow(WINDOW_DIALOG_GAME_VIEW_MODE);
+    DestroyWindow(WINDOW_DIALOG_GAME_VOLUME);
     DestroyWindow(WINDOW_FULLSCREEN_GAME);
 
     Remove(WINDOW_SETTINGS_SERVICE);
@@ -427,6 +443,9 @@ bool CGUIWindowManager::DestroyWindows()
     Remove(WINDOW_DIALOG_VOLUME_BAR);
 
     DestroyWindow(WINDOW_EVENT_LOG);
+
+    DestroyWindow(WINDOW_DIALOG_PERIPHERALS);
+    DestroyWindow(WINDOW_DIALOG_PERIPHERAL_SETTINGS);
   }
   catch (...)
   {
@@ -1501,7 +1520,7 @@ int CGUIWindowManager::GetActiveWindowID() const
     else if (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().HasPVRChannelInfoTag())
       iWin = WINDOW_FULLSCREEN_LIVETV;
     // special casing for numeric seek
-    else if (CSeekHandler::GetInstance().HasTimeCode())
+    else if (g_application.m_pPlayer->GetSeekHandler().HasTimeCode())
       iWin = WINDOW_VIDEO_TIME_SEEK;
   }
   if (iWin == WINDOW_VISUALISATION)
@@ -1510,7 +1529,7 @@ int CGUIWindowManager::GetActiveWindowID() const
     if (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().HasPVRChannelInfoTag())
       iWin = WINDOW_FULLSCREEN_RADIO;
     // special casing for numeric seek
-    else if (CSeekHandler::GetInstance().HasTimeCode())
+    else if (g_application.m_pPlayer->GetSeekHandler().HasTimeCode())
       iWin = WINDOW_VIDEO_TIME_SEEK;
   }
   // Return the window id

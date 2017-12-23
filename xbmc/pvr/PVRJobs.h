@@ -30,20 +30,6 @@
 
 namespace PVR
 {
-  class CPVRSetRecordingOnChannelJob : public CJob
-  {
-  public:
-    CPVRSetRecordingOnChannelJob(const CPVRChannelPtr &channel, bool bOnOff)
-    : m_channel(channel), m_bOnOff(bOnOff) {}
-    ~CPVRSetRecordingOnChannelJob() override = default;
-    const char *GetType() const override { return "pvr-set-recording-on-channel"; }
-
-    bool DoWork() override;
-  private:
-    CPVRChannelPtr m_channel;
-    bool m_bOnOff;
-  };
-
   class CPVRPlayChannelOnStartupJob : public CJob
   {
   public:
@@ -115,6 +101,21 @@ namespace PVR
     const char *GetType() const override { return "pvr-startup"; }
 
     bool DoWork() override;
+  };
+
+  class CPVRUpdateAddonsJob : public CJob
+  {
+  public:
+    explicit CPVRUpdateAddonsJob(const std::string& changedAddonId) : m_changedAddonId(changedAddonId) {};
+    ~CPVRUpdateAddonsJob() override = default;
+    const char *GetType() const override { return "pvr-update-addons"; }
+
+    bool DoWork() override;
+
+  private:
+    CPVRUpdateAddonsJob() = delete;
+
+    std::string m_changedAddonId;
   };
 
   class CPVREpgsCreateJob : public CJob

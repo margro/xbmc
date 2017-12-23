@@ -15,6 +15,7 @@ else()
 endif()
 
 # CMake config
+set(APP_BINARY ${APP_NAME_LC}${APP_BINARY_SUFFIX})
 set(APP_PREFIX ${prefix})
 set(APP_LIB_DIR ${libdir}/${APP_NAME_LC})
 set(APP_DATA_DIR ${datarootdir}/${APP_NAME_LC})
@@ -146,17 +147,13 @@ if(NOT WITH_TEXTUREPACKER)
 endif()
 
 # Install kodi-addon-dev headers
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi/
+include(${CMAKE_SOURCE_DIR}/xbmc/addons/AddonBindings.cmake)
+install(DIRECTORY ${CORE_ADDON_BINDINGS_DIRS}/
         DESTINATION ${includedir}/${APP_NAME_LC}
         COMPONENT kodi-addon-dev
         REGEX ".txt" EXCLUDE)
 
-install(FILES ${CMAKE_SOURCE_DIR}/xbmc/cores/VideoPlayer/DVDDemuxers/DVDDemuxPacket.h
-              ${CMAKE_SOURCE_DIR}/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxCrypto.h
-              ${CMAKE_SOURCE_DIR}/xbmc/cores/AudioEngine/Utils/AEChannelData.h
-              ${CMAKE_SOURCE_DIR}/xbmc/filesystem/IFileTypes.h
-              ${CMAKE_SOURCE_DIR}/xbmc/input/ActionIDs.h
-              ${CMAKE_SOURCE_DIR}/xbmc/input/XBMC_vkeys.h
+install(FILES ${CORE_ADDON_BINDINGS_FILES}
         DESTINATION ${includedir}/${APP_NAME_LC}
         COMPONENT kodi-addon-dev)
 
@@ -178,7 +175,7 @@ install(FILES ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/scripts/${APP_NAME}Config.cm
         COMPONENT kodi-addon-dev)
 
 if(ENABLE_EVENTCLIENTS)
-  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(prefix='')"
+  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(prefix=''))"
                   OUTPUT_VARIABLE PYTHON_LIB_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
   # Install kodi-eventclients-common BT python files
   install(PROGRAMS ${CMAKE_SOURCE_DIR}/tools/EventClients/lib/python/bt/__init__.py

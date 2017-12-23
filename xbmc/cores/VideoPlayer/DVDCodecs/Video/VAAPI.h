@@ -21,7 +21,7 @@
 
 #include "DVDVideoCodec.h"
 #include "cores/VideoPlayer/Process/VideoBuffer.h"
-#include "settings/VideoSettings.h"
+#include "cores/VideoSettings.h"
 #include "threads/CriticalSection.h"
 #include "threads/SharedSection.h"
 #include "threads/Event.h"
@@ -33,7 +33,7 @@
 #include <memory>
 #include <vector>
 #include <va/va.h>
-#include "linux/sse4/DllLibSSE4.h"
+#include "platform/linux/sse4/DllLibSSE4.h"
 
 extern "C" {
 #include "libavutil/avutil.h"
@@ -354,9 +354,21 @@ private:
   int m_renderNodeFD{-1};
 };
 
-/**
- *  VAAPI main class
- */
+//-----------------------------------------------------------------------------
+// Interface into windowing
+//-----------------------------------------------------------------------------
+
+class IVaapiWinSystem
+{
+public:
+  virtual VADisplay GetVADisplay() = 0;
+  virtual void *GetEGLDisplay() { return nullptr; };
+};
+
+//-----------------------------------------------------------------------------
+// VAAPI main class
+//-----------------------------------------------------------------------------
+
 class CDecoder
  : public IHardwareDecoder
 {
@@ -384,7 +396,9 @@ public:
   static int FFGetBuffer(AVCodecContext *avctx, AVFrame *pic, int flags);
 
   static IHardwareDecoder* Create(CDVDStreamInfo &hint, CProcessInfo &processInfo, AVPixelFormat fmt);
-  static void Register(bool hevc);
+  static void Register(IVaapiWinSystem *winSystem, bool hevc);
+
+  static IVaapiWinSystem* m_pWinSystem;
 
 protected:
   void SetWidthHeight(int width, int height);

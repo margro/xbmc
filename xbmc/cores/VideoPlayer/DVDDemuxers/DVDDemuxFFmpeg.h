@@ -90,7 +90,7 @@ public:
 
   bool Open(CDVDInputStream* pInput, bool streaminfo = true, bool fileinfo = false);
   void Dispose();
-  void Reset() override ;
+  bool Reset() override ;
   void Flush() override;
   void Abort() override;
   void SetSpeed(int iSpeed) override;
@@ -104,6 +104,8 @@ public:
   CDemuxStream* GetStream(int iStreamId) const override;
   std::vector<CDemuxStream*> GetStreams() const override;
   int GetNrOfStreams() const override;
+  int GetPrograms(std::vector<ProgramInfo>& programs) override;
+  void SetProgram(int progId) override;
 
   bool SeekChapter(int chapter, double* startpts = NULL) override;
   int GetChapterCount() override;
@@ -152,7 +154,10 @@ protected:
   bool     m_bAVI;
   bool     m_bSup;
   int      m_speed;
-  unsigned m_program;
+  unsigned int m_program;
+  unsigned int m_streamsInProgram;
+  unsigned int m_newProgram;
+
   XbmcThreads::EndTime  m_timeout;
 
   // Due to limitations of ffmpeg, we only can detect a program change
@@ -168,5 +173,6 @@ protected:
   bool m_checkvideo;
   int m_displayTime = 0;
   double m_dtsAtDisplayTime;
+  bool m_seekToKeyFrame = false;
 };
 

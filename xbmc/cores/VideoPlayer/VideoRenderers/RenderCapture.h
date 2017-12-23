@@ -112,34 +112,8 @@ class CRenderCaptureBase
     bool m_asyncChecked;
 };
 
-
-#if defined(HAS_IMXVPU)
-#include "../VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
-
-class CRenderCaptureIMX : public CRenderCaptureBase
-{
-  public:
-    CRenderCaptureIMX();
-    ~CRenderCaptureIMX();
-
-    int   GetCaptureFormat();
-
-    void  BeginRender();
-    void  EndRender();
-    void  ReadOut();
-
-    void* GetRenderBuffer();
-};
-
-class CRenderCapture : public CRenderCaptureIMX
-{
-  public:
-    CRenderCapture() {};
-};
-
-
-#elif defined(TARGET_RASPBERRY_PI)
-#include "xbmc/linux/RBP.h"
+#if defined(TARGET_RASPBERRY_PI)
+#include "platform/linux/RBP.h"
 
 class CRenderCaptureDispmanX : public CRenderCaptureBase
 {
@@ -211,7 +185,6 @@ class CRenderCaptureDX : public CRenderCaptureBase, public ID3DResource
     void ReadOut();
 
     void OnDestroyDevice(bool fatal) override;
-    void OnLostDevice() override;
     void OnCreateDevice() override {};
     CD3DTexture* GetTarget() { return &m_renderTex; }
 

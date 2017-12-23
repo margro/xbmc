@@ -37,7 +37,7 @@
 #include "utils/StringUtils.h"
 #include "messaging/ApplicationMessenger.h"
 #include "utils/CharsetConverter.h"
-#include "windowing/WindowingFactory.h"
+#include "windowing/WinSystem.h"
 #include "utils/log.h"
 
 #ifdef TARGET_ANDROID
@@ -100,7 +100,6 @@ CGUIDialogKeyboardGeneric::CGUIDialogKeyboardGeneric()
 
 void CGUIDialogKeyboardGeneric::OnWindowLoaded()
 {
-  g_Windowing.EnableTextInput(false);
   CGUIEditControl *edit = static_cast<CGUIEditControl*>(GetControl(CTL_EDIT));
   if (edit)
   {
@@ -315,7 +314,6 @@ bool CGUIDialogKeyboardGeneric::OnMessage(CGUIMessage& message)
     break;
 
   case GUI_MSG_SET_TEXT:
-  case GUI_MSG_INPUT_TEXT_EDIT:
     {
       // the edit control only handles these messages if it is either focused
       // or its specific control ID is set in the message. As neither is the

@@ -18,22 +18,32 @@
  *
  */
 
-#if defined (HAVE_LIBVA)
-#include <va/va_drm.h>
-#include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
-#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGLES.h"
-#endif
+#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecDRMPRIME.h"
+#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.h"
 
+#include "cores/RetroPlayer/process/gbm/RPProcessInfoGbm.h"
+#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
 
 #include "WinSystemGbmGLESContext.h"
+#include "OptionalsReg.h"
 #include "utils/log.h"
+
+using namespace KODI;
+
+std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+{
+  std::unique_ptr<CWinSystemBase> winSystem(new CWinSystemGbmGLESContext());
+  return winSystem;
+}
 
 bool CWinSystemGbmGLESContext::InitWindowSystem()
 {
   CLinuxRendererGLES::Register();
+  RETRO::CRPProcessInfoGbm::Register();
+  RETRO::CRPProcessInfoGbm::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
 
   if (!CWinSystemGbm::InitWindowSystem())
   {
@@ -47,15 +57,18 @@ bool CWinSystemGbmGLESContext::InitWindowSystem()
     return false;
   }
 
-#if defined (HAVE_LIBVA)
-  VADisplay vaDpy = static_cast<VADisplay>(CWinSystemGbm::GetVaDisplay());
   bool general, hevc;
-  CRendererVAAPI::Register(vaDpy, m_pGLContext.m_eglDisplay, general, hevc);
+  m_vaapiProxy.reset(GBM::VaapiProxyCreate());
+  GBM::VaapiProxyConfig(m_vaapiProxy.get(), m_pGLContext.m_eglDisplay);
+  GBM::VAAPIRegisterRender(m_vaapiProxy.get(), general, hevc);
+
   if (general)
   {
-    VAAPI::CDecoder::Register(hevc);
+    GBM::VAAPIRegister(m_vaapiProxy.get(), hevc);
   }
-#endif
+
+  CRendererDRMPRIME::Register(this);
+  CDVDVideoCodecDRMPRIME::Register();
 
   return true;
 }
@@ -65,12 +78,7 @@ bool CWinSystemGbmGLESContext::DestroyWindowSystem()
   CDVDFactoryCodec::ClearHWAccels();
   VIDEOPLAYER::CRendererFactory::ClearRenderer();
 
-  if (!CWinSystemGbm::DestroyWindowSystem())
-  {
-    return false;
-  }
-
-  return true;
+  return CWinSystemGbm::DestroyWindowSystem();
 }
 
 bool CWinSystemGbmGLESContext::CreateNewWindow(const std::string& name,
@@ -114,8 +122,8 @@ bool CWinSystemGbmGLESContext::CreateNewWindow(const std::string& name,
 
 bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
 {
-  if (res.iWidth != m_drm->mode->hdisplay ||
-      res.iHeight != m_drm->mode->vdisplay)
+  if (res.iWidth != m_DRM->m_mode->hdisplay ||
+      res.iHeight != m_DRM->m_mode->vdisplay)
   {
     CLog::Log(LOGDEBUG, "CWinSystemGbmGLESContext::%s - resolution changed, creating a new window", __FUNCTION__);
     CreateNewWindow("", fullScreen, res);
@@ -129,13 +137,25 @@ bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& r
   return true;
 }
 
-void CWinSystemGbmGLESContext::PresentRenderImpl(bool rendered)
+void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
 {
+  if (!m_bRenderCreated)
+    return;
+
   if (rendered)
   {
     m_pGLContext.SwapBuffers();
-    CGBMUtils::FlipPage();
+    CWinSystemGbm::FlipPage();
   }
+  else
+  {
+    CWinSystemGbm::WaitVBlank();
+  }
+}
+
+void CWinSystemGbmGLESContext::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
+{
+  GBM::VaapiProxyDelete(p);
 }
 
 EGLDisplay CWinSystemGbmGLESContext::GetEGLDisplay() const

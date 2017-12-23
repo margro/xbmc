@@ -40,8 +40,6 @@
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/recordings/PVRRecording.h"
 
-class CGUIDialogExtendedProgressBar;
-class CGUIDialogProgressBarHandle;
 class CStopWatch;
 class CVariant;
 
@@ -49,6 +47,7 @@ namespace PVR
 {
   class CPVRClient;
   class CPVRGUIInfo;
+  class CPVRGUIProgressHandler;
 
   class CPVRManagerJobQueue
   {
@@ -125,11 +124,6 @@ namespace PVR
      * @brief Init PVRManager.
      */
     void Init(void);
-
-    /*!
-     * @brief Reinit PVRManager.
-     */
-    void Reinit(void);
 
     /*!
      * @brief Start the PVRManager, which loads all PVR data and starts some threads to update the PVR data.
@@ -263,19 +257,31 @@ namespace PVR
      * @brief Return the channel that is currently playing.
      * @return The channel or NULL if none is playing.
      */
-    CPVRChannelPtr GetCurrentChannel(void) const;
+    CPVRChannelPtr GetPlayingChannel(void) const;
 
     /*!
      * @brief Return the recording that is currently playing.
      * @return The recording or NULL if none is playing.
      */
-    CPVRRecordingPtr GetCurrentRecording(void) const;
+    CPVRRecordingPtr GetPlayingRecording(void) const;
 
     /*!
      * @brief Return the epg tag that is currently playing.
      * @return The tag or NULL if none is playing.
      */
-    CPVREpgInfoTagPtr GetCurrentEpgTag(void) const;
+    CPVREpgInfoTagPtr GetPlayingEpgTag(void) const;
+
+    /*!
+     * @brief Check whether there is an active recording on the currenlyt playing channel.
+     * @return True if there is a playing channel and there is an active recording on that channel, false otherwise.
+     */
+    bool IsRecordingOnPlayingChannel(void) const;
+
+    /*!
+     * @brief Check whether the currently playing channel can be recorded.
+     * @return True if there is a playing channel that can be recorded, false otherwise.
+     */
+    bool CanRecordOnPlayingChannel(void) const;
 
     /*!
      * @brief Check whether EPG tags for channels have been created.
@@ -326,28 +332,10 @@ namespace PVR
     bool OpenRecordedStream(const CPVRRecordingPtr &tag);
 
     /*!
-     * @brief Start or stop recording on the channel that is currently being played.
-     * @param bOnOff True to start recording, false to stop.
-     */
-    void StartRecordingOnPlayingChannel(bool bOnOff);
-
-    /*!
      * @brief Check whether there are active recordings.
      * @return True if there are active recordings, false otherwise.
      */
     bool IsRecording(void) const;
-
-    /*!
-     * @brief Check whether the system Kodi is running on can be powered down
-     *        (shutdown/reboot/suspend/hibernate) without stopping any active
-     *        recordings and/or without preventing the start of recordings
-     *        scheduled for now + pvrpowermanagement.backendidletime.
-     * @param bAskUser True to informs user in case of potential
-     *        data loss. User can decide to allow powerdown anyway. False to
-     *        not to ask user and to not confirm power down.
-     * @return True if system can be safely powered down, false otherwise.
-     */
-    bool CanSystemPowerdown(bool bAskUser = true) const;
 
     /*!
      * @brief Set the current playing group, used to load the right channel.
@@ -429,10 +417,22 @@ namespace PVR
     bool IsPlayingRadio(void) const;
 
     /*!
+     * @brief Check if a an encrypted TV or radio channel is playing.
+     * @return True if it's playing, false otherwise.
+     */
+    bool IsPlayingEncryptedChannel(void) const;
+
+    /*!
      * @brief Check if a recording is playing.
      * @return True if it's playing, false otherwise.
      */
     bool IsPlayingRecording(void) const;
+
+    /*!
+     * @brief Check if an epg tag is playing.
+     * @return True if it's playing, false otherwise.
+     */
+    bool IsPlayingEpgTag(void) const;
 
     /*!
      * @brief Try to find missing channel icons automatically
@@ -479,13 +479,6 @@ namespace PVR
      */
     void PublishEvent(PVREvent state);
 
-    /*!
-     * @brief Show an extended progress bar dialog.
-     * @param strTitle the title for the dialog.
-     * @return the handle that can be used to control the progress dialog.
-     */
-    CGUIDialogProgressBarHandle* ShowProgressDialog(const std::string &strTitle) const;
-
   protected:
     /*!
      * @brief PVR update and control thread.
@@ -511,24 +504,16 @@ namespace PVR
     bool SetWakeupCommand(void);
 
     /*!
-     * @brief Show or update the progress dialog.
-     * @param strText The current status.
-     * @param iProgress The current progress in %.
-     */
-    void ShowProgressDialog(const std::string &strText, int iProgress);
-
-    /*!
-     * @brief Hide the progress dialog if it's visible.
-     */
-    void HideProgressDialog(void);
-
-    /*!
-     * @brief Load at least one client and load all other PVR data after loading the client.
-     * If some clients failed to load here, the pvrmanager will retry to load them every second.
-     * @param bShowProgress True, to show a progress dialog for the different load stages.
+     * @brief Load at least one client and load all other PVR data (channelgroups, timers, recordings) after loading the client.
+     * @param progressHandler The progress handler to use for showing the different load stages.
      * @return If at least one client and all pvr data was loaded, false otherwise.
      */
-    bool Load(bool bShowProgress);
+    bool LoadComponents(CPVRGUIProgressHandler* progressHandler);
+
+    /*!
+     * @brief Unload all PVR data (recordings, timers, channelgroups).
+     */
+    void UnloadComponents();
 
     /*!
      * @brief Reset all properties.
@@ -567,10 +552,6 @@ namespace PVR
      */
     void SetState(ManagerState state);
 
-    bool AllLocalBackendsIdle(CPVRTimerInfoTagPtr& causingEvent) const;
-    bool EventOccursOnLocalBackend(const CFileItemPtr& item) const;
-    bool IsNextEventWithinBackendIdleTime(void) const;
-
     /** @name containers */
     //@{
     CPVRChannelGroupsContainerPtr  m_channelGroups;               /*!< pointer to the channel groups container */
@@ -588,8 +569,6 @@ namespace PVR
     CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
     bool                            m_bFirstStart;                 /*!< true when the PVR manager was started first, false otherwise */
     bool                            m_bEpgsCreated;                /*!< true if epg data for channels has been created */
-    CGUIDialogExtendedProgressBar * m_progressBar;                 /*!< extended progress dialog instance pointer */
-    CGUIDialogProgressBarHandle *   m_progressHandle;              /*!< progress dialog that is displayed while the pvrmanager is loading */
 
     CCriticalSection                m_managerStateMutex;
     ManagerState                    m_managerState;
@@ -601,5 +580,9 @@ namespace PVR
 
     CPVRActionListener m_actionListener;
     CPVRSettings m_settings;
+
+    CPVRChannelPtr m_playingChannel;
+    CPVRRecordingPtr m_playingRecording;
+    CPVREpgInfoTagPtr m_playingEpgTag;
   };
 }

@@ -19,24 +19,22 @@
  */
 #include "VAAPI.h"
 #include "ServiceBroker.h"
-#include "windowing/WindowingFactory.h"
 #include "DVDVideoCodec.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDCodecUtils.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
-#include "cores/VideoPlayer/TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "threads/SingleLock.h"
 #include "settings/Settings.h"
 #include "guilib/GraphicContext.h"
-#include "settings/MediaSettings.h"
 #include "settings/AdvancedSettings.h"
 #include <va/va_drm.h>
 #include <va/va_drmcommon.h>
 #include <drm_fourcc.h>
-#include "linux/XTimeUtils.h"
-#include "linux/XMemUtils.h"
+#include "platform/linux/XTimeUtils.h"
+#include "platform/linux/XMemUtils.h"
 
 extern "C" {
 #include "libavutil/avutil.h"
@@ -167,7 +165,7 @@ void CVAAPIContext::SetValidDRMVaDisplayFromRenderNode()
 
 void CVAAPIContext::SetVaDisplayForSystem()
 {
-  m_display = g_Windowing.GetVaDisplay();
+  m_display = CDecoder::m_pWinSystem->GetVADisplay();
 
   // Fallback to DRM
   if (!m_display)
@@ -488,6 +486,7 @@ bool CVideoSurfaces::HasRefs()
 
 bool CDecoder::m_capGeneral = false;
 bool CDecoder::m_capHevc = false;
+IVaapiWinSystem* CDecoder::m_pWinSystem = nullptr;
 
 CDecoder::CDecoder(CProcessInfo& processInfo) :
   m_vaapiOutput(*this, &m_inMsgEvent),
@@ -601,15 +600,17 @@ bool CDecoder::Open(AVCodecContext* avctx, AVCodecContext* mainctx, const enum A
         return false;
       break;
     }
-#if VA_CHECK_VERSION(0,38,1)
     case AV_CODEC_ID_VP9:
     {
-      profile = VAProfileVP9Profile0;
+      // VAAPI currently only supports Profile 0
+      if (avctx->profile == FF_PROFILE_VP9_0)
+        profile = VAProfileVP9Profile0;
+      else
+        profile = VAProfileNone;
       if (!m_vaapiConfig.context->SupportsProfile(profile))
         return false;
       break;
     }
-#endif
     case AV_CODEC_ID_WMV3:
       profile = VAProfileVC1Main;
       if (!m_vaapiConfig.context->SupportsProfile(profile))
@@ -1179,8 +1180,10 @@ IHardwareDecoder* CDecoder::Create(CDVDStreamInfo &hint, CProcessInfo &processIn
   return nullptr;
 }
 
-void CDecoder::Register(bool hevc)
+void CDecoder::Register(IVaapiWinSystem *winSystem, bool hevc)
 {
+  m_pWinSystem = winSystem;
+
   CVaapiConfig config;
   if (!CVAAPIContext::EnsureContext(&config.context, nullptr))
     return;
@@ -1912,7 +1915,7 @@ void COutput::InitCycle()
 
   m_config.stats->SetCanSkipDeint(false);
 
-  EINTERLACEMETHOD method = CMediaSettings::GetInstance().GetCurrentVideoSettings().m_InterlaceMethod;
+  EINTERLACEMETHOD method = m_config.processInfo->GetVideoSettings().m_InterlaceMethod;
   bool interlaced = m_currentPicture.DVDPic.iFlags & DVP_FLAG_INTERLACED;
 
   if (!(flags & DVD_CODEC_CTRL_NO_POSTPROC) &&
@@ -2800,8 +2803,8 @@ bool CFFmpegPostproc::Init(EINTERLACEMETHOD method)
     return false;
   }
 
-  AVFilter* srcFilter = avfilter_get_by_name("buffer");
-  AVFilter* outFilter = avfilter_get_by_name("buffersink");
+  const AVFilter* srcFilter = avfilter_get_by_name("buffer");
+  const AVFilter* outFilter = avfilter_get_by_name("buffersink");
 
   std::string args = StringUtils::Format("%d:%d:%d:%d:%d:%d:%d",
                                         m_config.vidWidth,

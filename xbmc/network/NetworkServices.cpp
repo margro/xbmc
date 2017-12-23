@@ -22,14 +22,16 @@
 
 #include <utility>
 
-#include "Application.h"
 #include "ServiceBroker.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "guilib/LocalizeStrings.h"
+#include "interfaces/json-rpc/JSONRPC.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "messaging/helpers/DialogOKHelper.h"
+#include "network/EventServer.h"
 #include "network/Network.h"
+#include "network/TCPServer.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
@@ -49,15 +51,6 @@
 #include "network/AirTunesServer.h"
 #endif // HAS_AIRTUNES
 
-#ifdef HAS_EVENT_SERVER
-#include "network/EventServer.h"
-#endif // HAS_EVENT_SERVER
-
-#ifdef HAS_JSONRPC
-#include "interfaces/json-rpc/JSONRPC.h"
-#include "network/TCPServer.h"
-#endif
-
 #ifdef HAS_ZEROCONF
 #include "network/Zeroconf.h"
 #endif // HAS_ZEROCONF
@@ -71,9 +64,7 @@
 #include "network/httprequesthandler/HTTPImageHandler.h"
 #include "network/httprequesthandler/HTTPImageTransformationHandler.h"
 #include "network/httprequesthandler/HTTPVfsHandler.h"
-#ifdef HAS_JSONRPC
 #include "network/httprequesthandler/HTTPJsonRpcHandler.h"
-#endif // HAS_JSONRPC
 #ifdef HAS_WEB_INTERFACE
 #ifdef HAS_PYTHON
 #include "network/httprequesthandler/HTTPPythonHandler.h"
@@ -88,12 +79,8 @@
 #endif
 
 using namespace KODI::MESSAGING;
-#ifdef HAS_JSONRPC
 using namespace JSONRPC;
-#endif // HAS_JSONRPC
-#ifdef HAS_EVENT_SERVER
 using namespace EVENTSERVER;
-#endif // HAS_EVENT_SERVER
 #ifdef HAS_UPNP
 using namespace UPNP;
 #endif // HAS_UPNP
@@ -106,10 +93,8 @@ CNetworkServices::CNetworkServices()
   m_webserver(*new CWebServer),
   m_httpImageHandler(*new CHTTPImageHandler),
   m_httpImageTransformationHandler(*new CHTTPImageTransformationHandler),
-  m_httpVfsHandler(*new CHTTPVfsHandler)
-#ifdef HAS_JSONRPC
-  , m_httpJsonRpcHandler(*new CHTTPJsonRpcHandler)
-#endif // HAS_JSONRPC
+  m_httpVfsHandler(*new CHTTPVfsHandler),
+  m_httpJsonRpcHandler(*new CHTTPJsonRpcHandler)
 #ifdef HAS_WEB_INTERFACE
 #ifdef HAS_PYTHON
   , m_httpPythonHandler(*new CHTTPPythonHandler)
@@ -124,9 +109,7 @@ CNetworkServices::CNetworkServices()
   m_webserver.RegisterRequestHandler(&m_httpImageHandler);
   m_webserver.RegisterRequestHandler(&m_httpImageTransformationHandler);
   m_webserver.RegisterRequestHandler(&m_httpVfsHandler);
-#ifdef HAS_JSONRPC
   m_webserver.RegisterRequestHandler(&m_httpJsonRpcHandler);
-#endif // HAS_JSONRPC
 #ifdef HAS_WEB_INTERFACE
 #ifdef HAS_PYTHON
   m_webserver.RegisterRequestHandler(&m_httpPythonHandler);
@@ -146,11 +129,9 @@ CNetworkServices::~CNetworkServices()
   delete &m_httpImageTransformationHandler;
   m_webserver.UnregisterRequestHandler(&m_httpVfsHandler);
   delete &m_httpVfsHandler;
-#ifdef HAS_JSONRPC
   m_webserver.UnregisterRequestHandler(&m_httpJsonRpcHandler);
   delete &m_httpJsonRpcHandler;
   CJSONRPC::Cleanup();
-#endif // HAS_JSONRPC
 #ifdef HAS_WEB_INTERFACE
 #ifdef HAS_PYTHON
   m_webserver.UnregisterRequestHandler(&m_httpPythonHandler);
@@ -350,38 +331,29 @@ bool CNetworkServices::OnSettingChanging(std::shared_ptr<const CSetting> setting
     if (std::static_pointer_cast<const CSettingBool>(setting)->GetValue())
     {
       bool result = true;
-#ifdef HAS_EVENT_SERVER
       if (!StartEventServer())
       {
         HELPERS::ShowOKDialogText(CVariant{33102}, CVariant{33100});
         result = false;
       }
-#endif // HAS_EVENT_SERVER
 
-#ifdef HAS_JSONRPC
       if (!StartJSONRPCServer())
       {
         HELPERS::ShowOKDialogText(CVariant{33103}, CVariant{33100});
         result = false;
       }
-#endif // HAS_JSONRPC
       return result;
     }
     else
     {
       bool result = true;
-#ifdef HAS_EVENT_SERVER
       result = StopEventServer(true, true);
-#endif // HAS_EVENT_SERVER
-#ifdef HAS_JSONRPC
       result &= StopJSONRPCServer(false);
-#endif // HAS_JSONRPC
       return result;
     }
   }
   else if (settingId == CSettings::SETTING_SERVICES_ESPORT)
   {
-#ifdef HAS_EVENT_SERVER
     // restart eventserver without asking user
     if (!StopEventServer(true, false))
       return false;
@@ -396,11 +368,9 @@ bool CNetworkServices::OnSettingChanging(std::shared_ptr<const CSetting> setting
     // reconfigure XBMCHelper for port changes
     XBMCHelper::GetInstance().Configure();
 #endif // TARGET_DARWIN_OSX
-#endif // HAS_EVENT_SERVER
   }
   else if (settingId == CSettings::SETTING_SERVICES_ESALLINTERFACES)
   {
-#ifdef HAS_EVENT_SERVER
     if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_ESENABLED))
     {
       if (!StopEventServer(true, true))
@@ -412,9 +382,7 @@ bool CNetworkServices::OnSettingChanging(std::shared_ptr<const CSetting> setting
         return false;
       }
     }
-#endif // HAS_EVENT_SERVER
 
-#ifdef HAS_JSONRPC
     if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_ESENABLED))
     {
       if (!StopJSONRPCServer(true))
@@ -426,17 +394,14 @@ bool CNetworkServices::OnSettingChanging(std::shared_ptr<const CSetting> setting
         return false;
       }
     }
-#endif // HAS_JSONRPC
   }
 
-#ifdef HAS_EVENT_SERVER
   else if (settingId == CSettings::SETTING_SERVICES_ESINITIALDELAY ||
            settingId == CSettings::SETTING_SERVICES_ESCONTINUOUSDELAY)
   {
     if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_ESENABLED))
       return RefreshEventServer();
   }
-#endif // HAS_EVENT_SERVER
 
   return true;
 }
@@ -533,7 +498,7 @@ void CNetworkServices::Stop(bool bWait)
 bool CNetworkServices::StartWebserver()
 {
 #ifdef HAS_WEB_SERVER
-  if (!g_application.getNetwork().IsAvailable())
+  if (!CServiceBroker::GetNetwork().IsAvailable())
     return false;
 
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_WEBSERVER))
@@ -558,9 +523,7 @@ bool CNetworkServices::StartWebserver()
 #ifdef HAS_WEB_INTERFACE
   CZeroconf::GetInstance()->PublishService("servers.webserver", "_http._tcp", CSysInfo::GetDeviceName(), webPort, txt);
 #endif // HAS_WEB_INTERFACE
-#ifdef HAS_JSONRPC
   CZeroconf::GetInstance()->PublishService("servers.jsonrpc-http", "_xbmc-jsonrpc-h._tcp", CSysInfo::GetDeviceName(), webPort, txt);
-#endif // HAS_JSONRPC
 #endif // HAS_ZEROCONF
 
   return true;
@@ -592,9 +555,7 @@ bool CNetworkServices::StopWebserver()
 #ifdef HAS_WEB_INTERFACE
   CZeroconf::GetInstance()->RemoveService("servers.webserver");
 #endif // HAS_WEB_INTERFACE
-#ifdef HAS_JSONRPC
   CZeroconf::GetInstance()->RemoveService("servers.jsonrpc-http");
-#endif // HAS_JSONRPC
 #endif // HAS_ZEROCONF
 
   return true;
@@ -608,7 +569,7 @@ bool CNetworkServices::StartAirPlayServer()
     return true;
 
 #ifdef HAS_AIRPLAY
-  if (!g_application.getNetwork().IsAvailable() || !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_AIRPLAY))
+  if (!CServiceBroker::GetNetwork().IsAvailable() || !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_AIRPLAY))
     return false;
 
   if (IsAirPlayServerRunning())
@@ -623,7 +584,7 @@ bool CNetworkServices::StartAirPlayServer()
   
 #ifdef HAS_ZEROCONF
   std::vector<std::pair<std::string, std::string> > txt;
-  CNetworkInterface* iface = g_application.getNetwork().GetFirstConnectedInterface();
+  CNetworkInterface* iface = CServiceBroker::GetNetwork().GetFirstConnectedInterface();
   txt.push_back(std::make_pair("deviceid", iface != NULL ? iface->GetMacAddress() : "FF:FF:FF:FF:FF:F2"));
   txt.push_back(std::make_pair("model", "Xbmc,1"));
   txt.push_back(std::make_pair("srcvers", AIRPLAY_SERVER_VERSION_STR));
@@ -670,7 +631,7 @@ bool CNetworkServices::StopAirPlayServer(bool bWait)
 bool CNetworkServices::StartAirTunesServer()
 {
 #ifdef HAS_AIRTUNES
-  if (!g_application.getNetwork().IsAvailable() || !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_AIRPLAY))
+  if (!CServiceBroker::GetNetwork().IsAvailable() || !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_AIRPLAY))
     return false;
 
   if (IsAirTunesServerRunning())
@@ -711,7 +672,6 @@ bool CNetworkServices::StopAirTunesServer(bool bWait)
 
 bool CNetworkServices::StartJSONRPCServer()
 {
-#ifdef HAS_JSONRPC
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_ESENABLED))
     return false;
 
@@ -727,21 +687,15 @@ bool CNetworkServices::StartJSONRPCServer()
 #endif // HAS_ZEROCONF
 
   return true;
-#endif // HAS_JSONRPC
-  return false;
 }
 
 bool CNetworkServices::IsJSONRPCServerRunning()
 {
-#ifdef HAS_JSONRPC
   return CTCPServer::IsRunning();
-#endif // HAS_JSONRPC
-  return false;
 }
 
 bool CNetworkServices::StopJSONRPCServer(bool bWait)
 {
-#ifdef HAS_JSONRPC
   if (!IsJSONRPCServerRunning())
     return true;
 
@@ -752,13 +706,10 @@ bool CNetworkServices::StopJSONRPCServer(bool bWait)
 #endif // HAS_ZEROCONF
 
   return true;
-#endif // HAS_JSONRPC
-  return false;
 }
 
 bool CNetworkServices::StartEventServer()
 {
-#ifdef HAS_EVENT_SERVER
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_ESENABLED))
     return false;
 
@@ -775,21 +726,15 @@ bool CNetworkServices::StartEventServer()
   server->StartServer();
 
   return true;
-#endif // HAS_EVENT_SERVER
-  return false;
 }
 
 bool CNetworkServices::IsEventServerRunning()
 {
-#ifdef HAS_EVENT_SERVER
   return CEventServer::GetInstance()->Running();
-#endif // HAS_EVENT_SERVER
-  return false;
 }
 
 bool CNetworkServices::StopEventServer(bool bWait, bool promptuser)
 {
-#ifdef HAS_EVENT_SERVER
   if (!IsEventServerRunning())
     return true;
 
@@ -824,13 +769,10 @@ bool CNetworkServices::StopEventServer(bool bWait, bool promptuser)
   }
 
   return true;
-#endif // HAS_EVENT_SERVER
-  return false;
 }
 
 bool CNetworkServices::RefreshEventServer()
 {
-#ifdef HAS_EVENT_SERVER
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_ESENABLED))
     return false;
 
@@ -839,8 +781,6 @@ bool CNetworkServices::RefreshEventServer()
 
   CEventServer::GetInstance()->RefreshSettings();
   return true;
-#endif // HAS_EVENT_SERVER
-  return false;
 }
 
 bool CNetworkServices::StartUPnP()

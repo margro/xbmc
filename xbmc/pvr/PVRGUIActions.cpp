@@ -34,6 +34,7 @@
 #include "guilib/LocalizeStrings.h"
 #include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
+#include "network/Network.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "threads/Thread.h"
@@ -45,6 +46,7 @@
 #include "pvr/PVRDatabase.h"
 #include "pvr/PVRItem.h"
 #include "pvr/PVRManager.h"
+#include "messaging/helpers/DialogHelper.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
@@ -156,7 +158,9 @@ namespace PVR
       CSettings::SETTING_PVRRECORD_INSTANTRECORDACTION,
       CSettings::SETTING_PVRPLAYBACK_SWITCHTOFULLSCREEN,
       CSettings::SETTING_PVRPARENTAL_PIN,
-      CSettings::SETTING_PVRPARENTAL_ENABLED
+      CSettings::SETTING_PVRPARENTAL_ENABLED,
+      CSettings::SETTING_PVRPOWERMANAGEMENT_DAILYWAKEUPTIME,
+      CSettings::SETTING_PVRPOWERMANAGEMENT_BACKENDIDLETIME
     })
   {
   }
@@ -337,7 +341,7 @@ namespace PVR
     if (!item->Channel() && item->GetTimerType() && !item->GetTimerType()->IsEpgBasedTimerRule())
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - no channel given", __FUNCTION__);
-      HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19109}); // "Information", "Couldn't save timer. Check the log for more information about this message."
+      HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19109}); // "Error", "Could not save the timer. Check the log for more information about this message."
       return false;
     }
 
@@ -356,7 +360,13 @@ namespace PVR
     if (!CheckParentalLock(item->Channel()))
       return false;
 
-    return CServiceBroker::GetPVRManager().Timers()->AddTimer(item);
+    if (!CServiceBroker::GetPVRManager().Timers()->AddTimer(item))
+    {
+      HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19109}); // "Error", "Could not save the timer. Check the log for more information about this message."
+      return false;
+    }
+
+    return true;
   }
 
   namespace
@@ -468,6 +478,15 @@ namespace PVR
     }
 
   } // unnamed namespace
+
+  bool CPVRGUIActions::ToggleRecordingOnPlayingChannel()
+  {
+    const CPVRChannelPtr channel = CServiceBroker::GetPVRManager().GetPlayingChannel();
+    if (channel && channel->CanRecord())
+      return SetRecordingOnChannel(channel, !channel->IsRecording());
+
+    return false;
+  }
 
   bool CPVRGUIActions::SetRecordingOnChannel(const CPVRChannelPtr &channel, bool bOnOff)
   {
@@ -587,12 +606,15 @@ namespace PVR
           bReturn = CServiceBroker::GetPVRManager().Timers()->AddTimer(newTimer);
 
         if (!bReturn)
-          HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19164}); // "Information", "Can't start recording. Check the log for more information about this message."
+          HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19164}); // "Error", "Could not start recording. Check the log for more information about this message."
       }
       else if (!bOnOff && channel->IsRecording())
       {
         /* delete active timers */
         bReturn = CServiceBroker::GetPVRManager().Timers()->DeleteTimersOnChannel(channel, true, true);
+
+        if (!bReturn)
+          HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19170}); // "Error", "Could not stop recording. Check the log for more information about this message."
       }
     }
 
@@ -627,7 +649,11 @@ namespace PVR
     else
       timer->m_state = PVR_TIMER_STATE_DISABLED;
 
-    return CServiceBroker::GetPVRManager().Timers()->UpdateTimer(timer);
+    if (CServiceBroker::GetPVRManager().Timers()->UpdateTimer(timer))
+      return true;
+
+    HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19263}); // "Error", "Could not update the timer. Check the log for more information about this message."
+    return false;
   }
 
   bool CPVRGUIActions::EditTimer(const CFileItemPtr &item) const
@@ -647,7 +673,11 @@ namespace PVR
     {
       if (newTimer->GetTimerType() == timer->GetTimerType())
       {
-        return CServiceBroker::GetPVRManager().Timers()->UpdateTimer(newTimer);
+        if (CServiceBroker::GetPVRManager().Timers()->UpdateTimer(newTimer))
+          return true;
+
+        HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19263}); // "Error", "Could not update the timer. Check the log for more information about this message."
+        return false;
       }
       else
       {
@@ -655,7 +685,7 @@ namespace PVR
         // important. for instance, the new timer might be a rule which schedules the original timer.
         // deleting the original timer after creating the rule would do literally this and we would
         // end up with one timer missing wrt to the rule defined by the new timer.
-        if (CServiceBroker::GetPVRManager().Timers()->DeleteTimer(timer, timer->IsRecording(), false))
+        if (DeleteTimer(timer, timer->IsRecording(), false))
         {
           if (AddTimer(newTimer))
             return true;
@@ -689,8 +719,11 @@ namespace PVR
                                              CVariant{g_localizeStrings.Get(19042)}, // "Are you sure you want to rename this timer?"
                                              false))
     {
-      if (!CServiceBroker::GetPVRManager().Timers()->RenameTimer(*item, strNewName))
-        return false;
+      if (CServiceBroker::GetPVRManager().Timers()->RenameTimer(timer, strNewName))
+        return true;
+
+      HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19263}); // "Error", "Could not update the timer. Check the log for more information about this message."
+      return false;
     }
 
     CGUIWindowPVRBase *pvrWindow = dynamic_cast<CGUIWindowPVRBase*>(g_windowManager.GetWindow(g_windowManager.GetActiveWindow()));
@@ -740,7 +773,13 @@ namespace PVR
     if (bIsRecording)
     {
       if (ConfirmStopRecording(timer))
-        return CServiceBroker::GetPVRManager().Timers()->DeleteTimer(timer, true, false);
+      {
+        if (CServiceBroker::GetPVRManager().Timers()->DeleteTimer(timer, true, false) == TimerOperationResult::OK)
+          return true;
+
+        HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19170}); // "Error", "Could not stop recording. Check the log for more information about this message."
+        return false;
+      }
     }
     else if (timer->HasTimerType() && timer->GetTimerType()->IsReadOnly())
     {
@@ -750,7 +789,40 @@ namespace PVR
     {
       bool bAlsoDeleteRule(false);
       if (ConfirmDeleteTimer(timer, bAlsoDeleteRule))
-        return CServiceBroker::GetPVRManager().Timers()->DeleteTimer(timer, false, bAlsoDeleteRule);
+        return DeleteTimer(timer, false, bAlsoDeleteRule);
+    }
+    return false;
+  }
+
+  bool CPVRGUIActions::DeleteTimer(const CPVRTimerInfoTagPtr &timer, bool bIsRecording, bool bDeleteRule) const
+  {
+    TimerOperationResult result = CServiceBroker::GetPVRManager().Timers()->DeleteTimer(timer, bIsRecording, bDeleteRule);
+    switch (result)
+    {
+      case TimerOperationResult::RECORDING:
+      {
+        // recording running. ask the user if it should be deleted anyway
+        if (HELPERS::ShowYesNoDialogText(CVariant{122},   // "Confirm delete"
+                                         CVariant{19122}) // "This timer is still recording. Are you sure you want to delete this timer?"
+            != HELPERS::DialogResponse::YES)
+          return false;
+
+        return DeleteTimer(timer, true, bDeleteRule);
+      }
+      case TimerOperationResult::OK:
+      {
+        return true;
+      }
+      case TimerOperationResult::FAILED:
+      {
+        HELPERS::ShowOKDialogText(CVariant{257}, CVariant{19110}); // "Error", "Could not delete the timer. Check the log for more information about this message."
+        return false;
+      }
+      default:
+      {
+        CLog::Log(LOGERROR, "CPVRGUIActions - %s - unhandled TimerOperationResult (%d)!", __FUNCTION__, result);
+        break;
+      }
     }
     return false;
   }
@@ -1136,7 +1208,7 @@ namespace PVR
     }
 
     // if we have a last played channel, start playback
-    if (channel && channel->HasPVRChannelInfoTag())
+    if (channel)
     {
       return SwitchToChannel(channel, true);
     }
@@ -1177,7 +1249,7 @@ namespace PVR
 
     // get the last played channel or fallback to first channel
     CFileItemPtr item(group->GetLastPlayedChannel());
-    if (item->HasPVRChannelInfoTag())
+    if (item)
     {
       group = groups->GetLastPlayedGroup(item->GetPVRChannelInfoTag()->ChannelID());
     }
@@ -1225,7 +1297,7 @@ namespace PVR
     const CPVRChannelPtr channel(item->GetPVRChannelInfoTag());
 
     /* check if the channel tag is valid */
-    if (!channel || channel->ChannelNumber() <= 0)
+    if (!channel || !channel->ChannelNumber().IsValid())
       return false;
 
     if (!CGUIDialogYesNo::ShowAndGetInput(CVariant{19054}, // "Hide channel"
@@ -1251,8 +1323,8 @@ namespace PVR
     if (!CServiceBroker::GetPVRManager().IsStarted() || IsRunningChannelScan())
       return false;
 
-    PVR_CLIENT scanClient;
-    std::vector<PVR_CLIENT> possibleScanClients = CServiceBroker::GetPVRManager().Clients()->GetClientsSupportingChannelScan();
+    CPVRClientPtr scanClient;
+    std::vector<CPVRClientPtr> possibleScanClients = CServiceBroker::GetPVRManager().Clients()->GetClientsSupportingChannelScan();
     m_bChannelScanRunning = true;
 
     /* multiple clients found */
@@ -1353,7 +1425,7 @@ namespace PVR
     // get client id
     if (iClientID < 0 && menuCategory == PVR_MENUHOOK_SETTING)
     {
-      PVR_CLIENTMAP clients;
+      CPVRClientMap clients;
       CServiceBroker::GetPVRManager().Clients()->GetCreatedClients(clients);
 
       if (clients.size() == 1)
@@ -1393,7 +1465,7 @@ namespace PVR
     if (iClientID < 0)
       iClientID = CServiceBroker::GetPVRManager().Clients()->GetPlayingClientID();
 
-    PVR_CLIENT client;
+    CPVRClientPtr client;
     if (CServiceBroker::GetPVRManager().Clients()->GetCreatedClient(iClientID, client) && client->HasMenuHooks(menuCategory))
     {
       CGUIDialogSelect* pDialog= g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
@@ -1463,8 +1535,6 @@ namespace PVR
 
     CDateTime::ResetTimezoneBias();
 
-    CServiceBroker::GetPVRManager().EpgContainer().Stop();
-
     pDlgProgress->SetHeading(CVariant{313}); // "Cleaning database"
     pDlgProgress->SetLine(0, CVariant{g_localizeStrings.Get(19187)}); // "Clearing all related data."
     pDlgProgress->SetLine(1, CVariant{""});
@@ -1482,60 +1552,57 @@ namespace PVR
     pDlgProgress->SetPercentage(10);
     pDlgProgress->Progress();
 
-    /* reset the EPG pointers */
-    const CPVRDatabasePtr database(CServiceBroker::GetPVRManager().GetTVDatabase());
-    if (database)
-      database->ResetEPG();
+    const CPVRDatabasePtr pvrDatabase(CServiceBroker::GetPVRManager().GetTVDatabase());
+    const CPVREpgDatabasePtr epgDatabase(CServiceBroker::GetPVRManager().EpgContainer().GetEpgDatabase());
 
-    /* stop the thread, close database */
+    // increase db open refcounts, so they don't get closed during following pvr manager shutdown
+    pvrDatabase->Open();
+    epgDatabase->Open();
+
+    // stop pvr manager; close both pvr and epg databases
     CServiceBroker::GetPVRManager().Stop();
 
-    pDlgProgress->SetPercentage(20);
+    /* reset the EPG pointers */
+    pvrDatabase->ResetEPG();
+    pDlgProgress->SetPercentage(bResetEPGOnly ? 40 : 20);
     pDlgProgress->Progress();
 
-    if (database && database->Open())
+    /* clean the EPG database */
+    epgDatabase->DeleteEpg();
+    pDlgProgress->SetPercentage(bResetEPGOnly ? 70 : 40);
+    pDlgProgress->Progress();
+
+    if (!bResetEPGOnly)
     {
-      /* clean the EPG database */
-      CServiceBroker::GetPVRManager().EpgContainer().Reset();
-      pDlgProgress->SetPercentage(30);
+      pvrDatabase->DeleteChannelGroups();
+      pDlgProgress->SetPercentage(60);
       pDlgProgress->Progress();
 
-      if (!bResetEPGOnly)
+      /* delete all channels */
+      pvrDatabase->DeleteChannels();
+      pDlgProgress->SetPercentage(70);
+      pDlgProgress->Progress();
+
+      pvrDatabase->DeleteClients();
+      pDlgProgress->SetPercentage(80);
+      pDlgProgress->Progress();
+
+      /* delete all channel and recording settings */
+      CVideoDatabase videoDatabase;
+
+      if (videoDatabase.Open())
       {
-        database->DeleteChannelGroups();
-        pDlgProgress->SetPercentage(50);
-        pDlgProgress->Progress();
-
-        /* delete all channels */
-        database->DeleteChannels();
-        pDlgProgress->SetPercentage(70);
-        pDlgProgress->Progress();
-
-        /* delete all channel and recording settings */
-        CVideoDatabase videoDatabase;
-
-        if (videoDatabase.Open())
-        {
-          videoDatabase.EraseVideoSettings("pvr://channels/");
-          videoDatabase.EraseVideoSettings(CPVRRecordingsPath::PATH_RECORDINGS);
-          videoDatabase.Close();
-        }
-
-        pDlgProgress->SetPercentage(80);
-        pDlgProgress->Progress();
-
-        /* delete all client information */
-        pDlgProgress->SetPercentage(90);
-        pDlgProgress->Progress();
+        videoDatabase.EraseVideoSettings("pvr://channels/");
+        videoDatabase.EraseVideoSettings(CPVRRecordingsPath::PATH_RECORDINGS);
+        videoDatabase.Close();
       }
-
-      database->Close();
     }
 
-    CLog::Log(LOGNOTICE,"CPVRGUIActions - %s - %s database cleared", __FUNCTION__, bResetEPGOnly ? "EPG" : "PVR and EPG");
+    // decrease db open refcounts; this actually closes dbs because refcounts drops to zero
+    pvrDatabase->Close();
+    epgDatabase->Close();
 
-    if (database)
-      database->Open();
+    CLog::Log(LOGNOTICE,"CPVRGUIActions - %s - %s database cleared", __FUNCTION__, bResetEPGOnly ? "EPG" : "PVR and EPG");
 
     CLog::Log(LOGNOTICE,"CPVRGUIActions - %s - restarting the PVRManager", __FUNCTION__);
     CServiceBroker::GetPVRManager().Start();
@@ -1578,6 +1645,170 @@ namespace PVR
     return bValidPIN;
   }
 
+  bool CPVRGUIActions::CanSystemPowerdown(bool bAskUser /*= true*/) const
+  {
+    bool bReturn(true);
+    if (CServiceBroker::GetPVRManager().IsStarted())
+    {
+      CPVRTimerInfoTagPtr cause;
+      if (!AllLocalBackendsIdle(cause))
+      {
+        if (bAskUser)
+        {
+          std::string text;
+
+          if (cause)
+          {
+            if (cause->IsRecording())
+            {
+              text = StringUtils::Format(g_localizeStrings.Get(19691).c_str(), // "PVR is currently recording...."
+                                         cause->Title().c_str(),
+                                         cause->ChannelName().c_str());
+            }
+            else
+            {
+              // Next event is due to a local recording.
+
+              const CDateTime now(CDateTime::GetUTCDateTime());
+              const CDateTime start(cause->StartAsUTC());
+              const CDateTimeSpan prestart(0, 0, cause->MarginStart(), 0);
+
+              CDateTimeSpan diff(start - now);
+              diff -= prestart;
+              int mins = diff.GetSecondsTotal() / 60;
+
+              std::string dueStr;
+              if (mins > 1)
+              {
+                // "%d minutes"
+                dueStr = StringUtils::Format(g_localizeStrings.Get(19694).c_str(), mins);
+              }
+              else
+              {
+                // "about a minute"
+                dueStr = g_localizeStrings.Get(19695);
+              }
+
+              text = StringUtils::Format(g_localizeStrings.Get(19692).c_str(), // "PVR will start recording...."
+                                         cause->Title().c_str(),
+                                         cause->ChannelName().c_str(),
+                                         dueStr.c_str());
+            }
+          }
+          else
+          {
+            // Next event is due to automatic daily wakeup of PVR.
+            const CDateTime now(CDateTime::GetUTCDateTime());
+
+            CDateTime dailywakeuptime;
+            dailywakeuptime.SetFromDBTime(m_settings.GetStringValue(CSettings::SETTING_PVRPOWERMANAGEMENT_DAILYWAKEUPTIME));
+            dailywakeuptime = dailywakeuptime.GetAsUTCDateTime();
+
+            const CDateTimeSpan diff(dailywakeuptime - now);
+            int mins = diff.GetSecondsTotal() / 60;
+
+            std::string dueStr;
+            if (mins > 1)
+            {
+              // "%d minutes"
+              dueStr = StringUtils::Format(g_localizeStrings.Get(19694).c_str(), mins);
+            }
+            else
+            {
+              // "about a minute"
+              dueStr = g_localizeStrings.Get(19695);
+            }
+
+            text = StringUtils::Format(g_localizeStrings.Get(19693).c_str(), // "Daily wakeup is due in...."
+                                       dueStr.c_str());
+          }
+
+          // Inform user about PVR being busy. Ask if user wants to powerdown anyway.
+          bReturn = HELPERS::ShowYesNoDialogText(CVariant{19685}, // "Confirm shutdown"
+                                                 CVariant{text},
+                                                 CVariant{222}, // "Shutdown anyway",
+                                                 CVariant{19696}, // "Cancel"
+                                                 10000) // timeout value before closing
+                    == HELPERS::DialogResponse::YES;
+        }
+        else
+          bReturn = false; // do not powerdown (busy, but no user interaction requested).
+      }
+    }
+    return bReturn;
+  }
+
+  bool CPVRGUIActions::AllLocalBackendsIdle(CPVRTimerInfoTagPtr& causingEvent) const
+  {
+    // active recording on local backend?
+    const std::vector<CFileItemPtr> activeRecordings = CServiceBroker::GetPVRManager().Timers()->GetActiveRecordings();
+    for (const auto& timer : activeRecordings)
+    {
+      if (EventOccursOnLocalBackend(timer))
+      {
+        causingEvent = timer->GetPVRTimerInfoTag();
+        return false;
+      }
+    }
+
+    // soon recording on local backend?
+    if (IsNextEventWithinBackendIdleTime())
+    {
+      const CFileItemPtr item = CServiceBroker::GetPVRManager().Timers()->GetNextActiveTimer();
+      if (!item)
+      {
+        // Next event is due to automatic daily wakeup of PVR!
+        causingEvent.reset();
+        return false;
+      }
+
+      if (EventOccursOnLocalBackend(item))
+      {
+        causingEvent = item->GetPVRTimerInfoTag();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool CPVRGUIActions::EventOccursOnLocalBackend(const CFileItemPtr& item) const
+  {
+    if (item && item->HasPVRTimerInfoTag())
+    {
+      const CPVRTimerInfoTagPtr tag(item->GetPVRTimerInfoTag());
+      std::string hostname(CServiceBroker::GetPVRManager().Clients()->GetBackendHostnameByClientId(tag->m_iClientId));
+      if (!hostname.empty() && CServiceBroker::GetNetwork().IsLocalHost(hostname))
+        return true;
+    }
+    return false;
+  }
+
+  bool CPVRGUIActions::IsNextEventWithinBackendIdleTime(void) const
+  {
+    // timers going off soon?
+    const CDateTime now(CDateTime::GetUTCDateTime());
+    const CDateTimeSpan idle(0, 0, m_settings.GetIntValue(CSettings::SETTING_PVRPOWERMANAGEMENT_BACKENDIDLETIME), 0);
+    const CDateTime next(CServiceBroker::GetPVRManager().Timers()->GetNextEventTime());
+    const CDateTimeSpan delta(next - now);
+
+    return (delta <= idle);
+  }
+
+  void CPVRGUIActions::SetSelectedItemPath(bool bRadio, const std::string &path)
+  {
+    CSingleLock lock(m_critSection);
+    if (bRadio)
+      m_selectedItemPathRadio = path;
+    else
+      m_selectedItemPathTV = path;
+  }
+
+  std::string CPVRGUIActions::GetSelectedItemPath(bool bRadio) const
+  {
+    CSingleLock lock(m_critSection);
+    return bRadio ? m_selectedItemPathRadio : m_selectedItemPathTV;
+  }
+
   CPVRChannelNumberInputHandler &CPVRGUIActions::GetChannelNumberInputHandler()
   {
     // window/dialog specific input handler
@@ -1594,39 +1825,81 @@ namespace PVR
     return m_channelNavigator;
   }
 
-  void CPVRChannelSwitchingInputHandler::OnInputDone()
+  void CPVRGUIActions::OnPlaybackStarted(const CFileItemPtr &item)
   {
-    int iChannelNumber;
-    bool bSwitchToPreviousChannel;
+    if (item->HasPVRChannelInfoTag())
     {
-      CSingleLock lock(m_mutex);
-      iChannelNumber = GetChannelNumber();
-      // special case. if only a single zero was typed in, switch to previously played channel.
-      bSwitchToPreviousChannel = (iChannelNumber == 0 && GetCurrentDigitCount() == 1);
+      const CPVRChannelPtr channel = item->GetPVRChannelInfoTag();
+      m_channelNavigator.SetPlayingChannel(channel);
+      SetSelectedItemPath(channel->IsRadio(), channel->Path());
     }
-
-    if (iChannelNumber > 0)
-      SwitchToChannel(iChannelNumber);
-    else if (bSwitchToPreviousChannel)
-      SwitchToPreviousChannel();
   }
 
-  void CPVRChannelSwitchingInputHandler::SwitchToChannel(int iChannelNumber)
+  void CPVRGUIActions::OnPlaybackStopped(const CFileItemPtr &item)
   {
-    if (iChannelNumber > 0 && CServiceBroker::GetPVRManager().IsPlaying())
+    if (item->HasPVRChannelInfoTag())
     {
-      const CPVRChannelPtr playingChannel(CServiceBroker::GetPVRManager().GetCurrentChannel());
+      m_channelNavigator.ClearPlayingChannel();
+    }
+  }
+
+  void CPVRChannelSwitchingInputHandler::AppendChannelNumberCharacter(char cCharacter)
+  {
+    // special case. if only a single zero was typed in, switch to previously played channel.
+    if (GetCurrentDigitCount() == 0 && cCharacter == '0')
+    {
+      SwitchToPreviousChannel();
+      return;
+    }
+
+    CPVRChannelNumberInputHandler::AppendChannelNumberCharacter(cCharacter);
+  }
+
+  void CPVRChannelSwitchingInputHandler::OnInputDone()
+  {
+    CPVRChannelNumber channelNumber = GetChannelNumber();
+    if (channelNumber.GetChannelNumber())
+      SwitchToChannel(channelNumber);
+  }
+
+  void CPVRChannelSwitchingInputHandler::SwitchToChannel(const CPVRChannelNumber& channelNumber)
+  {
+    if (channelNumber.IsValid() && CServiceBroker::GetPVRManager().IsPlaying())
+    {
+      const CPVRChannelPtr playingChannel(CServiceBroker::GetPVRManager().GetPlayingChannel());
       if (playingChannel)
       {
-        if (iChannelNumber != playingChannel->ChannelNumber())
+        if (channelNumber != playingChannel->ChannelNumber())
         {
-          const CPVRChannelGroupPtr selectedGroup(CServiceBroker::GetPVRManager().GetPlayingGroup(playingChannel->IsRadio()));
-          const CFileItemPtr channel(selectedGroup->GetByChannelNumber(iChannelNumber));
-          if (channel && channel->HasPVRChannelInfoTag())
+          // channel number present in playing group?
+          bool bRadio = playingChannel->IsRadio();
+          const CPVRChannelGroupPtr group = CServiceBroker::GetPVRManager().GetPlayingGroup(bRadio);
+          CFileItemPtr channel = group->GetByChannelNumber(channelNumber);
+
+          if (!channel)
+          {
+            // channel number present in any group?
+            const CPVRChannelGroups* groupAccess = CServiceBroker::GetPVRManager().ChannelGroups()->Get(bRadio);
+            const std::vector<CPVRChannelGroupPtr> groups = groupAccess->GetMembers(true);
+            for (const auto &currentGroup : groups)
+            {
+              channel = currentGroup->GetByChannelNumber(channelNumber);
+              if (channel)
+              {
+                // switch channel group
+                CServiceBroker::GetPVRManager().SetPlayingGroup(currentGroup);
+                break;
+              }
+            }
+          }
+
+          if (channel)
           {
             CApplicationMessenger::GetInstance().PostMsg(
               TMSG_GUI_ACTION, WINDOW_INVALID, -1,
-              static_cast<void*>(new CAction(ACTION_CHANNEL_SWITCH, static_cast<float>(iChannelNumber))));
+              static_cast<void*>(new CAction(ACTION_CHANNEL_SWITCH,
+                                             static_cast<float>(channelNumber.GetChannelNumber()),
+                                             static_cast<float>(channelNumber.GetSubChannelNumber()))));
           }
         }
       }
@@ -1637,7 +1910,7 @@ namespace PVR
   {
     if (CServiceBroker::GetPVRManager().IsPlaying())
     {
-      const CPVRChannelPtr playingChannel(CServiceBroker::GetPVRManager().GetCurrentChannel());
+      const CPVRChannelPtr playingChannel(CServiceBroker::GetPVRManager().GetPlayingChannel());
       if (playingChannel)
       {
         const CPVRChannelGroupPtr group(CServiceBroker::GetPVRManager().ChannelGroups()->GetPreviousPlayedGroup());
@@ -1645,11 +1918,14 @@ namespace PVR
         {
           CServiceBroker::GetPVRManager().SetPlayingGroup(group);
           const CFileItemPtr channel(group->GetLastPlayedChannel(playingChannel->ChannelID()));
-          if (channel && channel->HasPVRChannelInfoTag())
+          if (channel)
           {
+            const CPVRChannelNumber channelNumber = channel->GetPVRChannelInfoTag()->ChannelNumber();
             CApplicationMessenger::GetInstance().SendMsg(
               TMSG_GUI_ACTION, WINDOW_INVALID, -1,
-              static_cast<void*>(new CAction(ACTION_CHANNEL_SWITCH, static_cast<float>(channel->GetPVRChannelInfoTag()->ChannelNumber()))));
+              static_cast<void*>(new CAction(ACTION_CHANNEL_SWITCH,
+                                             static_cast<float>(channelNumber.GetChannelNumber()),
+                                             static_cast<float>(channelNumber.GetSubChannelNumber()))));
           }
         }
       }

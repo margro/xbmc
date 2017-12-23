@@ -24,8 +24,8 @@
 #include "DVDStreamInfo.h"
 #include "DVDCodecs/DVDCodecs.h"
 #include "DVDDemuxFFmpeg.h"
-#include "DVDDemuxPacket.h"
-#include "TimingConstants.h"
+#include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
+#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "DVDSubtitles/DVDSubtitleStream.h"
 
 #include <string.h>
@@ -129,9 +129,10 @@ bool CDVDDemuxVobsub::Open(const std::string& filename, int source, const std::s
   return true;
 }
 
-void CDVDDemuxVobsub::Reset()
+bool CDVDDemuxVobsub::Reset()
 {
   Flush();
+  return true;
 }
 
 void CDVDDemuxVobsub::Flush()

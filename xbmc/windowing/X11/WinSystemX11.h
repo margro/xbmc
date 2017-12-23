@@ -32,6 +32,7 @@
 #include "X11/Xutil.h"
 
 class IDispResource;
+class CWinEventsX11;
 
 class CWinSystemX11 : public CWinSystemBase
 {
@@ -45,6 +46,7 @@ public:
   bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
   bool DestroyWindow() override;
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
+  void FinishWindowResize(int newWidth, int newHeight) override;
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
   void UpdateResolutions() override;
   int  GetNumScreens() override { return 1; }
@@ -96,6 +98,7 @@ protected:
   bool m_bIsInternalXrr;
   int m_MouseX, m_MouseY;
   int m_crtc;
+  CWinEventsX11 *m_winEventsX11;
 
 private:
   bool IsSuitableVisual(XVisualInfo *vInfo);

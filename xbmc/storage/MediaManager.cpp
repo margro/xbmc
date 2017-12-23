@@ -39,6 +39,7 @@
 #endif
 #endif
 #include "Autorun.h"
+#include "addons/VFSEntry.h"
 #include "GUIUserMessages.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
@@ -235,6 +236,20 @@ void CMediaManager::GetNetworkLocations(VECSOURCES &locations, bool autolocation
     share.strName = g_localizeStrings.Get(20262);
     locations.push_back(share);
 #endif
+
+    if (CServiceBroker::IsBinaryAddonCacheUp())
+    {
+      for (const auto& addon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
+      {
+        const auto& info = addon->GetProtocolInfo();
+        if (!info.type.empty() && info.supportBrowsing)
+        {
+          share.strPath = info.type + "://";
+          share.strName = g_localizeStrings.Get(info.label);
+          locations.push_back(share);
+        }
+      }
+    }
   }
 }
 
@@ -317,6 +332,7 @@ void CMediaManager::RemoveAutoSource(const CMediaSource &share)
 #ifdef HAS_DVD_DRIVE
   // delete cached CdInfo if any
   RemoveCdInfo(TranslateDevicePath(share.strPath, true));
+  RemoveDiscInfo(TranslateDevicePath(share.strPath, true));
 #endif
 }
 
@@ -494,16 +510,30 @@ bool CMediaManager::RemoveCdInfo(const std::string& devicePath)
 
 std::string CMediaManager::GetDiskLabel(const std::string& devicePath)
 {
-#ifdef TARGET_WINDOWS
+#ifdef TARGET_WINDOWS_STORE
+  return ""; // GetVolumeInformationW nut support in UWP app
+#elif defined(TARGET_WINDOWS)
   if(!m_bhasoptical)
     return "";
 
   std::string mediaPath = g_mediaManager.TranslateDevicePath(devicePath);
-  URIUtils::AddSlashAtEnd(mediaPath);
 
-  DiscInfo info = GetDiscInfo(mediaPath);
+  auto cached = m_mapDiscInfo.find(mediaPath);
+  if (cached != m_mapDiscInfo.end())
+    return cached->second.name;
+  
+  // try to minimize the chance of a "device not ready" dialog
+  std::string drivePath = g_mediaManager.TranslateDevicePath(devicePath, true);
+  if (g_mediaManager.GetDriveStatus(drivePath) != DRIVE_CLOSED_MEDIA_PRESENT)
+    return "";
+
+  DiscInfo info;
+  info = GetDiscInfo(mediaPath);
   if (!info.name.empty())
+  {
+    m_mapDiscInfo[mediaPath] = info;
     return info.name;
+  }
 
   std::string strDevice = TranslateDevicePath(devicePath);
   WCHAR cVolumenName[128];
@@ -514,7 +544,11 @@ std::string CMediaManager::GetDiskLabel(const std::string& devicePath)
   if(GetVolumeInformationW(strDeviceW.c_str(), cVolumenName, 127, NULL, NULL, NULL, cFSName, 127)==0)
     return "";
   g_charsetConverter.wToUTF8(cVolumenName, strDevice);
-  return StringUtils::TrimRight(strDevice, " ");
+  info.name = StringUtils::TrimRight(strDevice, " ");
+  if (!info.name.empty())
+    m_mapDiscInfo[mediaPath] = info;
+
+  return info.name;
 #else
   return MEDIA_DETECT::CDetectDVDMedia::GetDVDLabel();
 #endif
@@ -541,7 +575,6 @@ std::string CMediaManager::GetDiskUniqueId(const std::string& devicePath)
   if (mediaPath.empty() || mediaPath == "iso9660://")
   {
     mediaPath = g_mediaManager.TranslateDevicePath(devicePath);
-    URIUtils::AddSlashAtEnd(mediaPath);
   }
 #endif
   
@@ -745,4 +778,13 @@ CMediaManager::DiscInfo CMediaManager::GetDiscInfo(const std::string& mediaPath)
 #endif
 
   return info;
+}
+
+void CMediaManager::RemoveDiscInfo(const std::string& devicePath)
+{
+  std::string strDevice = TranslateDevicePath(devicePath, false);
+
+  auto it = m_mapDiscInfo.find(strDevice);
+  if (it != m_mapDiscInfo.end())
+    m_mapDiscInfo.erase(it);
 }

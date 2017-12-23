@@ -27,9 +27,11 @@
 #include "PlayListPlayer.h"
 #include "dialogs/GUIDialogContextMenu.h"
 #include "dialogs/GUIDialogFileBrowser.h"
+#include "settings/dialogs/GUIDialogLibExportSettings.h"
 #include "guilib/LocalizeStrings.h"
 #include "interfaces/builtins/Builtins.h"
 #include "music/MusicDatabase.h"
+#include "music/MusicLibraryQueue.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "profiles/ProfilesManager.h"
@@ -43,7 +45,6 @@
 #include "utils/XMLUtils.h"
 #include "utils/Variant.h"
 #include "video/VideoDatabase.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 
 using namespace KODI::MESSAGING;
 
@@ -109,7 +110,6 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     XMLUtils::GetBoolean(pElement, "postprocess", m_defaultVideoSettings.m_PostProcess);
     if (!XMLUtils::GetFloat(pElement, "sharpness", m_defaultVideoSettings.m_Sharpness, -1.0f, 1.0f))
       m_defaultVideoSettings.m_Sharpness = 0.0f;
-    XMLUtils::GetBoolean(pElement, "outputtoallspeakers", m_defaultVideoSettings.m_OutputToAllSpeakers);
     XMLUtils::GetBoolean(pElement, "showsubtitles", m_defaultVideoSettings.m_SubtitleOn);
     if (!XMLUtils::GetFloat(pElement, "brightness", m_defaultVideoSettings.m_Brightness, 0, 100))
       m_defaultVideoSettings.m_Brightness = 50;
@@ -126,31 +126,6 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
       m_defaultVideoSettings.m_StereoMode = 0;
 
     m_defaultVideoSettings.m_SubtitleCached = false;
-  }
-
-  pElement = settings->FirstChildElement("defaultaudiosettings");
-  if (pElement != NULL)
-  {
-    if (!XMLUtils::GetInt(pElement, "masterstreamtype", m_defaultAudioSettings.m_MasterStreamType))
-      m_defaultAudioSettings.m_MasterStreamType = AE_DSP_ASTREAM_AUTO;
-    if (!XMLUtils::GetInt(pElement, "masterstreamtypesel", m_defaultAudioSettings.m_MasterStreamTypeSel))
-      m_defaultAudioSettings.m_MasterStreamTypeSel = AE_DSP_ASTREAM_AUTO;
-    if (!XMLUtils::GetInt(pElement, "masterstreambase", m_defaultAudioSettings.m_MasterStreamBase))
-      m_defaultAudioSettings.m_MasterStreamBase = AE_DSP_ABASE_STEREO;
-
-    std::string strTag;
-    for (int type = AE_DSP_ASTREAM_BASIC; type < AE_DSP_ASTREAM_MAX; type++)
-    {
-      for (int base = AE_DSP_ABASE_STEREO; base < AE_DSP_ABASE_MAX; base++)
-      {
-        int tmp;
-        strTag = StringUtils::Format("masterprocess_%i_%i", type, base);
-        if (XMLUtils::GetInt(pElement, strTag.c_str(), tmp))
-          m_defaultAudioSettings.m_MasterModes[type][base] = tmp;
-        else
-          m_defaultAudioSettings.m_MasterModes[type][base] = 0;
-      }
-    }
   }
 
   m_defaultGameSettings.Reset();
@@ -237,7 +212,6 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
   XMLUtils::SetFloat(pNode, "pixelratio", m_defaultVideoSettings.m_CustomPixelRatio);
   XMLUtils::SetFloat(pNode, "verticalshift", m_defaultVideoSettings.m_CustomVerticalShift);
   XMLUtils::SetFloat(pNode, "volumeamplification", m_defaultVideoSettings.m_VolumeAmplification);
-  XMLUtils::SetBoolean(pNode, "outputtoallspeakers", m_defaultVideoSettings.m_OutputToAllSpeakers);
   XMLUtils::SetBoolean(pNode, "showsubtitles", m_defaultVideoSettings.m_SubtitleOn);
   XMLUtils::SetFloat(pNode, "brightness", m_defaultVideoSettings.m_Brightness);
   XMLUtils::SetFloat(pNode, "contrast", m_defaultVideoSettings.m_Contrast);
@@ -252,20 +226,6 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
   pNode = settings->InsertEndChild(audioSettingsNode);
   if (pNode == NULL)
     return false;
-
-  XMLUtils::SetInt(pNode, "masterstreamtype", m_defaultAudioSettings.m_MasterStreamType);
-  XMLUtils::SetInt(pNode, "masterstreamtypesel", m_defaultAudioSettings.m_MasterStreamTypeSel);
-  XMLUtils::SetInt(pNode, "masterstreambase", m_defaultAudioSettings.m_MasterStreamBase);
-
-  std::string strTag;
-  for (int type = AE_DSP_ASTREAM_BASIC; type < AE_DSP_ASTREAM_MAX; type++)
-  {
-    for (int base = AE_DSP_ABASE_STEREO; base < AE_DSP_ABASE_MAX; base++)
-    {
-      strTag = StringUtils::Format("masterprocess_%i_%i", type, base);
-      XMLUtils::SetInt(pNode, strTag.c_str(), m_defaultAudioSettings.m_MasterModes[type][base]);
-    }
-  }
 
   // Default game settings
   TiXmlElement gameSettingsNode("defaultgamesettings");
@@ -334,7 +294,14 @@ void CMediaSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
       g_application.StartMusicCleanup(true);
   }
   else if (settingId == CSettings::SETTING_MUSICLIBRARY_EXPORT)
-    CBuiltins::GetInstance().Execute("exportlibrary(music)");
+  {
+    CLibExportSettings m_musicExportSettings;
+    if (CGUIDialogLibExportSettings::Show(m_musicExportSettings))
+    {
+      // Export music library showing progress dialog
+      CMusicLibraryQueue::GetInstance().ExportLibrary(m_musicExportSettings, true);
+    }
+  }
   else if (settingId == CSettings::SETTING_MUSICLIBRARY_IMPORT)
   {
     std::string path;

@@ -236,7 +236,7 @@ void CGUIDialogSubtitles::FillServices()
   ClearServices();
 
   VECADDONS addons;
-  ADDON::CAddonMgr::GetInstance().GetAddons(addons, ADDON_SUBTITLE_MODULE);
+  CServiceBroker::GetAddonMgr().GetAddons(addons, ADDON_SUBTITLE_MODULE);
 
   if (addons.empty())
   {
@@ -342,7 +342,7 @@ void CGUIDialogSubtitles::Search(const std::string &search/*=""*/)
 
   if(StringUtils::EqualsNoCase(preferredLanguage, "original"))
   {
-    SPlayerAudioStreamInfo info;
+    AudioStreamInfo info;
     std::string strLanguage;
 
     g_application.m_pPlayer->GetAudioStreamInfo(CURRENT_STREAM, info);

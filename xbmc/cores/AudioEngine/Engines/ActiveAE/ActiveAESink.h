@@ -96,7 +96,6 @@ public:
   explicit CActiveAESink(CEvent *inMsgEvent);
   void EnumerateSinkList(bool force);
   void EnumerateOutputDevices(AEDeviceList &devices, bool passthrough);
-  std::string GetDefaultDevice(bool passthrough);
   void Start();
   void Dispose();
   AEDeviceType GetDeviceType(const std::string &device);
@@ -143,7 +142,7 @@ protected:
 
   std::string m_deviceFriendlyName;
   std::string m_device;
-  AESinkInfoList m_sinkInfoList;
+  std::vector<AE::AESinkInfo> m_sinkInfoList;
   IAESink *m_sink;
   AEAudioFormat m_sinkFormat, m_requestedFormat;
   CEngineStats *m_stats;

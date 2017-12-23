@@ -672,7 +672,7 @@ bool CGUIMediaWindow::GetDirectory(const std::string &strDirectory, CFileItemLis
   CLog::Log(LOGDEBUG,"  ParentPath = [%s]", CURL::GetRedacted(strParentPath).c_str());
 
   if (pathToUrl.IsProtocol("plugin"))
-    CAddonMgr::GetInstance().UpdateLastUsed(pathToUrl.GetHostName());
+    CServiceBroker::GetAddonMgr().UpdateLastUsed(pathToUrl.GetHostName());
 
   // see if we can load a previously cached folder
   CFileItemList cachedItems(strDirectory);
@@ -978,11 +978,11 @@ bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
     // execute the script
     CURL url(pItem->GetPath());
     AddonPtr addon;
-    if (CAddonMgr::GetInstance().GetAddon(url.GetHostName(), addon, ADDON_SCRIPT))
+    if (CServiceBroker::GetAddonMgr().GetAddon(url.GetHostName(), addon, ADDON_SCRIPT))
     {
       if (!CScriptInvocationManager::GetInstance().Stop(addon->LibPath()))
       {
-        CAddonMgr::GetInstance().UpdateLastUsed(addon->ID());
+        CServiceBroker::GetAddonMgr().UpdateLastUsed(addon->ID());
         CScriptInvocationManager::GetInstance().ExecuteAsync(addon->LibPath(), addon);
       }
       return true;
@@ -1074,7 +1074,7 @@ bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
     {
       CURL url(m_vecItems->GetPath());
       AddonPtr addon;
-      if (CAddonMgr::GetInstance().GetAddon(url.GetHostName(),addon))
+      if (CServiceBroker::GetAddonMgr().GetAddon(url.GetHostName(),addon))
       {
         PluginPtr plugin = std::dynamic_pointer_cast<CPluginSource>(addon);
         if (plugin && plugin->Provides(CPluginSource::AUDIO))
@@ -1124,7 +1124,7 @@ bool CGUIMediaWindow::HaveDiscOrConnection(const std::string& strPath, int iDriv
   else if (iDriveType==CMediaSource::SOURCE_TYPE_REMOTE)
   {
     //! @todo Handle not connected to a remote share
-    if ( !g_application.getNetwork().IsConnected() )
+    if (!CServiceBroker::GetNetwork().IsConnected())
     {
       HELPERS::ShowOKDialogText(CVariant{220}, CVariant{221});
       return false;
@@ -1752,7 +1752,7 @@ const CFileItemList& CGUIMediaWindow::CurrentDirectory() const
 
 bool CGUIMediaWindow::WaitForNetwork() const
 {
-  if (g_application.getNetwork().IsAvailable())
+  if (CServiceBroker::GetNetwork().IsAvailable())
     return true;
 
   CGUIDialogProgress *progress = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
@@ -1764,7 +1764,7 @@ bool CGUIMediaWindow::WaitForNetwork() const
   progress->SetLine(1, CVariant{url.GetWithoutUserDetails()});
   progress->ShowProgressBar(false);
   progress->Open();
-  while (!g_application.getNetwork().IsAvailable())
+  while (!CServiceBroker::GetNetwork().IsAvailable())
   {
     progress->Progress();
     if (progress->IsCanceled())
@@ -1828,15 +1828,6 @@ void CGUIMediaWindow::UpdateFilterPath(const std::string &strDirectory, const CF
 
 void CGUIMediaWindow::OnFilterItems(const std::string &filter)
 {
-  CFileItemPtr currentItem;
-  std::string currentItemPath;
-  int item = m_viewControl.GetSelectedItem();
-  if (item >= 0 && item < m_vecItems->Size())
-  {
-    currentItem = m_vecItems->Get(item);
-    currentItemPath = currentItem->GetPath();
-  }
-  
   m_viewControl.Clear();
   
   CFileItemList items;
@@ -1864,6 +1855,15 @@ void CGUIMediaWindow::OnFilterItems(const std::string &filter)
   
   GetGroupedItems(*m_vecItems);
   FormatAndSort(*m_vecItems);
+
+  CFileItemPtr currentItem;
+  std::string currentItemPath;
+  int item = m_viewControl.GetSelectedItem();
+  if (item >= 0 && item < m_vecItems->Size())
+  {
+    currentItem = m_vecItems->Get(item);
+    currentItemPath = currentItem->GetPath();
+  }
 
   // get the "filter" option
   std::string filterOption;

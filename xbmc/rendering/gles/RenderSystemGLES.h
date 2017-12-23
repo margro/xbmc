@@ -18,9 +18,6 @@
  *
  */
 
-#ifndef RENDER_SYSTEM_GLES_H
-#define RENDER_SYSTEM_GLES_H
-
 #pragma once
 
 #include "system.h"
@@ -63,7 +60,7 @@ public:
   void SetVSync(bool vsync);
   void ResetVSync() { m_bVsyncInit = false; }
 
-  void SetViewPort(CRect& viewPort) override;
+  void SetViewPort(const CRect& viewPort) override;
   void GetViewPort(CRect& viewPort) override;
 
   bool ScissorsCanEffectClipping() override;
@@ -119,4 +116,3 @@ protected:
   GLint      m_viewPort[4];
 };
 
-#endif // RENDER_SYSTEM_H

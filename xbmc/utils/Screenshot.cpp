@@ -21,23 +21,17 @@
 #include "Screenshot.h"
 
 #include "system.h"
+#include "system_gl.h"
 #include <vector>
 
 #include "ServiceBroker.h"
 #include "Util.h"
 #include "URL.h"
 
-#include "Application.h"
-#include "windowing/WindowingFactory.h"
 #include "pictures/Picture.h"
 
 #ifdef TARGET_RASPBERRY_PI
-#include "xbmc/linux/RBP.h"
-#endif
-
-#ifdef HAS_IMXVPU
-// This has to go into another header file
-#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecIMX.h"
+#include "platform/linux/RBP.h"
 #endif
 
 #include "filesystem/File.h"
@@ -54,6 +48,10 @@
 
 #if defined(HAS_LIBAMCODEC)
 #include "utils/ScreenshotAML.h"
+#endif
+
+#if defined(TARGET_WINDOWS)
+#include "rendering/dx/DeviceResources.h"
 #endif
 
 using namespace XFILE;
@@ -78,7 +76,7 @@ bool CScreenshotSurface::capture()
   m_buffer = g_RBP.CaptureDisplay(m_width, m_height, &m_stride, true, false);
   if (!m_buffer)
     return false;
-#elif defined(HAS_DX)
+#elif defined(TARGET_WINDOWS)
 
   CSingleLock lock(g_graphicsContext);
 
@@ -174,16 +172,10 @@ bool CScreenshotSurface::capture()
   }
 
   delete [] surface;
-  
+
 #if defined(HAS_LIBAMCODEC)
   // Captures the current visible videobuffer and blend it into m_buffer (captured overlay)
   CScreenshotAML::CaptureVideoFrame(m_buffer, m_width, m_height);
-#endif
-
-#ifdef HAS_IMXVPU
-  // Captures the current visible framebuffer page and blends it into the
-  // captured GL overlay
-  g_IMXContext.CaptureDisplay(m_buffer, m_width, m_height, true);
 #endif
 
 #else

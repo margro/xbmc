@@ -20,6 +20,7 @@
  */
 
 #include "cores/IPlayer.h"
+#include "guilib/DispResource.h"
 #include "threads/SystemClock.h"
 #include <string>
 
@@ -35,7 +36,7 @@ namespace UPNP
 class CUPnPPlayerController;
 
 class CUPnPPlayer
-  : public IPlayer
+  : public IPlayer, public IRenderLoop
 {
 public:
   CUPnPPlayer(IPlayerCallback& callback, const char* uuid);
@@ -51,9 +52,6 @@ public:
   void Seek(bool bPlus, bool bLargeStep, bool bChapterOverride) override;
   void SeekPercentage(float fPercent = 0) override;
   void SetVolume(float volume) override;
-  bool CanRecord() override { return false; }
-  bool IsRecording() override { return false; }
-  bool Record(bool bOnOff) override { return false; }
 
   int GetChapterCount() override { return 0; }
   int GetChapter() override { return -1; }
@@ -68,7 +66,6 @@ public:
   void DoAudioWork() override;
   bool OnAction(const CAction &action) override;
 
-  std::string GetPlayingTitle() override;
   void FrameMove() override;
 
   int PlayFile(const CFileItem& file, const CPlayerOptions& options, CGUIDialogBusy*& dialog, XbmcThreads::EndTime& timeout);
