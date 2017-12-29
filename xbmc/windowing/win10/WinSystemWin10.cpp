@@ -57,9 +57,13 @@ CWinSystemWin10::CWinSystemWin10()
   , m_bMinimized(false)
 {
   m_winEvents.reset(new CWinEventsWin10());
+
   AE::CAESinkFactory::ClearSinks();
   CAESinkXAudio::Register();
-  CAESinkWASAPI::Register();
+  if (CSysInfo::GetWindowsDeviceFamily() == CSysInfo::WindowsDeviceFamily::Desktop)
+  {
+    CAESinkWASAPI::Register();
+  }
 }
 
 CWinSystemWin10::~CWinSystemWin10()
@@ -181,15 +185,20 @@ void CWinSystemWin10::AdjustWindow(bool forceResize)
     if (isInFullscreen)
     {
       appView->ExitFullScreenMode();
-      appView->PreferredLaunchWindowingMode = Windows::UI::ViewManagement::ApplicationViewWindowingMode::Auto;
     }
 
     int viewWidth = appView->VisibleBounds.Width;
     int viewHeight = appView->VisibleBounds.Height;
     if (viewHeight != m_nHeight || viewWidth != m_nWidth)
     {
-      appView->TryResizeView(Windows::Foundation::Size(m_nWidth, m_nHeight));
+      if (!appView->TryResizeView(Windows::Foundation::Size(m_nWidth, m_nHeight)))
+      {
+        CLog::LogF(LOGDEBUG, __FUNCTION__, "resizing ApplicationView failed.");
+      }
     }
+
+    appView->PreferredLaunchViewSize = Windows::Foundation::Size(m_nWidth, m_nHeight);
+    appView->PreferredLaunchWindowingMode = Windows::UI::ViewManagement::ApplicationViewWindowingMode::PreferredLaunchViewSize;
   }
 }
 
@@ -347,7 +356,7 @@ const MONITOR_DETAILS* CWinSystemWin10::GetMonitor(int screen) const
 
 int CWinSystemWin10::GetCurrentScreen()
 {
-  CLog::Log(LOGERROR, "%s is not implemented", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
   // fallback to default
   return 0;
 }
@@ -372,7 +381,7 @@ bool CWinSystemWin10::ChangeResolution(const RESOLUTION_INFO& res, bool forceCha
   if (!details)
     return false;
 
-  CLog::Log(LOGERROR, "%s is not implemented", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
 
   return true;
 }
@@ -520,22 +529,22 @@ void CWinSystemWin10::ShowOSMouse(bool show)
 
 bool CWinSystemWin10::Minimize()
 {
-  CLog::Log(LOGERROR, "%s is not implemented", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
   return true;
 }
 bool CWinSystemWin10::Restore()
 {
-  CLog::Log(LOGERROR, "%s is not implemented", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
   return true;
 }
 bool CWinSystemWin10::Hide()
 {
-  CLog::Log(LOGERROR, "%s is not implemented", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
   return true;
 }
 bool CWinSystemWin10::Show(bool raise)
 {
-  CLog::Log(LOGERROR, "%s is not implemented", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
   return true;
 }
 
