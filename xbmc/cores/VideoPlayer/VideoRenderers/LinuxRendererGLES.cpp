@@ -329,14 +329,6 @@ void CLinuxRendererGLES::LoadPlane(YUVPLANE& plane, int type,
   glBindTexture(m_textureTarget, 0);
 }
 
-void CLinuxRendererGLES::Reset()
-{
-  for(int i=0; i<m_NumYV12Buffers; i++)
-  {
-    ReleaseBuffer(i);
-  }
-}
-
 void CLinuxRendererGLES::Flush()
 {
   if (!m_bValidated)
@@ -443,7 +435,6 @@ void CLinuxRendererGLES::UpdateVideoFilter()
 
   if (m_pVideoFilterShader)
   {
-    m_pVideoFilterShader->Free();
     delete m_pVideoFilterShader;
     m_pVideoFilterShader = NULL;
   }
@@ -509,7 +500,6 @@ void CLinuxRendererGLES::UpdateVideoFilter()
   CLog::Log(LOGERROR, "GL: Falling back to bilinear due to failure to init scaler");
   if (m_pVideoFilterShader)
   {
-    m_pVideoFilterShader->Free();
     delete m_pVideoFilterShader;
     m_pVideoFilterShader = NULL;
   }
@@ -579,13 +569,11 @@ void CLinuxRendererGLES::ReleaseShaders()
 {
   if (m_pYUVProgShader)
   {
-    m_pYUVProgShader->Free();
     delete m_pYUVProgShader;
     m_pYUVProgShader = NULL;
   }
   if (m_pYUVBobShader)
   {
-    m_pYUVBobShader->Free();
     delete m_pYUVBobShader;
     m_pYUVBobShader = NULL;
   }
@@ -1013,7 +1001,7 @@ void CLinuxRendererGLES::RenderFromFBO()
 
     //disable non-linear stretch when a dvd menu is shown, parts of the menu are rendered through the overlay renderer
     //having non-linear stretch on breaks the alignment
-    if (g_application.m_pPlayer->IsInMenu())
+    if (g_application.GetAppPlayer().IsInMenu())
       m_pVideoFilterShader->SetNonLinStretch(1.0);
     else
       m_pVideoFilterShader->SetNonLinStretch(pow(CDisplaySettings::GetInstance().GetPixelRatio(), g_advancedSettings.m_videoNonLinStretchRatio));
