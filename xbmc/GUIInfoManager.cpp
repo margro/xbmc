@@ -6788,7 +6788,7 @@ bool CGUIInfoManager::GetInt(int &value, int info, int contextWindow, const CGUI
   switch (info)
   {
     case PLAYER_VOLUME:
-      value = (int)g_application.GetVolume();
+      value = static_cast<int>(g_application.GetVolume());
       return true;
     case PLAYER_SUBTITLE_DELAY:
       value = g_application.GetSubtitleDelay();
@@ -6798,22 +6798,22 @@ bool CGUIInfoManager::GetInt(int &value, int info, int contextWindow, const CGUI
       return true;
     case PLAYER_PROGRESS:
       value = lrintf(g_application.GetPercentage());
-      break;
+      return true;
     case PLAYER_PROGRESS_CACHE:
       value = lrintf(g_application.GetCachePercentage());
-      break;
+      return true;
     case PLAYER_SEEKBAR:
       value = lrintf(GetSeekPercent());
-      break;
+      return true;
     case PLAYER_CACHELEVEL:
       value = g_application.GetAppPlayer().GetCacheLevel();
-      break;
+      return true;
     case PLAYER_CHAPTER:
       value = g_application.GetAppPlayer().GetChapter();
-      break;
+      return true;
     case PLAYER_CHAPTERCOUNT:
       value = g_application.GetAppPlayer().GetChapterCount();
-      break;
+      return true;
     case SYSTEM_FREE_MEMORY:
     case SYSTEM_USED_MEMORY:
       {
@@ -7060,6 +7060,7 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
         break;
       case SYSTEM_HAS_PVR:
         bReturn = true;
+        break;
       case SYSTEM_HAS_PVR_ADDON:
         {
           VECADDONS pvrAddons;
@@ -8408,7 +8409,7 @@ const std::string CGUIInfoManager::GetMusicPlaylistInfo(const GUIInfo& info)
 
 std::string CGUIInfoManager::GetPlaylistLabel(int item, int playlistid /* = PLAYLIST_NONE */) const
 {
-  if (playlistid <= PLAYLIST_NONE)
+  if (playlistid < PLAYLIST_NONE)
     return "";
 
   int iPlaylist = playlistid == PLAYLIST_NONE ? CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() : playlistid;
