@@ -24,6 +24,7 @@ unset(_ARM_)
 # -------- Paths (mainly for find_package) ---------
 
 set(PLATFORM_DIR platform/win32)
+set(APP_RENDER_SYSTEM dx11)
 set(CORE_MAIN_SOURCE ${CMAKE_SOURCE_DIR}/xbmc/platform/win10/main.cpp)
 
 # Precompiled headers fail with per target output directory. (needs CMake 3.1)
@@ -101,6 +102,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF")
 # remove warning
 set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /ignore:4264")
+
+# Minimum SDK version we support
+set(VS_MINIMUM_SDK_VERSION 10.0.14393.0)
 
 
 # -------- Visual Studio options ---------

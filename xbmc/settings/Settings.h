@@ -272,6 +272,7 @@ public:
   static const std::string SETTING_SERVICES_WEBSERVERPORT;
   static const std::string SETTING_SERVICES_WEBSERVERUSERNAME;
   static const std::string SETTING_SERVICES_WEBSERVERPASSWORD;
+  static const std::string SETTING_SERVICES_WEBSERVERSSL;
   static const std::string SETTING_SERVICES_WEBSKIN;
   static const std::string SETTING_SERVICES_ESENABLED;
   static const std::string SETTING_SERVICES_ESPORT;
@@ -288,7 +289,9 @@ public:
   static const std::string SETTING_SERVICES_AIRPLAYVIDEOSUPPORT;
   static const std::string SETTING_SMB_WINSSERVER;
   static const std::string SETTING_SMB_WORKGROUP;
+  static const std::string SETTING_SMB_MINPROTOCOL;
   static const std::string SETTING_SMB_MAXPROTOCOL;
+  static const std::string SETTING_SMB_LEGACYSECURITY;
   static const std::string SETTING_VIDEOSCREEN_MONITOR;
   static const std::string SETTING_VIDEOSCREEN_SCREEN;
   static const std::string SETTING_VIDEOSCREEN_RESOLUTION;

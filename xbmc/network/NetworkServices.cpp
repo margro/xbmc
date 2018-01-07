@@ -160,7 +160,8 @@ bool CNetworkServices::OnSettingChanging(std::shared_ptr<const CSetting> setting
   const std::string &settingId = setting->GetId();
 #ifdef HAS_WEB_SERVER
   if (settingId == CSettings::SETTING_SERVICES_WEBSERVER ||
-      settingId == CSettings::SETTING_SERVICES_WEBSERVERPORT)
+      settingId == CSettings::SETTING_SERVICES_WEBSERVERPORT ||
+      settingId == CSettings::SETTING_SERVICES_WEBSERVERSSL)
   {
     if (IsWebserverRunning() && !StopWebserver())
       return false;
@@ -423,7 +424,9 @@ void CNetworkServices::OnSettingChanged(std::shared_ptr<const CSetting> setting)
 #endif // HAS_WEB_SERVER
   if (settingId == CSettings::SETTING_SMB_WINSSERVER ||
       settingId == CSettings::SETTING_SMB_WORKGROUP ||
-      settingId == CSettings::SETTING_SMB_MAXPROTOCOL)
+      settingId == CSettings::SETTING_SMB_MINPROTOCOL ||
+      settingId == CSettings::SETTING_SMB_MAXPROTOCOL ||
+      settingId == CSettings::SETTING_SMB_LEGACYSECURITY)
   {
     // okey we really don't need to restart, only deinit samba, but that could be damn hard if something is playing
     //! @todo - General way of handling setting changes that require restart
