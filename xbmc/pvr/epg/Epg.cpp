@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -328,8 +328,9 @@ bool CPVREpg::Load(void)
     return bReturn;
   }
 
-  CSingleLock lock(m_critSection);
   int iEntriesLoaded = database->Get(*this);
+
+  CSingleLock lock(m_critSection);
   if (iEntriesLoaded <= 0)
   {
     CLog::Log(LOGDEBUG, "EPG - %s - no database entries found for table '%s'.", __FUNCTION__, m_strName.c_str());

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -379,7 +379,9 @@ void CGUIWindowMusicBase::ShowArtistInfo(const CFileItem *pItem, bool bShowInfo 
     // Check if the entry should be refreshed (Only happens if a user pressed refresh)
     if (refresh)
     {
-      if (!CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
+      const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+      if (!profileManager.GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
         break; // should display a dialog saying no permissions
 
       if (g_application.IsMusicScanning())
@@ -451,7 +453,9 @@ bool CGUIWindowMusicBase::ShowAlbumInfo(const CFileItem *pItem, bool bShowInfo /
     // Check if the entry should be refreshed (Only happens if a user pressed refresh)
     if (refresh)
     {
-      if (!CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
+      const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+      if (!profileManager.GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
       {
         //! @todo should display a dialog saying no permissions
         if (m_dlgProgress)
@@ -750,6 +754,8 @@ void CGUIWindowMusicBase::GetContextButtons(int itemNumber, CContextButtons &but
 
   if (item)
   {
+    const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
     if (item && !item->IsParentFolder())
     {
       if (item->CanQueue() && !item->IsAddonsPath() && !item->IsScript())
@@ -763,9 +769,12 @@ void CGUIWindowMusicBase::GetContextButtons(int itemNumber, CContextButtons &but
           buttons.Add(CONTEXT_BUTTON_PLAY_ITEM, 208); // Play
         }
         else
-        { // check what players we have, if we have multiple display play with option
+        {
+          const CPlayerCoreFactory &playerCoreFactory = CServiceBroker::GetPlayerCoreFactory();
+
+          // check what players we have, if we have multiple display play with option
           std::vector<std::string> players;
-          CPlayerCoreFactory::GetInstance().GetPlayers(*item, players);
+          playerCoreFactory.GetPlayers(*item, players);
           if (players.size() >= 1)
             buttons.Add(CONTEXT_BUTTON_PLAY_WITH, 15213); // Play With...
         }
@@ -790,7 +799,7 @@ void CGUIWindowMusicBase::GetContextButtons(int itemNumber, CContextButtons &but
           !item->IsPlugin() && !item->IsMusicDb()         &&
           !item->IsLibraryFolder() &&
           !StringUtils::StartsWithNoCase(item->GetPath(), "addons://")              &&
-          (CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser))
+          (profileManager.GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser))
       {
         buttons.Add(CONTEXT_BUTTON_SCAN, 13352);
       }
@@ -808,7 +817,7 @@ void CGUIWindowMusicBase::GetContextButtons(int itemNumber, CContextButtons &but
 
     // enable CDDB lookup if the current dir is CDDA
     if (g_mediaManager.IsDiscInDrive() && m_vecItems->IsCDDA() &&
-       (CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser))
+       (profileManager.GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser))
     {
       buttons.Add(CONTEXT_BUTTON_CDDB, 16002);
     }
@@ -868,9 +877,11 @@ bool CGUIWindowMusicBase::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
 
   case CONTEXT_BUTTON_PLAY_WITH:
     {
+      const CPlayerCoreFactory &playerCoreFactory = CServiceBroker::GetPlayerCoreFactory();
+
       std::vector<std::string> players;
-      CPlayerCoreFactory::GetInstance().GetPlayers(*item, players);
-      std::string player = CPlayerCoreFactory::GetInstance().SelectPlayerDialog(players);
+      playerCoreFactory.GetPlayers(*item, players);
+      std::string player = playerCoreFactory.SelectPlayerDialog(players);
       if (!player.empty())
         OnClick(itemNumber, player);
       return true;
@@ -1085,10 +1096,12 @@ bool CGUIWindowMusicBase::OnPlayMedia(int iItem, const std::string &player)
 
 void CGUIWindowMusicBase::UpdateThumb(const CAlbum &album, const std::string &path)
 {
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
   // check user permissions
   bool saveDb = album.idAlbum != -1;
   bool saveDirThumb = true;
-  if (!CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
+  if (!profileManager.GetCurrentProfile().canWriteDatabases() && !g_passwordManager.bMasterUser)
   {
     saveDb = false;
     saveDirThumb = false;
@@ -1209,27 +1222,37 @@ bool CGUIWindowMusicBase::GetDirectory(const std::string &strDirectory, CFileIte
     CQueryParams params;
     CDirectoryNode::GetDatabaseInfo(items.GetPath(), params);
 
+    // Get art for directory when album or artist
+    bool artfound = false;
+    std::vector<ArtForThumbLoader> art;
     if (params.GetAlbumId() > 0)
-    {
-      std::map<std::string, std::string> artistArt;
-      if (m_musicdatabase.GetArtistArtForItem(params.GetAlbumId(), MediaTypeAlbum, artistArt))
-        items.AppendArt(artistArt, MediaTypeArtist);
-
-      std::map<std::string, std::string> albumArt;
-      if (m_musicdatabase.GetArtForItem(params.GetAlbumId(), MediaTypeAlbum, albumArt))
-        items.AppendArt(albumArt, MediaTypeAlbum);
+    { // Get album and related artist(s) art
+      artfound = m_musicdatabase.GetArtForItem(-1, params.GetAlbumId(), -1, false, art);
     }
-    if (params.GetArtistId() > 0)
+    else if (params.GetArtistId() > 0)
+    { // get artist art
+      artfound = m_musicdatabase.GetArtForItem(-1, -1, params.GetArtistId(), true, art);
+    }
+    if (artfound)
     {
-      std::map<std::string, std::string> artistArt;
-      if (m_musicdatabase.GetArtForItem(params.GetArtistId(), "artist", artistArt))
-        items.AppendArt(artistArt, MediaTypeArtist);
+      std::map<std::string, std::string> artmap;
+      for (auto artitem : art)
+      {
+        std::string artname;
+        artname = artitem.artType;
+        if (params.GetAlbumId() > 0 && artitem.mediaType != MediaTypeAlbum)
+          artname = artitem.mediaType + "." + artitem.artType;
+        artmap.insert(std::make_pair(artname, artitem.url));
+      }
+      items.SetArt(artmap);
     }
 
     // add in the "New Playlist" item if we're in the playlists folder
     if ((items.GetPath() == "special://musicplaylists/") && !items.Contains("newplaylist://"))
     {
-      CFileItemPtr newPlaylist(new CFileItem(CProfilesManager::GetInstance().GetUserDataItem("PartyMode.xsp"),false));
+      const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+      CFileItemPtr newPlaylist(new CFileItem(profileManager.GetUserDataItem("PartyMode.xsp"),false));
       newPlaylist->SetLabel(g_localizeStrings.Get(16035));
       newPlaylist->SetLabelPreformatted(true);
       newPlaylist->SetIconImage("DefaultPartyMode.png");

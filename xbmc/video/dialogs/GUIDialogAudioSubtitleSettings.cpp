@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -236,8 +236,10 @@ void CGUIDialogAudioSubtitleSettings::OnSettingAction(std::shared_ptr<const CSet
 
 void CGUIDialogAudioSubtitleSettings::Save()
 {
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
   if (!g_passwordManager.CheckSettingLevelLock(SettingLevel::Expert) &&
-      CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
+      profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
     return;
 
   // prompt user if they are sure

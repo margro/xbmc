@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,6 +39,16 @@ typedef unsigned char BYTE;
 #include "platform/darwin/DarwinUtils.h"
 
 #include "platform/darwin/osx/CocoaInterface.h"
+
+IPowerSyscall* CCocoaPowerSyscall::CreateInstance()
+{
+  return new CCocoaPowerSyscall();
+}
+
+void CCocoaPowerSyscall::Register()
+{
+  IPowerSyscall::RegisterPowerSyscall(CCocoaPowerSyscall::CreateInstance);
+}
 
 #if defined(TARGET_DARWIN_OSX)
 OSStatus SendAppleEventToSystemProcess(AEEventID eventToSendID)

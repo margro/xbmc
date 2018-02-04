@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -522,7 +522,11 @@ static void ParseItem(CFileItem* item, TiXmlElement* root, const std::string& pa
     if(best->mime == "application/rss+xml" && StringUtils::StartsWithNoCase(item->GetPath(), "http://"))
       item->SetPath("rss://" + item->GetPath().substr(7));
 
-    if(StringUtils::StartsWithNoCase(item->GetPath(), "rss://"))
+    if(best->mime == "application/rss+xml" && StringUtils::StartsWithNoCase(item->GetPath(), "https://"))
+      item->SetPath("rsss://" + item->GetPath().substr(8));
+
+    if(StringUtils::StartsWithNoCase(item->GetPath(), "rss://")
+      || StringUtils::StartsWithNoCase(item->GetPath(), "rsss://"))
       item->m_bIsFolder = true;
     else
       item->m_bIsFolder = false;

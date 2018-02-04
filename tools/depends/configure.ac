@@ -6,12 +6,6 @@ AC_CONFIG_FILES([target/config.site native/config.site.native Makefile.include t
                  target/config-binaddons.site target/Toolchain_binaddons.cmake])
 AC_CANONICAL_HOST
 
-# save flags before autotools checks the compiler, since
-# it will automatically include -g in c/cxxflags
-passed_cflags="$CFLAGS"
-passed_ldflags="$LDFLAGS"
-passed_cxxflags="$CXXFLAGS"
-
 m4_include([m4/xbmc_arch.m4])
 m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
 
@@ -48,7 +42,8 @@ AC_ARG_WITH([toolchain],
 AC_ARG_WITH([platform],
   [AS_HELP_STRING([--with-platform],
   [target platform [auto]])],
-  [use_platform=$withval])
+  [use_platform=$withval],
+  [use_platform=auto])
 
 AC_ARG_WITH([firmware],
   [AS_HELP_STRING([--with-firmware],
@@ -63,7 +58,8 @@ AC_ARG_WITH([tarballs],
 AC_ARG_WITH([cpu],
   [AS_HELP_STRING([--with-cpu],
   [optional. specify target cpu. guessed if not specified])],
-  [use_cpu=$withval],use_cpu=auto)
+  [use_cpu=$withval],
+  [use_cpu=auto])
 
 AC_ARG_WITH([ndk-path],
   [AS_HELP_STRING([--with-ndk-path],
@@ -77,13 +73,14 @@ AC_ARG_WITH([sdk-path],
 
 AC_ARG_WITH([sdk],
   [AS_HELP_STRING([--with-sdk],
-  [specify sdk platform version (optional for android). default is android-24])],
+  [specify sdk platform version.])],
   [use_sdk=$withval])
 
 AC_ARG_WITH([ndk-api],
   [AS_HELP_STRING([--with-ndk-api],
-  [spcify ndk level (optional for android). default is 21])],
-  [use_ndk_api=$withval])
+  [specify ndk level (optional for android), default is 21.])],
+  [use_ndk_api=$withval],
+  [use_ndk_api=21])
 
 AC_ARG_ENABLE([gplv3],
   [AS_HELP_STRING([--enable-gplv3],
@@ -101,6 +98,29 @@ AC_ARG_WITH([rendersystem],
   [AS_HELP_STRING([--with-rendersystem],
   [render system to use])],
   [app_rendersystem=$withval])
+
+AC_ARG_WITH([target-cflags],
+  [AS_HELP_STRING([--with-target-cflags],
+  [C compiler flags (target)])],
+  [target_cflags=$withval])
+
+AC_ARG_WITH([target-cxxflags],
+  [AS_HELP_STRING([--with-target-cxxflags],
+  [C++ compiler flags (target)])],
+  [target_cxxflags=$withval],
+  [target_cxxflags=$target_cflags])
+
+AC_ARG_WITH([target-ldflags],
+  [AS_HELP_STRING([--with-target-ldflags],
+  [linker flags. Use e.g. for -l<lib> (target)])],
+  [target_ldflags=$withval])
+
+AC_ARG_WITH([ffmpeg-options],
+  [AS_HELP_STRING([--with-ffmpeg-options],
+  [FFmpeg configure options, e.g. --enable-vaapi (target)])],
+  [ffmpeg_options=$withval],
+  [ffmpeg_options=default])
+
 
 OLD_PATH="${PATH}"
 if test -n "$use_toolchain"; then
@@ -183,8 +203,6 @@ case $host in
     fi
     platform_cc=clang
     platform_cxx=clang++
-    use_sdk="${use_sdk:-android-24}"
-    use_ndk_api="${use_ndk_api:-21}"
     deps_dir="$use_host-$use_ndk_api-$build_type"
     platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
     optimize_flags="-Os"
@@ -204,8 +222,6 @@ case $host in
     fi
     platform_cc=clang
     platform_cxx=clang++
-    use_sdk="${use_sdk:-android-24}"
-    use_ndk_api="${use_ndk_api:-21}"
     deps_dir="$use_host-$use_ndk_api-$build_type"
     platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes  -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
     optimize_flags="-Os"
@@ -225,8 +241,6 @@ case $host in
     fi
     platform_cc=clang
     platform_cxx=clang++
-    use_sdk="${use_sdk:-android-24}"
-    use_ndk_api="${use_ndk_api:-21}"
     deps_dir="$use_host-$use_ndk_api-$build_type"
     platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes  -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
     optimize_flags="-Os"
@@ -270,6 +284,7 @@ case $host in
     optimize_flags="-O2"
     platform_cxxflags="$platform_cflags"
     platform_os="linux"
+    ffmpeg_options_default="--enable-vaapi --enable-vdpau --cpu=$use_cpu"
   ;;
   x86_64*-linux-gnu*|x86_64-*-linux-uclibc*)
     use_cpu=$host_cpu
@@ -278,6 +293,7 @@ case $host in
     optimize_flags="-O2"
     platform_cxxflags="$platform_cflags"
     platform_os="linux"
+    ffmpeg_options_default="--enable-vaapi --enable-vdpau --cpu=$use_cpu"
   ;;
   *darwin*)
     if test "x$prefix" = "xNONE"; then
@@ -299,10 +315,6 @@ case $host in
     platform_cxxflags="-no_compact_linkedit -no-cpp-precomp"
 
     case $use_xcode in
-      3.*.*)
-        platform_cc=gcc-4.2
-        platform_cxx=g++-4.2
-        ;;
       4.* | 4.*.*)
         platform_cc=llvm-gcc-4.2
         platform_cxx=llvm-g++-4.2
@@ -342,9 +354,6 @@ case $host in
 
         # now that we know which sdk, error check sdk_name
         case $use_sdk in
-          10.5);;
-          10.6);;
-          10.7);;
           10.8);;
           10.9);;
           10.10);;
@@ -385,8 +394,8 @@ case $host in
 
           found_sdk_version=[`$use_xcodebuild -showsdks | grep $target_platform | sort | tail -n 1 | awk '{ print $2}'`]
           use_sdk="${use_sdk:-$found_sdk_version}"
-	  platform_cflags+=" -fembed-bitcode"
-	  platform_cxxflags+=" -fembed-bitcode"
+          platform_cflags+=" -fembed-bitcode"
+          platform_cxxflags+=" -fembed-bitcode"
           sdk_name=$target_platform$use_sdk
           platform_min_version="$target_platform-version-min=9.0"
         else
@@ -400,14 +409,9 @@ case $host in
           found_sdk_version=[`$use_xcodebuild -showsdks | grep $target_platform | sort | tail -n 1 | awk '{ print $2}'`]
           use_sdk="${use_sdk:-$found_sdk_version}"
           sdk_name=$target_platform$use_sdk
-          platform_min_version="$target_platform-version-min=6.0"
+          platform_min_version="$target_platform-version-min=9.0"
         fi
-	case $use_sdk in
-          4.*);;
-          5.*);;
-          6.*);;
-          7.*);;
-          8.*);;
+        case $use_sdk in
           9.*);;
           10.*);;
           11.*);;
@@ -416,15 +420,7 @@ case $host in
             ;;
         esac
 
-        # find the matching toolchain
-        case $use_xcode in
-          3.*.* | 4.* | 4.*.*)
-            use_toolchain="${use_toolchain:-`$use_xcodebuild -version -sdk $sdk_name PlatformPath`/Developer}"
-            ;;
-          *)
-            use_toolchain="${use_xcodepath}/Toolchains/XcodeDefault.xctoolchain"
-            ;;
-        esac
+        use_toolchain="${use_xcodepath}/Toolchains/XcodeDefault.xctoolchain"
 
         platform_os="ios"
 
@@ -455,8 +451,8 @@ esac
 case $use_platform in
   raspberry-pi)
      target_platform=raspberry-pi
-     use_neon=no
      use_cpu=arm1176jzf-s
+     ffmpeg_options_default="--cpu=arm1176jzf-s"
      platform_cflags="-mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp"
      platform_cxxflags="-mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp"
      optimize_flags="-Os"
@@ -464,8 +460,8 @@ case $use_platform in
      ;;
   raspberry-pi2)
      target_platform=raspberry-pi
-     use_neon=yes
      use_cpu=cortex-a7
+     ffmpeg_options_default="--cpu=cortex-a7"
      platform_cflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4"
      platform_cxxflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4"
      optimize_flags="-Os"
@@ -539,7 +535,6 @@ AC_PATH_PROG([CXX_FOR_BUILD],[g++ llvm-g++ $platform_cxx], g++, $PATH_FOR_BUILD)
 
 AC_SEARCH_LIBS([iconv_open],iconv, link_iconv=$ac_cv_search_iconv_open, link_iconv=-liconv; AC_MSG_WARN("No iconv support in toolchain. Will build libiconv."); need_libiconv=1)
 AC_TRY_LINK([#include <locale.h>],[struct lconv* test=localeconv();], has_localeconv=yes, AC_MSG_WARN("No localeconv support in toolchain. Using replacement."); has_localeconv=no)
-AC_CHECK_LIB([crystax],   [main], has_libcrystax=1, has_libcrystax=0)
 
 if test "$link_iconv" = "none required"; then
   link_iconv=
@@ -658,19 +653,6 @@ if [ ! `mkdir -p $use_tarballs` ]; then
   AC_MSG_ERROR(unable to create tarballs dir. verify that the path and permissions are correct.)
 fi
 
-if test "$platform_os" == "android"; then
-  echo
-
-  if [ ! `mkdir -p $prefix/$deps_dir/include/$use_sdk` ]; then
-    AC_MSG_ERROR(unable to create $prefix/$deps_dir/include/$use_sdk. verify that the path and permissions are correct.)
-  fi
-
-  if [ ! `mkdir -p $prefix/$deps_dir/lib/$use_sdk` ]; then
-    AC_MSG_ERROR(unable to create $prefix/$deps_dir/lib/$use_sdk. verify that the path and permissions are correct.)
-  fi
-fi
-
-
 # remove unwanted optimization flags
 tmp_cflags=$(echo $c11_flags $platform_cflags | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ \{2,\}//g')
 tmp_cxxflags=$(echo $cxx11_flags $platform_cxxflags | sed 's/-O@<:@123@:>@//g;s/-g //g;s/ \{2,\}//g')
@@ -689,11 +671,11 @@ else
 fi
 
 # add user supplied flags to the end, so they override our defaults
-platform_cflags_release="$tmp_cflags $relase_cflags $optimize_flags $passed_cflags"
-platform_cxxflags_release="$tmp_cxxflags $relase_cflags $optimize_flags $passed_cxxflags"
-platform_cflags_debug="$tmp_cflags $debug_cflags $passed_cflags"
-platform_cxxflags_debug="$tmp_cxxflags $debug_cflags $passed_cxxflags"
-platform_ldflags+=" $passed_ldflags $LIBS"
+platform_cflags_release="$tmp_cflags $relase_cflags $optimize_flags $target_cflags"
+platform_cxxflags_release="$tmp_cxxflags $relase_cflags $optimize_flags $target_cxxflags"
+platform_cflags_debug="$tmp_cflags $debug_cflags $target_cflags"
+platform_cxxflags_debug="$tmp_cxxflags $debug_cflags $target_cxxflags"
+platform_ldflags+=" $target_ldflags $LIBS"
 
 if test "$use_debug" = "yes"; then
   platform_cflags="$platform_cflags_debug"
@@ -703,11 +685,14 @@ else
   platform_cxxflags="$platform_cxxflags_release"
 fi
 
+if test "$ffmpeg_options" == "default"; then
+  ffmpeg_options="$ffmpeg_options_default"
+fi
+
 if test "$platform_os" == "android"; then
 echo -e
   AC_SUBST(use_sdk_path)
   AC_SUBST(use_ndk_path)
-  AC_SUBST(use_sdk)
   AC_SUBST(use_ndk_api)
   AC_SUBST(build_tools_path)
 fi
@@ -738,20 +723,13 @@ AC_SUBST(link_iconv)
 AC_SUBST(need_libiconv)
 AC_SUBST(use_gplv3)
 AC_SUBST(enable_wayland)
-AC_SUBST(has_libcrystax)
 AC_SUBST(use_xcode)
 AC_SUBST(use_ccache)
 AC_SUBST(native_platform_min_version)
+AC_SUBST(app_rendersystem)
+AC_SUBST(ffmpeg_options)
 
 AC_OUTPUT
-echo -e "ccache:\t $use_ccache"
-echo -e "toolchain:\t $use_toolchain"
-echo -e "cpu:\t\t $use_cpu"
-echo -e "host:\t\t $use_host"
-if test "$platform_os" == "android"; then
-  echo -e "sdk-platform:\t $use_sdk"
-  echo -e "build-tools:\t $build_tools_path"
-fi
 
 if test "$platform_os" == "ios"; then
   if test "$use_platform" = "tvos"; then
@@ -775,6 +753,7 @@ cp -vf native/config.site.native $prefix/$tool_dir/share/config.site
 
 
 echo -e "\n\n#------- configuration -------#"
+echo -e "ccache:\t\t $use_ccache"
 echo -e "build type:\t $build_type"
 echo -e "toolchain:\t $use_toolchain"
 echo -e "cpu:\t\t $use_cpu"
@@ -782,10 +761,11 @@ echo -e "host:\t\t $use_host"
 echo -e "cflags:\t\t $platform_cflags"
 echo -e "cxxflags:\t $platform_cxxflags"
 echo -e "ldflags:\t $platform_ldflags"
-echo -e "prefix:\t\t  $prefix"
+echo -e "ffmpeg options:\t $ffmpeg_options"
+echo -e "prefix:\t\t $prefix"
 echo -e "depends:\t $prefix/$deps_dir"
 if test "$platform_os" == "android"; then
-  echo -e "sdk-platform:\t $use_sdk"
+  echo -e "ndk-api-level:\t $use_ndk_api"
   echo -e "build-tools:\t $build_tools_path"
 fi
 

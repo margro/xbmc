@@ -522,7 +522,7 @@ bool CGUIWindowManager::SendMessage(CGUIMessage& message)
   while (topWindow)
   {
     CGUIWindow* dialog = m_activeDialogs[--topWindow];
-    lock.Leave();
+
     if (!modalAcceptedMessage && dialog->IsModalDialog())
     { // modal window
       hasModalDialog = true;
@@ -536,11 +536,10 @@ bool CGUIWindowManager::SendMessage(CGUIMessage& message)
       if (dialog->OnMessage( message ))
         handled = true;
     }
-    lock.Enter();
+
     if (topWindow > m_activeDialogs.size())
       topWindow = m_activeDialogs.size();
   }
-  lock.Leave();
 
   // now send to the underlying window
   CGUIWindow* window = GetWindow(GetActiveWindow());
@@ -803,13 +802,13 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector
   if (!pNewWindow)
   { // nothing to see here - move along
     CLog::Log(LOGERROR, "Unable to locate window with id %d.  Check skin files", iWindowID - WINDOW_HOME);
-    if (GetActiveWindowID() == WINDOW_STARTUP_ANIM)
+    if (IsWindowActive(WINDOW_STARTUP_ANIM))
       ActivateWindow(WINDOW_HOME);
     return ;
   }
   else if (!pNewWindow->CanBeActivated())
   {
-    if (GetActiveWindowID() == WINDOW_STARTUP_ANIM)
+    if (IsWindowActive(WINDOW_STARTUP_ANIM))
       ActivateWindow(WINDOW_HOME);
     return;
   }
@@ -1066,10 +1065,10 @@ bool CGUIWindowManager::OnAction(const CAction &action) const
 bool CGUIWindowManager::HandleAction(CAction const& action) const
 {
   CSingleLock lock(g_graphicsContext);
-  unsigned int topMost = m_activeDialogs.size();
-  while (topMost)
+  unsigned int topmost = m_activeDialogs.size();
+  while (topmost)
   {
-    CGUIWindow *dialog = m_activeDialogs[--topMost];
+    CGUIWindow *dialog = m_activeDialogs[--topmost];
     lock.Leave();
     if (dialog->IsModalDialog())
     { // we have the topmost modal dialog
@@ -1089,8 +1088,8 @@ bool CGUIWindowManager::HandleAction(CAction const& action) const
       return true; // do nothing with the action until the anim is finished
     }
     lock.Enter();
-    if (topMost > m_activeDialogs.size())
-      topMost = m_activeDialogs.size();
+    if (topmost > m_activeDialogs.size())
+      topmost = m_activeDialogs.size();
   }
   lock.Leave();
   CGUIWindow* window = GetWindow(GetActiveWindow());
@@ -1394,25 +1393,26 @@ bool CGUIWindowManager::HasVisibleModalDialog(const std::vector<DialogModalityTy
   return HasModalDialog(types, false);
 }
 
-bool CGUIWindowManager::HasDialogOnScreen() const
-{
-  return (m_activeDialogs.size() > 0);
-}
-
-/// \brief Get the ID of the top most routed window
-/// \return id ID of the window or WINDOW_INVALID if no routed window available
-int CGUIWindowManager::GetTopMostModalDialogID(bool ignoreClosing /*= false*/) const
+int CGUIWindowManager::GetTopmostDialog(bool modal, bool ignoreClosing) const
 {
   CSingleLock lock(g_graphicsContext);
   for (auto it = m_activeDialogs.rbegin(); it != m_activeDialogs.rend(); ++it)
   {
     CGUIWindow *dialog = *it;
-    if (dialog->IsModalDialog() && (!ignoreClosing || !dialog->IsAnimating(ANIM_TYPE_WINDOW_CLOSE)))
-    { // have a modal window
+    if ((!modal || dialog->IsModalDialog()) && (!ignoreClosing || !dialog->IsAnimating(ANIM_TYPE_WINDOW_CLOSE)))
       return dialog->GetID();
-    }
   }
   return WINDOW_INVALID;
+}
+
+int CGUIWindowManager::GetTopmostDialog(bool ignoreClosing /*= false*/) const
+{
+  return GetTopmostDialog(false, ignoreClosing);
+}
+
+int CGUIWindowManager::GetTopmostModalDialog(bool ignoreClosing /*= false*/) const
+{
+  return GetTopmostDialog(true, ignoreClosing);
 }
 
 void CGUIWindowManager::SendThreadMessage(CGUIMessage& message, int window /*= 0*/)
@@ -1505,56 +1505,23 @@ int CGUIWindowManager::GetActiveWindow() const
   return WINDOW_INVALID;
 }
 
-int CGUIWindowManager::GetActiveWindowID() const
+int CGUIWindowManager::GetActiveWindowOrDialog() const
 {
-  // Get the currently active window
-  int iWin = GetActiveWindow() & WINDOW_ID_MASK;
+  // if there is a dialog active get the dialog id instead
+  int iWin = GetTopmostModalDialog() & WINDOW_ID_MASK;
+  if (iWin != WINDOW_INVALID)
+    return iWin;
 
-  // If there is a dialog active get the dialog id instead
-  if (HasModalDialog())
-    iWin = GetTopMostModalDialogID() & WINDOW_ID_MASK;
-
-  // If the window is FullScreenVideo check for special cases
-  if (iWin == WINDOW_FULLSCREEN_VIDEO)
-  {
-    // check if we're in a DVD menu
-    if (g_application.GetAppPlayer().IsInMenu())
-      iWin = WINDOW_VIDEO_MENU;
-    // check for LiveTV and switch to it's virtual window
-    else if (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().HasPVRChannelInfoTag())
-      iWin = WINDOW_FULLSCREEN_LIVETV;
-    // special casing for numeric seek
-    else if (g_application.GetAppPlayer().GetSeekHandler().HasTimeCode())
-      iWin = WINDOW_VIDEO_TIME_SEEK;
-  }
-  if (iWin == WINDOW_VISUALISATION)
-  {
-    // special casing for PVR radio
-    if (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().HasPVRChannelInfoTag())
-      iWin = WINDOW_FULLSCREEN_RADIO;
-    // special casing for numeric seek
-    else if (g_application.GetAppPlayer().GetSeekHandler().HasTimeCode())
-      iWin = WINDOW_VIDEO_TIME_SEEK;
-  }
-  // Return the window id
-  return iWin;
-}
-
-// same as GetActiveWindow() except it first grabs dialogs
-int CGUIWindowManager::GetFocusedWindow() const
-{
-  int dialog = GetTopMostModalDialogID(true);
-  if (dialog != WINDOW_INVALID)
-    return dialog;
-
-  return GetActiveWindow();
+  // get the currently active window
+  return GetActiveWindow() & WINDOW_ID_MASK;
 }
 
 bool CGUIWindowManager::IsWindowActive(int id, bool ignoreClosing /* = true */) const
 {
   // mask out multiple instances of the same window
   id &= WINDOW_ID_MASK;
-  if ((GetActiveWindow() & WINDOW_ID_MASK) == id) return true;
+  if ((GetActiveWindow() & WINDOW_ID_MASK) == id)
+    return true;
   // run through the dialogs
   CSingleLock lock(g_graphicsContext);
   for (const auto& window : m_activeDialogs)
@@ -1662,32 +1629,28 @@ void CGUIWindowManager::RemoveFromWindowHistory(int windowID)
   }
 }
 
-CGUIWindow *CGUIWindowManager::GetTopMostDialog() const
+bool CGUIWindowManager::IsModalDialogTopmost(int id) const
 {
-  CSingleLock lock(g_graphicsContext);
-  // find the window with the lowest render order
-  auto renderList = m_activeDialogs;
-  stable_sort(renderList.begin(), renderList.end(), RenderOrderSortFunction);
-
-  if (!renderList.size())
-    return nullptr;
-
-  // return the last window in the list
-  return *renderList.rbegin();
+  return IsDialogTopmost(id, true);
 }
 
-bool CGUIWindowManager::IsWindowTopMost(int id) const
+bool CGUIWindowManager::IsModalDialogTopmost(const std::string &xmlFile) const
 {
-  CGUIWindow *topMost = GetTopMostDialog();
-  if (topMost && (topMost->GetID() & WINDOW_ID_MASK) == id)
+  return IsDialogTopmost(xmlFile, true);
+}
+
+bool CGUIWindowManager::IsDialogTopmost(int id, bool modal /* = false */) const
+{
+  CGUIWindow *topmost = GetWindow(GetTopmostDialog(modal, false));
+  if (topmost && (topmost->GetID() & WINDOW_ID_MASK) == id)
     return true;
   return false;
 }
 
-bool CGUIWindowManager::IsWindowTopMost(const std::string &xmlFile) const
+bool CGUIWindowManager::IsDialogTopmost(const std::string &xmlFile, bool modal /* = false */) const
 {
-  CGUIWindow *topMost = GetTopMostDialog();
-  if (topMost && StringUtils::EqualsNoCase(URIUtils::GetFileName(topMost->GetProperty("xmlfile").asString()), xmlFile))
+  CGUIWindow *topmost = GetWindow(GetTopmostDialog(modal, false));
+  if (topmost && StringUtils::EqualsNoCase(URIUtils::GetFileName(topmost->GetProperty("xmlfile").asString()), xmlFile))
     return true;
   return false;
 }

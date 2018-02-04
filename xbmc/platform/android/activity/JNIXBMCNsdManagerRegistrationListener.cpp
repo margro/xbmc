@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2016 Christian Browet
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -71,25 +71,25 @@ void CJNIXBMCNsdManagerRegistrationListener::RegisterNatives(JNIEnv* env)
 
 void CJNIXBMCNsdManagerRegistrationListener::_onRegistrationFailed(JNIEnv* env, jobject thiz, jobject serviceInfo, jint errorCode)
 {
-  CJNINsdServiceInfo si = CJNINsdServiceInfo(jhobject(serviceInfo));
+  CJNINsdServiceInfo si = CJNINsdServiceInfo(jhobject::fromJNI(serviceInfo));
   CLog::Log(LOGERROR, "ZeroconfAndroid: %s.%s registration failed: %d", si.getServiceName().c_str(), si.getServiceType().c_str(), errorCode);
 }
 
 void CJNIXBMCNsdManagerRegistrationListener::_onServiceRegistered(JNIEnv* env, jobject thiz, jobject serviceInfo)
 {
-  CJNINsdServiceInfo si = CJNINsdServiceInfo(jhobject(serviceInfo));
+  CJNINsdServiceInfo si = CJNINsdServiceInfo(jhobject::fromJNI(serviceInfo));
   CLog::Log(LOGINFO, "ZeroconfAndroid: %s.%s now registered and active", si.getServiceName().c_str(), si.getServiceType().c_str());
 }
 
 void CJNIXBMCNsdManagerRegistrationListener::_onServiceUnregistered(JNIEnv* env, jobject thiz, jobject serviceInfo)
 {
-  CJNINsdServiceInfo si = CJNINsdServiceInfo(jhobject(serviceInfo));
+  CJNINsdServiceInfo si = CJNINsdServiceInfo(jhobject::fromJNI(serviceInfo));
   CLog::Log(LOGINFO, "ZeroconfAndroid: %s.%s registration removed", si.getServiceName().c_str(), si.getServiceType().c_str());
 }
 
 void CJNIXBMCNsdManagerRegistrationListener::_onUnregistrationFailed(JNIEnv* env, jobject thiz, jobject serviceInfo, jint errorCode)
 {
-  CJNINsdServiceInfo si = CJNINsdServiceInfo(jhobject(serviceInfo));
+  CJNINsdServiceInfo si = CJNINsdServiceInfo(jhobject::fromJNI(serviceInfo));
   CLog::Log(LOGERROR, "ZeroconfAndroid: %s.%s unregistration failed: %d", si.getServiceName().c_str(), si.getServiceType().c_str(), errorCode);
 }
 

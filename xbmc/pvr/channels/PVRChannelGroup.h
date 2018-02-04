@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -116,6 +116,12 @@ namespace PVR
      * @brief Refresh the channel list from the clients.
      */
     virtual bool Update(void);
+
+    /*!
+     * @brief Get the path of this group.
+     * @return the path.
+     */
+    std::string GetPath() const;
 
     /*!
      * @brief Change the channelnumber of a group. Used by CGUIDialogPVRChannelManager. Call SortByChannelNumber() and Renumber() after all changes are done.

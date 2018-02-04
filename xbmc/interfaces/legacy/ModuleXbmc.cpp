@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -348,7 +348,7 @@ namespace XBMCAddon
       {
         XBMCAddonUtils::GuiLock lock(nullptr, false);
 
-        int id = g_windowManager.GetTopMostModalDialogID();
+        int id = g_windowManager.GetTopmostModalDialog();
         if (id == WINDOW_INVALID) id = g_windowManager.GetActiveWindow();
         ret = g_infoManager.EvaluateBool(condition,id);
       }

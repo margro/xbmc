@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -159,15 +159,17 @@ bool CLinuxRendererGLES::ValidateRenderTarget()
   return false;
 }
 
-bool CLinuxRendererGLES::Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation)
+bool CLinuxRendererGLES::Configure(const VideoPicture &picture, float fps, unsigned int orientation)
 {
   m_format = picture.videoBuffer->GetFormat();
   m_sourceWidth = picture.iWidth;
   m_sourceHeight = picture.iHeight;
   m_renderOrientation = orientation;
 
-  // Save the flags.
-  m_iFlags = flags;
+  m_iFlags = GetFlagsChromaPosition(picture.chroma_position) |
+             GetFlagsColorMatrix(picture.color_space, picture.iWidth, picture.iHeight) |
+             GetFlagsColorPrimaries(picture.color_primaries) |
+             GetFlagsStereoMode(picture.stereoMode);
 
   // Calculate the input frame aspect ratio.
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
@@ -475,7 +477,7 @@ void CLinuxRendererGLES::UpdateVideoFilter()
       }
     }
 
-    m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod, false);
+    m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod);
     if (!m_pVideoFilterShader->CompileAndLink())
     {
       CLog::Log(LOGERROR, "GL: Error compiling and linking video filter shader");
@@ -707,17 +709,14 @@ void CLinuxRendererGLES::RenderSinglePass(int index, int field)
 
   // Y
   glActiveTexture(GL_TEXTURE0);
-  glEnable(m_textureTarget);
   glBindTexture(m_textureTarget, planes[0].id);
 
   // U
   glActiveTexture(GL_TEXTURE1);
-  glEnable(m_textureTarget);
   glBindTexture(m_textureTarget, planes[1].id);
 
   // V
   glActiveTexture(GL_TEXTURE2);
-  glEnable(m_textureTarget);
   glBindTexture(m_textureTarget, planes[2].id);
 
   glActiveTexture(GL_TEXTURE0);
@@ -739,7 +738,6 @@ void CLinuxRendererGLES::RenderSinglePass(int index, int field)
     pYUVShader->SetField(0);
 
   pYUVShader->SetMatrices(glMatrixProject.Get(), glMatrixModview.Get());
-  pYUVShader->SetConvertFullColorRange(!CServiceBroker::GetWinSystem().UseLimitedColor());
   pYUVShader->Enable();
 
   GLubyte idx[4] = {0, 1, 3, 2};        //determines order of triangle strip
@@ -790,15 +788,6 @@ void CLinuxRendererGLES::RenderSinglePass(int index, int field)
   glDisableVertexAttribArray(Uloc);
   glDisableVertexAttribArray(Vloc);
 
-  glActiveTexture(GL_TEXTURE1);
-  glDisable(m_textureTarget);
-
-  glActiveTexture(GL_TEXTURE2);
-  glDisable(m_textureTarget);
-
-  glActiveTexture(GL_TEXTURE0);
-  glDisable(m_textureTarget);
-
   VerifyGLState();
 }
 
@@ -829,20 +818,17 @@ void CLinuxRendererGLES::RenderToFBO(int index, int field, bool weave /*= false*
   glDisable(GL_DEPTH_TEST);
 
   // Y
-  glEnable(m_textureTarget);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(m_textureTarget, planes[0].id);
   VerifyGLState();
 
   // U
   glActiveTexture(GL_TEXTURE1);
-  glEnable(m_textureTarget);
   glBindTexture(m_textureTarget, planes[1].id);
   VerifyGLState();
 
   // V
   glActiveTexture(GL_TEXTURE2);
-  glEnable(m_textureTarget);
   glBindTexture(m_textureTarget, planes[2].id);
   VerifyGLState();
 
@@ -864,13 +850,10 @@ void CLinuxRendererGLES::RenderToFBO(int index, int field, bool weave /*= false*
   pYUVShader->SetContrast(m_videoSettings.m_Contrast * 0.02f);
   pYUVShader->SetWidth(planes[0].texwidth);
   pYUVShader->SetHeight(planes[0].texheight);
-  pYUVShader->SetNonLinStretch(1.0);
   if (field == FIELD_TOP)
     pYUVShader->SetField(1);
   else if(field == FIELD_BOT)
     pYUVShader->SetField(0);
-
-  pYUVShader->SetConvertFullColorRange(!CServiceBroker::GetWinSystem().UseLimitedColor());
 
   VerifyGLState();
 
@@ -965,15 +948,6 @@ void CLinuxRendererGLES::RenderToFBO(int index, int field, bool weave /*= false*
 
   m_fbo.fbo.EndRender();
 
-  glActiveTexture(GL_TEXTURE1);
-  glDisable(m_textureTarget);
-
-  glActiveTexture(GL_TEXTURE2);
-  glDisable(m_textureTarget);
-
-  glActiveTexture(GL_TEXTURE0);
-  glDisable(m_textureTarget);
-
   VerifyGLState();
 }
 
@@ -998,14 +972,6 @@ void CLinuxRendererGLES::RenderFromFBO()
     m_pVideoFilterShader->SetWidth(m_sourceWidth);
     m_pVideoFilterShader->SetHeight(m_sourceHeight);
     m_pVideoFilterShader->SetAlpha(1.0f);
-
-    //disable non-linear stretch when a dvd menu is shown, parts of the menu are rendered through the overlay renderer
-    //having non-linear stretch on breaks the alignment
-    if (g_application.GetAppPlayer().IsInMenu())
-      m_pVideoFilterShader->SetNonLinStretch(1.0);
-    else
-      m_pVideoFilterShader->SetNonLinStretch(pow(CDisplaySettings::GetInstance().GetPixelRatio(), g_advancedSettings.m_videoNonLinStretchRatio));
-
     m_pVideoFilterShader->SetMatrices(glMatrixProject.Get(), glMatrixModview.Get());
     m_pVideoFilterShader->Enable();
   }
@@ -1057,7 +1023,6 @@ void CLinuxRendererGLES::RenderFromFBO()
   VerifyGLState();
 
   glBindTexture(GL_TEXTURE_2D, 0);
-  glDisable(GL_TEXTURE_2D);
   VerifyGLState();
 }
 
@@ -1124,7 +1089,6 @@ bool CLinuxRendererGLES::UploadYV12Texture(int source)
   YUVBUFFER& buf = m_buffers[source];
   YuvImage* im = &buf.image;
 
-  glEnable(m_textureTarget);
   VerifyGLState();
 
   glPixelStorei(GL_UNPACK_ALIGNMENT,1);
@@ -1148,7 +1112,6 @@ bool CLinuxRendererGLES::UploadYV12Texture(int source)
 
   CalculateTextureSourceRects(source, 3);
 
-  glDisable(m_textureTarget);
   return true;
 }
 
@@ -1226,7 +1189,6 @@ bool CLinuxRendererGLES::CreateYV12Texture(int index)
   for (int i = 0; i < 3; i++)
     im.plane[i] = new BYTE[im.planesize[i]];
 
-  glEnable(m_textureTarget);
   for(int f = 0;f<MAX_FIELDS;f++)
   {
     for(p = 0;p<YuvImage::MAX_PLANES;p++)
@@ -1289,7 +1251,6 @@ bool CLinuxRendererGLES::CreateYV12Texture(int index)
       VerifyGLState();
     }
   }
-  glDisable(m_textureTarget);
   return true;
 }
 
@@ -1307,7 +1268,6 @@ bool CLinuxRendererGLES::UploadNV12Texture(int source)
   else
     deinterlacing = true;
 
-  glEnable(m_textureTarget);
   VerifyGLState();
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, im->bpp);
@@ -1352,7 +1312,6 @@ bool CLinuxRendererGLES::UploadNV12Texture(int source)
 
   CalculateTextureSourceRects(source, 3);
 
-  glDisable(m_textureTarget);
   return true;
 }
 
@@ -1389,7 +1348,6 @@ bool CLinuxRendererGLES::CreateNV12Texture(int index)
   for (int i = 0; i < 2; i++)
     im.plane[i] = new BYTE[im.planesize[i]];
 
-  glEnable(m_textureTarget);
   for(int f = 0;f<MAX_FIELDS;f++)
   {
     for(int p = 0;p<2;p++)
@@ -1443,7 +1401,6 @@ bool CLinuxRendererGLES::CreateNV12Texture(int index)
       VerifyGLState();
     }
   }
-  glDisable(m_textureTarget);
 
   return true;
 }
@@ -1583,4 +1540,3 @@ bool CLinuxRendererGLES::IsGuiLayer()
 {
   return true;
 }
-

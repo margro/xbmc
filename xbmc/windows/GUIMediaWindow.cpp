@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -67,6 +67,7 @@
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
 #include "view/GUIViewState.h"
+#include <inttypes.h>
 
 #define CONTROL_BTNVIEWASICONS       2
 #define CONTROL_BTNSORTBY            3
@@ -939,7 +940,11 @@ void CGUIMediaWindow::OnCacheFileItems(CFileItemList &items)
  */
 bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
 {
-  if ( iItem < 0 || iItem >= (int)m_vecItems->Size() ) return true;
+  if (iItem < 0 || iItem >= (int)m_vecItems->Size())
+    return true;
+
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
   CFileItemPtr pItem = m_vecItems->Get(iItem);
 
   if (pItem->IsParentFolder())
@@ -947,14 +952,15 @@ bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
     GoParentFolder();
     return true;
   }
+
   if (pItem->GetPath() == "add" || pItem->GetPath() == "sources://add/") // 'add source button' in empty root
   {
-    if (CProfilesManager::GetInstance().IsMasterProfile())
+    if (profileManager.IsMasterProfile())
     {
       if (!g_passwordManager.IsMasterLockUnlocked(true))
         return false;
     }
-    else if (!CProfilesManager::GetInstance().GetCurrentProfile().canWriteSources() && !g_passwordManager.IsProfileLockUnlocked())
+    else if (!profileManager.GetCurrentProfile().canWriteSources() && !g_passwordManager.IsProfileLockUnlocked())
       return false;
 
     if (OnAddMediaSource())
@@ -995,7 +1001,7 @@ bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
     if ( pItem->m_bIsShareOrDrive )
     {
       const std::string& strLockType=m_guiState->GetLockType();
-      if (CProfilesManager::GetInstance().GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
+      if (profileManager.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
         if (!strLockType.empty() && !g_passwordManager.IsItemUnlocked(pItem.get(), strLockType))
             return true;
 
@@ -1004,8 +1010,8 @@ bool CGUIMediaWindow::OnClick(int iItem, const std::string &player)
     }
 
     // check for the partymode playlist items - they may not exist yet
-    if ((pItem->GetPath() == CProfilesManager::GetInstance().GetUserDataItem("PartyMode.xsp")) ||
-        (pItem->GetPath() == CProfilesManager::GetInstance().GetUserDataItem("PartyMode-Video.xsp")))
+    if ((pItem->GetPath() == profileManager.GetUserDataItem("PartyMode.xsp")) ||
+        (pItem->GetPath() == profileManager.GetUserDataItem("PartyMode-Video.xsp")))
     {
       // party mode playlist item - if it doesn't exist, prompt for user to define it
       if (!XFILE::CFile::Exists(pItem->GetPath()))
@@ -1297,7 +1303,7 @@ void CGUIMediaWindow::GetDirectoryHistoryString(const CFileItem* pItem, std::str
   {
     // Could be a cue item, all items of a cue share the same filename
     // so add the offsets to build the history string
-    strHistoryString = StringUtils::Format("%i%i",
+    strHistoryString = StringUtils::Format("%" PRIi64 "%" PRIi64,
                                            pItem->m_lStartOffset,
                                            pItem->m_lEndOffset);
     strHistoryString += pItem->GetPath();
@@ -1539,26 +1545,37 @@ void CGUIMediaWindow::OnDeleteItem(int iItem)
   if (item->IsPlayList())
     item->m_bIsFolder = false;
 
-  if (CProfilesManager::GetInstance().GetCurrentProfile().getLockMode() != LOCK_MODE_EVERYONE && CProfilesManager::GetInstance().GetCurrentProfile().filesLocked())
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  if (profileManager.GetCurrentProfile().getLockMode() != LOCK_MODE_EVERYONE && profileManager.GetCurrentProfile().filesLocked())
+  {
     if (!g_passwordManager.IsMasterLockUnlocked(true))
       return;
+  }
 
   if (!CFileUtils::DeleteItem(item))
     return;
+
   Refresh(true);
   m_viewControl.SetSelectedItem(iItem);
 }
 
 void CGUIMediaWindow::OnRenameItem(int iItem)
 {
-  if ( iItem < 0 || iItem >= m_vecItems->Size()) return;
+  if (iItem < 0 || iItem >= m_vecItems->Size())
+    return;
 
-  if (CProfilesManager::GetInstance().GetCurrentProfile().getLockMode() != LOCK_MODE_EVERYONE && CProfilesManager::GetInstance().GetCurrentProfile().filesLocked())
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  if (profileManager.GetCurrentProfile().getLockMode() != LOCK_MODE_EVERYONE && profileManager.GetCurrentProfile().filesLocked())
+  {
     if (!g_passwordManager.IsMasterLockUnlocked(true))
       return;
+  }
 
   if (!CFileUtils::RenameFile(m_vecItems->Get(iItem)->GetPath()))
     return;
+
   Refresh(true);
   m_viewControl.SetSelectedItem(iItem);
 }
@@ -1633,7 +1650,7 @@ void CGUIMediaWindow::SetupShares()
 
 bool CGUIMediaWindow::OnPopupMenu(int itemIdx)
 {
-  auto InRange = [](int i, std::pair<int, int> range){ return i >= range.first && i < range.second; };
+  auto InRange = [](size_t i, std::pair<size_t, size_t> range){ return i >= range.first && i < range.second; };
 
   if (itemIdx < 0 || itemIdx >= m_vecItems->Size())
     return false;
@@ -1649,28 +1666,28 @@ bool CGUIMediaWindow::OnPopupMenu(int itemIdx)
     int i = 0;
     while (item->HasProperty(StringUtils::Format("contextmenulabel(%i)", i)))
     {
-      buttons.emplace_back(-buttons.size(), item->GetProperty(StringUtils::Format("contextmenulabel(%i)", i)).asString());
+      buttons.emplace_back(~buttons.size(), item->GetProperty(StringUtils::Format("contextmenulabel(%i)", i)).asString());
       ++i;
     }
   }
-  auto pluginMenuRange = std::make_pair(0, buttons.size());
+  auto pluginMenuRange = std::make_pair(static_cast<size_t>(0), buttons.size());
 
   //Add the global menu
   auto globalMenu = CContextMenuManager::GetInstance().GetItems(*item, CContextMenuManager::MAIN);
   auto globalMenuRange = std::make_pair(buttons.size(), buttons.size() + globalMenu.size());
   for (const auto& menu : globalMenu)
-    buttons.emplace_back(-buttons.size(), menu->GetLabel(*item));
+    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
 
   //Add legacy items from windows
-  auto windowMenuRange = std::make_pair(buttons.size(), -1);
+  auto buttonsSize = buttons.size();
   GetContextButtons(itemIdx, buttons);
-  windowMenuRange.second = buttons.size();
+  auto windowMenuRange = std::make_pair(buttonsSize, buttons.size());
 
   //Add addon menus
   auto addonMenu = CContextMenuManager::GetInstance().GetAddonItems(*item, CContextMenuManager::MAIN);
   auto addonMenuRange = std::make_pair(buttons.size(), buttons.size() + addonMenu.size());
   for (const auto& menu : addonMenu)
-    buttons.emplace_back(-buttons.size(), menu->GetLabel(*item));
+    buttons.emplace_back(~buttons.size(), menu->GetLabel(*item));
 
   if (buttons.empty())
     return true;
@@ -1679,7 +1696,7 @@ bool CGUIMediaWindow::OnPopupMenu(int itemIdx)
   if (idx < 0 || idx >= static_cast<int>(buttons.size()))
     return false;
 
-  if (InRange(idx, pluginMenuRange))
+  if (InRange(static_cast<size_t>(idx), pluginMenuRange))
   {
     CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr,
         item->GetProperty(StringUtils::Format("contextmenuaction(%i)", idx - pluginMenuRange.first)).asString());

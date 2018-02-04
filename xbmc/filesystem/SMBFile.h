@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@ public:
   bool OpenForWrite(const CURL& url, bool bOverWrite = false) override;
   bool Delete(const CURL& url) override;
   bool Rename(const CURL& url, const CURL& urlnew) override;
-  int GetChunkSize() override { return 1; }
+  int GetChunkSize() override { return 2048*1024; }
   int IoControl(EIoControl request, void* param) override;
 
 protected:

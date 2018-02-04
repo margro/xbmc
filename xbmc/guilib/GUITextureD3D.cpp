@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,8 +21,12 @@
 #include "D3DResource.h"
 #include "GUIShaderDX.h"
 #include "GUITextureD3D.h"
-#include "Texture.h"
 #include "rendering/dx/RenderContext.h"
+#include "Texture.h"
+
+#include <DirectXMath.h>
+
+using namespace DirectX;
 
 CGUITextureD3D::CGUITextureD3D(float posX, float posY, float width, float height, const CTextureInfo &texture)
 : CGUITextureBase(posX, posY, width, height, texture)

@@ -101,12 +101,6 @@ bool CGUIControllerWindow::OnMessage(CGUIMessage& message)
 
   switch (message.GetMessage())
   {
-    case GUI_MSG_WINDOW_INIT:
-    {
-      //! @todo Process params here, don't just record them for later
-      m_param = message.GetStringParam();
-      break;
-    }
     case GUI_MSG_CLICKED:
     {
       int controlId = message.GetSenderId();
@@ -210,7 +204,7 @@ void CGUIControllerWindow::OnInitWindow(void)
 
   if (!m_featureList)
   {
-    m_featureList = new CGUIFeatureList(this, m_param);
+    m_featureList = new CGUIFeatureList(this);
     if (!m_featureList->Initialize())
     {
       delete m_featureList;
@@ -269,16 +263,16 @@ void CGUIControllerWindow::OnControllerSelected(unsigned int controllerIndex)
     m_controllerList->OnSelect(controllerIndex);
 }
 
-void CGUIControllerWindow::OnFeatureFocused(unsigned int featureIndex)
+void CGUIControllerWindow::OnFeatureFocused(unsigned int buttonIndex)
 {
   if (m_featureList)
-    m_featureList->OnFocus(featureIndex);
+    m_featureList->OnFocus(buttonIndex);
 }
 
-void CGUIControllerWindow::OnFeatureSelected(unsigned int featureIndex)
+void CGUIControllerWindow::OnFeatureSelected(unsigned int buttonIndex)
 {
   if (m_featureList)
-    m_featureList->OnSelect(featureIndex);
+    m_featureList->OnSelect(buttonIndex);
 }
 
 void CGUIControllerWindow::UpdateButtons(void)

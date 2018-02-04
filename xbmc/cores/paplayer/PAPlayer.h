@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -92,12 +92,14 @@ protected:
   float GetPercentage();
 
 private:
-  typedef struct
+  struct StreamInfo
   {
     CFileItem m_fileItem;
+    std::unique_ptr<CFileItem> m_nextFileItem;
     CAudioDecoder m_decoder;             /* the stream decoder */
     int64_t m_startOffset;               /* the stream start offset */
     int64_t m_endOffset;                 /* the stream end offset */
+    int64_t m_decoderTotal = 0;
     AEAudioFormat m_audioFormat;
     unsigned int m_bytesPerSample;       /* number of bytes per audio sample */
     unsigned int m_bytesPerFrame;        /* number of bytes per audio frame */
@@ -118,7 +120,7 @@ private:
 
     bool m_isSlaved;                     /* true if the stream has been slaved to another */
     bool m_waitOnDrain;                  /* wait for stream being drained in AE */
-  } StreamInfo;
+  };
 
   typedef std::list<StreamInfo*> StreamList;
 
@@ -130,7 +132,7 @@ private:
   unsigned int        m_defaultCrossfadeMS;  /* how long the default crossfade is in ms */
   unsigned int        m_upcomingCrossfadeMS; /* how long the upcoming crossfade is in ms */
   CEvent              m_startEvent;          /* event for playback start */
-  StreamInfo*         m_currentStream;       /* the current playing stream */
+  StreamInfo* m_currentStream = nullptr;
   IAudioCallback*     m_audioCallback;       /* the viz audio callback */
 
   CCriticalSection    m_streamsLock;         /* lock for the stream list */
@@ -138,7 +140,6 @@ private:
   StreamList          m_finishing;           /* finishing streams */
   int                 m_jobCounter;
   CEvent              m_jobEvent;
-  bool                m_continueStream;
   int64_t             m_newForcedPlayerTime;
   int64_t             m_newForcedTotalTime;
   std::unique_ptr<CProcessInfo> m_processInfo;

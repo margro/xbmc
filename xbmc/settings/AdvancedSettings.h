@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 #define CACHE_BUFFER_MODE_NONE          3
 #define CACHE_BUFFER_MODE_REMOTE        4
 
+class CProfilesManager;
 class CVariant;
 
 class TiXmlElement;
@@ -116,8 +117,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
   public:
     CAdvancedSettings();
 
-    static CAdvancedSettings* getInstance();
-
     void OnSettingsLoaded() override;
     void OnSettingsUnloaded() override;
 
@@ -126,7 +125,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     void Initialize();
     bool Initialized() { return m_initialized; };
     void AddSettingsFile(const std::string &filename);
-    bool Load();
+    bool Load(const CProfilesManager &profileManager);
     void Clear();
 
     static void GetCustomTVRegexps(TiXmlElement *pRootElement, SETTINGS_TVSHOWLIST& settings);
@@ -191,6 +190,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     bool m_DXVAAllowHqScaling;
     int  m_videoFpsDetect;
     bool m_mediacodecForceSoftwareRendering;
+    float m_maxTempo;
 
     std::string m_videoDefaultPlayer;
     float m_videoPlayCountMinimumPercent;

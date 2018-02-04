@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,11 +19,15 @@
  */
 
 #include "Exception.h"
+#include "utils/log.h"
 
 namespace XbmcCommons
 {
-  ILogger* Exception::logger = NULL;
-
   Exception::~Exception() = default;
+
+  void Exception::LogThrowMessage(const char* prefix) const
+  {
+    CLog::Log(LOGERROR,"EXCEPTION Thrown (%s) : %s", classname.c_str(), message.c_str());
+  }
 }
 

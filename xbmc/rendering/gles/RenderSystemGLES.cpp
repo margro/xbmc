@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,24 +34,11 @@
 #include "XTimeUtils.h"
 #endif
 
-static const char* ShaderNames[SM_ESHADERCOUNT] =
-    {"guishader_frag_default.glsl",
-     "guishader_frag_texture.glsl",
-     "guishader_frag_multi.glsl",
-     "guishader_frag_fonts.glsl",
-     "guishader_frag_texture_noblend.glsl",
-     "guishader_frag_multi_blendcolor.glsl",
-     "guishader_frag_rgba.glsl",
-     "guishader_frag_rgba_oes.glsl",
-     "guishader_frag_rgba_blendcolor.glsl",
-     "guishader_frag_rgba_bob.glsl",
-     "guishader_frag_rgba_bob_oes.glsl"
-    };
-
 CRenderSystemGLES::CRenderSystemGLES()
  : CRenderSystemBase()
 {
   m_enumRenderingSystem = RENDERING_SYSTEM_OPENGLES;
+  m_pShader.reset(new CGLESShader*[SM_MAX]);
 }
 
 CRenderSystemGLES::~CRenderSystemGLES()
@@ -81,7 +68,7 @@ bool CRenderSystemGLES::InitRenderSystem()
       sscanf(ver, "%*s %*s %d.%d", &m_RenderVersionMajor, &m_RenderVersionMinor);
     m_RenderVersion = ver;
   }
-  
+
   // Get our driver vendor and renderer
   const char *tmpVendor = (const char*) glGetString(GL_VENDOR);
   m_RenderVendor.clear();
@@ -104,7 +91,7 @@ bool CRenderSystemGLES::InitRenderSystem()
   m_RenderExtensions += " ";
 
   LogGraphicsInfo();
-  
+
   m_renderCaps |= RENDER_CAPS_NPOT;
 
   if (IsExtSupported("GL_EXT_texture_format_BGRA8888"))
@@ -122,11 +109,9 @@ bool CRenderSystemGLES::InitRenderSystem()
     m_renderCaps |= RENDER_CAPS_BGRA_APPLE;
   }
 
-
-
   m_bRenderCreated = true;
-  
-  InitialiseGUIShader();
+
+  InitialiseShader();
 
   return true;
 }
@@ -135,14 +120,14 @@ bool CRenderSystemGLES::ResetRenderSystem(int width, int height)
 {
   m_width = width;
   m_height = height;
-  
+
   glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
   CalculateMaxTexturesize();
 
   CRect rect( 0, 0, width, height );
   SetViewPort( rect );
 
-  glEnable(GL_SCISSOR_TEST); 
+  glEnable(GL_SCISSOR_TEST);
 
   glMatrixProject.Clear();
   glMatrixProject->LoadIdentity();
@@ -159,30 +144,13 @@ bool CRenderSystemGLES::ResetRenderSystem(int width, int height)
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   glEnable(GL_BLEND);          // Turn Blending On
-  glDisable(GL_DEPTH_TEST);  
-    
+  glDisable(GL_DEPTH_TEST);
+
   return true;
 }
 
 bool CRenderSystemGLES::DestroyRenderSystem()
 {
-  CLog::Log(LOGDEBUG, "GUI Shader - Destroying Shader : %p", m_pGUIshader);
-
-  if (m_pGUIshader)
-  {
-    for (int i = 0; i < SM_ESHADERCOUNT; i++)
-    {
-      if (m_pGUIshader[i])
-      {
-        m_pGUIshader[i]->Free();
-        delete m_pGUIshader[i];
-        m_pGUIshader[i] = NULL;
-      }
-    }
-    delete[] m_pGUIshader;
-    m_pGUIshader = NULL;
-  }
-
   ResetScissors();
   CDirtyRegionList dirtyRegions;
   CDirtyRegion dirtyWindow(g_graphicsContext.GetViewWindow());
@@ -282,7 +250,7 @@ void CRenderSystemGLES::SetVSync(bool enable)
 
   if (!m_bRenderCreated)
     return;
-  
+
   if (enable)
     CLog::Log(LOGINFO, "GLES: Enabling VSYNC");
   else
@@ -294,7 +262,7 @@ void CRenderSystemGLES::SetVSync(bool enable)
   m_bVsyncInit   = true;
 
   SetVSyncImpl(enable);
-  
+
   if (!enable)
     return;
 
@@ -329,17 +297,17 @@ void CRenderSystemGLES::ApplyStateBlock()
   glMatrixTexture.PopLoad();
   glActiveTexture(GL_TEXTURE0);
   glEnable(GL_BLEND);
-  glEnable(GL_SCISSOR_TEST);  
+  glEnable(GL_SCISSOR_TEST);
   glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 void CRenderSystemGLES::SetCameraPosition(const CPoint &camera, int screenWidth, int screenHeight, float stereoFactor)
-{ 
+{
   if (!m_bRenderCreated)
     return;
-  
+
   CPoint offset = camera - CPoint(screenWidth*0.5f, screenHeight*0.5f);
-  
+
   float w = (float)m_viewPort[2]*0.5f;
   float h = (float)m_viewPort[3]*0.5f;
 
@@ -410,7 +378,7 @@ bool CRenderSystemGLES::TestRender()
 }
 
 void CRenderSystemGLES::ApplyHardwareTransform(const TransformMatrix &finalMatrix)
-{ 
+{
   if (!m_bRenderCreated)
     return;
 
@@ -470,20 +438,20 @@ void CRenderSystemGLES::SetViewPort(const CRect& viewPort)
 
 bool CRenderSystemGLES::ScissorsCanEffectClipping()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->HardwareClipIsPossible();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->HardwareClipIsPossible();
 
   return false;
 }
 
 CRect CRenderSystemGLES::ClipRectToScissorRect(const CRect &rect)
 {
-  if (!m_pGUIshader[m_method])
+  if (!m_pShader[m_method])
     return CRect();
-  float xFactor = m_pGUIshader[m_method]->GetClipXFactor();
-  float xOffset = m_pGUIshader[m_method]->GetClipXOffset();
-  float yFactor = m_pGUIshader[m_method]->GetClipYFactor();
-  float yOffset = m_pGUIshader[m_method]->GetClipYOffset();
+  float xFactor = m_pShader[m_method]->GetClipXFactor();
+  float xOffset = m_pShader[m_method]->GetClipXOffset();
+  float yFactor = m_pShader[m_method]->GetClipYFactor();
+  float yOffset = m_pShader[m_method]->GetClipYOffset();
   return CRect(rect.x1 * xFactor + xOffset,
                rect.y1 * yFactor + yOffset,
                rect.x2 * xFactor + xOffset,
@@ -506,141 +474,215 @@ void CRenderSystemGLES::ResetScissors()
   SetScissors(CRect(0, 0, (float)m_width, (float)m_height));
 }
 
-void CRenderSystemGLES::InitialiseGUIShader()
+void CRenderSystemGLES::InitialiseShader()
 {
-  if (!m_pGUIshader)
+  m_pShader[SM_DEFAULT] = new CGLESShader("gles_shader.vert", "gles_shader_default.frag");
+  if (!m_pShader[SM_DEFAULT]->CompileAndLink())
   {
-    m_pGUIshader = new CGUIShader*[SM_ESHADERCOUNT];
-    for (int i = 0; i < SM_ESHADERCOUNT; i++)
+    m_pShader[SM_DEFAULT]->Free();
+    delete m_pShader[SM_DEFAULT];
+    m_pShader[SM_DEFAULT] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_default.frag - compile and link failed");
+  }
+
+  m_pShader[SM_TEXTURE] = new CGLESShader("gles_shader_texture.frag");
+  if (!m_pShader[SM_TEXTURE]->CompileAndLink())
+  {
+    m_pShader[SM_TEXTURE]->Free();
+    delete m_pShader[SM_TEXTURE];
+    m_pShader[SM_TEXTURE] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_texture.frag - compile and link failed");
+  }
+
+  m_pShader[SM_MULTI] = new CGLESShader("gles_shader_multi.frag");
+  if (!m_pShader[SM_MULTI]->CompileAndLink())
+  {
+    m_pShader[SM_MULTI]->Free();
+    delete m_pShader[SM_MULTI];
+    m_pShader[SM_MULTI] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_multi.frag - compile and link failed");
+  }
+
+  m_pShader[SM_FONTS] = new CGLESShader("gles_shader_fonts.frag");
+  if (!m_pShader[SM_FONTS]->CompileAndLink())
+  {
+    m_pShader[SM_FONTS]->Free();
+    delete m_pShader[SM_FONTS];
+    m_pShader[SM_FONTS] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_fonts.frag - compile and link failed");
+  }
+
+  m_pShader[SM_TEXTURE_NOBLEND] = new CGLESShader("gles_shader_texture_noblend.frag");
+  if (!m_pShader[SM_TEXTURE_NOBLEND]->CompileAndLink())
+  {
+    m_pShader[SM_TEXTURE_NOBLEND]->Free();
+    delete m_pShader[SM_TEXTURE_NOBLEND];
+    m_pShader[SM_TEXTURE_NOBLEND] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_texture_noblend.frag - compile and link failed");
+  }
+
+  m_pShader[SM_MULTI_BLENDCOLOR] = new CGLESShader("gles_shader_multi_blendcolor.frag");
+  if (!m_pShader[SM_MULTI_BLENDCOLOR]->CompileAndLink())
+  {
+    m_pShader[SM_MULTI_BLENDCOLOR]->Free();
+    delete m_pShader[SM_MULTI_BLENDCOLOR];
+    m_pShader[SM_MULTI_BLENDCOLOR] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_multi_blendcolor.frag - compile and link failed");
+  }
+
+  m_pShader[SM_TEXTURE_RGBA] = new CGLESShader("gles_shader_rgba.frag");
+  if (!m_pShader[SM_TEXTURE_RGBA]->CompileAndLink())
+  {
+    m_pShader[SM_TEXTURE_RGBA]->Free();
+    delete m_pShader[SM_TEXTURE_RGBA];
+    m_pShader[SM_TEXTURE_RGBA] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_rgba.frag - compile and link failed");
+  }
+
+  m_pShader[SM_TEXTURE_RGBA_BLENDCOLOR] = new CGLESShader("gles_shader_rgba_blendcolor.frag");
+  if (!m_pShader[SM_TEXTURE_RGBA_BLENDCOLOR]->CompileAndLink())
+  {
+    m_pShader[SM_TEXTURE_RGBA_BLENDCOLOR]->Free();
+    delete m_pShader[SM_TEXTURE_RGBA_BLENDCOLOR];
+    m_pShader[SM_TEXTURE_RGBA_BLENDCOLOR] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_rgba_blendcolor.frag - compile and link failed");
+  }
+
+  m_pShader[SM_TEXTURE_RGBA_BOB] = new CGLESShader("gles_shader_rgba_bob.frag");
+  if (!m_pShader[SM_TEXTURE_RGBA_BOB]->CompileAndLink())
+  {
+    m_pShader[SM_TEXTURE_RGBA_BOB]->Free();
+    delete m_pShader[SM_TEXTURE_RGBA_BOB];
+    m_pShader[SM_TEXTURE_RGBA_BOB] = nullptr;
+    CLog::Log(LOGERROR, "GUI Shader gles_shader_rgba_bob.frag - compile and link failed");
+  }
+
+  if (IsExtSupported("GL_OES_EGL_image_external"))
+  {
+    m_pShader[SM_TEXTURE_RGBA_OES] = new CGLESShader("gles_shader_rgba_oes.frag");
+    if (!m_pShader[SM_TEXTURE_RGBA_OES]->CompileAndLink())
     {
-      if (i == SM_TEXTURE_RGBA_OES || i == SM_TEXTURE_RGBA_BOB_OES)
-      {
-        if (!IsExtSupported("GL_OES_EGL_image_external"))
-        {
-          m_pGUIshader[i] = NULL;
-          continue;
-        }
-      }
+      m_pShader[SM_TEXTURE_RGBA_OES]->Free();
+      delete m_pShader[SM_TEXTURE_RGBA_OES];
+      m_pShader[SM_TEXTURE_RGBA_OES] = nullptr;
+      CLog::Log(LOGERROR, "GUI Shader gles_shader_rgba_oes.frag - compile and link failed");
+    }
 
-      m_pGUIshader[i] = new CGUIShader( ShaderNames[i] );
 
-      if (!m_pGUIshader[i]->CompileAndLink())
-      {
-        m_pGUIshader[i]->Free();
-        delete m_pGUIshader[i];
-        m_pGUIshader[i] = NULL;
-        CLog::Log(LOGERROR, "GUI Shader [%s] - Initialise failed", ShaderNames[i]);
-      }
-      else
-      {
-        CLog::Log(LOGDEBUG, "GUI Shader [%s]- Initialise successful : %p", ShaderNames[i], m_pGUIshader[i]);
-      }
+    m_pShader[SM_TEXTURE_RGBA_BOB_OES] = new CGLESShader("gles_shader_rgba_bob_oes.frag");
+    if (!m_pShader[SM_TEXTURE_RGBA_BOB_OES]->CompileAndLink())
+    {
+      m_pShader[SM_TEXTURE_RGBA_BOB_OES]->Free();
+      delete m_pShader[SM_TEXTURE_RGBA_BOB_OES];
+      m_pShader[SM_TEXTURE_RGBA_BOB_OES] = nullptr;
+      CLog::Log(LOGERROR, "GUI Shader gles_shader_rgba_bob_oes.frag - compile and link failed");
     }
   }
   else
   {
-    CLog::Log(LOGDEBUG, "GUI Shader - Tried to Initialise again. Was this intentional?");
+    m_pShader[SM_TEXTURE_RGBA_OES] = nullptr;
+    m_pShader[SM_TEXTURE_RGBA_BOB_OES] = nullptr;
   }
 }
 
 void CRenderSystemGLES::EnableGUIShader(ESHADERMETHOD method)
 {
   m_method = method;
-  if (m_pGUIshader[m_method])
+  if (m_pShader[m_method])
   {
-    m_pGUIshader[m_method]->Enable();
+    m_pShader[m_method]->Enable();
   }
   else
   {
-    CLog::Log(LOGERROR, "Invalid GUI Shader selected - [%s]", ShaderNames[(int)method]);
+    CLog::Log(LOGERROR, "Invalid GUI Shader selected - %d", method);
   }
 }
 
 void CRenderSystemGLES::DisableGUIShader()
 {
-  if (m_pGUIshader[m_method])
+  if (m_pShader[m_method])
   {
-    m_pGUIshader[m_method]->Disable();
+    m_pShader[m_method]->Disable();
   }
   m_method = SM_DEFAULT;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetPos()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetPosLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetPosLoc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetCol()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetColLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetColLoc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetCoord0()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetCord0Loc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetCord0Loc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetCoord1()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetCord1Loc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetCord1Loc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetUniCol()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetUniColLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetUniColLoc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetCoord0Matrix()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetCoord0MatrixLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetCoord0MatrixLoc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetField()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetFieldLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetFieldLoc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetStep()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetStepLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetStepLoc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetContrast()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetContrastLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetContrastLoc();
 
   return -1;
 }
 
 GLint CRenderSystemGLES::GUIShaderGetBrightness()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetBrightnessLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetBrightnessLoc();
 
   return -1;
 }
@@ -660,8 +702,8 @@ bool CRenderSystemGLES::SupportsStereo(RENDER_STEREO_MODE mode) const
 
 GLint CRenderSystemGLES::GUIShaderGetModel()
 {
-  if (m_pGUIshader[m_method])
-    return m_pGUIshader[m_method]->GetModelLoc();
+  if (m_pShader[m_method])
+    return m_pShader[m_method]->GetModelLoc();
 
   return -1;
 }

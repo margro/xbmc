@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2013-2017 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -55,6 +55,8 @@
 #include "platform/android/activity/JNIXBMCSurfaceTextureOnFrameAvailableListener.h"
 #include "settings/Settings.h"
 
+#include "utils/TimeUtils.h"
+
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
@@ -67,6 +69,7 @@
 #define XMEDIAFORMAT_KEY_CROP_RIGHT "crop-right"
 #define XMEDIAFORMAT_KEY_CROP_TOP "crop-top"
 #define XMEDIAFORMAT_KEY_CROP_BOTTOM "crop-bottom"
+#define XMEDIAFORMAT_KEY_TUNNELED_PLAYBACK "feature-tunneled-playback"
 
 using namespace KODI::MESSAGING;
 
@@ -199,7 +202,11 @@ void CMediaCodecVideoBuffer::ReleaseOutputBuffer(bool render, int64_t displayTim
     if (m_frameready)
       m_frameready->Reset();
 
-  CLog::Log(LOGDEBUG, LOGVIDEO, "CMediaCodecVideoBuffer::ReleaseOutputBuffer index(%d), render(%d)", m_bufferId, render);
+  if (g_advancedSettings.CanLogComponent(LOGVIDEO))
+  {
+    int64_t diff = displayTime ? displayTime - CurrentHostCounter() : 0;
+    CLog::Log(LOGDEBUG, "CMediaCodecVideoBuffer::ReleaseOutputBuffer index(%d), render(%d), time:%lld, offset:%lld", m_bufferId, render, displayTime, diff);
+  }
 
   media_status_t mstat;
   if (!render || displayTime == 0)
@@ -348,7 +355,7 @@ CDVDVideoCodecAndroidMediaCodec::CDVDVideoCodecAndroidMediaCodec(CProcessInfo &p
 , m_render_surface(surface_render)
 , m_mpeg2_sequence(nullptr)
 {
-  memset(&m_videobuffer, 0x00, sizeof(VideoPicture));
+  m_videobuffer.Reset();
 }
 
 CDVDVideoCodecAndroidMediaCodec::~CDVDVideoCodecAndroidMediaCodec()
@@ -674,12 +681,8 @@ bool CDVDVideoCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
 
   // setup a YUV420P VideoPicture buffer.
   // first make sure all properties are reset.
-  memset(&m_videobuffer, 0x00, sizeof(VideoPicture));
+  m_videobuffer.Reset();
 
-  m_videobuffer.dts = DVD_NOPTS_VALUE;
-  m_videobuffer.pts = DVD_NOPTS_VALUE;
-  m_videobuffer.color_range  = 0;
-  m_videobuffer.color_matrix = 4;
   m_videobuffer.iWidth  = m_hints.width;
   m_videobuffer.iHeight = m_hints.height;
   // these will get reset to crop values later
@@ -1029,6 +1032,7 @@ bool CDVDVideoCodecAndroidMediaCodec::ConfigureMediaCodec(void)
   {
     // Handle rotation
     AMediaFormat_setInt32(mediaformat, XMEDIAFORMAT_KEY_ROTATION, m_hints.orientation);
+    AMediaFormat_setInt32(mediaformat, XMEDIAFORMAT_KEY_TUNNELED_PLAYBACK, 0);
   }
 
 

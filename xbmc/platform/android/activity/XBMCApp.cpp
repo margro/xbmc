@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include <android/bitmap.h>
 #include <android/log.h>
 #include <android/native_window.h>
+#include <android/native_window_jni.h>
 
 #include <androidjni/ApplicationInfo.h>
 #include <androidjni/BitmapFactory.h>
@@ -95,7 +96,6 @@
 #include "windowing/android/VideoSyncAndroid.h"
 #include "windowing/WinEvents.h"
 #include "platform/xbmc.h"
-#include "platform/XbmcContext.h"
 
 #define GIGABYTES       1073741824
 
@@ -119,7 +119,7 @@ void* thread_run(void* obj)
 }
 
 CXBMCApp* CXBMCApp::m_xbmcappinstance = NULL;
-CEvent CXBMCApp::m_windowCreated;
+std::unique_ptr<CJNIXBMCMainView> CXBMCApp::m_mainView;
 ANativeActivity *CXBMCApp::m_activity = NULL;
 CJNIWakeLock *CXBMCApp::m_wakeLock = NULL;
 ANativeWindow* CXBMCApp::m_window = NULL;
@@ -144,14 +144,16 @@ CXBMCApp::CXBMCApp(ANativeActivity* nativeActivity)
 {
   m_xbmcappinstance = this;
   m_activity = nativeActivity;
-  m_firstrun = true;
-  m_exiting=false;
   if (m_activity == NULL)
   {
     android_printf("CXBMCApp: invalid ANativeActivity instance");
     exit(1);
     return;
   }
+  m_mainView.reset(new CJNIXBMCMainView(this));
+  m_firstrun = true;
+  m_exiting = false;
+  android_printf("CXBMCApp: Created");
 }
 
 CXBMCApp::~CXBMCApp()
@@ -312,39 +314,18 @@ void CXBMCApp::onLowMemory()
 void CXBMCApp::onCreateWindow(ANativeWindow* window)
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
-  if (window == NULL)
-  {
-    android_printf(" => invalid ANativeWindow object");
-    return;
-  }
-  m_window = window;
-  m_windowCreated.Set();
-  if(!m_firstrun)
-  {
-    XBMC_SetupDisplay();
-    XBMC_Pause(false);
-  }
 }
 
 void CXBMCApp::onResizeWindow()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
   m_window = NULL;
-  m_windowCreated.Reset();
   // no need to do anything because we are fixed in fullscreen landscape mode
 }
 
 void CXBMCApp::onDestroyWindow()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
-
-  // If we have exited XBMC, it no longer exists.
-  if (!m_exiting)
-  {
-    XBMC_DestroyDisplay();
-    m_window = NULL;
-    XBMC_Pause(true);
-  }
 }
 
 void CXBMCApp::onGainFocus()
@@ -457,7 +438,11 @@ void CXBMCApp::run()
   int status = 0;
 
   SetupEnv();
-  XBMC::Context context;
+
+  // Wait for main window
+  ANativeWindow* nativeWindow = CXBMCApp::GetNativeWindow(30000);
+  if (!nativeWindow)
+    return;
 
   m_firstrun=false;
   android_printf(" => running XBMC_Run...");
@@ -1249,7 +1234,9 @@ ANativeWindow* CXBMCApp::GetNativeWindow(int timeout)
   if (m_window)
     return m_window;
 
-  m_windowCreated.WaitMSec(timeout);
+  if (m_mainView)
+    m_mainView->waitForSurface(timeout);
+
   return m_window;
 }
 
@@ -1309,4 +1296,33 @@ bool CXBMCApp::onInputDeviceEvent(const AInputEvent* event)
     return m_inputDeviceEventHandler->OnInputDeviceEvent(event);
 
   return false;
+}
+
+
+void CXBMCApp::surfaceChanged(CJNISurfaceHolder holder, int format, int width, int height)
+{
+}
+
+void CXBMCApp::surfaceCreated(CJNISurfaceHolder holder)
+{
+  m_window = ANativeWindow_fromSurface(xbmc_jnienv(), holder.getSurface().get_raw());
+  if (m_window == NULL)
+  {
+    android_printf(" => invalid ANativeWindow object");
+    return;
+  }
+  if(!m_firstrun)
+  {
+    XBMC_SetupDisplay();
+  }
+}
+
+void CXBMCApp::surfaceDestroyed(CJNISurfaceHolder holder)
+{
+  // If we have exited XBMC, it no longer exists.
+  if (!m_exiting)
+  {
+    XBMC_DestroyDisplay();
+    m_window = NULL;
+  }
 }

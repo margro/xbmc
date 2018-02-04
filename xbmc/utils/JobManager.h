@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,6 +37,24 @@ public:
   void Process() override;
 private:
   CJobManager  *m_jobManager;
+};
+
+template<typename F>
+class CLambdaJob : public CJob
+{
+public:
+  CLambdaJob(F&& f) : m_f(std::forward<F>(f)) {};
+  bool DoWork() override
+  {
+    m_f();
+    return true;
+  }
+  bool operator==(const CJob *job) const override
+  {
+    return this == job;
+  };
+private:
+  F m_f;
 };
 
 /*!
@@ -101,6 +119,15 @@ public:
    \sa CJob
    */
   bool AddJob(CJob *job);
+
+  /*!
+   \brief Add a function f to this job queue
+   */
+  template<typename F>
+  void Submit(F&& f)
+  {
+    AddJob(new CLambdaJob<F>(std::forward<F>(f)));
+  }
 
   /*!
    \brief Cancel a job in the queue
@@ -207,20 +234,6 @@ class CJobManager
     CJob::PRIORITY m_priority;
   };
 
-  template<typename F>
-  class CLambdaJob : public CJob
-  {
-  public:
-    CLambdaJob(F&& f) : m_f(std::forward<F>(f)) {};
-    bool DoWork() override
-    {
-      m_f();
-      return true;
-    }
-  private:
-    F m_f;
-  };
-
 public:
   /*!
    \brief The only way through which the global instance of the CJobManager should be accessed.
@@ -309,6 +322,7 @@ public:
 protected:
   friend class CJobWorker;
   friend class CJob;
+  friend class CJobQueue;
 
   /*!
    \brief Get a new job to process. Blocks until a new job is available, or a timeout has occurred.

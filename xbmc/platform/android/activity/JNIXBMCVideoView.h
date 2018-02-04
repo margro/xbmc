@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2016 Christian Browet
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@
 #include <androidjni/Surface.h>
 #include <androidjni/SurfaceHolder.h>
 
-#include "guilib/Geometry.h"
 #include "threads/Event.h"
+#include "utils/Geometry.h"
 
 class CJNIXBMCVideoView : virtual public CJNIBase, public CJNISurfaceHolderCallback, public CJNIInterfaceImplem<CJNIXBMCVideoView>
 {
@@ -49,7 +49,7 @@ public:
   static void _surfaceDestroyed(JNIEnv* env, jobject thiz, jobject holder);
 
   bool waitForSurface(unsigned int millis);
-  bool isActive() { return m_surfaceCreated->Signaled(); }
+  bool isActive() { return m_surfaceCreated.Signaled(); }
   CJNISurface getSurface();
   const CRect& getSurfaceRect();
   void setSurfaceRect(const CRect& rect);
@@ -60,7 +60,7 @@ public:
 
 protected:
   CJNISurfaceHolderCallback* m_callback;
-  CEvent* m_surfaceCreated;
+  CEvent m_surfaceCreated;
   CRect m_surfaceRect;
 
 private:

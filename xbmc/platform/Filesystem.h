@@ -1,7 +1,7 @@
 #pragma once
 /*
 *      Copyright (C) 2005-2017 Team Kodi
-*      http://xbmc.org
+*      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -33,7 +33,11 @@ struct space_info {
   std::uintmax_t available;
 };
 
-space_info space(const std::string& path, std::error_code& ec);
+space_info space(const std::string &path, std::error_code &ec);
+
+std::string temp_directory_path(std::error_code &ec);
+std::string create_temp_directory(std::error_code &ec);
+std::string temp_file_path(std::string suffix, std::error_code &ec);
 }
 }
 }

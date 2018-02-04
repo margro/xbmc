@@ -1,7 +1,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -448,6 +448,7 @@ void CGUIDialogMediaSource::OnOK()
     m_confirmed = true;
     Close();
     if (!StringUtils::StartsWithNoCase(share.strPath, "rss://") &&
+      !StringUtils::StartsWithNoCase(share.strPath, "rsss://") &&
       !StringUtils::StartsWithNoCase(share.strPath, "upnp://"))
     {
       if (m_type == "video" && !URIUtils::IsLiveTV(share.strPath))

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
+#include "ServiceBroker.h"
 #include "Util.h"
 
 // Global addon callback handle classes
@@ -458,7 +459,8 @@ bool CAddonDll::CheckAPIVersion(int type)
                             kodiMinVersion.asString().c_str(),
                             addonVersion.asString().c_str());
 
-    CEventLog::GetInstance().AddWithNotification(EventPtr(new CNotificationEvent(Name(), 24152, EventLevel::Error)));
+    CEventLog &eventLog = CServiceBroker::GetEventLog();
+    eventLog.AddWithNotification(EventPtr(new CNotificationEvent(Name(), 24152, EventLevel::Error)));
 
     return false;
   }

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2017 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -1462,7 +1462,6 @@ bool CAddonSettings::ParseOldCondition(std::shared_ptr<const CSetting> setting, 
 
 bool CAddonSettings::ParseOldConditionExpression(std::string str, ConditionExpression& expression)
 {
-  StringUtils::ToLower(str);
   StringUtils::Trim(str);
 
   size_t posOpen = str.find('(');

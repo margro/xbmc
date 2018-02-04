@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,9 +19,6 @@
  */
 
 
-#include "system.h"
-
-#if defined(HAS_GL) || HAS_GLES >= 2
 #include "system_gl.h"
 
 #include <cmath>
@@ -322,5 +319,3 @@ void CMatrixGLStack::Load()
 {
 
 }
-
-#endif

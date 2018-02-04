@@ -15,7 +15,6 @@ set(SOURCES ActorProtocol.cpp
             Crc32.cpp
             DatabaseUtils.cpp
             EndianSwap.cpp
-            Environment.cpp
             EmbeddedArt.cpp
             FileExtensionProvider.cpp
             Fanart.cpp
@@ -90,7 +89,6 @@ set(HEADERS ActorProtocol.h
             Crc32.h
             DatabaseUtils.h
             EndianSwap.h
-            Environment.h
             EventStream.h
             EventStreamDetail.h
             FileExtensionProvider.h
@@ -98,6 +96,7 @@ set(HEADERS ActorProtocol.h
             FileOperationJob.h
             FileUtils.h
             fstrcmp.h
+            Geometry.h
             GlobalsHandling.h
             GroupUtils.h
             HTMLUtil.h
@@ -182,10 +181,13 @@ if(NOT CORE_SYSTEM_NAME STREQUAL windows AND NOT CORE_SYSTEM_NAME STREQUAL windo
 endif()
 
 if(CORE_SYSTEM_NAME STREQUAL android OR AML_FOUND)
-  list(APPEND SOURCES AMLUtils.cpp
-                      ScreenshotAML.cpp)
-  list(APPEND HEADERS AMLUtils.h
-                      ScreenshotAML.h)
+  list(APPEND SOURCES AMLUtils.cpp)
+  list(APPEND HEADERS AMLUtils.h)
+endif()
+
+if(AML_FOUND)
+  list(APPEND HEADERS ScreenshotAML.cpp)
+  list(APPEND HEADERS ScreenshotAML.h)
 endif()
 
 core_add_library(utils)

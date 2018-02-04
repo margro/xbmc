@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ namespace PVR
 
     bool TranslateBoolInfo(DWORD dwInfo) const;
     bool TranslateCharInfo(DWORD dwInfo, std::string &strValue) const;
-    int TranslateIntInfo(DWORD dwInfo) const;
+    int TranslateIntInfo(const CFileItem &item, DWORD dwInfo) const;
 
     /*!
      * @brief Get a GUIInfoManager video label.

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2017 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,13 @@ namespace WINDOWING
 namespace WAYLAND
 {
 
+/**
+ * Shell surface implementation for unstable xdg_shell in version 6
+ *
+ * xdg_shell was accepted as a stable protocol in wayland-protocols, which
+ * means this class is deprecated and can be safely removed once the relevant
+ * compositors have made the switch.
+ */
 class CShellSurfaceXdgShellUnstableV6 : public IShellSurface
 {
 public:

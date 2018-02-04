@@ -1,7 +1,7 @@
 /*
  *      Initial code sponsored by: Voddler Inc (voddler.com)
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -28,8 +28,6 @@ class CDVDOverlayImage;
 class CDVDOverlaySpu;
 class CDVDOverlaySSA;
 typedef struct ass_image ASS_Image;
-
-#if defined(HAS_GL) || HAS_GLES >= 2
 
 namespace OVERLAY {
 
@@ -73,6 +71,3 @@ namespace OVERLAY {
   };
 
 }
-
-#endif
-

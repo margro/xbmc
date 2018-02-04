@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -63,6 +63,7 @@
 #include "filesystem/Directory.h"
 #include "FileItem.h"
 #include "settings/AdvancedSettings.h"
+#include "Util.h"
 
 #include <set>
 
@@ -218,7 +219,7 @@ void CCueDocument::GetSongs(VECSONGS &songs)
     aSong.iEndOffset = track.iEndTime;
     if (aSong.iEndOffset)
       // Convert offset in frames (75 per second) to duration in whole seconds with rounding 
-      aSong.iDuration = (aSong.iEndOffset - aSong.iStartOffset + 37) / 75;
+      aSong.iDuration = CUtil::ConvertMilliSecsToSecsIntRounded(aSong.iEndOffset - aSong.iStartOffset);
     else
       aSong.iDuration = 0;
 
@@ -456,7 +457,7 @@ int CCueDocument::ExtractTimeFromIndex(const std::string &index)
   int secs = atoi(time[1].c_str());
   int frames = atoi(time[2].c_str());
 
-  return (mins*60 + secs)*75 + frames;
+  return CUtil::ConvertSecsToMilliSecs(mins*60 + secs) + frames * 1000 / 75;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

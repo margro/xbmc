@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -189,27 +189,28 @@ namespace PVR
 
     /*!
      * @brief Get the title of this event.
-     * @param bOverrideParental True to override parental control, false check it.
+     * @param bOverrideParental True to override parental control, false to check it.
      * @return The title.
      */
     std::string Title(bool bOverrideParental = false) const;
 
     /*!
      * @brief Get the plot outline of this event.
-     * @param bOverrideParental True to override parental control, false check it.
+     * @param bOverrideParental True to override parental control, false to check it.
      * @return The plot outline.
      */
     std::string PlotOutline(bool bOverrideParental = false) const;
 
     /*!
      * @brief Get the plot of this event.
-     * @param bOverrideParental True to override parental control, false check it.
+     * @param bOverrideParental True to override parental control, false to check it.
      * @return The plot.
      */
     std::string Plot(bool bOverrideParental = false) const;
 
     /*!
      * @brief Get the original title of this event.
+     * @param bOverrideParental True to override parental control, false check it.
      * @return The original title.
      */
     std::string OriginalTitle(bool bOverrideParental = false) const;
@@ -337,9 +338,10 @@ namespace PVR
 
     /*!
      * @brief The episode name of this event.
+     * @param bOverrideParental True to override parental control, false to check it.
      * @return The episode name.
      */
-    std::string EpisodeName(void) const;
+    std::string EpisodeName(bool bOverrideParental = false) const;
 
     /*!
      * @brief Get the path to the icon for this event.

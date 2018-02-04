@@ -11074,16 +11074,16 @@ msgctxt "#19296"
 msgid "No PVR add-on enabled"
 msgstr ""
 
-#. 'timeline' label used in pvr guide window
+#. 'Viewtype' label for vertical channel layout, used in pvr guide window
 #: addons/skin.estuary/xml/MyPVRGuide.xml
 msgctxt "#19297"
-msgid "Vertical"
+msgid "Vertical channels"
 msgstr ""
 
-#. 'timeline' label used in pvr guide window
+#. 'Viewtype' label for horizontal channel layout, used in pvr guide window
 #: addons/skin.estuary/xml/MyPVRGuide.xml
 msgctxt "#19298"
-msgid "Horizontal"
+msgid "Horizontal channels"
 msgstr ""
 
 #. generic "expiration" label used in different places
@@ -11093,7 +11093,19 @@ msgctxt "#19299"
 msgid "Expires"
 msgstr ""
 
-#empty strings from id 19300 to 19498
+#. 'Viewtype' label for vertical channel layout without channel group selctor, used in pvr guide window
+#: addons/skin.estuary/xml/MyPVRGuide.xml
+msgctxt "#19300"
+msgid "Vertical channels, no group selector"
+msgstr ""
+
+#. 'Viewtype' label for horizontal channel layout without channel group selctor, used in pvr guide window
+#: addons/skin.estuary/xml/MyPVRGuide.xml
+msgctxt "#19301"
+msgid "Horizontal channels, no group selector"
+msgstr ""
+
+#empty strings from id 19302 to 19498
 
 #. label for epg genre value
 #: xbmc/epg/Epg.cpp
@@ -12709,10 +12721,15 @@ msgstr ""
 
 #: xbmc/network/GUIDialogNetworkSetup.cpp
 msgctxt "#20304"
-msgid "RSS Feed"
+msgid "RSS Feed (HTTP)"
 msgstr ""
 
-#empty strings from id 20305 to 20306
+#: xbmc/network/GUIDialogNetworkSetup.cpp
+msgctxt "#20305"
+msgid "RSS Feed (HTTPS)"
+msgstr ""
+
+#empty string with id 20306
 
 #: xbmc/windows/GUIWindowSystemInfo.cpp
 msgctxt "#20307"
@@ -17380,7 +17397,22 @@ msgctxt "#35167"
 msgid "Single keys"
 msgstr ""
 
-#empty strings from id 35168 to 35199
+#. Name of the button that prompts you to select a key on the keyboard. Used in the controller mapping dialog.
+msgctxt "#35168"
+msgid "Select key"
+msgstr ""
+
+#. Keyboard prompt without a timeout. Used in the controller mapping dialog.
+msgctxt "#35169"
+msgid "Press a key"
+msgstr ""
+
+#. Keyboard prompt with timeout. {1:d} - seconds left in prompt. Used in the controller mapping dialog.
+msgctxt "#35170"
+msgid "Press a key ({1:d})"
+msgstr ""
+
+#empty strings from id 35171 to 35199
 
 #. This string is an early meme from the late 1990's that made fun of the poor translation in the 16-bit game Zero Wing from the late 1980's. DO NOT TRANSLATE!
 #: system/settings/settings.xml

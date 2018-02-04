@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -91,6 +91,15 @@ bool CWinSystemWin10DX::DestroyRenderSystem()
   m_deviceResources->Release();
   m_deviceResources.reset();
   return true;
+}
+
+void CWinSystemWin10DX::ShowSplash(const std::string & message)
+{
+  CRenderSystemBase::ShowSplash(message);
+
+  // this will prevent killing the app by watchdog timeout during loading
+  if (m_coreWindow.Get())
+    m_coreWindow->Dispatcher->ProcessEvents(Windows::UI::Core::CoreProcessEventsOption::ProcessAllIfPresent);
 }
 
 void CWinSystemWin10DX::UpdateMonitor() const

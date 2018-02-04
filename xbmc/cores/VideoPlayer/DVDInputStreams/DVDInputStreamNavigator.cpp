@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
 #include "settings/Settings.h"
 #include "LangInfo.h"
 #include "ServiceBroker.h"
+#include "utils/Geometry.h"
 #include "utils/log.h"
-#include "guilib/Geometry.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "guilib/LocalizeStrings.h"
@@ -35,7 +35,7 @@
 #endif
 #if defined(TARGET_WINDOWS_STORE)
 #include "filesystem/SpecialProtocol.h"
-#include "utils/Environment.h"
+#include "platform/Environment.h"
 #endif
 
 #define HOLDMODE_NONE 0

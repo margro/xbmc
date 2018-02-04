@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -202,6 +202,11 @@ bool CPVRChannelGroup::Update(void)
   m_failedClientsForChannelGroupMembers = PVRChannels_tmp.m_failedClientsForChannelGroupMembers;
 
   return UpdateGroupEntries(PVRChannels_tmp);
+}
+
+std::string CPVRChannelGroup::GetPath() const
+{
+  return StringUtils::Format("pvr://channels/%s/%s/", m_bRadio ? "radio" : "tv", GroupName().c_str());
 }
 
 bool CPVRChannelGroup::SetChannelNumber(const CPVRChannelPtr &channel, const CPVRChannelNumber &channelNumber)

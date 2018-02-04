@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -55,7 +55,9 @@ bool CVideoLibraryMarkWatchedJob::operator==(const CJob* job) const
 
 bool CVideoLibraryMarkWatchedJob::Work(CVideoDatabase &db)
 {
-  if (!CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases())
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  if (!profileManager.GetCurrentProfile().canWriteDatabases())
     return false;
 
   CFileItemList items;

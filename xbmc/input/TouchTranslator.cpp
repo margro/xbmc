@@ -103,6 +103,9 @@ bool CTouchTranslator::TranslateTouchAction(int window, int touchAction, int tou
 
   unsigned int actionId = ACTION_NONE;
 
+  // handle virtual windows
+  window = CWindowTranslator::GetVirtualWindow(window);
+
   if (!TranslateAction(window, touchAction, touchPointers, actionId, actionString))
   {
     int fallbackWindow = CWindowTranslator::GetFallbackWindow(window);

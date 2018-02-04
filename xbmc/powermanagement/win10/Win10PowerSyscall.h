@@ -29,6 +29,9 @@ public:
   CPowerSyscall();
   ~CPowerSyscall();
 
+  static IPowerSyscall* CreateInstance();
+  static void Register();
+
   bool Powerdown() override;
   bool Suspend() override;
   bool Hibernate() override;

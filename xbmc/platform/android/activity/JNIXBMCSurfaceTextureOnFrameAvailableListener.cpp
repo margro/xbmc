@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2016 Christian Browet
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ void CJNIXBMCSurfaceTextureOnFrameAvailableListener::_onFrameAvailable(JNIEnv* e
 {
   (void)env;
 
-  CJNIXBMCSurfaceTextureOnFrameAvailableListener *inst = find_instance(jhobject(thiz));
+  CJNIXBMCSurfaceTextureOnFrameAvailableListener *inst = find_instance(thiz);
   if (inst)
-    inst->onFrameAvailable(CJNISurfaceTexture(jhobject(surface)));
+    inst->onFrameAvailable(CJNISurfaceTexture(jhobject::fromJNI(surface)));
 }

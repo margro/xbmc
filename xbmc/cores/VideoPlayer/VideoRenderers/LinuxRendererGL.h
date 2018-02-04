@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -104,7 +104,7 @@ public:
   static bool Register();
 
   // Player functions
-  bool Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation) override;
+  bool Configure(const VideoPicture &picture, float fps, unsigned int orientation) override;
   bool IsConfigured() override { return m_bConfigured; }
   void AddVideoPicture(const VideoPicture &picture, int index, double currentClock) override;
   void UnInit() override;
@@ -232,6 +232,11 @@ protected:
   bool m_useDithering;
   unsigned int m_ditherDepth;
   bool m_fullRange;
+  AVColorPrimaries m_srcPrimaries;
+  AVColorSpace m_srcColSpace;
+  int m_srcBits = 8;
+  int m_srcTextureBits = 8;
+  bool m_srcFullRange;
 
   // clear colour for "black" bars
   float m_clearColour;

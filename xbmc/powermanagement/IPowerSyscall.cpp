@@ -1,6 +1,6 @@
 /*
- *      Copyright (C) 2015 Team XBMC
- *      http://xbmc.org
+ *      Copyright (C) 2005-2015 Team XBMC
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,4 +20,17 @@
 
 #include "IPowerSyscall.h"
 
-const int IPowerSyscall::MAX_COUNT_POWER_FEATURES;
+CreatePowerSyscallFunc IPowerSyscall::m_createFunc = nullptr;
+
+IPowerSyscall* IPowerSyscall::CreateInstance()
+{
+  if (m_createFunc)
+    return m_createFunc();
+
+  return nullptr;
+}
+
+void IPowerSyscall::RegisterPowerSyscall(CreatePowerSyscallFunc createFunc)
+{
+  m_createFunc = createFunc;
+}

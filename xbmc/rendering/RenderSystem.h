@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #pragma once
 
 #include "RenderSystemTypes.h"
-#include "guilib/Geometry.h"
+#include "utils/Geometry.h"
 #include "guilib/TransformMatrix.h"
 #include "guilib/DirtyRegion.h"
 #include <memory>
@@ -117,7 +117,7 @@ public:
   unsigned int GetMinDXTPitch() const { return m_minDXTPitch; }
   unsigned int GetRenderQuirks() const { return m_renderQuirks; }
 
-  void ShowSplash(const std::string& message);
+  virtual void ShowSplash(const std::string& message);
 
 protected:
   bool                m_bRenderCreated;

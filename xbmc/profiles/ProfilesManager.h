@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,19 +19,28 @@
  *
  */
 
+#include <memory>
 #include <stdint.h>
 #include <vector>
 
 #include "profiles/Profile.h"
+#include "settings/lib/ISettingCallback.h"
 #include "settings/lib/ISettingsHandler.h"
 #include "threads/CriticalSection.h"
 
+class CEventLog;
+class CEventLogManager;
+class CSettings;
 class TiXmlNode;
 
-class CProfilesManager : public ISettingsHandler
+class CProfilesManager : protected ISettingsHandler,
+                         protected ISettingCallback
 {
 public:
-  static CProfilesManager& GetInstance();
+  CProfilesManager(CSettings &settings);
+  CProfilesManager(const CProfilesManager&) = delete;
+  CProfilesManager& operator=(CProfilesManager const&) = delete;
+  ~CProfilesManager() override;
 
   void OnSettingsLoaded() override;
   void OnSettingsSaved() const override;
@@ -177,17 +186,21 @@ public:
   // uses HasSlashAtEnd to determine if a directory or file was meant
   std::string GetUserDataItem(const std::string& strFile) const;
 
+  // Event log access
+  CEventLog &GetEventLog();
+
 protected:
-  CProfilesManager();
-  CProfilesManager(const CProfilesManager&) = delete;
-  CProfilesManager& operator=(CProfilesManager const&) = delete;
-  ~CProfilesManager() override;
+  // implementation of ISettingCallback
+  void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
 
 private:
   /*! \brief Set the current profile id and update the special://profile path
     \param profileId profile index
     */
   void SetCurrentProfileId(size_t profileId);
+
+  // Construction parameters
+  CSettings &m_settings;
 
   std::vector<CProfile> m_profiles;
   bool m_usingLoginScreen;
@@ -197,4 +210,7 @@ private:
   uint32_t m_currentProfile; // do not modify directly, use SetCurrentProfileId() function instead
   int m_nextProfileId; // for tracking the next available id to give to a new profile to ensure id's are not re-used
   CCriticalSection m_critical;
+
+  // Event properties
+  std::unique_ptr<CEventLogManager> m_eventLogs;
 };

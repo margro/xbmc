@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@
 #include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "SeekHandler.h"
 #include "utils/Variant.h"
+#include "Util.h"
 
 using namespace JSONRPC;
 using namespace PLAYLIST;
@@ -81,20 +82,22 @@ JSONRPC_STATUS CPlayerOperations::GetActivePlayers(const std::string &method, IT
 
 JSONRPC_STATUS CPlayerOperations::GetPlayers(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
+  const CPlayerCoreFactory &playerCoreFactory = CServiceBroker::GetPlayerCoreFactory();
+
   std::string media = parameterObject["media"].asString();
   result = CVariant(CVariant::VariantTypeArray);
   std::vector<std::string> players;
 
   if (media == "all")
   {
-    CPlayerCoreFactory::GetInstance().GetPlayers(players);
+    playerCoreFactory.GetPlayers(players);
   }
   else
   {
     bool video = false;
     if (media == "video")
       video = true;
-    CPlayerCoreFactory::GetInstance().GetPlayers(players, true, video);
+    playerCoreFactory.GetPlayers(players, true, video);
   }
 
   for (auto playername: players)
@@ -102,9 +105,9 @@ JSONRPC_STATUS CPlayerOperations::GetPlayers(const std::string &method, ITranspo
     CVariant player(CVariant::VariantTypeObject);
     player["name"] = playername;
 
-    player["playsvideo"] = CPlayerCoreFactory::GetInstance().PlaysVideo(playername);
-    player["playsaudio"] = CPlayerCoreFactory::GetInstance().PlaysAudio(playername);
-    player["type"] = CPlayerCoreFactory::GetInstance().GetPlayerType(playername);
+    player["playsvideo"] = playerCoreFactory.PlaysVideo(playername);
+    player["playsaudio"] = playerCoreFactory.PlaysAudio(playername);
+    player["type"] = playerCoreFactory.GetPlayerType(playername);
 
     result.push_back(player);
   }
@@ -642,13 +645,16 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
 
             if (playername != "default")
             {
+              const CPlayerCoreFactory &playerCoreFactory = CServiceBroker::GetPlayerCoreFactory();
+
               // check if the there's actually a player with the given name
-              if (CPlayerCoreFactory::GetInstance().GetPlayerType(playername).empty())
+              if (playerCoreFactory.GetPlayerType(playername).empty())
                 return InvalidParams;
 
               // check if the player can handle at least the first item in the list
               std::vector<std::string> possiblePlayers;
-              CPlayerCoreFactory::GetInstance().GetPlayers(*list.Get(0).get(), possiblePlayers);
+              playerCoreFactory.GetPlayers(*list.Get(0).get(), possiblePlayers);
+
               bool match = false;
               for (auto entry : possiblePlayers)
               {
@@ -680,7 +686,7 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
           else if (optionResume.isDouble())
             list[0]->SetProperty("StartPercent", optionResume);
           else if (optionResume.isObject())
-            list[0]->m_lStartOffset = (int)(ParseTimeInSeconds(optionResume) * 75.0);
+            list[0]->m_lStartOffset = CUtil::ConvertSecsToMilliSecs(ParseTimeInSeconds(optionResume));
         }
 
         auto l = new CFileItemList(); //don't delete

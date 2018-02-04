@@ -62,12 +62,14 @@ set(package_files strings.xml
                   src/XBMCBroadcastReceiver.java
                   src/XBMCInputDeviceListener.java
                   src/XBMCJsonRPC.java
+                  src/XBMCMainView.java
                   src/XBMCMediaSession.java
                   src/XBMCRecommendationBuilder.java
                   src/XBMCSearchableActivity.java
                   src/XBMCSettingsContentObserver.java
                   src/XBMCProperties.java
                   src/XBMCVideoView.java
+                  src/XBMCFile.java
                   src/channels/SyncChannelJobService.java
                   src/channels/SyncProgramsJobService.java
                   src/channels/model/XBMCDatabase.java
@@ -90,7 +92,6 @@ set(package_files strings.xml
                   src/content/XBMCFileContentProvider.java
                   src/content/XBMCMediaContentProvider.java
                   src/content/XBMCContentProvider.java
-                  src/content/XBMCImageContentProvider.java
                   src/content/XBMCYTDLContentProvider.java
                   )
 foreach(file IN LISTS package_files)
@@ -170,7 +171,6 @@ foreach(target apk obb apk-unsigned apk-obb apk-obb-unsigned apk-noobb apk-clean
               DEPENDS_PATH=${DEPENDS_PATH}
               NDKROOT=${NDKROOT}
               SDKROOT=${SDKROOT}
-              SDK_PLATFORM=${SDK_PLATFORM}
               STRIP=${CMAKE_STRIP}
               AAPT=${AAPT_EXECUTABLE}
               DX=${DX_EXECUTABLE}

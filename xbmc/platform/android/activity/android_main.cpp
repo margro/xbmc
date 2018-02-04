@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "CompileInfo.h"
 #include "EventLoop.h"
 #include "platform/android/activity/JNIMainActivity.h"
+#include "platform/android/activity/JNIXBMCMainView.h"
 #include "platform/android/activity/JNIXBMCVideoView.h"
 #include "platform/android/activity/JNIXBMCAudioManagerOnAudioFocusChangeListener.h"
 #include "platform/android/activity/JNIXBMCSurfaceTextureOnFrameAvailableListener.h"
@@ -37,6 +38,8 @@
 #include "platform/android/activity/JNIXBMCMediaSession.h"
 #include "platform/android/activity/JNIXBMCNsdManagerRegistrationListener.h"
 #include "platform/android/activity/JNIXBMCNsdManagerResolveListener.h"
+#include "platform/android/activity/JNIXBMCJsonHandler.h"
+#include "platform/android/activity/JNIXBMCFile.h"
 #include "utils/StringUtils.h"
 #include "XBMCApp.h"
 
@@ -150,12 +153,15 @@ extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
   CJNIXBMCAudioManagerOnAudioFocusChangeListener::RegisterNatives(env);
   CJNIXBMCSurfaceTextureOnFrameAvailableListener::RegisterNatives(env);
+  CJNIXBMCMainView::RegisterNatives(env);
   CJNIXBMCVideoView::RegisterNatives(env);
   jni::CJNIXBMCNsdManagerDiscoveryListener::RegisterNatives(env);
   jni::CJNIXBMCNsdManagerRegistrationListener::RegisterNatives(env);
   jni::CJNIXBMCNsdManagerResolveListener::RegisterNatives(env);
   jni::CJNIXBMCMediaSession::RegisterNatives(env);
-  
+  jni::CJNIXBMCJsonHandler::RegisterNatives(env);
+  jni::CJNIXBMCFile::RegisterNatives(env);
+
   jclass cMain = env->FindClass(mainClass.c_str());
   if(cMain)
   {

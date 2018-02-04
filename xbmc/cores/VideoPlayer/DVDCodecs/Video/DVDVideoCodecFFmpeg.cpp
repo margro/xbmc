@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@
 
 extern "C" {
 #include "libavutil/opt.h"
+#include "libavutil/mastering_display_metadata.h"
 #include "libavfilter/avfilter.h"
 #include "libavfilter/buffersink.h"
 #include "libavfilter/buffersrc.h"
@@ -963,9 +964,10 @@ bool CDVDVideoCodecFFmpeg::GetPictureCommon(VideoPicture* pVideoPicture)
   AVDictionaryEntry * entry = av_dict_get(av_frame_get_metadata(m_pFrame), "stereo_mode", NULL, 0);
   if(entry && entry->value)
   {
-    strncpy(pVideoPicture->stereo_mode, (const char*)entry->value, sizeof(pVideoPicture->stereo_mode));
-    pVideoPicture->stereo_mode[sizeof(pVideoPicture->stereo_mode)-1] = '\0';
+    pVideoPicture->stereoMode = (const char*)entry->value;
   }
+  else
+    pVideoPicture->stereoMode.clear();
 
   pVideoPicture->iRepeatPicture = 0.5 * m_pFrame->repeat_pict;
   pVideoPicture->iFlags = 0;
@@ -980,9 +982,23 @@ bool CDVDVideoCodecFFmpeg::GetPictureCommon(VideoPicture* pVideoPicture)
   pVideoPicture->chroma_position = m_pCodecContext->chroma_sample_location;
   pVideoPicture->color_primaries = m_pCodecContext->color_primaries;
   pVideoPicture->color_transfer = m_pCodecContext->color_trc;
-  pVideoPicture->color_matrix = m_pCodecContext->colorspace;
-  if(m_pCodecContext->color_range == AVCOL_RANGE_JPEG
-  || m_pCodecContext->pix_fmt     == AV_PIX_FMT_YUVJ420P)
+  pVideoPicture->color_space = m_pCodecContext->colorspace;
+  pVideoPicture->colorBits = 8;
+  // determine how number of bits of encoded video
+  if (m_pCodecContext->pix_fmt == AV_PIX_FMT_YUV420P12)
+    pVideoPicture->colorBits = 12;
+  else if (m_pCodecContext->pix_fmt == AV_PIX_FMT_YUV420P10)
+    pVideoPicture->colorBits = 10;
+  else if (m_pCodecContext->codec_id == AV_CODEC_ID_HEVC &&
+           m_pCodecContext->profile == FF_PROFILE_HEVC_MAIN_10)
+    pVideoPicture->colorBits = 10;
+  else if (m_pCodecContext->codec_id == AV_CODEC_ID_H264 &&
+           (m_pCodecContext->profile == FF_PROFILE_H264_HIGH_10||
+            m_pCodecContext->profile == FF_PROFILE_H264_HIGH_10_INTRA))
+    pVideoPicture->colorBits = 10;
+
+  if (m_pCodecContext->color_range == AVCOL_RANGE_JPEG ||
+    m_pCodecContext->pix_fmt == AV_PIX_FMT_YUVJ420P)
     pVideoPicture->color_range = 1;
   else
     pVideoPicture->color_range = 0;
@@ -991,6 +1007,22 @@ bool CDVDVideoCodecFFmpeg::GetPictureCommon(VideoPicture* pVideoPicture)
                                                   &pVideoPicture->qstride,
                                                   &pVideoPicture->qscale_type);
   pVideoPicture->pict_type = m_pFrame->pict_type;
+
+  // metadata
+  pVideoPicture->hasDisplayMetadata = false;
+  pVideoPicture->hasLightMetadata = false;
+  AVFrameSideData *sd = av_frame_get_side_data(m_pFrame, AV_FRAME_DATA_MASTERING_DISPLAY_METADATA);
+  if (sd)
+  {
+    pVideoPicture->displayMetadata = *(AVMasteringDisplayMetadata *)sd->data;
+    pVideoPicture->hasDisplayMetadata = true;
+  }
+  sd = av_frame_get_side_data(m_pFrame, AV_FRAME_DATA_CONTENT_LIGHT_LEVEL);
+  if (sd)
+  {
+    pVideoPicture->lightMetadata = *(AVContentLightMetadata *)sd->data;
+    pVideoPicture->hasLightMetadata = true;
+  }
 
   if (pVideoPicture->iRepeatPicture)
     pVideoPicture->dts = DVD_NOPTS_VALUE;

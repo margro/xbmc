@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -149,7 +149,7 @@ bool CDRMLegacy::QueueFlip(struct gbm_bo *bo)
   return true;
 }
 
-void CDRMLegacy::FlipPage(struct gbm_bo *bo)
+void CDRMLegacy::FlipPage(struct gbm_bo *bo, bool rendered, bool videoLayer)
 {
   flip_happening = QueueFlip(bo);
   WaitingForFlip();

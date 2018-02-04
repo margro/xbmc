@@ -10,7 +10,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
  */
 
 #include "TextureManager.h"
-#include "Geometry.h"
+#include "utils/Geometry.h"
 #include "system.h" // HAS_GL, HAS_DX, etc
 #include "GUIInfoTypes.h"
 

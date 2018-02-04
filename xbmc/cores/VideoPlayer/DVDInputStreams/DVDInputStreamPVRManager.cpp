@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -430,7 +430,6 @@ void CDVDInputStreamPVRManager::UpdateStreamMap()
       streamVideo->iHeight = stream.iHeight;
       streamVideo->iWidth = stream.iWidth;
       streamVideo->fAspect = stream.fAspect;
-      streamVideo->stereo_mode = "mono";
 
       dStream = streamVideo;
     }

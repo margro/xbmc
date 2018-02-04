@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -280,17 +280,10 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
   }
 
   // allocate a dummy VideoPicture buffer.
-  // first make sure all properties are reset.
-  memset(&m_videobuffer, 0, sizeof(VideoPicture));
+  m_videobuffer.Reset();
 
-  m_videobuffer.dts = DVD_NOPTS_VALUE;
-  m_videobuffer.pts = DVD_NOPTS_VALUE;
-  m_videobuffer.color_range  = 0;
-  m_videobuffer.color_matrix = 4;
-  m_videobuffer.iFlags  = 0;
   m_videobuffer.iWidth  = m_hints.width;
   m_videobuffer.iHeight = m_hints.height;
-  m_videobuffer.videoBuffer = nullptr;
 
   m_videobuffer.iDisplayWidth  = m_videobuffer.iWidth;
   m_videobuffer.iDisplayHeight = m_videobuffer.iHeight;

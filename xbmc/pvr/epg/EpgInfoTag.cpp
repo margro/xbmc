@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -534,9 +534,14 @@ int CPVREpgInfoTag::EpisodePart(void) const
   return m_iEpisodePart;
 }
 
-std::string CPVREpgInfoTag::EpisodeName(void) const
+std::string CPVREpgInfoTag::EpisodeName(bool bOverrideParental /* = false */) const
 {
-  return m_strEpisodeName;
+  std::string retVal;
+
+  if (bOverrideParental || !IsParentalLocked())
+    retVal = m_strEpisodeName;
+
+  return retVal;
 }
 
 std::string CPVREpgInfoTag::Icon(void) const

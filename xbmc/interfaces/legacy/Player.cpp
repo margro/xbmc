@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -365,7 +365,7 @@ namespace XBMCAddon
       g_windowManager.SendMessage(msg);
     }
 
-    InfoTagRadioRDS* Player::getRadioRDSInfoTag() throw (PlayerException)
+    InfoTagRadioRDS* Player::getRadioRDSInfoTag()
     {
       XBMC_TRACE;
       if (g_application.GetAppPlayer().IsPlayingVideo() || !g_application.GetAppPlayer().IsPlayingRDS())

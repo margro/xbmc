@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ void CGUIDialogBusy::Open_Internal(const std::string &param /* = "" */)
 
 void CGUIDialogBusy::DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
-  bool visible = g_windowManager.GetTopMostModalDialogID() == WINDOW_DIALOG_BUSY;
+  bool visible = g_windowManager.IsModalDialogTopmost(WINDOW_DIALOG_BUSY);
   if(!visible && m_bLastVisible)
     dirtyregions.push_back(CDirtyRegion(m_renderRegion));
   m_bLastVisible = visible;

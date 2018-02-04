@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2017 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,11 +27,11 @@
 #include <wayland-cursor.hpp>
 
 #include "Connection.h"
-#include "guilib/Geometry.h"
 #include "Registry.h"
 #include "ShellSurface.h"
 #include "threads/CriticalSection.h"
 #include "Util.h"
+#include "utils/Geometry.h"
 #include "utils/posix/SharedMemory.h"
 #include "WindowDecorationHandler.h"
 

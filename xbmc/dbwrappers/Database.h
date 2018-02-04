@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ namespace dbiplus {
 
 class DatabaseSettings; // forward
 class CDbUrl;
+class CProfilesManager;
 struct SortDescription;
 
 class CDatabase
@@ -73,7 +74,7 @@ public:
   };
 
 
-  CDatabase(void);
+  CDatabase();
   virtual ~CDatabase(void);
   bool IsOpen();
   virtual void Close();
@@ -221,6 +222,10 @@ protected:
   std::unique_ptr<dbiplus::Database> m_pDB;
   std::unique_ptr<dbiplus::Dataset> m_pDS;
   std::unique_ptr<dbiplus::Dataset> m_pDS2;
+
+protected:
+  // Construction parameters
+  const CProfilesManager &m_profileManager;
 
 private:
   void InitSettings(DatabaseSettings &dbSettings);

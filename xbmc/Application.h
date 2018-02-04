@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -74,6 +74,7 @@ namespace PLAYLIST
 #include "utils/Stopwatch.h"
 #include "windowing/OSScreenSaver.h"
 #include "windowing/XBMC_events.h"
+#include "threads/SystemClock.h"
 #include "threads/Thread.h"
 
 #include "ApplicationPlayer.h"
@@ -437,6 +438,7 @@ protected:
   CStopWatch m_navigationTimer;
   CStopWatch m_slowTimer;
   CStopWatch m_shutdownTimer;
+  XbmcThreads::EndTime m_guiRefreshTimer;
 
   bool m_bInhibitIdleShutdown;
 
@@ -473,7 +475,7 @@ protected:
 
   void VolumeChanged();
 
-  bool PlayStack(const CFileItem& item, bool bRestart);
+  bool PlayStack(CFileItem& item, bool bRestart);
 
   float NavigationIdleTime();
   bool InitDirectoriesLinux();

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@
 #include "utils/Variant.h"
 #include "utils/StringUtils.h"
 #include "settings/AdvancedSettings.h"
+#include "Util.h"
 
 namespace XBMCAddon
 {
@@ -151,6 +152,16 @@ namespace XBMCAddon
       }
     }
 
+    void ListItem::setIsFolder(bool isFolder)
+    {
+      if (!item)
+        return;
+      {
+        XBMCAddonUtils::GuiLock lock(languageHook, m_offscreen);
+        item->m_bIsFolder = isFolder;
+      }
+    }
+
     void ListItem::setUniqueIDs(const Properties& dictionary, const String& defaultrating /* = "" */)
     {
       if (!item) return;
@@ -208,7 +219,7 @@ namespace XBMCAddon
       if (lowerKey == "startoffset")
       { // special case for start offset - don't actually store in a property,
         // we store it in item.m_lStartOffset instead
-        item->m_lStartOffset = (int)(atof(value.c_str()) * 75.0); // we store the offset in frames, or 1/75th of a second
+        item->m_lStartOffset = CUtil::ConvertSecsToMilliSecs(atof(value.c_str())); // we store the offset in frames, or 1/75th of a second
       }
       else if (lowerKey == "mimetype")
       { // special case for mime type - don't actually stored in a property,
@@ -248,7 +259,7 @@ namespace XBMCAddon
       if (lowerKey == "startoffset")
       { // special case for start offset - don't actually store in a property,
         // we store it in item.m_lStartOffset instead
-        value = StringUtils::Format("%f", item->m_lStartOffset / 75.0);
+        value = StringUtils::Format("%f", CUtil::ConvertMilliSecsToSecs(item->m_lStartOffset));
       }
       else if (lowerKey == "totaltime")
         value = StringUtils::Format("%f", GetVideoInfoTag()->GetResumePoint().totalTimeInSeconds);

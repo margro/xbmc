@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ public:
   static CBaseRenderer* Create(CVideoBuffer *buffer);
   static bool Register();
 
-  bool Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation) override;
+  bool Configure(const VideoPicture &picture, float fps, unsigned int orientation) override;
 
   // Player functions
   void ReleaseBuffer(int idx) override;
@@ -71,5 +71,3 @@ protected:
   VDPAU::CVdpauTexture m_vdpauTextures[NUM_BUFFERS];
   GLsync m_fences[NUM_BUFFERS];
 };
-
-

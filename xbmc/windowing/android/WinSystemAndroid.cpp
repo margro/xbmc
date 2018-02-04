@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@
 #include "cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecAndroidMediaCodec.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererMediaCodec.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererMediaCodecSurface.h"
+#include "powermanagement/android/AndroidPowerSyscall.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglplatform.h>
@@ -60,6 +61,7 @@ CWinSystemAndroid::CWinSystemAndroid()
   m_android = nullptr;
 
   m_winEvents.reset(new CWinEventsAndroid());
+  CAndroidPowerSyscall::Register();
 }
 
 CWinSystemAndroid::~CWinSystemAndroid()

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -239,7 +239,6 @@ bool CRendererVTB::UploadTexture(int index)
   planes[1].id = CVOpenGLESTextureGetName(renderBuf.m_textureUV);
   planes[2].id = CVOpenGLESTextureGetName(renderBuf.m_textureUV);
 
-  glEnable(m_textureTarget);
 
   for (int p=0; p<2; p++)
   {

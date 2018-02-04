@@ -1,7 +1,7 @@
 #pragma once
 /*
 *      Copyright (C) 2005-2014 Team XBMC
-*      http://xbmc.org
+*      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -33,8 +33,7 @@
 
 #include "Action.h"
 #include "windowing/XBMC_events.h"
-#include "input/keyboard/IKeyboardInputProvider.h"
-#include "input/mouse/IMouseInputProvider.h"
+#include "input/mouse/interfaces/IMouseInputProvider.h"
 #include "input/KeyboardStat.h"
 #include "input/MouseStat.h"
 #include "interfaces/IActionListener.h"
@@ -48,6 +47,7 @@ class CCustomControllerTranslator;
 class CIRTranslator;
 class CJoystickMapper;
 class CKey;
+class CProfilesManager;
 class CTouchTranslator;
 class IKeymapEnvironment;
 class IWindowKeymap;
@@ -56,7 +56,7 @@ namespace KODI
 {
 namespace KEYBOARD
 {
-  class IKeyboardHandler;
+  class IKeyboardDriverHandler;
 }
 
 namespace MOUSE
@@ -82,12 +82,12 @@ namespace MOUSE
  */
 class CInputManager : public ISettingCallback,
                       public IActionListener,
-                      public KODI::KEYBOARD::IKeyboardInputProvider,
                       public KODI::MOUSE::IMouseInputProvider,
                       public Observable
 {
 public:
-  explicit CInputManager(const CAppParamParser &params);
+  explicit CInputManager(const CAppParamParser &params,
+                         const CProfilesManager &profileManager);
   CInputManager(const CInputManager&) = delete;
   CInputManager const& operator=(CInputManager const&) = delete;
   ~CInputManager() override;
@@ -285,9 +285,8 @@ public:
   // implementation of IActionListener
   virtual bool OnAction(const CAction& action) override;
 
-  // implementation of IKeyboardInputProvider
-  virtual void RegisterKeyboardHandler(KODI::KEYBOARD::IKeyboardHandler* handler) override;
-  virtual void UnregisterKeyboardHandler(KODI::KEYBOARD::IKeyboardHandler* handler) override;
+  void RegisterKeyboardDriverHandler(KODI::KEYBOARD::IKeyboardDriverHandler* handler);
+  void UnregisterKeyboardDriverHandler(KODI::KEYBOARD::IKeyboardDriverHandler* handler);
 
   // implementation of IMouseInputProvider
   virtual std::string RegisterMouseHandler(KODI::MOUSE::IMouseInputHandler* handler) override;
@@ -364,7 +363,7 @@ private:
   std::unique_ptr<CTouchTranslator> m_touchTranslator;
   std::unique_ptr<CJoystickMapper> m_joystickTranslator;
 
-  std::vector<KODI::KEYBOARD::IKeyboardHandler*> m_keyboardHandlers;
+  std::vector<KODI::KEYBOARD::IKeyboardDriverHandler*> m_keyboardHandlers;
 
   struct MouseHandlerHandle
   {
@@ -375,7 +374,7 @@ private:
   std::vector<MouseHandlerHandle> m_mouseHandlers;
   std::unique_ptr<KODI::MOUSE::IMouseButtonMap> m_mouseButtonMap;
 
-  std::unique_ptr<KODI::KEYBOARD::IKeyboardHandler> m_keyboardEasterEgg;
+  std::unique_ptr<KODI::KEYBOARD::IKeyboardDriverHandler> m_keyboardEasterEgg;
 };
 
 /// \}

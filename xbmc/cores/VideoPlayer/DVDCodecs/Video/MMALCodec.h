@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,8 +19,6 @@
  *
  */
 
-#if defined(HAS_MMAL)
-
 #include "cores/VideoPlayer/DVDStreamInfo.h"
 #include "DVDVideoCodec.h"
 #include "threads/Event.h"
@@ -30,7 +28,7 @@
 #include <semaphore.h>
 #include <memory>
 #include <string>
-#include "guilib/Geometry.h"
+#include "utils/Geometry.h"
 #include "rendering/RenderSystem.h"
 #include "cores/VideoPlayer/VideoRenderers/BaseRenderer.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/MMALRenderer.h"
@@ -127,5 +125,3 @@ protected:
 };
 
 };
-// defined(HAS_MMAL)
-#endif

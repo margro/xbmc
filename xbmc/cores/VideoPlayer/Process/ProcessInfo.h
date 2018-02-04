@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2016 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -98,7 +98,9 @@ public:
   void SetTempo(float tempo);
   void SetNewTempo(float tempo);
   float GetNewTempo();
-  virtual bool IsTempoAllowed(float tempo);
+  bool IsTempoAllowed(float tempo);
+  virtual float MinTempoPlatform();
+  virtual float MaxTempoPlatform();
   void SetLevelVQ(int level);
   int GetLevelVQ();
   void SetGuiRender(bool gui);

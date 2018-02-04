@@ -22,7 +22,9 @@
 
 #include "cores/VideoPlayer/VideoRenderers/RenderCapture.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
+#include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "utils/log.h"
+#include "windowing/gbm/DRMAtomic.h"
 
 static CWinSystemGbmGLESContext *m_pWinSystem;
 
@@ -51,15 +53,17 @@ bool CRendererDRMPRIME::Register(CWinSystemGbmGLESContext *winSystem)
   return true;
 }
 
-bool CRendererDRMPRIME::Configure(const VideoPicture& picture, float fps, unsigned flags, unsigned int orientation)
+bool CRendererDRMPRIME::Configure(const VideoPicture& picture, float fps, unsigned int orientation)
 {
   m_format = picture.videoBuffer->GetFormat();
   m_sourceWidth = picture.iWidth;
   m_sourceHeight = picture.iHeight;
   m_renderOrientation = orientation;
 
-  // Save the flags.
-  m_iFlags = flags;
+  m_iFlags = GetFlagsChromaPosition(picture.chroma_position) |
+             GetFlagsColorMatrix(picture.color_space, picture.iWidth, picture.iHeight) |
+             GetFlagsColorPrimaries(picture.color_primaries) |
+             GetFlagsStereoMode(picture.stereoMode);
 
   // Calculate the input frame aspect ratio.
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
@@ -214,16 +218,31 @@ void CRendererDRMPRIME::SetVideoPlane(CVideoBufferDRMPRIME* buffer)
     uint32_t src_w = buffer->GetWidth() << 16;
     uint32_t src_h = buffer->GetHeight() << 16;
 
-    // TODO: use atomic or legacy api
-
-    // show the video frame FB on the video plane
-    ret = drmModeSetPlane(m_DRM->m_fd, m_DRM->m_overlay_plane->plane->plane_id, m_DRM->m_crtc->crtc->crtc_id, buffer->m_fb_id, 0,
-                          crtc_x, crtc_y, crtc_w, crtc_h,
-                          src_x, src_y, src_w, src_h);
-    if (ret < 0)
+    if(m_DRM->m_req)
     {
-      CLog::Log(LOGERROR, "CRendererDRMPRIME::%s - failed to set drm plane %d, buffer = %d, ret = %d", __FUNCTION__, m_DRM->m_overlay_plane->plane->plane_id, buffer->m_fb_id, ret);
-      return;
+      std::shared_ptr<CDRMAtomic> atomic = std::dynamic_pointer_cast<CDRMAtomic>(m_DRM);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "FB_ID",   buffer->m_fb_id);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "CRTC_ID", atomic->m_crtc->crtc->crtc_id);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "SRC_X",   src_x);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "SRC_Y",   src_y);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "SRC_W",   src_w);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "SRC_H",   src_h);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "CRTC_X",  crtc_x);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "CRTC_Y",  crtc_y);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "CRTC_W",  crtc_w);
+      atomic->AddPlaneProperty(atomic->m_req, atomic->m_primary_plane, "CRTC_H",  crtc_h);
+    }
+    else
+    {
+      // show the video frame FB on the video plane
+      ret = drmModeSetPlane(m_DRM->m_fd, m_DRM->m_primary_plane->plane->plane_id, m_DRM->m_crtc->crtc->crtc_id, buffer->m_fb_id, 0,
+                            crtc_x, crtc_y, crtc_w, crtc_h,
+                            src_x, src_y, src_w, src_h);
+      if (ret < 0)
+      {
+        CLog::Log(LOGERROR, "CRendererDRMPRIME::%s - failed to set drm plane %d, buffer = %d, ret = %d", __FUNCTION__, m_DRM->m_primary_plane->plane->plane_id, buffer->m_fb_id, ret);
+        return;
+      }
     }
   }
 }

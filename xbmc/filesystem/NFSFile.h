@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -146,8 +146,8 @@ namespace XFILE
 
     //implement iocontrol for seek_possible for preventing the stat in File class for
     //getting this info ...
-    int IoControl(EIoControl request, void* param) override{ if(request == IOCTRL_SEEK_POSSIBLE) return 1;return -1;};    
-    int GetChunkSize() override {return gNfsConnection.GetMaxReadChunkSize();}
+    int IoControl(EIoControl request, void* param) override{ return request == IOCTRL_SEEK_POSSIBLE ? 1 : -1; };    
+    int GetChunkSize() override {return static_cast<int>(gNfsConnection.GetMaxReadChunkSize());}
     
     bool OpenForWrite(const CURL& url, bool bOverWrite = false) override;
     bool Delete(const CURL& url) override;

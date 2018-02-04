@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -58,6 +58,11 @@ static const char * deviceWL[] = {
   "/dev/fuse",
   "/mnt/media_rw"
 };
+
+IStorageProvider* IStorageProvider::CreateInstance()
+{
+  return new CAndroidStorageProvider();
+}
 
 CAndroidStorageProvider::CAndroidStorageProvider()
 {

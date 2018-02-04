@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include "GUIFontTTF.h"
 #include <list>
 #include <vector>
+#include <wrl/client.h>
 
 #define ELEMENT_ARRAY_MAX_CHAR_INDEX (2000)
 
@@ -65,14 +66,13 @@ private:
   static void AddReference(CGUIFontTTFDX* font, CD3DBuffer* pBuffer);
   static void ClearReference(CGUIFontTTFDX* font, CD3DBuffer* pBuffer);
 
-  CD3DTexture*           m_speedupTexture;  // extra texture to speed up reallocations when the main texture is in d3dpool_default.
-                                            // that's the typical situation of Windows Vista and above.
-  ID3D11Buffer*          m_vertexBuffer;
-  unsigned               m_vertexWidth;
+  unsigned m_vertexWidth;
+  CD3DTexture* m_speedupTexture;  // extra texture to speed up reallocations
+  Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
   std::list<CD3DBuffer*> m_buffers;
 
-  static bool            m_staticIndexBufferCreated;
-  static ID3D11Buffer*   m_staticIndexBuffer;
+  static bool m_staticIndexBufferCreated;
+  static Microsoft::WRL::ComPtr<ID3D11Buffer> m_staticIndexBuffer;
 };
 
 #endif

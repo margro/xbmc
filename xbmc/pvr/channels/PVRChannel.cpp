@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -407,9 +407,8 @@ void CPVRChannel::UpdatePath(CPVRChannelGroupInternal* group)
 
   std::string strFileNameAndPath;
   CSingleLock lock(m_critSection);
-  strFileNameAndPath = StringUtils::Format("pvr://channels/%s/%s/%s_%d.pvr",
-                                           (m_bIsRadio ? "radio" : "tv"),
-                                           group->GroupName().c_str(),
+  strFileNameAndPath = StringUtils::Format("%s%s_%d.pvr",
+                                           group->GetPath(),
                                            CServiceBroker::GetPVRManager().Clients()->GetClientAddonId(m_iClientId).c_str(),
                                            m_iUniqueId);
   if (m_strFileNameAndPath != strFileNameAndPath)

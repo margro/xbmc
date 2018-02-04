@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -73,9 +73,9 @@ namespace ADDON
 
     AddonPtr GetRunningInstance() const override;
 
-  protected:
-    bool Initialized() { return m_initialized; }
+    bool Initialized() const { return m_initialized; }
 
+  protected:
     static std::string GetDllPath(const std::string &strFileName);
 
     CAddonInterfaces* m_pHelpers;

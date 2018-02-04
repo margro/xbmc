@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -53,6 +53,5 @@ protected:
 
 };
 
-XBMC_GLOBAL_REF(CSectionLoader,g_sectionLoader);
-#define g_sectionLoader XBMC_GLOBAL_USE(CSectionLoader)
+extern  CSectionLoader g_sectionLoader;
 

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,8 +18,6 @@
  *
  */
 
-#include "system.h"
-#if defined(HAS_FILESYSTEM_NFS)
 #include "filesystem/NFSFile.h"
 #include "test/TestUtils.h"
 
@@ -96,4 +94,3 @@ TEST_P(TestNfs, splitUrlIntoExportAndPath)
 }
 
 INSTANTIATE_TEST_CASE_P(NfsFile, TestNfs, ValuesIn(g_TestData));
-#endif//HAS_FILESYSTEM_NFS

@@ -2,7 +2,7 @@
 
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -73,16 +73,5 @@ protected:
   static void LogString(int logLevel, const std::string& logString);
   static bool WriteLogString(int logLevel, const std::string& logString);
 };
-
-
-namespace XbmcUtils
-{
-  class LogImplementation : public XbmcCommons::ILogger
-  {
-  public:
-    ~LogImplementation() override = default;
-    inline void log(int logLevel, IN_STRING const char* message) override { CLog::Log(logLevel, "%s", message); }
-  };
-}
 
 XBMC_GLOBAL_REF(CLog, g_log);

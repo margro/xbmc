@@ -86,7 +86,7 @@
 #include "utils/TimeUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/log.h"
-#include "utils/Environment.h"
+#include "platform/Environment.h"
 
 #include "cores/VideoPlayer/DVDSubtitles/DVDSubtitleTagSami.h"
 #include "cores/VideoPlayer/DVDSubtitles/DVDSubtitleStream.h"
@@ -330,7 +330,7 @@ std::string CUtil::GetTitleFromPath(const CURL& url, bool bIsFolder /* = false *
     strFilename = CUPnPDirectory::GetFriendlyName(url);
 #endif
 
-  if (url.IsProtocol("rss"))
+  if (url.IsProtocol("rss") || url.IsProtocol("rsss"))
   {
     CRSSDirectory dir;
     CFileItemList items;
@@ -668,7 +668,9 @@ void CUtil::GetDVDDriveIcon(const std::string& strPath, std::string& strIcon)
 
 void CUtil::RemoveTempFiles()
 {
-  std::string searchPath = CProfilesManager::GetInstance().GetDatabaseFolder();
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  std::string searchPath = profileManager.GetDatabaseFolder();
   CFileItemList items;
   if (!XFILE::CDirectory::GetDirectory(searchPath, items, ".tmp", DIR_FLAG_NO_FILE_DIRS))
     return;

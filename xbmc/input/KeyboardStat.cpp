@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -74,10 +74,12 @@ bool CKeyboardStat::LookupSymAndUnicodePeripherals(XBMC_keysym &keysym, uint8_t 
 
 CKey CKeyboardStat::TranslateKey(XBMC_keysym& keysym) const
 {
+  uint32_t keycode;
   uint8_t vkey;
   wchar_t unicode;
   char ascii;
   uint32_t modifiers;
+  uint32_t lockingModifiers;
   unsigned int held;
   XBMCKEYTABLE keytable;
 
@@ -93,11 +95,20 @@ CKey CKeyboardStat::TranslateKey(XBMC_keysym& keysym) const
   if (keysym.mod & XBMCKMOD_META)
     modifiers |= CKey::MODIFIER_META;
 
+  lockingModifiers = 0;
+  if (keysym.mod & XBMCKMOD_NUM)
+    lockingModifiers |= CKey::MODIFIER_NUMLOCK;
+  if (keysym.mod & XBMCKMOD_CAPS)
+    lockingModifiers |= CKey::MODIFIER_CAPSLOCK;
+  if (keysym.mod & XBMCKMOD_MODE)
+    lockingModifiers |= CKey::MODIFIER_SCROLLLOCK;
+
   CLog::Log(LOGDEBUG, "Keyboard: scancode: 0x%02x, sym: 0x%04x, unicode: 0x%04x, modifier: 0x%x", keysym.scancode, keysym.sym, keysym.unicode, keysym.mod);
 
   // The keysym.unicode is usually valid, even if it is zero. A zero
   // unicode just means this is a non-printing keypress. The ascii and
   // vkey will be set below.
+  keycode = keysym.sym;
   unicode = keysym.unicode;
   ascii = 0;
   vkey = 0;
@@ -121,6 +132,8 @@ CKey CKeyboardStat::TranslateKey(XBMC_keysym& keysym) const
   // will match keys like \ that are on different keys on regional keyboards.
   else if (KeyTableLookupUnicode(keysym.unicode, &keytable))
   {
+    if (keycode == 0)
+      keycode = keytable.sym;
     vkey = keytable.vkey;
     ascii = keytable.ascii;
   }
@@ -175,7 +188,7 @@ CKey CKeyboardStat::TranslateKey(XBMC_keysym& keysym) const
 
   // Create and return a CKey
 
-  CKey key(vkey, unicode, ascii, modifiers, held);
+  CKey key(keycode, vkey, unicode, ascii, modifiers, lockingModifiers, held);
 
   return key;
 }

@@ -54,7 +54,6 @@
 #include "DVDDemuxers/DVDDemuxCC.h"
 #include "cores/FFmpeg.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
-#include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
 #include "settings/AdvancedSettings.h"
 #include "FileItem.h"
@@ -62,12 +61,12 @@
 #include "settings/Settings.h"
 #include "settings/MediaSettings.h"
 #include "utils/log.h"
-#include "utils/JobManager.h"
 #include "utils/StreamDetails.h"
 #include "utils/StreamUtils.h"
 #include "utils/Variant.h"
 #include "storage/MediaManager.h"
 #include "dialogs/GUIDialogKaiToast.h"
+#include "utils/JobManager.h"
 #include "utils/StringUtils.h"
 #include "video/Bookmark.h"
 #include "Util.h"
@@ -628,11 +627,12 @@ CVideoPlayer::CVideoPlayer(IPlayerCallback& callback)
       m_messenger("player"),
       m_renderManager(m_clock, this)
 {
+  m_outboundEvents.reset(new CJobQueue(false, 1, CJob::PRIORITY_NORMAL));
   m_players_created = false;
-  m_pDemuxer = NULL;
-  m_pSubtitleDemuxer = NULL;
-  m_pCCDemuxer = NULL;
-  m_pInputStream = NULL;
+  m_pDemuxer = nullptr;
+  m_pSubtitleDemuxer = nullptr;
+  m_pCCDemuxer = nullptr;
+  m_pInputStream = nullptr;
 
   m_dvd.Clear();
   m_State.Clear();
@@ -684,6 +684,11 @@ CVideoPlayer::~CVideoPlayer()
 
   CloseFile();
   DestroyPlayers();
+
+  while (m_outboundEvents->IsProcessing())
+  {
+    Sleep(10);
+  }
 }
 
 bool CVideoPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
@@ -835,8 +840,6 @@ bool CVideoPlayer::OpenInputStream()
     } // end loop over all subtitle files
   }
 
-  SetAVDelay(m_processInfo->GetVideoSettings().m_AudioDelay);
-  SetSubTitleDelay(m_processInfo->GetVideoSettings().m_SubtitleDelay);
   m_clock.Reset();
   m_dvd.Clear();
   m_errorCount = 0;
@@ -1242,9 +1245,9 @@ void CVideoPlayer::Prepare()
 
   IPlayerCallback *cb = &m_callback;
   CFileItem fileItem = m_item;
-  CJobManager::GetInstance().Submit([=]() {
+  m_outboundEvents->Submit([=]() {
     cb->RequestVideoSettings(fileItem);
-  }, CJob::PRIORITY_NORMAL);
+  });
 
   if (!OpenInputStream())
   {
@@ -2451,18 +2454,18 @@ void CVideoPlayer::OnExit()
   IPlayerCallback *cb = &m_callback;
   CFileItem fileItem(m_item);
   CVideoSettings vs = m_processInfo->GetVideoSettings();
-  CJobManager::GetInstance().Submit([=]() {
+  m_outboundEvents->Submit([=]() {
     cb->StoreVideoSettings(fileItem, vs);
-  }, CJob::PRIORITY_NORMAL);
+  });
 
   CBookmark bookmark;
   bookmark.totalTimeInSeconds = m_processInfo->GetMaxTime() / 1000;
   bookmark.timeInSeconds = GetTime() / 1000;
   bookmark.player = m_name;
   bookmark.playerState = GetPlayerState();
-  CJobManager::GetInstance().Submit([=]() {
+  m_outboundEvents->Submit([=]() {
     cb->OnPlayerCloseFile(fileItem, bookmark);
-  }, CJob::PRIORITY_NORMAL);
+  });
     
   // destroy objects
   SAFE_DELETE(m_pDemuxer);
@@ -2489,14 +2492,14 @@ void CVideoPlayer::OnExit()
 
   bool error = m_error;
   bool abort = m_bAbortRequest;
-  CJobManager::GetInstance().Submit([=]() {
+  m_outboundEvents->Submit([=]() {
     if (error)
       cb->OnPlayBackError();
     else if (abort)
       cb->OnPlayBackStopped();
     else
       cb->OnPlayBackEnded();
-  }, CJob::PRIORITY_NORMAL);
+  });
 }
 
 void CVideoPlayer::HandleMessages()
@@ -2513,25 +2516,25 @@ void CVideoPlayer::HandleMessages()
       IPlayerCallback *cb = &m_callback;
       CFileItem fileItem(m_item);
       CVideoSettings vs = m_processInfo->GetVideoSettings();
-      CJobManager::GetInstance().Submit([=]() {
+      m_outboundEvents->Submit([=]() {
         cb->StoreVideoSettings(fileItem, vs);
-      }, CJob::PRIORITY_NORMAL);
+      });
 
       CBookmark bookmark;
       bookmark.totalTimeInSeconds = m_processInfo->GetMaxTime() / 1000;
       bookmark.timeInSeconds = GetTime() / 1000;
       bookmark.player = m_name;
       bookmark.playerState = GetPlayerState();
-      CJobManager::GetInstance().Submit([=]() {
+      m_outboundEvents->Submit([=]() {
         cb->OnPlayerCloseFile(fileItem, bookmark);
-      }, CJob::PRIORITY_NORMAL);
+      });
 
       m_item = msg.GetItem();
       m_playerOptions = msg.GetOptions();
 
-      CJobManager::GetInstance().Submit([this]() {
+      m_outboundEvents->Submit([this]() {
         m_callback.OnPlayBackStarted(m_item);
-      }, CJob::PRIORITY_NORMAL);
+      });
 
       FlushBuffers(DVD_NOPTS_VALUE, true, true);
       m_renderManager.Flush(false);
@@ -2963,9 +2966,9 @@ void CVideoPlayer::HandleMessages()
       CServiceBroker::GetDataCacheCore().SignalAudioInfoChange();
       CServiceBroker::GetDataCacheCore().SignalVideoInfoChange();
       IPlayerCallback *cb = &m_callback;
-      CJobManager::GetInstance().Submit([=]() {
+      m_outboundEvents->Submit([=]() {
         cb->OnAVChange();
-      }, CJob::PRIORITY_NORMAL);
+      });
     }
     else if (pMsg->IsType(CDVDMsg::PLAYER_ABORT))
     {
@@ -3647,8 +3650,6 @@ bool CVideoPlayer::OpenVideoStream(CDVDStreamInfo& hint, bool reset)
   if (hint.stereo_mode.empty())
     hint.stereo_mode = CStereoscopicsManager::GetInstance().DetectStereoModeByString(m_item.GetPath());
 
-  SelectionStream& s = m_SelectionStreams.Get(STREAM_VIDEO, 0);
-
   if (hint.flags & AV_DISPOSITION_ATTACHED_PIC)
     return false;
 
@@ -3659,7 +3660,7 @@ bool CVideoPlayer::OpenVideoStream(CDVDStreamInfo& hint, bool reset)
     if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF)
     {
       double framerate = DVD_TIME_BASE / CDVDCodecUtils::NormalizeFrameduration((double)DVD_TIME_BASE * hint.fpsscale / hint.fpsrate);
-      m_renderManager.TriggerUpdateResolution(static_cast<float>(framerate), hint.width, RenderManager::GetStereoModeFlags(hint.stereo_mode));
+      m_renderManager.TriggerUpdateResolution(static_cast<float>(framerate), hint.width, hint.stereo_mode);
     }
   }
 
@@ -3683,9 +3684,6 @@ bool CVideoPlayer::OpenVideoStream(CDVDStreamInfo& hint, bool reset)
       float fFramesPerSecond = (float)m_CurrentVideo.hint.fpsrate / (float)m_CurrentVideo.hint.fpsscale;
       m_Edl.ReadEditDecisionLists(m_item.GetDynPath(), fFramesPerSecond, m_CurrentVideo.hint.height);
     }
-
-    if (s.stereo_mode == "mono")
-      s.stereo_mode = "";
 
     static_cast<IDVDStreamPlayerVideo*>(player)->SetSpeed(m_streamPlayerSpeed);
     m_CurrentVideo.syncState = IDVDStreamPlayer::SYNC_STARTING;
@@ -3902,6 +3900,9 @@ void CVideoPlayer::FlushBuffers(double pts, bool accurate, bool sync)
 // since we call ffmpeg functions to decode, this is being called in the same thread as ::Process() is
 int CVideoPlayer::OnDiscNavResult(void* pData, int iMessage)
 {
+  if (!m_pInputStream)
+    return 0;
+
 #if defined(HAVE_LIBBLURAY)
   if (m_pInputStream->IsStreamType(DVDSTREAM_TYPE_BLURAY))
   {
@@ -4614,7 +4615,7 @@ void CVideoPlayer::UpdatePlayState(double timeout)
       state.time = (m_clock.GetClock(false) - times.ptsStart) * 1000 / DVD_TIME_BASE;
       state.timeMax = (times.ptsEnd - times.ptsStart) * 1000 / DVD_TIME_BASE;
       state.timeMin = (times.ptsBegin - times.ptsStart) * 1000 / DVD_TIME_BASE;
-      state.time_offset = 0;
+      state.time_offset = -times.ptsStart;
     }
     else if (pDisplayTime && pDisplayTime->GetTotalTime() > 0)
     {
@@ -4739,6 +4740,8 @@ void CVideoPlayer::SetVideoSettings(CVideoSettings& settings)
 {
   m_processInfo->SetVideoSettings(settings);
   m_renderManager.SetVideoSettings(settings);
+  m_renderManager.SetDelay(static_cast<int>(settings.m_AudioDelay * 1000.0f));
+  m_VideoPlayerVideo->SetSubtitleDelay(static_cast<int>(-settings.m_SubtitleDelay * DVD_TIME_BASE));
 }
 
 void CVideoPlayer::FrameMove()
@@ -4770,7 +4773,8 @@ float CVideoPlayer::GetRenderAspectRatio()
 
 void CVideoPlayer::TriggerUpdateResolution()
 {
-  m_renderManager.TriggerUpdateResolution(0, 0, 0);
+  std::string stereomode;
+  m_renderManager.TriggerUpdateResolution(0, 0, stereomode);
 }
 
 bool CVideoPlayer::IsRenderingVideo()

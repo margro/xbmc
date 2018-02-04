@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <string>
 #ifdef HAS_DX
 #include "guilib/GUIShaderDX.h"
+#include <wrl/client.h>
 #endif
 typedef uint32_t color_t;
 
@@ -134,7 +135,7 @@ private:
 
   CCriticalSection m_textureAccess;
 #ifdef HAS_DX
-  ID3D11Buffer*    m_vb;
-  bool             UpdateVertexBuffer(Vertex *vertices);
+  Microsoft::WRL::ComPtr<ID3D11Buffer> m_vb;
+  bool UpdateVertexBuffer(Vertex *vertices);
 #endif
 };

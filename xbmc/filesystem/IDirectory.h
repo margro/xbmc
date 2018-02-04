@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "utils/Variant.h"
 
 class CFileItemList;
+class CProfilesManager;
 class CURL;
 
 namespace XFILE
@@ -59,7 +60,7 @@ namespace XFILE
 class IDirectory
 {
 public:
-  IDirectory(void);
+  IDirectory();
   virtual ~IDirectory(void);
   /*!
    \brief Get the \e items of the directory \e strPath.
@@ -169,6 +170,9 @@ protected:
    \sa ProcessRequirements
    */
   void RequireAuthentication(const CURL& url);
+
+  // Construction parameters
+  const CProfilesManager &m_profileManager;
 
   std::string m_strFileMask;  ///< Holds the file mask specified by SetMask()
 

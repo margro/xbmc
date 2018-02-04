@@ -75,7 +75,7 @@ void CPVRClient::StopRunningInstance()
   const ADDON::AddonPtr addon(GetRunningInstance());
   if (addon)
   {
-    // stop the pvr manager and stop and unload the running pvr addon
+    // stop the pvr manager and stop and unload the running pvr addon. pvr manager will be restarted on demand.
     CServiceBroker::GetPVRManager().Stop();
     CServiceBroker::GetPVRManager().Clients()->StopClient(addon, false);
   }
@@ -88,23 +88,10 @@ void CPVRClient::OnPreInstall()
   CAddon::OnPreInstall();
 }
 
-void CPVRClient::OnPostInstall(bool update, bool modal)
-{
-  CAddon::OnPostInstall(update, modal);
-  CServiceBroker::GetPVRManager().Clients()->UpdateAddons();
-}
-
 void CPVRClient::OnPreUnInstall()
 {
   StopRunningInstance();
   CAddon::OnPreUnInstall();
-}
-
-void CPVRClient::OnPostUnInstall()
-{
-  CAddon::OnPostUnInstall();
-  CServiceBroker::GetPVRManager().Clients()->UpdateAddons();
-  CServiceBroker::GetPVRManager().GetTVDatabase()->Delete(*this);
 }
 
 ADDON::AddonPtr CPVRClient::GetRunningInstance() const
@@ -697,7 +684,7 @@ public:
     m_strDirector(kodiTag->DeTokenize(kodiTag->Directors())),
     m_strWriter(kodiTag->DeTokenize(kodiTag->Writers())),
     m_strIMDBNumber(kodiTag->IMDBNumber()),
-    m_strEpisodeName(kodiTag->EpisodeName()),
+    m_strEpisodeName(kodiTag->EpisodeName(true)),
     m_strIconPath(kodiTag->Icon()),
     m_strSeriesLink(kodiTag->SeriesLink())
   {
@@ -1591,7 +1578,7 @@ void CPVRClient::cb_recording(void *kodiInstance, const char *strName, const cha
 
   /* display a notification for 5 seconds */
   CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info, strLine1, strLine2, 5000, false);
-  CEventLog::GetInstance().Add(EventPtr(new CNotificationEvent(client->Name(), strLine1, client->Icon(), strLine2)));
+  CServiceBroker::GetEventLog().Add(EventPtr(new CNotificationEvent(client->Name(), strLine1, client->Icon(), strLine2)));
 
   CLog::Log(LOGDEBUG, "PVR - %s - recording %s on client '%s'. name='%s' filename='%s'",
       __FUNCTION__, bOnOff ? "started" : "finished", client->Name().c_str(), strName, strFileName);

@@ -21,8 +21,8 @@
 
 #include "PeripheralAddon.h" // for FeatureMap
 #include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/PeripheralUtils.h"
+#include "input/joysticks/interfaces/IButtonMap.h"
 #include "input/joysticks/DriverPrimitive.h"
-#include "input/joysticks/IButtonMap.h"
 #include "input/joysticks/JoystickTypes.h"
 #include "peripherals/PeripheralTypes.h"
 #include "threads/CriticalSection.h"
@@ -127,6 +127,16 @@ namespace PERIPHERALS
     void AddThrottle(
       const KODI::JOYSTICK::FeatureName& feature,
       KODI::JOYSTICK::THROTTLE_DIRECTION direction,
+      const KODI::JOYSTICK::CDriverPrimitive& primitive
+    ) override;
+
+    bool GetKey(
+      const KODI::JOYSTICK::FeatureName& feature,
+      KODI::JOYSTICK::CDriverPrimitive& primitive
+    ) override;
+
+    void AddKey(
+      const KODI::JOYSTICK::FeatureName& feature,
       const KODI::JOYSTICK::CDriverPrimitive& primitive
     ) override;
 

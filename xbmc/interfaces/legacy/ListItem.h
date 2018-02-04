@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -270,6 +270,33 @@ namespace XBMCAddon
       setArt(...);
 #else
       void setArt(const Properties& dictionary);
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_xbmcgui_listitem
+      /// @brief \python_func{ setIsFolder(isFolder) }
+      ///-----------------------------------------------------------------------
+      /// Sets if this listitem is a folder.
+      ///
+      /// @param isFolder            bool - True=folder / False=not a folder (default).
+      ///
+      ///
+      ///-----------------------------------------------------------------------
+      ///
+      /// @python_v18 New function added.
+      ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ...
+      /// # setIsFolder(isFolder)
+      /// listitem.setIsFolder(True)
+      /// ...
+      /// ~~~~~~~~~~~~~
+      ///
+      setIsFolder(...);
+#else
+      void setIsFolder(bool isFolder);
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS

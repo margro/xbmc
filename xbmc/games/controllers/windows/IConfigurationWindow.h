@@ -139,20 +139,20 @@ namespace GAME
     virtual void Load(const ControllerPtr& controller) = 0;
 
     /*!
-     * \brief  Focus has been set to the specified feature
-     * \param  featureIndex The index of the feature being focused
+     * \brief  Focus has been set to the specified GUI button
+     * \param  buttonIndex The index of the button being focused
      */
-    virtual void OnFocus(unsigned int index) = 0;
+    virtual void OnFocus(unsigned int buttonIndex) = 0;
 
     /*!
-     * \brief  The specified feature has been selected
-     * \param  featureIndex The index of the feature being selected
+     * \brief  The specified GUI button has been selected
+     * \param  buttonIndex The index of the button being selected
      */
-    virtual void OnSelect(unsigned int index) = 0;
+    virtual void OnSelect(unsigned int buttonIndex) = 0;
   };
 
   /*!
-   * \brief A button in a feature list
+   * \brief A GUI button in a feature list
    */
   class IFeatureButton
   {
@@ -163,6 +163,12 @@ namespace GAME
      * \brief Get the feature represented by this button
      */
     virtual const CControllerFeature& Feature(void) const = 0;
+
+    /*!
+     * \brief Allow the wizard to include this feature in a list of buttons
+     *        to map
+     */
+    virtual bool AllowWizard() const { return true; }
 
     /*!
      * \brief Prompt the user for a single input element
@@ -202,6 +208,18 @@ namespace GAME
     virtual JOYSTICK::THROTTLE_DIRECTION GetThrottleDirection(void) const = 0;
 
     /*!
+     * \brief True if the button is waiting for a key press
+     */
+    virtual bool NeedsKey() const { return false; }
+
+    /*!
+     * \brief Set the pressed key that the user will be prompted to map
+     *
+     * \param key The key that was pressed
+     */
+    virtual void SetKey(const CControllerFeature &key) { }
+
+    /*!
      * \brief Reset button after prompting for input has finished
      */
     virtual void Reset(void) = 0;
@@ -216,8 +234,9 @@ namespace GAME
     virtual ~IConfigurationWizard() = default;
 
     /*!
-     * \brief Start the wizard at the specified feature
-     * \param featureIndex The index of the feature to start at
+     * \brief Start the wizard for the specified buttons
+     * \param controllerId The controller ID being mapped
+     * \param buttons The buttons to map
      */
     virtual void Run(const std::string& strControllerId, const std::vector<IFeatureButton*>& buttons) = 0;
 
@@ -233,6 +252,20 @@ namespace GAME
      * \return true if aborted, or false if the wizard wasn't running
      */
     virtual bool Abort(bool bWait = true) = 0;
+
+    /*!
+     * \brief Register a key by its keycode
+     * \param key A key with a valid keycode
+     *
+     * This should be called before Run(). It allows the user to choose a key
+     * to map instead of scrolling through a long list.
+     */
+    virtual void RegisterKey(const CControllerFeature &key) = 0;
+
+    /*!
+     * \brief Unregister all registered keys
+     */
+    virtual void UnregisterKeys() = 0;
   };
 }
 }

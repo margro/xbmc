@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 #include "OptionalsReg.h"
 #include "guilib/GraphicContext.h"
+#include "powermanagement/linux/LinuxPowerSyscall.h"
 #include "settings/DisplaySettings.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -64,6 +65,7 @@ CWinSystemGbm::CWinSystemGbm() :
   }
 
   m_winEvents.reset(new CWinEventsLinux());
+  CLinuxPowerSyscall::Register();
 }
 
 bool CWinSystemGbm::InitWindowSystem()
@@ -205,11 +207,11 @@ bool CWinSystemGbm::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
   return result;
 }
 
-void CWinSystemGbm::FlipPage()
+void CWinSystemGbm::FlipPage(bool rendered, bool videoLayer)
 {
   struct gbm_bo *bo = m_GBM->LockFrontBuffer();
 
-  m_DRM->FlipPage(bo);
+  m_DRM->FlipPage(bo, rendered, videoLayer);
 
   m_GBM->ReleaseBuffer();
 }

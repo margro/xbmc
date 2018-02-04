@@ -1,6 +1,6 @@
 /*
 *      Copyright (C) 2005-2014 Team XBMC
-*      http://xbmc.org
+*      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -28,14 +28,14 @@
 #include "JoystickMapper.h"
 #include "KeymapEnvironment.h"
 #include "TouchTranslator.h"
-#include "input/keyboard/IKeyboardHandler.h"
+#include "input/keyboard/interfaces/IKeyboardDriverHandler.h"
 #include "input/mouse/generic/MouseInputHandling.h"
-#include "input/mouse/IMouseDriverHandler.h"
+#include "input/mouse/interfaces/IMouseDriverHandler.h"
 #include "input/mouse/MouseWindowingButtonMap.h"
 #include "input/keyboard/KeyboardEasterEgg.h"
 #include "input/Key.h"
+#include "input/WindowTranslator.h"
 #include "messaging/ApplicationMessenger.h"
-#include "guilib/Geometry.h"
 #include "guilib/GUIAudioManager.h"
 #include "guilib/GUIControl.h"
 #include "guilib/GUIWindow.h"
@@ -56,6 +56,7 @@
 #include "peripherals/Peripherals.h"
 #include "peripherals/devices/PeripheralImon.h"
 #include "XBMC_vkeys.h"
+#include "utils/Geometry.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "Util.h"
@@ -69,10 +70,11 @@ using EVENTSERVER::CEventServer;
 using namespace KODI;
 using namespace MESSAGING;
 
-CInputManager::CInputManager(const CAppParamParser &params) :
+CInputManager::CInputManager(const CAppParamParser &params,
+                             const CProfilesManager &profileManager) :
   m_keymapEnvironment(new CKeymapEnvironment),
   m_buttonTranslator(new CButtonTranslator),
-  m_irTranslator(new CIRTranslator),
+  m_irTranslator(new CIRTranslator(profileManager)),
   m_customControllerTranslator(new CCustomControllerTranslator),
   m_touchTranslator(new CTouchTranslator),
   m_joystickTranslator(new CJoystickMapper),
@@ -83,7 +85,7 @@ CInputManager::CInputManager(const CAppParamParser &params) :
   m_buttonTranslator->RegisterMapper("customcontroller", m_customControllerTranslator.get());
   m_buttonTranslator->RegisterMapper("joystick", m_joystickTranslator.get());
 
-  RegisterKeyboardHandler(m_keyboardEasterEgg.get());
+  RegisterKeyboardDriverHandler(m_keyboardEasterEgg.get());
 
   if (!params.RemoteControlName().empty())
     SetRemoteControlName(params.RemoteControlName());
@@ -104,7 +106,7 @@ CInputManager::~CInputManager()
   // Unregister settings
   CServiceBroker::GetSettings().UnregisterCallback(this);
 
-  UnregisterKeyboardHandler(m_keyboardEasterEgg.get());
+  UnregisterKeyboardDriverHandler(m_keyboardEasterEgg.get());
 
   m_buttonTranslator->UnregisterMapper(m_touchTranslator.get());
   m_buttonTranslator->UnregisterMapper(m_customControllerTranslator.get());
@@ -422,7 +424,7 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
     if (!handled)
     {
       m_Mouse.HandleEvent(newEvent);
-      ProcessMouse(g_windowManager.GetActiveWindowID());
+      ProcessMouse(g_windowManager.GetActiveWindowOrDialog());
     }
     break;
   }
@@ -438,7 +440,7 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
       actionId = newEvent.touch.action;
     else
     {
-      int iWin = g_windowManager.GetActiveWindowID();
+      int iWin = g_windowManager.GetActiveWindowOrDialog();
       m_touchTranslator->TranslateTouchAction(iWin, newEvent.touch.action, newEvent.touch.pointers, actionId, actionString);
     }
 
@@ -481,9 +483,9 @@ bool CInputManager::OnKey(const CKey& key)
 {
   bool bHandled = false;
 
-  for (std::vector<KEYBOARD::IKeyboardHandler*>::iterator it = m_keyboardHandlers.begin(); it != m_keyboardHandlers.end(); ++it)
+  for (auto handler : m_keyboardHandlers)
   {
-    if ((*it)->OnKeyPress(key))
+    if (handler->OnKeyPress(key))
     {
       bHandled = true;
       break;
@@ -502,7 +504,7 @@ bool CInputManager::OnKey(const CKey& key)
     }
     else
     {
-      if (!m_buttonTranslator->HasLongpressMapping(g_windowManager.GetActiveWindowID(), key))
+      if (!m_buttonTranslator->HasLongpressMapping(g_windowManager.GetActiveWindowOrDialog(), key))
       {
         m_LastKey.Reset();
         bHandled = HandleKey(key);
@@ -529,7 +531,7 @@ bool CInputManager::HandleKey(const CKey& key)
   m_Mouse.SetActive(false);
 
   // get the current active window
-  int iWin = g_windowManager.GetActiveWindowID();
+  int iWin = g_windowManager.GetActiveWindowOrDialog();
 
   // this will be checked for certain keycodes that need
   // special handling if the screensaver is active
@@ -671,8 +673,8 @@ bool CInputManager::HandleKey(const CKey& key)
 
 void CInputManager::OnKeyUp(const CKey& key)
 {
-  for (std::vector<KEYBOARD::IKeyboardHandler*>::iterator it = m_keyboardHandlers.begin(); it != m_keyboardHandlers.end(); ++it)
-    (*it)->OnKeyRelease(key);
+  for (auto handler : m_keyboardHandlers)
+    handler->OnKeyRelease(key);
 
   if (m_LastKey.GetButtonCode() != KEY_INVALID && !(m_LastKey.GetButtonCode() & CKey::MODIFIER_LONG))
   {
@@ -993,13 +995,13 @@ int CInputManager::TranslateLircRemoteString(const std::string &szDevice, const 
   return m_irTranslator->TranslateButton(szDevice, szButton);
 }
 
-void CInputManager::RegisterKeyboardHandler(KEYBOARD::IKeyboardHandler* handler)
+void CInputManager::RegisterKeyboardDriverHandler(KEYBOARD::IKeyboardDriverHandler* handler)
 {
   if (std::find(m_keyboardHandlers.begin(), m_keyboardHandlers.end(), handler) == m_keyboardHandlers.end())
     m_keyboardHandlers.insert(m_keyboardHandlers.begin(), handler);
 }
 
-void CInputManager::UnregisterKeyboardHandler(KEYBOARD::IKeyboardHandler* handler)
+void CInputManager::UnregisterKeyboardDriverHandler(KEYBOARD::IKeyboardDriverHandler* handler)
 {
   m_keyboardHandlers.erase(std::remove(m_keyboardHandlers.begin(), m_keyboardHandlers.end(), handler), m_keyboardHandlers.end());
 }

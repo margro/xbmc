@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -127,11 +127,6 @@ bool aml_permissions()
     if (!SysfsUtils::HasRW("/dev/video10"))
     {
       CLog::Log(LOGERROR, "AML: no rw on /dev/video10");
-      permissions_ok = 0;
-    }
-    if (!SysfsUtils::HasRW("/sys/module/amvideo/parameters/omx_pts"))
-    {
-      CLog::Log(LOGERROR, "AML: no rw on /sys/module/amvideo/parameters/omx_pts");
       permissions_ok = 0;
     }
     if (!SysfsUtils::HasRW("/sys/module/amlvideodri/parameters/freerun_mode"))

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *      Test patterns designed by Ofer LaOr - hometheater.co.il
  *
@@ -29,6 +29,7 @@
 
 #ifndef _d3d9TYPES_H_
 #include "DirectXPackedVector.h"
+using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 DWORD D3DCOLOR_COLORVALUE(float r, float g, float b, float a)

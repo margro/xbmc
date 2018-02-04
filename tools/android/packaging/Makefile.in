@@ -3,8 +3,7 @@ include ../../depends/Makefile.include
 BUILD_TYPE:=@CMAKE_BUILD_TYPE@
 BUILD_TYPE_LC:=$(shell echo $(BUILD_TYPE) | tr A-Z a-z)
 
-OBJS = libcurl.so \
-  libplist.so libshairplay.so \
+OBJS = libplist.so libshairplay.so \
   libnfs.so libass.so \
   libbluray.so libsmbclient.so
 
@@ -70,7 +69,7 @@ ifeq ($(JAVA8),yes)
   JAVAC_EXTRA_ARGS = -source 1.7 -target 1.7
 endif
 
-SRCLIBS = $(addprefix $(PREFIX)/lib/,$(OBJS)) $(addprefix $(PREFIX)/lib/$(SDK_PLATFORM)/,$(PLATFORM_OBJS))
+SRCLIBS = $(addprefix $(PREFIX)/lib/,$(OBJS))
 DSTLIBS = $(CPU)/lib/lib@APP_NAME_LC@.so $(addprefix $(CPU)/lib/,$(OBJS)) $(addprefix $(CPU)/lib/,$(PLATFORM_OBJS))
 libs= $(DSTLIBS)
 

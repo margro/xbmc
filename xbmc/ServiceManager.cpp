@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2016 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include "ContextMenuManager.h"
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "cores/DataCacheCore.h"
+#include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "cores/RetroPlayer/rendering/GUIGameRenderManager.h"
 #include "favourites/FavouritesService.h"
 #include "games/controllers/ControllerManager.h"
@@ -44,6 +45,7 @@
 #include "windowing/WinSystem.h"
 #include "powermanagement/PowerManager.h"
 #include "weather/WeatherManager.h"
+#include "DatabaseManager.h"
 
 using namespace KODI;
 
@@ -51,12 +53,25 @@ CServiceManager::CServiceManager()
 {
 }
 
-CServiceManager::~CServiceManager() = default;
+CServiceManager::~CServiceManager()
+{
+  if (init_level > 2)
+    DeinitStageThree();
+  if (init_level > 1)
+    DeinitStageTwo();
+  if (init_level > 0)
+    DeinitStageOne();
+}
 
 bool CServiceManager::InitForTesting()
 {
   m_settings.reset(new CSettings());
   m_network.reset(SetupNetwork());
+
+  m_profileManager.reset(new CProfilesManager(*m_settings));
+
+  m_databaseManager.reset(new CDatabaseManager);
+
   m_fileExtensionProvider.reset(new CFileExtensionProvider());
 
   m_addonMgr.reset(new ADDON::CAddonMgr());
@@ -75,6 +90,8 @@ void CServiceManager::DeinitTesting()
   init_level = 0;
   m_addonMgr.reset();
   m_fileExtensionProvider.reset();
+  m_databaseManager.reset();
+  m_profileManager.reset();
   m_network.reset();
   m_settings.reset();
 }
@@ -98,8 +115,20 @@ bool CServiceManager::InitStageOne()
   return true;
 }
 
+bool CServiceManager::InitStageOnePointFive()
+{
+  m_profileManager.reset(new CProfilesManager(*m_settings));
+  if (!m_profileManager->Load())
+    return false;
+
+  return true;
+}
+
 bool CServiceManager::InitStageTwo(const CAppParamParser &params)
 {
+  // Initialize the addon database (must be before the addon manager is init'd)
+  m_databaseManager.reset(new CDatabaseManager);
+
   m_Platform.reset(CPlatform::CreateInstance());
   m_Platform->Init();
 
@@ -129,17 +158,20 @@ bool CServiceManager::InitStageTwo(const CAppParamParser &params)
   m_binaryAddonCache.reset( new ADDON::CBinaryAddonCache());
   m_binaryAddonCache->Init();
 
-  m_favouritesService.reset(new CFavouritesService(CProfilesManager::GetInstance().GetProfileUserDataFolder()));
+  m_favouritesService.reset(new CFavouritesService(m_profileManager->GetProfileUserDataFolder()));
 
   m_serviceAddons.reset(new ADDON::CServiceAddonManager(*m_addonMgr));
 
   m_contextMenuManager.reset(new CContextMenuManager(*m_addonMgr.get()));
 
   m_gameControllerManager.reset(new GAME::CControllerManager);
-  m_inputManager.reset(new CInputManager(params));
+  m_inputManager.reset(new CInputManager(params,
+                                         *m_profileManager));
   m_inputManager->InitializeInputs();
 
-  m_peripherals.reset(new PERIPHERALS::CPeripherals(*m_announcementManager));
+  m_peripherals.reset(new PERIPHERALS::CPeripherals(*m_announcementManager,
+                                                    *m_inputManager,
+                                                    *m_gameControllerManager));
 
   m_gameRenderManager.reset(new RETRO::CGUIGameRenderManager);
 
@@ -192,10 +224,15 @@ bool CServiceManager::InitStageThree()
 
   m_gameServices.reset(new GAME::CGameServices(*m_gameControllerManager,
     *m_gameRenderManager,
-    *m_peripherals));
+    *m_settings,
+    *m_peripherals,
+    *m_profileManager));
 
   m_contextMenuManager->Init();
   m_PVRManager->Init();
+
+  m_playerCoreFactory.reset(new CPlayerCoreFactory(*m_settings,
+                                                   *m_profileManager));
 
   init_level = 3;
   return true;
@@ -205,6 +242,7 @@ void CServiceManager::DeinitStageThree()
 {
   init_level = 2;
 
+  m_playerCoreFactory.reset();
   m_PVRManager->Deinit();
   m_contextMenuManager->Deinit();
   m_gameServices.reset();
@@ -233,6 +271,12 @@ void CServiceManager::DeinitStageTwo()
   m_binaryAddonManager.reset();
   m_addonMgr.reset();
   m_Platform.reset();
+  m_databaseManager.reset();
+}
+
+void CServiceManager::DeinitStageOnePointFive()
+{
+  m_profileManager.reset();
 }
 
 void CServiceManager::DeinitStageOne()
@@ -423,3 +467,22 @@ CWeatherManager& CServiceManager::GetWeatherManager()
   return *m_weatherManager;
 }
 
+CPlayerCoreFactory &CServiceManager::GetPlayerCoreFactory()
+{
+  return *m_playerCoreFactory;
+}
+
+CDatabaseManager &CServiceManager::GetDatabaseManager()
+{
+  return *m_databaseManager;
+}
+
+CProfilesManager &CServiceManager::GetProfileManager()
+{
+  return *m_profileManager;
+}
+
+CEventLog &CServiceManager::GetEventLog()
+{
+  return m_profileManager->GetEventLog();
+}

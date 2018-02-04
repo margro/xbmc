@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -129,7 +129,7 @@ bool CPVRActionListener::OnAction(const CAction &action)
       {
         // do not consume action if a python modal is the top most dialog
         // as a python modal can't return that it consumed the action.
-        if (g_windowManager.IsPythonWindow(g_windowManager.GetTopMostModalDialogID()))
+        if (g_windowManager.IsPythonWindow(g_windowManager.GetTopmostModalDialog()))
           return false;
 
         char cCharacter;

@@ -1139,6 +1139,7 @@ bool CFileItem::IsCBR() const
 bool CFileItem::IsRSS() const
 {
   return StringUtils::StartsWithNoCase(m_strPath, "rss://") || URIUtils::HasExtension(m_strPath, ".rss")
+      || StringUtils::StartsWithNoCase(m_strPath, "rsss://")
       || m_mimetype == "application/rss+xml";
 }
 
@@ -1843,7 +1844,7 @@ bool CFileItem::LoadTracksFromCueDocument(CFileItemList& scannedItems)
 
       if (!song.iDuration && tag.GetDuration() > 0)
       { // must be the last song
-        song.iDuration = (tag.GetDuration() * 75 - song.iStartOffset + 37) / 75;
+        song.iDuration = CUtil::ConvertMilliSecsToSecsIntRounded(CUtil::ConvertSecsToMilliSecs(tag.GetDuration()) - song.iStartOffset);
       }
       if ( tag.Loaded() && oneFilePerTrack && ! ( tag.GetAlbum().empty() || tag.GetArtist().empty() || tag.GetTitle().empty() ) )
       {
@@ -3622,12 +3623,12 @@ double CFileItem::GetCurrentResumeTime() const
   return lrint(GetResumePoint().timeInSeconds);
 }
 
-bool CFileItem::GetCurrentResumeTimeAndPartNumber(int& startOffset, int& partNumber) const
+bool CFileItem::GetCurrentResumeTimeAndPartNumber(int64_t& startOffset, int& partNumber) const
 {
   CBookmark resumePoint(GetResumePoint());
   if (resumePoint.IsSet())
   {
-    startOffset = lrint(resumePoint.timeInSeconds);
+    startOffset = llrint(resumePoint.timeInSeconds);
     partNumber = resumePoint.partNumber;
     return true;
   }

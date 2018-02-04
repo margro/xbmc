@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,9 +21,7 @@
 // FileNFS.cpp: implementation of the CNFSFile class.
 //
 //////////////////////////////////////////////////////////////////////
-#include "system.h"
 
-#ifdef HAS_FILESYSTEM_NFS
 #include "NFSFile.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
@@ -888,5 +886,3 @@ bool CNFSFile::IsValidFile(const std::string& strFileName)
     return false;
   return true;
 }
-#endif//HAS_FILESYSTEM_NFS
-

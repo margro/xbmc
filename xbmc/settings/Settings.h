@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -384,15 +384,6 @@ public:
   static const std::string SETTING_SOURCE_VIDEOS;
   static const std::string SETTING_SOURCE_MUSIC;
   static const std::string SETTING_SOURCE_PICTURES;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERS;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_1;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_2;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_3;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_4;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_5;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_6;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_7;
-  static const std::string SETTING_GAMES_KEYBOARD_PLAYERCONFIG_8;
   static const std::string SETTING_GAMES_ENABLE;
   static const std::string SETTING_GAMES_ENABLEREWIND;
   static const std::string SETTING_GAMES_REWINDTIME;
@@ -466,6 +457,7 @@ protected:
   void InitializeOptionFillers() override;
   void UninitializeOptionFillers() override;
   void InitializeConditions() override;
+  void UninitializeConditions() override;
   void InitializeVisibility() override;
   void InitializeDefaults() override;
   void InitializeISettingsHandlers() override;

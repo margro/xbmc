@@ -19,7 +19,7 @@
  */
 #pragma once
 
-#include "input/joysticks/IButtonMapper.h"
+#include "input/joysticks/interfaces/IButtonMapper.h"
 #include "threads/Event.h"
 #include "threads/Thread.h"
 #include "utils/Observer.h"
@@ -43,8 +43,6 @@ namespace GAME
     // implementation of IButtonMapper
     virtual std::string ControllerID(void) const override;
     virtual bool NeedsCooldown(void) const override { return false; }
-    virtual bool Emulation(void) const override { return false; }
-    virtual unsigned int ControllerNumber(void) const override { return 0; }
     virtual bool MapPrimitive(JOYSTICK::IButtonMap* buttonMap,
                               IKeymap* keymap,
                               const JOYSTICK::CDriverPrimitive& primitive) override;

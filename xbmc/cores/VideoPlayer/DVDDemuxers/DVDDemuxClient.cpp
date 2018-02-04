@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2012-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -438,7 +438,6 @@ void CDVDDemuxClient::SetStreamProps(CDemuxStream *stream, std::map<int, std::sh
     streamVideo->iFpsRate        = source->iFpsRate;
     streamVideo->fAspect         = source->fAspect;
     streamVideo->iBitRate = source->iBitRate;
-    streamVideo->stereo_mode     = "mono";
     if (source->ExtraSize > 0 && source->ExtraData)
     {
       delete[] streamVideo->ExtraData;

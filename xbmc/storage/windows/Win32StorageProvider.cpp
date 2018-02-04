@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,11 +24,17 @@
 #include "storage/MediaManager.h"
 #include "utils/JobManager.h"
 #include "utils/log.h"
+#include "utils/StringUtils.h"
 
 #include <SetupAPI.h>
 #include <ShlObj.h>
 
 bool CWin32StorageProvider::xbevent = false;
+
+IStorageProvider* IStorageProvider::CreateInstance()
+{
+  return new CWin32StorageProvider();
+}
 
 void CWin32StorageProvider::Initialize()
 {

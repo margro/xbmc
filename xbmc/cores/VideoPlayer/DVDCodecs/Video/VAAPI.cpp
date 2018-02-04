@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2014 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -842,10 +842,8 @@ CDVDVideoCodec::VCReturn CDecoder::Decode(AVCodecContext* avctx, AVFrame* pFrame
 
     // send frame to output for processing
     CVaapiDecodedPicture pic;
-    memset(&pic.DVDPic, 0, sizeof(pic.DVDPic));
     static_cast<ICallbackHWAccel*>(avctx->opaque)->GetPictureCommon(&pic.DVDPic);
     pic.videoSurface = surf;
-    pic.DVDPic.color_matrix = avctx->colorspace;
     m_bufferStats.IncDecoded();
     m_vaapiOutput.m_dataPort.SendOutMessage(COutputDataProtocol::NEWFRAME, &pic, sizeof(pic));
 
@@ -1364,6 +1362,20 @@ void CVaapiBufferPool::DeleteTextures(bool precleanup)
     av_frame_free(&pic->avFrame);
     pic->valid = false;
   }
+}
+
+void CVaapiRenderPicture::GetPlanes(uint8_t*(&planes)[YuvImage::MAX_PLANES])
+{
+  planes[0] = avFrame->data[0];
+  planes[1] = avFrame->data[1];
+  planes[2] = avFrame->data[2];
+}
+
+void CVaapiRenderPicture::GetStrides(int(&strides)[YuvImage::MAX_PLANES])
+{
+  strides[0] = avFrame->linesize[0];
+  strides[1] = avFrame->linesize[1];
+  strides[2] = avFrame->linesize[2];
 }
 
 //-----------------------------------------------------------------------------
@@ -2924,6 +2936,9 @@ bool CFFmpegPostproc::AddPicture(CVaapiDecodedPicture &inPic)
   else
     m_pFilterFrameIn->pts = (inPic.DVDPic.pts / DVD_TIME_BASE) * AV_TIME_BASE;
 
+  m_pFilterFrameIn->pkt_dts = m_pFilterFrameIn->pts;
+  m_pFilterFrameIn->best_effort_timestamp = m_pFilterFrameIn->pts;
+
   av_frame_get_buffer(m_pFilterFrameIn, 64);
 
   uint8_t *src, *dst;
@@ -2999,9 +3014,10 @@ bool CFFmpegPostproc::Filter(CVaapiProcessedPicture &outPic)
 
   outPic.source = CVaapiProcessedPicture::FFMPEG_SRC;
 
-  if(outPic.frame->pts != AV_NOPTS_VALUE)
+  int64_t bpts = av_frame_get_best_effort_timestamp(outPic.frame);
+  if(bpts != AV_NOPTS_VALUE)
   {
-    outPic.DVDPic.pts = (double)outPic.frame->pts * DVD_TIME_BASE / AV_TIME_BASE;
+    outPic.DVDPic.pts = (double)bpts * DVD_TIME_BASE / AV_TIME_BASE;
   }
   else
     outPic.DVDPic.pts = DVD_NOPTS_VALUE;
@@ -3012,11 +3028,6 @@ bool CFFmpegPostproc::Filter(CVaapiProcessedPicture &outPic)
     outPic.DVDPic.pts += m_frametime/2;
   }
   m_lastOutPts = pts;
-
-  //for (int i = 0; i < 4; i++)
-  //  outPic.DVDPic.data[i] = outPic.frame->data[i];
-  //for (int i = 0; i < 4; i++)
-  //  outPic.DVDPic.iLineSize[i] = outPic.frame->linesize[i];
 
   return true;
 }

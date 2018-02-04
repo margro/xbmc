@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -144,10 +144,11 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
   if (!m_bRenderCreated)
     return;
 
-  if (rendered)
+  if (rendered || videoLayer)
   {
-    m_pGLContext.SwapBuffers();
-    CWinSystemGbm::FlipPage();
+    if (rendered)
+      m_pGLContext.SwapBuffers();
+    CWinSystemGbm::FlipPage(rendered, videoLayer);
   }
   else
   {

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2017 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 
 #include <wayland-client.hpp>
 #include <wayland-cursor.hpp>
+#include <wayland-extra-protocols.hpp>
 
 #include "Connection.h"
 #include "Output.h"

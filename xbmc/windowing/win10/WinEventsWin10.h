@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -57,11 +57,14 @@ public:
   static void OnDisplayContentsInvalidated(Windows::Graphics::Display::DisplayInformation^ sender, Platform::Object^ args);
   // system
   static void OnBackRequested(Platform::Object^ sender, Windows::UI::Core::BackRequestedEventArgs^ args);
+  // system media handlers
+  static void OnSystemMediaButtonPressed(Windows::Media::SystemMediaTransportControls^, Windows::Media::SystemMediaTransportControlsButtonPressedEventArgs^);
 
 private:
   void UpdateWindowSize();
   void Kodi_KeyEvent(unsigned int vkey, unsigned scancode, unsigned keycode, bool isDown);
   Concurrency::concurrent_queue<XBMC_Event> m_events;
+  Windows::Media::SystemMediaTransportControls^ m_smtc{ nullptr };
 };
 
 #endif // WINDOW_EVENTS_WIN10_H

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2011-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,9 +18,6 @@
  *
  */
 
-#include "system.h"
-
-#ifdef HAS_FILESYSTEM_NFS
 #include "DllLibNfs.h"
 
 #ifdef TARGET_WINDOWS
@@ -161,9 +158,9 @@ bool CNFSDirectory::ResolveSymlink( const std::string &dirName, struct nfsdirent
       dirent->inode = tmpBuffer.st_ino;
       dirent->mode = tmpBuffer.st_mode;
       dirent->size = tmpBuffer.st_size;
-      dirent->atime.tv_sec = tmpBuffer.st_atime;
-      dirent->mtime.tv_sec = tmpBuffer.st_mtime;
-      dirent->ctime.tv_sec = tmpBuffer.st_ctime;
+      dirent->atime.tv_sec = static_cast<long>(tmpBuffer.st_atime);
+      dirent->mtime.tv_sec = static_cast<long>(tmpBuffer.st_mtime);
+      dirent->ctime.tv_sec = static_cast<long>(tmpBuffer.st_ctime);
       
       //map stat mode to nf3type
       if(S_ISBLK(tmpBuffer.st_mode)){ dirent->type = NF3BLK; }
@@ -360,5 +357,3 @@ bool CNFSDirectory::Exists(const CURL& url2)
   }
   return S_ISDIR(info.st_mode) ? true : false;
 }
-
-#endif

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@
 #include "music/MusicThumbLoader.h"
 #include "music/windows/GUIWindowMusicNav.h"
 #include "filesystem/Directory.h"
+#include "ServiceBroker.h"
 
 using namespace XFILE;
 
@@ -172,30 +173,23 @@ void CGUIDialogMusicInfo::SetAlbum(const CAlbum& album, const std::string &path)
   SetSongs(m_album.songs);
   *m_albumItem = CFileItem(path, true);
   m_albumItem->GetMusicInfoTag()->SetAlbum(m_album);
-  CMusicDatabase::SetPropertiesFromAlbum(*m_albumItem,m_album);
+  CMusicDatabase::SetPropertiesFromAlbum(*m_albumItem, m_album);
 
+  // Load all album and related artist art (to CGUIListItem.m_art)
+  // This includes artist fanart set as fallback album fanart
   CMusicThumbLoader loader;
   loader.LoadItem(m_albumItem.get());
 
-  // set the artist thumb, fanart
-  if (!m_album.GetAlbumArtist().empty())
-  {
-    CMusicDatabase db;
-    db.Open();
-    std::map<std::string, std::string> artwork;
-    if (db.GetArtistArtForItem(m_album.idAlbum, MediaTypeAlbum, artwork))
-    {
-      if (artwork.find("thumb") != artwork.end())
-        m_albumItem->SetProperty("artistthumb", artwork["thumb"]);
-      if (artwork.find("fanart") != artwork.end())
-        m_albumItem->SetArt("fanart",artwork["fanart"]);
-    }
-  }
   m_startUserrating = m_album.iUserrating;
   m_hasUpdatedThumb = false;
   m_bArtistInfo = false;
   m_needsUpdate = false;
+
+  // CurrentDirectory() returns m_albumSongs (a convenient CFileItemList)
+  // Set content so can return dialog CONTAINER_CONTENT as "albums"
   m_albumSongs->SetContent("albums");
+  // Copy art from ListItem so CONTAINER_ART returns album art
+  m_albumSongs->SetArt(m_albumItem->GetArt());
 }
 
 void CGUIDialogMusicInfo::SetArtist(const CArtist& artist, const std::string &path)
@@ -216,16 +210,24 @@ void CGUIDialogMusicInfo::SetArtist(const CArtist& artist, const std::string &pa
 
   m_hasUpdatedThumb = false;
   m_bArtistInfo = true;
-  m_albumSongs->SetContent("artists");
+
+  // CurrentDirectory() returns m_albumSongs (a convenient CFileItemList)
+  // Set content so can return dialog CONTAINER_CONTENT as "artists"
+  m_albumSongs->SetContent("artists"); 
+  // Copy art from ListItem so CONTAINER_ART returns artist art
+  m_albumSongs->SetArt(m_albumItem->GetArt());
 }
 
 void CGUIDialogMusicInfo::SetSongs(const VECSONGS &songs) const
 {
   m_albumSongs->Clear();
+  CMusicThumbLoader loader;
   for (unsigned int i = 0; i < songs.size(); i++)
   {
     const CSong& song = songs[i];
     CFileItemPtr item(new CFileItem(song));
+    // Load the song art and related artist(s) (that may be different from album artist) art
+    loader.LoadItem(item.get());
     m_albumSongs->Add(item);
   }
 }
@@ -250,6 +252,7 @@ void CGUIDialogMusicInfo::SetDiscography() const
     CFileItemPtr item(new CFileItem(discography[i].first));
     item->SetLabel2(discography[i].second);
 
+    CMusicThumbLoader loader;
     int idAlbum = -1;
     for (std::vector<int>::const_iterator album = albumsByArtist.begin(); album != albumsByArtist.end(); ++album)
     {
@@ -257,13 +260,12 @@ void CGUIDialogMusicInfo::SetDiscography() const
       {
         idAlbum = *album;
         item->GetMusicInfoTag()->SetDatabaseId(idAlbum, "album");
+        // Load all the album art and related artist(s) art (could be other collaborating artists)
+        loader.LoadItem(item.get());
         break;
       }
     }
-
-    if (idAlbum != -1) // we need this slight stupidity to get correct case for the album name
-      item->SetArt("thumb", database.GetArtForItem(idAlbum, MediaTypeAlbum, "thumb"));
-    else
+    if (idAlbum == -1) 
       item->SetArt("thumb", "DefaultAlbumCover.png");
 
     m_albumSongs->Add(item);
@@ -291,8 +293,10 @@ void CGUIDialogMusicInfo::Update()
 
   }
 
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
   // disable the GetThumb button if the user isn't allowed it
-  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_GET_THUMB, CProfilesManager::GetInstance().GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser);
+  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_GET_THUMB, profileManager.GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser);
 }
 
 void CGUIDialogMusicInfo::SetLabel(int iControl, const std::string& strLabel)

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -172,6 +172,7 @@ void CURL::Parse(const std::string& strURL1)
   //! @todo fix all Addon paths
   std::string strProtocol2 = GetTranslatedProtocol();
   if(IsProtocol("rss") ||
+     IsProtocol("rsss") ||
      IsProtocol("rar") ||
      IsProtocol("apk") ||
      IsProtocol("xbt") ||
@@ -394,7 +395,8 @@ const std::string CURL::GetTranslatedProtocol() const
    || IsProtocol("rss"))
     return "http";
 
-  if (IsProtocol("davs"))
+  if (IsProtocol("davs")
+   || IsProtocol("rsss"))
     return "https";
 
   return GetProtocol();

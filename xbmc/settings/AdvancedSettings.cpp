@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -60,8 +60,10 @@ CAdvancedSettings::CAdvancedSettings()
 
 void CAdvancedSettings::OnSettingsLoaded()
 {
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
   // load advanced settings
-  Load();
+  Load(profileManager);
 
   // default players?
   CLog::Log(LOGNOTICE, "Default Video Player: %s", m_videoDefaultPlayer.c_str());
@@ -156,6 +158,7 @@ void CAdvancedSettings::Initialize()
   m_DXVAForceProcessorRenderer = true;
   m_DXVAAllowHqScaling = true;
   m_videoFpsDetect = 1;
+  m_maxTempo = 1.55f;
 
   m_mediacodecForceSoftwareRendering = false;
 
@@ -404,7 +407,7 @@ void CAdvancedSettings::Initialize()
   m_initialized = true;
 }
 
-bool CAdvancedSettings::Load()
+bool CAdvancedSettings::Load(const CProfilesManager &profileManager)
 {
   // NOTE: This routine should NOT set the default of any of these parameters
   //       it should instead use the versions of GetString/Integer/Float that
@@ -413,7 +416,8 @@ bool CAdvancedSettings::Load()
   ParseSettingsFile("special://xbmc/system/advancedsettings.xml");
   for (unsigned int i = 0; i < m_settingsFiles.size(); i++)
     ParseSettingsFile(m_settingsFiles[i]);
-  ParseSettingsFile(CProfilesManager::GetInstance().GetUserDataItem("advancedsettings.xml"));
+
+  ParseSettingsFile(profileManager.GetUserDataItem("advancedsettings.xml"));
 
   // Add the list of disc stub extensions (if any) to the list of video extensions
   if (!m_discStubExtensions.empty())
@@ -678,6 +682,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetBoolean(pElement, "usedisplaycontrolhwstereo", m_useDisplayControlHWStereo);
     //0 = disable fps detect, 1 = only detect on timestamps with uniform spacing, 2 detect on all timestamps
     XMLUtils::GetInt(pElement, "fpsdetect", m_videoFpsDetect, 0, 2);
+    XMLUtils::GetFloat(pElement, "maxtempo", m_maxTempo, 1.5, 2.1);
 
     // Store global display latency settings
     TiXmlElement* pVideoLatency = pElement->FirstChildElement("latency");

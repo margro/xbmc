@@ -20,9 +20,9 @@
 
 #include "ControllerManager.h"
 #include "Controller.h"
+#include "ControllerIDs.h"
 #include "ServiceBroker.h"
 #include "addons/AddonManager.h"
-#include "input/joysticks/JoystickIDs.h"
 
 using namespace KODI;
 using namespace GAME;
@@ -46,6 +46,11 @@ ControllerPtr CControllerManager::GetController(const std::string& controllerId)
 ControllerPtr CControllerManager::GetDefaultController()
 {
   return GetController(DEFAULT_CONTROLLER_ID);
+}
+
+ControllerPtr CControllerManager::GetDefaultKeyboard()
+{
+  return GetController(DEFAULT_KEYBOARD_ID);
 }
 
 ControllerVector CControllerManager::GetControllers()

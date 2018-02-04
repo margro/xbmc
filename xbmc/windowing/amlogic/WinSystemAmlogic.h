@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ public:
 protected:
   std::string m_framebuffer_name;
   EGLDisplay m_nativeDisplay;
-  fbdev_window *m_nativeWindow;
+  EGLNativeWindowType m_nativeWindow;
 
   int m_displayWidth;
   int m_displayHeight;

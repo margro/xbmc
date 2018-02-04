@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 
 #include <map>
 #include <string>
+
+class CProfilesManager;
 
 // static class for path translation from our special:// URLs.
 
@@ -53,6 +55,9 @@ class CURL;
 class CSpecialProtocol
 {
 public:
+  static void RegisterProfileManager(const CProfilesManager &profileManager);
+  static void UnregisterProfileManager();
+
   static void SetProfilePath(const std::string &path);
   static void SetXBMCPath(const std::string &path);
   static void SetXBMCBinPath(const std::string &path);
@@ -74,6 +79,8 @@ public:
   static std::string TranslatePathConvertCase(const std::string& path);
 
 private:
+  static const CProfilesManager *m_profileManager;
+
   static void SetPath(const std::string &key, const std::string &path);
   static std::string GetPath(const std::string &key);
 

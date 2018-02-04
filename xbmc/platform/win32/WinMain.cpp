@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,10 +24,9 @@
 #include "threads/platform/win/Win32Exception.h"
 #include "platform/win32/CharsetConverter.h"
 #include "platform/xbmc.h"
-#include "platform/XbmcContext.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/CPUInfo.h"
-#include "utils/Environment.h"
+#include "platform/Environment.h"
 #include "utils/CharsetConverter.h" // Required to initialize converters before usage
 
 
@@ -82,12 +81,14 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR commandLine, INT)
       ShowWindow(hwnd, SW_RESTORE);
       SetForegroundWindow(hwnd);
     }
+    ReleaseMutex(appRunningMutex);
     return 0;
   }
 
   if ((g_cpuInfo.GetCPUFeatures() & CPU_FEATURE_SSE2) == 0)
   {
     MessageBox(NULL, L"No SSE2 support detected", ToW(appName + ": Fatal Error").c_str(), MB_OK | MB_ICONERROR);
+    ReleaseMutex(appRunningMutex);
     return 0;
   }
 
@@ -124,8 +125,6 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR commandLine, INT)
 
   int status;
   {
-    // set up some xbmc specific relationships
-    XBMC::Context context;
     // Initialize before CAppParamParser so it can set the log level
     g_advancedSettings.Initialize();
     

@@ -1,7 +1,7 @@
 #pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ namespace XFILE
     void SetSources(const VECSOURCES& vecSources);
     inline unsigned int GetNumberOfSources() 
     {
-      return m_vecSources.size();
+      return static_cast<uint32_t>(m_vecSources.size());
     }
 
     bool IsSource(const std::string& strPath, VECSOURCES *sources = NULL, std::string *name = NULL) const;

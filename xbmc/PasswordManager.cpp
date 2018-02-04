@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "filesystem/File.h"
+#include "ServiceBroker.h"
 
 CPasswordManager &CPasswordManager::GetInstance()
 {
@@ -114,7 +115,10 @@ void CPasswordManager::Clear()
 void CPasswordManager::Load()
 {
   Clear();
-  std::string passwordsFile = CProfilesManager::GetInstance().GetUserDataItem("passwords.xml");
+
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  std::string passwordsFile = profileManager.GetUserDataItem("passwords.xml");
   if (XFILE::CFile::Exists(passwordsFile))
   {
     CXBMCTinyXML doc;
@@ -163,7 +167,9 @@ void CPasswordManager::Save() const
     XMLUtils::SetPath(path, "to", i->second);
   }
 
-  doc.SaveFile(CProfilesManager::GetInstance().GetUserDataItem("passwords.xml"));
+  const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
+
+  doc.SaveFile(profileManager.GetUserDataItem("passwords.xml"));
 }
 
 std::string CPasswordManager::GetLookupPath(const CURL &url) const

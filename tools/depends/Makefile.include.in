@@ -10,7 +10,6 @@ PLATFORM=@deps_dir@
 HOST=@use_host@
 CPU=@use_cpu@
 NATIVEPLATFORM=@build_cpu@-@build_os@-native
-SDK_PLATFORM=@use_sdk@
 NDK_LEVEL=@use_ndk_api@
 RETRIEVE_TOOL=@CURL@
 ARCHIVE_TOOL=@TAR@
@@ -33,7 +32,6 @@ NEED_LIBICONV=@need_libiconv@
 LINK_ICONV=@link_iconv@
 ENABLE_GPLV3=@use_gplv3@
 ENABLE_WAYLAND=@enable_wayland@
-HAS_LIBCRYSTAX=@has_libcrystax@
 
 BASE_URL=http://mirrors.kodi.tv/build-deps/sources
 ifneq ($(KODI_MIRROR),)
@@ -69,6 +67,9 @@ CFLAGS=@platform_cflags@ @platform_includes@ -isystem @prefix@/@deps_dir@/includ
 LDFLAGS=-L@prefix@/@deps_dir@/lib -L@prefix@/@deps_dir@/lib64 @platform_ldflags@
 CXXFLAGS=@platform_cxxflags@ @platform_includes@ -isystem @prefix@/@deps_dir@/include
 CPPFLAGS=@platform_cflags@ @platform_includes@ -isystem @prefix@/@deps_dir@/include
+# set configured FFmpeg configure options
+FFMPEG_CONFIGURE_OPTIONS=@ffmpeg_options@
+
 
 PATH:=@prefix@/@tool_dir@/bin:$(PATH)
 ifneq (@use_build_toolchain@,)

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include <vector>
-#include <wrl.h>
-#include <wrl/client.h>
-
 #include "DeviceResources.h"
 #include "threads/Condition.h"
 #include "threads/CriticalSection.h"
 #include "rendering/RenderSystem.h"
+
+#include <vector>
+#include <wrl.h>
+#include <wrl/client.h>
 
 enum PCI_Vendors
 {

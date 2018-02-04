@@ -1,6 +1,6 @@
 /*
 *      Copyright (C) 2014 Team XBMC
-*      http://xbmc.org
+*      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 *  <http://www.gnu.org/licenses/>.
 *
 */
-
-#ifdef TARGET_WINDOWS_DESKTOP
 
 #include "Win32SMBDirectory.h"
 #include "FileItem.h"
@@ -711,5 +709,3 @@ bool CWin32SMBDirectory::ConnectAndAuthenticate(CURL& url, bool allowPromptForCr
   CLog::LogF(LOGWARNING, "Can't connect to \"%s\" %s. Error code: %lu", serverShareName.c_str(), loginDescr.c_str(), (unsigned long)connRes);
   return false;
 }
-
-#endif // TARGET_WINDOWS

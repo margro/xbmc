@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2007-2015 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -60,7 +60,7 @@ CRendererVAAPI::~CRendererVAAPI()
   }
 }
 
-bool CRendererVAAPI::Configure(const VideoPicture &picture, float fps, unsigned flags, unsigned int orientation)
+bool CRendererVAAPI::Configure(const VideoPicture &picture, float fps, unsigned int orientation)
 {
   CVaapiRenderPicture *pic = dynamic_cast<CVaapiRenderPicture*>(picture.videoBuffer);
   if (pic->procPic.videoSurface != VA_INVALID_ID)
@@ -84,7 +84,7 @@ bool CRendererVAAPI::Configure(const VideoPicture &picture, float fps, unsigned 
     fence = GL_NONE;
   }
 
-  return CLinuxRendererGLES::Configure(picture, fps, flags, orientation);
+  return CLinuxRendererGLES::Configure(picture, fps, orientation);
 }
 
 bool CRendererVAAPI::ConfigChanged(const VideoPicture &picture)
@@ -209,8 +209,6 @@ bool CRendererVAAPI::UploadTexture(int index)
   planes[1].id = m_vaapiTextures[index].m_textureVU;
   planes[2].id = m_vaapiTextures[index].m_textureVU;
 
-  glEnable(m_textureTarget);
-
   for (int p=0; p<2; p++)
   {
     glBindTexture(m_textureTarget, planes[p].id);
@@ -224,7 +222,6 @@ bool CRendererVAAPI::UploadTexture(int index)
   }
 
   CalculateTextureSourceRects(index, 3);
-  glDisable(m_textureTarget);
   return true;
 }
 

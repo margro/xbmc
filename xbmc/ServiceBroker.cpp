@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2016 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -166,4 +166,24 @@ CPowerManager& CServiceBroker::GetPowerManager()
 CWeatherManager& CServiceBroker::GetWeatherManager()
 {
   return g_application.m_ServiceManager->GetWeatherManager();
+}
+
+CPlayerCoreFactory& CServiceBroker::GetPlayerCoreFactory()
+{
+  return g_application.m_ServiceManager->GetPlayerCoreFactory();
+}
+
+CDatabaseManager& CServiceBroker::GetDatabaseManager()
+{
+  return g_application.m_ServiceManager->GetDatabaseManager();
+}
+
+CProfilesManager& CServiceBroker::GetProfileManager()
+{
+  return g_application.m_ServiceManager->GetProfileManager();
+}
+
+CEventLog& CServiceBroker::GetEventLog()
+{
+  return g_application.m_ServiceManager->GetEventLog();
 }

@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2016 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -61,6 +61,10 @@ class CWinSystemBase;
 class CRenderSystemBase;
 class CPowerManager;
 class CWeatherManager;
+class CPlayerCoreFactory;
+class CDatabaseManager;
+class CProfilesManager;
+class CEventLog;
 
 namespace KODI
 {
@@ -112,4 +116,8 @@ public:
   static CRenderSystemBase& GetRenderSystem();
   static CPowerManager& GetPowerManager();
   static CWeatherManager& GetWeatherManager();
+  static CPlayerCoreFactory &GetPlayerCoreFactory();
+  static CDatabaseManager &GetDatabaseManager();
+  static CProfilesManager &GetProfileManager();
+  static CEventLog &GetEventLog();
 };

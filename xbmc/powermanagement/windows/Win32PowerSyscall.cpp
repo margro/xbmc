@@ -1,6 +1,6 @@
 /*
  *      Copyright (C) 2005-2013 Team XBMC
- *      http://xbmc.org
+ *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -28,6 +28,16 @@
 
 bool CWin32PowerSyscall::m_OnResume = false;
 bool CWin32PowerSyscall::m_OnSuspend = false;
+
+IPowerSyscall* CWin32PowerSyscall::CreateInstance()
+{
+  return new CWin32PowerSyscall();
+}
+
+void CWin32PowerSyscall::Register()
+{
+  IPowerSyscall::RegisterPowerSyscall(CWin32PowerSyscall::CreateInstance);
+}
 
 bool CWin32PowerStateWorker::QueryStateChange(PowerState state)
 {
