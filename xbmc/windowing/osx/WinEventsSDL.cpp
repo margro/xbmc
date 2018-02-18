@@ -18,8 +18,6 @@
  *
  */
 
-#include "system.h"
-
 #include "WinEventsSDL.h"
 #include "Application.h"
 #include "ServiceBroker.h"
@@ -27,9 +25,9 @@
 #include "GUIUserMessages.h"
 #include "settings/DisplaySettings.h"
 #include "guilib/GUIWindowManager.h"
+#include "input/mouse/MouseStat.h"
 #include "input/Key.h"
 #include "input/InputManager.h"
-#include "input/MouseStat.h"
 #include "windowing/WinSystem.h"
 #include "platform/darwin/osx/CocoaInterface.h"
 #include "ServiceBroker.h"

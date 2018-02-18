@@ -88,12 +88,6 @@ AC_ARG_ENABLE([gplv3],
   [use_gplv3=$enableval],
   [use_gplv3=yes])
 
-AC_ARG_ENABLE([wayland],
-  [AS_HELP_STRING([--enable-wayland],
-  [build libraries needed for Wayland. default is no])],
-  [enable_wayland=$enableval],
-  [enable_wayland=no])
-
 AC_ARG_WITH([rendersystem],
   [AS_HELP_STRING([--with-rendersystem],
   [render system to use])],
@@ -197,96 +191,59 @@ esac
 
 
 case $host in
-  arm*-*linux-android*)
-    if test "x$use_cpu" = "xauto"; then
-      use_cpu="armeabi-v7a"
-    fi
+  *-*linux-android*)
     platform_cc=clang
     platform_cxx=clang++
     deps_dir="$use_host-$use_ndk_api-$build_type"
     platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
     optimize_flags="-Os"
-    if test "x$use_cpu" = "xarmeabi-v7a"; then
-      platform_cflags+=" -march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=neon"
-    fi
-    platform_ldflags="-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a -Wl,--exclude-libs,libunwind.a -L$prefix/$deps_dir/lib/android-$use_ndk_api"
-    platform_cxxflags="$platform_cflags -frtti"
-    platform_includes="-I$prefix/$deps_dir/include/android-$use_ndk_api"
-    platform_os="android"
-    #android builds are always cross
-    cross_compiling="yes"
-  ;;
-  aarch64*-*linux-android*)
-    if test "x$use_cpu" = "xauto"; then
-      use_cpu="arm64-v8a"
-    fi
-    platform_cc=clang
-    platform_cxx=clang++
-    deps_dir="$use_host-$use_ndk_api-$build_type"
-    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes  -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
-    optimize_flags="-Os"
-    if test "x$use_cpu" = "xarm64-v8a"; then
-      platform_cflags+=" -march=armv8-a -mtune=cortex-a53"
-    fi
     platform_ldflags="-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a -L$prefix/$deps_dir/lib/android-$use_ndk_api"
+
+    case $host in
+      arm*-*linux-android*)
+        if test "x$use_cpu" = "xauto"; then
+          use_cpu="armeabi-v7a"
+        fi
+        if test "x$use_cpu" = "xarmeabi-v7a"; then
+          platform_cflags+=" -march=armv7-a -mtune=cortex-a9 -mfloat-abi=softfp -mfpu=neon"
+        fi
+        platform_ldflags+=" -Wl,--exclude-libs,libunwind.a"
+      ;;
+      aarch64*-*linux-android*)
+        if test "x$use_cpu" = "xauto"; then
+          use_cpu="arm64-v8a"
+        fi
+        if test "x$use_cpu" = "xarm64-v8a"; then
+          platform_cflags+=" -march=armv8-a -mtune=cortex-a53"
+        fi
+      ;;
+      i*86*-linux-android*)
+        if test "x$use_cpu" = "xauto"; then
+          use_cpu=$host_cpu
+        fi
+      ;;
+      *)
+        AC_MSG_ERROR(unsupported host ($use_host))
+      esac
+
     platform_cxxflags="$platform_cflags -frtti"
     platform_includes="-I$prefix/$deps_dir/include/android-$use_ndk_api"
     platform_os="android"
     #android builds are always cross
     cross_compiling="yes"
   ;;
-  i*86*-linux-android*)
+  arm*-*-linux-gnu*|arm*-*-linux-uclibc*|aarch64*-*-linux-gnu*|aarch*-*-linux-be*)
     if test "x$use_cpu" = "xauto"; then
       use_cpu=$host_cpu
     fi
-    platform_cc=clang
-    platform_cxx=clang++
-    deps_dir="$use_host-$use_ndk_api-$build_type"
-    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes  -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
-    optimize_flags="-Os"
-    platform_ldflags="-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a -L$prefix/$deps_dir/lib/android-$use_ndk_api"
-    platform_cxxflags="$platform_cflags -frtti"
-    platform_includes="-I$prefix/$deps_dir/include/android-$use_ndk_api"
-    platform_os="android"
-    #android builds are always cross
-    cross_compiling="yes"
-  ;;
-  arm*-*-linux-gnu*|arm*-*-linux-uclibc*)
-    if test "$use_platform" = "auto"; then
-      if test "x$use_cpu" = "xauto"; then
-        use_cpu=$host_cpu
-      fi
-      use_toolchain="${use_toolchain:-/usr}"
-      platform_cflags="-fPIC -DPIC"
-      optimize_flags="-Os"
-      platform_ldflags="-Wl,-rpath-link=$prefix/$deps_dir/lib"
-      platform_cxxflags="$platform_cflags"
-      platform_os="linux"
-    fi
-  ;;
-  aarch64*-*-linux-gnu*|aarch*-*-linux-be*)
-    if test "$use_platform" = "auto"; then
-      if test "x$use_cpu" = "xauto"; then
-        use_cpu=$host_cpu
-      fi
-      use_toolchain="${use_toolchain:-/usr}"
-      platform_cflags="-fPIC -DPIC"
-      optimize_flags="-Os"
-      platform_ldflags="-Wl,-rpath-link=$prefix/$deps_dir/lib"
-      platform_cxxflags="$platform_cflags"
-      platform_os="linux"
-    fi
-  ;;
-  *i686*-linux-gnu*|i*86*-*-linux-uclibc*)
-    use_cpu=$host_cpu
     use_toolchain="${use_toolchain:-/usr}"
     platform_cflags="-fPIC -DPIC"
-    optimize_flags="-O2"
+    optimize_flags="-Os"
+    platform_ldflags="-Wl,-rpath-link=$prefix/$deps_dir/lib"
     platform_cxxflags="$platform_cflags"
     platform_os="linux"
-    ffmpeg_options_default="--enable-vaapi --enable-vdpau --cpu=$use_cpu"
   ;;
-  x86_64*-linux-gnu*|x86_64-*-linux-uclibc*)
+  *i686*-linux-gnu*|i*86*-*-linux-uclibc*|x86_64*-linux-gnu*|x86_64-*-linux-uclibc*)
     use_cpu=$host_cpu
     use_toolchain="${use_toolchain:-/usr}"
     platform_cflags="-fPIC -DPIC"
@@ -449,13 +406,23 @@ case $host in
 esac
 
 case $use_platform in
+  aml|gbm|mir|wayland)
+    if test "$platform_os" != "linux"; then
+      AC_MSG_ERROR([$use_platform is only supported on the Linux platform])
+    fi
+    if test "$use_platform" = "aml"; then
+      if test "$host_cpu" != "arm" && test "$host_cpu" != "aarch64"; then
+        AC_MSG_ERROR([$use_platform is only supported for arm and aarch64 architecture])
+      fi
+    fi
+    target_platform=$use_platform
+    ;;
   raspberry-pi)
      target_platform=raspberry-pi
      use_cpu=arm1176jzf-s
      ffmpeg_options_default="--cpu=arm1176jzf-s"
      platform_cflags="-mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp"
      platform_cxxflags="-mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp"
-     optimize_flags="-Os"
      platform_ldflags=""
      ;;
   raspberry-pi2)
@@ -464,9 +431,12 @@ case $use_platform in
      ffmpeg_options_default="--cpu=cortex-a7"
      platform_cflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4"
      platform_cxxflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4"
-     optimize_flags="-Os"
      platform_ldflags="-lpthread"
      ;;
+  auto)
+    ;;
+  *)
+    AC_MSG_ERROR(unsupported platform ($use_platform))
 esac
 
 if test "$target_platform" = "raspberry-pi" ; then
@@ -478,7 +448,6 @@ if test "$target_platform" = "raspberry-pi" ; then
   use_arch="arm"
   use_hardcoded_tables="yes"
   ARCH="arm"
-  platform_os="linux"
   cross_compiling="yes"
   use_host="arm-linux-gnueabihf"
   deps_dir="$use_platform-$build_type"
@@ -550,12 +519,6 @@ fi
 
 if test -z $use_tarballs; then
   use_tarballs=$prefix/xbmc-tarballs
-fi
-
-if test "$platform_os" != "linux"; then
-  if test "x$enable_wayland" != "xno"; then
-    AC_MSG_ERROR([Wayland is only supported on the Linux platform])
-  fi
 fi
 
 if test -n "$app_rendersystem"; then
@@ -722,7 +685,6 @@ AC_SUBST(has_zlib)
 AC_SUBST(link_iconv)
 AC_SUBST(need_libiconv)
 AC_SUBST(use_gplv3)
-AC_SUBST(enable_wayland)
 AC_SUBST(use_xcode)
 AC_SUBST(use_ccache)
 AC_SUBST(native_platform_min_version)

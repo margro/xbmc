@@ -22,7 +22,7 @@
 
 #ifdef TARGET_WINDOWS
 
-#define LINE_ENDING "\r\n"
+#include <windows.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -63,20 +63,12 @@ typedef intptr_t      ssize_t;
 #define PIXEL_RSHIFT 8
 #define PIXEL_GSHIFT 16
 #define PIXEL_BSHIFT 24
-#define AMASK 0x000000ff
-#define RMASK 0x0000ff00
-#define GMASK 0x00ff0000
-#define BMASK 0xff000000
 #else
 // little endian
 #define PIXEL_ASHIFT 24
 #define PIXEL_RSHIFT 16
 #define PIXEL_GSHIFT 8
 #define PIXEL_BSHIFT 0
-#define AMASK 0xff000000
-#define RMASK 0x00ff0000
-#define GMASK 0x0000ff00
-#define BMASK 0x000000ff
 #endif
 
 #if _MSC_VER < 1800

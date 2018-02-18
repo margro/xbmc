@@ -29,7 +29,7 @@
 #include "cores/AudioEngine/AESinkFactory.h"
 #include "cores/AudioEngine/Sinks/AESinkDARWINOSX.h"
 #include "cores/RetroPlayer/process/osx/RPProcessInfoOSX.h"
-#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
+#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/VTB.h"
 #include "cores/VideoPlayer/Process/osx/ProcessInfoOSX.h"
@@ -799,7 +799,7 @@ bool CWinSystemOSX::CreateNewWindow(const std::string& name, bool fullScreen, RE
   CRendererVTB::Register();
   VIDEOPLAYER::CProcessInfoOSX::Register();
   RETRO::CRPProcessInfoOSX::Register();
-  RETRO::CRPProcessInfoOSX::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
+  RETRO::CRPProcessInfoOSX::RegisterRendererFactory(new RETRO::CRendererFactoryOpenGL);
   return true;
 }
 
@@ -1232,7 +1232,7 @@ void* CWinSystemOSX::CreateWindowedContext(void* shareCtx)
   };
 
   NSOpenGLPixelFormat* pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:wattrs_gl3];
-  if (!getenv("KODI_GL_PROFILE_3_2"))
+  if (getenv("KODI_GL_PROFILE_LEGACY"))
     pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:wattrs];
 
   newContext = [[NSOpenGLContext alloc] initWithFormat:(NSOpenGLPixelFormat*)pixFmt
@@ -1291,7 +1291,7 @@ void* CWinSystemOSX::CreateFullScreenContext(int screen_index, void* shareCtx)
   };
 
   NSOpenGLPixelFormat* pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:fsattrs_gl3];
-  if (!getenv("KODI_GL_PROFILE_3_2"))
+  if (getenv("KODI_GL_PROFILE_LEGACY"))
     pixFmt = [[NSOpenGLPixelFormat alloc] initWithAttributes:fsattrs];
 
   if (!pixFmt)

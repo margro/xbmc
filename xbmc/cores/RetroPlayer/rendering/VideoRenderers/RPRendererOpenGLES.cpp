@@ -24,94 +24,106 @@
 #include "utils/GLUtils.h"
 #include "utils/log.h"
 
-extern "C" {
-#include "libswscale/swscale.h"
-}
-
 #include <cstring>
+#include <stddef.h>
+
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
 using namespace KODI;
 using namespace RETRO;
 
 // --- CRendererFactoryOpenGLES ------------------------------------------------
 
+std::string CRendererFactoryOpenGLES::RenderSystemName() const
+{
+  return "OpenGLES";
+}
+
 CRPBaseRenderer *CRendererFactoryOpenGLES::CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool)
 {
   return new CRPRendererOpenGLES(settings, context, std::move(bufferPool));
 }
 
-RenderBufferPoolVector CRendererFactoryOpenGLES::CreateBufferPools()
+RenderBufferPoolVector CRendererFactoryOpenGLES::CreateBufferPools(CRenderContext &context)
 {
-  return { std::make_shared<CRenderBufferPoolOpenGLES>() };
+  return { std::make_shared<CRenderBufferPoolOpenGLES>(context) };
 }
 
 // --- CRenderBufferOpenGLES ---------------------------------------------------
 
-CRenderBufferOpenGLES::CRenderBufferOpenGLES(AVPixelFormat format, AVPixelFormat targetFormat, unsigned int width, unsigned int height) :
-  m_format(format),
-  m_targetFormat(targetFormat),
+CRenderBufferOpenGLES::CRenderBufferOpenGLES(CRenderContext &context,
+                                             GLuint pixeltype,
+                                             GLuint internalformat,
+                                             GLuint pixelformat,
+                                             GLuint bpp,
+                                             unsigned int width,
+                                             unsigned int height) :
+  m_context(context),
+  m_pixeltype(pixeltype),
+  m_internalformat(internalformat),
+  m_pixelformat(pixelformat),
+  m_bpp(bpp),
   m_width(width),
   m_height(height)
 {
-  size_t targetSize = m_width * m_height * glFormatElementByteCount(GL_RGBA); //! @todo: Get GLenum format from renderer
-  m_textureBuffer.resize(targetSize);
 }
 
 CRenderBufferOpenGLES::~CRenderBufferOpenGLES()
 {
   DeleteTexture();
-
-  if (m_swsContext != nullptr)
-    sws_freeContext(m_swsContext);
 }
 
 void CRenderBufferOpenGLES::CreateTexture()
 {
-  glEnable(m_textureTarget);
-
   glGenTextures(1, &m_textureId);
 
   glBindTexture(m_textureTarget, m_textureId);
 
-  glTexImage2D(m_textureTarget, 0, GL_LUMINANCE, m_width, m_height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(m_textureTarget, 0, m_internalformat, m_width, m_height, 0, m_pixelformat, m_pixeltype, NULL);
 
   glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-  glDisable(m_textureTarget);
 }
 
 bool CRenderBufferOpenGLES::UploadTexture()
 {
-  if (m_textureBuffer.empty())
-  {
-    CLog::Log(LOGERROR, "Renderer: Unknown target texture size");
-    return false;
-  }
-
-  if (!CreateScalingContext())
-    return false;
-
   if (!glIsTexture(m_textureId))
     CreateTexture();
 
-  ScalePixels(m_data.data(), m_data.size(), m_textureBuffer.data(), m_textureBuffer.size());
-
-  glEnable(m_textureTarget);
-
-  const unsigned int bpp = 1;
-  glPixelStorei(GL_UNPACK_ALIGNMENT, bpp);
-
-  const unsigned datatype = GL_UNSIGNED_BYTE;
-
   glBindTexture(m_textureTarget, m_textureId);
-  glTexSubImage2D(m_textureTarget, 0, 0, 0, m_width, m_height, GL_LUMINANCE, datatype, m_textureBuffer.data());
 
-  glBindTexture(m_textureTarget, 0);
+  const int stride = GetFrameSize() / m_height;
 
-  glDisable(m_textureTarget);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, m_bpp);
+
+  if (m_bpp == 4 && m_pixelformat == GL_RGBA)
+  {
+    // XOR Swap RGBA -> BGRA
+    // GLES 2.0 doesn't support strided textures (unless GL_UNPACK_ROW_LENGTH_EXT is supported)
+    uint8_t* pixels = const_cast<uint8_t*>(m_data.data());
+    for (unsigned int y = 0; y < m_height; ++y, pixels += stride)
+    {
+      for (int x = 0; x < stride; x += 4)
+        std::swap(pixels[x], pixels[x + 2]);
+      glTexSubImage2D(m_textureTarget, 0, 0, y, m_width, 1, m_pixelformat, m_pixeltype, pixels);
+    }
+  }
+#ifdef GL_UNPACK_ROW_LENGTH_EXT
+  else if (m_context.IsExtSupported("GL_EXT_unpack_subimage"))
+  {
+    glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / m_bpp);
+    glTexSubImage2D(m_textureTarget, 0, 0, 0, m_width, m_height, m_pixelformat, m_pixeltype, m_data.data());
+    glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0);
+  }
+#endif
+  else
+  {
+    uint8_t* pixels = const_cast<uint8_t*>(m_data.data());
+    for (unsigned int y = 0; y < m_height; ++y, pixels += stride)
+      glTexSubImage2D(m_textureTarget, 0, 0, y, m_width, 1, m_pixelformat, m_pixeltype, pixels);
+  }
 
   return true;
 }
@@ -124,34 +136,12 @@ void CRenderBufferOpenGLES::DeleteTexture()
   m_textureId = 0;
 }
 
-bool CRenderBufferOpenGLES::CreateScalingContext()
-{
-  m_swsContext = sws_getContext(m_width, m_height, m_format, m_width, m_height, m_targetFormat,
-    SWS_FAST_BILINEAR, NULL, NULL, NULL);
-
-  if (m_swsContext == nullptr)
-  {
-    CLog::Log(LOGERROR, "Renderer: Failed to create swscale context");
-    return false;
-  }
-
-  return true;
-}
-
-void CRenderBufferOpenGLES::ScalePixels(uint8_t *source, size_t sourceSize, uint8_t *target, size_t targetSize)
-{
-  const int sourceStride = sourceSize / m_height;
-  const int targetStride = targetSize / m_height;
-
-  uint8_t* src[] =       { source,        nullptr,   nullptr,   nullptr };
-  int      srcStride[] = { sourceStride,  0,         0,         0       };
-  uint8_t *dst[] =       { target,        nullptr,   nullptr,   nullptr };
-  int      dstStride[] = { targetStride,  0,         0,         0       };
-
-  sws_scale(m_swsContext, src, srcStride, 0, m_height, dst, dstStride);
-}
-
 // --- CRenderBufferPoolOpenGLES -----------------------------------------------
+
+CRenderBufferPoolOpenGLES::CRenderBufferPoolOpenGLES(CRenderContext &context)
+  : m_context(context)
+{
+}
 
 bool CRenderBufferPoolOpenGLES::IsCompatible(const CRenderVideoSettings &renderSettings) const
 {
@@ -163,17 +153,64 @@ bool CRenderBufferPoolOpenGLES::IsCompatible(const CRenderVideoSettings &renderS
 
 IRenderBuffer *CRenderBufferPoolOpenGLES::CreateRenderBuffer(void *header /* = nullptr */)
 {
-  return new CRenderBufferOpenGLES(m_format, m_targetFormat, m_width, m_height);
+  return new CRenderBufferOpenGLES(m_context,
+                                   m_pixeltype,
+                                   m_internalformat,
+                                   m_pixelformat,
+                                   m_bpp,
+                                   m_width,
+                                   m_height);
 }
 
-bool CRenderBufferPoolOpenGLES::SetTargetFormat(AVPixelFormat targetFormat)
+bool CRenderBufferPoolOpenGLES::ConfigureInternal()
 {
-  if (m_targetFormat != AV_PIX_FMT_NONE)
-    return false; // Already configured
+  switch (m_format)
+  {
+  case AV_PIX_FMT_0RGB32:
+  {
+    m_pixeltype = GL_UNSIGNED_BYTE;
+    if (m_context.IsExtSupported("GL_EXT_texture_format_BGRA8888") ||
+        m_context.IsExtSupported("GL_IMG_texture_format_BGRA8888"))
+    {
+      m_internalformat = GL_BGRA_EXT;
+      m_pixelformat = GL_BGRA_EXT;
+    }
+    else if (m_context.IsExtSupported("GL_APPLE_texture_format_BGRA8888"))
+    {
+      // Apple's implementation does not conform to spec. Instead, they require
+      // differing format/internalformat, more like GL.
+      m_internalformat = GL_RGBA;
+      m_pixelformat = GL_BGRA_EXT;
+    }
+    else
+    {
+      m_internalformat = GL_RGBA;
+      m_pixelformat = GL_RGBA;
+    }
+    m_bpp = sizeof(uint32_t);
+    return true;
+  }
+  case AV_PIX_FMT_RGB555:
+  {
+    m_pixeltype = GL_UNSIGNED_SHORT_5_5_5_1;
+    m_internalformat = GL_RGB;
+    m_pixelformat = GL_RGB;
+    m_bpp = sizeof(uint16_t);
+    return true;
+  }
+  case AV_PIX_FMT_RGB565:
+  {
+    m_pixeltype = GL_UNSIGNED_SHORT_5_6_5;
+    m_internalformat = GL_RGB;
+    m_pixelformat = GL_RGB;
+    m_bpp = sizeof(uint16_t);
+    return true;
+  }
+  default:
+    break;
+  }
 
-  m_targetFormat = targetFormat;
-
-  return true;
+  return false;
 }
 
 // --- CRPRendererOpenGLES -----------------------------------------------------
@@ -186,27 +223,19 @@ CRPRendererOpenGLES::CRPRendererOpenGLES(const CRenderSettings &renderSettings, 
 CRPRendererOpenGLES::~CRPRendererOpenGLES()
 {
   Deinitialize();
-  if (m_swsContext)
-    sws_freeContext(m_swsContext);
-}
-
-bool CRPRendererOpenGLES::ConfigureInternal()
-{
-  AVPixelFormat targetFormat = AV_PIX_FMT_BGRA; //! @todo
-
-  static_cast<CRenderBufferPoolOpenGLES*>(m_bufferPool.get())->SetTargetFormat(targetFormat);
-
-  return true;
 }
 
 void CRPRendererOpenGLES::RenderInternal(bool clear, uint8_t alpha)
 {
   if (clear)
   {
-    ClearBackBuffer();
+    if (alpha == 255)
+      DrawBlackBars();
+    else
+      ClearBackBuffer();
   }
 
-  if (alpha < 0xFF)
+  if (alpha < 255)
   {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -219,6 +248,7 @@ void CRPRendererOpenGLES::RenderInternal(bool clear, uint8_t alpha)
   Render(alpha);
 
   glEnable(GL_BLEND);
+  glFlush();
 }
 
 void CRPRendererOpenGLES::FlushInternal()
@@ -261,33 +291,133 @@ void CRPRendererOpenGLES::ClearBackBuffer()
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
+void CRPRendererOpenGLES::DrawBlackBars()
+{
+  glDisable(GL_BLEND);
+
+  struct Svertex
+  {
+    float x;
+    float y;
+    float z;
+  };
+  Svertex vertices[24];
+  GLubyte count = 0;
+
+  m_context.EnableGUIShader(GL_SHADER_METHOD::DEFAULT);
+  GLint posLoc = m_context.GUIShaderGetPos();
+  GLint uniCol = m_context.GUIShaderGetUniCol();
+
+  glUniform4f(uniCol, m_clearColour / 255.0f, m_clearColour / 255.0f, m_clearColour / 255.0f, 1.0f);
+
+  //top quad
+  if (m_rotatedDestCoords[0].y > 0.0)
+  {
+    GLubyte quad = count;
+    vertices[quad].x = 0.0;
+    vertices[quad].y = 0.0;
+    vertices[quad].z = 0;
+    vertices[quad+1].x = m_context.GetScreenWidth();
+    vertices[quad+1].y = 0;
+    vertices[quad+1].z = 0;
+    vertices[quad+2].x = m_context.GetScreenWidth();
+    vertices[quad+2].y = m_rotatedDestCoords[0].y;
+    vertices[quad+2].z = 0;
+    vertices[quad+3] = vertices[quad+2];
+    vertices[quad+4].x = 0;
+    vertices[quad+4].y = m_rotatedDestCoords[0].y;
+    vertices[quad+4].z = 0;
+    vertices[quad+5] = vertices[quad];
+    count += 6;
+  }
+
+  //bottom quad
+  if (m_rotatedDestCoords[2].y < m_context.GetScreenHeight())
+  {
+    GLubyte quad = count;
+    vertices[quad].x = 0.0;
+    vertices[quad].y = m_rotatedDestCoords[2].y;
+    vertices[quad].z = 0;
+    vertices[quad+1].x = m_context.GetScreenWidth();
+    vertices[quad+1].y = m_rotatedDestCoords[2].y;
+    vertices[quad+1].z = 0;
+    vertices[quad+2].x = m_context.GetScreenWidth();
+    vertices[quad+2].y = m_context.GetScreenHeight();
+    vertices[quad+2].z = 0;
+    vertices[quad+3] = vertices[quad+2];
+    vertices[quad+4].x = 0;
+    vertices[quad+4].y = m_context.GetScreenHeight();
+    vertices[quad+4].z = 0;
+    vertices[quad+5] = vertices[quad];
+    count += 6;
+  }
+
+  //left quad
+  if (m_rotatedDestCoords[0].x > 0.0)
+  {
+    GLubyte quad = count;
+    vertices[quad].x = 0.0;
+    vertices[quad].y = m_rotatedDestCoords[0].y;
+    vertices[quad].z = 0;
+    vertices[quad+1].x = m_rotatedDestCoords[0].x;
+    vertices[quad+1].y = m_rotatedDestCoords[0].y;
+    vertices[quad+1].z = 0;
+    vertices[quad+2].x = m_rotatedDestCoords[3].x;
+    vertices[quad+2].y = m_rotatedDestCoords[3].y;
+    vertices[quad+2].z = 0;
+    vertices[quad+3] = vertices[quad+2];
+    vertices[quad+4].x = 0;
+    vertices[quad+4].y = m_rotatedDestCoords[3].y;
+    vertices[quad+4].z = 0;
+    vertices[quad+5] = vertices[quad];
+    count += 6;
+  }
+
+  //right quad
+  if (m_rotatedDestCoords[2].x < m_context.GetScreenWidth())
+  {
+    GLubyte quad = count;
+    vertices[quad].x = m_rotatedDestCoords[1].x;
+    vertices[quad].y = m_rotatedDestCoords[1].y;
+    vertices[quad].z = 0;
+    vertices[quad+1].x = m_context.GetScreenWidth();
+    vertices[quad+1].y = m_rotatedDestCoords[1].y;
+    vertices[quad+1].z = 0;
+    vertices[quad+2].x = m_context.GetScreenWidth();
+    vertices[quad+2].y = m_rotatedDestCoords[2].y;
+    vertices[quad+2].z = 0;
+    vertices[quad+3] = vertices[quad+2];
+    vertices[quad+4].x = m_rotatedDestCoords[1].x;
+    vertices[quad+4].y = m_rotatedDestCoords[2].y;
+    vertices[quad+4].z = 0;
+    vertices[quad+5] = vertices[quad];
+    count += 6;
+  }
+
+  GLuint vertexVBO;
+
+  glGenBuffers(1, &vertexVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Svertex)*count, &vertices[0], GL_STATIC_DRAW);
+
+  glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, sizeof(Svertex), 0);
+  glEnableVertexAttribArray(posLoc);
+
+  glDrawArrays(GL_TRIANGLES, 0, count);
+
+  glDisableVertexAttribArray(posLoc);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDeleteBuffers(1, &vertexVBO);
+
+  m_context.DisableGUIShader();
+}
+
 void CRPRendererOpenGLES::Render(uint8_t alpha)
 {
-  if (m_renderBuffer == nullptr)
-    return;
-
   CRenderBufferOpenGLES *renderBuffer = static_cast<CRenderBufferOpenGLES*>(m_renderBuffer);
 
-  glDisable(GL_DEPTH_TEST);
-
-  // Render texture
-  glActiveTexture(GL_TEXTURE0);
-  glEnable(m_textureTarget);
-  glBindTexture(m_textureTarget, renderBuffer->TextureID());
-
-  // Try some clamping or wrapping
-  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-  GLint filter = (m_renderSettings.VideoSettings().GetScalingMethod() == VS_SCALINGMETHOD_NEAREST ? GL_NEAREST : GL_LINEAR);
-  glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, filter);
-  glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, filter);
-
-  //! @todo Translate OpenGL code to GLES
-  /*
-  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-  glBegin(GL_QUADS);
+  if (renderBuffer == nullptr)
+    return;
 
   CRect rect = m_sourceRect;
 
@@ -296,14 +426,78 @@ void CRPRendererOpenGLES::Render(uint8_t alpha)
   rect.y1 /= m_sourceHeight;
   rect.y2 /= m_sourceHeight;
 
-  glTexCoord2f(rect.x1, rect.y1);  glVertex2f(m_rotatedDestCoords[0].x, m_rotatedDestCoords[0].y);
-  glTexCoord2f(rect.x2, rect.y1);  glVertex2f(m_rotatedDestCoords[1].x, m_rotatedDestCoords[1].y);
-  glTexCoord2f(rect.x2, rect.y2);  glVertex2f(m_rotatedDestCoords[2].x, m_rotatedDestCoords[2].y);
-  glTexCoord2f(rect.x1, rect.y2);  glVertex2f(m_rotatedDestCoords[3].x, m_rotatedDestCoords[3].y);
+  const uint32_t color = (alpha << 24) | 0xFFFFFF;
 
-  glEnd();
-  */
+  glBindTexture(m_textureTarget, renderBuffer->TextureID());
 
-  glBindTexture (m_textureTarget, 0);
-  glDisable(m_textureTarget);
+  GLint filter = GL_NEAREST;
+  if (GetRenderSettings().VideoSettings().GetScalingMethod() == VS_SCALINGMETHOD_LINEAR)
+    filter = GL_LINEAR;
+  glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, filter);
+  glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, filter);
+  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  m_context.EnableGUIShader(GL_SHADER_METHOD::TEXTURE);
+
+  GLubyte colour[4];
+  GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of triangle strip
+  GLuint vertexVBO;
+  GLuint indexVBO;
+  struct PackedVertex
+  {
+    float x, y, z;
+    float u1, v1;
+  } vertex[4];
+
+  GLint vertLoc = m_context.GUIShaderGetPos();
+  GLint loc = m_context.GUIShaderGetCoord0();
+  GLint uniColLoc = m_context.GUIShaderGetUniCol();
+
+  // Setup color values
+  colour[0] = static_cast<GLubyte>(GET_R(color));
+  colour[1] = static_cast<GLubyte>(GET_G(color));
+  colour[2] = static_cast<GLubyte>(GET_B(color));
+  colour[3] = static_cast<GLubyte>(GET_A(color));
+
+  for (unsigned int i = 0; i < 4; i++)
+  {
+    // Setup vertex position values
+    vertex[i].x = m_rotatedDestCoords[i].x;
+    vertex[i].y = m_rotatedDestCoords[i].y;
+    vertex[i].z = 0.0f;
+  }
+
+  // Setup texture coordinates
+  vertex[0].u1 = vertex[3].u1 = rect.x1;
+  vertex[0].v1 = vertex[1].v1 = rect.y1;
+  vertex[1].u1 = vertex[2].u1 = rect.x2;
+  vertex[2].v1 = vertex[3].v1 = rect.y2;
+
+  glGenBuffers(1, &vertexVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(PackedVertex)*4, &vertex[0], GL_STATIC_DRAW);
+
+  glVertexAttribPointer(vertLoc, 3, GL_FLOAT, 0, sizeof(PackedVertex), BUFFER_OFFSET(offsetof(PackedVertex, x)));
+  glVertexAttribPointer(loc, 2, GL_FLOAT, 0, sizeof(PackedVertex), BUFFER_OFFSET(offsetof(PackedVertex, u1)));
+
+  glEnableVertexAttribArray(vertLoc);
+  glEnableVertexAttribArray(loc);
+
+  glGenBuffers(1, &indexVBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexVBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLubyte)*4, idx, GL_STATIC_DRAW);
+
+  glUniform4f(uniColLoc,(colour[0] / 255.0f), (colour[1] / 255.0f), (colour[2] / 255.0f), (colour[3] / 255.0f));
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, 0);
+
+  glDisableVertexAttribArray(vertLoc);
+  glDisableVertexAttribArray(loc);
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDeleteBuffers(1, &vertexVBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glDeleteBuffers(1, &indexVBO);
+
+  m_context.DisableGUIShader();
 }

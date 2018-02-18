@@ -84,6 +84,7 @@ const std::set<TYPE> lookAndFeelTypes = {
   ADDON_RESOURCE_IMAGES,
   ADDON_RESOURCE_LANGUAGE,
   ADDON_RESOURCE_UISOUNDS,
+  ADDON_RESOURCE_FONT,
   ADDON_VIZ,
 };
 
@@ -173,8 +174,9 @@ static bool IsOrphaned(const AddonPtr& addon, const VECADDONS& all)
 
   for (const AddonPtr& other : all)
   {
-    const auto& deps = other->GetDeps();
-    if (deps.find(addon->ID()) != deps.end())
+    const auto& deps = other->GetDependencies();
+    auto it = std::find_if(deps.begin(), deps.end(), [&](const DependencyInfo& dep){ return dep.id == addon->ID(); });
+    if (it != deps.end())
       return false;
   }
   return true;

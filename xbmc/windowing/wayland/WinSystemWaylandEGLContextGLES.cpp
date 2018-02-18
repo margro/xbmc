@@ -24,7 +24,7 @@
 #include <EGL/egl.h>
 
 #include "cores/RetroPlayer/process/RPProcessInfo.h"
-#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGuiTexture.h"
+#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
 #include "utils/log.h"
@@ -45,7 +45,7 @@ bool CWinSystemWaylandEGLContextGLES::InitWindowSystem()
   }
 
   CLinuxRendererGLES::Register();
-  RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryGuiTexture);
+  RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryOpenGLES);
 
   bool general, hevc;
   m_vaapiProxy.reset(::WAYLAND::VaapiProxyCreate());
@@ -57,6 +57,20 @@ bool CWinSystemWaylandEGLContextGLES::InitWindowSystem()
     ::WAYLAND::VAAPIRegister(m_vaapiProxy.get(), hevc);
   }
 
+  return true;
+}
+
+bool CWinSystemWaylandEGLContextGLES::CreateContext()
+{
+  const EGLint contextAttribs[] = {
+    EGL_CONTEXT_CLIENT_VERSION, 2,
+    EGL_NONE
+  };
+  if (!m_eglContext.CreateContext(contextAttribs))
+  {
+    CLog::Log(LOGERROR, "EGL context creation failed");
+    return false;
+  }
   return true;
 }
 

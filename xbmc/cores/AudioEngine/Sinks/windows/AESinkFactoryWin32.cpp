@@ -19,12 +19,12 @@
  */
 #include "AESinkFactoryWin.h"
 #include "platform/win32/CharsetConverter.h"
-#include "system.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 
 #include <algorithm>
 #include <mmdeviceapi.h>
+#include <wrl/client.h>
 
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
 const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
@@ -34,70 +34,69 @@ DEFINE_PROPERTYKEY(PKEY_Device_FriendlyName, 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0
 DEFINE_PROPERTYKEY(PKEY_Device_EnumeratorName, 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 24);
 
 extern const char *WASAPIErrToStr(HRESULT err);
-#define EXIT_ON_FAILURE(hr, reason, ...) if(FAILED(hr)) {CLog::Log(LOGERROR, reason " - %s", __VA_ARGS__, WASAPIErrToStr(hr)); goto failed;}
+#define EXIT_ON_FAILURE(hr, reason) if(FAILED(hr)) {CLog::LogF(LOGERROR, reason " - HRESULT = %li ErrorMessage = %s", hr, WASAPIErrToStr(hr)); goto failed;}
+
+using namespace Microsoft::WRL;
 
 std::vector<RendererDetail> CAESinkFactoryWin::GetRendererDetails()
 {
   std::vector<RendererDetail> list;
-  IMMDeviceEnumerator* pEnumerator = NULL;
-  IMMDeviceCollection* pEnumDevices = NULL;
-  IMMDevice*           pDefaultDevice = NULL;
-  LPWSTR               pwszID = NULL;
-  std::wstring         wstrDDID;
-  HRESULT              hr;
+  ComPtr<IMMDeviceEnumerator> pEnumerator = nullptr;
+  ComPtr<IMMDeviceCollection> pEnumDevices = nullptr;
+  ComPtr<IMMDevice> pDefaultDevice = nullptr;
+  LPWSTR pwszID = nullptr;
+  std::wstring wstrDDID;
+  HRESULT hr;
 
-  hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
-  EXIT_ON_FAILURE(hr, __FUNCTION__": Could not allocate WASAPI device enumerator. CoCreateInstance error code: %li", hr)
+  hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, reinterpret_cast<void**>(pEnumerator.GetAddressOf()));
+  EXIT_ON_FAILURE(hr, "Could not allocate WASAPI device enumerator.")
   
   UINT uiCount = 0;
 
   // get the default audio endpoint
-  if (pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDefaultDevice) == S_OK)
+  if (pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, pDefaultDevice.GetAddressOf()) == S_OK)
   {
     if (pDefaultDevice->GetId(&pwszID) == S_OK)
     {
       wstrDDID = pwszID;
       CoTaskMemFree(pwszID);
     }
-    SAFE_RELEASE(pDefaultDevice);
+    pDefaultDevice.Reset();
   }
 
   // enumerate over all audio endpoints
-  hr = pEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &pEnumDevices);
-  EXIT_ON_FAILURE(hr, __FUNCTION__": Retrieval of audio endpoint enumeration failed.")
+  hr = pEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, pEnumDevices.GetAddressOf());
+  EXIT_ON_FAILURE(hr, "Retrieval of audio endpoint enumeration failed.")
 
   hr = pEnumDevices->GetCount(&uiCount);
-  EXIT_ON_FAILURE(hr, __FUNCTION__": Retrieval of audio endpoint count failed.")
+  EXIT_ON_FAILURE(hr, "Retrieval of audio endpoint count failed.")
 
   for (UINT i = 0; i < uiCount; i++)
   {
     RendererDetail details;
-    IMMDevice *pDevice = NULL;
-    IPropertyStore *pProperty = NULL;
+    ComPtr<IMMDevice> pDevice = nullptr;
+    ComPtr<IPropertyStore> pProperty = nullptr;
     PROPVARIANT varName;
     PropVariantInit(&varName);
 
-    hr = pEnumDevices->Item(i, &pDevice);
+    hr = pEnumDevices->Item(i, pDevice.GetAddressOf());
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint failed.");
+      CLog::Log(LOGERROR, "Retrieval of WASAPI endpoint failed.");
       goto failed;
     }
 
-    hr = pDevice->OpenPropertyStore(STGM_READ, &pProperty);
+    hr = pDevice->OpenPropertyStore(STGM_READ, pProperty.ReleaseAndGetAddressOf());
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint properties failed.");
-      SAFE_RELEASE(pDevice);
+      CLog::Log(LOGERROR, "Retrieval of WASAPI endpoint properties failed.");
       goto failed;
     }
 
     hr = pProperty->GetValue(PKEY_Device_FriendlyName, &varName);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint device name failed.");
-      SAFE_RELEASE(pDevice);
-      SAFE_RELEASE(pProperty);
+      CLog::Log(LOGERROR, "Retrieval of WASAPI endpoint device name failed.");
       goto failed;
     }
 
@@ -107,9 +106,7 @@ std::vector<RendererDetail> CAESinkFactoryWin::GetRendererDetails()
     hr = pProperty->GetValue(PKEY_AudioEndpoint_GUID, &varName);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint GUID failed.");
-      SAFE_RELEASE(pDevice);
-      SAFE_RELEASE(pProperty);
+      CLog::Log(LOGERROR, "Retrieval of WASAPI endpoint GUID failed.");
       goto failed;
     }
 
@@ -119,9 +116,7 @@ std::vector<RendererDetail> CAESinkFactoryWin::GetRendererDetails()
     hr = pProperty->GetValue(PKEY_AudioEndpoint_FormFactor, &varName);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint form factor failed.");
-      SAFE_RELEASE(pDevice);
-      SAFE_RELEASE(pProperty);
+      CLog::Log(LOGERROR, "Retrieval of WASAPI endpoint form factor failed.");
       goto failed;
     }
     details.strWinDevType = winEndpoints[(EndpointFormFactor)varName.uiVal].winEndpointType;
@@ -132,9 +127,7 @@ std::vector<RendererDetail> CAESinkFactoryWin::GetRendererDetails()
     hr = pProperty->GetValue(PKEY_AudioEndpoint_PhysicalSpeakers, &varName);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint speaker layout failed.");
-      SAFE_RELEASE(pDevice);
-      SAFE_RELEASE(pProperty);
+      CLog::Log(LOGERROR, "Retrieval of WASAPI endpoint speaker layout failed.");
       goto failed;
     }
 
@@ -150,22 +143,13 @@ std::vector<RendererDetail> CAESinkFactoryWin::GetRendererDetails()
     }
 
     list.push_back(details);
-
-    SAFE_RELEASE(pDevice);
-    SAFE_RELEASE(pProperty);
   }
-
-  SAFE_RELEASE(pEnumDevices);
-  SAFE_RELEASE(pEnumerator);
 
   return list;
 
 failed:
 
-  CLog::Log(LOGERROR, __FUNCTION__": Failed to enumerate audio renderer devices.");
-  SAFE_RELEASE(pEnumDevices);
-  SAFE_RELEASE(pEnumerator);
-
+  CLog::Log(LOGERROR, "Failed to enumerate audio renderer devices.");
   return list;
 }
 
@@ -182,12 +166,11 @@ struct AEWASAPIDeviceWin32 : public IAEWASAPIDevice
 
     try
     {
-      IAudioClient* pClient = nullptr;
-
-      hr = m_pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void**)&pClient);
+      ComPtr<IAudioClient> pClient = nullptr;
+      hr = m_pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, reinterpret_cast<void**>(pClient.GetAddressOf()));
       if (SUCCEEDED(hr) && pClient)
       {
-        *ppAudioClient = pClient;
+        *ppAudioClient = pClient.Detach();
         return hr;
       }
     }
@@ -197,7 +180,6 @@ struct AEWASAPIDeviceWin32 : public IAEWASAPIDevice
 
   int AEWASAPIDeviceWin32::Release() override
   {
-    SAFE_RELEASE(m_pDevice);
     delete this;
     return 0;
   };
@@ -205,11 +187,11 @@ struct AEWASAPIDeviceWin32 : public IAEWASAPIDevice
   bool AEWASAPIDeviceWin32::IsUSBDevice() override
   {
     bool ret = false;
-    IPropertyStore *pProperty = NULL;
+    ComPtr<IPropertyStore> pProperty = nullptr;
     PROPVARIANT varName;
     PropVariantInit(&varName);
 
-    HRESULT hr = m_pDevice->OpenPropertyStore(STGM_READ, &pProperty);
+    HRESULT hr = m_pDevice->OpenPropertyStore(STGM_READ, pProperty.GetAddressOf());
     if (!SUCCEEDED(hr))
       return ret;
     hr = pProperty->GetValue(PKEY_Device_EnumeratorName, &varName);
@@ -218,7 +200,6 @@ struct AEWASAPIDeviceWin32 : public IAEWASAPIDevice
     StringUtils::ToUpper(str);
     ret = (str == "USB");
     PropVariantClear(&varName);
-    SAFE_RELEASE(pProperty);
     return ret;
   }
 
@@ -229,50 +210,44 @@ protected:
   }
 
 private:
-  IMMDevice*           m_pDevice{ nullptr };
+  ComPtr<IMMDevice> m_pDevice{ nullptr };
 };
 
 std::string CAESinkFactoryWin::GetDefaultDeviceId()
 {
   std::string strDeviceId = "";
-  IMMDevice* pDevice;
-  IMMDeviceEnumerator* pEnumerator = NULL;
+  ComPtr<IMMDevice> pDevice = nullptr;
+  ComPtr<IMMDeviceEnumerator> pEnumerator = nullptr;
   LPWSTR pwszID = NULL;
   std::wstring wstrDDID;
 
-  HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
-  EXIT_ON_FAILURE(hr, __FUNCTION__": Could not allocate WASAPI device enumerator. CoCreateInstance error code: %li", hr)
+  HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, reinterpret_cast<void**>(pEnumerator.GetAddressOf()));
+  EXIT_ON_FAILURE(hr, "Could not allocate WASAPI device enumerator.")
 
     // get the default audio endpoint
-  if (pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice) == S_OK)
+  if (pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, pDevice.GetAddressOf()) == S_OK)
   {
-    IPropertyStore *pProperty = NULL;
+    ComPtr<IPropertyStore> pProperty = nullptr;
     PROPVARIANT varName;
     PropVariantInit(&varName);
 
-    hr = pDevice->OpenPropertyStore(STGM_READ, &pProperty);
+    hr = pDevice->OpenPropertyStore(STGM_READ, pProperty.GetAddressOf());
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint properties failed.");
-      SAFE_RELEASE(pDevice);
+      CLog::LogF(LOGERROR, "Retrieval of WASAPI endpoint properties failed.");
       goto failed;
     }
 
     hr = pProperty->GetValue(PKEY_AudioEndpoint_GUID, &varName);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint GUID failed.");
-      SAFE_RELEASE(pProperty);
-      SAFE_RELEASE(pDevice);
+      CLog::LogF(LOGERROR, "Retrieval of WASAPI endpoint GUID failed.");
       goto failed;
     }
     strDeviceId = KODI::PLATFORM::WINDOWS::FromW(varName.pwszVal);
     PropVariantClear(&varName);
 
-    SAFE_RELEASE(pProperty);
-    SAFE_RELEASE(pDevice);
   }
-  SAFE_RELEASE(pEnumerator);
 
 failed:
   return strDeviceId;
@@ -280,41 +255,40 @@ failed:
 
 HRESULT CAESinkFactoryWin::ActivateWASAPIDevice(std::string &device, IAEWASAPIDevice **ppDevice)
 {
-  IMMDevice* pDevice;
-  IMMDeviceEnumerator* pEnumerator = NULL;
-  IMMDeviceCollection* pEnumDevices = NULL;
+  ComPtr<IMMDevice> pDevice = nullptr;
+  ComPtr<IMMDeviceEnumerator> pEnumerator = nullptr;
+  ComPtr<IMMDeviceCollection> pEnumDevices = nullptr;
 
   if (!ppDevice)
     return E_POINTER;
 
-  HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
-  EXIT_ON_FAILURE(hr, __FUNCTION__": Could not allocate WASAPI device enumerator. CoCreateInstance error code: %li", hr)
+  HRESULT hr = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, reinterpret_cast<void**>(pEnumerator.GetAddressOf()));
+  EXIT_ON_FAILURE(hr, "Could not allocate WASAPI device enumerator.")
 
   /* Get our device. First try to find the named device. */
   UINT uiCount = 0;
 
-  hr = pEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &pEnumDevices);
-  EXIT_ON_FAILURE(hr, __FUNCTION__": Retrieval of audio endpoint enumeration failed.")
+  hr = pEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, pEnumDevices.GetAddressOf());
+  EXIT_ON_FAILURE(hr, "Retrieval of audio endpoint enumeration failed.")
 
   hr = pEnumDevices->GetCount(&uiCount);
-  EXIT_ON_FAILURE(hr, __FUNCTION__": Retrieval of audio endpoint count failed.")
+  EXIT_ON_FAILURE(hr, "Retrieval of audio endpoint count failed.")
 
   for (UINT i = 0; i < uiCount; i++)
   {
-    IPropertyStore *pProperty = NULL;
+    ComPtr<IPropertyStore> pProperty = nullptr;
     PROPVARIANT varName;
 
-    hr = pEnumDevices->Item(i, &pDevice);
-    EXIT_ON_FAILURE(hr, __FUNCTION__": Retrieval of WASAPI endpoint failed.")
+    hr = pEnumDevices->Item(i, pDevice.GetAddressOf());
+    EXIT_ON_FAILURE(hr, "Retrieval of WASAPI endpoint failed.")
 
-    hr = pDevice->OpenPropertyStore(STGM_READ, &pProperty);
-    EXIT_ON_FAILURE(hr, __FUNCTION__": Retrieval of WASAPI endpoint properties failed.")
+    hr = pDevice->OpenPropertyStore(STGM_READ, pProperty.GetAddressOf());
+    EXIT_ON_FAILURE(hr, "Retrieval of WASAPI endpoint properties failed.")
 
     hr = pProperty->GetValue(PKEY_AudioEndpoint_GUID, &varName);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Retrieval of WASAPI endpoint GUID failed.");
-      SAFE_RELEASE(pProperty);
+      CLog::LogF(LOGERROR, "Retrieval of WASAPI endpoint GUID failed.");
       goto failed;
     }
 
@@ -323,18 +297,14 @@ HRESULT CAESinkFactoryWin::ActivateWASAPIDevice(std::string &device, IAEWASAPIDe
     if (device == strDevName)
       i = uiCount;
     else
-      SAFE_RELEASE(pDevice);
+      pDevice.Reset();
 
     PropVariantClear(&varName);
-    SAFE_RELEASE(pProperty);
   }
-
-  SAFE_RELEASE(pEnumDevices);
-  SAFE_RELEASE(pEnumerator);
 
   if (pDevice)
   {
-    AEWASAPIDeviceWin32* pAEDevice = new AEWASAPIDeviceWin32(pDevice);
+    AEWASAPIDeviceWin32* pAEDevice = new AEWASAPIDeviceWin32(pDevice.Get());
     pAEDevice->deviceId = device;
     *ppDevice = pAEDevice;
     return S_OK;
@@ -343,10 +313,6 @@ HRESULT CAESinkFactoryWin::ActivateWASAPIDevice(std::string &device, IAEWASAPIDe
   return E_FAIL;
 
 failed:
-  CLog::Log(LOGERROR, __FUNCTION__": WASAPI initialization failed.");
-  SAFE_RELEASE(pDevice);
-  SAFE_RELEASE(pEnumDevices);
-  SAFE_RELEASE(pEnumerator);
-
+  CLog::LogF(LOGERROR, "WASAPI initialization failed.");
   return hr;
 }

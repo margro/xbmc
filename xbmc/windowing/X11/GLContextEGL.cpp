@@ -17,7 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h"
 
 // always define GL_GLEXT_PROTOTYPES before include gl headers
 #if !defined(GL_GLEXT_PROTOTYPES)
@@ -28,9 +27,9 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glext.h>
-
 #include "GLContextEGL.h"
 #include "utils/log.h"
+#include <EGL/eglext.h>
 
 #define EGL_NO_CONFIG (EGLConfig)0
 
@@ -129,7 +128,7 @@ bool CGLContextEGL::Refresh(bool force, int screen, Window glWindow, bool &newCo
       }
       eglTerminate(m_eglDisplay);
       m_eglDisplay = EGL_NO_DISPLAY;
-      XSync(m_dpy, FALSE);
+      XSync(m_dpy, False);
       newContext = true;
     }
 
@@ -177,14 +176,29 @@ bool CGLContextEGL::Refresh(bool force, int screen, Window glWindow, bool &newCo
 
     EGLint contextAttributes[] =
     {
-      EGL_CONTEXT_CLIENT_VERSION, 2,
+      EGL_CONTEXT_MAJOR_VERSION_KHR, 3,
+      EGL_CONTEXT_MINOR_VERSION_KHR, 2,
+      EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
       EGL_NONE
     };
     m_eglContext = eglCreateContext(m_eglDisplay, m_eglConfig, EGL_NO_CONTEXT, contextAttributes);
     if (m_eglContext == EGL_NO_CONTEXT)
     {
-      CLog::Log(LOGERROR, "failed to create EGL context\n");
-      return false;
+      EGLint contextAttributes[] =
+      {
+        EGL_CONTEXT_MAJOR_VERSION_KHR, 2,
+        EGL_NONE
+      };
+      m_eglContext = eglCreateContext(m_eglDisplay, m_eglConfig, EGL_NO_CONTEXT, contextAttributes);
+
+      if (m_eglContext == EGL_NO_CONTEXT)
+      {
+        CLog::Log(LOGERROR, "failed to create EGL context\n");
+        return false;
+      }
+
+      CLog::Log(LOGWARNING, "Failed to get an OpenGL context supporting core profile 3.2,  \
+                             using legacy mode with reduced feature set");
     }
 
     if (!eglMakeCurrent(m_eglDisplay, m_eglSurface, m_eglSurface, m_eglContext))

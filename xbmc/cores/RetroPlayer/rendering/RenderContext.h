@@ -33,6 +33,12 @@ class CRenderSystemBase;
 class CWinSystemBase;
 class TransformMatrix;
 
+enum class GL_SHADER_METHOD
+{
+  DEFAULT,
+  TEXTURE,
+};
+
 namespace KODI
 {
 namespace RETRO
@@ -55,9 +61,10 @@ namespace RETRO
     void GetViewPort(CRect &viewPort);
     void SetScissors(const CRect &rect);
     void ApplyStateBlock();
+    bool IsExtSupported(const char* extension);
 
     // OpenGL(ES) rendering functions
-    void EnableGUIShader();
+    void EnableGUIShader(GL_SHADER_METHOD method);
     void DisableGUIShader();
     int GUIShaderGetPos();
     int GUIShaderGetCoord0();

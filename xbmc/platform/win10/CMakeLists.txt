@@ -1,4 +1,5 @@
-set(SOURCES Environment.cpp
+set(SOURCES input/RemoteControlXbox.cpp
+            Environment.cpp
             Win10Main.cpp
             Win10App.cpp
             MessagePrinter.cpp        
@@ -9,7 +10,8 @@ set(SOURCES Environment.cpp
             ../win32/strverscmp.cpp
             ../win32/WIN32Util.cpp)
 
-set(HEADERS AsyncHelpers.h
+set(HEADERS input/RemoteControlXbox.h
+            AsyncHelpers.h
             Win10Main.h
             Win10App.h
             ../win32/CharsetConverter.h
@@ -20,7 +22,6 @@ set(HEADERS AsyncHelpers.h
             ../win32/netdb.h
             ../win32/pch.h
             ../win32/PlatformDefs.h
-            ../win32/PlatformInclude.h
             ../win32/resource.h
             ../win32/unistd.h
             ../win32/WIN32Util.h)

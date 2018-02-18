@@ -129,7 +129,7 @@ bool CRendererVAAPI::CreateTexture(int index)
     return CreateNV12Texture(index);
   }
 
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
   YuvImage &im = buf.image;
   YUVPLANE (&planes)[YuvImage::MAX_PLANES] = buf.fields[0];
 
@@ -157,7 +157,7 @@ void CRendererVAAPI::DeleteTexture(int index)
     return;
   }
 
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
   buf.fields[FIELD_FULL][0].id = 0;
   buf.fields[FIELD_FULL][1].id = 0;
   buf.fields[FIELD_FULL][2].id = 0;
@@ -165,7 +165,7 @@ void CRendererVAAPI::DeleteTexture(int index)
 
 bool CRendererVAAPI::UploadTexture(int index)
 {
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
   CVaapiRenderPicture *pic = dynamic_cast<CVaapiRenderPicture*>(buf.videoBuffer);
 
   if (!pic || !pic->valid)
@@ -186,7 +186,7 @@ bool CRendererVAAPI::UploadTexture(int index)
   }
 
   m_vaapiTextures[index].Map(pic);
-  m_srcTextureBits = m_vaapiTextures[index].GetBits();
+  m_buffers[index].m_srcTextureBits = m_vaapiTextures[index].GetBits();
 
   YuvImage &im = buf.image;
   YUVPLANE (&planes)[3] = buf.fields[0];

@@ -33,6 +33,9 @@ varying vec2      m_cordV;
 uniform vec2      m_step;
 uniform mat4      m_yuvmat;
 uniform float     m_stretch;
+uniform mat3 m_primMat;
+uniform float m_gammaDstInv;
+uniform float m_gammaSrc;
 uniform float m_alpha;
 
 vec2 stretch(vec2 pos)
@@ -116,6 +119,12 @@ vec4 process()
 
   rgb.a = m_alpha;
 
+#endif
+
+#if defined(XBMC_COL_CONVERSION)
+  rgb.rgb = pow(rgb.rgb, vec3(m_gammaSrc));
+  rgb.rgb = m_primMat * rgb.rgb;
+  rgb.rgb = pow(rgb.rgb, vec3(m_gammaDstInv));
 #endif
 
   return rgb;

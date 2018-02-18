@@ -27,6 +27,7 @@
 #include "DirectoryCache.h"
 #include "Directory.h"
 #include "FileCache.h"
+#include "system.h"
 #include "utils/log.h"
 #include "utils/URIUtils.h"
 #include "utils/BitstreamStats.h"
@@ -141,8 +142,8 @@ bool CFile::Copy(const CURL& url2, const CURL& dest, XFILE::IFileCallback* pCall
     auto_buffer buffer(iBufferSize);
     ssize_t iRead, iWrite;
 
-    UINT64 llFileSize = file.GetLength();
-    UINT64 llPos = 0;
+    unsigned long long llFileSize = file.GetLength();
+    unsigned long long llPos = 0;
 
     CStopWatch timer;
     timer.StartZero();

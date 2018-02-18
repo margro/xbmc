@@ -21,13 +21,11 @@
 #ifdef TARGET_WINDOWS
 #include "Win32File.h"
 #include "platform/win32/WIN32Util.h"
-#include "utils/win32/Win32Log.h"
+#include "platform/win32/CharsetConverter.h"
+#include "utils/log.h"
 #include "utils/SystemInfo.h"
 #include "utils/auto_buffer.h"
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN 1
-#endif // WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
 #include <sys/stat.h>
@@ -157,7 +155,10 @@ bool CWin32File::OpenForWrite(const CURL& url, bool bOverWrite /*= false*/)
         }
       }
       if (!hiddenSet)
-        CLog::LogFW(LOGWARNING, L"Can't set hidden attribute for file \"%ls\"", pathnameW.c_str());
+      {
+        CLog::LogF(LOGWARNING, "Can't set hidden attribute for file \"%ls\"",
+                   KODI::PLATFORM::WINDOWS::FromW(pathnameW));
+      }
     }
   }
 

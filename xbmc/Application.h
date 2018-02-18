@@ -20,7 +20,6 @@
  *
  */
 
-#include "system.h" // for HAS_DVD_DRIVE et. al.
 #include "XBApplicationEx.h"
 
 #include "addons/AddonSystemSettings.h"
@@ -194,7 +193,6 @@ public:
   void CheckDelayedPlayerRestart();
   bool IsPlayingFullScreenVideo() const;
   bool IsFullScreen();
-  bool OnAppCommand(const CAction &action);
   bool OnAction(const CAction &action);
   void CheckShutdown();
   void InhibitIdleShutdown(bool inhibit);

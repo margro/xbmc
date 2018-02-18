@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "GUIWindow.h"
 #include "GUIWindowManager.h"
 #include "input/Key.h"
@@ -760,7 +759,7 @@ bool CGUIWindow::NeedLoad() const
   return !m_windowLoaded || g_infoManager.ConditionsChangedValues(m_xmlIncludeConditions);
 }
 
-void CGUIWindow::AllocResources(bool forceLoad /*= FALSE */)
+void CGUIWindow::AllocResources(bool forceLoad /*= false */)
 {
   CSingleLock lock(g_graphicsContext);
 
@@ -808,7 +807,7 @@ void CGUIWindow::AllocResources(bool forceLoad /*= FALSE */)
   m_bAllocated = true;
 }
 
-void CGUIWindow::FreeResources(bool forceUnload /*= FALSE */)
+void CGUIWindow::FreeResources(bool forceUnload /*= false */)
 {
   m_bAllocated = false;
   CGUIControlGroup::FreeResources();

@@ -18,8 +18,6 @@
  *
  */
 
-#include "system.h"
-
 #include "DetectDVDType.h"
 #include "guilib/LocalizeStrings.h"
 #include "utils/StringUtils.h"
@@ -117,7 +115,7 @@ void CDetectDVDMedia::OnExit()
 }
 
 // Gets state of the DVD drive
-VOID CDetectDVDMedia::UpdateDvdrom()
+void CDetectDVDMedia::UpdateDvdrom()
 {
   // Signal for WaitMediaReady()
   // that we are busy detecting the

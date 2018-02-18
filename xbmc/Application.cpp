@@ -21,7 +21,6 @@
 #include "network/EventServer.h"
 #include "network/Network.h"
 #include "threads/SystemClock.h"
-#include "system.h"
 #include "Application.h"
 #include "events/EventLog.h"
 #include "events/NotificationEvent.h"
@@ -321,9 +320,6 @@ void CApplication::HandleWinEvents()
         break;
       case XBMC_USEREVENT:
         CApplicationMessenger::GetInstance().PostMsg(static_cast<uint32_t>(newEvent.user.code));
-        break;
-      case XBMC_APPCOMMAND:
-        g_application.OnAppCommand(newEvent.appcommand.action);
         break;
       case XBMC_SETFOCUS:
         // Reset the screensaver
@@ -1892,42 +1888,6 @@ void CApplication::SetStandAlone(bool value)
   g_advancedSettings.m_handleMounting = m_bStandalone = value;
 }
 
-
-// OnAppCommand is called in response to a XBMC_APPCOMMAND event.
-// This needs to return true if it processed the appcommand or false if it didn't
-bool CApplication::OnAppCommand(const CAction &action)
-{
-  // Reset the screen saver
-  ResetScreenSaver();
-
-  // If we were currently in the screen saver wake up and don't process the appcommand
-  if (WakeUpScreenSaverAndDPMS())
-    return true;
-
-  // The action ID is the APPCOMMAND code. We need to retrieve the action
-  // associated with this appcommand from the mapping table.
-  uint32_t appcmd = action.GetID();
-  CKey key(appcmd | KEY_APPCOMMAND, (unsigned int) 0);
-  int iWin = g_windowManager.GetActiveWindow() & WINDOW_ID_MASK;
-  CAction appcmdaction = CServiceBroker::GetInputManager().GetAction(iWin, key);
-
-  // If we couldn't find an action return false to indicate we have not
-  // handled this appcommand
-  if (!appcmdaction.GetID())
-  {
-    CLog::LogF(LOGDEBUG, "unknown appcommand %d", appcmd);
-    return false;
-  }
-
-  // Process the appcommand
-  CLog::LogF(LOGDEBUG, "appcommand %d, trying action %s", appcmd, appcmdaction.GetName().c_str());
-  OnAction(appcmdaction);
-
-  // Always return true regardless of whether the action succeeded or not.
-  // This stops Windows handling the appcommand itself.
-  return true;
-}
-
 bool CApplication::OnAction(const CAction &action)
 {
   // special case for switching between GUI & fullscreen mode.
@@ -3452,6 +3412,7 @@ void CApplication::OnPlayBackSeekChapter(int iChapter)
 
 void CApplication::OnAVChange()
 {
+  CStereoscopicsManager::GetInstance().OnStreamChange();
 }
 
 void CApplication::RequestVideoSettings(const CFileItem &fileItem)

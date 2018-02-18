@@ -19,7 +19,6 @@
  */
 
 #include "threads/SystemClock.h"
-#include "system.h"
 #include "GUIUserMessages.h"
 #include "GUIWindowMusicBase.h"
 #include "dialogs/GUIDialogMediaSource.h"
@@ -1235,14 +1234,23 @@ bool CGUIWindowMusicBase::GetDirectory(const std::string &strDirectory, CFileIte
     }
     if (artfound)
     {
+      std::string dirType = MediaTypeArtist;
+      if (params.GetAlbumId() > 0)
+        dirType = MediaTypeAlbum;
       std::map<std::string, std::string> artmap;
       for (auto artitem : art)
       {
         std::string artname;
-        artname = artitem.artType;
-        if (params.GetAlbumId() > 0 && artitem.mediaType != MediaTypeAlbum)
+        if (dirType == artitem.mediaType)
+          artname = artitem.artType;
+        else if (artitem.prefix.empty())
           artname = artitem.mediaType + "." + artitem.artType;
-        artmap.insert(std::make_pair(artname, artitem.url));
+        else
+        {
+          if (dirType == MediaTypeAlbum)
+            StringUtils::Replace(artitem.prefix, "albumartist", "artist");
+          artname = artitem.prefix + "." + artitem.artType;
+        }
       }
       items.SetArt(artmap);
     }

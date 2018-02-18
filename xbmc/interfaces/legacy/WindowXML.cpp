@@ -83,7 +83,7 @@ namespace XBMCAddon
       // CGUIMediaWindow
       void GetContextButtons(int itemNumber, CContextButtons &buttons) override
       { XBMC_TRACE; if (up()) CGUIMediaWindow::GetContextButtons(itemNumber,buttons); else xwin->GetContextButtons(itemNumber,buttons); }
-      bool Update(const std::string &strPath) override
+      bool Update(const std::string &strPath, bool) override
       { XBMC_TRACE; return up() ? CGUIMediaWindow::Update(strPath) : xwin->Update(strPath); }
       void SetupShares() override { XBMC_TRACE; if(up()) CGUIMediaWindow::SetupShares(); else checkedv(SetupShares()); }
 
@@ -413,7 +413,7 @@ namespace XBMCAddon
       return A(CGUIMediaWindow::OnMessage(message));
     }
 
-    void WindowXML::AllocResources(bool forceLoad /*= FALSE */)
+    void WindowXML::AllocResources(bool forceLoad /*= false */)
     {
       XBMC_TRACE;
       std::string tmpDir = URIUtils::GetDirectory(ref(window)->GetProperty("xmlfile").asString());
@@ -428,7 +428,7 @@ namespace XBMCAddon
       g_TextureManager.RemoveTexturePath(m_mediaDir);
     }
 
-    void WindowXML::FreeResources(bool forceUnLoad /*= FALSE */)
+    void WindowXML::FreeResources(bool forceUnLoad /*= false */)
     {
       XBMC_TRACE;
 

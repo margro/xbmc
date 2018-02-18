@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "input/Key.h"
 
 CKey::CKey(void)
@@ -112,12 +111,12 @@ CKey& CKey::operator=(const CKey& key)
   return *this;
 }
 
-BYTE CKey::GetLeftTrigger() const
+uint8_t CKey::GetLeftTrigger() const
 {
   return m_leftTrigger;
 }
 
-BYTE CKey::GetRightTrigger() const
+uint8_t CKey::GetRightTrigger() const
 {
   return m_rightTrigger;
 }

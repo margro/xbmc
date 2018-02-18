@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "DVDOverlayCodecTX3G.h"
 #include "DVDOverlayText.h"
 #include "DVDStreamInfo.h"
@@ -30,6 +29,7 @@
 #include "utils/StringUtils.h"
 #include "utils/auto_buffer.h"
 #include "utils/RegExp.h"
+#include "system.h"
 
 #include <cstddef>
 

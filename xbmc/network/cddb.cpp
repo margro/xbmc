@@ -18,8 +18,6 @@
  *
  */
 
-#include "system.h"
-
 #include <taglib/id3v1genres.h>
 #include "cddb.h"
 #include "CompileInfo.h"
@@ -77,7 +75,13 @@ bool Xcddb::openSocket()
   res = getaddrinfo(m_cddb_ip_address.c_str(), service, &hints, &result);
   if(res)
   {
-    CLog::Log(LOGERROR, "Xcddb::openSocket - failed to lookup %s with error %s", m_cddb_ip_address.c_str(), gai_strerror(res));
+    std::string err;
+#if defined(TARGET_WINDOWS)
+    g_charsetConverter.wToUTF8(gai_strerror(res), err);
+#else
+    err = gai_strerror(res);
+#endif
+    CLog::Log(LOGERROR, "Xcddb::openSocket - failed to lookup %s with error %s", m_cddb_ip_address, err);
     res = getaddrinfo("130.179.31.49", service, &hints, &result);
     if(res)
       return false;

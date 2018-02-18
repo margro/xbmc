@@ -20,7 +20,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h"
 
 #include <locale.h>
 
@@ -101,7 +100,7 @@ static const GLubyte stipple_weave[] = {
   0x00, 0x00, 0x00, 0x00,
 };
 
-CLinuxRendererGL::YUVBUFFER::YUVBUFFER()
+CLinuxRendererGL::CPictureBuffer::CPictureBuffer()
 {
   memset(&fields, 0, sizeof(fields));
   memset(&image , 0, sizeof(image));
@@ -110,7 +109,7 @@ CLinuxRendererGL::YUVBUFFER::YUVBUFFER()
   loaded = false;
 }
 
-CLinuxRendererGL::YUVBUFFER::~YUVBUFFER() = default;
+CLinuxRendererGL::CPictureBuffer::~CPictureBuffer() = default;
 
 CBaseRenderer* CLinuxRendererGL::Create(CVideoBuffer *buffer)
 {
@@ -192,7 +191,7 @@ bool CLinuxRendererGL::ValidateRenderer()
     return false;
 
   int index = m_iYV12RenderBuffer;
-  YUVBUFFER& buf = m_buffers[index];
+  CPictureBuffer& buf = m_buffers[index];
 
   if (!buf.fields[FIELD_FULL][0].id)
     return false;
@@ -250,9 +249,9 @@ bool CLinuxRendererGL::Configure(const VideoPicture &picture, float fps, unsigne
   m_iFlags = GetFlagsChromaPosition(picture.chroma_position) |
              GetFlagsStereoMode(picture.stereoMode);
 
-  m_srcPrimaries = static_cast<AVColorPrimaries>(picture.color_primaries);
-  m_srcColSpace = static_cast<AVColorSpace>(picture.color_space);
-  m_srcFullRange = picture.color_range == 1;
+  m_srcPrimaries = GetSrcPrimaries(static_cast<AVColorPrimaries>(picture.color_primaries),
+                                   picture.iWidth, picture.iHeight);
+  m_toneMap = false;
 
   // Calculate the input frame aspect ratio.
   CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
@@ -317,20 +316,24 @@ bool CLinuxRendererGL::ConfigChanged(const VideoPicture &picture)
 
 void CLinuxRendererGL::AddVideoPicture(const VideoPicture &picture, int index, double currentClock)
 {
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
   buf.videoBuffer = picture.videoBuffer;
   buf.videoBuffer->Acquire();
   buf.loaded = false;
+  buf.m_srcPrimaries = static_cast<AVColorPrimaries>(picture.color_primaries);
+  buf.m_srcColSpace = static_cast<AVColorSpace>(picture.color_space);
+  buf.m_srcFullRange = picture.color_range == 1;
+  buf.m_srcBits = picture.colorBits;
 
-  m_srcPrimaries = static_cast<AVColorPrimaries>(picture.color_primaries);
-  m_srcColSpace = static_cast<AVColorSpace>(picture.color_space);
-  m_srcFullRange = picture.color_range == 1;
-  m_srcBits = picture.colorBits;
+  buf.hasDisplayMetadata = picture.hasDisplayMetadata;
+  buf.displayMetadata = picture.displayMetadata;
+  buf.hasLightMetadata = picture.hasLightMetadata;
+  buf.lightMetadata = picture.lightMetadata;
 }
 
 void CLinuxRendererGL::ReleaseBuffer(int idx)
 {
-  YUVBUFFER &buf = m_buffers[idx];
+  CPictureBuffer &buf = m_buffers[idx];
   if (buf.videoBuffer)
   {
     buf.videoBuffer->Release();
@@ -360,7 +363,7 @@ void CLinuxRendererGL::GetPlaneTextureSize(YUVPLANE& plane)
 
 void CLinuxRendererGL::CalculateTextureSourceRects(int source, int num_planes)
 {
-  YUVBUFFER& buf = m_buffers[source];
+  CPictureBuffer& buf = m_buffers[source];
   YuvImage* im  = &buf.image;
 
   // calculate the source rectangle
@@ -917,6 +920,8 @@ void CLinuxRendererGL::LoadShaders(int field)
       {
         m_pYUVShader = new YUV2RGBFilterShader4(m_textureTarget == GL_TEXTURE_RECTANGLE_ARB,
                                                 shaderFormat, m_nonLinStretch,
+                                                AVColorPrimaries::AVCOL_PRI_BT709, m_srcPrimaries,
+                                                m_toneMap,
                                                 m_scalingMethod, out);
         if (!m_cmsOn)
           m_pYUVShader->SetConvertFullColorRange(m_fullRange);
@@ -940,7 +945,8 @@ void CLinuxRendererGL::LoadShaders(int field)
     if (!m_pYUVShader)
     {
       m_pYUVShader = new YUV2RGBProgressiveShader(m_textureTarget == GL_TEXTURE_RECTANGLE_ARB, shaderFormat,
-                                                  m_nonLinStretch && m_renderQuality == RQ_SINGLEPASS, out);
+                                                  m_nonLinStretch && m_renderQuality == RQ_SINGLEPASS,
+                                                  AVColorPrimaries::AVCOL_PRI_BT709, m_srcPrimaries, m_toneMap, out);
 
       if (!m_cmsOn)
         m_pYUVShader->SetConvertFullColorRange(m_fullRange);
@@ -1052,7 +1058,22 @@ bool CLinuxRendererGL::Render(DWORD flags, int renderBuffer)
 
 void CLinuxRendererGL::RenderSinglePass(int index, int field)
 {
+  CPictureBuffer &buf = m_buffers[index];
   YUVPLANE (&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[field];
+
+  AVColorPrimaries srcPrim = GetSrcPrimaries(buf.m_srcPrimaries, buf.image.width, buf.image.height);
+  if (srcPrim != m_srcPrimaries)
+  {
+    m_srcPrimaries = srcPrim;
+    m_reloadShaders = true;
+  }
+
+  bool toneMap = false;
+  if (buf.hasLightMetadata || (buf.hasDisplayMetadata && buf.displayMetadata.has_luminance))
+    toneMap = true;
+  if (toneMap != m_toneMap)
+    m_reloadShaders = true;
+  m_toneMap = toneMap;
 
   if (m_reloadShaders)
   {
@@ -1080,8 +1101,9 @@ void CLinuxRendererGL::RenderSinglePass(int index, int field)
   m_pYUVShader->SetContrast(m_videoSettings.m_Contrast * 0.02f);
   m_pYUVShader->SetWidth(planes[0].texwidth);
   m_pYUVShader->SetHeight(planes[0].texheight);
-  m_pYUVShader->SetColSpace(m_srcColSpace, m_srcPrimaries, m_srcBits, !m_srcFullRange,
-                            m_srcTextureBits, AVCOL_PRI_BT709);
+  m_pYUVShader->SetColParams(buf.m_srcColSpace, buf.m_srcBits, !buf.m_srcFullRange, buf.m_srcTextureBits);
+  m_pYUVShader->SetDisplayMetadata(buf.hasDisplayMetadata, buf.displayMetadata,
+                                   buf.hasLightMetadata, buf.lightMetadata);
 
   //disable non-linear stretch when a dvd menu is shown, parts of the menu are rendered through the overlay renderer
   //having non-linear stretch on breaks the alignment
@@ -1197,7 +1219,22 @@ void CLinuxRendererGL::RenderSinglePass(int index, int field)
 
 void CLinuxRendererGL::RenderToFBO(int index, int field, bool weave /*= false*/)
 {
+  CPictureBuffer &buf = m_buffers[index];
   YUVPLANE (&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[field];
+
+  AVColorPrimaries srcPrim = GetSrcPrimaries(buf.m_srcPrimaries, buf.image.width, buf.image.height);
+  if (srcPrim != m_srcPrimaries)
+  {
+    m_srcPrimaries = srcPrim;
+    m_reloadShaders = true;
+  }
+
+  bool toneMap = false;
+  if (buf.hasLightMetadata || (buf.hasDisplayMetadata && buf.displayMetadata.has_luminance))
+    toneMap = true;
+  if (toneMap != m_toneMap)
+    m_reloadShaders = true;
+  m_toneMap = toneMap;
 
   if (m_reloadShaders)
   {
@@ -1255,8 +1292,7 @@ void CLinuxRendererGL::RenderToFBO(int index, int field, bool weave /*= false*/)
   m_pYUVShader->SetWidth(planes[0].texwidth);
   m_pYUVShader->SetHeight(planes[0].texheight);
   m_pYUVShader->SetNonLinStretch(1.0);
-  m_pYUVShader->SetColSpace(m_srcColSpace, m_srcPrimaries, m_srcBits, !m_srcFullRange,
-                            m_srcTextureBits, AVCOL_PRI_BT709);
+  m_pYUVShader->SetColParams(buf.m_srcColSpace, buf.m_srcBits, !buf.m_srcFullRange, buf.m_srcTextureBits);
 
   if (field == FIELD_TOP)
     m_pYUVShader->SetField(1);
@@ -1791,6 +1827,7 @@ bool CLinuxRendererGL::CreateYV12Texture(int index)
   /* since we also want the field textures, pitch must be texture aligned */
   unsigned p;
 
+  CPictureBuffer &buf = m_buffers[index];
   YuvImage &im = m_buffers[index].image;
   GLuint *pbo = m_buffers[index].pbo;
 
@@ -1804,24 +1841,24 @@ bool CLinuxRendererGL::CreateYV12Texture(int index)
   switch (m_format)
   {
     case AV_PIX_FMT_YUV420P16:
-      m_srcTextureBits = 16;
+      buf.m_srcTextureBits = 16;
       break;
     case AV_PIX_FMT_YUV420P14:
-      m_srcTextureBits = 14;
+      buf.m_srcTextureBits = 14;
       break;
     case AV_PIX_FMT_YUV420P12:
-      m_srcTextureBits = 12;
+      buf.m_srcTextureBits = 12;
       break;
     case AV_PIX_FMT_YUV420P10:
-      m_srcTextureBits = 10;
+      buf.m_srcTextureBits = 10;
       break;
     case AV_PIX_FMT_YUV420P9:
-      m_srcTextureBits = 9;
+      buf.m_srcTextureBits = 9;
       break;
     default:
       break;
   }
-  if (m_srcTextureBits > 8)
+  if (buf.m_srcTextureBits > 8)
     im.bpp = 2;
   else
     im.bpp = 1;
@@ -1934,7 +1971,7 @@ bool CLinuxRendererGL::CreateYV12Texture(int index)
 
 bool CLinuxRendererGL::UploadYV12Texture(int source)
 {
-  YUVBUFFER& buf = m_buffers[source];
+  CPictureBuffer& buf = m_buffers[source];
   YuvImage* im = &buf.image;
 
   bool deinterlacing;
@@ -2054,7 +2091,7 @@ void CLinuxRendererGL::DeleteYV12Texture(int index)
 //********************************************************************************************************
 bool CLinuxRendererGL::UploadNV12Texture(int source)
 {
-  YUVBUFFER& buf = m_buffers[source];
+  CPictureBuffer& buf = m_buffers[source];
   YuvImage* im = &buf.image;
 
   bool deinterlacing;
@@ -2113,7 +2150,7 @@ bool CLinuxRendererGL::UploadNV12Texture(int source)
 bool CLinuxRendererGL::CreateNV12Texture(int index)
 {
   // since we also want the field textures, pitch must be texture aligned
-  YUVBUFFER& buf = m_buffers[index];
+  CPictureBuffer& buf = m_buffers[index];
   YuvImage &im = buf.image;
   GLuint *pbo = buf.pbo;
 
@@ -2244,7 +2281,7 @@ bool CLinuxRendererGL::CreateNV12Texture(int index)
 
 void CLinuxRendererGL::DeleteNV12Texture(int index)
 {
-  YUVBUFFER& buf = m_buffers[index];
+  CPictureBuffer& buf = m_buffers[index];
   YuvImage &im = buf.image;
   GLuint *pbo = buf.pbo;
 
@@ -2295,7 +2332,7 @@ void CLinuxRendererGL::DeleteNV12Texture(int index)
 
 bool CLinuxRendererGL::UploadYUV422PackedTexture(int source)
 {
-  YUVBUFFER& buf = m_buffers[source];
+  CPictureBuffer& buf = m_buffers[source];
   YuvImage* im = &buf.image;
 
   bool deinterlacing;
@@ -2336,7 +2373,7 @@ bool CLinuxRendererGL::UploadYUV422PackedTexture(int source)
 
 void CLinuxRendererGL::DeleteYUV422PackedTexture(int index)
 {
-  YUVBUFFER& buf = m_buffers[index];
+  CPictureBuffer& buf = m_buffers[index];
   YuvImage &im = buf.image;
   GLuint *pbo = buf.pbo;
 
@@ -2383,7 +2420,7 @@ void CLinuxRendererGL::DeleteYUV422PackedTexture(int index)
 bool CLinuxRendererGL::CreateYUV422PackedTexture(int index)
 {
   // since we also want the field textures, pitch must be texture aligned
-  YUVBUFFER& buf = m_buffers[index];
+  CPictureBuffer& buf = m_buffers[index];
   YuvImage &im = buf.image;
   GLuint *pbo = buf.pbo;
 
@@ -2500,7 +2537,7 @@ void CLinuxRendererGL::SetTextureFilter(GLenum method)
 {
   for (int i = 0 ; i<m_NumYV12Buffers ; i++)
   {
-    YUVBUFFER& buf = m_buffers[i];
+    CPictureBuffer& buf = m_buffers[i];
 
     for (int f = FIELD_FULL; f<=FIELD_BOT ; f++)
     {
@@ -2587,7 +2624,7 @@ bool CLinuxRendererGL::Supports(ESCALINGMETHOD method)
   return false;
 }
 
-void CLinuxRendererGL::BindPbo(YUVBUFFER& buff)
+void CLinuxRendererGL::BindPbo(CPictureBuffer& buff)
 {
   bool pbo = false;
   for(int plane = 0; plane < YuvImage::MAX_PLANES; plane++)
@@ -2604,7 +2641,7 @@ void CLinuxRendererGL::BindPbo(YUVBUFFER& buff)
     glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 }
 
-void CLinuxRendererGL::UnBindPbo(YUVBUFFER& buff)
+void CLinuxRendererGL::UnBindPbo(CPictureBuffer& buff)
 {
   bool pbo = false;
   for(int plane = 0; plane < YuvImage::MAX_PLANES; plane++)
@@ -2687,3 +2724,15 @@ void CLinuxRendererGL::DeleteCLUT()
   }
 }
 
+AVColorPrimaries CLinuxRendererGL::GetSrcPrimaries(AVColorPrimaries srcPrimaries, unsigned int width, unsigned int height)
+{
+  AVColorPrimaries ret = srcPrimaries;
+  if (ret == AVCOL_PRI_UNSPECIFIED)
+  {
+    if (width > 1024 || height >= 600)
+      ret = AVCOL_PRI_BT709;
+    else
+      ret = AVCOL_PRI_BT470BG;
+  }
+  return ret;
+}

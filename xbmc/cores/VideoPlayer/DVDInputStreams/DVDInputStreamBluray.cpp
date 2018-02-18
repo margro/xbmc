@@ -17,7 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h"
 
 #include <functional>
 #include <limits>
@@ -117,7 +116,7 @@ void DllLibbluray::dir_close(BD_DIR_H *dir)
 {
   if (dir)
   {
-    CLog::Log(LOGDEBUG, "CDVDInputStreamBluray - Closed dir (%p)\n", dir);
+    CLog::Log(LOGDEBUG, "CDVDInputStreamBluray - Closed dir (%p)\n", static_cast<void*>(dir));
     delete static_cast<SDirState*>(dir->internal);
     delete dir;
   }

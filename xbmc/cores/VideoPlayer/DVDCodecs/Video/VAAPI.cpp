@@ -1937,7 +1937,7 @@ void COutput::InitCycle()
     if (!m_config.processInfo->Supports(method))
       method = VS_INTERLACEMETHOD_VAAPI_BOB;
 
-    if (m_pp && (method != m_currentDiMethod || !m_pp->Compatible(method)))
+    if (m_pp && !m_pp->UpdateDeintMethod(method))
     {
       delete m_pp;
       m_pp = NULL;
@@ -1960,7 +1960,6 @@ void COutput::InitCycle()
       if (m_pp->PreInit(m_config))
       {
         m_pp->Init(method);
-        m_currentDiMethod = method;
 
         if (method == VS_INTERLACEMETHOD_DEINTERLACE)
           m_config.processInfo->SetVideoDeintMethod("yadif");
@@ -1984,7 +1983,7 @@ void COutput::InitCycle()
   else
   {
     method = VS_INTERLACEMETHOD_NONE;
-    if (m_pp && !m_pp->Compatible(method))
+    if (m_pp && !m_pp->UpdateDeintMethod(method))
     {
       delete m_pp;
       m_pp = NULL;
@@ -2003,7 +2002,6 @@ void COutput::InitCycle()
       if (m_pp->PreInit(m_config))
       {
         m_pp->Init(method);
-        m_currentDiMethod = method;
         m_config.processInfo->SetVideoDeintMethod("none");
       }
       else
@@ -2226,7 +2224,7 @@ void CSkipPostproc::Flush()
 
 }
 
-bool CSkipPostproc::Compatible(EINTERLACEMETHOD method)
+bool CSkipPostproc::UpdateDeintMethod(EINTERLACEMETHOD method)
 {
   if (method == VS_INTERLACEMETHOD_NONE)
     return true;
@@ -2394,9 +2392,6 @@ bool CVppPostproc::Init(EINTERLACEMETHOD method)
   m_currentIdx = 0;
   m_frameCount = 0;
 
-//  if (method == VS_INTERLACEMETHOD_NONE)
-//    return true;
-
   VAProcFilterParameterBufferDeinterlacing filterparams;
   filterparams.type = VAProcFilterDeinterlacing;
   filterparams.algorithm = vppMethod;
@@ -2486,14 +2481,16 @@ bool CVppPostproc::Filter(CVaapiProcessedPicture &outPic)
   // clear reference in case we return false
   m_videoSurfaces.ClearReference(surf);
 
+  // move window of frames we are looking at to account for backward (=future) refs
+  const auto currentIdx = m_currentIdx - m_backwardRefs;
+
   // make sure we have all needed forward refs
-  if ((m_currentIdx - m_forwardRefs) < m_decodedPics.back().index)
+  if ((currentIdx - m_forwardRefs) < m_decodedPics.back().index)
   {
     Advance();
     return false;
   }
 
-  const auto currentIdx = m_currentIdx;
   auto it = std::find_if(m_decodedPics.begin(), m_decodedPics.end(),
                          [currentIdx](const CVaapiDecodedPicture &picture){
                            return picture.index == currentIdx;
@@ -2552,9 +2549,9 @@ bool CVppPostproc::Filter(CVaapiProcessedPicture &outPic)
   pipelineParams->num_forward_references = 0;
   pipelineParams->num_backward_references = 0;
 
-  int maxPic = m_currentIdx + m_backwardRefs;
-  int minPic = m_currentIdx - m_forwardRefs;
-  int curPic = m_currentIdx;
+  int maxPic = currentIdx + m_backwardRefs;
+  int minPic = currentIdx - m_forwardRefs;
+  int curPic = currentIdx;
 
   // deinterlace flag
   if (m_vppMethod != VS_INTERLACEMETHOD_NONE)
@@ -2670,7 +2667,7 @@ void CVppPostproc::Advance()
   auto it = m_decodedPics.begin();
   while (it != m_decodedPics.end())
   {
-    if (it->index < m_currentIdx - m_forwardRefs)
+    if (it->index < m_currentIdx - m_forwardRefs - m_backwardRefs)
     {
       m_config.videoSurfaces->ClearRender(it->videoSurface);
       it = m_decodedPics.erase(it);
@@ -2696,8 +2693,12 @@ void CVppPostproc::Flush()
   }
 }
 
-bool CVppPostproc::Compatible(EINTERLACEMETHOD method)
+bool CVppPostproc::UpdateDeintMethod(EINTERLACEMETHOD method)
 {
+  // could try to update method, for now trigger deinit/init
+  if (method != m_vppMethod)
+    return false;
+
   if (method == VS_INTERLACEMETHOD_VAAPI_BOB ||
       method == VS_INTERLACEMETHOD_VAAPI_MADI ||
       method == VS_INTERLACEMETHOD_VAAPI_MACI ||
@@ -3054,8 +3055,12 @@ void CFFmpegPostproc::Flush()
   m_lastOutPts = DVD_NOPTS_VALUE;
 }
 
-bool CFFmpegPostproc::Compatible(EINTERLACEMETHOD method)
+bool CFFmpegPostproc::UpdateDeintMethod(EINTERLACEMETHOD method)
 {
+  // switching between certain methods should be done without deinit/init
+  if (method != m_diMethod)
+    return false;
+
   if (method == VS_INTERLACEMETHOD_DEINTERLACE)
     return true;
   else if (method == VS_INTERLACEMETHOD_RENDER_BOB)

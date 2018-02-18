@@ -22,6 +22,7 @@
 
 
 #include "cores/IPlayer.h"
+#include "cores/VideoPlayer/VideoRenderers/VideoShaders/ConversionMatrix.h"
 #include "guilib/D3DResource.h"
 #include "utils/Geometry.h"
 
@@ -29,27 +30,14 @@
 #include <vector>
 #include <wrl/client.h>
 
+extern "C" {
+#include "libavutil/pixfmt.h"
+#include "libavutil/mastering_display_metadata.h"
+}
 enum EBufferFormat;
 class CRenderBuffer;
 
 using namespace DirectX;
-
-class CYUV2RGBMatrix
-{
-public:
-  CYUV2RGBMatrix();
-  void SetParameters(float contrast, float blacklevel, unsigned int flags, EBufferFormat format);
-  XMFLOAT4X4* Matrix();
-
-private:
-  bool         m_NeedRecalc;
-  float        m_contrast;
-  float        m_blacklevel;
-  unsigned int m_flags;
-  bool         m_limitedRange;
-  EBufferFormat m_format;
-  XMFLOAT4X4   m_mat;
-};
 
 class CWinShader
 {
@@ -87,12 +75,14 @@ public:
 
   void ApplyEffectParameters(CD3DEffect &effect, unsigned sourceWidth, unsigned sourceHeight);
   void GetDefines(DefinesMap &map) const;
-  bool Create(bool useCLUT, bool useDithering, int ditherDepth);
+  bool Create(bool useCLUT, bool useDithering, int ditherDepth, bool toneMapping);
   void Render(CD3DTexture &sourceTexture, unsigned sourceWidth, unsigned sourceHeight, CRect sourceRect, const CPoint points[4]
             , CD3DTexture *target, unsigned range = 0, float contrast = 0.5f, float brightness = 0.5f);
   void Render(CD3DTexture &sourceTexture, unsigned sourceWidth, unsigned sourceHeight, CRect sourceRect, CRect destRect
             , CD3DTexture *target, unsigned range = 0, float contrast = 0.5f, float brightness = 0.5f);
   void SetCLUT(int clutSize, ID3D11ShaderResourceView *pCLUTView);
+  void SetDisplayMetadata(bool hasDisplayMetadata, AVMasteringDisplayMetadata displayMetadata,
+                          bool hasLightMetadata, AVContentLightMetadata lightMetadata);
 
   static bool CreateCLUTView(int clutSize, uint16_t* clutData, bool isRGB, ID3D11ShaderResourceView** ppCLUTView);
 
@@ -123,6 +113,13 @@ private:
     FLOAT x, y, z;
     FLOAT tu, tv;
   };
+
+  // tone mapping
+  bool m_toneMapping{ false };
+  bool m_hasDisplayMetadata{ false };
+  bool m_hasLightMetadata{ false };
+  AVMasteringDisplayMetadata m_displayMetadata;
+  AVContentLightMetadata m_lightMetadata;
 };
 
 class CYUV2RGBShader : public CWinShader
@@ -130,22 +127,24 @@ class CYUV2RGBShader : public CWinShader
 public:
   CYUV2RGBShader();
   virtual ~CYUV2RGBShader();
-  virtual bool Create(EBufferFormat fmt, COutputShader *pOutShader = nullptr);
-  virtual void Render(CRect sourceRect, CPoint dest[], float contrast, float brightness, CRenderBuffer* videoBuffer, CD3DTexture *target);
+  bool Create(EBufferFormat fmt, AVColorPrimaries dstPrimaries, AVColorPrimaries srcPrimaries, COutputShader *pOutShader = nullptr);
+  void Render(CRect sourceRect, CPoint dest[], CRenderBuffer* videoBuffer, CD3DTexture *target);
+  void SetParams(float contrast, float black, bool limited);
+  void SetColParams(AVColorSpace colSpace, int bits, bool limited, int textuteBits);
 
 protected:
-  void PrepareParameters(CRenderBuffer* videoBuffer, CRect sourceRect, CPoint dest[],
-                         float contrast, float brightness);
+  void PrepareParameters(CRenderBuffer* videoBuffer, CRect sourceRect, CPoint dest[]);
   void SetShaderParameters(CRenderBuffer* videoBuffer);
 
 private:
-  CYUV2RGBMatrix      m_matrix;
-  unsigned int        m_sourceWidth, m_sourceHeight;
-  CRect               m_sourceRect;
-  CPoint              m_dest[4];
-  EBufferFormat       m_format;
-  float               m_texSteps[2];
+  unsigned int m_sourceWidth;
+  unsigned int m_sourceHeight;
+  CRect m_sourceRect;
+  CPoint m_dest[4];
+  EBufferFormat m_format;
+  float m_texSteps[2];
   COutputShader *m_pOutShader;
+  std::shared_ptr<CConvertMatrix> m_pConvMatrix;
 
   struct CUSTOMVERTEX {
       FLOAT x, y, z;

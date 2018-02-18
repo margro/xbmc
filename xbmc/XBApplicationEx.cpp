@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "FileItem.h"
 #include "messaging/ApplicationMessenger.h"
 #include "PlayListPlayer.h"
@@ -48,7 +47,7 @@ CXBApplicationEx::CXBApplicationEx()
 CXBApplicationEx::~CXBApplicationEx() = default;
 
 /* Destroy the app */
-VOID CXBApplicationEx::Destroy()
+void CXBApplicationEx::Destroy()
 {
   CLog::Log(LOGNOTICE, "destroy");
   // Perform app-specific cleanup
@@ -56,7 +55,7 @@ VOID CXBApplicationEx::Destroy()
 }
 
 /* Function that runs the application */
-INT CXBApplicationEx::Run(const CAppParamParser &params)
+int CXBApplicationEx::Run(const CAppParamParser &params)
 {
   CLog::Log(LOGNOTICE, "Running the application..." );
 

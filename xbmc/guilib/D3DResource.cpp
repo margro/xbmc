@@ -21,10 +21,11 @@
 #include "filesystem/File.h"
 #include "D3DResource.h"
 #include "GUIShaderDX.h"
-#include "system.h"
 #include "utils/log.h"
 #include "rendering/dx/DeviceResources.h"
 #include "rendering/dx/RenderContext.h"
+
+#include <d3dcompiler.h>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -197,7 +198,7 @@ bool CD3DTexture::Create(UINT width, UINT height, UINT mipLevels, D3D11_USAGE us
 
   if (!DX::Windowing().IsFormatSupport(format, D3D11_FORMAT_SUPPORT_TEXTURE2D))
   {
-    CLog::Log(LOGERROR, __FUNCTION__" - unsupported texture format %d", format);
+    CLog::LogF(LOGERROR, "unsupported texture format %d", format);
     return false;
   }
 
@@ -230,7 +231,7 @@ bool CD3DTexture::Create(UINT width, UINT height, UINT mipLevels, D3D11_USAGE us
 
   if (!CreateInternal(pixels, srcPitch))
   {
-    CLog::Log(LOGERROR, "%s - failed to create texture.", __FUNCTION__);
+    CLog::LogF(LOGERROR, "failed to create texture.");
     return false;
   }
 
@@ -292,7 +293,7 @@ ID3D11ShaderResourceView* CD3DTexture::GetShaderResource(DXGI_FORMAT format /* =
     if (SUCCEEDED(hr))
       m_views.insert_or_assign(format, view);
     else
-      CLog::Log(LOGWARNING, __FUNCTION__ " - cannot create texture view.");
+      CLog::LogF(LOGWARNING, "cannot create texture view.");
   }
 
   return m_views[format].Get();
@@ -407,7 +408,7 @@ void CD3DTexture::SaveTexture()
       pContext->Unmap(texture.Get(), 0);
     }
     else
-      CLog::Log(LOGERROR, "%s - Failed to store resource.", __FUNCTION__);
+      CLog::LogF(LOGERROR, "Failed to store resource.");
   }
 }
 
@@ -428,7 +429,7 @@ void CD3DTexture::RestoreTexture()
   {
     if (!CreateInternal(m_data, m_pitch))
     {
-      CLog::Log(LOGERROR, "%s: failed restore texture", __FUNCTION__);
+      CLog::LogF(LOGERROR, "failed restore texture");
     }
 
     delete[] m_data;
@@ -458,7 +459,7 @@ ID3D11RenderTargetView* CD3DTexture::GetRenderTargetInternal(unsigned idx)
     CD3D11_RENDER_TARGET_VIEW_DESC cRTVDesc(D3D11_RTV_DIMENSION_TEXTURE2DARRAY, DXGI_FORMAT_UNKNOWN, 0, idx, 1);
     if (FAILED(DX::DeviceResources::Get()->GetD3DDevice()->CreateRenderTargetView(m_texture.Get(), &cRTVDesc, m_renderTargets[idx].ReleaseAndGetAddressOf())))
     {
-      CLog::Log(LOGWARNING, __FUNCTION__ " - cannot create texture view.");
+      CLog::LogF(LOGWARNING, "cannot create texture view.");
     }
   }
 
@@ -602,7 +603,7 @@ HRESULT CD3DEffect::Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID
 
   if (!includeFile.Open(fileName))
   {
-    CLog::Log(LOGERROR, "%s: Could not open 3DLUT file: %s", __FUNCTION__, fileName.c_str());
+    CLog::LogF(LOGERROR, "Could not open 3DLUT file: %s", fileName);
     return E_FAIL;
   }
 
@@ -634,11 +635,11 @@ bool CD3DEffect::SetFloatArray(LPCSTR handle, const float* val, unsigned int cou
   return false;
 }
 
-bool CD3DEffect::SetMatrix(LPCSTR handle, const XMFLOAT4X4* mat)
+bool CD3DEffect::SetMatrix(LPCSTR handle, const float* mat)
 {
   if (m_effect)
   {
-    return S_OK == m_effect->GetVariableByName(handle)->AsMatrix()->SetMatrix((float *)mat);
+    return S_OK == m_effect->GetVariableByName(handle)->AsMatrix()->SetMatrix(mat);
   }
   return false;
 }
@@ -876,7 +877,7 @@ void CD3DBuffer::OnDestroyDevice(bool fatal)
   }
 
   ComPtr<ID3D11Device> pDevice = DX::DeviceResources::Get()->GetD3DDevice();
-  ComPtr<ID3D11DeviceContext> pContext = DX::DeviceResources::Get()->GetD3DContext();
+  ComPtr<ID3D11DeviceContext> pContext = DX::DeviceResources::Get()->GetImmediateContext();
 
   if (!pDevice || !pContext || !m_buffer)
     return;
@@ -980,7 +981,7 @@ bool CD3DVertexShader::Create(const std::wstring& vertexFile, D3D11_INPUT_ELEMEN
 
   if (FAILED(D3DReadFileToBlob(vertexFile.c_str(), m_VSBuffer.ReleaseAndGetAddressOf())))
   {
-    CLog::LogFunction(LOGERROR, __FUNCTION__, "failed to load the vertex shader.");
+    CLog::LogF(LOGERROR, "failed to load the vertex shader.");
     return false;
   }
 
@@ -1014,7 +1015,7 @@ bool CD3DVertexShader::Create(const void* code, size_t codeLength, D3D11_INPUT_E
   // trick to load bytecode into ID3DBlob
   if (FAILED(D3DStripShader(code, codeLength, D3DCOMPILER_STRIP_REFLECTION_DATA, m_VSBuffer.ReleaseAndGetAddressOf())))
   {
-    CLog::LogFunction(LOGERROR, __FUNCTION__, "failed to load the vertex shader.");
+    CLog::LogF(LOGERROR, "failed to load the vertex shader.");
     return false;
   }
 
@@ -1040,21 +1041,21 @@ bool CD3DVertexShader::CreateInternal()
 {
   ComPtr<ID3D11Device> pDevice = DX::DeviceResources::Get()->GetD3DDevice();
 
-  CLog::LogFunction(LOGDEBUG, __FUNCTION__, "creating vertex shader.");
+  CLog::LogF(LOGDEBUG, "creating vertex shader.");
 
   // Create the vertex shader
   if (FAILED(pDevice->CreateVertexShader(m_VSBuffer->GetBufferPointer(), m_VSBuffer->GetBufferSize(), nullptr, m_VS.ReleaseAndGetAddressOf())))
   {
-    CLog::LogFunction(LOGERROR, __FUNCTION__ , "failed to Create the vertex shader.");
+    CLog::LogF(LOGERROR, "failed to Create the vertex shader.");
     m_VSBuffer = nullptr;
     return false;
   }
 
-  CLog::LogFunction(LOGDEBUG, __FUNCTION__, "creating input layout.");
+  CLog::LogF(LOGDEBUG, "creating input layout.");
 
   if (FAILED(pDevice->CreateInputLayout(m_vertexLayout, m_vertexLayoutSize, m_VSBuffer->GetBufferPointer(), m_VSBuffer->GetBufferSize(), m_inputLayout.ReleaseAndGetAddressOf())))
   {
-    CLog::LogFunction(LOGERROR, __FUNCTION__, "failed to create the input layout.");
+    CLog::LogF(LOGERROR, "failed to create the input layout.");
     return false;
   }
 
@@ -1134,7 +1135,7 @@ bool CD3DPixelShader::Create(const std::wstring& wstrFile)
 
   if (FAILED(D3DReadFileToBlob(wstrFile.c_str(), m_PSBuffer.ReleaseAndGetAddressOf())))
   {
-    CLog::Log(LOGERROR, __FUNCTION__ " - Failed to load the vertex shader.");
+    CLog::LogF(LOGERROR, "Failed to load the vertex shader.");
     return false;
   }
 
@@ -1158,7 +1159,7 @@ bool CD3DPixelShader::Create(const void* code, size_t codeLength)
   // trick to load bytecode into ID3DBlob
   if (FAILED(D3DStripShader(code, codeLength, D3DCOMPILER_STRIP_REFLECTION_DATA, m_PSBuffer.ReleaseAndGetAddressOf())))
   {
-    CLog::Log(LOGERROR, __FUNCTION__ " - Failed to load the vertex shader.");
+    CLog::LogF(LOGERROR, "Failed to load the vertex shader.");
     return false;
   }
 
@@ -1174,12 +1175,12 @@ bool CD3DPixelShader::CreateInternal()
 {
   ComPtr<ID3D11Device> pDevice = DX::DeviceResources::Get()->GetD3DDevice();
 
-  CLog::Log(LOGDEBUG, __FUNCTION__ " - Create the pixel shader.");
+  CLog::LogF(LOGDEBUG, "Create the pixel shader.");
 
   // Create the vertex shader
   if (FAILED(pDevice->CreatePixelShader(m_PSBuffer->GetBufferPointer(), m_PSBuffer->GetBufferSize(), nullptr, m_PS.ReleaseAndGetAddressOf())))
   {
-    CLog::Log(LOGERROR, __FUNCTION__ " - Failed to Create the pixel shader.");
+    CLog::LogF(LOGERROR, "Failed to Create the pixel shader.");
     m_PSBuffer = nullptr;
     return false;
   }

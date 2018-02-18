@@ -18,95 +18,23 @@
  *
  */
 
+#include "WinVideoFilter.h"
 #include "ConvolutionKernels.h"
-#include "dither.h"
+#include "cores/VideoPlayer/VideoRenderers/VideoShaders/dither.h"
+#include "cores/VideoPlayer/VideoRenderers/WinRenderBuffer.h"
 #include "filesystem/File.h"
 #include "guilib/GraphicContext.h"
 #include "platform/win32/WIN32Util.h"
-#include "Util.h"
-#include "utils/log.h"
-#include "VideoRenderers/WinRenderBuffer.h"
 #include "rendering/dx/RenderContext.h"
 #include "rendering/dx/DeviceResources.h"
-#include "WinVideoFilter.h"
-#include "YUVMatrix.h"
+#include "Util.h"
+#include "utils/log.h"
 
 #include <DirectXPackedVector.h>
 #include <map>
 
 using namespace DirectX::PackedVector;
 using namespace Microsoft::WRL;
-
-CYUV2RGBMatrix::CYUV2RGBMatrix()
-{
-  m_NeedRecalc = true;
-  m_blacklevel = 0.0f;
-  m_contrast = 0.0f;
-  m_flags = 0;
-  m_limitedRange = false;
-  m_format = BUFFER_FMT_NONE;
-}
-
-void CYUV2RGBMatrix::SetParameters(float contrast, float blacklevel, unsigned int flags, EBufferFormat format)
-{
-  if (m_contrast != contrast)
-  {
-    m_NeedRecalc = true;
-    m_contrast = contrast;
-  }
-  if (m_blacklevel != blacklevel)
-  {
-    m_NeedRecalc = true;
-    m_blacklevel = blacklevel;
-  }
-  if (m_flags != flags)
-  {
-    m_NeedRecalc = true;
-    m_flags = flags;
-  }
-  if (m_format != format)
-  {
-    m_NeedRecalc = true;
-    m_format = format;
-  }
-  if (m_limitedRange != DX::Windowing().UseLimitedColor())
-  {
-    m_NeedRecalc = true;
-    m_limitedRange = DX::Windowing().UseLimitedColor();
-  }
-}
-
-XMFLOAT4X4* CYUV2RGBMatrix::Matrix()
-{
-  if (m_NeedRecalc)
-  {
-    TransformMatrix matrix;
-    EShaderFormat fmt = SHADER_NONE;
-    if (m_format == BUFFER_FMT_YUV420P10)
-      fmt = SHADER_YV12_10;
-    CalculateYUVMatrix(matrix, m_flags, fmt, m_blacklevel, m_contrast, m_limitedRange);
-
-    m_mat._11 = matrix.m[0][0];
-    m_mat._12 = matrix.m[1][0];
-    m_mat._13 = matrix.m[2][0];
-    m_mat._14 = 0.0f;
-    m_mat._21 = matrix.m[0][1];
-    m_mat._22 = matrix.m[1][1];
-    m_mat._23 = matrix.m[2][1];
-    m_mat._24 = 0.0f;
-    m_mat._31 = matrix.m[0][2];
-    m_mat._32 = matrix.m[1][2];
-    m_mat._33 = matrix.m[2][2];
-    m_mat._34 = 0.0f;
-    m_mat._41 = matrix.m[0][3];
-    m_mat._42 = matrix.m[1][3];
-    m_mat._43 = matrix.m[2][3];
-    m_mat._44 = 1.0f;
-
-    m_NeedRecalc = false;
-  }
-  return &m_mat;
-}
 
 //===================================================================
 
@@ -140,7 +68,7 @@ bool CWinShader::CreateInputLayout(D3D11_INPUT_ELEMENT_DESC *layout, unsigned nu
   D3DX11_PASS_DESC desc = {};
   if (FAILED(m_effect.Get()->GetTechniqueByIndex(0)->GetPassByIndex(0)->GetDesc(&desc)))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": Failed to get first pass description.");
+    CLog::LogF(LOGERROR, "Failed to get first pass description.");
     return false;
   }
 
@@ -158,7 +86,7 @@ bool CWinShader::LockVertexBuffer(void **data)
 {
   if (!m_vb.Map(data))
   {
-    CLog::Log(LOGERROR, __FUNCTION__" - failed to lock vertex buffer");
+    CLog::LogF(LOGERROR, "failed to lock vertex buffer");
     return false;
   }
   return true;
@@ -168,7 +96,7 @@ bool CWinShader::UnlockVertexBuffer()
 {
   if (!m_vb.Unmap())
   {
-    CLog::Log(LOGERROR, __FUNCTION__" - failed to unlock vertex buffer");
+    CLog::LogF(LOGERROR, "failed to unlock vertex buffer");
     return false;
   }
   return true;
@@ -176,12 +104,12 @@ bool CWinShader::UnlockVertexBuffer()
 
 bool CWinShader::LoadEffect(const std::string& filename, DefinesMap* defines)
 {
-  CLog::Log(LOGDEBUG, __FUNCTION__" - loading shader %s", filename.c_str());
+  CLog::LogF(LOGDEBUG, "loading shader %s", filename);
 
   XFILE::CFileStream file;
   if(!file.Open(filename))
   {
-    CLog::Log(LOGERROR, __FUNCTION__" - failed to open file %s", filename.c_str());
+    CLog::LogF(LOGERROR, "failed to open file %s", filename);
     return false;
   }
 
@@ -190,7 +118,7 @@ bool CWinShader::LoadEffect(const std::string& filename, DefinesMap* defines)
 
   if (!m_effect.Create(pStrEffect, defines))
   {
-    CLog::Log(LOGERROR, __FUNCTION__" %s failed", pStrEffect.c_str());
+    CLog::LogF(LOGERROR, "%s failed", pStrEffect);
     return false;
   }
 
@@ -209,7 +137,7 @@ bool CWinShader::Execute(const std::vector<CD3DTexture*> &targets, unsigned int 
   UINT cPasses;
   if (!m_effect.Begin(&cPasses, 0))
   {
-    CLog::Log(LOGERROR, __FUNCTION__" - failed to begin d3d effect");
+    CLog::LogF(LOGERROR, "failed to begin d3d effect");
     return false;
   }
 
@@ -229,19 +157,19 @@ bool CWinShader::Execute(const std::vector<CD3DTexture*> &targets, unsigned int 
 
     if (!m_effect.BeginPass(iPass))
     {
-      CLog::Log(LOGERROR, __FUNCTION__" - failed to begin d3d effect pass");
+      CLog::LogF(LOGERROR, "failed to begin d3d effect pass");
       break;
     }
 
     pContext->DrawIndexed(4, 0, iPass * vertexIndexStep);
 
     if (!m_effect.EndPass())
-      CLog::Log(LOGERROR, __FUNCTION__" - failed to end d3d effect pass");
+      CLog::LogF(LOGERROR, "failed to end d3d effect pass");
 
     CD3DHelper::PSClearShaderResources(pContext);
   }
   if (!m_effect.End())
-    CLog::Log(LOGERROR, __FUNCTION__" - failed to end d3d effect");
+    CLog::LogF(LOGERROR, "failed to end d3d effect");
 
   if (oldRT)
     pContext->OMSetRenderTargets(1, oldRT.GetAddressOf(), nullptr);
@@ -280,6 +208,20 @@ void COutputShader::ApplyEffectParameters(CD3DEffect &effect, unsigned sourceWid
     effect.SetResources("m_ditherMatrix", m_pDitherView.GetAddressOf(), 1);
     effect.SetFloatArray("m_ditherParams", ditherParams, 3);
   }
+  if (m_toneMapping)
+  {
+    float param = 0.5;
+    if (m_hasLightMetadata)
+      param = log10(100) / log10(m_lightMetadata.MaxCLL);
+    else if (m_hasDisplayMetadata && m_displayMetadata.has_luminance)
+      param = log10(100) / log10(m_displayMetadata.max_luminance.num / m_displayMetadata.max_luminance.den);
+
+    float coefs[3];
+    CConvertMatrix::GetRGBYuvCoefs(AVColorSpace::AVCOL_SPC_BT709, coefs);
+
+    effect.SetScalar("g_toneP1", param);
+    effect.SetFloatArray("g_coefsDst", coefs, 3);
+  }
 }
 
 void COutputShader::GetDefines(DefinesMap& map) const
@@ -292,12 +234,17 @@ void COutputShader::GetDefines(DefinesMap& map) const
   {
     map["KODI_DITHER"] = "";
   }
+  if (m_toneMapping)
+  {
+    map["KODI_TONE_MAPPING"] = "";
+  }
 }
 
-bool COutputShader::Create(bool useCLUT, bool useDithering, int ditherDepth)
+bool COutputShader::Create(bool useCLUT, bool useDithering, int ditherDepth, bool toneMapping)
 {
   m_useCLUT = useCLUT;
   m_ditherDepth = ditherDepth;
+  m_toneMapping = toneMapping;
 
   CWinShader::CreateVertexBuffer(4, sizeof(CUSTOMVERTEX));
 
@@ -312,7 +259,7 @@ bool COutputShader::Create(bool useCLUT, bool useDithering, int ditherDepth)
 
   if (!LoadEffect(effectString, &defines))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": Failed to load shader %s.", effectString.c_str());
+    CLog::LogF(LOGERROR, "Failed to load shader %s.", effectString);
     return false;
   }
 
@@ -352,6 +299,14 @@ void COutputShader::SetCLUT(int clutSize, ID3D11ShaderResourceView* pCLUTView)
   m_pCLUTView = pCLUTView;
 }
 
+void COutputShader::SetDisplayMetadata(bool hasDisplayMetadata, AVMasteringDisplayMetadata displayMetadata, bool hasLightMetadata, AVContentLightMetadata lightMetadata)
+{
+  m_hasDisplayMetadata = hasDisplayMetadata;
+  m_displayMetadata = displayMetadata;
+  m_hasLightMetadata = hasLightMetadata;
+  m_lightMetadata = lightMetadata;
+}
+
 bool COutputShader::CreateCLUTView(int clutSize, uint16_t* clutData, bool isRGB, ID3D11ShaderResourceView** ppCLUTView)
 {
   if (!clutSize || !clutData)
@@ -374,8 +329,8 @@ bool COutputShader::CreateCLUTView(int clutSize, uint16_t* clutData, bool isRGB,
   else
     cData = clutData;
 
-  ID3D11Device* pDevice = DX::DeviceResources::Get()->GetD3DDevice();
-  ID3D11DeviceContext* pContext = DX::DeviceResources::Get()->GetImmediateContext();
+  ComPtr<ID3D11Device> pDevice = DX::DeviceResources::Get()->GetD3DDevice();
+  ComPtr<ID3D11DeviceContext> pContext = DX::DeviceResources::Get()->GetImmediateContext();
   CD3D11_TEXTURE3D_DESC txDesc(DXGI_FORMAT_R16G16B16A16_UNORM, clutSize, clutSize, clutSize, 1,
                                D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_IMMUTABLE);
 
@@ -385,26 +340,28 @@ bool COutputShader::CreateCLUTView(int clutSize, uint16_t* clutData, bool isRGB,
   texData.SysMemPitch = clutSize * sizeof(uint16_t) * 4;
   texData.SysMemSlicePitch = texData.SysMemPitch * clutSize;
 
-  HRESULT hr = pDevice->CreateTexture3D(&txDesc, &texData, &pCLUTTex);
+  HRESULT hr = pDevice->CreateTexture3D(&txDesc, &texData, pCLUTTex.GetAddressOf());
   if (isRGB)
     _aligned_free(cData);
 
   if (FAILED(hr))
   {
-    CLog::Log(LOGDEBUG, "%s: unable to create 3dlut texture cube.");
+    CLog::LogF(LOGDEBUG, "unable to create 3dlut texture cube.");
     return false;
   }
 
+  ComPtr<ID3D11ShaderResourceView> clutView;
   CD3D11_SHADER_RESOURCE_VIEW_DESC srvDesc(D3D11_SRV_DIMENSION_TEXTURE3D, DXGI_FORMAT_R16G16B16A16_UNORM, 0, 1);
-  hr = pDevice->CreateShaderResourceView(pCLUTTex.Get(), &srvDesc, ppCLUTView);
+  hr = pDevice->CreateShaderResourceView(pCLUTTex.Get(), &srvDesc, clutView.GetAddressOf());
   pContext->Flush();
 
   if (FAILED(hr))
   {
-    CLog::Log(LOGDEBUG, "%s: unable to create view for 3dlut texture cube.");
+    CLog::LogF(LOGDEBUG, "unable to create view for 3dlut texture cube.");
     return false;
   }
 
+  *ppCLUTView = clutView.Detach();
   return true;
 }
 
@@ -485,7 +442,7 @@ void COutputShader::CreateDitherView()
 
   if (FAILED(hr))
   {
-    CLog::Log(LOGDEBUG, "%s: unable to create 3dlut texture cube.");
+    CLog::LogF(LOGDEBUG, "unable to create 3dlut texture cube.");
     m_useDithering = false;
     return;
   }
@@ -494,7 +451,7 @@ void COutputShader::CreateDitherView()
   hr = pDevice->CreateShaderResourceView(pDitherTex.Get(), &srvDesc, &m_pDitherView);
   if (FAILED(hr))
   {
-    CLog::Log(LOGDEBUG, "%s: unable to create view for 3dlut texture cube.");
+    CLog::LogF(LOGDEBUG, "unable to create view for 3dlut texture cube.");
     m_useDithering = false;
     return;
   }
@@ -503,7 +460,7 @@ void COutputShader::CreateDitherView()
 
 //==================================================================================
 
-bool CYUV2RGBShader::Create(EBufferFormat fmt, COutputShader *pCLUT)
+bool CYUV2RGBShader::Create(EBufferFormat fmt, AVColorPrimaries dstPrimaries, AVColorPrimaries srcPrimaries, COutputShader *pCLUT)
 {
   m_format = fmt;
   m_pOutShader = pCLUT;
@@ -537,6 +494,9 @@ bool CYUV2RGBShader::Create(EBufferFormat fmt, COutputShader *pCLUT)
     return false;
   }
 
+  if (srcPrimaries != dstPrimaries)
+    defines["XBMC_COL_CONVERSION"] = "";
+
   if (m_pOutShader)
     m_pOutShader->GetDefines(defines);
 
@@ -544,7 +504,7 @@ bool CYUV2RGBShader::Create(EBufferFormat fmt, COutputShader *pCLUT)
 
   if(!LoadEffect(effectString, &defines))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": Failed to load shader %s.", effectString.c_str());
+    CLog::LogF(LOGERROR, "Failed to load shader %s.", effectString);
     return false;
   }
 
@@ -559,17 +519,37 @@ bool CYUV2RGBShader::Create(EBufferFormat fmt, COutputShader *pCLUT)
 
   if (!CWinShader::CreateInputLayout(layout, ARRAYSIZE(layout)))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": Failed to create input layout for Input Assembler.");
+    CLog::LogF(LOGERROR, "Failed to create input layout for Input Assembler.");
     return false;
   }
+
+  m_pConvMatrix.reset(new CConvertMatrix());
+  m_pConvMatrix->SetColPrimaries(dstPrimaries, srcPrimaries);
   return true;
 }
 
-void CYUV2RGBShader::Render(CRect sourceRect, CPoint dest[], float contrast, float brightness, CRenderBuffer* videoBuffer, CD3DTexture *target)
+void CYUV2RGBShader::Render(CRect sourceRect, CPoint dest[], CRenderBuffer* videoBuffer, CD3DTexture *target)
 {
-  PrepareParameters(videoBuffer, sourceRect, dest, contrast, brightness);
+  PrepareParameters(videoBuffer, sourceRect, dest);
   SetShaderParameters(videoBuffer);
   Execute({ target }, 4);
+}
+
+void CYUV2RGBShader::SetParams(float contrast, float black, bool limited)
+{
+  m_pConvMatrix->SetParams(contrast * 0.02f, black * 0.01f - 0.5f, limited);
+}
+
+void CYUV2RGBShader::SetColParams(AVColorSpace colSpace, int bits, bool limited, int textuteBits)
+{
+  if (colSpace == AVCOL_SPC_UNSPECIFIED)
+  {
+    if (m_sourceWidth > 1024 || m_sourceHeight >= 600)
+      colSpace = AVCOL_SPC_BT709;
+    else
+      colSpace = AVCOL_SPC_BT470BG;
+  }
+  m_pConvMatrix->SetColParams(colSpace, bits, limited, textuteBits);
 }
 
 CYUV2RGBShader::CYUV2RGBShader()
@@ -585,8 +565,7 @@ CYUV2RGBShader::~CYUV2RGBShader()
 {
 }
 
-void CYUV2RGBShader::PrepareParameters(CRenderBuffer* videoBuffer, CRect sourceRect, CPoint dest[],
-                                       float contrast, float brightness)
+void CYUV2RGBShader::PrepareParameters(CRenderBuffer* videoBuffer, CRect sourceRect, CPoint dest[])
 {
   if (m_sourceRect != sourceRect
     || m_dest[0] != dest[0] || m_dest[1] != dest[1] 
@@ -645,11 +624,6 @@ void CYUV2RGBShader::PrepareParameters(CRenderBuffer* videoBuffer, CRect sourceR
 
   m_texSteps[0] = 1.0f / texWidth;
   m_texSteps[1] = 1.0f / m_sourceHeight;
-
-  m_matrix.SetParameters(contrast * 0.02f,
-                         brightness * 0.01f - 0.5f,
-                         videoBuffer->flags,
-                         m_format);
 }
 
 void CYUV2RGBShader::SetShaderParameters(CRenderBuffer* videoBuffer)
@@ -659,8 +633,24 @@ void CYUV2RGBShader::SetShaderParameters(CRenderBuffer* videoBuffer)
   for (unsigned i = 0, max_i = videoBuffer->GetActivePlanes(); i < max_i; i++)
     ppSRView[i] = reinterpret_cast<ID3D11ShaderResourceView*>(videoBuffer->GetView(i));
   m_effect.SetResources("g_Texture", ppSRView, videoBuffer->GetActivePlanes());
-  m_effect.SetMatrix("g_ColorMatrix", m_matrix.Matrix());
   m_effect.SetFloatArray("g_StepXY", m_texSteps, ARRAY_SIZE(m_texSteps));
+
+  float yuvMat[4][4]; 
+  m_pConvMatrix->GetYuvMat(yuvMat);
+  m_effect.SetMatrix("g_ColorMatrix", reinterpret_cast<float*>(yuvMat));
+
+  float primMat[3][3];
+  if (m_pConvMatrix->GetPrimMat(primMat))
+  {
+    // looks like FX11 doesn't like 3x3 matrix, so used 4x4 for its happiness
+    float dxMat[4][4] = { 0 };
+    dxMat[0][0] = primMat[0][0]; dxMat[0][1] = primMat[0][1]; dxMat[0][2] = primMat[0][2];
+    dxMat[1][0] = primMat[1][0]; dxMat[1][1] = primMat[1][1]; dxMat[1][2] = primMat[1][2];
+    dxMat[2][0] = primMat[2][0]; dxMat[2][1] = primMat[2][1]; dxMat[2][2] = primMat[2][2];
+    m_effect.SetMatrix("g_primMat", reinterpret_cast<float*>(dxMat));
+    m_effect.SetScalar("g_gammaSrc", m_pConvMatrix->GetGammaSrc());
+    m_effect.SetScalar("g_gammaDstInv", 1/m_pConvMatrix->GetGammaDst());
+  }
 
   UINT numPorts = 1;
   D3D11_VIEWPORT viewPort;
@@ -736,7 +726,7 @@ bool CConvolutionShader::CreateHQKernel(ESCALINGMETHOD method)
 
   if (!m_HQKernelTexture.Create(kern.GetSize(), 1, 1, D3D11_USAGE_IMMUTABLE, m_KernelFormat, kernelVals, kernelValsSize))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": Failed to create kernel texture.");
+    CLog::LogF(LOGERROR, "Failed to create kernel texture.");
     return false;
   }
 
@@ -764,13 +754,13 @@ bool CConvolutionShader1Pass::Create(ESCALINGMETHOD method, COutputShader *pCLUT
       effectString = "special://xbmc/system/shaders/convolution-6x6_d3d.fx";
       break;
     default:
-      CLog::Log(LOGERROR, __FUNCTION__": scaling method %d not supported.", method);
+      CLog::LogF(LOGERROR, "scaling method %d not supported.", method);
       return false;
   }
 
   if (!ChooseKernelD3DFormat())
   {
-    CLog::Log(LOGERROR, __FUNCTION__": failed to find a compatible texture format for the kernel.");
+    CLog::LogF(LOGERROR, "failed to find a compatible texture format for the kernel.");
     return false;
   }
 
@@ -787,7 +777,7 @@ bool CConvolutionShader1Pass::Create(ESCALINGMETHOD method, COutputShader *pCLUT
 
   if(!LoadEffect(effectString, &defines))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": Failed to load shader %s.", effectString.c_str());
+    CLog::LogF(LOGERROR, "Failed to load shader %s.", effectString);
     return false;
   }
 
@@ -906,19 +896,19 @@ bool CConvolutionShaderSeparable::Create(ESCALINGMETHOD method, COutputShader *p
       effectString = "special://xbmc/system/shaders/convolutionsep-6x6_d3d.fx";
       break;
     default:
-      CLog::Log(LOGERROR, __FUNCTION__": scaling method %d not supported.", method);
+      CLog::LogF(LOGERROR, "scaling method %d not supported.", method);
       return false;
   }
 
   if (!ChooseIntermediateD3DFormat())
   {
-    CLog::Log(LOGERROR, __FUNCTION__": failed to find a compatible texture format for the intermediate render target.");
+    CLog::LogF(LOGERROR, "failed to find a compatible texture format for the intermediate render target.");
     return false;
   }
 
   if (!ChooseKernelD3DFormat())
   {
-    CLog::Log(LOGERROR, __FUNCTION__": failed to find a compatible texture format for the kernel.");
+    CLog::LogF(LOGERROR, "failed to find a compatible texture format for the kernel.");
     return false;
   }
 
@@ -935,7 +925,7 @@ bool CConvolutionShaderSeparable::Create(ESCALINGMETHOD method, COutputShader *p
 
   if(!LoadEffect(effectString, &defines))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": Failed to load shader %s.", effectString.c_str());
+    CLog::LogF(LOGERROR, "Failed to load shader %s.", effectString);
     return false;
   }
 
@@ -991,11 +981,11 @@ bool CConvolutionShaderSeparable::ChooseIntermediateD3DFormat()
   else if (DX::Windowing().IsFormatSupport(DXGI_FORMAT_R32G32B32A32_FLOAT, usage)) m_IntermediateFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
   else
   {
-    CLog::Log(LOGNOTICE, __FUNCTION__": no float format available for the intermediate render target");
+    CLog::LogF(LOGNOTICE, "no float format available for the intermediate render target");
     return false;
   }
 
-  CLog::Log(LOGDEBUG, __FUNCTION__": format %i", m_IntermediateFormat);
+  CLog::LogF(LOGDEBUG, "format %i", m_IntermediateFormat);
 
   return true;
 }
@@ -1007,7 +997,7 @@ bool CConvolutionShaderSeparable::CreateIntermediateRenderTarget(unsigned int wi
 
   if (!m_IntermediateTarget.Create(width, height, 1, D3D11_USAGE_DEFAULT, m_IntermediateFormat))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": render target creation failed.");
+    CLog::LogF(LOGERROR, "render target creation failed.");
     return false;
   }
   return true;
@@ -1174,7 +1164,7 @@ bool CTestShader::Create()
 
   if (!m_effect.Create(strShader, nullptr))
   {
-    CLog::Log(LOGERROR, __FUNCTION__": Failed to create test shader: %s", strShader.c_str());
+    CLog::LogF(LOGERROR, "Failed to create test shader: %s", strShader);
     return false;
   }
   return true;

@@ -17,7 +17,6 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
-#include "system.h"
 
 #include <stdint.h>
 #include <limits.h>
@@ -42,6 +41,10 @@
 
 #ifdef TARGET_POSIX
 #include "platform/linux/XTimeUtils.h"
+#endif
+
+#if defined(TARGET_FREEBSD)
+#include "freebsd/FreeBSDGNUReplacements.h"
 #endif
 
 #define AE_MIN_PERIODSIZE 256

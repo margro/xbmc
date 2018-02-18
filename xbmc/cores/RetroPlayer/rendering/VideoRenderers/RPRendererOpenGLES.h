@@ -30,8 +30,6 @@
 #include <stdint.h>
 #include <vector>
 
-struct SwsContext;
-
 namespace KODI
 {
 namespace RETRO
@@ -42,14 +40,21 @@ namespace RETRO
     virtual ~CRendererFactoryOpenGLES() = default;
 
     // implementation of IRendererFactory
+    std::string RenderSystemName() const override;
     CRPBaseRenderer *CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool) override;
-    RenderBufferPoolVector CreateBufferPools() override;
+    RenderBufferPoolVector CreateBufferPools(CRenderContext &context) override;
   };
 
   class CRenderBufferOpenGLES : public CRenderBufferSysMem
   {
   public:
-    CRenderBufferOpenGLES(AVPixelFormat format, AVPixelFormat targetFormat, unsigned int width, unsigned int height);
+    CRenderBufferOpenGLES(CRenderContext &context,
+                          GLuint pixeltype,
+                          GLuint internalformat,
+                          GLuint pixelformat,
+                          GLuint bpp,
+                          unsigned int width,
+                          unsigned int height);
     ~CRenderBufferOpenGLES() override;
 
     // implementation of IRenderBuffer via CRenderBufferSysMem
@@ -58,43 +63,46 @@ namespace RETRO
     GLuint TextureID() const { return m_textureId; }
 
   protected:
-    bool CreateScalingContext();
-    void ScalePixels(uint8_t *source, size_t sourceSize, uint8_t *target, size_t targetSize);
-
     // Construction parameters
-    const AVPixelFormat m_format;
-    const AVPixelFormat m_targetFormat;
+    CRenderContext &m_context;
+    const GLuint m_pixeltype;
+    const GLuint m_internalformat;
+    const GLuint m_pixelformat;
+    const GLuint m_bpp;
     const unsigned int m_width;
     const unsigned int m_height;
 
     const GLenum m_textureTarget = GL_TEXTURE_2D; //! @todo
     GLuint m_textureId = 0;
-    std::vector<uint8_t> m_textureBuffer;
+
+    void CreateTexture();
 
   private:
-    void CreateTexture();
     void DeleteTexture();
-
-    SwsContext *m_swsContext = nullptr;
   };
 
   class CRenderBufferPoolOpenGLES : public CBaseRenderBufferPool
   {
   public:
-    CRenderBufferPoolOpenGLES() = default;
+    CRenderBufferPoolOpenGLES(CRenderContext &context);
     ~CRenderBufferPoolOpenGLES() override = default;
 
-    // implementation of IRenderBufferPool via CRenderBufferPoolSysMem
+    // implementation of IRenderBufferPool via CBaseRenderBufferPool
     bool IsCompatible(const CRenderVideoSettings &renderSettings) const override;
 
-    // implementation of CBaseRenderBufferPool via CRenderBufferPoolSysMem
-    IRenderBuffer *CreateRenderBuffer(void *header = nullptr) override;
-
-    // GLES interface
-    bool SetTargetFormat(AVPixelFormat targetFormat);
-
   protected:
-    AVPixelFormat m_targetFormat = AV_PIX_FMT_NONE; //! @todo Change type to GLenum
+    // implementation of CBaseRenderBufferPool
+    IRenderBuffer *CreateRenderBuffer(void *header = nullptr) override;
+    bool ConfigureInternal() override;
+
+    // Construction parameters
+    CRenderContext &m_context;
+
+    // Configuration parameters
+    GLuint m_pixeltype = 0;
+    GLuint m_internalformat = 0;
+    GLuint m_pixelformat = 0;
+    GLuint m_bpp = 0;
   };
 
   class CRPRendererOpenGLES : public CRPBaseRenderer
@@ -111,7 +119,6 @@ namespace RETRO
 
   protected:
     // implementation of CRPBaseRenderer
-    bool ConfigureInternal() override;
     void RenderInternal(bool clear, uint8_t alpha) override;
     void FlushInternal() override;
 
@@ -130,10 +137,8 @@ namespace RETRO
 
     void Render(uint8_t alpha);
 
-    AVPixelFormat m_targetFormat = AV_PIX_FMT_NONE;
     GLenum m_textureTarget = GL_TEXTURE_2D;
     float m_clearColour = 0.0f;
-    SwsContext *m_swsContext = nullptr;
   };
 }
 }

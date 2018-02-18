@@ -18,7 +18,6 @@
  *
  */
 
-#include "system.h"
 #include "GUIFont.h"
 #include "GUIFontTTFGL.h"
 #include "GUIFontManager.h"
@@ -394,7 +393,7 @@ bool CGUIFontTTFGL::CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1, 
     break;
   }
   
-  return TRUE;
+  return true;
 }
 
 void CGUIFontTTFGL::DeleteHardwareTexture()

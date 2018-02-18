@@ -34,14 +34,19 @@ using namespace RETRO;
 
 #define BUFFER_OFFSET(i) (static_cast<char*>(NULL) + (i))
 
-// --- CRendererFactoryGuiTexture ------------------------------------------------
+// --- CRendererFactoryGuiTexture ----------------------------------------------
+
+std::string CRendererFactoryGuiTexture::RenderSystemName() const
+{
+  return "GUITexture";
+}
 
 CRPBaseRenderer *CRendererFactoryGuiTexture::CreateRenderer(const CRenderSettings &settings, CRenderContext &context, std::shared_ptr<IRenderBufferPool> bufferPool)
 {
   return new CRPRendererGuiTexture(settings, context, std::move(bufferPool));
 }
 
-RenderBufferPoolVector CRendererFactoryGuiTexture::CreateBufferPools()
+RenderBufferPoolVector CRendererFactoryGuiTexture::CreateBufferPools(CRenderContext &context)
 {
   return {
 #if !defined(HAS_DX)
@@ -145,7 +150,7 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
 
-  m_context.EnableGUIShader();
+  m_context.EnableGUIShader(GL_SHADER_METHOD::TEXTURE);
 
   GLubyte colour[4];
   GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of the vertices
@@ -236,7 +241,7 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND); // Turn blending On
 
-  m_context.EnableGUIShader();
+  m_context.EnableGUIShader(GL_SHADER_METHOD::TEXTURE);
 
   GLubyte col[4];
   GLfloat ver[4][3];

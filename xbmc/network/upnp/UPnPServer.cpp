@@ -50,6 +50,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "utils/FileUtils.h"
+#include "TextureDatabase.h"
 
 NPT_SET_LOCAL_LOGGER("xbmc.upnp.server")
 
@@ -235,19 +236,24 @@ NPT_String CUPnPServer::BuildSafeResourceUri(const NPT_HttpUrl &rooturi,
 {
     CURL url(file_path);
     std::string md5;
+    std::string mapped_file_path(file_path);
 
     // determine the filename to provide context to md5'd urls
     std::string filename;
     if (url.IsProtocol("image"))
+    {
       filename = URIUtils::GetFileName(url.GetHostName());
+      // Remove trailing / for Platinum/Neptune to recognize the file extension and use the correct mime type when serving the image
+      URIUtils::RemoveSlashAtEnd(mapped_file_path);
+    }
     else
-      filename = URIUtils::GetFileName(file_path);
+      filename = URIUtils::GetFileName(mapped_file_path);
 
     filename = CURL::Encode(filename);
-    md5 = XBMC::XBMC_MD5::GetMD5(file_path);
+    md5 = XBMC::XBMC_MD5::GetMD5(mapped_file_path);
     md5 += "/" + filename;
     { NPT_AutoLock lock(m_FileMutex);
-      NPT_CHECK(m_FileMap.Put(md5.c_str(), file_path));
+      NPT_CHECK(m_FileMap.Put(md5.c_str(), mapped_file_path.c_str()));
     }
     return PLT_FileMediaServer::BuildSafeResourceUri(rooturi, host, md5.c_str());
 }
@@ -1193,9 +1199,10 @@ CUPnPServer::ServeFile(const NPT_HttpRequest&              request,
         return NPT_SUCCESS;
     }
 
-    if(URIUtils::IsURL((const char*)file_path))
+    if (URIUtils::IsURL(static_cast<const char*>(file_path)))
     {
-      std::string disp = "inline; filename=\"" + URIUtils::GetFileName((const char*)file_path) + "\"";
+      CURL url(CTextureUtils::UnwrapImageURL(static_cast<const char*>(file_path)));
+      std::string disp = "inline; filename=\"" + URIUtils::GetFileName(url) + "\"";
       response.GetHeaders().SetHeader("Content-Disposition", disp.c_str());
     }
 

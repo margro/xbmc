@@ -235,8 +235,6 @@ if(NOT FFMPEG_FOUND)
                    -DCROSSCOMPILING=${CMAKE_CROSSCOMPILING}
                    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
                    -DOS=${OS}
-                   -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-                   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
                    -DCMAKE_AR=${CMAKE_AR})
   endif()
 
@@ -252,6 +250,9 @@ if(NOT FFMPEG_FOUND)
                                  -DCORE_PLATFORM_NAME=${CORE_PLATFORM_NAME_LC}
                                  -DCPU=${CPU}
                                  -DENABLE_NEON=${ENABLE_NEON}
+                                 -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+                                 -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                                 -DENABLE_CCACHE=${ENABLE_CCACHE}
                                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
                                  -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
                                  -DCMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}
@@ -263,8 +264,12 @@ if(NOT FFMPEG_FOUND)
                                     ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/FindGnuTls.cmake
                                     <SOURCE_DIR>)
 
+  find_program(BASH_COMMAND bash)
+  if(NOT BASH_COMMAND)
+    message(FATAL_ERROR "Internal FFmpeg requires bash.")
+  endif()
   file(WRITE ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/ffmpeg/ffmpeg-link-wrapper
-"#!/bin/bash
+"#!${BASH_COMMAND}
 if [[ $@ == *${APP_NAME_LC}.bin* || $@ == *${APP_NAME_LC}${APP_BINARY_SUFFIX}* || $@ == *${APP_NAME_LC}.so* || $@ == *${APP_NAME_LC}-test* ]]
 then
   avformat=`PKG_CONFIG_PATH=${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/lib/pkgconfig ${PKG_CONFIG_EXECUTABLE} --libs --static libavcodec`

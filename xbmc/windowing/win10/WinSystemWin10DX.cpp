@@ -25,18 +25,14 @@
 #include "rendering/dx/DirectXHelper.h"
 #include "rendering/dx/RenderContext.h"
 #include "utils/SystemInfo.h"
-#include "utils/win32/Win32Log.h"
+#include "utils/log.h"
 #include "WinSystemWin10DX.h"
 
 #include <agile.h>
 
 std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
 {
-  auto winSysDX = new CWinSystemWin10DX();
-  winSysDX->SetCoreWindow(DX::CoreWindowHolder::Get()->GetWindow());
-
-  std::unique_ptr<CWinSystemBase> winSystem(winSysDX);
-  return winSystem;
+  return std::make_unique<CWinSystemWin10DX>();
 }
 
 CWinSystemWin10DX::CWinSystemWin10DX() : CRenderSystemDX()
@@ -69,9 +65,11 @@ bool CWinSystemWin10DX::CreateNewWindow(const std::string& name, bool fullScreen
     return false;
 
   m_deviceResources = DX::DeviceResources::Get();
-  m_deviceResources->SetWindow(m_coreWindow.Get());
 
-  bool created = CWinSystemWin10::CreateNewWindow(name, fullScreen, res) && m_deviceResources->HasValidDevice();
+  bool created = CWinSystemWin10::CreateNewWindow(name, fullScreen, res);
+  m_deviceResources->SetWindow(m_coreWindow.Get());
+  created &= m_deviceResources->HasValidDevice();
+
   if (created)
   {
     CGenericTouchInputHandler::GetInstance().RegisterHandler(&CGenericTouchActionHandler::GetInstance());
