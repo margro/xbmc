@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <set>
 #include <string>
@@ -42,7 +43,7 @@ public:
 
   /*!
    \brief Parses the given string representation and turns it into a locale.
-   
+
    \param locale String representation of a locale
    */
   static CLocale FromString(const std::string& locale);
@@ -56,7 +57,7 @@ public:
    \details A locale is considered valid if at least the language code is set.
    */
   bool IsValid() const { return m_valid; }
-  
+
   /*!
    \brief Returns the (lower-case) ISO 639-1 language code of the locale.
    */
@@ -73,7 +74,7 @@ public:
    \brief Returns the modifier of the locale.
    */
   const std::string& GetModifier() const { return m_modifier; }
-  
+
   /*!
    \brief Returns the full string representation of the locale.
 
@@ -110,7 +111,7 @@ public:
    ISO 3166-1 Alpha-2 code.
    */
   std::string ToShortStringLC() const;
-  
+
   /*!
    \brief Checks if the given string representation of a locale exactly matches
           the locale.

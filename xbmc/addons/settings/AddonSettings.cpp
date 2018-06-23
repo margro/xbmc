@@ -30,6 +30,7 @@
 #include "addons/settings/SettingUrlEncodedString.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "messaging/ApplicationMessenger.h"
 #include "settings/AdvancedSettings.h"
@@ -56,7 +57,7 @@ static const int UnknownSettingLabelIdStart = 100000;
 
 bool InfoBool(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return g_infoManager.EvaluateBool(value);
+  return CServiceBroker::GetGUI()->GetInfoManager().EvaluateBool(value);
 }
 
 template<class TSetting>
@@ -712,7 +713,7 @@ bool CAddonSettings::InitializeFromOldSettingDefinitions(const CXBMCTinyXML& doc
 
   // register the callback for action settings
   GetSettingsManager()->RegisterCallback(this, actionSettings);
-  
+
   return true;
 }
 
@@ -818,7 +819,7 @@ SettingPtr CAddonSettings::InitializeFromOldSettingTextIpAddress(const std::stri
       control->SetHidden(StringUtils::EqualsNoCase(option, "hidden"));
     }
   }
-  
+
   setting->SetDefault(defaultValue);
   setting->SetAllowEmpty(true);
   setting->SetControl(control);
@@ -1518,7 +1519,7 @@ void CAddonSettings::FileEnumSettingOptionsFiller(std::shared_ptr<const CSetting
   // fetch the matching files/directories
   CFileItemList items;
   XFILE::CDirectory::GetDirectory(settingPath->GetSources().front(), items, masking, XFILE::DIR_FLAG_NO_FILE_DIRS);
-  
+
   // process the matching files/directories
   for (auto item : items)
   {

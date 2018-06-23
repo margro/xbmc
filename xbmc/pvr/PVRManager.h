@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <atomic>
 #include <memory>
@@ -109,6 +110,20 @@ namespace PVR
     CPVRClientsPtr Clients(void) const;
 
     /*!
+     * @brief Get the instance of a client that matches the given item.
+     * @param item The item containing a PVR recording, a PVR channel, a PVR timer or a PVR EPG event.
+     * @return the requested client on success, nullptr otherwise.
+     */
+    std::shared_ptr<CPVRClient> GetClient(const CFileItem &item) const;
+
+    /*!
+     * @brief Get the instance of a client that matches the given id.
+     * @param iClientId The id of a PVR client.
+     * @return the requested client on success, nullptr otherwise.
+     */
+    std::shared_ptr<CPVRClient> GetClient(int iClientId) const;
+
+    /*!
      * @brief Get access to the pvr gui actions.
      * @return The gui actions.
      */
@@ -162,37 +177,6 @@ namespace PVR
     CPVRDatabasePtr GetTVDatabase(void) const;
 
     /*!
-     * @brief Get a GUIInfoManager character string.
-     * @param dwInfo The string to get.
-     * @return The requested string or an empty one if it wasn't found.
-     */
-    bool TranslateCharInfo(DWORD dwInfo, std::string &strValue) const;
-
-    /*!
-     * @brief Get a GUIInfoManager integer.
-     * @param item The item to get the value for.
-     * @param dwInfo The integer to get.
-     * @return The requested integer or 0 if it wasn't found.
-     */
-    int TranslateIntInfo(const CFileItem &item, DWORD dwInfo) const;
-
-    /*!
-     * @brief Get a GUIInfoManager boolean.
-     * @param dwInfo The boolean to get.
-     * @return The requested boolean or false if it wasn't found.
-     */
-    bool TranslateBoolInfo(DWORD dwInfo) const;
-
-    /*!
-     * @brief Get a GUIInfoManager video label.
-     * @param item The item to get the label for.
-     * @param iLabel The id of the requested label.
-     * @param strValue Will be filled with the requested label value.
-     * @return True if the requested label value was set, false otherwise.
-     */
-    bool GetVideoLabel(const CFileItem &item, int iLabel, std::string &strValue) const;
-
-    /*!
      * @brief Check if a TV channel, radio channel or recording is playing.
      * @return True if it's playing, false otherwise.
      */
@@ -218,6 +202,12 @@ namespace PVR
      * @return True if it's playing, false otherwise.
      */
     bool IsPlayingEpgTag(const CPVREpgInfoTagPtr &epgTag) const;
+
+    /*!
+     * @brief Check whether the currently playing livetv stream is timeshifted.
+     * @return True if there is a playing stream and if it is timeshifted, false otherwise.
+     */
+    bool IsTimeshifting() const;
 
     /*!
      * @return True while the PVRManager is initialising.
@@ -273,6 +263,18 @@ namespace PVR
     CPVREpgInfoTagPtr GetPlayingEpgTag(void) const;
 
     /*!
+     * @brief Get the name of the playing client, if there is one.
+     * @return The name of the client or an empty string if nothing is playing.
+     */
+    std::string GetPlayingClientName(void) const;
+
+    /*!
+     * @brief Get the ID of the playing client, if there is one.
+     * @return The ID or -1 if no client is playing.
+     */
+    int GetPlayingClientID(void) const;
+
+    /*!
      * @brief Check whether there is an active recording on the currenlyt playing channel.
      * @return True if there is a playing channel and there is an active recording on that channel, false otherwise.
      */
@@ -312,25 +314,6 @@ namespace PVR
      * @param item The item that ended to play.
      */
     void OnPlaybackEnded(const CFileItemPtr item);
-
-    /*!
-     * @brief Close an open PVR stream.
-     */
-    void CloseStream(void);
-
-    /*!
-     * @brief Open a stream from the given channel.
-     * @param fileItem The file item with the channel to open.
-     * @return True if the stream was opened, false otherwise.
-     */
-    bool OpenLiveStream(const CFileItem &fileItem);
-
-    /*!
-     * @brief Open a stream from the given recording.
-     * @param tag The recording to open.
-     * @return True if the stream was opened, false otherwise.
-     */
-    bool OpenRecordedStream(const CPVRRecordingPtr &tag);
 
     /*!
      * @brief Check whether there are active recordings.
@@ -389,18 +372,6 @@ namespace PVR
     void TriggerSearchMissingChannelIcons(void);
 
     /*!
-     * @brief Get the total duration of the currently playing LiveTV item.
-     * @return The total duration in milliseconds or NULL if no channel is playing.
-     */
-    int GetTotalTime(void) const;
-
-    /*!
-     * @brief Get the current position in milliseconds since the start of a LiveTV item.
-     * @return The position in milliseconds or NULL if no channel is playing.
-     */
-    int GetStartTime(void) const;
-
-    /*!
      * @brief Check whether names are still correct after the language settings changed.
      */
     void LocalizationChanged(void);
@@ -457,12 +428,6 @@ namespace PVR
      * @return True if EPG tags where created successfully, false otherwise
      */
     bool CreateChannelEpgs(void);
-
-    /*!
-    * @brief get the name of the channel group of the current playing channel
-    * @return name of channel if tv channel is playing
-    */
-    std::string GetPlayingTVGroupName();
 
     /*!
      * @brief Signal a connection change of a client
@@ -585,5 +550,7 @@ namespace PVR
     CPVRChannelPtr m_playingChannel;
     CPVRRecordingPtr m_playingRecording;
     CPVREpgInfoTagPtr m_playingEpgTag;
+    std::string m_strPlayingClientName;
+    int m_playingClientId;
   };
 }

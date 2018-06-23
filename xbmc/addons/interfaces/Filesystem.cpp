@@ -102,7 +102,7 @@ bool Interface_Filesystem::can_open_directory(void* kodiBase, const char* url)
   }
 
   CFileItemList items;
-  return CDirectory::GetDirectory(url, items);
+  return CDirectory::GetDirectory(url, items, "", DIR_FLAG_DEFAULTS);
 }
 
 bool Interface_Filesystem::create_directory(void* kodiBase, const char *path)
@@ -140,7 +140,7 @@ bool Interface_Filesystem::remove_directory(void* kodiBase, const char *path)
 
   // Empty directory
   CFileItemList fileItems;
-  CDirectory::GetDirectory(path, fileItems);
+  CDirectory::GetDirectory(path, fileItems, "", DIR_FLAG_DEFAULTS);
   for (int i = 0; i < fileItems.Size(); ++i)
     CFile::Delete(fileItems.Get(i)->GetPath());
 
@@ -281,7 +281,7 @@ char* Interface_Filesystem::get_file_md5(void* kodiBase, const char* filename)
     return nullptr;
   }
 
-  std::string string = CUtil::GetFileMD5(filename);
+  std::string string = CUtil::GetFileDigest(filename, KODI::UTILITY::CDigest::Type::MD5);
   char* buffer = strdup(string.c_str());
   return buffer;
 }
@@ -470,7 +470,7 @@ int64_t Interface_Filesystem::get_file_length(void* kodiBase, void* file)
     CLog::Log(LOGERROR, "Interface_Filesystem::%s - invalid data (addon='%p', file='%p')", __FUNCTION__, kodiBase, file);
     return -1;
   }
-  
+
   return static_cast<CFile*>(file)->GetLength();
 }
 

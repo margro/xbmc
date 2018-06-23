@@ -23,7 +23,7 @@
 #include "GUIFontManager.h"
 #include "Texture.h"
 #include "TextureManager.h"
-#include "GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "ServiceBroker.h"
 #include "gui3d.h"
 #include "utils/log.h"
@@ -33,7 +33,7 @@
 #elif HAS_GLES
 #include "rendering/gles/RenderSystemGLES.h"
 #endif
-#include "guilib/MatrixGLES.h"
+#include "rendering/MatrixGL.h"
 
 // stuff for freetype
 #include <ft2build.h>
@@ -72,7 +72,7 @@ bool CGUIFontTTFGL::FirstBegin()
   if (m_textureStatus == TEXTURE_REALLOCATED)
   {
     if (glIsTexture(m_nTexture))
-      g_TextureManager.ReleaseHwTexture(m_nTexture);
+      CServiceBroker::GetGUI()->GetTextureManager().ReleaseHwTexture(m_nTexture);
     m_textureStatus = TEXTURE_VOID;
   }
 
@@ -117,13 +117,13 @@ bool CGUIFontTTFGL::FirstBegin()
 void CGUIFontTTFGL::LastEnd()
 {
 #ifdef HAS_GL
-  CRenderSystemGL& renderSystem = dynamic_cast<CRenderSystemGL&>(CServiceBroker::GetRenderSystem());
-  renderSystem.EnableShader(SM_FONTS);
+  CRenderSystemGL* renderSystem = dynamic_cast<CRenderSystemGL*>(CServiceBroker::GetRenderSystem());
+  renderSystem->EnableShader(SM_FONTS);
 
-  GLint posLoc = renderSystem.ShaderGetPos();
-  GLint colLoc = renderSystem.ShaderGetCol();
-  GLint tex0Loc = renderSystem.ShaderGetCoord0();
-  GLint modelLoc = renderSystem.ShaderGetModel();
+  GLint posLoc = renderSystem->ShaderGetPos();
+  GLint colLoc = renderSystem->ShaderGetCol();
+  GLint tex0Loc = renderSystem->ShaderGetCoord0();
+  GLint modelLoc = renderSystem->ShaderGetModel();
 
   CreateStaticVertexBuffers();
 
@@ -168,13 +168,13 @@ void CGUIFontTTFGL::LastEnd()
 
 #else
   // GLES 2.0 version.
-  CRenderSystemGLES& renderSystem = dynamic_cast<CRenderSystemGLES&>(CServiceBroker::GetRenderSystem());
-  renderSystem.EnableGUIShader(SM_FONTS);
+  CRenderSystemGLES* renderSystem = dynamic_cast<CRenderSystemGLES*>(CServiceBroker::GetRenderSystem());
+  renderSystem->EnableGUIShader(SM_FONTS);
 
-  GLint posLoc  = renderSystem.GUIShaderGetPos();
-  GLint colLoc  = renderSystem.GUIShaderGetCol();
-  GLint tex0Loc = renderSystem.GUIShaderGetCoord0();
-  GLint modelLoc = renderSystem.GUIShaderGetModel();
+  GLint posLoc  = renderSystem->GUIShaderGetPos();
+  GLint colLoc  = renderSystem->GUIShaderGetCol();
+  GLint tex0Loc = renderSystem->GUIShaderGetCoord0();
+  GLint modelLoc = renderSystem->GUIShaderGetModel();
 
 
   CreateStaticVertexBuffers();
@@ -218,12 +218,12 @@ void CGUIFontTTFGL::LastEnd()
     // Bind our pre-calculated array to GL_ELEMENT_ARRAY_BUFFER
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_elementArrayHandle);
     // Store current scissor
-    CRect scissor = g_graphicsContext.StereoCorrection(g_graphicsContext.GetScissors());
+    CRect scissor = CServiceBroker::GetWinSystem()->GetGfxContext().StereoCorrection(CServiceBroker::GetWinSystem()->GetGfxContext().GetScissors());
 
     for (size_t i = 0; i < m_vertexTrans.size(); i++)
     {
       // Apply the clip rectangle
-      CRect clip = renderSystem.ClipRectToScissorRect(m_vertexTrans[i].clip);
+      CRect clip = renderSystem->ClipRectToScissorRect(m_vertexTrans[i].clip);
       if (!clip.IsEmpty())
       {
         // intersect with current scissor
@@ -231,7 +231,7 @@ void CGUIFontTTFGL::LastEnd()
         // skip empty clip
         if (clip.IsEmpty())
           continue;
-        renderSystem.SetScissors(clip);
+        renderSystem->SetScissors(clip);
       }
 
       // Apply the translation to the currently active (top-of-stack) model view matrix
@@ -261,7 +261,7 @@ void CGUIFontTTFGL::LastEnd()
       glMatrixModview.Pop();
     }
     // Restore the original scissor rectangle
-    renderSystem.SetScissors(scissor);
+    renderSystem->SetScissors(scissor);
     // Restore the original model view matrix
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glMatrixModview.Get());
     // Unbind GL_ARRAY_BUFFER and GL_ELEMENT_ARRAY_BUFFER
@@ -275,9 +275,9 @@ void CGUIFontTTFGL::LastEnd()
   glDisableVertexAttribArray(tex0Loc);
 
 #ifdef HAS_GL
-  renderSystem.DisableShader();
+  renderSystem->DisableShader();
 #else
-  renderSystem.DisableGUIShader();
+  renderSystem->DisableGUIShader();
 #endif
 }
 
@@ -364,7 +364,7 @@ bool CGUIFontTTFGL::CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1, 
     source += bitmap.width;
     target += m_texture->GetPitch();
   }
-  
+
   switch (m_textureStatus)
   {
   case TEXTURE_UPDATED:
@@ -373,7 +373,7 @@ bool CGUIFontTTFGL::CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1, 
       m_updateY2 = std::max(m_updateY2, y2);
     }
     break;
-      
+
   case TEXTURE_READY:
     {
       m_updateY1 = y1;
@@ -381,7 +381,7 @@ bool CGUIFontTTFGL::CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1, 
       m_textureStatus = TEXTURE_UPDATED;
     }
     break;
-      
+
   case TEXTURE_REALLOCATED:
     {
       m_updateY2 = std::max(m_updateY2, y2);
@@ -392,7 +392,7 @@ bool CGUIFontTTFGL::CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1, 
   default:
     break;
   }
-  
+
   return true;
 }
 
@@ -401,7 +401,7 @@ void CGUIFontTTFGL::DeleteHardwareTexture()
   if (m_textureStatus != TEXTURE_VOID)
   {
     if (glIsTexture(m_nTexture))
-      g_TextureManager.ReleaseHwTexture(m_nTexture);
+      CServiceBroker::GetGUI()->GetTextureManager().ReleaseHwTexture(m_nTexture);
 
     m_textureStatus = TEXTURE_VOID;
     m_updateY1 = m_updateY2 = 0;

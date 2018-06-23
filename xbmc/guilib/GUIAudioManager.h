@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <map>
 #include <string>
@@ -47,7 +47,7 @@ class CGUIAudioManager : public ISettingCallback
   {
   public:
     int usage;
-    IAESound *sound;      
+    IAESound *sound;
   };
 
 public:

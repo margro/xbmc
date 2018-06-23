@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,17 +18,20 @@
  *
  */
 
+#pragma once
+
 #include <vector>
 
 #include <interface/mmal/mmal.h>
 
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "../RenderFlags.h"
 #include "../BaseRenderer.h"
 #include "../RenderCapture.h"
 #include "cores/VideoSettings.h"
 #include "cores/VideoPlayer/DVDStreamInfo.h"
 #include "threads/Thread.h"
+#include "threads/IRunnable.h"
 #include "utils/Geometry.h"
 
 // worst case number of buffers. 12 for decoder. 8 for multi-threading in ffmpeg. NUM_BUFFERS for renderer.
@@ -58,7 +59,7 @@ public:
   virtual bool IsConfigured() override;
   virtual bool IsCompatible(AVPixelFormat format, int size) override;
 
-  void SetDimensions(int width, int height, int alignedWidth, int alignedHeight);
+  void SetDimensions(int width, int height, const int (&strides)[YuvImage::MAX_PLANES], const int (&planeOffsets)[YuvImage::MAX_PLANES]);
   MMAL_COMPONENT_T *GetComponent() { return m_component; }
   CMMALBuffer *GetBuffer(uint32_t timeout);
   void Prime();
@@ -69,8 +70,9 @@ public:
   static uint32_t TranslateFormat(AVPixelFormat pixfmt);
   virtual int Width() { return m_width; }
   virtual int Height() { return m_height; }
-  virtual int AlignedWidth() { return m_geo.stride_y / m_geo.bytes_per_pixel; }
-  virtual int AlignedHeight() { return m_geo.height_y; }
+  virtual int AlignedWidth() { return m_mmal_format == MMAL_ENCODING_YUVUV128 || m_mmal_format == MMAL_ENCODING_YUVUV64_16 ? 0 : m_geo.getStrideY() / m_geo.getBytesPerPixel(); }
+  virtual int AlignedHeight() { return m_mmal_format == MMAL_ENCODING_YUVUV128 || m_mmal_format == MMAL_ENCODING_YUVUV64_16 ? 0 : m_geo.getHeightY(); }
+  virtual int BitsPerPixel() { return m_geo.getBitsPerPixel(); }
   virtual uint32_t &Encoding() { return m_mmal_format; }
   virtual int Size() { return m_size; }
   AVRpiZcFrameGeometry &GetGeometry() { return m_geo; }
@@ -110,7 +112,6 @@ public:
   CMMALBuffer(int id);
   virtual ~CMMALBuffer();
   MMAL_BUFFER_HEADER_T *mmal_buffer = nullptr;
-  uint32_t m_encoding = MMAL_ENCODING_UNKNOWN;
   float m_aspect_ratio = 0.0f;
   MMALState m_state = MMALStateNone;
   bool m_rendered = false;
@@ -123,6 +124,7 @@ public:
   virtual int AlignedWidth() { return Pool()->AlignedWidth(); }
   virtual int AlignedHeight() { return Pool()->AlignedHeight(); }
   virtual uint32_t &Encoding() { return Pool()->Encoding(); }
+  virtual int BitsPerPixel() { return Pool()->BitsPerPixel(); }
   virtual void Update();
 
   void SetVideoDeintMethod(std::string method);
@@ -188,6 +190,7 @@ protected:
   RENDER_STEREO_MODE        m_video_stereo_mode;
   RENDER_STEREO_MODE        m_display_stereo_mode;
   bool                      m_StereoInvert;
+  bool                      m_isPi1;
 
   CCriticalSection m_sharedSection;
   MMAL_COMPONENT_T *m_vout;
@@ -211,7 +214,7 @@ protected:
   uint32_t m_deint_width, m_deint_height, m_deint_aligned_width, m_deint_aligned_height;
   MMAL_FOURCC_T m_deinterlace_out_encoding;
   void DestroyDeinterlace();
-  bool CheckConfigurationDeint(uint32_t width, uint32_t height, uint32_t aligned_width, uint32_t aligned_height, uint32_t encoding, EINTERLACEMETHOD interlace_method);
+  bool CheckConfigurationDeint(uint32_t width, uint32_t height, uint32_t aligned_width, uint32_t aligned_height, uint32_t encoding, EINTERLACEMETHOD interlace_method, int bitsPerPixel);
 
   bool CheckConfigurationVout(uint32_t width, uint32_t height, uint32_t aligned_width, uint32_t aligned_height, uint32_t encoding);
   uint32_t m_vsync_count;

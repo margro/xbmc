@@ -18,10 +18,8 @@
  *
  */
 
-#ifndef WIN_SYSTEM_WIN10_DX_H
-#define WIN_SYSTEM_WIN10_DX_H
+#pragma once
 
-#include "utils/GlobalsHandling.h"
 #include "WinSystemWin10.h"
 #include "rendering/dx/RenderSystemDX.h"
 
@@ -31,12 +29,13 @@ public:
   CWinSystemWin10DX();
   ~CWinSystemWin10DX();
 
+  // Implementation of CWinSystemBase via CWinSystemWin10
+  CRenderSystemBase *GetRenderSystem() override { return this; }
   bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
   void PresentRenderImpl(bool rendered) override;
   bool DPIChanged(WORD dpi, RECT windowRect) const override;
-  void SetWindow(HWND hWnd) const;
   bool DestroyRenderSystem() override;
 
   void UninitHooks();
@@ -44,8 +43,8 @@ public:
 
   void OnMove(int x, int y) override;
   void OnResize(int width, int height);
-  Windows::Foundation::Size GetOutputSize() { return m_deviceResources->GetOutputSize(); };
-  void TrimDevice() { m_deviceResources->Trim(); };
+  winrt::Windows::Foundation::Size GetOutputSize() const { return m_deviceResources->GetOutputSize(); }
+  void TrimDevice() const { m_deviceResources->Trim(); }
 
   /*!
   \brief Register as a dependent of the DirectX Render System
@@ -75,7 +74,6 @@ public:
   void ShowSplash(const std::string& message) override;
 
 protected:
-  void UpdateMonitor() const;
   void SetDeviceFullScreen(bool fullScreen, RESOLUTION_INFO& res) override;
   void ReleaseBackBuffer() override;
   void CreateBackBuffer() override;
@@ -83,4 +81,3 @@ protected:
   bool IsStereoEnabled() override;
 };
 
-#endif // WIN_SYSTEM_WIN32_DX_H

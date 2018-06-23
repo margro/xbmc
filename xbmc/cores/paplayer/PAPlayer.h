@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <atomic>
 #include <list>
@@ -125,6 +125,7 @@ private:
   typedef std::list<StreamInfo*> StreamList;
 
   bool                m_signalSpeedChange;   /* true if OnPlaybackSpeedChange needs to be called */
+  bool m_signalStarted = true;
   std::atomic_int m_playbackSpeed;           /* the playback speed (1 = normal) */
   bool                m_isPlaying;
   bool                m_isPaused;
@@ -136,7 +137,7 @@ private:
   IAudioCallback*     m_audioCallback;       /* the viz audio callback */
 
   CCriticalSection    m_streamsLock;         /* lock for the stream list */
-  StreamList          m_streams;             /* playing streams */  
+  StreamList          m_streams;             /* playing streams */
   StreamList          m_finishing;           /* finishing streams */
   int                 m_jobCounter;
   CEvent              m_jobEvent;
@@ -160,5 +161,6 @@ private:
   void SetTimeInternal(int64_t time);
   void SetTotalTimeInternal(int64_t time);
   void CloseFileCB(StreamInfo &si);
+  void AdvancePlaylistOnError(CFileItem &fileItem);
 };
 

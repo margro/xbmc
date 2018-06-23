@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
  *      http://kodi.tv
@@ -19,8 +18,10 @@
  *
  */
 
+#pragma once
+
 #include "AE.h"
-#include "threads/Thread.h"
+#include "threads/IRunnable.h"
 
 class IThreadedAE : public IAE, public IRunnable
 {

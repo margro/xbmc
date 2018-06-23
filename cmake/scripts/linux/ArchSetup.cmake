@@ -1,8 +1,5 @@
-set(ARCH_DEFINES -D_LINUX -DTARGET_POSIX -DTARGET_LINUX)
-# temp until further cleanup is done
-if(CORE_PLATFORM_NAME_LC STREQUAL rbpi)
-  list(APPEND ARCH_DEFINES -D_ARMEL -DTARGET_RASPBERRY_PI)
-endif()
+# we always want to use GNU features if available, so set _GNU_SOURCE
+set(ARCH_DEFINES -D_LINUX -DTARGET_POSIX -DTARGET_LINUX -D_GNU_SOURCE)
 set(SYSTEM_DEFINES -D__STDC_CONSTANT_MACROS -D_FILE_DEFINED
                    -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64)
 set(PLATFORM_DIR platform/linux)
@@ -21,10 +18,14 @@ else()
     set(ARCH arm)
     set(NEON False)
     set(NEON_FLAGS "-mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp")
-  elseif(CPU MATCHES "cortex-a7" OR CPU MATCHES "cortex-a53")
+  elseif(CPU MATCHES "cortex-a7")
     set(ARCH arm)
     set(NEON True)
-    set(NEON_FLAGS "-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4 -mvectorize-with-neon-quad")
+    set(NEON_FLAGS "-fPIC -mcpu=cortex-a7")
+  elseif(CPU MATCHES "cortex-a53")
+    set(ARCH arm)
+    set(NEON True)
+    set(NEON_FLAGS "-fPIC -mcpu=cortex-a53")
   elseif(CPU MATCHES arm)
     set(ARCH arm)
     set(NEON True)
@@ -33,6 +34,16 @@ else()
     set(NEON True)
   else()
     message(SEND_ERROR "Unknown CPU: ${CPU}")
+  endif()
+endif()
+
+# temp until further cleanup is done
+# add Raspberry Pi 2 and 3 specific flags
+if(CORE_PLATFORM_NAME_LC STREQUAL rbpi)
+  if(CPU MATCHES "cortex-a7")
+    set(NEON_FLAGS "-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4 -mvectorize-with-neon-quad")
+  elseif(CPU MATCHES "cortex-a53")
+    set(NEON_FLAGS "-fPIC -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mvectorize-with-neon-quad")
   endif()
 endif()
 
@@ -83,7 +94,7 @@ set(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
 check_symbol_exists("mkostemp" "stdlib.h" HAVE_MKOSTEMP)
 set(CMAKE_REQUIRED_DEFINITIONS "")
 if(HAVE_MKOSTEMP)
-  list(APPEND ARCH_DEFINES "-DHAVE_MKOSTEMP=1" "-D_GNU_SOURCE")
+  list(APPEND ARCH_DEFINES "-DHAVE_MKOSTEMP=1")
 endif()
 
 # Additional SYSTEM_DEFINES

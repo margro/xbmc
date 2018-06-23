@@ -47,6 +47,7 @@
 #include "guilib/TextureManager.h"
 #include "Util.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
+#include "input/WindowTranslator.h"
 #include "storage/MediaManager.h"
 #include "utils/FileExtensionProvider.h"
 #include "utils/LangCodeExpander.h"
@@ -60,6 +61,7 @@
 #include <vector>
 #include "utils/log.h"
 
+using namespace KODI;
 using namespace KODI::MESSAGING;
 
 #ifdef TARGET_POSIX
@@ -108,6 +110,25 @@ namespace XBMCAddon
       XBMC_TRACE;
       if (! function)
         return;
+
+      // builtins is no anarchy
+      // enforce some rules here
+      // DialogBusy must not be activated, it is modal dialog
+      std::string execute;
+      std::vector<std::string> params;
+      CUtil::SplitExecFunction(function, execute, params);
+      StringUtils::ToLower(execute);
+      if (StringUtils::EqualsNoCase(execute, "activatewindow") ||
+          StringUtils::EqualsNoCase(execute, "closedialog"))
+      {
+        int win = CWindowTranslator::TranslateWindow(params[0]);
+        if (win == WINDOW_DIALOG_BUSY)
+        {
+          CLog::Log(LOGWARNING, "addons must not activate DialogBusy");
+          return;
+        }
+      }
+
       if (wait)
         CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, function);
       else
@@ -291,13 +312,14 @@ namespace XBMCAddon
         return ret;
       }
 
-      int ret = g_infoManager.TranslateString(cLine);
+      CGUIInfoManager& infoMgr = CServiceBroker::GetGUI()->GetInfoManager();
+      int ret = infoMgr.TranslateString(cLine);
       //doesn't seem to be a single InfoTag?
       //try full blown GuiInfoLabel then
       if (ret == 0)
-        return CGUIInfoLabel::GetLabel(cLine);
+        return GUILIB::GUIINFO::CGUIInfoLabel::GetLabel(cLine);
       else
-        return g_infoManager.GetLabel(ret);
+        return infoMgr.GetLabel(ret);
     }
 
     String getInfoImage(const char * infotag)
@@ -309,8 +331,9 @@ namespace XBMCAddon
           return ret;
         }
 
-      int ret = g_infoManager.TranslateString(infotag);
-      return g_infoManager.GetImage(ret, WINDOW_INVALID);
+      CGUIInfoManager& infoMgr = CServiceBroker::GetGUI()->GetInfoManager();
+      int ret = infoMgr.TranslateString(infotag);
+      return infoMgr.GetImage(ret, WINDOW_INVALID);
     }
 
     void playSFX(const char* filename, bool useCached)
@@ -331,7 +354,7 @@ namespace XBMCAddon
       DelayedCallGuard dg;
       g_audioManager.Stop();
     }
-    
+
     void enableNavSounds(bool yesNo)
     {
       XBMC_TRACE;
@@ -348,9 +371,10 @@ namespace XBMCAddon
       {
         XBMCAddonUtils::GuiLock lock(nullptr, false);
 
-        int id = g_windowManager.GetTopmostModalDialog();
-        if (id == WINDOW_INVALID) id = g_windowManager.GetActiveWindow();
-        ret = g_infoManager.EvaluateBool(condition,id);
+        int id = CServiceBroker::GetGUI()->GetWindowManager().GetTopmostModalDialog();
+        if (id == WINDOW_INVALID)
+          id = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow();
+        ret = CServiceBroker::GetGUI()->GetInfoManager().EvaluateBool(condition,id);
       }
 
       return ret;
@@ -470,7 +494,7 @@ namespace XBMCAddon
     bool skinHasImage(const char* image)
     {
       XBMC_TRACE;
-      return g_TextureManager.HasTexture(image);
+      return CServiceBroker::GetGUI()->GetTextureManager().HasTexture(image);
     }
 
 
@@ -482,13 +506,17 @@ namespace XBMCAddon
     }
 
     void audioSuspend()
-    {  
-      CServiceBroker::GetActiveAE().Suspend();
+    {
+      IAE *ae = CServiceBroker::GetActiveAE();
+      if (ae)
+        ae->Suspend();
     }
 
     void audioResume()
-    { 
-      CServiceBroker::GetActiveAE().Resume();
+    {
+      IAE *ae = CServiceBroker::GetActiveAE();
+      if (ae)
+        ae->Resume();
     }
 
     String convertLanguage(const char* language, int format)
@@ -548,7 +576,7 @@ namespace XBMCAddon
     int getLOGNONE() { return LOGNONE; }
 
     // language string formats
-    int getISO_639_1() { return CLangCodeExpander::ISO_639_1; } 
+    int getISO_639_1() { return CLangCodeExpander::ISO_639_1; }
     int getISO_639_2(){ return CLangCodeExpander::ISO_639_2; }
     int getENGLISH_NAME() { return CLangCodeExpander::ENGLISH_NAME; }
 

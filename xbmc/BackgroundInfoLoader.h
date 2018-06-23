@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,7 +18,9 @@
  *
  */
 
-#include "threads/Thread.h"
+#pragma once
+
+#include "threads/IRunnable.h"
 #include "IProgressCallback.h"
 #include "threads/CriticalSection.h"
 
@@ -29,6 +29,7 @@
 
 class CFileItem; typedef std::shared_ptr<CFileItem> CFileItemPtr;
 class CFileItemList;
+class CThread;
 
 class IBackgroundLoaderObserver
 {

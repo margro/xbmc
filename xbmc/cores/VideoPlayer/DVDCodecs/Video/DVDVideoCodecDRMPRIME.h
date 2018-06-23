@@ -37,7 +37,7 @@ class CVideoBufferDRMPRIME
 {
 public:
   CVideoBufferDRMPRIME(IVideoBufferPool& pool, int id);
-  virtual ~CVideoBufferDRMPRIME();
+  ~CVideoBufferDRMPRIME();
   void SetRef(AVFrame* frame);
   void Unref();
 
@@ -57,7 +57,7 @@ class CDVDVideoCodecDRMPRIME
 {
 public:
   explicit CDVDVideoCodecDRMPRIME(CProcessInfo& processInfo);
-  ~CDVDVideoCodecDRMPRIME() override;
+  ~CDVDVideoCodecDRMPRIME();
 
   static CDVDVideoCodec* Create(CProcessInfo& processInfo);
   static void Register();
@@ -71,9 +71,8 @@ public:
   void SetCodecControl(int flags) override { m_codecControlFlags = flags; };
 
 protected:
-  virtual AVCodec* FindDecoder(CDVDStreamInfo& hints);
-  virtual void Drain();
-  virtual void SetPictureParams(VideoPicture* pVideoPicture);
+  void Drain();
+  void SetPictureParams(VideoPicture* pVideoPicture);
 
   std::string m_name;
   int m_codecControlFlags = 0;

@@ -19,7 +19,8 @@
  */
 
 #include "PictureBuiltins.h"
-
+#include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "utils/StringUtils.h"
@@ -32,7 +33,7 @@ static int Show(const std::vector<std::string>& params)
 {
   CGUIMessage msg(GUI_MSG_SHOW_PICTURE, 0, 0);
   msg.SetStringParam(params[0]);
-  CGUIWindow *pWindow = g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+  CGUIWindow *pWindow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_SLIDESHOW);
   if (pWindow)
     pWindow->OnMessage(msg);
 
@@ -84,14 +85,14 @@ static int Slideshow(const std::vector<std::string>& params)
   strParams.push_back(params[0]);
   strParams.push_back(beginSlidePath);
   msg.SetStringParams(strParams);
-  CGUIWindow *pWindow = g_windowManager.GetWindow(WINDOW_SLIDESHOW);
+  CGUIWindow *pWindow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_SLIDESHOW);
   if (pWindow)
     pWindow->OnMessage(msg);
 
   return 0;
 }
 
-// Note: For new Texts with comma add a "\" before!!! Is used for table text 
+// Note: For new Texts with comma add a "\" before!!! Is used for table text
 //
 /// \page page_List_of_built_in_functions
 /// \section built_in_functions_11 Picture built-in's

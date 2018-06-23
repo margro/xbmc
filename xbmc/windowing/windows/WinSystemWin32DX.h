@@ -18,9 +18,6 @@
  *
  */
 
-#ifndef WIN_SYSTEM_WIN32_DX_H
-#define WIN_SYSTEM_WIN32_DX_H
-
 #pragma once
 
 #include "easyhook/easyhook.h"
@@ -36,6 +33,8 @@ public:
   CWinSystemWin32DX();
   ~CWinSystemWin32DX();
 
+  // Implementation of CWinSystemBase via CWinSystemWin32
+  CRenderSystemBase *GetRenderSystem() override { return this; }
   bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
@@ -59,7 +58,7 @@ public:
    \sa Unregister, ID3DResource
   */
   void Register(ID3DResource *resource) const
-  { 
+  {
     m_deviceResources->Register(resource);
   };
   /*!
@@ -68,7 +67,7 @@ public:
    \sa Register, ID3DResource
   */
   void Unregister(ID3DResource *resource) const
-  { 
+  {
     m_deviceResources->Unregister(resource);
   };
 
@@ -78,16 +77,15 @@ public:
   void FixRefreshRateIfNecessary(const D3D10DDIARG_CREATERESOURCE* pResource) const;
 
 protected:
-  void UpdateMonitor() const;
   void SetDeviceFullScreen(bool fullScreen, RESOLUTION_INFO& res) override;
   void ReleaseBackBuffer() override;
   void CreateBackBuffer() override;
   void ResizeDeviceBuffers() override;
   bool IsStereoEnabled() override;
-  void OnScreenChange(int screen) override;
+  void OnScreenChange(HMONITOR monitor) override;
+  bool ChangeResolution(const RESOLUTION_INFO& res, bool forceChange = false) override;
 
   HMODULE m_hDriverModule;
   TRACED_HOOK_HANDLE m_hHook;
 };
 
-#endif // WIN_SYSTEM_WIN32_DX_H

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include <vector>
 
@@ -37,7 +38,7 @@ public:
   CBooleanLogicValue(const std::string &value = "", bool negated = false)
     : m_value(value), m_negated(negated)
   { }
-  ~CBooleanLogicValue() override = default;
+  virtual ~CBooleanLogicValue() = default;
 
   bool Deserialize(const TiXmlNode *node) override;
 
@@ -66,7 +67,7 @@ public:
   explicit CBooleanLogicOperation(BooleanLogicOperation op = BooleanLogicOperationAnd)
     : m_operation(op)
   { }
-  ~CBooleanLogicOperation() override;
+  virtual ~CBooleanLogicOperation() = default;
 
   bool Deserialize(const TiXmlNode *node) override;
 
@@ -79,7 +80,7 @@ public:
 protected:
   virtual CBooleanLogicOperation* newOperation() { return new CBooleanLogicOperation(); }
   virtual CBooleanLogicValue* newValue() { return new CBooleanLogicValue(); }
-  
+
   BooleanLogicOperation m_operation;
   CBooleanLogicOperations m_operations;
   CBooleanLogicValues m_values;
@@ -87,14 +88,15 @@ protected:
 
 class CBooleanLogic : public IXmlDeserializable
 {
-public:
-  CBooleanLogic() = default;
-  ~CBooleanLogic() override = default;
+protected:
+  /* make sure nobody deletes a pointer to this class */
+  ~CBooleanLogic() = default;
 
+public:
   bool Deserialize(const TiXmlNode *node) override;
 
-  virtual const CBooleanLogicOperationPtr& Get() const { return m_operation; }
-  virtual CBooleanLogicOperationPtr Get() { return m_operation; }
+  const CBooleanLogicOperationPtr& Get() const { return m_operation; }
+  CBooleanLogicOperationPtr Get() { return m_operation; }
 
 protected:
   CBooleanLogicOperationPtr m_operation;

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string.h>
 #include <time.h>
 
@@ -27,10 +28,8 @@
 #undef PRAGMA_PACK_END
 
 #if defined(__GNUC__)
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
 #define ATTRIBUTE_PACKED __attribute__ ((packed))
 #define PRAGMA_PACK 0
-#endif
 #endif
 
 #if !defined(ATTRIBUTE_PACKED)
@@ -58,7 +57,7 @@
 #define EPG_EVENT_CONTENTMASK_USERDEFINED              0xF0
 //@}
 
-/* Set EPGTAG.iGenreType to EPG_GENRE_USE_STRING to transfer genre strings to XBMC */
+/* Set EPGTAG.iGenreType to EPG_GENRE_USE_STRING to transfer genre strings to Kodi */
 #define EPG_GENRE_USE_STRING                           0x100
 
 /* Separator to use in strings containing different tokens, for example writers, directors, actors of an event. */

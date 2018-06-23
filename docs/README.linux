@@ -53,11 +53,12 @@ Build-Depends: autoconf, automake, autopoint, autotools-dev, cmake, curl,
   libiso9660-dev, libjpeg-dev, libltdl-dev, liblzo2-dev, libmicrohttpd-dev,
   libmpcdec-dev, libmysqlclient-dev, libnfs-dev,
   libpcre3-dev, libplist-dev, libpng12-dev | libpng-dev, libpulse-dev,
-  libshairplay-dev, libsmbclient-dev, libsqlite3-dev, libssh-dev, libssl-dev, libswscale-dev,
+  libshairplay-dev, libsmbclient-dev, libsqlite3-dev, libssl-dev, libswscale-dev,
   libtag1-dev (>= 1.8), libtinyxml-dev (>= 2.6.2), libtool, libudev-dev,
   libusb-dev, libva-dev, libvdpau-dev, libxml2-dev,
   libxmu-dev, libxrandr-dev, libxslt1-dev, libxt-dev, lsb-release, rapidjson-dev,
-  nasm [!amd64], python-dev, python-imaging, python-support, swig, uuid-dev, yasm, zlib1g-dev
+  nasm [!amd64], python-dev, python-imaging, python-support, swig, uuid-dev, yasm, zlib1g-dev,
+  liblirc-dev
 
 If you want to build with Wayland instead of X11, you will need:
   wayland-protocols (>= 1.7), libwaylandpp-dev
@@ -167,9 +168,6 @@ You can compile all addons or only specific addons by specifying e.g. ADDONS="au
 
 .1  Specific addons
     $ make -C tools/depends/target/binary-addons PREFIX=/<system prefix added on step 4.1> ADDONS="audioencoder.flac pvr.vdr.vnsi audiodecoder.snesapu"
-
-ADSP addons:
-    adsp.basic, adsp.biquad.filters, adsp.freesurround
 
 Audio decoders:
     audiodecoder.modplug, audiodecoder.nosefart, audiodecoder.sidplay, audiodecoder.snesapu,

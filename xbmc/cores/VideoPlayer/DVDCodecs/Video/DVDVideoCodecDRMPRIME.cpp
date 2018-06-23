@@ -20,9 +20,12 @@
 
 #include "DVDVideoCodecDRMPRIME.h"
 
+#include "ServiceBroker.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
+#include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
+#include "windowing/gbm/WinSystemGbm.h"
 
 #include <xf86drm.h>
 #include <xf86drmMode.h>
@@ -80,7 +83,7 @@ class CVideoBufferPoolDRMPRIME
   : public IVideoBufferPool
 {
 public:
-  ~CVideoBufferPoolDRMPRIME() override;
+  ~CVideoBufferPoolDRMPRIME();
   void Return(int id) override;
   CVideoBuffer* Get() override;
 
@@ -159,7 +162,9 @@ CDVDVideoCodecDRMPRIME::~CDVDVideoCodecDRMPRIME()
 
 CDVDVideoCodec* CDVDVideoCodecDRMPRIME::Create(CProcessInfo& processInfo)
 {
-  return new CDVDVideoCodecDRMPRIME(processInfo);
+  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEPRIMEDECODER))
+    return new CDVDVideoCodecDRMPRIME(processInfo);
+  return nullptr;
 }
 
 void CDVDVideoCodecDRMPRIME::Register()
@@ -167,29 +172,57 @@ void CDVDVideoCodecDRMPRIME::Register()
   CDVDFactoryCodec::RegisterHWVideoCodec("drm_prime", CDVDVideoCodecDRMPRIME::Create);
 }
 
-AVCodec* CDVDVideoCodecDRMPRIME::FindDecoder(CDVDStreamInfo& hints)
+static const AVCodecHWConfig* FindHWConfig(const AVCodec* codec)
 {
-  AVCodec* codec = nullptr;
-  while ((codec = av_codec_next(codec)))
+  const AVCodecHWConfig* config = nullptr;
+  for (int n = 0; (config = avcodec_get_hw_config(codec, n)); n++)
   {
-    if (av_codec_is_decoder(codec) && codec->id == hints.codec && codec->pix_fmts)
-    {
-      const AVPixelFormat* fmt = codec->pix_fmts;
-      while (*fmt != AV_PIX_FMT_NONE)
-      {
-        if (*fmt == AV_PIX_FMT_DRM_PRIME)
-          return codec;
-        fmt++;
-      }
-    }
+    if (config->pix_fmt != AV_PIX_FMT_DRM_PRIME)
+      continue;
+
+    if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) &&
+        config->device_type == AV_HWDEVICE_TYPE_DRM)
+      return config;
+
+    if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_INTERNAL))
+      return config;
   }
 
   return nullptr;
 }
 
+static const AVCodec* FindDecoder(CDVDStreamInfo& hints)
+{
+  const AVCodec* codec = nullptr;
+  void *i = 0;
+
+  while ((codec = av_codec_iterate(&i)))
+  {
+    if (!av_codec_is_decoder(codec))
+      continue;
+    if (codec->id != hints.codec)
+      continue;
+
+    const AVCodecHWConfig* config = FindHWConfig(codec);
+    if (config)
+      return codec;
+  }
+
+  return nullptr;
+}
+
+static enum AVPixelFormat GetFormat(struct AVCodecContext* avctx, const enum AVPixelFormat* fmt)
+{
+  for (int n = 0; fmt[n] != AV_PIX_FMT_NONE; n++)
+    if (fmt[n] == AV_PIX_FMT_DRM_PRIME)
+      return fmt[n];
+
+  return AV_PIX_FMT_NONE;
+}
+
 bool CDVDVideoCodecDRMPRIME::Open(CDVDStreamInfo& hints, CDVDCodecOptions& options)
 {
-  AVCodec* pCodec = FindDecoder(hints);
+  const AVCodec* pCodec = FindDecoder(hints);
   if (!pCodec)
   {
     CLog::Log(LOGDEBUG, "CDVDVideoCodecDRMPRIME::%s - unable to find decoder for codec %d", __FUNCTION__, hints.codec);
@@ -202,6 +235,22 @@ bool CDVDVideoCodecDRMPRIME::Open(CDVDStreamInfo& hints, CDVDCodecOptions& optio
   if (!m_pCodecContext)
     return false;
 
+  const AVCodecHWConfig* pConfig = FindHWConfig(pCodec);
+  if (pConfig &&
+      (pConfig->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) &&
+      pConfig->device_type == AV_HWDEVICE_TYPE_DRM)
+  {
+    CWinSystemGbm* winSystem = dynamic_cast<CWinSystemGbm*>(CServiceBroker::GetWinSystem());
+    if (av_hwdevice_ctx_create(&m_pCodecContext->hw_device_ctx, AV_HWDEVICE_TYPE_DRM, winSystem->GetDevicePath().c_str(), nullptr, 0) < 0)
+    {
+      CLog::Log(LOGNOTICE, "CDVDVideoCodecDRMPRIME::%s - unable to create hwdevice context", __FUNCTION__);
+      avcodec_free_context(&m_pCodecContext);
+      return false;
+    }
+  }
+
+  m_pCodecContext->pix_fmt = AV_PIX_FMT_DRM_PRIME;
+  m_pCodecContext->get_format = GetFormat;
   m_pCodecContext->codec_tag = hints.codec_tag;
   m_pCodecContext->coded_width = hints.width;
   m_pCodecContext->coded_height = hints.height;
@@ -219,6 +268,13 @@ bool CDVDVideoCodecDRMPRIME::Open(CDVDStreamInfo& hints, CDVDCodecOptions& optio
   if (avcodec_open2(m_pCodecContext, pCodec, nullptr) < 0)
   {
     CLog::Log(LOGNOTICE, "CDVDVideoCodecDRMPRIME::%s - unable to open codec", __FUNCTION__);
+    avcodec_free_context(&m_pCodecContext);
+    return false;
+  }
+
+  if (m_pCodecContext->pix_fmt != AV_PIX_FMT_DRM_PRIME)
+  {
+    CLog::Log(LOGNOTICE, "CDVDVideoCodecDRMPRIME::%s - unexpected pix fmt %s", __FUNCTION__, av_get_pix_fmt_name(m_pCodecContext->pix_fmt));
     avcodec_free_context(&m_pCodecContext);
     return false;
   }
@@ -250,8 +306,8 @@ bool CDVDVideoCodecDRMPRIME::AddData(const DemuxPacket& packet)
   avpkt.size = packet.iSize;
   avpkt.dts = (packet.dts == DVD_NOPTS_VALUE) ? AV_NOPTS_VALUE : static_cast<int64_t>(packet.dts / DVD_TIME_BASE * AV_TIME_BASE);
   avpkt.pts = (packet.pts == DVD_NOPTS_VALUE) ? AV_NOPTS_VALUE : static_cast<int64_t>(packet.pts / DVD_TIME_BASE * AV_TIME_BASE);
-  // TODO: avpkt.side_data = static_cast<AVPacketSideData*>(packet.pSideData);
-  // TODO: avpkt.side_data_elems = packet.iSideDataElems;
+  avpkt.side_data = static_cast<AVPacketSideData*>(packet.pSideData);
+  avpkt.side_data_elems = packet.iSideDataElems;
 
   int ret = avcodec_send_packet(m_pCodecContext, &avpkt);
   if (ret == AVERROR(EAGAIN))
@@ -291,7 +347,14 @@ void CDVDVideoCodecDRMPRIME::SetPictureParams(VideoPicture* pVideoPicture)
   pVideoPicture->iWidth = m_pFrame->width;
   pVideoPicture->iHeight = m_pFrame->height;
 
-  double aspect_ratio = (float)pVideoPicture->iWidth / (float)pVideoPicture->iHeight;
+  double aspect_ratio = 0;
+  AVRational pixel_aspect = m_pFrame->sample_aspect_ratio;
+  if (pixel_aspect.num)
+    aspect_ratio = av_q2d(pixel_aspect) * pVideoPicture->iWidth / pVideoPicture->iHeight;
+
+  if (aspect_ratio <= 0.0)
+    aspect_ratio = (float)pVideoPicture->iWidth / (float)pVideoPicture->iHeight;
+
   pVideoPicture->iDisplayWidth = ((int)lrint(pVideoPicture->iHeight * aspect_ratio)) & -3;
   pVideoPicture->iDisplayHeight = pVideoPicture->iHeight;
   if (pVideoPicture->iDisplayWidth > pVideoPicture->iWidth)
@@ -300,11 +363,12 @@ void CDVDVideoCodecDRMPRIME::SetPictureParams(VideoPicture* pVideoPicture)
     pVideoPicture->iDisplayHeight = ((int)lrint(pVideoPicture->iWidth / aspect_ratio)) & -3;
   }
 
-  pVideoPicture->color_range = m_pFrame->color_range;
+  pVideoPicture->color_range = m_pFrame->color_range == AVCOL_RANGE_JPEG ? 1 : 0;
   pVideoPicture->color_primaries = m_pFrame->color_primaries;
   pVideoPicture->color_transfer = m_pFrame->color_trc;
   pVideoPicture->color_space = m_pFrame->colorspace;
 
+  pVideoPicture->iRepeatPicture = 0;
   pVideoPicture->iFlags = 0;
   pVideoPicture->iFlags |= m_pFrame->interlaced_frame ? DVP_FLAG_INTERLACED : 0;
   pVideoPicture->iFlags |= m_pFrame->top_field_first ? DVP_FLAG_TOP_FIELD_FIRST: 0;
@@ -312,7 +376,7 @@ void CDVDVideoCodecDRMPRIME::SetPictureParams(VideoPicture* pVideoPicture)
 
   int64_t pts = m_pFrame->pts;
   if (pts == AV_NOPTS_VALUE)
-    pts = av_frame_get_best_effort_timestamp(m_pFrame);
+    pts = m_pFrame->best_effort_timestamp;
   pVideoPicture->pts = (pts == AV_NOPTS_VALUE) ? DVD_NOPTS_VALUE : (double)pts * DVD_TIME_BASE / AV_TIME_BASE;
   pVideoPicture->dts = DVD_NOPTS_VALUE;
 }

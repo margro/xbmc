@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,13 +18,15 @@
  *
  */
 
+#pragma once
+
 #include <map>
 #include <set>
 #include <vector>
 #include <utility>
 
 #include "addons/Addon.h"
-#include "guilib/GraphicContext.h" // needed for the RESOLUTION members
+#include "windowing/GraphicContext.h" // needed for the RESOLUTION members
 #include "guilib/GUIIncludes.h"    // needed for the GUIInclude member
 
 #define CREDIT_LINE_LENGTH 50

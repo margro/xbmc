@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,8 +18,13 @@
  *
  */
 
+#pragma once
+
 #include "IDirectory.h"
 #include "MediaSource.h"
+
+#include <memory>
+#include <string>
 
 namespace XFILE
 {
@@ -35,9 +39,10 @@ namespace XFILE
     CVirtualDirectory(void);
     ~CVirtualDirectory(void) override;
     bool GetDirectory(const CURL& url, CFileItemList &items) override;
-    bool GetDirectory(const CURL& url, CFileItemList &items, bool bUseFileDirectories);
+    void CancelDirectory() override;
+    bool GetDirectory(const CURL& url, CFileItemList &items, bool bUseFileDirectories, bool keepImpl);
     void SetSources(const VECSOURCES& vecSources);
-    inline unsigned int GetNumberOfSources() 
+    inline unsigned int GetNumberOfSources()
     {
       return static_cast<uint32_t>(m_vecSources.size());
     }
@@ -59,16 +64,14 @@ namespace XFILE
 
     void AllowNonLocalSources(bool allow) { m_allowNonLocalSources = allow; };
 
-    /*! \brief Set whether we allow threaded loading of directories.
-     The default is to allow threading, so this can be used to disable it.
-     \param allowThreads if true we allow threads, if false we don't.
-     */
-    void SetAllowThreads(bool allowThreads) { m_allowThreads = allowThreads; };
+    std::shared_ptr<IDirectory> GetDirImpl() { return m_pDir; }
+    void ReleaseDirImpl() { m_pDir.reset(); }
+
   protected:
     void CacheThumbs(CFileItemList &items);
 
     VECSOURCES m_vecSources;
-    bool       m_allowNonLocalSources;
-    bool       m_allowThreads;
+    bool m_allowNonLocalSources;
+    std::shared_ptr<IDirectory> m_pDir;
   };
 }

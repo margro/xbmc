@@ -29,6 +29,7 @@
 #include "dialogs/GUIDialogNumeric.h"
 #include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
+#include "messaging/helpers/DialogHelper.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "view/GUIViewState.h"
@@ -39,6 +40,7 @@
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/windows/GUIEPGGridContainer.h"
 
+using namespace KODI::MESSAGING;
 using namespace PVR;
 
 CGUIWindowPVRGuideBase::CGUIWindowPVRGuideBase(bool bRadio, int id, const std::string &xmlFile) :
@@ -236,10 +238,69 @@ bool CGUIWindowPVRGuideBase::GetDirectory(const std::string &strDirectory, CFile
   return true;
 }
 
+bool CGUIWindowPVRGuideBase::ShouldNavigateToGridContainer(int iAction)
+{
+  CGUIEPGGridContainer *epgGridContainer = GetGridControl();
+  CGUIControl* control = GetControl(CONTROL_LSTCHANNELGROUPS);
+  if (epgGridContainer && control &&
+      GetFocusedControlID() == control->GetID())
+  {
+    int iNavigationId = control->GetAction(iAction).GetNavigation();
+    if (iNavigationId > 0)
+    {
+      control = epgGridContainer;
+      while (control != this) // navigation target could be the grid control or one of its parent controls.
+      {
+        if (iNavigationId == control->GetID())
+        {
+          // channel group selector control's target for the action is the grid control
+          return true;
+        }
+        control = control->GetParentControl();
+      }
+    }
+  }
+  return false;
+}
+
 bool CGUIWindowPVRGuideBase::OnAction(const CAction &action)
 {
   switch (action.GetID())
   {
+    case ACTION_MOVE_UP:
+    case ACTION_MOVE_DOWN:
+    case ACTION_MOVE_LEFT:
+    case ACTION_MOVE_RIGHT:
+    {
+      // Check whether grid container is configured as channel group selector's navigation target for the given action.
+      if (ShouldNavigateToGridContainer(action.GetID()))
+      {
+        CGUIEPGGridContainer *epgGridContainer = GetGridControl();
+        if (epgGridContainer)
+        {
+          CGUIWindowPVRBase::OnAction(action);
+
+          switch (action.GetID())
+          {
+            case ACTION_MOVE_UP:
+              epgGridContainer->GoToBottom();
+              return true;
+            case ACTION_MOVE_DOWN:
+              epgGridContainer->GoToTop();
+              return true;
+            case ACTION_MOVE_LEFT:
+              epgGridContainer->GoToMostRight();
+              return true;
+            case ACTION_MOVE_RIGHT:
+              epgGridContainer->GoToMostLeft();
+              return true;
+            default:
+              break;
+          }
+        }
+      }
+      break;
+    }
     case REMOTE_0:
       if (GetCurrentDigitCount() == 0)
       {
@@ -276,6 +337,17 @@ bool CGUIWindowPVRGuideBase::OnMessage(CGUIMessage& message)
     {
       if (message.GetSenderId() == m_viewControl.GetCurrentControl())
       {
+        if (message.GetParam1() == ACTION_SELECT_ITEM ||
+            message.GetParam1() == ACTION_MOUSE_LEFT_CLICK)
+        {
+          // If direct channel number input is active, select the entered channel.
+          if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNumberInputHandler().CheckInputAndExecuteAction())
+          {
+            bReturn = true;
+            break;
+          }
+        }
+
         int iItem = m_viewControl.GetSelectedItem();
         if (iItem >= 0 && iItem < m_vecItems->Size())
         {
@@ -327,7 +399,17 @@ bool CGUIWindowPVRGuideBase::OnMessage(CGUIMessage& message)
                       if (tag->HasTimer())
                         CServiceBroker::GetPVRManager().GUIActions()->EditTimer(pItem);
                       else
-                        CServiceBroker::GetPVRManager().GUIActions()->AddTimer(pItem, false);
+                      {
+                        HELPERS::DialogResponse ret
+                          = HELPERS::ShowYesNoDialogText(CVariant{19096}, // "Smart select"
+                                                          CVariant{19302}, // "Do you want to record the selected programme or to switch to the current programme?"
+                                                          CVariant{264}, // No => "Record"
+                                                          CVariant{19165}); // Yes => "Switch"
+                        if (ret == HELPERS::DialogResponse::NO)
+                          CServiceBroker::GetPVRManager().GUIActions()->AddTimer(pItem, false);
+                        else if (ret == HELPERS::DialogResponse::YES)
+                          CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(pItem, true);
+                      }
                     }
                     else
                     {
@@ -597,6 +679,13 @@ void CGUIWindowPVRGuideBase::OnInputDone()
       }
     }
   }
+}
+
+void CGUIWindowPVRGuideBase::GetChannelNumbers(std::vector<std::string>& channelNumbers)
+{
+  const CPVRChannelGroupPtr group = GetChannelGroup();
+  if (group)
+    group->GetChannelNumbers(channelNumbers);
 }
 
 CPVRRefreshTimelineItemsThread::CPVRRefreshTimelineItemsThread(CGUIWindowPVRGuideBase *pGuideWindow)

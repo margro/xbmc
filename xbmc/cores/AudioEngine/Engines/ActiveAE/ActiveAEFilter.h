@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2016 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 extern "C" {
 #include "libavfilter/avfilter.h"
@@ -41,7 +42,7 @@ public:
   bool IsEof();
   bool IsActive();
   int GetBufferedSamples();
-  
+
 protected:
   bool CreateFilterGraph();
   bool CreateAtempoFilter();

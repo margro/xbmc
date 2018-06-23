@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
+ *      Copyright (C) 2005-2018 Team Kodi
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,19 +19,13 @@
  */
 
 #include "GUIDialogMusicOSD.h"
-#include "ServiceBroker.h"
+#include "addons/GUIWindowAddonBrowser.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/LocalizeStrings.h"
+#include "GUIUserMessages.h"
 #include "input/Key.h"
 #include "input/InputManager.h"
-#include "GUIUserMessages.h"
 #include "settings/Settings.h"
-#include "addons/GUIWindowAddonBrowser.h"
-#include "xbmc/dialogs/GUIDialogSelect.h"
-#include "xbmc/Application.h"
-#include "xbmc/FileItem.h"
-#include "xbmc/music/tags/MusicInfoTag.h"
-#include "xbmc/music/MusicDatabase.h"
 #include "ServiceBroker.h"
 
 #define CONTROL_VIS_BUTTON       500
@@ -59,13 +53,13 @@ bool CGUIDialogMusicOSD::OnMessage(CGUIMessage &message)
         {
           CServiceBroker::GetSettings().SetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION, addonID);
           CServiceBroker::GetSettings().Save();
-          g_windowManager.SendMessage(GUI_MSG_VISUALISATION_RELOAD, 0, 0);
+          CServiceBroker::GetGUI()->GetWindowManager().SendMessage(GUI_MSG_VISUALISATION_RELOAD, 0, 0);
         }
       }
       else if (iControl == CONTROL_LOCK_BUTTON)
       {
         CGUIMessage msg(GUI_MSG_VISUALISATION_ACTION, 0, 0, ACTION_VIS_PRESET_LOCK);
-        g_windowManager.SendMessage(msg);
+        CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
       }
       return true;
     }
@@ -81,45 +75,6 @@ bool CGUIDialogMusicOSD::OnAction(const CAction &action)
     case ACTION_SHOW_OSD:
       Close();
       return true;
-  
-    case ACTION_SET_RATING:
-    {
-      CGUIDialogSelect *dialog = g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
-      if (dialog)
-      {
-        dialog->SetHeading(CVariant{ 38023 });
-        dialog->Add(g_localizeStrings.Get(38022));
-        for (int i = 1; i <= 10; i++)
-          dialog->Add(StringUtils::Format("%s: %i", g_localizeStrings.Get(563).c_str(), i));
-
-        auto track = g_application.CurrentFileItemPtr();
-        dialog->SetSelected(track->GetMusicInfoTag()->GetUserrating());
-
-        dialog->Open();
-
-        int userrating = dialog->GetSelectedItem();
-
-        if (userrating < 0) userrating = 0;
-        if (userrating > 10) userrating = 10;
-        if (userrating != track->GetMusicInfoTag()->GetUserrating())
-        {
-          track->GetMusicInfoTag()->SetUserrating(userrating);
-          // send a message to all windows to tell them to update the fileitem (eg playlistplayer, media windows)
-          CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM, 0, track);
-          g_windowManager.SendMessage(msg);
-
-          CMusicDatabase db;
-          if (db.Open())
-          {
-            db.SetSongUserrating(track->GetMusicInfoTag()->GetURL(), userrating);
-            db.Close();
-          }
-        }
-
-      }
-      return true;
-    }
-
     default:
       break;
   }
@@ -133,10 +88,9 @@ void CGUIDialogMusicOSD::FrameMove()
   {
     // check for movement of mouse or a submenu open
     if (CServiceBroker::GetInputManager().IsMouseActive() ||
-        g_windowManager.IsWindowActive(WINDOW_DIALOG_VIS_SETTINGS) ||
-        g_windowManager.IsWindowActive(WINDOW_DIALOG_VIS_PRESET_LIST) ||
-        g_windowManager.IsWindowActive(WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS) ||
-        g_windowManager.IsWindowActive(WINDOW_DIALOG_PVR_RADIO_RDS_INFO))
+        CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_VIS_SETTINGS) ||
+        CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_VIS_PRESET_LIST) ||
+        CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_PVR_RADIO_RDS_INFO))
       // extend show time by original value
       SetAutoClose(m_showDuration);
   }

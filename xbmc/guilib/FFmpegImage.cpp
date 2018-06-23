@@ -103,7 +103,7 @@ static int mem_file_read(void *h, uint8_t* buf, int size)
   int64_t unread = mbuf->size - mbuf->pos;
   if (unread <= 0)
     return 0;
-  
+
   size_t tocopy = std::min((size_t)size, (size_t)unread);
   memcpy(buf, mbuf->data + mbuf->pos, tocopy);
   mbuf->pos += tocopy;
@@ -161,7 +161,7 @@ CFFmpegImage::~CFFmpegImage()
 bool CFFmpegImage::LoadImageFromMemory(unsigned char* buffer, unsigned int bufSize,
                                       unsigned int width, unsigned int height)
 {
-    
+
   if (!Initialize(buffer, bufSize))
   {
     //log
@@ -310,7 +310,7 @@ AVFrame* CFFmpegImage::ExtractFrame()
     return nullptr;
   }
   //we need milliseconds
-  av_frame_set_pkt_duration(frame, av_rescale_q(frame->pkt_duration, m_fctx->streams[0]->time_base, AVRational{ 1, 1000 }));
+  frame->pkt_duration = av_rescale_q(frame->pkt_duration, m_fctx->streams[0]->time_base, AVRational{ 1, 1000 });
   m_height = frame->height;
   m_width = frame->width;
   m_originalWidth = m_width;
@@ -320,7 +320,7 @@ AVFrame* CFFmpegImage::ExtractFrame()
   if (pixDescriptor && ((pixDescriptor->flags & (AV_PIX_FMT_FLAG_ALPHA | AV_PIX_FMT_FLAG_PAL)) != 0))
     m_hasAlpha = true;
 
-  AVDictionary* dic = av_frame_get_metadata(frame);
+  AVDictionary* dic = frame->metadata;
   AVDictionaryEntry* entry = NULL;
   if (dic)
   {
@@ -483,7 +483,7 @@ bool CFFmpegImage::DecodeFrame(AVFrame* frame, unsigned int width, unsigned int 
 
   // Especially jpeg formats are full range this we need to take care here
   // Input Formats like RGBA are handled correctly automatically
-  AVColorRange range = av_frame_get_color_range(frame);
+  AVColorRange range = frame->color_range;
   AVPixelFormat pixFormat = ConvertFormats(frame);
 
   // assumption quadratic maximums e.g. 2048x2048
@@ -759,7 +759,7 @@ std::shared_ptr<Frame> CFFmpegImage::ReadFrame()
   if (avframe == nullptr)
     return nullptr;
   std::shared_ptr<Frame> frame(new Frame());
-  frame->m_delay = (unsigned int)av_frame_get_pkt_duration(avframe);
+  frame->m_delay = (unsigned int)avframe->pkt_duration;
   frame->m_pitch = avframe->width * 4;
   frame->m_pImage = (unsigned char*) av_malloc(avframe->height * frame->m_pitch);
   DecodeFrame(avframe, avframe->width, avframe->height, frame->m_pitch, frame->m_pImage);

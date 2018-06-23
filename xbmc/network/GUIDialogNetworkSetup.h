@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "settings/dialogs/GUIDialogSettingsManualBase.h"
 
@@ -70,6 +70,8 @@ protected:
   void OnCancel() override;
   void UpdateButtons();
   void Reset();
+
+  void UpdateAvailableProtocols();
 
   int m_protocol; //!< Currently selected protocol
   std::vector<Protocol> m_protocols; //!< List of available protocols

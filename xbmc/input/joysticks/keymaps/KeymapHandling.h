@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "utils/Observer.h"
@@ -51,7 +52,7 @@ namespace JOYSTICK
      * \brief
      */
     IInputReceiver *GetInputReceiver(const std::string &controllerId) const;
-    
+
     /*!
      * \brief
      */

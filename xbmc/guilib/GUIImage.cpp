@@ -19,9 +19,12 @@
  */
 
 #include "GUIImage.h"
+#include "GUIMessage.h"
 #include "utils/log.h"
 
 #include <cassert>
+
+using namespace KODI::GUILIB;
 
 CGUIImage::CGUIImage(int parentID, int controlID, float posX, float posY, float width, float height, const CTextureInfo& texture)
     : CGUIControl(parentID, controlID, posX, posY, width, height)
@@ -35,7 +38,7 @@ CGUIImage::CGUIImage(int parentID, int controlID, float posX, float posY, float 
 }
 
 CGUIImage::CGUIImage(const CGUIImage &left)
-  : CGUIControl(left), 
+  : CGUIControl(left),
   m_image(left.m_image),
   m_info(left.m_info),
   m_texture(left.m_texture),
@@ -114,7 +117,7 @@ void CGUIImage::Process(unsigned int currentTime, CDirtyRegionList &dirtyregions
     if (m_lastRenderTime)
       frameTime = currentTime - m_lastRenderTime;
     if (!frameTime)
-      frameTime = (unsigned int)(1000 / g_graphicsContext.GetFPS());
+      frameTime = (unsigned int)(1000 / CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS());
     m_lastRenderTime = currentTime;
 
     if (m_fadingTextures.size())  // have some fading images
@@ -379,7 +382,7 @@ void CGUIImage::SetPosition(float posX, float posY)
   CGUIControl::SetPosition(posX, posY);
 }
 
-void CGUIImage::SetInfo(const CGUIInfoLabel &info)
+void CGUIImage::SetInfo(const GUIINFO::CGUIInfoLabel &info)
 {
   m_info = info;
   // a constant image never needs updating

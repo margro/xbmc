@@ -36,7 +36,7 @@ dependencies have to be installed as explained in
 ### Windows
 
 For Windows the dependencies can be found in the
-[Wiki](http://kodi.wiki/view/HOW-TO:Compile_Kodi_for_Windows) (Step 1-4). If not already available on your pc, you should
+[Wiki](https://kodi.wiki/view/HOW-TO:Compile_Kodi_for_Windows#Setting_up_the_build_Environment) (Step 1-4). If not already available on your pc, you should
 install the [Windows Software Development Kit (SDK)](https://dev.windows.com/en-us/downloads/sdk-archive) for your Windows version. This is required for HLSL shader offline compiling with the [Effect-Compiler Tool](https://msdn.microsoft.com/de-de/library/windows/desktop/bb232919(v=vs.85).aspx) (fxc.exe).
 
 On Windows, the CMake based buildsystem requires that the binary dependencies
@@ -113,6 +113,8 @@ cmake --build . -- VERBOSE=1 -j$(nproc)  # or: make VERBOSE=1 -j$(nproc)
 ```
 
 ### Windows with Visual Studio project files
+These instructions are for Visual Studio 2015. If you want to build for Visal Studio 2017, you need to target `Visual Studio 15` instead of `Visual Studio 14`.
+
 #### Build for win32
 ```
 cmake -G "Visual Studio 14" <KODI_SRC>
@@ -293,10 +295,10 @@ for addon development and detailed documentation about the addon build system.
 
 Clang and GCC support different kinds of Sanitizers. To enable a Sanitizer call CMake with the
 option `-DECM_ENABLE_SANITIZERS=’san1;san2;...'`. For more information about enabling the
-Sanitizers read the documentation in 
+Sanitizers read the documentation in
 [modules/extra/ECMEnableSanitizers.cmake](https://github.com/xbmc/xbmc/tree/master/cmake/modules/extra/ECMEnableSanitizers.cmake).
 
-It is also recommended to read the sections about the Sanitizers in the [Clang 
+It is also recommended to read the sections about the Sanitizers in the [Clang
 documentation](http://clang.llvm.org/docs/).
 
 ## Debugging the build

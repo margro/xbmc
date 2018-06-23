@@ -17,9 +17,12 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "cores/IPlayer.h"
+#include "cores/GameSettings.h"
+
+#include <string>
 
 namespace KODI
 {
@@ -28,7 +31,7 @@ namespace RETRO
   class CRetroPlayerUtils
   {
   public:
-    static std::string ViewModeToDescription(ViewMode viewMode);
+    static std::string ViewModeToDescription(VIEWMODE viewMode);
   };
 }
 }

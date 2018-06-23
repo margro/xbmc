@@ -3,7 +3,7 @@
 # --------------
 # Finds the MicroHttpd library
 #
-# This will will define the following variables::
+# This will define the following variables::
 #
 # MICROHTTPD_FOUND - system has MicroHttpd
 # MICROHTTPD_INCLUDE_DIRS - the MicroHttpd include directory
@@ -15,7 +15,7 @@
 #   MicroHttpd::MicroHttpd   - The MicroHttpd library
 
 if(PKG_CONFIG_FOUND)
-  pkg_check_modules(PC_MICROHTTPD libmicrohttpd>=0.4 QUIET)
+  pkg_check_modules(PC_MICROHTTPD libmicrohttpd>=0.9.40 QUIET)
 endif()
 
 find_path(MICROHTTPD_INCLUDE_DIR NAMES microhttpd.h

@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "guilib/GUIDialog.h"
 #include "utils/Stopwatch.h"
 #include "view/GUIViewControl.h"
@@ -38,7 +38,6 @@ public:
   bool HasListItems() const override { return true; };
   CFileItemPtr GetCurrentListItem(int offset = 0) override;
   int GetViewContainerID() const override { return m_viewControl.GetCurrentControl(); };
-  static void LoadProfile(unsigned int profile);
 
 protected:
   void OnInitWindow() override;

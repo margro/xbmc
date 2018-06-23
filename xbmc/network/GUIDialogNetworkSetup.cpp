@@ -29,9 +29,11 @@
 
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "messaging/helpers/DialogOKHelper.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIEditControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
+#include "settings/lib/Setting.h"
 #include "settings/windows/GUIControlSettings.h"
 #include "URL.h"
 #include "utils/log.h"
@@ -139,7 +141,7 @@ void CGUIDialogNetworkSetup::OnSettingAction(std::shared_ptr<const CSetting> set
 // \return True if the network address is valid, false otherwise.
 bool CGUIDialogNetworkSetup::ShowAndGetNetworkAddress(std::string &path)
 {
-  CGUIDialogNetworkSetup *dialog = g_windowManager.GetWindow<CGUIDialogNetworkSetup>(WINDOW_DIALOG_NETWORK_SETUP);
+  CGUIDialogNetworkSetup *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogNetworkSetup>(WINDOW_DIALOG_NETWORK_SETUP);
   if (!dialog) return false;
   dialog->Initialize();
   if (!dialog->SetPath(path))
@@ -206,41 +208,6 @@ void CGUIDialogNetworkSetup::InitializeSettings()
 
   // Add our protocols
   TranslatableIntegerSettingOptions labels;
-#ifdef HAS_FILESYSTEM_SMB
-  m_protocols.emplace_back(Protocol{true, true, true, false, true, 0, "smb", 20171});
-#endif
-  const std::vector<Protocol> defaults =
-        {{ true,  true,  true,  true, false, 443, "https", 20301},
-         { true,  true,  true,  true, false,  80,  "http", 20300},
-         { true,  true,  true,  true, false, 443,  "davs", 20254},
-         { true,  true,  true,  true, false,  80,   "dav", 20253},
-         { true,  true,  true,  true, false,  21,   "ftp", 20173},
-         { true,  true,  true,  true, false, 990,  "ftps", 20174},
-         {false, false, false, false,  true,   0,  "upnp", 20175},
-         { true,  true,  true,  true, false,  80,   "rss", 20304},
-         { true,  true,  true,  true, false, 443,  "rsss", 20305}};
-
- m_protocols.insert(m_protocols.end(), defaults.begin(), defaults.end());
-#ifdef HAS_FILESYSTEM_NFS
-  m_protocols.emplace_back(Protocol{true, false, false, false, true, 0, "nfs", 20259});
-#endif
-#ifdef HAS_FILESYSTEM_SFTP
-  m_protocols.emplace_back(Protocol{true, true, true, true, false, 22, "sftp", 20260});
-#endif
-
-  if (CServiceBroker::IsBinaryAddonCacheUp())
-  {
-    for (const auto& addon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
-    {
-      const auto& info = addon->GetProtocolInfo();
-      if (!addon->GetProtocolInfo().type.empty())
-        m_protocols.emplace_back(Protocol{info.supportPath, info.supportUsername,
-                                          info.supportPassword, info.supportPort,
-                                          info.supportBrowsing, info.defaultPort,
-                                          info.type, info.label});
-    }
-  }
-
   for (size_t idx = 0; idx < m_protocols.size(); ++idx)
     labels.push_back(std::make_pair(m_protocols[idx].label, idx));
 
@@ -396,7 +363,18 @@ std::string CGUIDialogNetworkSetup::ConstructPath() const
 
   if (!m_username.empty())
   {
-    url.SetUserName(m_username);
+    // domain/name to domain\name
+    std::string username = m_username;
+    std::replace(username.begin(), username.end(), '/', '\\');
+
+    if (url.IsProtocol("smb") && username.find('\\') != std::string::npos)
+    {
+      auto pair = StringUtils::Split(username, "\\", 2);
+      url.SetDomain(pair[0]);
+      url.SetUserName(pair[1]);
+    }
+    else
+      url.SetUserName(m_username);
     if (!m_password.empty())
       url.SetPassword(m_password);
   }
@@ -418,11 +396,14 @@ std::string CGUIDialogNetworkSetup::ConstructPath() const
 
 bool CGUIDialogNetworkSetup::SetPath(const std::string &path)
 {
+  UpdateAvailableProtocols();
+
   if (path.empty())
   {
     Reset();
     return true;
   }
+
   CURL url(path);
   m_protocol = -1;
   for (size_t i = 0; i < m_protocols.size(); ++i)
@@ -440,7 +421,10 @@ bool CGUIDialogNetworkSetup::SetPath(const std::string &path)
     return false;
   }
 
-  m_username = url.GetUserName();
+  if (!url.GetDomain().empty())
+    m_username = url.GetDomain() + "\\" + url.GetUserName();
+  else
+    m_username = url.GetUserName();
   m_password = url.GetPassWord();
   m_port = StringUtils::Format("%i", url.GetPort());
   m_server = url.GetHostName();
@@ -458,4 +442,42 @@ void CGUIDialogNetworkSetup::Reset()
   m_server.clear();
   m_path.clear();
   m_protocol = 0;
+}
+
+void CGUIDialogNetworkSetup::UpdateAvailableProtocols()
+{
+  m_protocols.clear();
+#ifdef HAS_FILESYSTEM_SMB
+  // most popular protocol at the first place
+  m_protocols.emplace_back(Protocol{ true, true, true, false, true, 0, "smb", 20171 });
+#endif
+  // protocols from vfs addon next
+  if (CServiceBroker::IsBinaryAddonCacheUp())
+  {
+    for (const auto& addon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
+    {
+      const auto& info = addon->GetProtocolInfo();
+      if (!addon->GetProtocolInfo().type.empty())
+        m_protocols.emplace_back(Protocol{ info.supportPath, info.supportUsername,
+          info.supportPassword, info.supportPort,
+          info.supportBrowsing, info.defaultPort,
+          info.type, info.label });
+    }
+  }
+  // internals
+  const std::vector<Protocol> defaults =
+        {{ true,  true,  true,  true, false, 443, "https", 20301},
+         { true,  true,  true,  true, false,  80,  "http", 20300},
+         { true,  true,  true,  true, false, 443,  "davs", 20254},
+         { true,  true,  true,  true, false,  80,   "dav", 20253},
+         { true,  true,  true,  true, false,  21,   "ftp", 20173},
+         { true,  true,  true,  true, false, 990,  "ftps", 20174},
+         {false, false, false, false,  true,   0,  "upnp", 20175},
+         { true,  true,  true,  true, false,  80,   "rss", 20304},
+         { true,  true,  true,  true, false, 443,  "rsss", 20305}};
+
+  m_protocols.insert(m_protocols.end(), defaults.begin(), defaults.end());
+#ifdef HAS_FILESYSTEM_NFS
+  m_protocols.emplace_back(Protocol{true, false, false, false, true, 0, "nfs", 20259});
+#endif
 }

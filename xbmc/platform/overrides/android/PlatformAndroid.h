@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2016 Team Kodi
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "platform/Platform.h"
 
 class CPlatformAndroid : public CPlatform
@@ -27,9 +27,9 @@ class CPlatformAndroid : public CPlatform
   public:
     /**\brief C'tor */
     CPlatformAndroid();
-  
+
     /**\brief D'tor */
     virtual ~CPlatformAndroid();
-  
+
     void Init() override;
 };

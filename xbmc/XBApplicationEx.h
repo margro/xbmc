@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef XBAPPLICATIONEX_H
-#define XBAPPLICATIONEX_H
+#pragma once
 
 #include "guilib/IWindowManagerCallback.h"
 
@@ -48,7 +47,6 @@ public:
   // Overridable functions for the 3D scene created by the app
   virtual bool Initialize() { return true; }
   virtual bool Cleanup() { return true; }
-  virtual void SetRenderGUI(bool renderGUI) {};
 
 public:
   int Run(const CAppParamParser &params);
@@ -57,4 +55,3 @@ public:
 private:
 };
 
-#endif /* XBAPPLICATIONEX_H */

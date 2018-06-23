@@ -139,12 +139,11 @@ bool Win32DllLoader::Load()
   auto strDllW = ToW(CSpecialProtocol::TranslatePath(strFileName));
 
 #ifdef TARGET_WINDOWS_STORE
-  // The path cannot be an absolute path or a relative path that contains ".." in the path. 
-  auto appPath = Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
-  std::wstring strAppPathW(appPath->Data());
-  size_t len = appPath->Length();
+  // The path cannot be an absolute path or a relative path that contains ".." in the path.
+  auto appPath = winrt::Windows::ApplicationModel::Package::Current().InstalledLocation().Path();
+  size_t len = appPath.size();
 
-  if (!strAppPathW.empty() && wcsnicmp(strAppPathW.c_str(), strDllW.c_str(), len) == 0)
+  if (!appPath.empty() && wcsnicmp(appPath.c_str(), strDllW.c_str(), len) == 0)
   {
     if (strDllW.at(len) == '\\' || strDllW.at(len) == '/')
       len++;

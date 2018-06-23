@@ -22,6 +22,7 @@
 
 #include "GUIInfoManager.h"
 #include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIRadioButtonControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -47,12 +48,12 @@ CGUIWindowPVRRecordingsBase::CGUIWindowPVRRecordingsBase(bool bRadio, int id, co
     CSettings::SETTING_MYVIDEOS_SELECTACTION
   })
 {
-  g_infoManager.RegisterObserver(this);
+  CServiceBroker::GetGUI()->GetInfoManager().RegisterObserver(this);
 }
 
 CGUIWindowPVRRecordingsBase::~CGUIWindowPVRRecordingsBase()
 {
-  g_infoManager.UnregisterObserver(this);
+  CServiceBroker::GetGUI()->GetInfoManager().UnregisterObserver(this);
 }
 
 void CGUIWindowPVRRecordingsBase::OnWindowLoaded()
@@ -212,7 +213,7 @@ bool CGUIWindowPVRRecordingsBase::OnMessage(CGUIMessage &message)
               if (path.IsValid() && path.IsRecordingsRoot() && item->IsParentFolder())
               {
                 // handle special 'go home' item.
-                g_windowManager.ActivateWindow(WINDOW_HOME);
+                CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_HOME);
                 bReturn = true;
                 break;
               }

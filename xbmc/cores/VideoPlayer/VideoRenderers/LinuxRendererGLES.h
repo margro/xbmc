@@ -29,7 +29,7 @@
 #include "cores/VideoSettings.h"
 #include "RenderFlags.h"
 #include "RenderInfo.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "BaseRenderer.h"
 #include "xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 
@@ -64,13 +64,8 @@ struct YUVCOEF
 
 enum RenderMethod
 {
-  RENDER_GLSL   = 0x001,
-  RENDER_SW     = 0x004,
-  RENDER_POT    = 0x010,
-  RENDER_OMXEGL = 0x040,
-  RENDER_CVREF  = 0x080,
-  RENDER_MEDIACODEC = 0x400,
-  RENDER_MEDIACODECSURFACE = 0x800,
+  RENDER_GLSL = 0x01,
+  RENDER_CUSTOM = 0x02,
 };
 
 enum RenderQuality
@@ -130,8 +125,8 @@ public:
   virtual bool Supports(ESCALINGMETHOD method) override;
 
 protected:
-  virtual void Render(DWORD flags, int index);
-  virtual void RenderUpdateVideo(bool clear, DWORD flags = 0, DWORD alpha = 255);
+  virtual void Render(unsigned int flags, int index);
+  virtual void RenderUpdateVideo(bool clear, unsigned int flags = 0, unsigned int alpha = 255);
 
   int  NextYV12Texture();
   virtual bool ValidateRenderTarget();
@@ -139,6 +134,7 @@ protected:
   virtual void ReleaseShaders();
   void SetTextureFilter(GLenum method);
   void UpdateVideoFilter();
+  AVColorPrimaries GetSrcPrimaries(AVColorPrimaries srcPrimaries, unsigned int width, unsigned int height);
 
   // textures
   virtual bool UploadTexture(int index);
@@ -204,21 +200,32 @@ protected:
     unsigned pixpertex_y;
   };
 
-  struct YUVBUFFER
+  struct CPictureBuffer
   {
-    YUVBUFFER();
-   ~YUVBUFFER();
+    CPictureBuffer();
+   ~CPictureBuffer();
 
     YUVPLANE fields[MAX_FIELDS][YuvImage::MAX_PLANES];
     YuvImage image;
 
     CVideoBuffer *videoBuffer;
     bool loaded;
+
+    AVColorPrimaries m_srcPrimaries;
+    AVColorSpace m_srcColSpace;
+    int m_srcBits = 8;
+    int m_srcTextureBits = 8;
+    bool m_srcFullRange;
+
+    bool hasDisplayMetadata = false;
+    AVMasteringDisplayMetadata displayMetadata;
+    bool hasLightMetadata = false;
+    AVContentLightMetadata lightMetadata;
   };
 
   // YV12 decoder textures
   // field index 0 is full image, 1 is odd scanlines, 2 is even scanlines
-  YUVBUFFER m_buffers[NUM_BUFFERS];
+  CPictureBuffer m_buffers[NUM_BUFFERS];
 
   void LoadPlane(YUVPLANE& plane, int type,
                  unsigned width,  unsigned height,
@@ -229,8 +236,9 @@ protected:
   Shaders::BaseVideoFilterShader *m_pVideoFilterShader;
   ESCALINGMETHOD m_scalingMethod;
   ESCALINGMETHOD m_scalingMethodGui;
+  bool m_fullRange;
+  AVColorPrimaries m_srcPrimaries;
 
   // clear colour for "black" bars
   float m_clearColour;
 };
-

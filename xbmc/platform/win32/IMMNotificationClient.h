@@ -1,4 +1,3 @@
-//#pragma once
 /*
  *      Copyright (C) 2014 Team XBMC
  *      http://kodi.tv
@@ -19,11 +18,13 @@
  *
  */
 
+#pragma once
+
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
-#include "powermanagement/windows/Win32PowerSyscall.h"
+#include "platform/win32/CharsetConverter.h"
+#include "platform/win32/powermanagement/Win32PowerSyscall.h"
 #include "ServiceBroker.h"
 #include "utils/log.h"
-#include "platform/win32/CharsetConverter.h"
 
 #include <mmdeviceapi.h>
 #include <wrl/client.h>
@@ -85,7 +86,7 @@ public:
   HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow flow, ERole role, LPCWSTR pwstrDeviceId)
   {
     // if the default device changes this function is called four times.
-    // therefore we call CServiceBroker::GetActiveAE().DeviceChange() only for one role.
+    // therefore we call CServiceBroker::GetActiveAE()->DeviceChange() only for one role.
     char  *pszFlow = "?????";
     char  *pszRole = "?????";
 
@@ -157,7 +158,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR pwstrDeviceId, const PROPERTYKEY key)
   {
-    CLog::Log(LOGDEBUG, "%s: Changed device property of %s is {{%8.8x-%4.4x-%4.4x-%2.2x%2.2x-%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x}}#%d", 
+    CLog::Log(LOGDEBUG, "%s: Changed device property of %s is {{%8.8x-%4.4x-%4.4x-%2.2x%2.2x-%2.2x%2.2x%2.2x%2.2x%2.2x%2.2x}}#%d",
               __FUNCTION__, FromW(pwstrDeviceId), key.fmtid.Data1, key.fmtid.Data2, key.fmtid.Data3,
                                            key.fmtid.Data4[0], key.fmtid.Data4[1],
                                            key.fmtid.Data4[2], key.fmtid.Data4[3],
@@ -170,6 +171,6 @@ public:
   void STDMETHODCALLTYPE NotifyAE()
   {
     if(!CWin32PowerSyscall::IsSuspending())
-      CServiceBroker::GetActiveAE().DeviceChange();
+      CServiceBroker::GetActiveAE()->DeviceChange();
   }
 };

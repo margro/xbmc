@@ -37,7 +37,7 @@ void CProcessInfo::RegisterProcessControl(std::string id, CreateProcessControl c
 CProcessInfo* CProcessInfo::CreateInstance()
 {
   CSingleLock lock(createSection);
-  
+
   CProcessInfo *ret = nullptr;
   for (auto &info : m_processControls)
   {
@@ -75,11 +75,12 @@ void CProcessInfo::ResetVideoCodecInfo()
   m_videoDecoderName = "unknown";
   m_videoDeintMethod = "unknown";
   m_videoPixelFormat = "unknown";
-  m_videoStereoMode = "mono";
+  m_videoStereoMode.clear();
   m_videoWidth = 0;
   m_videoHeight = 0;
   m_videoFPS = 0.0;
   m_videoDAR = 0.0;
+  m_videoIsInterlaced = false;
   m_deintMethods.clear();
   m_deintMethods.push_back(EINTERLACEMETHOD::VS_INTERLACEMETHOD_NONE);
   m_deintMethodDefault = EINTERLACEMETHOD::VS_INTERLACEMETHOD_NONE;
@@ -94,6 +95,7 @@ void CProcessInfo::ResetVideoCodecInfo()
     m_dataCache->SetVideoFps(m_videoFPS);
     m_dataCache->SetVideoDAR(m_videoDAR);
     m_dataCache->SetStateSeeking(m_stateSeeking);
+    m_dataCache->SetVideoStereoMode(m_videoStereoMode);
   }
 }
 
@@ -224,6 +226,20 @@ float CProcessInfo::GetVideoDAR()
   CSingleLock lock(m_videoCodecSection);
 
   return m_videoDAR;
+}
+
+void CProcessInfo::SetVideoInterlaced(bool interlaced)
+{
+  CSingleLock lock(m_videoCodecSection);
+
+  m_videoIsInterlaced = interlaced;
+}
+
+bool CProcessInfo::GetVideoInterlaced()
+{
+  CSingleLock lock(m_videoCodecSection);
+
+  return m_videoIsInterlaced;
 }
 
 EINTERLACEMETHOD CProcessInfo::GetFallbackDeintMethod()

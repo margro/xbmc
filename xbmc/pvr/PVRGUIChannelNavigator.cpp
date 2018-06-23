@@ -22,6 +22,7 @@
 
 #include "GUIInfoManager.h"
 #include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "settings/Settings.h"
 #include "settings/lib/SettingsManager.h"
 
@@ -34,7 +35,7 @@ namespace PVR
 {
   void CPVRGUIChannelNavigator::SelectNextChannel(ChannelSwitchMode eSwitchMode)
   {
-    if (!g_infoManager.GetShowInfo() && eSwitchMode == ChannelSwitchMode::NO_SWITCH)
+    if (!CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().GetShowInfo() && eSwitchMode == ChannelSwitchMode::NO_SWITCH)
     {
       // show info for current channel on first next channel selection.
       ShowInfo(false);
@@ -48,7 +49,7 @@ namespace PVR
 
   void CPVRGUIChannelNavigator::SelectPreviousChannel(ChannelSwitchMode eSwitchMode)
   {
-    if (!g_infoManager.GetShowInfo() && eSwitchMode == ChannelSwitchMode::NO_SWITCH)
+    if (!CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().GetShowInfo() && eSwitchMode == ChannelSwitchMode::NO_SWITCH)
     {
       // show info for current channel on first previous channel selection.
       ShowInfo(false);
@@ -83,7 +84,7 @@ namespace PVR
 
   void CPVRGUIChannelNavigator::SelectChannel(const CPVRChannelPtr channel, ChannelSwitchMode eSwitchMode)
   {
-    g_infoManager.SetCurrentItem(CFileItem(channel));
+    CServiceBroker::GetGUI()->GetInfoManager().SetCurrentItem(CFileItem(channel));
 
     CSingleLock lock(m_critSection);
     m_currentChannel = channel;
@@ -135,6 +136,11 @@ namespace PVR
     return m_currentChannel != m_playingChannel;
   }
 
+  bool CPVRGUIChannelNavigator::IsPreviewAndShowInfo() const
+  {
+    return IsPreview() && CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().GetShowInfo();
+  }
+
   void CPVRGUIChannelNavigator::ShowInfo()
   {
     ShowInfo(true);
@@ -146,7 +152,7 @@ namespace PVR
 
     if (bForce || iTimeout > 0)
     {
-      g_infoManager.SetShowInfo(true);
+      CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().SetShowInfo(true);
 
       CSingleLock lock(m_critSection);
 
@@ -166,7 +172,7 @@ namespace PVR
 
   void CPVRGUIChannelNavigator::HideInfo()
   {
-    g_infoManager.SetShowInfo(false);
+    CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().SetShowInfo(false);
 
     CFileItemPtr item;
 
@@ -179,19 +185,21 @@ namespace PVR
         m_iChannelInfoJobId = -1;
       }
 
-      m_currentChannel = m_playingChannel;
-
-      if (m_currentChannel)
-        item.reset(new CFileItem(m_playingChannel));
+      if (m_currentChannel != m_playingChannel)
+      {
+        m_currentChannel = m_playingChannel;
+        if (m_playingChannel)
+          item.reset(new CFileItem(m_playingChannel));
+      }
     }
 
     if (item)
-      g_infoManager.SetCurrentItem(*item);
+      CServiceBroker::GetGUI()->GetInfoManager().SetCurrentItem(*item);
   }
 
   void CPVRGUIChannelNavigator::ToggleInfo()
   {
-    if (g_infoManager.GetShowInfo())
+    if (CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPlayerInfoProvider().GetShowInfo())
       HideInfo();
     else
       ShowInfo();
@@ -206,13 +214,16 @@ namespace PVR
       CSingleLock lock(m_critSection);
 
       m_playingChannel = channel;
-      m_currentChannel = m_playingChannel;
-
-      item.reset(new CFileItem(m_playingChannel));
+      if (m_currentChannel != m_playingChannel)
+      {
+        m_currentChannel = m_playingChannel;
+        if (m_playingChannel)
+          item.reset(new CFileItem(m_playingChannel));
+      }
     }
 
     if (item)
-      g_infoManager.SetCurrentItem(*item);
+      CServiceBroker::GetGUI()->GetInfoManager().SetCurrentItem(*item);
 
     ShowInfo(false);
   }

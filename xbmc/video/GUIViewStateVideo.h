@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "view/GUIViewState.h"
 
 class CGUIViewStateWindowVideo : public CGUIViewState
@@ -30,8 +30,9 @@ public:
 protected:
   VECSOURCES& GetSources() override;
   std::string GetLockType() override;
-  int GetPlaylist() override;
+  int GetPlaylist() const override;
   std::string GetExtensions() override;
+  bool AutoPlayNextItem() override;
 };
 
 class CGUIViewStateWindowVideoNav : public CGUIViewStateWindowVideo

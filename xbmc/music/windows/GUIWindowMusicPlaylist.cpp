@@ -30,6 +30,7 @@
 #include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "utils/LabelFormatter.h"
 #include "music/tags/MusicInfoTag.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "input/Key.h"
@@ -84,6 +85,14 @@ bool CGUIWindowMusicPlayList::OnMessage(CGUIMessage& message)
     {
       // global playlist changed outside playlist window
       UpdateButtons();
+
+      if (m_vecItemsUpdating)
+      {
+        CLog::Log(LOGWARNING, "CGUIWindowMusicPlayList::OnMessage - updating in progress");
+        return true;
+      }
+      CUpdateGuard ug(m_vecItemsUpdating);
+
       Refresh(true);
 
       if (m_viewControl.HasControl(m_iLastControl) && m_vecItems->Size() <= 0)
@@ -221,7 +230,7 @@ bool CGUIWindowMusicPlayList::OnAction(const CAction &action)
   }
   if (action.GetID() == ACTION_SHOW_PLAYLIST)
   {
-    g_windowManager.PreviousWindow();
+    CServiceBroker::GetGUI()->GetWindowManager().PreviousWindow();
     return true;
   }
   if ((action.GetID() == ACTION_MOVE_ITEM_UP) || (action.GetID() == ACTION_MOVE_ITEM_DOWN))
@@ -238,6 +247,8 @@ bool CGUIWindowMusicPlayList::OnAction(const CAction &action)
 
 bool CGUIWindowMusicPlayList::OnBack(int actionID)
 {
+  CancelUpdateItems();
+
   if (actionID == ACTION_NAV_BACK)
     return CGUIWindow::OnBack(actionID); // base class goes up a folder, but none to go up
   return CGUIWindowMusicBase::OnBack(actionID);

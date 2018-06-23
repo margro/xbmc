@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "../DVDCodecs/Overlay/DVDOverlay.h"
 #include "DVDSubtitleStream.h"
@@ -67,7 +67,7 @@ class CDVDSubtitleParserText
 public:
   CDVDSubtitleParserText(std::unique_ptr<CDVDSubtitleStream> && stream, const std::string& filename)
     : CDVDSubtitleParserCollection(filename)
-		, m_pStream(std::move(stream)) 
+		, m_pStream(std::move(stream))
   {
   }
 

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <map>
 #include <memory>
@@ -333,6 +334,12 @@ namespace PVR
      * @return The amount of channels that were added to the list.
      */
     virtual int GetMembers(CFileItemList &results, bool bGroupMembers = true) const;
+
+    /*!
+     * @brief Get the list of channel numbers in a group.
+     * @param channelNumbers The list to store the numbers in.
+     */
+    void GetChannelNumbers(std::vector<std::string>& channelNumbers) const;
 
     /*!
      * @return The next channel group.

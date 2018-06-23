@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "cores/AudioEngine/Interfaces/AEStream.h"
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
@@ -102,10 +103,10 @@ class CActiveAEStreamBuffers
 public:
   CActiveAEStreamBuffers(const AEAudioFormat& inputFormat, const AEAudioFormat& outputFormat, AEQuality quality);
   virtual ~CActiveAEStreamBuffers();
-  bool Create(unsigned int totaltime, bool remap, bool upmix, bool normalize = true, bool useDSP = false);
+  bool Create(unsigned int totaltime, bool remap, bool upmix, bool normalize = true);
   void SetExtraData(int profile, enum AVMatrixEncoding matrix_encoding, enum AVAudioServiceType audio_service_type);
   bool ProcessBuffers();
-  void ConfigureResampler(bool normalizelevels, bool dspenabled, bool stereoupmix, AEQuality quality);
+  void ConfigureResampler(bool normalizelevels, bool stereoupmix, AEQuality quality);
   bool HasInputLevel(int level);
   float GetDelay();
   void Flush();
@@ -116,11 +117,10 @@ public:
   void FillBuffer();
   bool DoesNormalize();
   void ForceResampler(bool force);
-  void SetDSPConfig(bool usedsp, bool bypassdsp);
   bool HasWork();
   CActiveAEBufferPool *GetResampleBuffers();
   CActiveAEBufferPool *GetAtempoBuffers();
-  
+
   AEAudioFormat m_inputFormat;
   std::deque<CSampleBuffer*> m_outputSamples;
   std::deque<CSampleBuffer*> m_inputSamples;
@@ -177,10 +177,10 @@ public:
 
   unsigned int GetFrameSize() const override;
   unsigned int GetChannelCount() const override;
-  
+
   unsigned int GetSampleRate() const override ;
   enum AEDataFormat GetDataFormat() const override;
-  
+
   double GetResampleRatio() override;
   void SetResampleRatio(double ratio) override;
   void SetResampleMode(int mode) override;
@@ -189,7 +189,6 @@ public:
   void FadeVolume(float from, float to, unsigned int time) override;
   bool IsFading() override;
   void RegisterSlave(IAEStream *stream) override;
-  bool HasDSP() override;
 
 protected:
 
@@ -208,7 +207,6 @@ protected:
   int m_streamFreeBuffers;
   bool m_streamIsBuffering;
   bool m_streamIsFlushed;
-  bool m_bypassDSP;
   IAEStream *m_streamSlave;
   CCriticalSection m_streamLock;
   CCriticalSection m_statsLock;

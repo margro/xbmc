@@ -18,7 +18,7 @@
 #               usage: -DWITH_FFMPEG=/path/to/ffmpeg_install_prefix
 #
 # --------
-# This module will will define the following variables:
+# This module will define the following variables:
 #
 # FFMPEG_FOUND - system has FFmpeg
 # FFMPEG_INCLUDE_DIRS - FFmpeg include directory
@@ -33,14 +33,14 @@
 #
 
 # required ffmpeg library versions
-set(REQUIRED_FFMPEG_VERSION 3.4)
-set(_avcodec_ver ">=57.107.100")
-set(_avfilter_ver ">=6.107.100")
-set(_avformat_ver ">=57.83.100")
-set(_avutil_ver ">=55.78.100")
-set(_swscale_ver ">=4.8.100")
-set(_swresample_ver ">=2.9.100")
-set(_postproc_ver ">=54.7.100")
+set(REQUIRED_FFMPEG_VERSION 4.0)
+set(_avcodec_ver ">=58.18.100")
+set(_avfilter_ver ">=7.16.100")
+set(_avformat_ver ">=58.12.100")
+set(_avutil_ver ">=56.14.100")
+set(_swscale_ver ">=5.1.100")
+set(_swresample_ver ">=3.1.100")
+set(_postproc_ver ">=55.1.100")
 
 
 # Allows building with external ffmpeg not found in system paths,
@@ -229,6 +229,11 @@ if(NOT FFMPEG_FOUND)
     message(STATUS "FFMPEG_URL: ${FFMPEG_URL}")
   endif()
 
+  set(FFMPEG_OPTIONS -DENABLE_CCACHE=${ENABLE_CCACHE}
+                     -DCCACHE_PROGRAM=${CCACHE_PROGRAM}
+                     -DENABLE_VAAPI=${ENABLE_VAAPI}
+                     -DENABLE_VDPAU=${ENABLE_VDPAU})
+
   if(KODI_DEPENDSBUILD)
     set(CROSS_ARGS -DDEPENDS_PATH=${DEPENDS_PATH}
                    -DPKG_CONFIG_EXECUTABLE=${PKG_CONFIG_EXECUTABLE}
@@ -237,6 +242,8 @@ if(NOT FFMPEG_FOUND)
                    -DOS=${OS}
                    -DCMAKE_AR=${CMAKE_AR})
   endif()
+  set(LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
+  list(APPEND LINKER_FLAGS ${SYSTEM_LDFLAGS})
 
   externalproject_add(ffmpeg
                       URL ${FFMPEG_URL}
@@ -255,8 +262,9 @@ if(NOT FFMPEG_FOUND)
                                  -DENABLE_CCACHE=${ENABLE_CCACHE}
                                  -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
                                  -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-                                 -DCMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}
+                                 -DCMAKE_EXE_LINKER_FLAGS=${LINKER_FLAGS}
                                  ${CROSS_ARGS}
+                                 ${FFMPEG_OPTIONS}
                       PATCH_COMMAND ${CMAKE_COMMAND} -E copy
                                     ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/CMakeLists.txt
                                     <SOURCE_DIR> &&

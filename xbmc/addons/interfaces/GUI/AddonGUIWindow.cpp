@@ -22,7 +22,9 @@
 
 #include "Application.h"
 #include "FileItem.h"
+#include "ServiceBroker.h"
 #include "addons/Addon.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/TextureManager.h"
 #include "input/Key.h"
@@ -184,9 +186,9 @@ void CGUIAddonWindow::AllocResources(bool forceLoad /*= false */)
   m_mediaDir = fallbackMediaPath;
 
   //CLog::Log(LOGDEBUG, "CGUIPythonWindowXML::AllocResources called: %s", fallbackMediaPath.c_str());
-  g_TextureManager.AddTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().AddTexturePath(m_mediaDir);
   CGUIMediaWindow::AllocResources(forceLoad);
-  g_TextureManager.RemoveTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().RemoveTexturePath(m_mediaDir);
 }
 
 void CGUIAddonWindow::FreeResources(bool forceUnLoad /*= false */)
@@ -196,9 +198,9 @@ void CGUIAddonWindow::FreeResources(bool forceUnLoad /*= false */)
 
 void CGUIAddonWindow::Render()
 {
-  g_TextureManager.AddTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().AddTexturePath(m_mediaDir);
   CGUIMediaWindow::Render();
-  g_TextureManager.RemoveTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().RemoveTexturePath(m_mediaDir);
 }
 
 void CGUIAddonWindow::Update()
@@ -312,9 +314,9 @@ bool CGUIAddonWindowDialog::OnMessage(CGUIMessage &message)
 
 void CGUIAddonWindowDialog::Show(bool show /* = true */)
 {
-  unsigned int iCount = g_graphicsContext.exit();
+  unsigned int iCount = CServiceBroker::GetWinSystem()->GetGfxContext().exit();
   CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ADDON_DIALOG, 1, show ? 1 : 0, static_cast<void*>(this));
-  g_graphicsContext.restore(iCount);
+  CServiceBroker::GetWinSystem()->GetGfxContext().restore(iCount);
 }
 
 void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
@@ -323,7 +325,7 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
   {
     m_bModal = true;
     m_bRunning = true;
-    g_windowManager.RegisterDialog(this);
+    CServiceBroker::GetGUI()->GetWindowManager().RegisterDialog(this);
 
     // active this window...
     CGUIMessage msg(GUI_MSG_WINDOW_INIT, 0, 0, WINDOW_INVALID, m_iWindowId);
@@ -332,9 +334,10 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
     // this dialog is derived from GUiMediaWindow
     // make sure it is rendered last
     m_renderOrder = RENDER_ORDER_DIALOG;
-    while (m_bRunning && !g_application.m_bStop)
+    while (m_bRunning)
     {
-      ProcessRenderLoop();
+      if (!ProcessRenderLoop(false))
+        break;
     }
   }
   else // hide
@@ -344,7 +347,7 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
     CGUIMessage msg(GUI_MSG_WINDOW_DEINIT,0,0);
     OnMessage(msg);
 
-    g_windowManager.RemoveDialog(GetID());
+    CServiceBroker::GetGUI()->GetWindowManager().RemoveDialog(GetID());
   }
 }
 

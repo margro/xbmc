@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "dialogs/GUIDialogContextMenu.h"
 #include "filesystem/DirectoryHistory.h"
 #include "filesystem/VirtualDirectory.h"
@@ -27,8 +27,14 @@
 #include "playlists/SmartPlayList.h"
 #include "view/GUIViewControl.h"
 
+#include <atomic>
+
 class CFileItemList;
 class CGUIViewState;
+namespace
+{
+class CGetDirectoryItems;
+}
 
 // base class for all media windows
 class CGUIMediaWindow : public CGUIWindow
@@ -164,8 +170,10 @@ protected:
   void UpdateFileList();
   virtual void OnDeleteItem(int iItem);
   void OnRenameItem(int iItem);
-
   bool WaitForNetwork() const;
+  bool GetDirectoryItems(CURL &url, CFileItemList &items, bool useDir);
+  bool WaitGetDirectoryItems(CGetDirectoryItems &items);
+  void CancelUpdateItems();
 
   /*! \brief Translate the folder to start in from the given quick path
    \param url the folder the user wants
@@ -179,7 +187,7 @@ protected:
    */
   static std::string RemoveParameterFromPath(const std::string &strDirectory, const std::string &strParameter);
 
-  void ProcessRenderLoop(bool renderOnly = false);
+  bool ProcessRenderLoop(bool renderOnly);
 
   XFILE::CVirtualDirectory m_rootDir;
   CGUIViewControl m_viewControl;
@@ -189,6 +197,24 @@ protected:
   CFileItemList* m_unfilteredItems;        ///< \brief items prior to filtering using FilterItems()
   CDirectoryHistory m_history;
   std::unique_ptr<CGUIViewState> m_guiState;
+  std::atomic_bool m_vecItemsUpdating = {false};
+  class CUpdateGuard
+  {
+  public:
+    CUpdateGuard(std::atomic_bool &update) : m_update(update)
+    {
+      m_update = true;
+    }
+    ~CUpdateGuard()
+    {
+      m_update = false;
+    }
+  protected:
+    std::atomic_bool &m_update;
+  };
+  CEvent m_updateEvent;
+  std::atomic_bool m_updateAborted = {false};
+  std::atomic_bool m_updateJobActive = {false};
 
   // save control state on window exit
   int m_iLastControl;
@@ -209,4 +235,5 @@ protected:
    \sa Update
    */
   std::string m_strFilterPath;
+  bool m_backgroundLoad = false;
 };

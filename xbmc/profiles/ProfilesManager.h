@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <memory>
 #include <stdint.h>
@@ -65,8 +66,10 @@ public:
 
   void Clear();
 
-  bool LoadProfile(size_t index);
-  bool DeleteProfile(size_t index);
+  bool LoadProfile(unsigned int index);
+  void LogOff();
+
+  bool DeleteProfile(unsigned int index);
 
   void CreateProfileFolders();
 
@@ -84,13 +87,13 @@ public:
     \param unsigned index of the profile to retrieve
     \return const pointer to the profile, NULL if the index is invalid
     */
-  const CProfile* GetProfile(size_t index) const;
+  const CProfile* GetProfile(unsigned int index) const;
 
   /*! \brief Retrieve the profile from an index
     \param unsigned index of the profile to retrieve
     \return pointer to the profile, NULL if the index is invalid
     */
-  CProfile* GetProfile(size_t index);
+  CProfile* GetProfile(unsigned int index);
 
   /*! \brief Retrieve index of a particular profile by name
     \param name name of the profile index to retrieve
@@ -170,7 +173,7 @@ public:
     \param name will hold the name of the profile when a valid profile index has been provided
     \return false if profileId is an invalid index, true if the name parameter is set
     */
-  bool GetProfileName(const size_t profileId, std::string& name) const;
+  bool GetProfileName(const unsigned int profileId, std::string& name) const;
 
   std::string GetUserDataFolder() const;
   std::string GetProfileUserDataFolder() const;
@@ -197,7 +200,10 @@ private:
   /*! \brief Set the current profile id and update the special://profile path
     \param profileId profile index
     */
-  void SetCurrentProfileId(size_t profileId);
+  void SetCurrentProfileId(unsigned int profileId);
+
+  void PrepareLoadProfile(unsigned int profileIndex);
+  void FinalizeLoadProfile();
 
   // Construction parameters
   CSettings &m_settings;
@@ -206,8 +212,8 @@ private:
   bool m_usingLoginScreen;
   bool m_profileLoadedForLogin;
   int m_autoLoginProfile;
-  uint32_t m_lastUsedProfile;
-  uint32_t m_currentProfile; // do not modify directly, use SetCurrentProfileId() function instead
+  unsigned int m_lastUsedProfile;
+  unsigned int m_currentProfile; // do not modify directly, use SetCurrentProfileId() function instead
   int m_nextProfileId; // for tracking the next available id to give to a new profile to ensure id's are not re-used
   CCriticalSection m_critical;
 

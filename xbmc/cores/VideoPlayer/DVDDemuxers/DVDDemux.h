@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <string>
 #include <vector>
@@ -91,7 +91,6 @@ public:
     pPrivate = NULL;
     ExtraData = NULL;
     ExtraSize = 0;
-    memset(language, 0, sizeof(language));
     disabled = false;
     changes = 0;
     flags = StreamFlags::FLAG_NONE;
@@ -122,7 +121,7 @@ public:
   unsigned int ExtraSize; // size of extra data
 
   StreamFlags flags;
-  char language[4]; // ISO 639 3-letter language code (empty string if undefined)
+  std::string language; // RFC 5646 language code (empty string if undefined)
   bool disabled; // set when stream is disabled. (when no decoder exists)
 
   std::string name;
@@ -192,6 +191,7 @@ public:
   int iBitRate;
   int iBitsPerSample;
   uint64_t iChannelLayout;
+  std::string m_channelLayoutName;
 };
 
 class CDemuxStreamSubtitle : public CDemuxStream
@@ -348,7 +348,7 @@ public:
    * adaptive demuxers like DASH can use this to choose best fitting video stream
    */
   virtual void SetVideoResolution(int width, int height) {};
-  
+
   /*
   * return the id of the demuxer
   */

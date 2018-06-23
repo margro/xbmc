@@ -56,16 +56,16 @@ void WAYLAND::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
   proxy->eglDisplay = eglDpy;
 }
 
-void WAYLAND::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
+void WAYLAND::VAAPIRegister(CVaapiProxy *winSystem, bool deepColor)
 {
-  VAAPI::CDecoder::Register(winSystem, hevc);
+  VAAPI::CDecoder::Register(winSystem, deepColor);
 }
 
-void WAYLAND::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
+void WAYLAND::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &deepColor)
 {
   EGLDisplay eglDpy = winSystem->eglDisplay;
   VADisplay vaDpy = vaGetDisplayWl(winSystem->dpy);
-  CRendererVAAPI::Register(winSystem, vaDpy, eglDpy, general, hevc);
+  CRendererVAAPI::Register(winSystem, vaDpy, eglDpy, general, deepColor);
 }
 
 #else
@@ -88,67 +88,14 @@ void WAYLAND::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
 
 }
 
-void WAYLAND::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
+void WAYLAND::VAAPIRegister(CVaapiProxy *winSystem, bool deepColor)
 {
 
 }
 
-void WAYLAND::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
+void WAYLAND::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &deepColor)
 {
 
 }
 #endif
 
-//-----------------------------------------------------------------------------
-// ALSA
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_ALSA
-#include "cores/AudioEngine/Sinks/AESinkALSA.h"
-bool WAYLAND::ALSARegister()
-{
-  CAESinkALSA::Register();
-  return true;
-}
-#else
-bool WAYLAND::ALSARegister()
-{
-  return false;
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// PulseAudio
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_PULSEAUDIO
-#include "cores/AudioEngine/Sinks/AESinkPULSE.h"
-bool WAYLAND::PulseAudioRegister()
-{
-  bool ret = CAESinkPULSE::Register();
-  return ret;
-}
-#else
-bool WAYLAND::PulseAudioRegister()
-{
-  return false;
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// sndio
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_SNDIO
-#include "cores/AudioEngine/Sinks/AESinkSNDIO.h"
-bool WAYLAND::SndioRegister()
-{
-  CAESinkSNDIO::Register();
-  return true;
-}
-#else
-bool WAYLAND::SndioRegister()
-{
-  return false;
-}
-#endif

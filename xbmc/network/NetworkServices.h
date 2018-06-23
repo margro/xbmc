@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
  *      http://kodi.tv
@@ -19,8 +18,11 @@
  *
  */
 
+#pragma once
+
 #include "settings/lib/ISettingCallback.h"
 
+class CSettings;
 #ifdef HAS_WEB_SERVER
 class CWebServer;
 class CHTTPImageHandler;
@@ -39,8 +41,9 @@ class CHTTPWebinterfaceAddonsHandler;
 class CNetworkServices : public ISettingCallback
 {
 public:
-  static CNetworkServices& GetInstance();
-  
+  CNetworkServices(CSettings &settings);
+  ~CNetworkServices() override;
+
   bool OnSettingChanging(std::shared_ptr<const CSetting> setting) override;
   void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
   bool OnSettingUpdate(std::shared_ptr<CSetting> setting, const char *oldSettingId, const TiXmlNode *oldSettingNode) override;
@@ -82,7 +85,7 @@ public:
   bool StartUPnPServer();
   bool IsUPnPServerRunning();
   bool StopUPnPServer();
-  
+
   bool StartRss();
   bool IsRssRunning();
   bool StopRss();
@@ -92,15 +95,18 @@ public:
   bool StopZeroconf();
 
 private:
-  CNetworkServices();
   CNetworkServices(const CNetworkServices&);
   CNetworkServices const& operator=(CNetworkServices const&);
-  ~CNetworkServices() override;
 
   bool ValidatePort(int port);
 
+  // Construction parameters
+  CSettings &m_settings;
+
+  // Network services
 #ifdef HAS_WEB_SERVER
   CWebServer& m_webserver;
+  // Handlers
   CHTTPImageHandler& m_httpImageHandler;
   CHTTPImageTransformationHandler& m_httpImageTransformationHandler;
   CHTTPVfsHandler& m_httpVfsHandler;

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Team Kodi
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 
 #include "pvr/PVRTypes.h"
@@ -31,9 +32,11 @@ namespace PVR
   class CPVRItem
   {
   public:
-    explicit CPVRItem(const CFileItemPtr &item) : m_item(item) {}
+    explicit CPVRItem(const CFileItemPtr &item) : m_item(item.get()) {}
+    explicit CPVRItem(const CFileItem *item) : m_item(item) {}
 
     CPVREpgInfoTagPtr GetEpgInfoTag() const;
+    CPVREpgInfoTagPtr GetNextEpgInfoTag() const;
     CPVRChannelPtr GetChannel() const;
     CPVRTimerInfoTagPtr GetTimerInfoTag() const;
     CPVRRecordingPtr GetRecording() const;
@@ -41,7 +44,7 @@ namespace PVR
     bool IsRadio() const;
 
   private:
-    CFileItemPtr m_item;
+    const CFileItem* m_item;
   };
 
 } // namespace PVR

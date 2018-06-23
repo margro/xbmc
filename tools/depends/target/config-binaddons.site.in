@@ -87,8 +87,6 @@ if test "${PACKAGE_NAME}" = "Samba" -a "@platform_os@" = "osx"; then
   # various configure overrides
   ac_cv_header_libunwind_h=no
   ac_cv_header_execinfo_h=no
-  # fixes crash on 10.6 if xbmc is built using 10.7 SDK with 10.6 min
-  ac_cv_func_vdprintf=no
 fi
 
 if test "@platform_os@" = "android"; then
@@ -133,22 +131,6 @@ if test "@platform_os@" = "ios"; then
   ac_cv_search_clock_gettime=no
   ac_cv_func_clock_gettime=no
   ac_cv_func_getentropy=no
-
-  # tweaks for libffi (ios must use llvm-gcc-4.2)
-  if test "${PACKAGE_NAME}" = "libffi" ; then
-      case "@use_xcode@" in
-        4.* | 4.*.*)
-          export CC="@use_toolchain@/usr/bin/llvm-gcc-4.2"
-          export CPP="@use_toolchain@/usr/bin/llvm-gcc-4.2 -E"
-          ;;
-        *)
-          export CC="@use_toolchain@/usr/bin/clang"
-          export CPP="@use_toolchain@/usr/bin/clang -E"
-          ;;
-        esac
-    unset AS
-    unset CCAS
-  fi
 
   # tweaks for flac
   if test "${ac_unique_file}" = "src/flac/main.c" ; then

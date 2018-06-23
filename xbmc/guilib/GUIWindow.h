@@ -1,13 +1,3 @@
-/*!
-\file GUIWindow.h
-\brief
-*/
-
-#ifndef GUILIB_GUIWINDOW_H
-#define GUILIB_GUIWINDOW_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -28,29 +18,23 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIWindow.h
+\brief
+*/
+
+#include "GUIAction.h"
 #include "GUIControlGroup.h"
 #include <memory>
 #include "threads/CriticalSection.h"
 
 class CFileItem; typedef std::shared_ptr<CFileItem> CFileItemPtr;
 
-#include "GUICallback.h"  // for GUIEvent
-
 #include <limits.h>
 #include <map>
 #include <vector>
-
-#define ON_CLICK_MESSAGE(i,c,m) \
-{ \
- GUIEventHandler<c, CGUIMessage&> clickHandler(this, &m); \
- m_mapClickEvents[i] = clickHandler; \
-} \
-
-#define ON_SELECTED_MESSAGE(i,c,m) \
-{ \
- GUIEventHandler<c, CGUIMessage&> selectedHandler(this, &m); \
- m_mapSelectedEvents[i] = selectedHandler; \
-} \
 
 enum RenderOrder {
   RENDER_ORDER_WINDOW = 0,
@@ -97,7 +81,7 @@ public:
   void CenterWindow();
 
   void DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions) override;
-  
+
   /*! \brief Main render function, called every frame.
    Window classes should override this only if they need to alter how something is rendered.
    General updating on a per-frame basis should be handled in FrameMove instead, as DoRender
@@ -110,7 +94,7 @@ public:
     Check if window closing animation is finished and finalize window closing.
    */
   void AfterRender();
-  
+
   /*! \brief Main update function, called every frame prior to rendering
    Any window that requires updating on a frame by frame basis (such as to maintain
    timers and the like) should override this function.
@@ -125,7 +109,7 @@ public:
   // on to the currently focused control.  Returns true if the action has been handled
   // and does not need to be passed further down the line (to our global action handlers)
   bool OnAction(const CAction &action) override;
-  
+
   using CGUIControlGroup::OnBack;
   virtual bool OnBack(int actionID);
   using CGUIControlGroup::OnInfo;
@@ -265,14 +249,6 @@ protected:
   void OnEditChanged(int id, std::string &text);
   bool SendMessage(int message, int id, int param1 = 0, int param2 = 0);
 
-  typedef GUIEvent<CGUIMessage&> CLICK_EVENT;
-  typedef std::map<int, CLICK_EVENT> MAPCONTROLCLICKEVENTS;
-  MAPCONTROLCLICKEVENTS m_mapClickEvents;
-
-  typedef GUIEvent<CGUIMessage&> SELECTED_EVENT;
-  typedef std::map<int, SELECTED_EVENT> MAPCONTROLSELECTEDEVENTS;
-  MAPCONTROLSELECTEDEVENTS m_mapSelectedEvents;
-
   void LoadControl(TiXmlElement* pControl, CGUIControlGroup *pGroup, const CRect &rect);
 
   std::vector<int> m_idRange;
@@ -283,7 +259,7 @@ protected:
   bool m_dynamicResourceAlloc;
   bool m_closing;
   bool m_active;        // true if window is active or dialog is running
-  CGUIInfoColor m_clearBackground; // colour to clear the window
+  KODI::GUILIB::GUIINFO::CGUIInfoColor m_clearBackground; // colour to clear the window
 
   int m_renderOrder;      // for render order of dialogs
 
@@ -324,4 +300,3 @@ private:
   std::map<INFO::InfoPtr, bool> m_xmlIncludeConditions; ///< \brief used to store conditions used to resolve includes for this window
 };
 
-#endif

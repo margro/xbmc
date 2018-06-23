@@ -18,7 +18,6 @@
  *
  */
 
-
 #pragma once
 
 #include "GLContextEGL.h"
@@ -32,6 +31,8 @@ public:
   CWinSystemMirGLContext() = default;
   virtual ~CWinSystemMirGLContext() = default;
 
+  // Implementation of CWinSystemBase via CWinSystemMir
+  CRenderSystemBase *GetRenderSystem() override { return this; }
   bool CreateNewWindow(const std::string& name,
                        bool fullScreen,
                        RESOLUTION_INFO& res) override;
@@ -51,8 +52,3 @@ private:
   CGLContextEGL m_pGLContext;
 
 };
-
-#if defined(HAS_GL)
-XBMC_GLOBAL_REF(CWinSystemMirGLContext, g_Windowing);
-#define g_Windowing XBMC_GLOBAL_USE(CWinSystemMirGLContext)
-#endif

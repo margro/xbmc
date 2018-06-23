@@ -47,7 +47,7 @@ std::string CGUIViewStateWindowVideo::GetExtensions()
   return CServiceBroker::GetFileExtensionProvider().GetVideoExtensions();
 }
 
-int CGUIViewStateWindowVideo::GetPlaylist()
+int CGUIViewStateWindowVideo::GetPlaylist() const
 {
   return PLAYLIST_VIDEO;
 }
@@ -57,6 +57,13 @@ VECSOURCES& CGUIViewStateWindowVideo::GetSources()
   AddLiveTVSources();
   return CGUIViewState::GetSources();
 }
+
+bool CGUIViewStateWindowVideo::AutoPlayNextItem()
+{
+  return AutoPlayNextVideoItem();
+}
+
+/***************************/
 
 CGUIViewStateWindowVideoNav::CGUIViewStateWindowVideoNav(const CFileItemList& items) : CGUIViewStateWindowVideo(items)
 {
@@ -179,7 +186,7 @@ CGUIViewStateWindowVideoNav::CGUIViewStateWindowVideoNav(const CFileItemList& it
       {
         AddSortMethod(SortByLabel, sortAttributes, 551, LABEL_MASKS("%T","", "%T",""));  // Title, empty | Title, empty
         SetSortMethod(SortByLabel);
-        
+
         const CViewState *viewState = CViewStateSettings::GetInstance().Get("videonavgenres");
         SetViewAsControl(viewState->m_viewMode);
         SetSortOrder(viewState->m_sortDescription.sortOrder);
@@ -316,7 +323,7 @@ CGUIViewStateWindowVideoNav::CGUIViewStateWindowVideoNav(const CFileItemList& it
     AddSortMethod(SortBySize, 553, LABEL_MASKS("%L", "%I", "%L", "%I"));  // Label, Size | Label, Size
     AddSortMethod(SortByDate, 552, LABEL_MASKS("%L", "%J", "%L", "%J"));  // Label, Date | Label, Date
     AddSortMethod(SortByFile, 561, LABEL_MASKS("%L", "%I", "%L", ""));  // Label, Size | Label, empty
-    
+
     const CViewState *viewState = CViewStateSettings::GetInstance().Get("videofiles");
     SetSortMethod(viewState->m_sortDescription);
     SetViewAsControl(viewState->m_viewMode);
@@ -375,9 +382,9 @@ VECSOURCES& CGUIViewStateWindowVideoNav::GetSources()
   m_sources.clear();
   CFileItemList items;
   if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
-    CDirectory::GetDirectory("library://video_flat/", items, "");
+    CDirectory::GetDirectory("library://video_flat/", items, "", DIR_FLAG_DEFAULTS);
   else
-    CDirectory::GetDirectory("library://video/", items, "");
+    CDirectory::GetDirectory("library://video/", items, "", DIR_FLAG_DEFAULTS);
   for (int i=0; i<items.Size(); ++i)
   {
     CFileItemPtr item=items[i];
@@ -398,7 +405,7 @@ bool CGUIViewStateWindowVideoNav::AutoPlayNextItem()
   if (params.GetContentType() == VIDEODB_CONTENT_MUSICVIDEOS || params.GetContentType() == 6) // recently added musicvideos
     return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MUSICPLAYER_AUTOPLAYNEXTITEM);
 
-  return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_AUTOPLAYNEXTITEM);
+  return CGUIViewStateWindowVideo::AutoPlayNextItem();
 }
 
 CGUIViewStateWindowVideoPlaylist::CGUIViewStateWindowVideoPlaylist(const CFileItemList& items) : CGUIViewStateWindowVideo(items)
@@ -488,7 +495,7 @@ CGUIViewStateVideoMusicVideos::CGUIViewStateVideoMusicVideos(const CFileItemList
 
    if (CMediaSettings::GetInstance().GetWatchedMode(items.GetContent()) == WatchedModeAll)
     AddSortMethod(SortByPlaycount, 567, LABEL_MASKS("%T", "%V"));  // Title, Playcount | empty, empty
-  
+
   std::string strTrack=CServiceBroker::GetSettings().GetString(CSettings::SETTING_MUSICFILES_TRACKFORMAT);
   AddSortMethod(SortByTrackNumber, 554, LABEL_MASKS(strTrack, "%N"));  // Userdefined, Track Number | empty, empty
 

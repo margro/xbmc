@@ -1,4 +1,3 @@
-#pragma once
 /*
 *      Copyright (C) 2012-2015 Team Kodi
 *      http://kodi.tv
@@ -19,6 +18,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "iimage.h"
 #include <memory>
@@ -76,7 +77,7 @@ public:
               unsigned int pitch, unsigned int format) override;
   bool CreateThumbnailFromSurface(unsigned char* bufferin, unsigned int width,
                                   unsigned int height, unsigned int format,
-                                  unsigned int pitch, const std::string& destFile, 
+                                  unsigned int pitch, const std::string& destFile,
                                   unsigned char* &bufferout,
                                   unsigned int &bufferoutSize) override;
   void ReleaseThumbnailBuffer() override;

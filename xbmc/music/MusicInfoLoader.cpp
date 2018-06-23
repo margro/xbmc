@@ -91,20 +91,41 @@ bool CMusicInfoLoader::LoadAdditionalTagInfo(CFileItem* pItem)
     return false; // already have the information
 
   std::string path(pItem->GetPath());
-  if (pItem->IsMusicDb())
+  // For songs in library set the (primary) song artist and album properties
+  // Use song Id (not path) as called for items from either library or file view,
+  // but could also be listitem with tag loaded by a script
+  if (pItem->HasMusicInfoTag() &&
+      pItem->GetMusicInfoTag()->GetType() == MediaTypeSong &&
+      pItem->GetMusicInfoTag()->GetDatabaseId() > 0)
   {
-    // set the artist / album properties
-    XFILE::MUSICDATABASEDIRECTORY::CQueryParams param;
-    XFILE::MUSICDATABASEDIRECTORY::CDirectoryNode::GetDatabaseInfo(pItem->GetPath(),param);
-    CArtist artist;
     CMusicDatabase database;
     database.Open();
-    if (database.GetArtist(param.GetArtistId(), artist, false))
-      CMusicDatabase::SetPropertiesFromArtist(*pItem,artist);
+    // May already have song artist ids as item property set when data read from
+    // db, but check property is valid array (scripts could set item properties
+    // incorrectly), otherwise fetch artist using song id.
+    CArtist artist;
+    bool artistfound = false;
+    if (pItem->HasProperty("artistid") && pItem->GetProperty("artistid").isArray())
+    {
+      CVariant::const_iterator_array varid = pItem->GetProperty("artistid").begin_array();
+      int idArtist = varid->asInteger();
+      artistfound = database.GetArtist(idArtist, artist, false);
+    }
+    else
+      artistfound = database.GetArtistFromSong(pItem->GetMusicInfoTag()->GetDatabaseId(), artist);
+    if (artistfound)
+      CMusicDatabase::SetPropertiesFromArtist(*pItem, artist);
 
+    // May already have album id, otherwise fetch album from song id
     CAlbum album;
-    if (database.GetAlbum(param.GetAlbumId(), album, false))
-      CMusicDatabase::SetPropertiesFromAlbum(*pItem,album);
+    bool albumfound = false;
+    int idAlbum = pItem->GetMusicInfoTag()->GetAlbumId();
+    if (idAlbum > 0)
+      albumfound = database.GetAlbum(idAlbum, album, false);
+    else
+      albumfound = database.GetAlbumFromSong(pItem->GetMusicInfoTag()->GetDatabaseId(), album);
+    if (albumfound)
+      CMusicDatabase::SetPropertiesFromAlbum(*pItem, album);
 
     path = pItem->GetMusicInfoTag()->GetURL();
   }
@@ -177,11 +198,11 @@ bool CMusicInfoLoader::LoadItemLookup(CFileItem* pItem)
         m_databaseHits++;
       }
 
-      /* Note for songs from embedded or separate cuesheets strFileName is not unique, so only the first song from such a file 
+      /* Note for songs from embedded or separate cuesheets strFileName is not unique, so only the first song from such a file
          gets added to the song map. Any such songs from a cuesheet can be identified by having a non-zero offset value.
-         When the item we are looking up has a cue document or is a music file with a cuesheet embedded in the tags, it needs 
-         to have the cuesheet fully processed replacing that item with items for every track etc. This is done elsewhere, as 
-         changes to the list of items is not possible from here. This method only loads the item with the song from the database 
+         When the item we are looking up has a cue document or is a music file with a cuesheet embedded in the tags, it needs
+         to have the cuesheet fully processed replacing that item with items for every track etc. This is done elsewhere, as
+         changes to the list of items is not possible from here. This method only loads the item with the song from the database
          when it maps to a single song.
       */
 

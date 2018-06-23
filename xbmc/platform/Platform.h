@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2016 Team Kodi
  *      http://kodi.tv
@@ -20,6 +18,7 @@
  *
  */
 
+#pragma once
 
 /**\brief Class for the Platform object
  *
@@ -31,21 +30,21 @@ class CPlatform
 public:
   /**\brief Creates the Platform object
    *
-   *@return the platform object 
+   *@return the platform object
   */
   static CPlatform *CreateInstance();
-  
+
   /**\brief C'tor */
   CPlatform();
-  
+
   /**\brief D'tor */
   virtual ~CPlatform();
-  
+
   /**\brief Called at an early stage of application startup
    *
    * This method can be used to do platform specific environment preparation
    * or initialisation (like setting environment variables for example)
    */
   virtual void Init();
-  
+
 };

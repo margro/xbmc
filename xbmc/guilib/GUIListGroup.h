@@ -1,10 +1,3 @@
-/*!
-\file GUIListGroup.h
-\brief
-*/
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -25,13 +18,20 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIListGroup.h
+\brief
+*/
+
 #include "GUIControlGroup.h"
 
 /*!
  \ingroup controls
  \brief a group of controls within a list/panel container
  */
-class CGUIListGroup : public CGUIControlGroup
+class CGUIListGroup final : public CGUIControlGroup
 {
 public:
   CGUIListGroup(int parentID, int controlID, float posX, float posY, float width, float height);

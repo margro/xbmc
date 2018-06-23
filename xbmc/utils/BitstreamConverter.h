@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2010-2017 Team Kodi
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <stdint.h>
 
@@ -109,7 +109,6 @@ public:
   void              ResetStartDecode(void);
   bool              CanStartDecode() const;
 
-  static void       parseh264_sps(const uint8_t *sps, const uint32_t sps_size, bool *interlaced, int32_t *max_ref_frames);
   static bool       mpeg2_sequence_header(const uint8_t *data, const uint32_t size, mpeg2_sequence *sequence);
 
 protected:

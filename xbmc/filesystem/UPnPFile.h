@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2011-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "IFile.h"
 
 namespace XFILE
@@ -28,10 +29,10 @@ namespace XFILE
     public:
       CUPnPFile();
       ~CUPnPFile() override;
-      bool Open(const CURL& url) override;      
+      bool Open(const CURL& url) override;
       bool Exists(const CURL& url) override;
       int Stat(const CURL& url, struct __stat64* buffer) override;
-      
+
       ssize_t Read(void* lpBuf, size_t uiBufSize) override {return -1;}
       int64_t Seek(int64_t iFilePosition, int iWhence = SEEK_SET) override {return -1;}
       void Close() override{}

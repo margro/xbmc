@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -22,6 +20,8 @@
  *
  */
 
+#pragma once
+
 #include "settings/windows/GUIWindowTestPattern.h"
 
 class CGUIWindowTestPatternGL : public CGUIWindowTestPattern
@@ -38,6 +38,6 @@ private:
   void DrawContrastBrightnessPattern(int top, int left, int bottom, int right) override;
   void DrawCircle(int originX, int originY, int radius) override;
   void BeginRender() override;
-  void EndRender() override;  
+  void EndRender() override;
 };
 

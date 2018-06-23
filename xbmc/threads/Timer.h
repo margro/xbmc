@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <functional>
 
 #include "Event.h"
@@ -28,7 +29,7 @@ class ITimerCallback
 {
 public:
   virtual ~ITimerCallback() = default;
-  
+
   virtual void OnTimeout() = 0;
 };
 
@@ -48,10 +49,10 @@ public:
 
   float GetElapsedSeconds() const;
   float GetElapsedMilliseconds() const;
-  
+
 protected:
   void Process() override;
-  
+
 private:
   std::function<void()> m_callback;
   uint32_t m_timeout;

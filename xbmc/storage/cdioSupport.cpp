@@ -197,7 +197,7 @@ char* CLibcdio::GetDeviceFileName()
 {
   CSingleLock lock(*this);
 
-  // If We don't have a DVD device initially present (Darwin or a USB DVD drive), 
+  // If We don't have a DVD device initially present (Darwin or a USB DVD drive),
   // We have to keep checking in case one appears.
   if (s_defaultDevice && strlen(s_defaultDevice) == 0)
   {
@@ -207,7 +207,7 @@ char* CLibcdio::GetDeviceFileName()
 
   if (s_defaultDevice == NULL)
   {
-    std::string strEnvDvd = CEnvironment::getenv("XBMC_DVD_DEVICE");
+    std::string strEnvDvd = CEnvironment::getenv("KODI_DVD_DEVICE");
     if (!strEnvDvd.empty())
       s_defaultDevice = strdup(strEnvDvd.c_str());
     else
@@ -637,20 +637,22 @@ void CCdIoSupport::GetCdTextInfo(xbmc_cdtext_t &xcdt, int trackNum)
   CSingleLock lock(*m_cdio);
 
   // Get the CD-Text , if any
-#if defined (LIBCDIO_VERSION_NUM) && (LIBCDIO_VERSION_NUM > 83)
+#if defined(LIBCDIO_VERSION_NUM) && (LIBCDIO_VERSION_NUM >= 84)
   cdtext_t *pcdtext = static_cast<cdtext_t*>( cdio_get_cdtext(cdio) );
 #else
+  //! @todo - remove after Ubuntu 16.04 (Xenial) is EOL
   cdtext_t *pcdtext = (cdtext_t *)::cdio_get_cdtext(cdio, trackNum);
-#endif 
-  
+#endif
+
   if (pcdtext == NULL)
     return ;
 
-#if defined (LIBCDIO_VERSION_NUM) && (LIBCDIO_VERSION_NUM > 83)
-  for (int i=0; i < MAX_CDTEXT_FIELDS; i++) 
+#if defined(LIBCDIO_VERSION_NUM) && (LIBCDIO_VERSION_NUM >= 84)
+  for (int i=0; i < MAX_CDTEXT_FIELDS; i++)
     if (cdtext_get_const(pcdtext, (cdtext_field_t)i, trackNum))
       xcdt[(cdtext_field_t)i] = cdtext_field2str((cdtext_field_t)i);
 #else
+  //! @todo - remove after Ubuntu 16.04 (Xenial) is EOL
   // Same ids used in libcdio and for our structure + the ids are consecutive make this copy loop safe.
   for (int i = 0; i < MAX_CDTEXT_FIELDS; i++)
     if (pcdtext->field[i])

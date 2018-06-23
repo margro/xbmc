@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Christian Browet
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <androidjni/JNIBase.h>
 
 #include <androidjni/SurfaceTexture.h>
@@ -30,11 +31,11 @@ public:
   CJNIXBMCSurfaceTextureOnFrameAvailableListener(const CJNIXBMCSurfaceTextureOnFrameAvailableListener& other);
   CJNIXBMCSurfaceTextureOnFrameAvailableListener(const jni::jhobject &object) : CJNIBase(object) {}
   virtual ~CJNIXBMCSurfaceTextureOnFrameAvailableListener();
-  
+
   static void RegisterNatives(JNIEnv* env);
-    
+
   void onFrameAvailable(CJNISurfaceTexture) {}
-  
+
 protected:
-  static void _onFrameAvailable(JNIEnv* env, jobject thiz, jobject surface);  
+  static void _onFrameAvailable(JNIEnv* env, jobject thiz, jobject surface);
 };

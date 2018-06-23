@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2017 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "IVideoInfoTagLoader.h"
 #include "addons/Scraper.h"
 
@@ -34,7 +35,8 @@ namespace VIDEO
     //! \param type Type of tag loader. In particular used for tvshows
     static IVideoInfoTagLoader* CreateLoader(const CFileItem& item,
                                              ADDON::ScraperPtr info,
-                                             bool lookInFolder);
+                                             bool lookInFolder,
+                                             bool forceRefresh = false);
 
   protected:
     // No instancing of this class

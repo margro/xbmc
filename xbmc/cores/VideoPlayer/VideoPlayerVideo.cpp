@@ -30,7 +30,7 @@
 #include "DVDDemuxers/DVDDemux.h"
 #include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include <sstream>
 #include <iomanip>
 #include <numeric>
@@ -89,7 +89,6 @@ CVideoPlayerVideo::CVideoPlayerVideo(CDVDClock* pClock
   m_iFrameRateErr = 0;
   m_iFrameRateLength = 0;
   m_bFpsInvalid = false;
-  m_bAllowFullscreen = false;
 }
 
 CVideoPlayerVideo::~CVideoPlayerVideo()
@@ -230,6 +229,7 @@ void CVideoPlayerVideo::OpenStream(CDVDStreamInfo &hint, CDVDVideoCodec* codec)
   m_rewindStalled = false;
   m_packets.clear();
   m_syncState = IDVDStreamPlayer::SYNC_STARTING;
+  m_renderManager.ShowVideo(false);
 }
 
 void CVideoPlayerVideo::CloseStream(bool bWaitForBuffers)
@@ -422,6 +422,7 @@ void CVideoPlayerVideo::Process()
       m_syncState = IDVDStreamPlayer::SYNC_INSYNC;
       m_droppingStats.Reset();
       m_rewindStalled = false;
+      m_renderManager.ShowVideo(true);
 
       CLog::Log(LOGDEBUG, "CVideoPlayerVideo - CDVDMsg::GENERAL_RESYNC(%f)", pts);
     }
@@ -442,6 +443,7 @@ void CVideoPlayerVideo::Process()
       m_packets.clear();
       m_droppingStats.Reset();
       m_syncState = IDVDStreamPlayer::SYNC_STARTING;
+      m_renderManager.ShowVideo(false);
       m_rewindStalled = false;
     }
     else if (pMsg->IsType(CDVDMsg::GENERAL_FLUSH)) // private message sent by (CVideoPlayerVideo::Flush())
@@ -466,7 +468,10 @@ void CVideoPlayerVideo::Process()
 
       m_stalled = true;
       if (sync)
+      {
         m_syncState = IDVDStreamPlayer::SYNC_STARTING;
+        m_renderManager.ShowVideo(false);
+      }
 
       m_renderManager.DiscardBuffer();
     }
@@ -835,18 +840,22 @@ CVideoPlayerVideo::EOutputState CVideoPlayerVideo::OutputPicture(const VideoPict
   }
 
   double config_framerate = m_bFpsInvalid ? 0.0 : m_fFrameRate;
+  if (m_processInfo.GetVideoInterlaced())
+  {
+    if (MathUtils::FloatEquals(config_framerate, 25.0, 0.02))
+      config_framerate = 50.0;
+    else if (MathUtils::FloatEquals(config_framerate, 29.97, 0.02))
+      config_framerate = 59.94;
+  }
 
   if (!m_renderManager.Configure(*pPicture,
                                 static_cast<float>(config_framerate),
-                                m_bAllowFullscreen,
                                 m_hints.orientation,
                                 m_pVideoCodec->GetAllowedReferences()))
   {
     CLog::Log(LOGERROR, "%s - failed to configure renderer", __FUNCTION__);
     return OUTPUT_ABORT;
   }
-
-  m_bAllowFullscreen = false;
 
   //try to calculate the framerate
   m_ptsTracker.Add(pPicture->pts);
@@ -880,24 +889,6 @@ CVideoPlayerVideo::EOutputState CVideoPlayerVideo::OutputPicture(const VideoPict
     }
     else if (pPicture->pts < iPlayingClock)
     {
-      return OUTPUT_DROPPED;
-    }
-  }
-  else if (m_speed > DVD_PLAYSPEED_NORMAL)
-  {
-    double renderPts;
-    int lateframes;
-    int bufferLevel, queued, discard;
-    m_renderManager.GetStats(lateframes, renderPts, queued, discard);
-    bufferLevel = queued + discard;
-
-    // estimate the time it will take for the next frame to get rendered
-    // drop the frame if it's late in regard to this estimation
-    double diff = pPicture->pts - renderPts;
-    double mindiff = DVD_SEC_TO_TIME(1/m_fFrameRate) * (bufferLevel + 1);
-    if (diff < mindiff)
-    {
-      m_droppingStats.AddOutputDropGain(pPicture->pts, 1);
       return OUTPUT_DROPPED;
     }
   }

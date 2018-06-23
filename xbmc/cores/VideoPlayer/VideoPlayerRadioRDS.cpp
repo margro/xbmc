@@ -49,6 +49,7 @@
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "interfaces/AnnouncementManager.h"
@@ -629,11 +630,11 @@ void CDVDRadioRDSData::ResetRDSCache()
   m_currentInfoTag = CPVRRadioRDSInfoTag::CreateDefaultTag();
   m_currentChannel = g_application.CurrentFileItem().GetPVRChannelInfoTag();
   g_application.CurrentFileItem().SetPVRRadioRDSInfoTag(m_currentInfoTag);
-  g_infoManager.SetCurrentItem(g_application.CurrentFileItem());
+  CServiceBroker::GetGUI()->GetInfoManager().SetCurrentItem(g_application.CurrentFileItem());
 
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 void CDVDRadioRDSData::Process()
@@ -856,7 +857,7 @@ void CDVDRadioRDSData::ProcessUECP(const unsigned char *data, unsigned int len)
 
           if (m_currentFileUpdate && !m_bStop)
           {
-            g_infoManager.SetCurrentItem(g_application.CurrentFileItem());
+            CServiceBroker::GetGUI()->GetInfoManager().SetCurrentItem(g_application.CurrentFileItem());
             m_currentFileUpdate = false;
           }
         }

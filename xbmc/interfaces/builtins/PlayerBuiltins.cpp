@@ -24,6 +24,7 @@
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "filesystem/Directory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "PartyModeManager.h"
@@ -293,7 +294,7 @@ static int PlayerControl(const std::vector<std::string>& params)
 
     // send message
     CGUIMessage msg(GUI_MSG_PLAYLISTPLAYER_RANDOM, 0, 0, iPlaylist, CServiceBroker::GetPlaylistPlayer().IsShuffled(iPlaylist));
-    g_windowManager.SendThreadMessage(msg);
+    CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
   }
   else if (StringUtils::StartsWithNoCase(params[0], "repeat"))
   {
@@ -339,7 +340,7 @@ static int PlayerControl(const std::vector<std::string>& params)
 
     // send messages so now playing window can get updated
     CGUIMessage msg(GUI_MSG_PLAYLISTPLAYER_REPEAT, 0, 0, iPlaylist, (int)state);
-    g_windowManager.SendThreadMessage(msg);
+    CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
   }
   else if (StringUtils::StartsWithNoCase(params[0], "resumelivetv"))
   {
@@ -396,11 +397,11 @@ static int PlayMedia(const std::vector<std::string>& params)
     item.m_bIsFolder = true;
 
   // restore to previous window if needed
-  if( g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW ||
-      g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
-      g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME ||
-      g_windowManager.GetActiveWindow() == WINDOW_VISUALISATION )
-    g_windowManager.PreviousWindow();
+  if( CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_SLIDESHOW ||
+      CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
+      CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_FULLSCREEN_GAME ||
+      CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_VISUALISATION )
+    CServiceBroker::GetGUI()->GetWindowManager().PreviousWindow();
 
   // reset screensaver
   g_application.ResetScreenSaver();
@@ -444,7 +445,7 @@ static int PlayMedia(const std::vector<std::string>& params)
   {
     CFileItemList items;
     std::string extensions = CServiceBroker::GetFileExtensionProvider().GetVideoExtensions() + "|" + CServiceBroker::GetFileExtensionProvider().GetMusicExtensions();
-    XFILE::CDirectory::GetDirectory(item.GetPath(), items, extensions);
+    XFILE::CDirectory::GetDirectory(item.GetPath(), items, extensions, XFILE::DIR_FLAG_DEFAULTS);
 
     bool containsMusic = false, containsVideo = false;
     for (int i = 0; i < items.Size(); i++)
@@ -554,7 +555,7 @@ static int Seek(const std::vector<std::string>& params)
 ///   \table_row2_l{
 ///     <b>`Playlist.PlayOffset(positionType[\,position])`</b>
 ///     ,
-///     Start playing from a particular offset in the playlist 
+///     Start playing from a particular offset in the playlist
 ///     @param[in] positionType          Position in playlist or playlist type.
 ///     @param[in] position              Position in playlist if params[0] is playlist type (optional).
 ///   }

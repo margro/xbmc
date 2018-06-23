@@ -26,12 +26,14 @@
 #include "CompileInfo.h"
 #include "filesystem/SpecialProtocol.h"
 #include "input/WindowTranslator.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIControlFactory.h"
 #include "guilib/GUIFontManager.h"
 #include "guilib/GUITextLayout.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIControlProfiler.h"
 #include "GUIInfoManager.h"
+#include "ServiceBroker.h"
 #include "utils/Variant.h"
 #include "utils/StringUtils.h"
 
@@ -69,7 +71,7 @@ bool CGUIWindowDebugInfo::OnMessage(CGUIMessage &message)
 
 void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
-  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
+  CServiceBroker::GetWinSystem()->GetGfxContext().SetRenderingResolution(CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(), false);
 
   g_cpuInfo.getUsedPercentage(); // must call it to recalculate pct values
 
@@ -107,17 +109,19 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
     std::string lcAppName = CCompileInfo::GetAppName();
     StringUtils::ToLower(lcAppName);
 #if !defined(TARGET_POSIX)
-    info = StringUtils::Format("LOG: %s%s.log\nMEM: %" PRIu64"/%" PRIu64" KB - FPS: %2.1f fps\nCPU: %s%s", CSpecialProtocol::TranslatePath("special://logpath").c_str(), lcAppName.c_str(),
-                               stat.ullAvailPhys/1024, stat.ullTotalPhys/1024, g_infoManager.GetFPS(), strCores.c_str(), profiling.c_str());
+    info = StringUtils::Format("LOG: %s%s.log\nMEM: %" PRIu64"/%" PRIu64" KB - FPS: %2.1f fps\nCPU: %s%s",
+                               CSpecialProtocol::TranslatePath("special://logpath").c_str(), lcAppName.c_str(),
+                               stat.ullAvailPhys/1024, stat.ullTotalPhys/1024, CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetSystemInfoProvider().GetFPS(),
+                               strCores.c_str(), profiling.c_str());
 #else
     double dCPU = m_resourceCounter.GetCPUUsage();
     std::string ucAppName = lcAppName;
     StringUtils::ToUpper(ucAppName);
-    info = StringUtils::Format("LOG: %s%s.log\n" 
+    info = StringUtils::Format("LOG: %s%s.log\n"
                                 "MEM: %" PRIu64"/%" PRIu64" KB - FPS: %2.1f fps\n"
                                 "CPU: %s (CPU-%s %4.2f%%%s)",
                                 CSpecialProtocol::TranslatePath("special://logpath").c_str(), lcAppName.c_str(),
-                                stat.ullAvailPhys/1024, stat.ullTotalPhys/1024, g_infoManager.GetFPS(),
+                                stat.ullAvailPhys/1024, stat.ullTotalPhys/1024, CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetSystemInfoProvider().GetFPS(),
                                 strCores.c_str(), ucAppName.c_str(), dCPU, profiling.c_str());
 #endif
   }
@@ -127,8 +131,8 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
   {
     if (!info.empty())
       info += "\n";
-    CGUIWindow *window = g_windowManager.GetWindow(g_windowManager.GetActiveWindowOrDialog());
-    CGUIWindow *pointer = g_windowManager.GetWindow(WINDOW_DIALOG_POINTER);
+    CGUIWindow *window = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog());
+    CGUIWindow *pointer = CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_DIALOG_POINTER);
     CPoint point;
     if (pointer)
       point = CPoint(pointer->GetXPosition(), pointer->GetYPosition());
@@ -141,10 +145,10 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
         windowName = window->GetProperty("xmlfile").asString();
       info += "Window: " + windowName + "\n";
       // transform the mouse coordinates to this window's coordinates
-      g_graphicsContext.SetScalingResolution(window->GetCoordsRes(), true);
-      point.x *= g_graphicsContext.GetGUIScaleX();
-      point.y *= g_graphicsContext.GetGUIScaleY();
-      g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
+      CServiceBroker::GetWinSystem()->GetGfxContext().SetScalingResolution(window->GetCoordsRes(), true);
+      point.x *= CServiceBroker::GetWinSystem()->GetGfxContext().GetGUIScaleX();
+      point.y *= CServiceBroker::GetWinSystem()->GetGfxContext().GetGUIScaleY();
+      CServiceBroker::GetWinSystem()->GetGfxContext().SetRenderingResolution(CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(), false);
     }
     info += StringUtils::Format("Mouse: (%d,%d)  ", static_cast<int>(point.x), static_cast<int>(point.y));
     if (window)
@@ -160,14 +164,14 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
     MarkDirtyRegion();
   m_layout->GetTextExtent(w, h);
 
-  float x = xShift + 0.04f * g_graphicsContext.GetWidth();
-  float y = yShift + 0.04f * g_graphicsContext.GetHeight();
+  float x = xShift + 0.04f * CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
+  float y = yShift + 0.04f * CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight();
   m_renderRegion.SetRect(x, y, x+w, y+h);
 }
 
 void CGUIWindowDebugInfo::Render()
 {
-  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
+  CServiceBroker::GetWinSystem()->GetGfxContext().SetRenderingResolution(CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(), false);
   if (m_layout)
     m_layout->RenderOutline(m_renderRegion.x1, m_renderRegion.y1, 0xffffffff, 0xff000000, 0, 0);
 }

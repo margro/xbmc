@@ -21,6 +21,8 @@
 #include "PVRRadioRDSInfoTag.h"
 
 #include "GUIUserMessages.h"
+#include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
 #include "utils/Archive.h"
@@ -39,8 +41,6 @@ CPVRRadioRDSInfoTag::CPVRRadioRDSInfoTag(void)
 {
   Clear();
 }
-
-CPVRRadioRDSInfoTag::~CPVRRadioRDSInfoTag() = default;
 
 void CPVRRadioRDSInfoTag::Serialize(CVariant& value) const
 {
@@ -344,7 +344,7 @@ void CPVRRadioRDSInfoTag::SetInfoNews(const std::string& strNews)
 
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoNews() const
@@ -378,7 +378,7 @@ void CPVRRadioRDSInfoTag::SetInfoNewsLocal(const std::string& strNews)
 
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoNewsLocal() const
@@ -412,7 +412,7 @@ void CPVRRadioRDSInfoTag::SetInfoSport(const std::string& strSport)
 
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoSport() const
@@ -446,7 +446,7 @@ void CPVRRadioRDSInfoTag::SetInfoStock(const std::string& strStock)
 
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoStock() const
@@ -479,7 +479,7 @@ void CPVRRadioRDSInfoTag::SetInfoWeather(const std::string& strWeather)
   m_strInfoWeather.emplace_front(std::move(tmpStr));
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoWeather() const
@@ -512,7 +512,7 @@ void CPVRRadioRDSInfoTag::SetInfoLottery(const std::string& strLottery)
   m_strInfoLottery.emplace_front(std::move(tmpStr));
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoLottery() const
@@ -545,7 +545,7 @@ void CPVRRadioRDSInfoTag::SetEditorialStaff(const std::string& strEditorialStaff
   m_strEditorialStaff.push_front(tmpStr);
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetEditorialStaff() const
@@ -578,7 +578,7 @@ void CPVRRadioRDSInfoTag::SetInfoHoroscope(const std::string& strHoroscope)
   m_strInfoHoroscope.emplace_front(std::move(tmpStr));
   // send a message to all windows to tell them to update the radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoHoroscope() const
@@ -611,7 +611,7 @@ void CPVRRadioRDSInfoTag::SetInfoCinema(const std::string& strCinema)
   m_strInfoCinema.emplace_front(std::move(tmpStr));
   // send a message to all windows to tell them to update the fileitem radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoCinema() const
@@ -644,7 +644,7 @@ void CPVRRadioRDSInfoTag::SetInfoOther(const std::string& strOther)
   m_strInfoOther.emplace_front(std::move(tmpStr));
   // send a message to all windows to tell them to update the fileitem radiotext
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_RADIOTEXT);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 const std::string CPVRRadioRDSInfoTag::GetInfoOther() const

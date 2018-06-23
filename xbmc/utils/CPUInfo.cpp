@@ -67,6 +67,11 @@
 #pragma comment(lib, "Pdh.lib")
 #endif
 
+#ifdef TARGET_WINDOWS_STORE
+#include <winrt/Windows.Foundation.Metadata.h>
+#include <winrt/Windows.System.Diagnostics.h>
+#endif
+
 // Defines to help with calls to CPUID
 #define CPUID_INFOTYPE_STANDARD 0x00000001
 #define CPUID_INFOTYPE_EXTENDED 0x80000001
@@ -124,7 +129,7 @@ CCPUInfo::CCPUInfo(void)
 
   size_t len = 4;
   std::string cpuVendor;
-  
+
   // The number of cores.
   if (sysctlbyname("hw.activecpu", &m_cpuCount, &len, NULL, 0) == -1)
       m_cpuCount = 1;
@@ -145,7 +150,7 @@ CCPUInfo::CCPUInfo(void)
   len = 512;
   if (sysctlbyname("machdep.cpu.vendor", &buffer, &len, NULL, 0) == 0)
     cpuVendor = buffer;
-  
+
 #endif
   // Go through each core.
   for (int i=0; i<m_cpuCount; i++)
@@ -157,7 +162,11 @@ CCPUInfo::CCPUInfo(void)
     m_cores[core.m_id] = core;
   }
 #elif defined(TARGET_WINDOWS_STORE)
-  CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
+  SYSTEM_INFO siSysInfo;
+  GetNativeSystemInfo(&siSysInfo);
+  m_cpuCount = siSysInfo.dwNumberOfProcessors;
+  m_cpuModel = "Unknown";
+
 #elif defined(TARGET_WINDOWS_DESKTOP)
   using KODI::PLATFORM::WINDOWS::FromW;
 
@@ -231,7 +240,7 @@ CCPUInfo::CCPUInfo(void)
   }
   else
     m_cpuQueryFreq = nullptr;
-  
+
   if (PdhOpenQueryW(nullptr, 0, &m_cpuQueryLoad) == ERROR_SUCCESS)
   {
     for (size_t i = 0; i < m_cores.size(); i++)
@@ -273,9 +282,9 @@ CCPUInfo::CCPUInfo(void)
   if (m_fProcTemperature == NULL)
     m_fProcTemperature = fopen("/proc/acpi/thermal_zone/TZ0/temperature", "r");
   // read from the new location of the temperature data on new kernels, 2.6.39, 3.0 etc
-  if (m_fProcTemperature == NULL)   
+  if (m_fProcTemperature == NULL)
     m_fProcTemperature = fopen("/sys/class/hwmon/hwmon0/temp1_input", "r");
-  if (m_fProcTemperature == NULL)   
+  if (m_fProcTemperature == NULL)
     m_fProcTemperature = fopen("/sys/class/thermal/thermal_zone0/temp", "r");  // On Raspberry PIs
 
   m_fCPUFreq = fopen ("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
@@ -547,10 +556,10 @@ float CCPUInfo::getCPUFrequency()
   if (sysctlbyname("hw.cpufrequency", &hz, &len, NULL, 0) == -1)
     return 0.f;
   return hz / 1000000.0;
-#elif defined(TARGET_WINDOWS_STORE) 
+#elif defined(TARGET_WINDOWS_STORE)
   CLog::Log(LOGDEBUG, "%s is not implemented", __FUNCTION__);
   return 0.f;
-#elif defined(TARGET_WINDOWS_DESKTOP) 
+#elif defined(TARGET_WINDOWS_DESKTOP)
   if (m_cpuFreqCounter && PdhCollectQueryData(m_cpuQueryFreq) == ERROR_SUCCESS)
   {
     PDH_RAW_COUNTER cnt;
@@ -561,7 +570,7 @@ float CCPUInfo::getCPUFrequency()
       return float(cnt.FirstValue);
     }
   }
-  
+
   if (!m_cores.empty())
     return float(m_cores.begin()->second.m_fSpeed);
   else
@@ -608,7 +617,7 @@ bool CCPUInfo::getTemperature(CTemperature& temperature)
 {
   int         value = 0;
   char        scale = 0;
-  
+
 #ifdef TARGET_POSIX
 #if defined(TARGET_DARWIN_OSX)
   value = SMCGetTemperature(SMC_KEY_CPU_TEMP);
@@ -637,11 +646,11 @@ bool CCPUInfo::getTemperature(CTemperature& temperature)
     // procfs is deprecated in the linux kernel, we should move away from
     // using it for temperature data.  It doesn't seem that sysfs has a
     // general enough interface to bother implementing ATM.
-    
+
     rewind(m_fProcTemperature);
     fflush(m_fProcTemperature);
     ret = fscanf(m_fProcTemperature, "temperature: %d %c", &value, &scale);
-    
+
     // read from the temperature file of the new kernels
     if (!ret)
     {
@@ -653,7 +662,7 @@ bool CCPUInfo::getTemperature(CTemperature& temperature)
   }
 
   if (ret != 2)
-    return false; 
+    return false;
 #endif
 #endif // TARGET_POSIX
 
@@ -663,7 +672,7 @@ bool CCPUInfo::getTemperature(CTemperature& temperature)
     temperature = CTemperature::CreateFromFahrenheit(value);
   else
     return false;
-  
+
   return true;
 }
 
@@ -688,18 +697,10 @@ const CoreInfo &CCPUInfo::GetCoreInfo(int nCoreId)
 bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
     unsigned long long& system, unsigned long long& idle, unsigned long long& io)
 {
-#if defined(TARGET_WINDOWS_STORE)
-  // introduced in 10.0.15063.0
-  // auto diagnostic = Windows::System::Diagnostics::SystemDiagnosticInfo::GetForCurrentSystem();
-  // auto usage = diagnostic->CpuUsage;
- 
-  // user = report->UserTime.Duration;
-  // system = report->KernelTime.Duration;
-  // idle = report->IdleTime.Duration;
+#if defined(TARGET_WINDOWS)
   nice = 0;
   io = 0;
-  return false;
-#elif defined (TARGET_WINDOWS_DESKTOP) 
+#if defined (TARGET_WINDOWS_DESKTOP)
   FILETIME idleTime;
   FILETIME kernelTime;
   FILETIME userTime;
@@ -710,8 +711,6 @@ bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
   // returned "kernelTime" includes "idleTime"
   system = (uint64_t(kernelTime.dwHighDateTime) << 32) + uint64_t(kernelTime.dwLowDateTime) - idle;
   user = (uint64_t(userTime.dwHighDateTime) << 32) + uint64_t(userTime.dwLowDateTime);
-  nice = 0;
-  io = 0;
 
   if (m_cpuFreqCounter && PdhCollectQueryData(m_cpuQueryLoad) == ERROR_SUCCESS)
   {
@@ -728,7 +727,7 @@ bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
         const LONGLONG deltaTotal = coreTotal - curCore.m_total,
                        deltaIdle  = coreIdle - curCore.m_idle;
         const double load = (double(deltaTotal - deltaIdle) * 100.0) / double(deltaTotal);
-        
+
         // win32 has some problems with calculation of load if load close to zero
         curCore.m_fPct = (load < 0) ? 0 : load;
         if (load >= 0 || deltaTotal > 5 * 10 * 1000 * 1000) // do not update (smooth) values for 5 seconds on negative loads
@@ -744,6 +743,22 @@ bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
   else
     for (std::map<int, CoreInfo>::iterator it = m_cores.begin(); it != m_cores.end(); ++it)
       it->second.m_fPct = double(m_lastUsedPercentage); // use CPU average as fallback
+#endif // TARGET_WINDOWS_DESKTOP
+#if defined(TARGET_WINDOWS_STORE)
+  if (winrt::Windows::Foundation::Metadata::ApiInformation::IsTypePresent(L"Windows.System.Diagnostics.SystemDiagnosticInfo"))
+  {
+    auto diagnostic = winrt::Windows::System::Diagnostics::SystemDiagnosticInfo::GetForCurrentSystem();
+    auto usage = diagnostic.CpuUsage();
+    auto report = usage.GetReport();
+
+    user = report.UserTime().count();
+    idle = report.IdleTime().count();
+    system = report.KernelTime().count() - idle;
+    return true;
+  }
+  else
+    return false;
+#endif // TARGET_WINDOWS_STORE
 #elif defined(TARGET_FREEBSD)
   long *cptimes;
   size_t len;
@@ -864,16 +879,22 @@ bool CCPUInfo::readProcStat(unsigned long long& user, unsigned long long& nice,
 std::string CCPUInfo::GetCoresUsageString() const
 {
   std::string strCores;
-  for (std::map<int, CoreInfo>::const_iterator it = m_cores.begin(); it != m_cores.end(); ++it)
+  if (!m_cores.empty())
   {
-    if (!strCores.empty())
-      strCores += ' ';
-    if (it->second.m_fPct < 10.0)
-      strCores += StringUtils::Format("CPU%d: %1.1f%%", it->first, it->second.m_fPct);
-    else
-      strCores += StringUtils::Format("CPU%d: %3.0f%%", it->first, it->second.m_fPct);
+    for (std::map<int, CoreInfo>::const_iterator it = m_cores.begin(); it != m_cores.end(); ++it)
+    {
+      if (!strCores.empty())
+        strCores += ' ';
+      if (it->second.m_fPct < 10.0)
+        strCores += StringUtils::Format("CPU%d: %1.1f%%", it->first, it->second.m_fPct);
+      else
+        strCores += StringUtils::Format("CPU%d: %3.0f%%", it->first, it->second.m_fPct);
+    }
   }
-
+  else
+  {
+    strCores += StringUtils::Format("%3.0f%%", double(m_lastUsedPercentage));
+  }
   return strCores;
 }
 

@@ -20,8 +20,9 @@
 
 #include "WinSystem.h"
 #include "ServiceBroker.h"
+#include "guilib/gui3d.h"
 #include "guilib/DispResource.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "settings/DisplaySettings.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
@@ -29,24 +30,15 @@
 #if HAS_GLES
 #include "guilib/GUIFontTTFGL.h"
 #endif
-#if HAS_LIRC
-#include "platform/linux/input/LIRC.h"
-#endif
 
 CWinSystemBase::CWinSystemBase()
 {
-  m_nWidth = 0;
-  m_nHeight = 0;
-  m_nTop = 0;
-  m_nLeft = 0;
-  m_bWindowCreated = false;
-  m_bFullScreen = false;
-  m_nScreen = 0;
-  m_bBlankOtherDisplay = false;
-  m_fRefreshRate = 0.0f;
-#if HAS_LIRC
-  CRemoteControl::Register();
-#endif
+  m_gfxContext.reset(new CGraphicContext());
+  for (int i = RES_HDTV_1080i; i <= RES_PAL60_16x9; i++)
+  {
+    m_gfxContext->ResetScreenParameters((RESOLUTION)i);
+    m_gfxContext->ResetOverscan((RESOLUTION)i, CDisplaySettings::GetInstance().GetResolutionInfo(i).Overscan);
+  }
 }
 
 CWinSystemBase::~CWinSystemBase() = default;
@@ -123,7 +115,7 @@ void CWinSystemBase::SetWindowResolution(int width, int height)
   window.iScreenWidth = width;
   window.iScreenHeight = height;
   window.iSubtitles = (int)(0.965 * window.iHeight);
-  g_graphicsContext.ResetOverscan(window);
+  CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(window);
 }
 
 int CWinSystemBase::DesktopResolution(int screen)
@@ -176,7 +168,7 @@ std::vector<RESOLUTION_WHR> CWinSystemBase::ScreenResolutions(int screen, float 
 {
   std::vector<RESOLUTION_WHR> resolutions;
 
-  for (unsigned int idx = RES_DESKTOP; idx < CDisplaySettings::GetInstance().ResolutionInfoSize(); idx++)
+  for (unsigned int idx = RES_CUSTOM; idx < CDisplaySettings::GetInstance().ResolutionInfoSize(); idx++)
   {
     RESOLUTION_INFO info = CDisplaySettings::GetInstance().GetResolutionInfo(idx);
     if (info.iScreen == screen)
@@ -184,8 +176,7 @@ std::vector<RESOLUTION_WHR> CWinSystemBase::ScreenResolutions(int screen, float 
   }
 
   // Can't assume a sort order
-  // don't touch RES_DESKTOP which is index 0
-  sort(resolutions.begin()+1, resolutions.end(), resSortPredicate);
+  sort(resolutions.begin(), resolutions.end(), resSortPredicate);
 
   return resolutions;
 }
@@ -247,12 +238,7 @@ REFRESHRATE CWinSystemBase::DefaultRefreshRate(int screen, std::vector<REFRESHRA
 
 bool CWinSystemBase::UseLimitedColor()
 {
-#if defined(HAS_GL) || defined(HAS_DX)
-  static std::shared_ptr<CSettingBool> setting = std::static_pointer_cast<CSettingBool>(CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE));
-  return setting->GetValue();
-#else
   return false;
-#endif
 }
 
 std::string CWinSystemBase::GetClipboardText(void)
@@ -296,10 +282,15 @@ void CWinSystemBase::UnregisterRenderLoop(IRenderLoop *client)
 
 void CWinSystemBase::DriveRenderLoop()
 {
-  m_winEvents->MessagePump();
+  MessagePump();
 
   { CSingleLock lock(m_renderLoopSection);
     for (auto i = m_renderLoopClients.begin(); i != m_renderLoopClients.end(); ++i)
       (*i)->FrameMove();
   }
+}
+
+CGraphicContext& CWinSystemBase::GetGfxContext()
+{
+  return *m_gfxContext;
 }

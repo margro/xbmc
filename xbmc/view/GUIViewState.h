@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <vector>
 
@@ -55,7 +55,7 @@ public:
   virtual bool HideParentDirItems();
   virtual bool DisableAddSourceButtons();
 
-  virtual int GetPlaylist();
+  virtual int GetPlaylist() const;
   const std::string& GetPlaylistDirectory();
   void SetPlaylistDirectory(const std::string& strDirectory);
   bool IsCurrentPlaylistDirectory(const std::string& strDirectory);
@@ -71,7 +71,7 @@ protected:
   virtual void SaveViewState() = 0;
   virtual void SaveViewToDb(const std::string &path, int windowID, CViewState *viewState = NULL);
   void LoadViewState(const std::string &path, int windowID);
-  
+
   /*! \brief Add the addons source for the given content type, if the user has suitable addons
    \param content the type of addon content desired
    \param label the name of the addons source
@@ -93,6 +93,8 @@ protected:
   void SetSortMethod(SortBy sortBy, SortOrder sortOrder = SortOrderNone);
   void SetSortMethod(SortDescription sortDescription);
   void SetSortOrder(SortOrder sortOrder);
+
+  bool AutoPlayNextVideoItem() const;
 
   const CFileItemList& m_items;
 
@@ -119,6 +121,7 @@ class CGUIViewStateFromItems : public CGUIViewState
 {
 public:
   explicit CGUIViewStateFromItems(const CFileItemList& items);
+  bool AutoPlayNextItem() override;
 
 protected:
   void SaveViewState() override;

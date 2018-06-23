@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2014 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <map>
 #include <string>
@@ -57,7 +58,7 @@ namespace PVR
 
     // specialization of CGUIDialogSettingsManualBase
     void InitializeSettings() override;
-    
+
   private:
     void InitializeTypesList();
     void InitializeChannelsList();

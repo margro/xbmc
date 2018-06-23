@@ -1,4 +1,3 @@
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -25,6 +24,7 @@
 #include "GUIDialogFileBrowser.h"
 #include "video/windows/GUIWindowVideoBase.h"
 #include "music/windows/GUIWindowMusicBase.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
 #include "Util.h"
@@ -48,7 +48,7 @@
 #endif
 
 #ifdef TARGET_WINDOWS_STORE
-#include "filesystem/win10/WinLibraryDirectory.h"
+#include "platform/win10/filesystem/WinLibraryDirectory.h"
 #endif
 
 using namespace XFILE;
@@ -136,7 +136,7 @@ bool CGUIDialogMediaSource::OnMessage(CGUIMessage& message)
 // \return True if the media source is added, false otherwise.
 bool CGUIDialogMediaSource::ShowAndAddMediaSource(const std::string &type)
 {
-  CGUIDialogMediaSource *dialog = g_windowManager.GetWindow<CGUIDialogMediaSource>(WINDOW_DIALOG_MEDIA_SOURCE);
+  CGUIDialogMediaSource *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogMediaSource>(WINDOW_DIALOG_MEDIA_SOURCE);
   if (!dialog) return false;
   dialog->Initialize();
   dialog->SetShare(CMediaSource());
@@ -144,29 +144,17 @@ bool CGUIDialogMediaSource::ShowAndAddMediaSource(const std::string &type)
   dialog->Open();
   bool confirmed(dialog->IsConfirmed());
   if (confirmed)
-  { // yay, add this share
+  {
+    // Add this media source
+    // Get unique source name
+    std::string strName = dialog->GetUniqueMediaSourceName();
+
     CMediaSource share;
-    unsigned int i, j = 2;
-    bool bConfirmed = false;
-    VECSOURCES* pShares = CMediaSourceSettings::GetInstance().GetSources(type);
-    std::string strName = dialog->m_name;
-    while (!bConfirmed)
-    {
-      for (i = 0;i<pShares->size();++i)
-      {
-        if (StringUtils::EqualsNoCase((*pShares)[i].strName, strName))
-          break;
-      }
-      if (i < pShares->size()) // found a match -  try next
-        strName = StringUtils::Format("%s (%i)", dialog->m_name.c_str(), j++);
-      else
-        bConfirmed = true;
-    }
     share.FromNameAndPaths(type, strName, dialog->GetPaths());
-    if (dialog->m_paths->Size() > 0) {
+    if (dialog->m_paths->Size() > 0)
       share.m_strThumbnailImage = dialog->m_paths->Get(0)->GetArt("thumb");
-    }
     CMediaSourceSettings::GetInstance().AddShare(type, share);
+    OnMediaSourceChanged(type, "", share);
   }
   dialog->m_paths->Clear();
   return confirmed;
@@ -189,7 +177,7 @@ bool CGUIDialogMediaSource::ShowAndEditMediaSource(const std::string &type, cons
 bool CGUIDialogMediaSource::ShowAndEditMediaSource(const std::string &type, const CMediaSource &share)
 {
   std::string strOldName = share.strName;
-  CGUIDialogMediaSource *dialog = g_windowManager.GetWindow<CGUIDialogMediaSource>(WINDOW_DIALOG_MEDIA_SOURCE);
+  CGUIDialogMediaSource *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogMediaSource>(WINDOW_DIALOG_MEDIA_SOURCE);
   if (!dialog) return false;
   dialog->Initialize();
   dialog->SetShare(share);
@@ -197,30 +185,59 @@ bool CGUIDialogMediaSource::ShowAndEditMediaSource(const std::string &type, cons
   dialog->Open();
   bool confirmed(dialog->IsConfirmed());
   if (confirmed)
-  { // yay, add this share
-    unsigned int i, j = 2;
-    bool bConfirmed = false;
-    VECSOURCES* pShares = CMediaSourceSettings::GetInstance().GetSources(type);
-    std::string strName = dialog->m_name;
-    while (!bConfirmed)
-    {
-      for (i = 0;i<pShares->size();++i)
-      {
-        if (StringUtils::EqualsNoCase((*pShares)[i].strName, strName))
-          break;
-      }
-      if (i < pShares->size() && (*pShares)[i].strName != strOldName) // found a match -  try next
-        strName = StringUtils::Format("%s (%i)", dialog->m_name.c_str(), j++);
-      else
-        bConfirmed = true;
-    }
+  {
+    // Update media source
+    // Get unique new source name when changed
+    std::string strName(dialog->m_name);
+    if (!StringUtils::EqualsNoCase(dialog->m_name, strOldName))
+      strName = dialog->GetUniqueMediaSourceName();
 
     CMediaSource newShare;
     newShare.FromNameAndPaths(type, strName, dialog->GetPaths());
     CMediaSourceSettings::GetInstance().UpdateShare(type, strOldName, newShare);
+
+    OnMediaSourceChanged(type, strOldName, newShare);
   }
   dialog->m_paths->Clear();
   return confirmed;
+}
+
+std::string CGUIDialogMediaSource::GetUniqueMediaSourceName()
+{
+  // Get unique source name for this media type
+  unsigned int i, j = 2;
+  bool bConfirmed = false;
+  VECSOURCES* pShares = CMediaSourceSettings::GetInstance().GetSources(m_type);
+  std::string strName = m_name;
+  while (!bConfirmed)
+  {
+    for (i = 0; i<pShares->size(); ++i)
+    {
+      if (StringUtils::EqualsNoCase((*pShares)[i].strName, strName))
+        break;
+    }
+    if (i < pShares->size())
+      // found a match -  try next
+      strName = StringUtils::Format("%s (%i)", m_name.c_str(), j++);
+    else
+      bConfirmed = true;
+  }
+  return strName;
+}
+
+void CGUIDialogMediaSource::OnMediaSourceChanged(const std::string& type, const std::string& oldName, const CMediaSource& share)
+{
+  // Processing once media source added/edited - library scraping and scanning
+  if (!StringUtils::StartsWithNoCase(share.strPath, "rss://") &&
+    !StringUtils::StartsWithNoCase(share.strPath, "rsss://") &&
+    !StringUtils::StartsWithNoCase(share.strPath, "upnp://"))
+  {
+    if (type == "video" && !URIUtils::IsLiveTV(share.strPath))
+      // Assign content to a path, refresh scraper information optionally start a scan
+      CGUIWindowVideoBase::OnAssignContent(share.strPath);
+    else if (type == "music")
+      CGUIWindowMusicBase::OnAssignContent(oldName, share);
+  }
 }
 
 void CGUIDialogMediaSource::OnPathBrowse(int item)
@@ -434,33 +451,21 @@ void CGUIDialogMediaSource::OnPath(int item)
 
 void CGUIDialogMediaSource::OnOK()
 {
-  // verify the path by doing a GetDirectory.
+  // Verify the paths by doing a GetDirectory.
   CFileItemList items;
 
+  // Create temp media source to encode path urls as multipath
+  // Name of actual source may need to be made unique when saved in sources
   CMediaSource share;
   share.FromNameAndPaths(m_type, m_name, GetPaths());
-  // hack: Need to temporarily add the share, then get path, then remove share
-  VECSOURCES *shares = CMediaSourceSettings::GetInstance().GetSources(m_type);
-  if (shares)
-    shares->push_back(share);
-  if (StringUtils::StartsWithNoCase(share.strPath, "plugin://") || CDirectory::GetDirectory(share.strPath, items, "", DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_ALLOW_PROMPT) || CGUIDialogYesNo::ShowAndGetInput(CVariant{ 1001 }, CVariant{ 1025 }))
+
+  if (StringUtils::StartsWithNoCase(share.strPath, "plugin://") ||
+    CDirectory::GetDirectory(share.strPath, items, "", DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_ALLOW_PROMPT) ||
+    CGUIDialogYesNo::ShowAndGetInput(CVariant{ 1001 }, CVariant{ 1025 }))
   {
     m_confirmed = true;
     Close();
-    if (!StringUtils::StartsWithNoCase(share.strPath, "rss://") &&
-      !StringUtils::StartsWithNoCase(share.strPath, "rsss://") &&
-      !StringUtils::StartsWithNoCase(share.strPath, "upnp://"))
-    {
-      if (m_type == "video" && !URIUtils::IsLiveTV(share.strPath))
-        CGUIWindowVideoBase::OnAssignContent(share.strPath);
-      else if (m_type == "music")
-        CGUIWindowMusicBase::OnAssignContent(share.strPath);
-    }
   }
-
-  // and remove the share again
-  if (shares)
-    shares->erase(--shares->end());
 }
 
 void CGUIDialogMediaSource::OnCancel()
@@ -601,15 +606,16 @@ std::vector<std::string> CGUIDialogMediaSource::GetPaths() const
   for (int i = 0; i < m_paths->Size(); i++)
   {
     if (!m_paths->Get(i)->GetPath().empty())
-    { // strip off the user and password for smb paths (anything that the password manager can auth)
+    { // strip off the user and password for supported paths (anything that the password manager can auth)
       // and add the user/pass to the password manager - note, we haven't confirmed that it works
-      // at this point, but if it doesn't, the user will get prompted anyway in SMBDirectory.
+      // at this point, but if it doesn't, the user will get prompted anyway in implementation.
       CURL url(m_paths->Get(i)->GetPath());
-      if (url.IsProtocol("smb"))
+      if (CPasswordManager::GetInstance().IsURLSupported(url) && !url.GetUserName().empty())
       {
         CPasswordManager::GetInstance().SaveAuthenticatedURL(url);
         url.SetPassword("");
         url.SetUserName("");
+        url.SetDomain("");
       }
       paths.push_back(url.Get());
     }

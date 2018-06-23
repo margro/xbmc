@@ -50,8 +50,8 @@ bool CRendererVTB::Register()
 CRendererVTB::CRendererVTB()
 {
   m_textureCache = nullptr;
-  CWinSystemIOS& winSystem = dynamic_cast<CWinSystemIOS&>(CServiceBroker::GetWinSystem());
-  m_glContext = winSystem.GetEAGLContextObj();
+  CWinSystemIOS* winSystem = dynamic_cast<CWinSystemIOS*>(CServiceBroker::GetWinSystem());
+  m_glContext = winSystem->GetEAGLContextObj();
   CVReturn ret = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault,
                                               NULL,
                                               m_glContext,
@@ -84,7 +84,7 @@ CRendererVTB::~CRendererVTB()
 
 void CRendererVTB::ReleaseBuffer(int idx)
 {
-  YUVBUFFER &buf = m_buffers[idx];
+  CPictureBuffer &buf = m_buffers[idx];
   CRenderBuffer &renderBuf = m_vtbBuffers[idx];
   if (buf.videoBuffer)
   {
@@ -108,7 +108,7 @@ bool CRendererVTB::LoadShadersHook()
   float ios_version = CDarwinUtils::GetIOSVersion();
   CLog::Log(LOGNOTICE, "GL: Using CVBREF render method");
   m_textureTarget = GL_TEXTURE_2D;
-  m_renderMethod = RENDER_CVREF;
+  m_renderMethod = RENDER_CUSTOM;
 
   if (ios_version < 5.0)
   {
@@ -135,18 +135,18 @@ bool CRendererVTB::LoadShadersHook()
 
 bool CRendererVTB::CreateTexture(int index)
 {
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
   YuvImage &im = buf.image;
   YUVPLANE (&planes)[YuvImage::MAX_PLANES] = buf.fields[0];
-  
+
   DeleteTexture(index);
-  
+
   memset(&im    , 0, sizeof(im));
   memset(&planes, 0, sizeof(YUVPLANE[YuvImage::MAX_PLANES]));
-  
+
   im.height = m_sourceHeight;
   im.width = m_sourceWidth;
-  
+
   planes[0].texwidth  = im.width;
   planes[0].texheight = im.height;
   planes[1].texwidth  = planes[0].texwidth >> im.cshift_x;
@@ -187,7 +187,7 @@ void CRendererVTB::DeleteTexture(int index)
 bool CRendererVTB::UploadTexture(int index)
 {
   CRenderBuffer &renderBuf = m_vtbBuffers[index];
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
   YUVPLANE (&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[0];
   YuvImage &im = m_buffers[index].image;
 
@@ -239,7 +239,6 @@ bool CRendererVTB::UploadTexture(int index)
   planes[1].id = CVOpenGLESTextureGetName(renderBuf.m_textureUV);
   planes[2].id = CVOpenGLESTextureGetName(renderBuf.m_textureUV);
 
-
   for (int p=0; p<2; p++)
   {
     glBindTexture(m_textureTarget, planes[p].id);
@@ -276,7 +275,7 @@ bool CRendererVTB::NeedBuffer(int idx)
     if (syncState != GL_SIGNALED_APPLE)
       return true;
   }
-  
+
   return false;
 }
 

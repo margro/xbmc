@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #ifndef __GNUC__
 #pragma warning(push)
@@ -171,9 +172,9 @@ public:
   virtual int vc_tv_hdmi_audio_supported(uint32_t audio_format, uint32_t num_channels,
                                                   EDID_AudioSampleRate fs, uint32_t bitrate)
   { return ::vc_tv_hdmi_audio_supported(audio_format, num_channels, fs, bitrate); };
-  virtual bool ResolveExports() 
+  virtual bool ResolveExports()
     { return true; }
-  virtual bool Load() 
+  virtual bool Load()
   {
     CLog::Log(LOGDEBUG, "DllBcm: Using omx system library");
     return true;

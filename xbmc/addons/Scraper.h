@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <memory>
 #include <string>
@@ -129,7 +130,7 @@ public:
 
   /*! \brief Resolve an external ID (e.g. MusicBrainz IDs) to a URL using scrapers
    If we have an ID in hand, e.g. MusicBrainz IDs or TheTVDB Season IDs
-   we can get directly to a URL instead of searching by name and choosing from 
+   we can get directly to a URL instead of searching by name and choosing from
    the search results. The correct scraper type should be used to get the right
    URL for a given ID, so we can differentiate albums, artists, TV Seasons, etc.
    \param externalID the external ID - e.g. MusicBrainzArtist/AlbumID
@@ -139,7 +140,7 @@ public:
   CScraperUrl ResolveIDToUrl(const std::string &externalID);
 
   std::vector<CScraperUrl> FindMovie(XFILE::CCurlFile &fcurl,
-    const std::string &sMovie, bool fFirst);
+    const std::string &movieTitle, int movieYear, bool fFirst);
   std::vector<MUSIC_GRABBER::CMusicAlbumInfo> FindAlbum(XFILE::CCurlFile &fcurl,
     const std::string &sAlbum, const std::string &sArtist = "");
   std::vector<MUSIC_GRABBER::CMusicArtistInfo> FindArtist(

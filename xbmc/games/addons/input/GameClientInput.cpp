@@ -30,9 +30,11 @@
 #include "games/controllers/Controller.h"
 #include "games/controllers/ControllerTopology.h"
 #include "games/GameServices.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
 #include "input/joysticks/JoystickTypes.h"
+#include "peripherals/EventLockHandle.h"
 #include "peripherals/Peripherals.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
@@ -119,7 +121,7 @@ void CGameClientInput::Deinitialize()
 
 bool CGameClientInput::AcceptsInput() const
 {
-  return g_windowManager.GetActiveWindowOrDialog() == WINDOW_FULLSCREEN_GAME;
+  return CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog() == WINDOW_FULLSCREEN_GAME;
 }
 
 void CGameClientInput::LoadTopology()
@@ -391,8 +393,11 @@ bool CGameClientInput::OpenJoystick(const std::string &portAddress, const Contro
 
   if (bSuccess)
   {
+    PERIPHERALS::EventLockHandlePtr lock = CServiceBroker::GetPeripherals().RegisterEventLock();
+
     m_joysticks[portAddress].reset(new CGameClientJoystick(m_gameClient, portAddress, controller, m_struct.toAddon));
     ProcessJoysticks();
+
     return true;
   }
 
@@ -406,7 +411,12 @@ void CGameClientInput::CloseJoystick(const std::string &portAddress)
   {
     std::unique_ptr<CGameClientJoystick> joystick = std::move(it->second);
     m_joysticks.erase(it);
-    ProcessJoysticks();
+    {
+      PERIPHERALS::EventLockHandlePtr lock = CServiceBroker::GetPeripherals().RegisterEventLock();
+
+      ProcessJoysticks();
+      joystick.reset();
+    }
   }
 
   {
@@ -466,7 +476,10 @@ void CGameClientInput::Notify(const Observable& obs, const ObservableMessage msg
   {
   case ObservableMessagePeripheralsChanged:
   {
+    PERIPHERALS::EventLockHandlePtr lock = CServiceBroker::GetPeripherals().RegisterEventLock();
+
     ProcessJoysticks();
+
     break;
   }
   default:

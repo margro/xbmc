@@ -27,19 +27,21 @@
 #include "utils/log.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/Variant.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "Application.h"
+#include "ServiceBroker.h"
 #include "utils/StringUtils.h"
 
 using namespace ANNOUNCEMENT;
 
-CGUIWindowHome::CGUIWindowHome(void) : CGUIWindow(WINDOW_HOME, "Home.xml"), 
+CGUIWindowHome::CGUIWindowHome(void) : CGUIWindow(WINDOW_HOME, "Home.xml"),
                                        m_recentlyAddedRunning(false),
                                        m_cumulativeUpdateFlag(0)
 {
   m_updateRA = (Audio | Video | Totals);
   m_loadType = KEEP_IN_MEMORY;
-  
+
   CAnnouncementManager::GetInstance().AddAnnouncer(this);
 }
 
@@ -62,7 +64,7 @@ bool CGUIWindowHome::OnAction(const CAction &action)
 }
 
 void CGUIWindowHome::OnInitWindow()
-{  
+{
   // for shared databases (ie mysql) always force an update on return to home
   // this is a temporary solution until remote announcements can be delivered
   if (StringUtils::EqualsNoCase(g_advancedSettings.m_databaseVideo.type, "mysql") ||
@@ -105,7 +107,7 @@ void CGUIWindowHome::Announce(AnnouncementFlag flag, const char *sender, const c
   }
 
   CGUIMessage reload(GUI_MSG_NOTIFY_ALL, GetID(), 0, GUI_MSG_REFRESH_THUMBS, ra_flag);
-  g_windowManager.SendThreadMessage(reload, GetID());
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(reload, GetID());
 }
 
 void CGUIWindowHome::AddRecentlyAddedJobs(int flag)

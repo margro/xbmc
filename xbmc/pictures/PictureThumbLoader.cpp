@@ -26,6 +26,7 @@
 #include "TextureCache.h"
 #include "filesystem/Directory.h"
 #include "filesystem/MultiPathDirectory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "utils/FileExtensionProvider.h"
@@ -128,7 +129,7 @@ void CPictureThumbLoader::OnJobComplete(unsigned int jobID, bool success, CJob* 
     loader->m_item.SetPath(loader->m_listpath);
     CFileItemPtr pItem(new CFileItem(loader->m_item));
     CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM, 0, pItem);
-    g_windowManager.SendThreadMessage(msg);
+    CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
   }
   CJobQueue::OnJobComplete(jobID, success, job);
 }
@@ -185,7 +186,7 @@ void CPictureThumbLoader::ProcessFoldersAndArchives(CFileItem *pItem)
       CFileItemList items;
 
       CDirectory::GetDirectory(pathToUrl, items, CServiceBroker::GetFileExtensionProvider().GetPictureExtensions(), DIR_FLAG_NO_FILE_DIRS);
-      
+
       // create the folder thumb by choosing 4 random thumbs within the folder and putting
       // them into one thumb.
       // count the number of images

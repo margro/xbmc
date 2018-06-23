@@ -17,6 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 namespace XBMCAddon
 {
   namespace Python
@@ -24,7 +27,7 @@ namespace XBMCAddon
     class PyGILLock;
 
     /**
-     * These classes should NOT be used with 'new'. They are expected to reside 
+     * These classes should NOT be used with 'new'. They are expected to reside
      *  as stack instances and they act as "Guard" classes that track the
      *  current context.
      */
@@ -42,7 +45,7 @@ namespace XBMCAddon
 
     /**
      * This class supports recursive locking of the GIL. It assumes that
-     * all Python GIL manipulation is done through this class so that it 
+     * all Python GIL manipulation is done through this class so that it
      * can monitor the current owner.
      */
     class PyGILLock

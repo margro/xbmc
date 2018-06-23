@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
  *      http://kodi.tv
@@ -19,13 +18,14 @@
  *
  */
 
+#pragma once
+
 #include "cores/AudioEngine/Interfaces/AESink.h"
 #include "cores/AudioEngine/Utils/AEDeviceInfo.h"
 #include "cores/AudioEngine/Sinks/alsa/ALSADeviceMonitor.h"
 #include "cores/AudioEngine/Sinks/alsa/ALSAHControlMonitor.h"
 #include <stdint.h>
 
-#define ALSA_PCM_NEW_HW_PARAMS_API
 #include <alsa/asoundlib.h>
 
 #include "threads/CriticalSection.h"
@@ -45,6 +45,7 @@ public:
   static void Register();
   static IAESink* Create(std::string &device, AEAudioFormat &desiredFormat);
   static void EnumerateDevicesEx(AEDeviceInfoList &list, bool force = false);
+  static void Cleanup();
 
   bool Initialize(AEAudioFormat &format, std::string &device) override;
   void Deinitialize() override;
@@ -60,8 +61,6 @@ private:
   CAEChannelInfo GetChannelLayoutLegacy(const AEAudioFormat& format, unsigned int minChannels, unsigned int maxChannels);
   CAEChannelInfo GetChannelLayout(const AEAudioFormat& format, unsigned int channels);
 
-#ifdef SND_CHMAP_API_VERSION
-  static bool AllowALSAMaps();
   static AEChannel ALSAChannelToAEChannel(unsigned int alsaChannel);
   static unsigned int AEChannelToALSAChannel(AEChannel aeChannel);
   static CAEChannelInfo ALSAchmapToAEChannelMap(snd_pcm_chmap_t* alsaMap);
@@ -70,7 +69,6 @@ private:
   static std::string ALSAchmapToString(snd_pcm_chmap_t* alsaMap);
   static CAEChannelInfo GetAlternateLayoutForm(const CAEChannelInfo& info);
   snd_pcm_chmap_t* SelectALSAChannelMap(const CAEChannelInfo& info);
-#endif
 
   void GetAESParams(const AEAudioFormat& format, std::string& params);
   void HandleError(const char* name, int err);

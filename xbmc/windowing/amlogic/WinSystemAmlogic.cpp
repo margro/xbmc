@@ -32,9 +32,9 @@
 // AESink Factory
 #include "cores/AudioEngine/AESinkFactory.h"
 #include "cores/AudioEngine/Sinks/AESinkALSA.h"
-#include "guilib/GraphicContext.h"
-#include "guilib/Resolution.h"
-#include "powermanagement/linux/LinuxPowerSyscall.h"
+#include "windowing/GraphicContext.h"
+#include "windowing/Resolution.h"
+#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
 #include "settings/Settings.h"
 #include "settings/DisplaySettings.h"
 #include "guilib/DispResource.h"
@@ -42,7 +42,6 @@
 #include "utils/log.h"
 #include "utils/SysfsUtils.h"
 #include "threads/SingleLock.h"
-#include "../WinEventsLinux.h"
 
 #include <linux/fb.h>
 
@@ -50,7 +49,8 @@
 
 using namespace KODI;
 
-CWinSystemAmlogic::CWinSystemAmlogic()
+CWinSystemAmlogic::CWinSystemAmlogic() :
+  m_libinput(new CLibInputHandler)
 {
   const char *env_framebuffer = getenv("FRAMEBUFFER");
 
@@ -75,11 +75,12 @@ CWinSystemAmlogic::CWinSystemAmlogic()
   aml_permissions();
   aml_disable_freeScale();
 
-  m_winEvents.reset(new CWinEventsLinux());
   // Register sink
   AE::CAESinkFactory::ClearSinks();
   CAESinkALSA::Register();
   CLinuxPowerSyscall::Register();
+  m_lirc.reset(OPTIONALS::LircRegister());
+  m_libinput->Start();
 }
 
 CWinSystemAmlogic::~CWinSystemAmlogic()
@@ -116,7 +117,7 @@ bool CWinSystemAmlogic::CreateNewWindow(const std::string& name,
 {
   RESOLUTION_INFO current_resolution;
   current_resolution.iWidth = current_resolution.iHeight = 0;
-  RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
+  RENDER_STEREO_MODE stereo_mode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
 
   m_nWidth        = res.iWidth;
   m_nHeight       = res.iHeight;
@@ -215,7 +216,7 @@ void CWinSystemAmlogic::UpdateResolutions()
       CDisplaySettings::GetInstance().AddResolutionInfo(res);
     }
 
-    g_graphicsContext.ResetOverscan(resolutions[i]);
+    CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(resolutions[i]);
     CDisplaySettings::GetInstance().GetResolutionInfo(res_index) = resolutions[i];
 
     CLog::Log(LOGNOTICE, "Found resolution %d x %d for display %d with %d x %d%s @ %f Hz\n",
@@ -240,7 +241,7 @@ void CWinSystemAmlogic::UpdateResolutions()
     res_index = (RESOLUTION)((int)res_index + 1);
   }
 
-  // swap desktop index for desktop res if available
+  // set RES_DESKTOP
   if (ResDesktop != RES_INVALID)
   {
     CLog::Log(LOGNOTICE, "Found (%dx%d%s@%f) at %d, setting to RES_DESKTOP at %d",
@@ -249,9 +250,7 @@ void CWinSystemAmlogic::UpdateResolutions()
       resDesktop.fRefreshRate,
       (int)ResDesktop, (int)RES_DESKTOP);
 
-    RESOLUTION_INFO desktop = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP);
     CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP) = CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop);
-    CDisplaySettings::GetInstance().GetResolutionInfo(ResDesktop) = desktop;
   }
 }
 

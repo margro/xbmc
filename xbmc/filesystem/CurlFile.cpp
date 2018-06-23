@@ -196,7 +196,6 @@ size_t CCurlFile::CReadState::ReadCallback(char *buffer, size_t size, size_t nit
 size_t CCurlFile::CReadState::WriteCallback(char *buffer, size_t size, size_t nitems)
 {
   unsigned int amount = size * nitems;
-//  CLog::Log(LOGDEBUG, "CCurlFile::WriteCallback (%p) with %i bytes, readsize = %i, writesize = %i", this, amount, m_buffer.getMaxReadSize(), m_buffer.getMaxWriteSize() - m_overflowSize);
   if (m_overflowSize)
   {
     // we have our overflow buffer - first get rid of as much as we can
@@ -237,8 +236,6 @@ size_t CCurlFile::CReadState::WriteCallback(char *buffer, size_t size, size_t ni
   }
   if (amount)
   {
-//    CLog::Log(LOGDEBUG, "CCurlFile::WriteCallback(%p) not enough free space for %i bytes", (void*)this,  amount);
-
     //! @todo Limit max. amount of the overflowbuffer
     m_overflowBuffer = (char*)realloc_simple(m_overflowBuffer, amount + m_overflowSize);
     if(m_overflowBuffer == NULL)
@@ -363,7 +360,7 @@ long CCurlFile::CReadState::Connect(unsigned int size)
     long response;
     if (CURLE_OK == g_curlInterface.easy_getinfo(m_easyHandle, CURLINFO_RESPONSE_CODE, &response))
       return response;
-    else 
+    else
       return -1;
   }
 
@@ -426,7 +423,6 @@ CCurlFile::CCurlFile()
   m_inError = false;
   m_multisession  = true;
   m_seekable = true;
-  m_useOldHttpVersion = false;
   m_connecttimeout = 0;
   m_redirectlimit = 5;
   m_lowspeedtime = 0;
@@ -525,8 +521,11 @@ void CCurlFile::SetCommonOptions(CReadState* state)
   // resolves. Unfortunately, c-ares does not yet support IPv6.
   g_curlInterface.easy_setopt(h, CURLOPT_NOSIGNAL, CURL_ON);
 
-  // not interested in failed requests
-  g_curlInterface.easy_setopt(h, CURLOPT_FAILONERROR, 1);
+  if (m_state->m_failOnError)
+  {
+    // not interested in failed requests
+    g_curlInterface.easy_setopt(h, CURLOPT_FAILONERROR, 1);
+  }
 
   // enable support for icecast / shoutcast streams
   if ( NULL == state->m_curlAliasList )
@@ -535,9 +534,8 @@ void CCurlFile::SetCommonOptions(CReadState* state)
     state->m_curlAliasList = g_curlInterface.slist_append(state->m_curlAliasList, "ICY 200 OK");
   g_curlInterface.easy_setopt(h, CURLOPT_HTTP200ALIASES, state->m_curlAliasList);
 
-  // never verify peer, we don't have any certificates to do this
-  g_curlInterface.easy_setopt(h, CURLOPT_SSL_VERIFYPEER, 0);
-  g_curlInterface.easy_setopt(h, CURLOPT_SSL_VERIFYHOST, 0);
+  if (!m_verifyPeer)
+    g_curlInterface.easy_setopt(h, CURLOPT_SSL_VERIFYPEER, 0);
 
   g_curlInterface.easy_setopt(m_state->m_easyHandle, CURLOPT_URL, m_url.c_str());
   g_curlInterface.easy_setopt(m_state->m_easyHandle, CURLOPT_TRANSFERTEXT, CURL_OFF);
@@ -600,16 +598,13 @@ void CCurlFile::SetCommonOptions(CReadState* state)
   if (m_acceptencoding.length() > 0)
     g_curlInterface.easy_setopt(h, CURLOPT_ACCEPT_ENCODING, m_acceptencoding.c_str());
 
-  if (!m_useOldHttpVersion && !m_acceptCharset.empty())
+  if (!m_acceptCharset.empty())
     SetRequestHeader("Accept-Charset", m_acceptCharset);
 
   if (m_userAgent.length() > 0)
     g_curlInterface.easy_setopt(h, CURLOPT_USERAGENT, m_userAgent.c_str());
   else /* set some default agent as shoutcast doesn't return proper stuff otherwise */
     g_curlInterface.easy_setopt(h, CURLOPT_USERAGENT, g_advancedSettings.m_userAgent.c_str());
-
-  if (m_useOldHttpVersion)
-    g_curlInterface.easy_setopt(h, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
 
   if (g_advancedSettings.m_curlDisableIPV6)
     g_curlInterface.easy_setopt(h, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
@@ -762,16 +757,22 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
       if(m_ftpport.empty())
         m_ftpport = "-";
     }
+    if (url2.HasProtocolOption("verifypeer"))
+    {
+      if (url2.GetProtocolOption("verifypeer") == "false")
+        m_verifyPeer = false;
+    }
     m_ftppasvip = url2.HasProtocolOption("pasvip") && url2.GetProtocolOption("pasvip") != "0";
   }
-  else if( url2.IsProtocol("http")
-       ||  url2.IsProtocol("https"))
+  else if(url2.IsProtocol("http") ||
+    url2.IsProtocol("https"))
   {
     const CSettings &s = CServiceBroker::GetSettings();
-    if (m_proxyhost.empty()
-        && s.GetBool(CSettings::SETTING_NETWORK_USEHTTPPROXY)
-        && !s.GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER).empty()
-        && s.GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT) > 0)
+    if (!url2.IsLocalHost() &&
+      m_proxyhost.empty() &&
+      s.GetBool(CSettings::SETTING_NETWORK_USEHTTPPROXY) &&
+      !s.GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER).empty() &&
+      s.GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT) > 0)
     {
       m_proxytype = (ProxyType)s.GetInt(CSettings::SETTING_NETWORK_HTTPPROXYTYPE);
       m_proxyhost = s.GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER);
@@ -837,6 +838,11 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
         else if (name == "customrequest")
         {
           SetCustomRequest(value);
+        }
+        else if (name == "verifypeer")
+        {
+          if (value == "false")
+            m_verifyPeer = false;
         }
         else
         {
@@ -1008,15 +1014,25 @@ bool CCurlFile::Open(const CURL& url)
                                 &m_state->m_multiHandle);
 
   // setup common curl options
+  m_state->m_failOnError = !g_advancedSettings.CanLogComponent(LOGCURL);
   SetCommonOptions(m_state);
   SetRequestHeaders(m_state);
   m_state->m_sendRange = m_seekable;
   m_state->m_bRetry = m_allowRetry;
 
   m_httpresponse = m_state->Connect(m_bufferSize);
+
   if (m_httpresponse <= 0 || m_httpresponse >= 400)
   {
-    CLog::Log(LOGERROR, "CCurlFile::Open failed with code %li for %s", m_httpresponse, url.GetRedacted().c_str());
+    std::string error;
+    if (m_httpresponse >= 400 && g_advancedSettings.CanLogComponent(LOGCURL))
+    {
+      error.resize(256);
+      ReadString(&error[0], 255);
+    }
+
+    CLog::Log(LOGERROR, "CCurlFile::Open failed with code %li for %s:\n%s", m_httpresponse, redactPath.c_str(), error.c_str());
+
     return false;
   }
 
@@ -1065,8 +1081,8 @@ bool CCurlFile::Open(const CURL& url)
     }
   }
 
-  char* efurl;
-  if (CURLE_OK == g_curlInterface.easy_getinfo(m_state->m_easyHandle, CURLINFO_EFFECTIVE_URL,&efurl) && efurl)
+  std::string efurl = GetInfoString(CURLINFO_EFFECTIVE_URL);
+  if (!efurl.empty())
   {
     if (m_url != efurl)
     {
@@ -1102,8 +1118,8 @@ bool CCurlFile::OpenForWrite(const CURL& url, bool bOverWrite)
   SetCommonOptions(m_state);
   SetRequestHeaders(m_state);
 
-  char* efurl;
-  if (CURLE_OK == g_curlInterface.easy_getinfo(m_state->m_easyHandle, CURLINFO_EFFECTIVE_URL,&efurl) && efurl)
+  std::string efurl = GetInfoString(CURLINFO_EFFECTIVE_URL);
+  if (!efurl.empty())
     m_url = efurl;
 
   m_opened = true;
@@ -1113,7 +1129,7 @@ bool CCurlFile::OpenForWrite(const CURL& url, bool bOverWrite)
 
   assert(m_state->m_multiHandle);
 
-  SetCommonOptions(m_state); 
+  SetCommonOptions(m_state);
   g_curlInterface.easy_setopt(m_state->m_easyHandle, CURLOPT_UPLOAD, 1);
 
   g_curlInterface.multi_add_handle(m_state->m_multiHandle, m_state->m_easyHandle);
@@ -1339,7 +1355,7 @@ int64_t CCurlFile::Seek(int64_t iFilePosition, int iWhence)
     {
       m_seekable = false;
       return -1;
-    } 
+    }
   }
 
   SetCorrectHeaders(m_state);
@@ -1386,7 +1402,7 @@ int CCurlFile::Stat(const CURL& url, struct __stat64* buffer)
   SetRequestHeaders(m_state);
   g_curlInterface.easy_setopt(m_state->m_easyHandle, CURLOPT_TIMEOUT, g_advancedSettings.m_curlconnecttimeout);
   g_curlInterface.easy_setopt(m_state->m_easyHandle, CURLOPT_NOBODY, 1);
-  g_curlInterface.easy_setopt(m_state->m_easyHandle, CURLOPT_FILETIME , 1); 
+  g_curlInterface.easy_setopt(m_state->m_easyHandle, CURLOPT_FILETIME , 1);
 
   if(url2.IsProtocol("ftp"))
   {
@@ -1406,8 +1422,8 @@ int CCurlFile::Stat(const CURL& url, struct __stat64* buffer)
       return -1;
   }
 
-  if(result == CURLE_GOT_NOTHING 
-  || result == CURLE_HTTP_RETURNED_ERROR 
+  if(result == CURLE_GOT_NOTHING
+  || result == CURLE_HTTP_RETURNED_ERROR
   || result == CURLE_RECV_ERROR /* some silly shoutcast servers */ )
   {
     /* some http servers and shoutcast servers don't give us any data on a head request */
@@ -1771,6 +1787,23 @@ void CCurlFile::SetRequestHeader(const std::string& header, long value)
 std::string CCurlFile::GetURL(void)
 {
   return m_url;
+}
+
+std::string CCurlFile::GetRedirectURL()
+{
+  return GetInfoString(CURLINFO_REDIRECT_URL);
+}
+
+std::string CCurlFile::GetInfoString(int infoType)
+{
+  char* info{};
+  CURLcode result = g_curlInterface.easy_getinfo(m_state->m_easyHandle, static_cast<XCURL::CURLINFO> (infoType), &info);
+  if (result != CURLE_OK)
+  {
+    CLog::Log(LOGERROR, "Info string request for type {} failed with result code {}", infoType, result);
+    return "";
+  }
+  return (info ? info : "");
 }
 
 /* STATIC FUNCTIONS */

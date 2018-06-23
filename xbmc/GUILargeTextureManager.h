@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <utility>
 #include <vector>
@@ -148,7 +148,4 @@ private:
 
   CCriticalSection m_listSection;
 };
-
-extern CGUILargeTextureManager g_largeTextureManager;
-
 

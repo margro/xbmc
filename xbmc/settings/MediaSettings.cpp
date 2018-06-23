@@ -46,6 +46,7 @@
 #include "utils/Variant.h"
 #include "video/VideoDatabase.h"
 
+using namespace KODI;
 using namespace KODI::MESSAGING;
 
 using KODI::MESSAGING::HELPERS::DialogResponse;
@@ -125,6 +126,8 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     if (!XMLUtils::GetInt(pElement, "stereomode", m_defaultVideoSettings.m_StereoMode))
       m_defaultVideoSettings.m_StereoMode = 0;
 
+    m_defaultVideoSettings.m_ToneMapMethod = 1;
+    m_defaultVideoSettings.m_ToneMapParam = 1.0f;
     m_defaultVideoSettings.m_SubtitleCached = false;
   }
 
@@ -132,13 +135,17 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
   pElement = settings->FirstChildElement("defaultgamesettings");
   if (pElement != nullptr)
   {
-    int scalingMethod;
-    if (XMLUtils::GetInt(pElement, "scalingmethod", scalingMethod, VS_SCALINGMETHOD_NEAREST, VS_SCALINGMETHOD_MAX))
-      m_defaultGameSettings.SetScalingMethod(static_cast<ESCALINGMETHOD>(scalingMethod));
+    std::string videoFilter;
+    if (XMLUtils::GetString(pElement, "videofilter", videoFilter))
+      m_defaultGameSettings.SetVideoFilter(videoFilter);
 
     int viewMode;
-    if (XMLUtils::GetInt(pElement, "viewmode", viewMode, ViewModeNormal, ViewModeZoom110Width))
-      m_defaultGameSettings.SetViewMode(static_cast<ViewMode>(viewMode));
+    if (XMLUtils::GetInt(pElement, "viewmode", viewMode, static_cast<int>(RETRO::VIEWMODE::Normal), static_cast<int>(RETRO::VIEWMODE::Max)))
+      m_defaultGameSettings.SetViewMode(static_cast<RETRO::VIEWMODE>(viewMode));
+
+    int rotation;
+    if (XMLUtils::GetInt(pElement, "rotation", rotation, 0, 270) && rotation >= 0)
+      m_defaultGameSettings.SetRotationDegCCW(static_cast<unsigned int>(rotation));
   }
 
   // mymusic settings
@@ -154,7 +161,7 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     if (!XMLUtils::GetInt(pElement, "needsupdate", m_musicNeedsUpdate, 0, INT_MAX))
       m_musicNeedsUpdate = 0;
   }
-  
+
   // Read the watchmode settings for the various media views
   pElement = settings->FirstChildElement("myvideos");
   if (pElement != NULL)
@@ -233,8 +240,9 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
   if (pNode == nullptr)
     return false;
 
-  XMLUtils::SetInt(pNode, "scalingmethod", m_defaultGameSettings.ScalingMethod());
-  XMLUtils::SetInt(pNode, "viewmode", m_defaultGameSettings.ViewMode());
+  XMLUtils::SetString(pNode, "videofilter", m_defaultGameSettings.VideoFilter());
+  XMLUtils::SetInt(pNode, "viewmode", static_cast<int>(m_defaultGameSettings.ViewMode()));
+  XMLUtils::SetInt(pNode, "rotation", m_defaultGameSettings.RotationDegCCW());
 
   // mymusic
   pNode = settings->FirstChild("mymusic");

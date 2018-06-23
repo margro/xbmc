@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 class IPowerEventsCallback
 {
@@ -57,7 +57,7 @@ public:
   virtual bool CanReboot()    = 0;
 
   virtual int  CountPowerFeatures() = 0;
-  
+
 // Battery related functions
   virtual int  BatteryLevel() = 0;
 
@@ -68,7 +68,7 @@ public:
    power related events back to xbmc through the callback.
 
    return true if an event occured and false if not.
-   
+
    \param callback the callback to signal to
    */
   virtual bool PumpPowerEvents(IPowerEventsCallback *callback) = 0;

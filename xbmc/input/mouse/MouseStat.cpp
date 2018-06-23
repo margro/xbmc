@@ -97,7 +97,7 @@ void CMouseStat::HandleEvent(XBMC_Event& newEvent)
   // this is a click, doubleclick, drag etc
   uint32_t now = CTimeUtils::GetFrameTime();
   bool bNothingDown = true;
-  
+
   for (int i = 0; i < MOUSE_MAX_BUTTON; i++)
   {
     bClick[i] = false;
@@ -234,8 +234,9 @@ void CMouseStat::SetActive(bool active /*=true*/)
   // 1. The mouse is active (it has been moved) AND
   // 2. The XBMC mouse is disabled in settings AND
   // 3. XBMC is not in fullscreen.
-  CWinSystemBase &winSystem = CServiceBroker::GetWinSystem();
-  winSystem.ShowOSMouse(m_mouseState.active && !IsEnabled() && !CServiceBroker::GetWinSystem().IsFullScreen());
+  CWinSystemBase* winSystem = CServiceBroker::GetWinSystem();
+  if (winSystem)
+    winSystem->ShowOSMouse(m_mouseState.active && !IsEnabled() && !CServiceBroker::GetWinSystem()->IsFullScreen());
 }
 
 // IsActive - returns true if we have been active in the last MOUSE_ACTIVE_LENGTH period

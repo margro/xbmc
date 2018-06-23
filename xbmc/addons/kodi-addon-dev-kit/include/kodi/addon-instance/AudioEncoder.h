@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "../AddonBase.h"
 
@@ -136,10 +137,10 @@ namespace addon
     //==========================================================================
     /// \brief Write block of data
     ///
-    /// \param[in] data                 Pointer to the array of elements to be 
+    /// \param[in] data                 Pointer to the array of elements to be
     ///                                 written
     /// \param[in] length               Size in bytes to be written.
-    /// \return                         The total number of bytes 
+    /// \return                         The total number of bytes
     ///                                 successfully written is returned.
     int Write(const uint8_t* data, int length)
     {
@@ -154,7 +155,7 @@ namespace addon
     ///
     /// \param[in] position             the position that you want to seek to
     /// \param[in] whence               [optional] offset relative to
-    ///                                 You can set the value of whence to one 
+    ///                                 You can set the value of whence to one
     ///                                 of three things:
     ///  |   Value  | int | Description                                        |
     ///  |:--------:|:---:|:---------------------------------------------------|

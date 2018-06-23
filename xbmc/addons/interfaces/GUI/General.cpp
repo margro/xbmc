@@ -45,8 +45,10 @@
 #include "Window.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/gui/General.h"
 
+#include "ServiceBroker.h"
 #include "addons/binary-addons/AddonDll.h"
 #include "input/Key.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "utils/log.h"
 
@@ -144,7 +146,7 @@ void Interface_GUIGeneral::DeInit(AddonGlobalInterface* addonInterface)
 void Interface_GUIGeneral::lock()
 {
   if (m_iAddonGUILockRef == 0)
-    g_graphicsContext.lock();
+    CServiceBroker::GetWinSystem()->GetGfxContext().lock();
   ++m_iAddonGUILockRef;
 }
 
@@ -154,7 +156,7 @@ void Interface_GUIGeneral::unlock()
   {
     --m_iAddonGUILockRef;
     if (m_iAddonGUILockRef == 0)
-      g_graphicsContext.unlock();
+      CServiceBroker::GetWinSystem()->GetGfxContext().unlock();
   }
 }
 //@}
@@ -169,7 +171,7 @@ int Interface_GUIGeneral::get_screen_height(void* kodiBase)
     return -1;
   }
 
-  return g_graphicsContext.GetHeight();
+  return CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight();
 }
 
 int Interface_GUIGeneral::get_screen_width(void* kodiBase)
@@ -181,7 +183,7 @@ int Interface_GUIGeneral::get_screen_width(void* kodiBase)
     return -1;
   }
 
-  return g_graphicsContext.GetWidth();
+  return CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
 }
 
 int Interface_GUIGeneral::get_video_resolution(void* kodiBase)
@@ -193,7 +195,7 @@ int Interface_GUIGeneral::get_video_resolution(void* kodiBase)
     return -1;
   }
 
-  return (int)g_graphicsContext.GetVideoResolution();
+  return (int)CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
 }
 //@}
 
@@ -207,8 +209,8 @@ int Interface_GUIGeneral::get_current_window_dialog_id(void* kodiBase)
     return -1;
   }
 
-  CSingleLock gl(g_graphicsContext);
-  return g_windowManager.GetTopmostModalDialog();
+  CSingleLock gl(CServiceBroker::GetWinSystem()->GetGfxContext());
+  return CServiceBroker::GetGUI()->GetWindowManager().GetTopmostModalDialog();
 }
 
 int Interface_GUIGeneral::get_current_window_id(void* kodiBase)
@@ -220,8 +222,8 @@ int Interface_GUIGeneral::get_current_window_id(void* kodiBase)
     return -1;
   }
 
-  CSingleLock gl(g_graphicsContext);
-  return g_windowManager.GetActiveWindow();
+  CSingleLock gl(CServiceBroker::GetWinSystem()->GetGfxContext());
+  return CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow();
 }
 
 //@}

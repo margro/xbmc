@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2015 Team Kodi
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include "URL.h"
 
@@ -27,7 +27,7 @@ class CDACP
 {
   public:
     CDACP(const std::string &active_remote_header, const std::string &hostname, int port);
-  
+
     void BeginFwd();
     void BeginRewnd();
     void ToggleMute();

@@ -20,6 +20,8 @@
  *
  */
 
+#pragma once
+
 // FilePipe.h: interface for the CPipeFile class.
 //
 //////////////////////////////////////////////////////////////////////
@@ -27,7 +29,6 @@
 #if !defined(AFX_FILEPIPE_H__DD2B0A9E_4971_4A29_B525_78CEFCDAF4A1__INCLUDED_)
 #define AFX_FILEPIPE_H__DD2B0A9E_4971_4A29_B525_78CEFCDAF4A1__INCLUDED_
 
-#pragma once
 #include <string>
 #include <vector>
 
@@ -37,7 +38,7 @@
 
 namespace XFILE
 {
-  
+
 class CPipeFile : public IFile, public IPipeListener
 {
 public:
@@ -62,9 +63,9 @@ public:
   bool Delete(const CURL& url) override;
   bool Rename(const CURL& url, const CURL& urlnew) override;
   int IoControl(EIoControl request, void* param) override;
-  
+
   std::string GetName() const;
-  
+
   void OnPipeOverFlow() override;
   void OnPipeUnderFlow() override;
 
@@ -75,15 +76,15 @@ public:
   bool IsEof();
   bool IsEmpty();
   bool IsClosed();
-  
+
   void SetOpenThreshold(int threshold);
 
 protected:
   int64_t m_pos;
   int64_t m_length;
-  
+
   XFILE::Pipe *m_pipe;
-  
+
   CCriticalSection m_lock;
   std::vector<XFILE::IPipeListener *> m_listeners;
 };

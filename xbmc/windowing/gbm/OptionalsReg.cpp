@@ -85,14 +85,14 @@ void GBM::VaapiProxyConfig(CVaapiProxy *proxy, void *eglDpy)
   proxy->eglDisplay = eglDpy;
 }
 
-void GBM::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
+void GBM::VAAPIRegister(CVaapiProxy *winSystem, bool deepColor)
 {
-  VAAPI::CDecoder::Register(winSystem, hevc);
+  VAAPI::CDecoder::Register(winSystem, deepColor);
 }
 
-void GBM::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
+void GBM::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &deepColor)
 {
-  CRendererVAAPI::Register(winSystem, winSystem->vaDpy, winSystem->eglDisplay, general, hevc);
+  CRendererVAAPI::Register(winSystem, winSystem->vaDpy, winSystem->eglDisplay, general, deepColor);
 }
 
 #else
@@ -115,67 +115,13 @@ void GBM::VaapiProxyConfig(CVaapiProxy *proxy, void *eglDpy)
 
 }
 
-void GBM::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
+void GBM::VAAPIRegister(CVaapiProxy *winSystem, bool deepColor)
 {
 
 }
 
-void GBM::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
+void GBM::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &deepColor)
 {
 
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// ALSA
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_ALSA
-#include "cores/AudioEngine/Sinks/AESinkALSA.h"
-bool GBM::ALSARegister()
-{
-  CAESinkALSA::Register();
-  return true;
-}
-#else
-bool GBM::ALSARegister()
-{
-  return false;
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// PulseAudio
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_PULSEAUDIO
-#include "cores/AudioEngine/Sinks/AESinkPULSE.h"
-bool GBM::PulseAudioRegister()
-{
-  bool ret = CAESinkPULSE::Register();
-  return ret;
-}
-#else
-bool GBM::PulseAudioRegister()
-{
-  return false;
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// sndio
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_SNDIO
-#include "cores/AudioEngine/Sinks/AESinkSNDIO.h"
-bool GBM::SndioRegister()
-{
-  CAESinkSNDIO::Register();
-  return true;
-}
-#else
-bool GBM::SndioRegister()
-{
-  return false;
 }
 #endif

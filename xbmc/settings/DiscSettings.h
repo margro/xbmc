@@ -1,4 +1,3 @@
-#pragma once
 /*
 *      Copyright (C) 2005-2014 Team XBMC
 *      http://kodi.tv
@@ -18,6 +17,8 @@
 *  <http://www.gnu.org/licenses/>.
 *
 */
+
+#pragma once
 
 /**
 * Playback settings
@@ -40,7 +41,7 @@ public:
 
   static CDiscSettings& GetInstance();
   void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
- 
+
 protected:
   CDiscSettings();
   ~CDiscSettings() override;

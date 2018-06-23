@@ -55,6 +55,12 @@ CDVDAudioCodecFFmpeg::~CDVDAudioCodecFFmpeg()
 
 bool CDVDAudioCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
 {
+  if (hints.cryptoSession)
+  {
+    CLog::Log(LOGERROR,"CDVDAudioCodecFFmpeg::Open() CryptoSessions unsuppoted!");
+    return false;
+  }
+
   AVCodec* pCodec = NULL;
   bool allowdtshddecode = true;
 
@@ -127,7 +133,10 @@ bool CDVDAudioCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options
   m_iSampleFormat = AV_SAMPLE_FMT_NONE;
   m_matrixEncoding = AV_MATRIX_ENCODING_NONE;
 
-  m_processInfo.SetAudioDecoderName(m_pCodecContext->codec->name);
+  m_codecName = "ff-" + std::string(m_pCodecContext->codec->name);
+
+  CLog::Log(LOGNOTICE,"CDVDAudioCodecFFmpeg::Open() Successful opened audio decoder %s", m_pCodecContext->codec->name);
+
   return true;
 }
 
@@ -203,7 +212,7 @@ void CDVDAudioCodecFFmpeg::GetData(DVDAudioFrame &frame)
   else
     frame.duration = 0.0;
 
-  int64_t bpts = av_frame_get_best_effort_timestamp(m_pFrame);
+  int64_t bpts = m_pFrame->best_effort_timestamp;
   if(bpts != AV_NOPTS_VALUE)
     frame.pts = (double)bpts * DVD_TIME_BASE / AV_TIME_BASE;
   else

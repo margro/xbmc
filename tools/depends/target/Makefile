@@ -12,7 +12,7 @@ DEPENDS = \
 	libxml2 rapidjson libmicrohttpd mariadb libffi \
 	python27 libshairplay libfmt \
 	libplist libcec libbluray tinyxml \
-	libssh taglib libusb libnfs \
+	taglib libusb libnfs \
 	pythonmodule-pil pythonmodule-pycryptodome pythonmodule-setuptools \
 	libxslt ffmpeg platform crossguid \
         libdvdread libdvdnav libdvdcss p8-platform
@@ -73,6 +73,9 @@ ifeq ($(OS),linux)
   DEPENDS += alsa-lib
   ALSA_LIB = alsa-lib
   CROSSGUID_DEPS = libuuid
+  ifeq ($(TARGET_PLATFORM),$(filter $(TARGET_PLATFORM),raspberry-pi aml gbm))
+    DEPENDS += libxkbcommon libinput libudev libevdev mtdev
+  endif
 endif
 
 ifeq ($(TARGET_PLATFORM),wayland)
@@ -96,7 +99,6 @@ libcdio: $(ICONV)
 libcdio-gplv3: $(ICONV)
 libplist: $(ZLIB)
 libbluray: $(ICONV) libxml2
-libssh: libgcrypt openssl $(ZLIB)
 mariadb: openssl $(ICONV) $(ZLIB)
 libzip: $(ZLIB)
 libpng: $(ZLIB)
@@ -116,6 +118,8 @@ libdvdread: $(DVDREAD_DEPS)
 wayland: expat libffi
 waylandpp: wayland $(WAYLANDPP_DEPS)
 dbus: expat
+libinput: mtdev libevdev
+libevdev: libudev
 
 .installed-$(PLATFORM): $(DEPENDS)
 	touch $@

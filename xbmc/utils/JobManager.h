@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <queue>
 #include <vector>
@@ -170,10 +171,10 @@ public:
 protected:
   /*!
    \brief Returns if we still have jobs waiting to be processed
-   NOTE: This function does not take into account the jobs that are currently processing 
+   NOTE: This function does not take into account the jobs that are currently processing
    */
   bool QueueEmpty() const;
-  
+
 private:
   void QueueNextJob();
 
@@ -199,7 +200,7 @@ private:
 
  \sa CJob and IJobCallback
  */
-class CJobManager
+class CJobManager final
 {
   class CWorkItem
   {
@@ -356,7 +357,6 @@ private:
   CJobManager();
   CJobManager(const CJobManager&) = delete;
   CJobManager const& operator=(CJobManager const&) = delete;
-  virtual ~CJobManager();
 
   /*! \brief Pop a job off the job queue and add to the processing queue ready to process
    \return the job to process, NULL if no jobs are available

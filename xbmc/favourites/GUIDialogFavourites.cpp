@@ -24,6 +24,7 @@
 #include "ServiceBroker.h"
 #include "favourites/FavouritesService.h"
 #include "filesystem/Directory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "input/Key.h"
@@ -109,7 +110,7 @@ void CGUIDialogFavourites::OnClick(int item)
 
   CGUIMessage message(GUI_MSG_EXECUTE, 0, GetID());
   message.SetStringParam(m_favouritesService.GetExecutePath(*(*m_favourites)[item], GetID()));
-  g_windowManager.SendMessage(message);
+  CServiceBroker::GetGUI()->GetWindowManager().SendMessage(message);
 }
 
 void CGUIDialogFavourites::OnPopupMenu(int item)
@@ -134,7 +135,9 @@ void CGUIDialogFavourites::OnPopupMenu(int item)
 
   //temporary workaround until the context menu ids are removed
   const int addonItemOffset = 10000;
-  auto addonItems = CContextMenuManager::GetInstance().GetAddonItems(*itemPtr);
+
+  auto addonItems = CServiceBroker::GetContextMenuManager().GetAddonItems(*itemPtr);
+
   for (size_t i = 0; i < addonItems.size(); ++i)
     choices.Add(addonItemOffset + i, addonItems[i]->GetLabel(*itemPtr));
 

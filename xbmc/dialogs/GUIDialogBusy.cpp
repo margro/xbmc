@@ -19,24 +19,43 @@
  */
 
 #include "GUIDialogBusy.h"
+#include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIProgressControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "threads/Thread.h"
+#include "threads/IRunnable.h"
 
 #define PROGRESS_CONTROL 10
 
 class CBusyWaiter : public CThread
 {
-  std::shared_ptr<CEvent>  m_done;
+  std::shared_ptr<CEvent> m_done;
+  IRunnable *m_runnable;
 public:
-  explicit CBusyWaiter(IRunnable *runnable) : CThread(runnable, "waiting"), m_done(new CEvent()) {  }
-  
+  explicit CBusyWaiter(IRunnable *runnable) :
+  CThread(runnable, "waiting"), m_done(new CEvent()),  m_runnable(runnable) { }
+
+  ~CBusyWaiter()
+  {
+    StopThread();
+  }
+
   bool Wait(unsigned int displaytime, bool allowCancel)
   {
     std::shared_ptr<CEvent> e_done(m_done);
 
     Create();
-    return CGUIDialogBusy::WaitOnEvent(*e_done, displaytime, allowCancel);
+    unsigned int start = XbmcThreads::SystemClockMillis();
+    if (!CGUIDialogBusy::WaitOnEvent(*e_done, displaytime, allowCancel))
+    {
+      m_runnable->Cancel();
+      unsigned int elapsed = XbmcThreads::SystemClockMillis() - start;
+      unsigned int remaining = (elapsed >= displaytime) ? 0 : displaytime - elapsed;
+      CGUIDialogBusy::WaitOnEvent(*e_done, remaining, false);
+      return false;
+    }
+    return true;
   }
 
   // 'this' is actually deleted from the thread where it's on the stack
@@ -50,12 +69,16 @@ public:
 
 };
 
-bool CGUIDialogBusy::Wait(IRunnable *runnable, unsigned int displaytime /* = 100 */, bool allowCancel /* = true */)
+bool CGUIDialogBusy::Wait(IRunnable *runnable, unsigned int displaytime, bool allowCancel)
 {
   if (!runnable)
     return false;
   CBusyWaiter waiter(runnable);
-  return waiter.Wait(displaytime, allowCancel);
+  if (!waiter.Wait(displaytime, allowCancel))
+  {
+    return false;
+  }
+  return true;
 }
 
 bool CGUIDialogBusy::WaitOnEvent(CEvent &event, unsigned int displaytime /* = 100 */, bool allowCancel /* = true */)
@@ -64,9 +87,14 @@ bool CGUIDialogBusy::WaitOnEvent(CEvent &event, unsigned int displaytime /* = 10
   if (!event.WaitMSec(displaytime))
   {
     // throw up the progress
-    CGUIDialogBusy* dialog = g_windowManager.GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
+    CGUIDialogBusy* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogBusy>(WINDOW_DIALOG_BUSY);
     if (dialog)
     {
+      if (dialog->IsDialogRunning())
+      {
+        throw std::logic_error("busy dialog already running");
+      }
+
       dialog->Open();
 
       while(!event.WaitMSec(1))
@@ -78,15 +106,15 @@ bool CGUIDialogBusy::WaitOnEvent(CEvent &event, unsigned int displaytime /* = 10
           break;
         }
       }
-      
-      dialog->Close();
+
+      dialog->Close(true);
     }
   }
   return !cancelled;
 }
 
 CGUIDialogBusy::CGUIDialogBusy(void)
-  : CGUIDialog(WINDOW_DIALOG_BUSY, "DialogBusy.xml", DialogModalityType::PARENTLESS_MODAL),
+  : CGUIDialog(WINDOW_DIALOG_BUSY, "DialogBusy.xml", DialogModalityType::MODAL),
     m_bLastVisible(false)
 {
   m_loadType = LOAD_ON_GUI_INIT;
@@ -108,7 +136,7 @@ void CGUIDialogBusy::Open_Internal(const std::string &param /* = "" */)
 
 void CGUIDialogBusy::DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
-  bool visible = g_windowManager.IsModalDialogTopmost(WINDOW_DIALOG_BUSY);
+  bool visible = CServiceBroker::GetGUI()->GetWindowManager().IsModalDialogTopmost(WINDOW_DIALOG_BUSY);
   if(!visible && m_bLastVisible)
     dirtyregions.push_back(CDirtyRegion(m_renderRegion));
   m_bLastVisible = visible;

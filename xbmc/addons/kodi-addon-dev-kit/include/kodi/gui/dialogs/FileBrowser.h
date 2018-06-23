@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team KODI
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "../definitions.h"
 #include "../../AddonBase.h"
@@ -159,7 +160,7 @@ namespace dialogs
       char* retString = nullptr;
       bool ret = CAddonBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_file_from_dir(CAddonBase::m_interface->toKodi->kodiBase,
                                                                                                           directory.c_str(), mask.c_str(), heading.c_str(),
-                                                                                                          path.c_str(), &retString, useThumbs, 
+                                                                                                          path.c_str(), &retString, useThumbs,
                                                                                                           useFileDirectories, singleList);
       if (retString != nullptr)
       {
@@ -223,7 +224,7 @@ namespace dialogs
     {
       using namespace ::kodi::addon;
       char* retString = nullptr;
-      bool ret = CAddonBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_source(CAddonBase::m_interface->toKodi->kodiBase, path.c_str(), &retString, 
+      bool ret = CAddonBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_source(CAddonBase::m_interface->toKodi->kodiBase, path.c_str(), &retString,
                                                                                                    allowNetworkShares, additionalShare.c_str(), type.c_str());
       if (retString != nullptr)
       {

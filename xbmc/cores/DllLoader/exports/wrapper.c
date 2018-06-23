@@ -45,9 +45,6 @@ typedef int64_t   off64_t;
 typedef off64_t   __off64_t;
 typedef fpos_t    fpos64_t;
 #define stat64    stat
-#if defined(TARGET_DARWIN) || defined(TARGET_ANDROID)
-#define _G_va_list va_list
-#endif
 #endif
 
 #ifdef TARGET_POSIX
@@ -394,7 +391,7 @@ int __wrap_ioctl(int d, unsigned long int request, ...)
     res = dll_ioctl(d, request, va);
     va_end(va);
     return res;
-} 
+}
 
 int __wrap__stat(const char *path, struct _stat *buffer)
 {
@@ -464,10 +461,10 @@ struct mntent *__wrap_getmntent(FILE *fp)
   return NULL;
 }
 
-// GCC 4.3 in Ubuntu 8.10 defines _FORTIFY_SOURCE=2 which means, that fread, read etc 
+// GCC 4.3 in Ubuntu 8.10 defines _FORTIFY_SOURCE=2 which means, that fread, read etc
 // are actually #defines which are inlined when compiled with -O. Those defines
 // actually call __*chk (for example, __fread_chk). We need to bypass this whole
-// thing to actually call our wrapped functions. 
+// thing to actually call our wrapped functions.
 #if _FORTIFY_SOURCE > 1
 
 size_t __wrap___fread_chk(void * ptr, size_t ptrlen, size_t size, size_t n, FILE * stream)
@@ -485,7 +482,7 @@ int __wrap___printf_chk(int flag, const char *format, ...)
   return res;
 }
 
-int __wrap___vfprintf_chk(FILE* stream, int flag, const char *format, _G_va_list ap)
+int __wrap___vfprintf_chk(FILE* stream, int flag, const char *format, va_list ap)
 {
   return dll_vfprintf(stream, format, ap);
 }

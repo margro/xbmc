@@ -468,7 +468,7 @@ function(core_optional_dyload_dep)
   foreach(depspec ${ARGN})
     set(_required False)
     split_dependency_specification(${depspec} dep version)
-    setup_enable_switch()    
+    setup_enable_switch()
     if(${enable_switch} STREQUAL AUTO)
       find_package_with_ver(${dep} ${version})
     elseif(${${enable_switch}})
@@ -634,6 +634,7 @@ function(core_find_git_rev stamp)
   else()
     find_package(Git)
     if(GIT_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/.git)
+      # get tree status i.e. clean working tree vs dirty (uncommited or unstashed changes, etc.)
       execute_process(COMMAND ${GIT_EXECUTABLE} update-index --ignore-submodules -q --refresh
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
       execute_process(COMMAND ${GIT_EXECUTABLE} diff-files --ignore-submodules --quiet --
@@ -644,21 +645,21 @@ function(core_find_git_rev stamp)
                         RESULT_VARIABLE status_code
                         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
         endif()
+        # get HEAD commit SHA-1
+        execute_process(COMMAND ${GIT_EXECUTABLE} log -n 1 --pretty=format:"%h" HEAD
+                        OUTPUT_VARIABLE HASH
+                        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        string(REPLACE "\"" "" HASH ${HASH})
+
         if(status_code)
-          execute_process(COMMAND ${GIT_EXECUTABLE} log -n 1 --pretty=format:"%h-dirty" HEAD
-                          OUTPUT_VARIABLE HASH
-                          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-          string(SUBSTRING ${HASH} 1 13 HASH)
-        else()
-          execute_process(COMMAND ${GIT_EXECUTABLE} log -n 1 --pretty=format:"%h" HEAD
-                          OUTPUT_VARIABLE HASH
-                          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-          string(SUBSTRING ${HASH} 1 7 HASH)
+          string(CONCAT HASH ${HASH} "-dirty")
         endif()
+
+      # get HEAD commit date
       execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:"%cd" --date=short HEAD
                       OUTPUT_VARIABLE DATE
                       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-      string(SUBSTRING ${DATE} 1 10 DATE)
+      string(REPLACE "\"" "" DATE ${DATE})
       string(REPLACE "-" "" DATE ${DATE})
     else()
       string(TIMESTAMP DATE "%Y%m%d" UTC)
@@ -686,6 +687,7 @@ endfunction()
 #   APP_NAME_UC - uppercased app name
 #   APP_PACKAGE - Android full package name
 #   COMPANY_NAME - company name
+#   APP_WEBSITE - site url
 #   APP_VERSION_MAJOR - the app version major
 #   APP_VERSION_MINOR - the app version minor
 #   APP_VERSION_TAG - the app version tag
@@ -710,7 +712,7 @@ macro(core_find_versions)
   core_file_read_filtered(version_list ${CORE_SOURCE_DIR}/version.txt)
   core_file_read_filtered(json_version ${CORE_SOURCE_DIR}/xbmc/interfaces/json-rpc/schema/version.txt)
   string(REGEX REPLACE "([^ ;]*) ([^;]*)" "\\1;\\2" version_list "${version_list};${json_version}")
-  set(version_props 
+  set(version_props
     ADDON_API
     APP_NAME
     APP_PACKAGE
@@ -760,6 +762,9 @@ macro(core_find_versions)
   # unset variables not used anywhere else
   unset(version_list)
   unset(APP_APP_NAME)
+  unset(APP_COMPANY_NAME)
+  unset(APP_APP_PACKAGE)
+  unset(APP_JSONRPC_VERSION)
   unset(BIN_ADDON_PARTS)
 
   # bail if we can't parse version.txt

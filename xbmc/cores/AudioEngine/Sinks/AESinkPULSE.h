@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "cores/AudioEngine/Interfaces/AESink.h"
 #include "cores/AudioEngine/Utils/AEDeviceInfo.h"
@@ -68,7 +69,7 @@ private:
   unsigned int m_BufferSize;
   unsigned int m_Channels;
 
-  pa_stream *m_Stream; 
+  pa_stream *m_Stream;
   pa_cvolume m_Volume;
   bool m_volume_needs_update;
   uint32_t m_periodSize;

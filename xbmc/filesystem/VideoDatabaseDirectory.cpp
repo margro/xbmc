@@ -56,8 +56,12 @@ bool CVideoDatabaseDirectory::GetDirectory(const CURL& url, CFileItemList &items
     if (item->m_bIsFolder && !item->HasIcon() && !item->HasArt("thumb"))
     {
       std::string strImage = GetIcon(item->GetPath());
-      if (!strImage.empty() && g_TextureManager.HasTexture(strImage))
+      if (!strImage.empty() && CServiceBroker::GetGUI()->GetTextureManager().HasTexture(strImage))
         item->SetIconImage(strImage);
+    }
+    if (item->GetVideoInfoTag())
+    {
+      item->SetDynPath(item->GetVideoInfoTag()->GetPath());
     }
   }
   items.SetLabel(pNode->GetLocalizedName());

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,12 +18,15 @@
  *
  */
 
+#pragma once
+
 #include <climits>
 #include <cmath>
 #include <vector>
 #include <string.h>
 #include <stdint.h>
 #include "MediaSource.h" // Definition of VECSOURCES
+#include "utils/Digest.h"
 
 #define ARRAY_SIZE(X)         (sizeof(X)/sizeof((X)[0]))
 
@@ -40,9 +42,7 @@ struct ExternalStreamInfo
 {
   std::string name;
   std::string language;
-  unsigned int flag;
-
-  ExternalStreamInfo() : flag(0){};
+  unsigned int flag = 0;
 };
 
 class CUtil
@@ -76,7 +76,7 @@ public:
    \param strPath - path to the file to MD5sum
    \return md5 sum of the file
    */
-  static std::string GetFileMD5(const std::string& strPath);
+  static std::string GetFileDigest(const std::string& strPath, KODI::UTILITY::CDigest::Type type);
   static bool GetDirectoryName(const std::string& strFileName, std::string& strDescription);
   static void GetDVDDriveIcon(const std::string& strPath, std::string& strIcon);
   static void RemoveTempFiles();
@@ -95,7 +95,7 @@ public:
   static bool IsVobSub(const std::vector<std::string>& vecSubtitles, const std::string& strSubPath);
   static std::string GetVobSubSubFromIdx(const std::string& vobSubIdx);
   static std::string GetVobSubIdxFromSub(const std::string& vobSub);
-  
+
   /** \brief Retrieves paths of external audio files for a given video.
   *   \param[in] videoPath The full path of the video file.
   *   \param[out] vecAudio A vector containing the full paths of all found external audio files.
@@ -123,7 +123,7 @@ public:
   static std::string MakeLegalPath(const std::string &strPath, int LegalType=LEGAL_NONE);
 #endif
   static std::string ValidatePath(const std::string &path, bool bFixDoubleSlashes = false); ///< return a validated path, with correct directory separators.
-  
+
   static bool IsUsingTTFSubtitles();
 
   /*! \brief Split a comma separated parameter list into separate parameters.

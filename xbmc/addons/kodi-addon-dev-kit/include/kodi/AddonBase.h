@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
 #include <cstdlib>
@@ -40,13 +41,9 @@
 #undef PRAGMA_PACK_END
 
 #if defined(__GNUC__)
-  #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
-    #define ATTRIBUTE_PACKED __attribute__ ((packed))
-    #define PRAGMA_PACK 0
-  #if __GNUC__ >= 4
-    #define ATTRIBUTE_HIDDEN __attribute__ ((visibility ("hidden")))
-  #endif
-  #endif
+  #define ATTRIBUTE_PACKED __attribute__ ((packed))
+  #define PRAGMA_PACK 0
+  #define ATTRIBUTE_HIDDEN __attribute__ ((visibility ("hidden")))
 #endif
 
 #if !defined(ATTRIBUTE_PACKED)
@@ -180,6 +177,8 @@ typedef struct AddonToKodiFuncTable_Addon
   AddonToKodiFuncTable_kodi_filesystem* kodi_filesystem;
   AddonToKodiFuncTable_kodi_gui* kodi_gui;
   AddonToKodiFuncTable_kodi_network *kodi_network;
+
+  void* (*get_interface)(void* kodiBase, const char *name, const char *version);
 } AddonToKodiFuncTable_Addon;
 
 /*
@@ -605,6 +604,33 @@ inline std::string TranslateAddonStatus(ADDON_STATUS status)
 } /* namespace kodi */
 //----------------------------------------------------------------------------
 
+//==============================================================================
+namespace kodi {
+///
+/// \ingroup cpp_kodi
+/// @brief Returns a function table to a named interface
+///
+/// @return pointer to struct containing interface functions
+///
+///
+/// ------------------------------------------------------------------------
+///
+/// **Example:**
+/// ~~~~~~~~~~~~~{.cpp}
+/// #include <kodi/General.h>
+/// #include <kodi/platform/foo.h>
+/// ...
+/// FuncTable_foo *table = kodi::GetPlatformInfo(foo_name, foo_version);
+/// ...
+/// ~~~~~~~~~~~~~
+///
+inline void* GetInterface(const std::string &name, const std::string &version)
+{
+  AddonToKodiFuncTable_Addon* toKodi = ::kodi::addon::CAddonBase::m_interface->toKodi;
+
+  return toKodi->get_interface(toKodi->kodiBase, name.c_str(), version.c_str());
+}
+} /* namespace kodi */
 
 /*! addon creation macro
  * @todo cleanup this stupid big macro

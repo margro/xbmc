@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,9 +18,11 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include <vector>
-#include "guilib/GUIInfoTypes.h"
+#include "guilib/guiinfo/GUIInfoLabel.h"
 #include "interfaces/info/InfoBool.h"
 
 class TiXmlElement;
@@ -41,7 +42,7 @@ class CSkinVariableString
 public:
   const std::string& GetName() const;
   int GetContext() const;
-  std::string GetValue(bool preferImage = false, const CGUIListItem *item = NULL );
+  std::string GetValue(bool preferImage = false, const CGUIListItem *item = nullptr) const;
 private:
   CSkinVariableString();
 
@@ -51,7 +52,7 @@ private:
   struct ConditionLabelPair
   {
     INFO::InfoPtr m_condition;
-    CGUIInfoLabel m_label;
+    KODI::GUILIB::GUIINFO::CGUIInfoLabel m_label;
   };
 
   typedef std::vector<ConditionLabelPair> VECCONDITIONLABELPAIR;

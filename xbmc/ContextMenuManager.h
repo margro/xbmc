@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2013-2015 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <utility>
 #include <vector>
 
@@ -37,7 +38,6 @@ public:
 
   explicit CContextMenuManager(ADDON::CAddonMgr& addonMgr);
   ~CContextMenuManager();
-  static CContextMenuManager& GetInstance();
 
   void Init();
   void Deinit();

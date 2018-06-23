@@ -20,6 +20,7 @@
 
 #include "Application.h"
 #include "ServiceBroker.h"
+#include "GUIComponent.h"
 #include "messaging/ApplicationMessenger.h"
 #include "LocalizeStrings.h"
 #include "GUIKeyboardFactory.h"
@@ -27,7 +28,7 @@
 #include "GUIWindowManager.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "settings/Settings.h"
-#include "utils/md5.h"
+#include "utils/Digest.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 
@@ -37,6 +38,7 @@
 #endif
 
 using namespace KODI::MESSAGING;
+using KODI::UTILITY::CDigest;
 
 CGUIKeyboard *CGUIKeyboardFactory::g_activeKeyboard = NULL;
 FILTERING CGUIKeyboardFactory::m_filtering = FILTERING_NONE;
@@ -56,7 +58,7 @@ void CGUIKeyboardFactory::keyTypedCB(CGUIKeyboard *ref, const std::string &typed
       case FILTERING_SEARCH:
         message.SetParam1(GUI_MSG_SEARCH_UPDATE);
         message.SetStringParam(typedString);
-        CApplicationMessenger::GetInstance().SendGUIMessage(message, g_windowManager.GetActiveWindow());
+        CApplicationMessenger::GetInstance().SendGUIMessage(message, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
         break;
       case FILTERING_CURRENT:
         message.SetParam1(GUI_MSG_FILTER_ITEMS);
@@ -93,9 +95,9 @@ bool CGUIKeyboardFactory::ShowAndGetInput(std::string& aTextString, CVariant hea
     headingStr = g_localizeStrings.Get((uint32_t)heading.asInteger());
 
 #if defined(TARGET_DARWIN_IOS)
-  kb = g_windowManager.GetWindow<CGUIDialogKeyboardTouch>(WINDOW_DIALOG_KEYBOARD_TOUCH);
+  kb = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogKeyboardTouch>(WINDOW_DIALOG_KEYBOARD_TOUCH);
 #else
-  kb = g_windowManager.GetWindow<CGUIDialogKeyboardGeneric>(WINDOW_DIALOG_KEYBOARD);
+  kb = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogKeyboardGeneric>(WINDOW_DIALOG_KEYBOARD);
 #endif
 
   if (kb)
@@ -165,8 +167,7 @@ bool CGUIKeyboardFactory::ShowAndVerifyNewPassword(std::string& newPassword, CVa
   // check the password
   if (checkInput == userInput)
   {
-    newPassword = XBMC::XBMC_MD5::GetMD5(userInput);
-    StringUtils::ToLower(newPassword);
+    newPassword = CDigest::Calculate(CDigest::Type::MD5, userInput);
     return true;
   }
   HELPERS::ShowOKDialogText(CVariant{12341}, CVariant{12344});
@@ -205,7 +206,7 @@ int CGUIKeyboardFactory::ShowAndVerifyPassword(std::string& strPassword, const s
 
   if (!strPassword.empty())
   {
-    std::string md5pword2 = XBMC::XBMC_MD5::GetMD5(strUserInput);
+    std::string md5pword2 = CDigest::Calculate(CDigest::Type::MD5, strUserInput);
     if (StringUtils::EqualsNoCase(strPassword, md5pword2))
       return 0;     // user entered correct password
     else return 1;  // user must have entered an incorrect password
@@ -214,8 +215,7 @@ int CGUIKeyboardFactory::ShowAndVerifyPassword(std::string& strPassword, const s
   {
     if (!strUserInput.empty())
     {
-      strPassword = XBMC::XBMC_MD5::GetMD5(strUserInput);
-      StringUtils::ToLower(strPassword);
+      strPassword = CDigest::Calculate(CDigest::Type::MD5, strUserInput);
       return 0; // user entered correct password
     }
     else return 1;

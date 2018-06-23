@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2011-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 
 #include "interfaces/json-rpc/IClient.h"
@@ -30,7 +31,7 @@ class CHTTPJsonRpcHandler : public IHTTPRequestHandler
 public:
   CHTTPJsonRpcHandler() = default;
   ~CHTTPJsonRpcHandler() override = default;
-  
+
   // implementations of IHTTPRequestHandler
   IHTTPRequestHandler* Create(const HTTPRequest &request) const override { return new CHTTPJsonRpcHandler(request); }
   bool CanHandleRequest(const HTTPRequest &request) const override;
@@ -46,11 +47,7 @@ protected:
     : IHTTPRequestHandler(request)
   { }
 
-#if (MHD_VERSION >= 0x00040001)
   bool appendPostData(const char *data, size_t size) override;
-#else
-  bool appendPostData(const char *data, unsigned int size) override;
-#endif
 
 private:
   std::string m_requestData;

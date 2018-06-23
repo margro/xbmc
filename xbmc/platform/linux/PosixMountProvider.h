@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,9 +17,12 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 #include <string>
 #include <vector>
- 
+
 #include "storage/IStorageProvider.h"
 
 class CPosixMountProvider : public IStorageProvider

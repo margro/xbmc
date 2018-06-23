@@ -20,7 +20,9 @@
 
 #include "ModuleXbmcgui.h"
 #include "LanguageHook.h"
-#include "guilib/GraphicContext.h"
+#include "ServiceBroker.h"
+#include "guilib/GUIComponent.h"
+#include "windowing/GraphicContext.h"
 #include "guilib/GUIWindowManager.h"
 
 #define NOTIFICATION_INFO     "info"
@@ -34,27 +36,27 @@ namespace XBMCAddon
     long getCurrentWindowId()
     {
       DelayedCallGuard dg;
-      CSingleLock gl(g_graphicsContext);
-      return g_windowManager.GetActiveWindow();
+      CSingleLock gl(CServiceBroker::GetWinSystem()->GetGfxContext());
+      return CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow();
     }
 
     long getCurrentWindowDialogId()
     {
       DelayedCallGuard dg;
-      CSingleLock gl(g_graphicsContext);
-      return g_windowManager.GetTopmostModalDialog();
+      CSingleLock gl(CServiceBroker::GetWinSystem()->GetGfxContext());
+      return CServiceBroker::GetGUI()->GetWindowManager().GetTopmostModalDialog();
     }
 
     long getScreenHeight()
     {
       XBMC_TRACE;
-      return g_graphicsContext.GetHeight();
+      return CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight();
     }
 
     long getScreenWidth()
     {
       XBMC_TRACE;
-      return g_graphicsContext.GetWidth();
+      return CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
     }
 
     const char* getNOTIFICATION_INFO()    { return NOTIFICATION_INFO; }

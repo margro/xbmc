@@ -21,6 +21,7 @@
 #include "EpgInfoTag.h"
 
 #include "ServiceBroker.h"
+#include "addons/PVRClient.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "cores/DataCacheCore.h"
 #include "guilib/LocalizeStrings.h"
@@ -31,7 +32,6 @@
 #include "utils/log.h"
 
 #include "pvr/PVRManager.h"
-#include "pvr/addons/PVRClients.h"
 #include "pvr/epg/Epg.h"
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/epg/EpgDatabase.h"
@@ -223,11 +223,14 @@ void CPVREpgInfoTag::Serialize(CVariant &value) const
 CDateTime CPVREpgInfoTag::GetCurrentPlayingTime() const
 {
   if (CServiceBroker::GetPVRManager().GetPlayingChannel() == Channel() &&
-      CServiceBroker::GetPVRManager().Clients()->IsTimeshifting())
+      CServiceBroker::GetPVRManager().IsTimeshifting())
   {
-    // timeshifting
-    return CDateTime(CServiceBroker::GetDataCacheCore().GetStartTime() +
-                     CServiceBroker::GetDataCacheCore().GetPlayTime() / 1000);
+    // timeshifting; start time valid?
+    time_t startTime = CServiceBroker::GetDataCacheCore().GetStartTime();
+    if (startTime > 0)
+    {
+      return CDateTime(startTime + CServiceBroker::GetDataCacheCore().GetPlayTime() / 1000);
+    }
   }
 
   // not timeshifting
@@ -694,10 +697,6 @@ bool CPVREpgInfoTag::Persist(bool bSingleUpdate /* = true */)
 {
   bool bReturn = false;
 
-#if EPG_DEBUGGING
-  CLog::Log(LOGDEBUG, "Epg - %s - Infotag '%s' %s, persisting...", __FUNCTION__, m_strTitle.c_str(), m_iBroadcastId > 0 ? "has changes" : "is new");
-#endif
-
   CPVREpgDatabasePtr database = CServiceBroker::GetPVRManager().EpgContainer().GetEpgDatabase();
   if (!database)
   {
@@ -715,6 +714,17 @@ bool CPVREpgInfoTag::Persist(bool bSingleUpdate /* = true */)
   }
 
   return bReturn;
+}
+
+std::vector<PVR_EDL_ENTRY> CPVREpgInfoTag::GetEdl() const
+{
+  std::vector<PVR_EDL_ENTRY> edls;
+  const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(m_iClientId);
+
+  if (client && client->GetClientCapabilities().SupportsEpgTagEdl())
+    client->GetEpgTagEdl(shared_from_this(), edls);
+
+  return edls;
 }
 
 void CPVREpgInfoTag::UpdatePath(void)
@@ -775,7 +785,8 @@ CPVRRecordingPtr CPVREpgInfoTag::Recording(void) const
 bool CPVREpgInfoTag::IsRecordable(void) const
 {
   bool bIsRecordable = false;
-  if (CServiceBroker::GetPVRManager().Clients()->IsRecordable(shared_from_this(), bIsRecordable) != PVR_ERROR_NO_ERROR)
+  const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(m_iClientId);
+  if (!client || (client->IsRecordable(shared_from_this(), bIsRecordable) != PVR_ERROR_NO_ERROR))
   {
     // event end time based fallback
     bIsRecordable = EndAsLocalTime() > CDateTime::GetCurrentDateTime();
@@ -786,7 +797,8 @@ bool CPVREpgInfoTag::IsRecordable(void) const
 bool CPVREpgInfoTag::IsPlayable(void) const
 {
   bool bIsPlayable = false;
-  if (CServiceBroker::GetPVRManager().Clients()->IsPlayable(shared_from_this(), bIsPlayable) != PVR_ERROR_NO_ERROR)
+  const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(m_iClientId);
+  if (!client || (client->IsPlayable(shared_from_this(), bIsPlayable) != PVR_ERROR_NO_ERROR))
   {
     // fallback
     bIsPlayable = false;

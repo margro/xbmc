@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "AddonBase.h"
 
@@ -188,8 +189,8 @@ namespace kodi {
 /// @return               The localized message, or default if the add-on
 ///                       helper fails to return a message
 ///
-/// @note Label id's \b 30000 to \b 30999 and \b 32000 to \b 32999 are related 
-/// to the add-on's own included strings from 
+/// @note Label id's \b 30000 to \b 30999 and \b 32000 to \b 32999 are related
+/// to the add-on's own included strings from
 /// <b>./resources/language/resource.language.??_??/strings.po</b>
 /// All other strings are from Kodi core language files.
 ///

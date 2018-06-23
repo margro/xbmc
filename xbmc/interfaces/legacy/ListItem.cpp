@@ -39,7 +39,7 @@ namespace XBMCAddon
 {
   namespace xbmcgui
   {
-    ListItem::ListItem(const String& label, 
+    ListItem::ListItem(const String& label,
                        const String& label2,
                        const String& iconImage,
                        const String& thumbnailImage,
@@ -250,6 +250,12 @@ namespace XBMCAddon
         item->SetProperty(lowerKey, value);
     }
 
+    void ListItem::setProperties(const Properties& dictionary)
+    {
+      for (const auto& it: dictionary)
+        setProperty(it.first.c_str(), it.second);
+    }
+
     String ListItem::getProperty(const char* key)
     {
       XBMCAddonUtils::GuiLock lock(languageHook, m_offscreen);
@@ -412,7 +418,7 @@ namespace XBMCAddon
             videotag.m_cast.clear();
             for (const auto& castEntry: alt.later())
             {
-              // castEntry can be a string meaning it's the actor or it can be a tuple meaning it's the 
+              // castEntry can be a string meaning it's the actor or it can be a tuple meaning it's the
               //  actor and the role.
               const String& actor = castEntry.which() == first ? castEntry.former() : castEntry.later().first();
               SActorInfo info;
@@ -426,7 +432,7 @@ namespace XBMCAddon
           {
             if (alt.which() != second)
               throw WrongTypeException("When using \"artist\" you need to supply a list of strings for the value in the dictionary");
-            
+
             videotag.m_artist.clear();
 
             for (const auto& castEntry: alt.later())
@@ -644,9 +650,10 @@ namespace XBMCAddon
           else
           {
             const String& exifkey = key;
-            if (!StringUtils::StartsWithNoCase(exifkey, "exif:") || exifkey.length() < 6) continue;
-            int info = CPictureInfoTag::TranslateString(StringUtils::Mid(exifkey,5));
-            item->GetPictureInfoTag()->SetInfo(info, value);
+            if (!StringUtils::StartsWithNoCase(exifkey, "exif:") || exifkey.length() < 6)
+              continue;
+
+            item->GetPictureInfoTag()->SetInfo(StringUtils::Mid(exifkey, 5), value);
           }
         }
       }
@@ -746,10 +753,10 @@ namespace XBMCAddon
       GetVideoInfoTag()->m_fanart.Pack();
     }
 
-    void ListItem::addAvailableThumb(std::string url, std::string aspect, std::string referrer, std::string cache, bool post, bool isgz, int season)
+    void ListItem::addAvailableArtwork(std::string url, std::string art_type, std::string referrer, std::string cache, bool post, bool isgz, int season)
     {
       XBMCAddonUtils::GuiLock lock(languageHook, m_offscreen);
-      GetVideoInfoTag()->m_strPictureURL.AddElement(url, aspect, referrer, cache, post, isgz, season);
+      GetVideoInfoTag()->m_strPictureURL.AddElement(url, art_type, referrer, cache, post, isgz, season);
     }
 
     void ListItem::addStreamInfo(const char* cType, const Properties& dictionary)
@@ -863,7 +870,7 @@ namespace XBMCAddon
           value = alt.former();
         return StringUtils::Split(value, g_advancedSettings.m_videoItemSeparator);
       }
-      
+
       std::vector<std::string> els;
       for (const auto& el : alt.later())
       {

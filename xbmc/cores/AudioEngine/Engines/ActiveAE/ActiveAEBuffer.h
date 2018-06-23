@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
  *      http://kodi.tv
@@ -19,9 +18,10 @@
  *
  */
 
+#pragma once
+
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include <deque>
 #include <memory>
 
@@ -162,5 +162,5 @@ protected:
   int64_t m_lastSamplePts;
   bool m_fillPackets;
 };
-  
+
 }

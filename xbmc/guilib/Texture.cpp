@@ -33,7 +33,7 @@
 #endif
 #if defined(TARGET_ANDROID)
 #include "URL.h"
-#include "filesystem/AndroidAppFile.h"
+#include "platform/android/filesystem/AndroidAppFile.h"
 #endif
 #ifdef TARGET_POSIX
 #include "platform/linux/XMemUtils.h"
@@ -69,16 +69,20 @@ void CBaseTexture::Allocate(unsigned int width, unsigned int height, unsigned in
   m_textureHeight = m_imageHeight;
 
   if (m_format & XB_FMT_DXT_MASK)
-    while (GetPitch() < CServiceBroker::GetRenderSystem().GetMinDXTPitch())
+  {
+    while (GetPitch() < CServiceBroker::GetRenderSystem()->GetMinDXTPitch())
       m_textureWidth += GetBlockSize();
+  }
 
-  if (!CServiceBroker::GetRenderSystem().SupportsNPOT((m_format & XB_FMT_DXT_MASK) != 0))
+  if (!CServiceBroker::GetRenderSystem()->SupportsNPOT((m_format & XB_FMT_DXT_MASK) != 0))
   {
     m_textureWidth = PadPow2(m_textureWidth);
     m_textureHeight = PadPow2(m_textureHeight);
   }
+
   if (m_format & XB_FMT_DXT_MASK)
-  { // DXT textures must be a multiple of 4 in width and height
+  {
+    // DXT textures must be a multiple of 4 in width and height
     m_textureWidth = ((m_textureWidth + 3) / 4) * 4;
     m_textureHeight = ((m_textureHeight + 3) / 4) * 4;
   }
@@ -99,8 +103,8 @@ void CBaseTexture::Allocate(unsigned int width, unsigned int height, unsigned in
 
   // check for max texture size
   #define CLAMP(x, y) { if (x > y) x = y; }
-  CLAMP(m_textureWidth, CServiceBroker::GetRenderSystem().GetMaxTextureSize());
-  CLAMP(m_textureHeight, CServiceBroker::GetRenderSystem().GetMaxTextureSize());
+  CLAMP(m_textureWidth, CServiceBroker::GetRenderSystem()->GetMaxTextureSize());
+  CLAMP(m_textureHeight, CServiceBroker::GetRenderSystem()->GetMaxTextureSize());
   CLAMP(m_imageWidth, m_textureWidth);
   CLAMP(m_imageHeight, m_textureHeight);
 
@@ -127,7 +131,7 @@ void CBaseTexture::Update(unsigned int width, unsigned int height, unsigned int 
     return;
 
   Allocate(width, height, format);
-  
+
   if (m_pixels == nullptr)
     return;
 
@@ -241,10 +245,10 @@ bool CBaseTexture::LoadFromFileInternal(const std::string& texturePath, unsigned
     return false;
   }
 
-  unsigned int width = maxWidth ? std::min(maxWidth, CServiceBroker::GetRenderSystem().GetMaxTextureSize()) :
-                                  CServiceBroker::GetRenderSystem().GetMaxTextureSize();
-  unsigned int height = maxHeight ? std::min(maxHeight, CServiceBroker::GetRenderSystem().GetMaxTextureSize()) :
-                                    CServiceBroker::GetRenderSystem().GetMaxTextureSize();
+  unsigned int width = maxWidth ? std::min(maxWidth, CServiceBroker::GetRenderSystem()->GetMaxTextureSize()) :
+                                  CServiceBroker::GetRenderSystem()->GetMaxTextureSize();
+  unsigned int height = maxHeight ? std::min(maxHeight, CServiceBroker::GetRenderSystem()->GetMaxTextureSize()) :
+                                    CServiceBroker::GetRenderSystem()->GetMaxTextureSize();
 
   // Read image into memory to use our vfs
   XFILE::CFile file;
@@ -296,10 +300,10 @@ bool CBaseTexture::LoadFromFileInMem(unsigned char* buffer, size_t size, const s
   if (!buffer || !size)
     return false;
 
-  unsigned int width = maxWidth ? std::min(maxWidth, CServiceBroker::GetRenderSystem().GetMaxTextureSize()) :
-                                  CServiceBroker::GetRenderSystem().GetMaxTextureSize();
-  unsigned int height = maxHeight ? std::min(maxHeight, CServiceBroker::GetRenderSystem().GetMaxTextureSize()) :
-                                    CServiceBroker::GetRenderSystem().GetMaxTextureSize();
+  unsigned int width = maxWidth ? std::min(maxWidth, CServiceBroker::GetRenderSystem()->GetMaxTextureSize()) :
+                                  CServiceBroker::GetRenderSystem()->GetMaxTextureSize();
+  unsigned int height = maxHeight ? std::min(maxHeight, CServiceBroker::GetRenderSystem()->GetMaxTextureSize()) :
+                                    CServiceBroker::GetRenderSystem()->GetMaxTextureSize();
 
   IImage* pImage = ImageFactory::CreateLoaderFromMimeType(mimeType);
   if(!LoadIImage(pImage, buffer, size, width, height))

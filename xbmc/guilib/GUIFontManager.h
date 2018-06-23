@@ -1,13 +1,3 @@
-/*!
-\file GUIFontManager.h
-\brief
-*/
-
-#ifndef GUILIB_FONTMANAGER_H
-#define GUILIB_FONTMANAGER_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -28,11 +18,19 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIFontManager.h
+\brief
+*/
+
 #include <utility>
 #include <vector>
 
-#include "GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "IMsgTargetCallback.h"
+#include "utils/Color.h"
 #include "utils/GlobalsHandling.h"
 
 // Forward
@@ -67,7 +65,7 @@ public:
 
   void Unload(const std::string& strFontName);
   void LoadFonts(const std::string &fontSet);
-  CGUIFont* LoadTTF(const std::string& strFontName, const std::string& strFilename, color_t textColor, color_t shadowColor, const int iSize, const int iStyle, bool border = false, float lineSpacing = 1.0f, float aspect = 1.0f, const RESOLUTION_INFO *res = NULL, bool preserveAspect = false);
+  CGUIFont* LoadTTF(const std::string& strFontName, const std::string& strFilename, UTILS::Color textColor, UTILS::Color shadowColor, const int iSize, const int iStyle, bool border = false, float lineSpacing = 1.0f, float aspect = 1.0f, const RESOLUTION_INFO *res = NULL, bool preserveAspect = false);
   CGUIFont* GetFont(const std::string& strFontName, bool fallback = true);
 
   /*! \brief return a default font
@@ -101,4 +99,4 @@ protected:
  */
 XBMC_GLOBAL_REF(GUIFontManager, g_fontManager);
 #define g_fontManager XBMC_GLOBAL_USE(GUIFontManager)
-#endif
+

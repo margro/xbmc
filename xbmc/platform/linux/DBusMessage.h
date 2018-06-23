@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -77,6 +79,8 @@ public:
     AppendArgument(first);
     AppendArguments(args...);
   }
+
+  DBusMessageIter * GetArgumentIter();
 
   /**
    * Retrieve simple arguments from DBus reply message

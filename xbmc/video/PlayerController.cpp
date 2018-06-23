@@ -23,15 +23,17 @@
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogSlider.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "cores/IPlayer.h"
 #include "input/Key.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/GUISliderControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogKaiToast.h"
-#include "video/dialogs/GUIDialogAudioSubtitleSettings.h"
+#include "video/dialogs/GUIDialogAudioSettings.h"
 #include "cores/VideoPlayer/VideoRenderers/OverlayRendererGUI.h"
 #include "Application.h"
 #include "utils/LangCodeExpander.h"
@@ -315,7 +317,7 @@ bool CPlayerController::OnAction(const CAction &action)
 
       case ACTION_SUBTITLE_VSHIFT_UP:
       {
-        RESOLUTION_INFO res_info = g_graphicsContext.GetResInfo();
+        RESOLUTION_INFO res_info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
         int subalign = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_ALIGN);
         if ((subalign == SUBTITLE_ALIGN_BOTTOM_OUTSIDE) || (subalign == SUBTITLE_ALIGN_TOP_INSIDE))
         {
@@ -336,13 +338,13 @@ bool CPlayerController::OnAction(const CAction &action)
           else
             ShowSlider(action.GetID(), 274, (float) res_info.iSubtitles - res_info.iHeight, (float) -res_info.iHeight, -1.0f, 0.0f);
         }
-        g_graphicsContext.SetResInfo(g_graphicsContext.GetVideoResolution(), res_info);
+        CServiceBroker::GetWinSystem()->GetGfxContext().SetResInfo(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution(), res_info);
         return true;
       }
 
       case ACTION_SUBTITLE_VSHIFT_DOWN:
       {
-        RESOLUTION_INFO res_info =  g_graphicsContext.GetResInfo();
+        RESOLUTION_INFO res_info =  CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
         int subalign = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_ALIGN);
         if ((subalign == SUBTITLE_ALIGN_BOTTOM_OUTSIDE) || (subalign == SUBTITLE_ALIGN_TOP_INSIDE))
         {
@@ -363,13 +365,13 @@ bool CPlayerController::OnAction(const CAction &action)
           else
             ShowSlider(action.GetID(), 274, (float) res_info.iSubtitles - res_info.iHeight, (float) -res_info.iHeight, -1.0f, 0.0f);
         }
-        g_graphicsContext.SetResInfo(g_graphicsContext.GetVideoResolution(), res_info);
+        CServiceBroker::GetWinSystem()->GetGfxContext().SetResInfo(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution(), res_info);
         return true;
       }
 
       case ACTION_SUBTITLE_ALIGN:
       {
-        RESOLUTION_INFO res_info = g_graphicsContext.GetResInfo();
+        RESOLUTION_INFO res_info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
         int subalign = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_ALIGN);
 
         subalign++;
@@ -381,9 +383,9 @@ bool CPlayerController::OnAction(const CAction &action)
         CServiceBroker::GetSettings().SetInt(CSettings::SETTING_SUBTITLES_ALIGN, subalign);
         CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Info,
                                               g_localizeStrings.Get(21460),
-                                              g_localizeStrings.Get(21461 + subalign), 
+                                              g_localizeStrings.Get(21461 + subalign),
                                               TOAST_DISPLAY_TIME, false);
-        g_graphicsContext.SetResInfo(g_graphicsContext.GetVideoResolution(), res_info);
+        CServiceBroker::GetWinSystem()->GetGfxContext().SetResInfo(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution(), res_info);
         return true;
       }
 
@@ -432,7 +434,7 @@ bool CPlayerController::OnAction(const CAction &action)
       {
         std::vector<ProgramInfo> programs;
         g_application.GetAppPlayer().GetPrograms(programs);
-        CGUIDialogSelect *dialog = g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
+        CGUIDialogSelect *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
         if (dialog)
         {
           int playing = 0;
@@ -450,6 +452,38 @@ bool CPlayerController::OnAction(const CAction &action)
           idx = dialog->GetSelectedItem();
           if (idx > 0)
             g_application.GetAppPlayer().SetProgram(programs[idx].id);
+        }
+        return true;
+      }
+
+      case ACTION_PLAYER_RESOLUTION_SELECT:
+      {
+        std::vector<CVariant> indexList = CServiceBroker::GetSettings().GetList(CSettings::SETTING_VIDEOSCREEN_WHITELIST);
+
+        CGUIDialogSelect *dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
+        if (dialog)
+        {
+          int current = 0;
+          int idx = 0;
+          auto currentRes = CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
+          for (const CVariant &mode : indexList)
+          {
+            auto res = CDisplaySettings::GetInstance().GetResFromString(mode.asString());
+            const RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(res);
+            dialog->Add(info.strMode);
+            if (res == currentRes)
+              current = idx;
+            idx++;
+          }
+          dialog->SetHeading(CVariant{g_localizeStrings.Get(39110)});
+          dialog->SetSelected(current);
+          dialog->Open();
+          idx = dialog->GetSelectedItem();
+          if (idx >= 0)
+          {
+            auto res = CDisplaySettings::GetInstance().GetResFromString(indexList[idx].asString());
+            CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(res, false);
+          }
         }
         return true;
       }
@@ -486,9 +520,9 @@ void CPlayerController::OnSliderChange(void *data, CGUISliderControl *slider)
   else if (m_sliderAction == ACTION_VOLAMP_UP ||
           m_sliderAction == ACTION_VOLAMP_DOWN ||
           m_sliderAction == ACTION_VOLAMP)
-    slider->SetTextValue(CGUIDialogAudioSubtitleSettings::FormatDecibel(slider->GetFloatValue()));
+    slider->SetTextValue(CGUIDialogAudioSettings::FormatDecibel(slider->GetFloatValue()));
   else
-    slider->SetTextValue(CGUIDialogAudioSubtitleSettings::FormatDelay(slider->GetFloatValue(), 0.025f));
+    slider->SetTextValue(CGUIDialogAudioSettings::FormatDelay(slider->GetFloatValue(), 0.025f));
 
   if (g_application.GetAppPlayer().HasPlayer())
   {

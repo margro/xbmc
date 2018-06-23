@@ -19,6 +19,7 @@
  */
 
 #include "KeymapActionMap.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Action.h"
 #include "input/InputManager.h"
@@ -30,6 +31,6 @@ using namespace KEYBOARD;
 
 unsigned int CKeymapActionMap::GetActionID(const CKey& key)
 {
-  CAction action = CServiceBroker::GetInputManager().GetAction(g_windowManager.GetActiveWindowOrDialog(), key);
+  CAction action = CServiceBroker::GetInputManager().GetAction(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog(), key);
   return action.GetID();
 }

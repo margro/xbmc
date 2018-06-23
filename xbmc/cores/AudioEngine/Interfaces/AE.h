@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <map>
 #include <list>
@@ -74,16 +75,10 @@ protected:
   virtual ~IAE() = default;
 
   /**
-   * Returns true when it should be possible to initialize this engine, if it returns false
-   * CAEFactory can possibly fall back to a different one
-   */
-  virtual bool CanInit() { return true; }
-
-  /**
    * Initializes the AudioEngine, called by CFactory when it is time to initialize the audio engine.
    * Do not call this directly, CApplication will call this when it is ready
    */
-  virtual bool Initialize() = 0;
+  virtual void Start() = 0;
 public:
   /**
    * Called when the application needs to terminate the engine
@@ -148,9 +143,10 @@ public:
    * This method will remove the specifyed stream from the engine.
    * For OSX/IOS this is essential to reconfigure the audio output.
    * @param stream The stream to be altered
+   * @param finish if true AE will switch back to gui sound mode (if this is last stream)
    * @return NULL
    */
-  virtual bool FreeStream(IAEStream *stream) = 0;
+  virtual bool FreeStream(IAEStream *stream, bool finish) = 0;
 
   /**
    * Creates a new IAESound that is ready to play the specified file
@@ -164,11 +160,6 @@ public:
    * @param sound The IAESound object to free
    */
   virtual void FreeSound(IAESound *sound) = 0;
-
-  /**
-   * Callback by CApplication for Garbage Collection. This method is called by CApplication every 500ms and can be used to clean up and free no-longer used resources.
-   */
-  virtual void GarbageCollect() = 0;
 
   /**
    * Enumerate the supported audio output devices
@@ -228,11 +219,6 @@ public:
    * Instruct AE to re-initialize, e.g. after ELD change event
    */
   virtual void DeviceChange() {return; }
-
-  /**
-   * Indicates if dsp addon system is active.
-   */
-  virtual bool HasDSP() { return false; };
 
   /**
    * Get the current sink data format

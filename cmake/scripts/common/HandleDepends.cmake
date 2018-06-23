@@ -54,9 +54,6 @@ function(add_addon_depends addon searchpath)
         if(EXISTS ${dir}/flags.txt)
           set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${dir}/flags.txt)
           file(STRINGS ${dir}/flags.txt extraflags)
-
-          # replace some custom placeholders
-          string(REPLACE "@MINGW_TOOLCHAIN_FILE@" "${OUTPUT_DIR}/Toolchain_mingw32.cmake" extraflags "${extraflags}")
           string(REPLACE " " ";" extraflags ${extraflags})
 
           message(STATUS "${id} extraflags: ${extraflags}")
@@ -234,9 +231,23 @@ function(add_addon_depends addon searchpath)
                                     -DCMAKE_INCLUDE_PATH=${OUTPUT_DIR}/include)
             endif()
 
+            set(DOWNLOAD_DIR ${BUILD_DIR}/download)
+            if(EXISTS ${dir}/${id}.sha256)
+              file(STRINGS ${dir}/${id}.sha256 sha256sum)
+              list(GET sha256sum 0 sha256sum)
+              set(URL_HASH_COMMAND URL_HASH SHA256=${sha256sum})
+              if(TARBALL_DIR)
+                set(DOWNLOAD_DIR ${TARBALL_DIR})
+              endif()
+            else()
+              unset(URL_HASH_COMMAND)
+              message(AUTHOR_WARNING "${dir}/${id}.sha256 is missing")
+            endif()
+
             externalproject_add(${id}
                                 URL ${url}
-                                DOWNLOAD_DIR ${BUILD_DIR}/download
+                                "${URL_HASH_COMMAND}"
+                                DOWNLOAD_DIR ${DOWNLOAD_DIR}
                                 CONFIGURE_COMMAND ${CONFIGURE_COMMAND}
                                 "${EXTERNALPROJECT_SETUP}")
           endif()

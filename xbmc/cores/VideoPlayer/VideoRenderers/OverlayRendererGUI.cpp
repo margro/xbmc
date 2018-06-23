@@ -24,6 +24,7 @@
 #include "filesystem/File.h"
 #include "ServiceBroker.h"
 #include "Util.h"
+#include "utils/Color.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
@@ -34,14 +35,14 @@
 
 using namespace OVERLAY;
 
-static color_t colors[8] = { 0xFFFFFF00
-                          , 0xFFFFFFFF
-                          , 0xFF0099FF
-                          , 0xFF00FF00
-                          , 0xFFCCFF00
-                          , 0xFF00FFFF
-                          , 0xFFE5E5E5
-                          , 0xFFC0C0C0 };
+static UTILS::Color colors[8] = { 0xFFFFFF00
+                                , 0xFFFFFFFF
+                                , 0xFF0099FF
+                                , 0xFF00FF00
+                                , 0xFFCCFF00
+                                , 0xFF00FFFF
+                                , 0xFFE5E5E5
+                                , 0xFFC0C0C0 };
 
 CGUITextLayout* COverlayText::GetFontLayout(const std::string &font, int color, int height, int style,
                                             const std::string &fontcache, const std::string &fontbordercache)
@@ -70,7 +71,7 @@ CGUITextLayout* COverlayText::GetFontLayout(const std::string &font, int color, 
                                                     , style
                                                     , true, 1.0f, 1.0f, &pal, true);
     if (!subtitle_font || !border_font)
-      CLog::Log(LOGERROR, "CGUIWindowFullScreen::OnMessage(WINDOW_INIT) - Unable to load subtitle font");
+      CLog::Log(LOGERROR, "COverlayText::GetFontLayout - Unable to load subtitle font");
     else
       return new CGUITextLayout(subtitle_font, true, 0, border_font);
   }
@@ -165,7 +166,7 @@ void COverlayText::PrepareRender(const std::string &font, int color, int height,
     CLog::Log(LOGERROR, "COverlayText::PrepareRender - GetFontLayout failed for font %s", font.c_str());
     return;
   }
-  RESOLUTION_INFO res = g_graphicsContext.GetResInfo();
+  RESOLUTION_INFO res = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
   float width_max = (float)res.Overscan.right - res.Overscan.left;
   m_layout->Update(m_text, width_max * 0.9f, false, true); // true to force LTR reading order (most Hebrew subs are this format)
   m_layout->GetTextExtent(m_width, m_height);
@@ -176,8 +177,8 @@ void COverlayText::Render(OVERLAY::SRenderState &state)
   if(m_layout == NULL)
     return;
 
-  CRect rd = g_graphicsContext.GetViewWindow();
-  RESOLUTION_INFO res = g_graphicsContext.GetResInfo();
+  CRect rd = CServiceBroker::GetWinSystem()->GetGfxContext().GetViewWindow();
+  RESOLUTION_INFO res = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
 
   /* our coordinates are in screen coordinates constrained to rd, but the font is sized suitably for fullscreen,
      so we must scale up the positioning to screen coordinates, and then scale down to our final size and position
@@ -194,7 +195,7 @@ void COverlayText::Render(OVERLAY::SRenderState &state)
   float y = state.y;
   mat.InverseTransformPosition(x, y);
 
-  g_graphicsContext.SetTransform(mat, 1.0f, 1.0f);
+  CServiceBroker::GetWinSystem()->GetGfxContext().SetTransform(mat, 1.0f, 1.0f);
 
   float width_max = (float) res.Overscan.right - res.Overscan.left;
 
@@ -208,5 +209,5 @@ void COverlayText::Render(OVERLAY::SRenderState &state)
   y = std::min(y, res.Overscan.bottom - m_height);
 
   m_layout->RenderOutline(x, y, 0, 0xFF000000, XBFONT_CENTER_X, width_max);
-  g_graphicsContext.RemoveTransform();
+  CServiceBroker::GetWinSystem()->GetGfxContext().RemoveTransform();
 }

@@ -1,13 +1,3 @@
-/*!
-\file guiImage.h
-\brief
-*/
-
-#ifndef GUILIB_GUIIMAGECONTROL_H
-#define GUILIB_GUIIMAGECONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -28,10 +18,18 @@
  *
  */
 
+#pragma once
+
+/*!
+\file guiImage.h
+\brief
+*/
+
 #include <vector>
 
 #include "GUIControl.h"
 #include "GUITexture.h"
+#include "guilib/guiinfo/GUIInfoLabel.h"
 
 /*!
  \ingroup controls
@@ -85,7 +83,7 @@ public:
   bool CanFocus() const override;
   void UpdateInfo(const CGUIListItem *item = NULL) override;
 
-  virtual void SetInfo(const CGUIInfoLabel &info);
+  virtual void SetInfo(const KODI::GUILIB::GUIINFO::CGUIInfoLabel &info);
   virtual void SetFileName(const std::string& strFileName, bool setConstant = false, const bool useCache = true);
   virtual void SetAspectRatio(const CAspectRatio &aspect);
   void SetWidth(float width) override;
@@ -114,7 +112,7 @@ protected:
 
   // border + conditional info
   CTextureInfo m_image;
-  CGUIInfoLabel m_info;
+  KODI::GUILIB::GUIINFO::CGUIInfoLabel m_info;
 
   CGUITexture m_texture;
   std::vector<CFadingTexture *> m_fadingTextures;
@@ -125,4 +123,4 @@ protected:
   unsigned int m_currentFadeTime;
   unsigned int m_lastRenderTime;
 };
-#endif
+

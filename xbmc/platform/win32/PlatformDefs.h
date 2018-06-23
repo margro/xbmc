@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #ifdef TARGET_WINDOWS
 
@@ -40,9 +40,6 @@ typedef intptr_t      ssize_t;
 #define SSIZE_MAX INTPTR_MAX
 #endif // !SSIZE_MAX
 
-#if _MSC_VER < 1900
-#define snprintf _snprintf
-#endif
 #define ftello64 _ftelli64
 #define fseeko64 _fseeki64
 #ifndef strcasecmp
@@ -71,19 +68,7 @@ typedef intptr_t      ssize_t;
 #define PIXEL_BSHIFT 0
 #endif
 
-#if _MSC_VER < 1800
-#ifndef va_copy
-#define va_copy(dst, src) ((dst) = (src))
-#endif
-
-#define lrint(x) ((x) >= 0 ? ((int)((x) + 0.5)) : ((int)((x) - 0.5)))
-#define llrint(x) ((x) >= 0 ? ((__int64)((x) + 0.5)) : ((__int64)((x) - 0.5)))
-
-#define strtoll(p, e, b) _strtoi64(p, e, b)
-#endif
-
 extern "C" char * strptime(const char *buf, const char *fmt, struct tm *tm);
-extern "C" int strverscmp (const char *s1, const char *s2);
 extern "C" char * strcasestr(const char* haystack, const char* needle);
 
 #endif // TARGET_WINDOWS

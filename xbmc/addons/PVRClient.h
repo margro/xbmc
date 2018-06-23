@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <atomic>
 #include <functional>
@@ -160,6 +161,12 @@ namespace PVR
      * @return True if supported, false otherwise.
      */
     bool SupportsRecordingsEdl() const { return m_addonCapabilities && m_addonCapabilities->bSupportsRecordings && m_addonCapabilities->bSupportsRecordingEdl; }
+
+    /*!
+     * @brief Check whether this add-on supports retrieving an edit decision list for epg tags.
+     * @return True if supported, false otherwise.
+     */
+    bool SupportsEpgTagEdl() const { return m_addonCapabilities && m_addonCapabilities->bSupportsEPG && m_addonCapabilities->bSupportsEPGEdl; }
 
     /*!
      * @brief Check whether this add-on supports renaming recordings..
@@ -566,6 +573,14 @@ namespace PVR
     */
     PVR_ERROR GetRecordingEdl(const CPVRRecording &recording, std::vector<PVR_EDL_ENTRY> &edls);
 
+    /*!
+    * @brief Retrieve the edit decision list (EDL) from the backend.
+    * @param epgTag The EPG tag.
+    * @param edls The edit decision list (empty on error).
+    * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
+    */
+    PVR_ERROR GetEpgTagEdl(const CConstPVREpgInfoTagPtr &epgTag, std::vector<PVR_EDL_ENTRY> &edls);
+
     //@}
     /** @name PVR timer methods */
     //@{
@@ -842,6 +857,13 @@ namespace PVR
      * @param iPriority The new priority.
      */
     void SetPriority(int iPriority);
+
+    /*!
+     * @brief Obtain the chunk size to use when reading streams.
+     * @param iChunkSize the chunk size in bytes.
+     * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
+     */
+    PVR_ERROR GetStreamReadChunkSize(int &iChunkSize);
 
     /*!
      * @brief Get the interface table used between addon and Kodi.

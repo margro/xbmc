@@ -24,7 +24,6 @@
 #include "utils/StringUtils.h"
 #include "threads/Thread.h"
 #include "settings/AdvancedSettings.h"
-#include "URL.h"
 #include <map>
 
 static thread_local CFFmpegLog* CFFmpegLogTls;
@@ -51,42 +50,6 @@ void CFFmpegLog::ClearLogLevel()
   CFFmpegLogTls = nullptr;
   if (log)
     delete log;
-}
-
-/* callback for the ffmpeg lock manager */
-int ffmpeg_lockmgr_cb(void **mutex, enum AVLockOp operation)
-{
-  CCriticalSection **lock = (CCriticalSection **)mutex;
-
-  switch (operation)
-  {
-    case AV_LOCK_CREATE:
-    {
-      *lock = NULL;
-      *lock = new CCriticalSection();
-      if (*lock == NULL)
-        return 1;
-      break;
-    }
-    case AV_LOCK_OBTAIN:
-      (*lock)->lock();
-      break;
-
-    case AV_LOCK_RELEASE:
-      (*lock)->unlock();
-      break;
-
-    case AV_LOCK_DESTROY:
-    {
-      delete *lock;
-      *lock = NULL;
-      break;
-    }
-
-    default:
-      return 1;
-  }
-  return 0;
 }
 
 static CCriticalSection m_logSection;
@@ -155,18 +118,8 @@ void ff_avutil_log(void* ptr, int level, const char* format, va_list va)
   int pos, start = 0;
   while ((pos = buffer.find_first_of('\n', start)) >= 0)
   {
-    if(pos > start)
-    {
-      std::vector<std::string> toLog = StringUtils::Split(buffer.substr(start, pos - start), "from '");
-      if (toLog.size() > 1)
-      {
-       size_t pos = toLog[1].find_first_of('\'');
-       std::string url = CURL::GetRedacted(toLog[1].substr(0, pos - 1));
-       toLog[0] += url + toLog[1].substr(pos);
-      }
-
-      CLog::Log(type, "%s%s", prefix.c_str(), toLog[0].c_str());
-    }
+    if (pos > start)
+      CLog::Log(type, "%s%s", prefix.c_str(), buffer.substr(start, pos - start).c_str());
     start = pos+1;
   }
   buffer.erase(0, start);

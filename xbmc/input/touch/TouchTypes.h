@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "utils/Vector.h"
 
 /*!
@@ -29,14 +30,6 @@
 class Touch : public CVector
 {
 public:
-  Touch() { reset(); }
-  ~Touch() override = default;
-
-  /*!
-   * \brief Resets the x/y coordinates and the time
-   */
-  void reset() override { CVector::reset(); time = -1; }
-
   /*!
    * \brief Checks if the touch is valid i.e. if the x/y coordinates and the
    *        time are >= 0
@@ -52,7 +45,7 @@ public:
    */
   void copy(const Touch &other) { x = other.x; y = other.y; time = other.time; }
 
-  int64_t time; // in nanoseconds
+  int64_t time = -1; // in nanoseconds
 };
 
 /*!
@@ -68,7 +61,7 @@ public:
   /*!
    * \brief Resets the pointer and all its touches
    */
-  void reset() { down.reset(); last.reset(); moving = false; size = 0.0f; }
+  void reset() { down = {}; last = {}; moving = false; size = 0.0f; }
 
   /*!
    * \brief Checks if the "down" touch is valid

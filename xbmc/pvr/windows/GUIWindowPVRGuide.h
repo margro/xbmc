@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <atomic>
 #include <memory>
@@ -53,6 +54,7 @@ namespace PVR
     bool RefreshTimelineItems();
 
     // CPVRChannelNumberInputHandler implementation
+    void GetChannelNumbers(std::vector<std::string>& channelNumbers) override;
     void OnInputDone() override;
 
   protected:
@@ -70,6 +72,8 @@ namespace PVR
     bool OnContextButtonEnd();
     bool OnContextButtonNow();
     bool OnContextButtonDate();
+
+    bool ShouldNavigateToGridContainer(int iAction);
 
     void StartRefreshTimelineItemsThread();
     void StopRefreshTimelineItemsThread();

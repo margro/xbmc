@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <time.h>
@@ -36,7 +37,9 @@
 #include "Seat.h"
 #include "Signals.h"
 #include "ShellSurface.h"
+#include "platform/linux/OptionalsReg.h"
 #include "threads/CriticalSection.h"
+#include "threads/Event.h"
 #include "utils/ActorProtocol.h"
 #include "WindowDecorationHandler.h"
 #include "windowing/WinSystem.h"
@@ -73,6 +76,8 @@ public:
   void FinishModeChange(RESOLUTION res) override;
   void FinishWindowResize(int newWidth, int newHeight) override;
 
+  bool UseLimitedColor() override;
+
   void UpdateResolutions() override;
   int GetNumScreens() override;
   int GetCurrentScreen() override;
@@ -98,6 +103,9 @@ public:
 
   // Like CWinSystemX11
   void GetConnectedOutputs(std::vector<std::string>* outputs);
+
+  // winevents override
+  bool MessagePump() override;
 
 protected:
   std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> GetOSScreenSaverImpl() override;
@@ -174,6 +182,8 @@ private:
   void OnOutputDone(std::uint32_t name);
   void UpdateBufferScale();
   void ApplyBufferScale();
+  void ApplyOpaqueRegion();
+  void ApplyWindowGeometry();
   void UpdateTouchDpi();
   void ApplyShellSurfaceState(IShellSurface::StateBitset state);
 
@@ -198,6 +208,11 @@ private:
   wayland::presentation_t m_presentation;
 
   std::unique_ptr<IShellSurface> m_shellSurface;
+
+  // Frame callback handling
+  // -----------------------
+  wayland::callback_t m_frameCallback;
+  CEvent m_frameCallbackEvent;
 
   // Seat handling
   // -------------
@@ -288,6 +303,8 @@ private:
   std::uint32_t m_lastAckedSerial{0u};
   /// Whether this is the first call to SetFullScreen
   bool m_isInitialSetFullScreen{true};
+
+  std::unique_ptr<OPTIONALS::CLircContainer, OPTIONALS::delete_CLircContainer> m_lirc;
 };
 
 

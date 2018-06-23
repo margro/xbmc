@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2011-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 
 #include "network/httprequesthandler/IHTTPRequestHandler.h"
@@ -28,7 +29,7 @@ class CHTTPWebinterfaceAddonsHandler : public IHTTPRequestHandler
 public:
   CHTTPWebinterfaceAddonsHandler() = default;
   ~CHTTPWebinterfaceAddonsHandler() override = default;
-  
+
   IHTTPRequestHandler* Create(const HTTPRequest &request) const override { return new CHTTPWebinterfaceAddonsHandler(request); }
   bool CanHandleRequest(const HTTPRequest &request) const override;
 

@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,11 +18,13 @@
  *
  */
 
+#pragma once
+
 #include <utility>
 #include <vector>
 
 #include "RenderInfo.h"
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 #include "utils/Geometry.h"
 #include "VideoShaders/ShaderFormats.h"
 #include "cores/IPlayer.h"

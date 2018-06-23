@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "../AddonBase.h"
 #include "ListItem.h"
@@ -98,7 +99,7 @@ namespace gui
       if (!m_controlHandle)
         kodi::Log(ADDON_LOG_FATAL, "kodi::gui::CWindow can't create window class from Kodi !!!");
       m_interface->kodi_gui->window->set_callbacks(m_interface->kodiBase, m_controlHandle, this,
-                                                   CBOnInit, CBOnFocus, CBOnClick, CBOnAction, 
+                                                   CBOnInit, CBOnFocus, CBOnClick, CBOnAction,
                                                    CBGetContextButtons, CBOnContextButton);
     }
     //--------------------------------------------------------------------------

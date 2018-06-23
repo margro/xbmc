@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,6 +18,7 @@
  *
  */
 
+#pragma once
 
 #include "utils/CPUInfo.h"
 
@@ -48,9 +47,6 @@ inline int PPCPUFlags()
 
   return flags;
 }
-
-// callback used for locking
-int ffmpeg_lockmgr_cb(void **mutex, enum AVLockOp operation);
 
 // callback used for logging
 void ff_avutil_log(void* ptr, int level, const char* format, va_list va);

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <map>
 #include <set>
@@ -53,7 +54,7 @@ public:
     : ISettingCondition(settingsManager)
   { }
   ~CSettingConditionItem() override = default;
-  
+
   bool Deserialize(const TiXmlNode *node) override;
   const char* GetTag() const override { return SETTING_XML_ELM_CONDITION; }
   bool Check() const override;

@@ -6,9 +6,8 @@
 ; -> sqlite-3.7.12.1-win32\system\sqlite3.dll
 ; -> ...
 ;PLEASE KEEP THIS LIST IN ALPHABETICAL ORDER!
-cpluff-ed7874fc-win32-vc140.7z
 crossguid-8f399e-win32-vc140-v3.7z
-curl-7.48-win32-vc140.7z
+curl-7.59.0-Win32-v140.7z
 dnssd-765.50.9-win32-vc140-v2.7z
 easyhook-2.7.5870.0-win32-vc140-v2.7z
 expat-2.2.0-win32-vc140.7z
@@ -28,7 +27,6 @@ libmicrohttpd-0.9.55-win32-vc140.7z
 libnfs-1.10.0-win32.7z
 libplist-1.13.0-win32-vc140.7z
 libpng-1.6.21-win32-vc140.7z
-libssh-0.7.0-win32-vc140.7z
 libxml2-2.9.4-win32-vc140-v2.7z
 libxslt-1.1.29-win32-vc140.7z
 lzo-2.09-win32-vc140-v3.7z

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "pvr/PVRChannelNumberInputHandler.h"
 #include "pvr/windows/GUIWindowPVRBase.h"
 
@@ -38,6 +39,7 @@ namespace PVR
     bool OnAction(const CAction &action) override;
 
     // CPVRChannelNumberInputHandler implementation
+    void GetChannelNumbers(std::vector<std::string>& channelNumbers) override;
     void OnInputDone() override;
 
   private:

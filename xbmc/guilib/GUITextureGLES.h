@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,10 +18,13 @@
  *
  */
 
+#pragma once
+
 #include "GUITexture.h"
 
 #include "system_gl.h"
 #include <vector>
+#include "utils/Color.h"
 
 struct PackedVertex
 {
@@ -39,9 +40,9 @@ class CGUITextureGLES : public CGUITextureBase
 {
 public:
   CGUITextureGLES(float posX, float posY, float width, float height, const CTextureInfo& texture);
-  static void DrawQuad(const CRect &coords, color_t color, CBaseTexture *texture = NULL, const CRect *texCoords = NULL);
+  static void DrawQuad(const CRect &coords, UTILS::Color color, CBaseTexture *texture = NULL, const CRect *texCoords = NULL);
 protected:
-  void Begin(color_t color);
+  void Begin(UTILS::Color color);
   void Draw(float *x, float *y, float *z, const CRect &texture, const CRect &diffuse, int orientation);
   void End();
 

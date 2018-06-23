@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <stdint.h>
 
@@ -77,12 +78,11 @@ protected:
 
 typedef std::vector<CHttpResponseRange> HttpResponseRanges;
 
-class CHttpRanges
+class CHttpRanges final
 {
 public:
   CHttpRanges();
   explicit CHttpRanges(const HttpRanges& httpRanges);
-  virtual ~CHttpRanges() = default;
 
   const HttpRanges& Get() const { return m_ranges; }
   bool Get(size_t index, CHttpRange& range) const;

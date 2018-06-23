@@ -1,4 +1,3 @@
-
 In order to port xbmc to an unsupported platform, the threading model
 needs to replace the following classes:
 
@@ -48,5 +47,5 @@ ConditionVariable - must be implemented to handle a ConditionVariable concept:
    void notifyAll();
    void notify();
 
-where L is a typename template variable that must satisfy Lockable concept 
+where L is a typename template variable that must satisfy Lockable concept
 defined above.

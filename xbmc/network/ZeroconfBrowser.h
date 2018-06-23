@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <atomic>
 #include <string>
@@ -73,7 +73,7 @@ public:
 
       void SetPort(int f_port);
       int GetPort() const {return m_port;}
-    
+
       void SetTxtRecords(const tTxtRecordMap& txt_records);
       const tTxtRecordMap& GetTxtRecords() const { return m_txtrecords_map;}
       ///@}
@@ -90,9 +90,9 @@ public:
       //used for mdns in case dns resolution fails
       //we store the hostname and resolve with mdns functions again
       std::string m_hostname;
-      
+
       //1 entry below stores the txt-record as a key value map for this service
-      tTxtRecordMap m_txtrecords_map;    
+      tTxtRecordMap m_txtrecords_map;
   };
 
   // starts browsing

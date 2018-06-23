@@ -26,9 +26,11 @@
 
 #include "Application.h"
 #include "FileItem.h"
+#include "ServiceBroker.h"
 #include "addons/binary-addons/AddonDll.h"
 #include "addons/Skin.h"
 #include "filesystem/File.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIRenderingControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/TextureManager.h"
@@ -187,10 +189,10 @@ void* Interface_GUIWindow::create(void* kodiBase, const char* xml_filename,
     window = new CGUIAddonWindowDialog(id, strSkinPath, addon);
 
   Interface_GUIGeneral::lock();
-  g_windowManager.Add(window);
+  CServiceBroker::GetGUI()->GetWindowManager().Add(window);
   Interface_GUIGeneral::unlock();
 
-  if (!dynamic_cast<CGUIWindow*>(g_windowManager.GetWindow(id)))
+  if (!dynamic_cast<CGUIWindow*>(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(id)))
   {
     CLog::Log(LOGERROR, "Interface_GUIWindow::%s - Requested window id '%i' does not exist for addon '%s'",
                           __FUNCTION__, id, addon->ID().c_str());
@@ -213,23 +215,23 @@ void Interface_GUIWindow::destroy(void* kodiBase, void* handle)
   }
 
   Interface_GUIGeneral::lock();
-  CGUIWindow *pWindow = dynamic_cast<CGUIWindow*>(g_windowManager.GetWindow(pAddonWindow->GetID()));
+  CGUIWindow *pWindow = dynamic_cast<CGUIWindow*>(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(pAddonWindow->GetID()));
   if (pWindow)
   {
     // first change to an existing window
-    if (g_windowManager.GetActiveWindow() == pAddonWindow->GetID() && !g_application.m_bStop)
+    if (CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == pAddonWindow->GetID() && !g_application.m_bStop)
     {
-      if(g_windowManager.GetWindow(pAddonWindow->m_oldWindowId))
-        g_windowManager.ActivateWindow(pAddonWindow->m_oldWindowId);
+      if(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(pAddonWindow->m_oldWindowId))
+        CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(pAddonWindow->m_oldWindowId);
       else // old window does not exist anymore, switch to home
-        g_windowManager.ActivateWindow(WINDOW_HOME);
+        CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_HOME);
     }
     // Free any window properties
     pAddonWindow->ClearProperties();
     // free the window's resources and unload it (free all guicontrols)
     pAddonWindow->FreeResources(true);
 
-    g_windowManager.Remove(pAddonWindow->GetID());
+    CServiceBroker::GetGUI()->GetWindowManager().Remove(pAddonWindow->GetID());
   }
   delete pAddonWindow;
   Interface_GUIGeneral::unlock();
@@ -274,15 +276,15 @@ bool Interface_GUIWindow::show(void* kodiBase, void* handle)
     return false;
   }
 
-  if (pAddonWindow->m_oldWindowId != pAddonWindow->m_windowId && 
-      pAddonWindow->m_windowId != g_windowManager.GetActiveWindow())
-    pAddonWindow->m_oldWindowId = g_windowManager.GetActiveWindow();
+  if (pAddonWindow->m_oldWindowId != pAddonWindow->m_windowId &&
+      pAddonWindow->m_windowId != CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow())
+    pAddonWindow->m_oldWindowId = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow();
 
   Interface_GUIGeneral::lock();
   if (pAddonWindow->IsDialog())
     dynamic_cast<CGUIAddonWindowDialog*>(pAddonWindow)->Show(true, false);
   else
-    g_windowManager.ActivateWindow(pAddonWindow->GetID());
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(pAddonWindow->GetID());
   Interface_GUIGeneral::unlock();
 
   return true;
@@ -307,7 +309,7 @@ bool Interface_GUIWindow::close(void* kodiBase, void* handle)
   if (pAddonWindow->IsDialog())
     dynamic_cast<CGUIAddonWindowDialog*>(pAddonWindow)->Show(false);
   else
-    g_windowManager.ActivateWindow(pAddonWindow->m_oldWindowId);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(pAddonWindow->m_oldWindowId);
   pAddonWindow->m_oldWindowId = 0;
 
   Interface_GUIGeneral::unlock();
@@ -326,18 +328,18 @@ bool Interface_GUIWindow::do_modal(void* kodiBase, void* handle)
     return false;
   }
 
-  if (pAddonWindow->GetID() == g_windowManager.GetActiveWindow())
+  if (pAddonWindow->GetID() == CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow())
     return true;
 
   if (pAddonWindow->m_oldWindowId != pAddonWindow->m_windowId &&
-      pAddonWindow->m_windowId != g_windowManager.GetActiveWindow())
-    pAddonWindow->m_oldWindowId = g_windowManager.GetActiveWindow();
+      pAddonWindow->m_windowId != CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow())
+    pAddonWindow->m_oldWindowId = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow();
 
   Interface_GUIGeneral::lock();
   if (pAddonWindow->IsDialog())
     dynamic_cast<CGUIAddonWindowDialog*>(pAddonWindow)->Show(true, true);
   else
-    g_windowManager.ActivateWindow(pAddonWindow->GetID());
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(pAddonWindow->GetID());
   Interface_GUIGeneral::unlock();
 
   return true;
@@ -675,7 +677,7 @@ void Interface_GUIWindow::add_list_item(void* kodiBase, void* handle, void* item
               __FUNCTION__, kodiBase, handle, item, addon ? addon->ID().c_str() : "unknown");
     return;
   }
-  
+
   CFileItemPtr* pItem(static_cast<CFileItemPtr*>(item));
   if (pItem->get() == nullptr)
   {
@@ -989,7 +991,7 @@ int Interface_GUIWindow::GetNextAvailableWindowId()
   Interface_GUIGeneral::lock();
 
   // if window WINDOW_ADDON_END is in use it means addon can't create more windows
-  if (g_windowManager.GetWindow(WINDOW_ADDON_END))
+  if (CServiceBroker::GetGUI()->GetWindowManager().GetWindow(WINDOW_ADDON_END))
   {
     Interface_GUIGeneral::unlock();
     CLog::Log(LOGERROR, "Interface_GUIWindow::%s - Maximum number of windows for binary addons reached", __FUNCTION__);
@@ -999,7 +1001,7 @@ int Interface_GUIWindow::GetNextAvailableWindowId()
   // window id's WINDOW_ADDON_START - WINDOW_ADDON_END are reserved for addons
   // get first window id that is not in use
   int id = WINDOW_ADDON_START;
-  while (id < WINDOW_ADDON_END && g_windowManager.GetWindow(id) != nullptr)
+  while (id < WINDOW_ADDON_END && CServiceBroker::GetGUI()->GetWindowManager().GetWindow(id) != nullptr)
     id++;
 
   Interface_GUIGeneral::unlock();
@@ -1069,7 +1071,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
     case GUI_MSG_WINDOW_INIT:
     {
       CGUIMediaWindow::OnMessage(message);
-      
+
       if (CBOnInit)
         CBOnInit(m_clientHandle);
       return true;
@@ -1078,7 +1080,7 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
 
     case GUI_MSG_FOCUSED:
     {
-      if (m_viewControl.HasControl(message.GetControlId()) && 
+      if (m_viewControl.HasControl(message.GetControlId()) &&
           m_viewControl.GetCurrentControl() != (int)message.GetControlId())
       {
         m_viewControl.SetFocused();
@@ -1145,16 +1147,16 @@ void CGUIAddonWindow::AllocResources(bool forceLoad /*= false */)
   URIUtils::RemoveSlashAtEnd(fallbackMediaPath);
   m_mediaDir = fallbackMediaPath;
 
-  g_TextureManager.AddTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().AddTexturePath(m_mediaDir);
   CGUIMediaWindow::AllocResources(forceLoad);
-  g_TextureManager.RemoveTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().RemoveTexturePath(m_mediaDir);
 }
 
 void CGUIAddonWindow::Render()
 {
-  g_TextureManager.AddTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().AddTexturePath(m_mediaDir);
   CGUIMediaWindow::Render();
-  g_TextureManager.RemoveTexturePath(m_mediaDir);
+  CServiceBroker::GetGUI()->GetTextureManager().RemoveTexturePath(m_mediaDir);
 }
 
 void CGUIAddonWindow::AddItem(CFileItemPtr* fileItem, int itemPosition)
@@ -1280,9 +1282,9 @@ void CGUIAddonWindowDialog::Show(bool show /* = true */, bool modal /* = true*/)
 {
   if (modal)
   {
-    unsigned int count = g_graphicsContext.exit();
+    unsigned int count = CServiceBroker::GetWinSystem()->GetGfxContext().exit();
     CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ADDON_DIALOG, 0, show ? 1 : 0, static_cast<void*>(this));
-    g_graphicsContext.restore(count);
+    CServiceBroker::GetWinSystem()->GetGfxContext().restore(count);
   }
   else
     CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ADDON_DIALOG, 0, show ? 1 : 0, static_cast<void*>(this));
@@ -1293,7 +1295,7 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
   if (show)
   {
     m_bRunning = true;
-    g_windowManager.RegisterDialog(this);
+    CServiceBroker::GetGUI()->GetWindowManager().RegisterDialog(this);
 
     // activate this window...
     CGUIMessage msg(GUI_MSG_WINDOW_INIT, 0, 0, WINDOW_INVALID, GetID());
@@ -1302,9 +1304,10 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
     // this dialog is derived from GUIMediaWindow
     // make sure it is rendered last
     m_renderOrder = RENDER_ORDER_DIALOG;
-    while (m_bRunning && !g_application.m_bStop)
+    while (m_bRunning)
     {
-      ProcessRenderLoop();
+      if (!ProcessRenderLoop(false))
+        break;
     }
   }
   else // hide
@@ -1314,7 +1317,7 @@ void CGUIAddonWindowDialog::Show_Internal(bool show /* = true */)
     CGUIMessage msg(GUI_MSG_WINDOW_DEINIT, 0, 0);
     OnMessage(msg);
 
-    g_windowManager.RemoveDialog(GetID());
+    CServiceBroker::GetGUI()->GetWindowManager().RemoveDialog(GetID());
   }
 }
 

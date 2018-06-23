@@ -21,6 +21,7 @@
 #include "WindowTranslator.h"
 #include "Application.h"
 #include "guilib/WindowIDs.h"
+#include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "ServiceBroker.h"
 #include "utils/log.h"
@@ -100,8 +101,7 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "osdcmssettings"           , WINDOW_DIALOG_CMS_OSD_SETTINGS },
     { "osdvideosettings"         , WINDOW_DIALOG_VIDEO_OSD_SETTINGS },
     { "osdaudiosettings"         , WINDOW_DIALOG_AUDIO_OSD_SETTINGS },
-    { "audiodspmanager"          , WINDOW_DIALOG_AUDIO_DSP_MANAGER },
-    { "osdaudiodspsettings"      , WINDOW_DIALOG_AUDIO_DSP_OSD_SETTINGS },
+    { "osdsubtitlesettings"      , WINDOW_DIALOG_SUBTITLE_OSD_SETTINGS },
     { "videobookmarks"           , WINDOW_DIALOG_VIDEO_BOOKMARKS },
     { "filebrowser"              , WINDOW_DIALOG_FILE_BROWSER },
     { "networksetup"             , WINDOW_DIALOG_NETWORK_SETUP },
@@ -114,6 +114,7 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "smartplaylisteditor"      , WINDOW_DIALOG_SMART_PLAYLIST_EDITOR },
     { "smartplaylistrule"        , WINDOW_DIALOG_SMART_PLAYLIST_RULE },
     { "busydialog"               , WINDOW_DIALOG_BUSY },
+    { "busydialognocancel"       , WINDOW_DIALOG_BUSY_NOCANCEL },
     { "pictureinfo"              , WINDOW_DIALOG_PICTURE_INFO },
     { "accesspoints"             , WINDOW_DIALOG_ACCESS_POINTS },
     { "fullscreeninfo"           , WINDOW_DIALOG_FULLSCREEN_INFO },
@@ -130,8 +131,12 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "movieinformation"         , WINDOW_DIALOG_VIDEO_INFO },
     { "textviewer"               , WINDOW_DIALOG_TEXT_VIEWER },
     { "fullscreenvideo"          , WINDOW_FULLSCREEN_VIDEO },
-    { "fullscreenlivetv"         , WINDOW_FULLSCREEN_LIVETV },         // virtual window/keymap section for PVR specific bindings in fullscreen playback (which internally uses WINDOW_FULLSCREEN_VIDEO)
-    { "fullscreenradio"          , WINDOW_FULLSCREEN_RADIO },          // virtual window for fullscreen radio, uses WINDOW_VISUALISATION as fallback
+    { "fullscreenlivetv"         , WINDOW_FULLSCREEN_LIVETV }, // virtual window for fullscreen radio, uses WINDOW_FULLSCREEN_VIDEO as fallback
+    { "fullscreenlivetvpreview"  , WINDOW_FULLSCREEN_LIVETV_PREVIEW }, // Live TV channel preview
+    { "fullscreenlivetvinput"    , WINDOW_FULLSCREEN_LIVETV_INPUT }, // Livr TV direct channel number input
+    { "fullscreenradio"          , WINDOW_FULLSCREEN_RADIO }, // virtual window for fullscreen radio, uses WINDOW_VISUALISATION as fallback
+    { "fullscreenradiopreview"   , WINDOW_FULLSCREEN_RADIO_PREVIEW }, // PVR Radio channel preview
+    { "fullscreenradioinput"     , WINDOW_FULLSCREEN_RADIO_INPUT }, // PVR radio direct channel number input
     { "fullscreengame"           , WINDOW_FULLSCREEN_GAME },
     { "visualisation"            , WINDOW_VISUALISATION },
     { "slideshow"                , WINDOW_SLIDESHOW },
@@ -154,6 +159,8 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "gamevideofilter"          , WINDOW_DIALOG_GAME_VIDEO_FILTER },
     { "gameviewmode"             , WINDOW_DIALOG_GAME_VIEW_MODE },
     { "gamevolume"               , WINDOW_DIALOG_GAME_VOLUME },
+    { "gameadvancedsettings"     , WINDOW_DIALOG_GAME_ADVANCED_SETTINGS },
+    { "gamevideorotation"        , WINDOW_DIALOG_GAME_VIDEO_ROTATION },
 };
 
 namespace
@@ -166,8 +173,12 @@ struct FallbackWindowMapping
 
 static const std::vector<FallbackWindowMapping> FallbackWindows =
 {
-    { WINDOW_FULLSCREEN_LIVETV   , WINDOW_FULLSCREEN_VIDEO },
-    { WINDOW_FULLSCREEN_RADIO    , WINDOW_VISUALISATION },
+    { WINDOW_FULLSCREEN_LIVETV,         WINDOW_FULLSCREEN_VIDEO },
+    { WINDOW_FULLSCREEN_LIVETV_INPUT,   WINDOW_FULLSCREEN_LIVETV },
+    { WINDOW_FULLSCREEN_LIVETV_PREVIEW, WINDOW_FULLSCREEN_LIVETV },
+    { WINDOW_FULLSCREEN_RADIO,          WINDOW_VISUALISATION },
+    { WINDOW_FULLSCREEN_RADIO_INPUT,    WINDOW_FULLSCREEN_RADIO },
+    { WINDOW_FULLSCREEN_RADIO_PREVIEW,  WINDOW_FULLSCREEN_RADIO },
 };
 } // anonymous namespace
 
@@ -277,9 +288,16 @@ int CWindowTranslator::GetVirtualWindow(int windowId)
     // check if we're in a DVD menu
     if (g_application.GetAppPlayer().IsInMenu())
       return WINDOW_VIDEO_MENU;
-    // check for LiveTV and switch to it's virtual window
-    else if (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().HasPVRChannelInfoTag())
-      return WINDOW_FULLSCREEN_LIVETV;
+    // special casing for Live TV
+    else if (g_application.CurrentFileItem().HasPVRChannelInfoTag())
+    {
+      if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNumberInputHandler().HasChannelNumber())
+        return WINDOW_FULLSCREEN_LIVETV_INPUT;
+      else if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNavigator().IsPreview())
+        return WINDOW_FULLSCREEN_LIVETV_PREVIEW;
+      else
+        return WINDOW_FULLSCREEN_LIVETV;
+    }
     // special casing for numeric seek
     else if (g_application.GetAppPlayer().GetSeekHandler().HasTimeCode())
       return WINDOW_VIDEO_TIME_SEEK;
@@ -287,8 +305,15 @@ int CWindowTranslator::GetVirtualWindow(int windowId)
   else if (windowId == WINDOW_VISUALISATION)
   {
     // special casing for PVR radio
-    if (CServiceBroker::GetPVRManager().IsStarted() && g_application.CurrentFileItem().HasPVRChannelInfoTag())
-      return WINDOW_FULLSCREEN_RADIO;
+    if (g_application.CurrentFileItem().HasPVRChannelInfoTag())
+    {
+      if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNumberInputHandler().HasChannelNumber())
+        return WINDOW_FULLSCREEN_RADIO_INPUT;
+      else if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNavigator().IsPreview())
+        return WINDOW_FULLSCREEN_RADIO_PREVIEW;
+      else
+        return WINDOW_FULLSCREEN_RADIO;
+    }
     // special casing for numeric seek
     else if (g_application.GetAppPlayer().GetSeekHandler().HasTimeCode())
       return WINDOW_VIDEO_TIME_SEEK;

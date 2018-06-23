@@ -27,12 +27,13 @@
 #include "addons/settings/GUIDialogAddonSettings.h"
 #include "events/EventLog.h"
 #include "events/NotificationEvent.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "utils/URIUtils.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/Directory.h"
-#include "messaging/helpers/DialogOKHelper.h" 
+#include "messaging/helpers/DialogOKHelper.h"
 #include "settings/lib/SettingSection.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -41,7 +42,6 @@
 #include "Util.h"
 
 // Global addon callback handle classes
-#include "addons/interfaces/AudioEngine.h"
 #include "addons/interfaces/Filesystem.h"
 #include "addons/interfaces/General.h"
 #include "addons/interfaces/Network.h"
@@ -51,6 +51,8 @@ using namespace KODI::MESSAGING;
 
 namespace ADDON
 {
+
+std::vector<ADDON_GET_INTERFACE_FN> CAddonDll::s_registeredInterfaces;
 
 CAddonDll::CAddonDll(CAddonInfo addonInfo, BinaryAddonBasePtr addonBase)
   : CAddon(std::move(addonInfo)),
@@ -78,6 +80,11 @@ CAddonDll::~CAddonDll()
     Destroy();
 }
 
+void CAddonDll::RegisterInterface(ADDON_GET_INTERFACE_FN fn)
+{
+  s_registeredInterfaces.push_back(fn);
+}
+
 std::string CAddonDll::GetDllPath(const std::string &libPath)
 {
   std::string strFileName = libPath;
@@ -88,11 +95,33 @@ std::string CAddonDll::GetDllPath(const std::string &libPath)
 
   /* Check if lib being loaded exists, else check in XBMC binary location */
 #if defined(TARGET_ANDROID)
-  // Android libs MUST live in this path, else multi-arch will break.
-  // The usual soname requirements apply. no subdirs, and filename is ^lib.*\.so$
+  if (XFILE::CFile::Exists(strFileName))
+  {
+    bool doCopy = true;
+    std::string dstfile = URIUtils::AddFileToFolder(CSpecialProtocol::TranslatePath("special://xbmcaltbinaddons/"), strLibName);
+
+    struct __stat64 dstFileStat;
+    if (XFILE::CFile::Stat(dstfile, &dstFileStat) == 0)
+    {
+      struct __stat64 srcFileStat;
+      if (XFILE::CFile::Stat(strFileName, &srcFileStat) == 0)
+      {
+        if (dstFileStat.st_size == srcFileStat.st_size && dstFileStat.st_mtime > srcFileStat.st_mtime)
+          doCopy = false;
+      }
+    }
+
+    if (doCopy)
+    {
+      CLog::Log(LOGDEBUG, "ADDON: caching %s to %s", strFileName.c_str(), dstfile.c_str());
+      XFILE::CFile::Copy(strFileName, dstfile);
+    }
+
+    strFileName = dstfile;
+  }
   if (!XFILE::CFile::Exists(strFileName))
   {
-    std::string tempbin = getenv("XBMC_ANDROID_LIBS");
+    std::string tempbin = getenv("KODI_ANDROID_LIBS");
     strFileName = tempbin + "/" + strLibName;
   }
 #endif
@@ -450,7 +479,7 @@ bool CAddonDll::CheckAPIVersion(int type)
   /* If a instance (not global) version becomes checked must be the version
    * present.
    */
-  if (kodiMinVersion > addonVersion || 
+  if (kodiMinVersion > addonVersion ||
       addonVersion > AddonVersion(kodi::addon::GetTypeVersion(type)))
   {
     CLog::Log(LOGERROR, "Add-on '%s' is using an incompatible API version for type '%s'. Kodi API min version = '%s', add-on API version '%s'",
@@ -470,10 +499,10 @@ bool CAddonDll::CheckAPIVersion(int type)
 
 bool CAddonDll::UpdateSettingInActiveDialog(const char* id, const std::string& value)
 {
-  if (!g_windowManager.IsWindowActive(WINDOW_DIALOG_ADDON_SETTINGS))
+  if (!CServiceBroker::GetGUI()->GetWindowManager().IsWindowActive(WINDOW_DIALOG_ADDON_SETTINGS))
     return false;
 
-  CGUIDialogAddonSettings* dialog = g_windowManager.GetWindow<CGUIDialogAddonSettings>(WINDOW_DIALOG_ADDON_SETTINGS);
+  CGUIDialogAddonSettings* dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogAddonSettings>(WINDOW_DIALOG_ADDON_SETTINGS);
   if (dialog->GetCurrentAddonID() != m_addonInfo.ID())
     return false;
 
@@ -482,7 +511,7 @@ bool CAddonDll::UpdateSettingInActiveDialog(const char* id, const std::string& v
   params.push_back(id);
   params.push_back(value);
   message.SetStringParams(params);
-  g_windowManager.SendThreadMessage(message, WINDOW_DIALOG_ADDON_SETTINGS);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(message, WINDOW_DIALOG_ADDON_SETTINGS);
 
   return true;
 }
@@ -531,10 +560,11 @@ bool CAddonDll::InitInterface(KODI_HANDLE firstKodiInstance)
   m_interface.toAddon = (KodiToAddonFuncTable_Addon*) calloc(1, sizeof(KodiToAddonFuncTable_Addon));
 
   Interface_General::Init(&m_interface);
-  Interface_AudioEngine::Init(&m_interface);
   Interface_Filesystem::Init(&m_interface);
   Interface_Network::Init(&m_interface);
   Interface_GUIGeneral::Init(&m_interface);
+
+  m_interface.toKodi->get_interface = get_interface;
 
   return true;
 }
@@ -544,7 +574,6 @@ void CAddonDll::DeInitInterface()
   Interface_GUIGeneral::DeInit(&m_interface);
   Interface_Network::DeInit(&m_interface);
   Interface_Filesystem::DeInit(&m_interface);
-  Interface_AudioEngine::DeInit(&m_interface);
   Interface_General::DeInit(&m_interface);
 
   if (m_interface.libBasePath)
@@ -557,7 +586,7 @@ void CAddonDll::DeInitInterface()
 }
 
 char* CAddonDll::get_addon_path(void* kodiBase)
-{ 
+{
   CAddonDll* addon = static_cast<CAddonDll*>(kodiBase);
   if (addon == nullptr)
   {
@@ -569,7 +598,7 @@ char* CAddonDll::get_addon_path(void* kodiBase)
 }
 
 char* CAddonDll::get_base_user_path(void* kodiBase)
-{ 
+{
   CAddonDll* addon = static_cast<CAddonDll*>(kodiBase);
   if (addon == nullptr)
   {
@@ -874,6 +903,19 @@ void CAddonDll::free_string_array(void* kodiBase, char** arr, int numElements)
   }
 }
 
+void* CAddonDll::get_interface(void* kodiBase, const char *name, const char *version)
+{
+  if (!name || !version)
+    return nullptr;
+
+  void *retval(nullptr);
+
+  for (auto fn : s_registeredInterfaces)
+    if ((retval = fn(name, version)))
+      break;
+
+  return retval;
+}
 
 //@}
 

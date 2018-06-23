@@ -20,7 +20,6 @@
 
 #include "ServiceBroker.h"
 #include "Application.h"
-#include "rendering/RenderSystem.h"
 #include "windowing/WinSystem.h"
 
 using namespace KODI;
@@ -60,11 +59,6 @@ XBPython& CServiceBroker::GetXBPython()
 PVR::CPVRManager &CServiceBroker::GetPVRManager()
 {
   return g_application.m_ServiceManager->GetPVRManager();
-}
-
-IAE& CServiceBroker::GetActiveAE()
-{
-  return g_application.m_ServiceManager->GetActiveAE();
 }
 
 CContextMenuManager& CServiceBroker::GetContextMenuManager()
@@ -132,7 +126,7 @@ CFileExtensionProvider& CServiceBroker::GetFileExtensionProvider()
   return g_application.m_ServiceManager->GetFileExtensionProvider();
 }
 
-CNetwork& CServiceBroker::GetNetwork()
+CNetworkBase& CServiceBroker::GetNetwork()
 {
   return g_application.m_ServiceManager->GetNetwork();
 }
@@ -147,15 +141,29 @@ bool CServiceBroker::IsServiceManagerUp()
   return g_application.m_ServiceManager->init_level == 3;
 }
 
-CWinSystemBase& CServiceBroker::GetWinSystem()
+CWinSystemBase* CServiceBroker::m_pWinSystem = nullptr;
+
+CWinSystemBase* CServiceBroker::GetWinSystem()
 {
-  return g_application.m_ServiceManager->GetWinSystem();
+  return m_pWinSystem;
 }
 
-CRenderSystemBase& CServiceBroker::GetRenderSystem()
+void CServiceBroker::RegisterWinSystem(CWinSystemBase *winsystem)
 {
-  CRenderSystemBase &renderSystem = dynamic_cast<CRenderSystemBase&>(g_application.m_ServiceManager->GetWinSystem());
-  return renderSystem;
+  m_pWinSystem = winsystem;
+}
+
+void CServiceBroker::UnregisterWinSystem()
+{
+  m_pWinSystem = nullptr;
+}
+
+CRenderSystemBase* CServiceBroker::GetRenderSystem()
+{
+  if (m_pWinSystem)
+    return m_pWinSystem->GetRenderSystem();
+
+  return nullptr;
 }
 
 CPowerManager& CServiceBroker::GetPowerManager()
@@ -186,4 +194,51 @@ CProfilesManager& CServiceBroker::GetProfileManager()
 CEventLog& CServiceBroker::GetEventLog()
 {
   return g_application.m_ServiceManager->GetEventLog();
+}
+
+CGUIComponent* CServiceBroker::m_pGUI = nullptr;
+
+CGUIComponent* CServiceBroker::GetGUI()
+{
+  return m_pGUI;
+}
+
+void CServiceBroker::RegisterGUI(CGUIComponent *gui)
+{
+  m_pGUI = gui;
+}
+
+void CServiceBroker::UnregisterGUI()
+{
+  m_pGUI = nullptr;
+}
+
+// audio
+IAE* CServiceBroker::m_pActiveAE = nullptr;
+IAE* CServiceBroker::GetActiveAE()
+{
+  return m_pActiveAE;
+}
+void CServiceBroker::RegisterAE(IAE *ae)
+{
+  m_pActiveAE = ae;
+}
+void CServiceBroker::UnregisterAE()
+{
+  m_pActiveAE = nullptr;
+}
+
+// application
+std::shared_ptr<CAppInboundProtocol> CServiceBroker::m_pAppPort;
+std::shared_ptr<CAppInboundProtocol> CServiceBroker::GetAppPort()
+{
+  return m_pAppPort;
+}
+void CServiceBroker::RegisterAppPort(std::shared_ptr<CAppInboundProtocol> port)
+{
+  m_pAppPort = port;
+}
+void CServiceBroker::UnregisterAppPort()
+{
+  m_pAppPort.reset();
 }

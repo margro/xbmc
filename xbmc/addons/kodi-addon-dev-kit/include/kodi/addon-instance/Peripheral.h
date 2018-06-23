@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2014-2017 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "../AddonBase.h"
 
@@ -780,7 +781,7 @@ namespace addon
       return addonInstance->toAddon.addonInstance->SendEvent(event);
     }
 
-    
+
     inline static PERIPHERAL_ERROR ADDON_GetJoystickInfo(const AddonInstance_Peripheral* addonInstance, unsigned int index, JOYSTICK_INFO* info)
     {
       return addonInstance->toAddon.addonInstance->GetJoystickInfo(index, info);

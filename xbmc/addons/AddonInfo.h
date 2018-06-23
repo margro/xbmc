@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "addons/AddonVersion.h"
 
 #include "XBDateTime.h"
@@ -36,7 +37,6 @@ namespace ADDON
     ADDON_VIZ,
     ADDON_SKIN,
     ADDON_PVRDLL,
-    ADDON_ADSPDLL,
     ADDON_INPUTSTREAM,
     ADDON_GAMEDLL,
     ADDON_PERIPHERALDLL,

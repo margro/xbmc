@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "cores/IPlayerCallback.h"
 #include "threads/CriticalSection.h"
@@ -70,6 +70,8 @@ public:
   ~XBPython() override;
   void OnPlayBackEnded() override;
   void OnPlayBackStarted(const CFileItem &file) override;
+  void OnAVStarted(const CFileItem &file) override;
+  void OnAVChange() override;
   void OnPlayBackPaused() override;
   void OnPlayBackResumed() override;
   void OnPlayBackStopped() override;
@@ -101,7 +103,7 @@ public:
   bool OnScriptInitialized(ILanguageInvoker *invoker) override;
   void OnScriptStarted(ILanguageInvoker *invoker) override;
   void OnScriptAbortRequested(ILanguageInvoker *invoker) override;
-  void OnScriptEnded(ILanguageInvoker *invoker) override;
+  void OnExecutionEnded(ILanguageInvoker *invoker) override;
   void OnScriptFinalized(ILanguageInvoker *invoker) override;
   ILanguageInvoker* CreateInvoker() override;
 

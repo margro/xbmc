@@ -3,7 +3,7 @@
 # ----------
 # Finds the LibDRM library
 #
-# This will will define the following variables::
+# This will define the following variables::
 #
 # LIBDRM_FOUND - system has LibDRM
 # LIBDRM_INCLUDE_DIRS - the LibDRM include directory
@@ -14,7 +14,7 @@
 #   LibDRM::LibDRM   - The LibDRM library
 
 if(PKG_CONFIG_FOUND)
-  pkg_check_modules(PC_LIBDRM libdrm QUIET)
+  pkg_check_modules(PC_LIBDRM libdrm>=2.4.71 QUIET)
 endif()
 
 find_path(LIBDRM_INCLUDE_DIR NAMES drm.h

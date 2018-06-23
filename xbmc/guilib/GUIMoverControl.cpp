@@ -19,6 +19,7 @@
  */
 
 #include "GUIMoverControl.h"
+#include "GUIMessage.h"
 #include "input/Key.h"
 #include "utils/TimeUtils.h"
 
@@ -243,7 +244,7 @@ void CGUIMoverControl::SetPosition(float posX, float posY)
 
 bool CGUIMoverControl::SetAlpha(unsigned char alpha)
 {
-  return m_imgFocus.SetAlpha(alpha) | 
+  return m_imgFocus.SetAlpha(alpha) |
          m_imgNoFocus.SetAlpha(alpha);
 }
 

@@ -23,6 +23,7 @@
 #include <limits.h>
 #include <unistd.h>
 
+#include "cores/AudioEngine/AESinkFactory.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "utils/log.h"
 #include "threads/SingleLock.h"
@@ -71,6 +72,25 @@ CAESinkOSS::CAESinkOSS()
 CAESinkOSS::~CAESinkOSS()
 {
   Deinitialize();
+}
+
+void CAESinkOSS::Register()
+{
+  AE::AESinkRegEntry entry;
+  entry.sinkName = "OSS";
+  entry.createFunc = CAESinkOSS::Create;
+  entry.enumerateFunc = CAESinkOSS::EnumerateDevicesEx;
+  AE::CAESinkFactory::RegisterSink(entry);
+}
+
+IAESink* CAESinkOSS::Create(std::string &device, AEAudioFormat& desiredFormat)
+{
+  IAESink* sink = new CAESinkOSS();
+  if (sink->Initialize(desiredFormat, device))
+    return sink;
+
+  delete sink;
+  return nullptr;
 }
 
 std::string CAESinkOSS::GetDeviceUse(const AEAudioFormat& format, const std::string &device)
@@ -392,7 +412,7 @@ void CAESinkOSS::GetDelay(AEDelayStatus& status)
     status.SetDelay(0);
     return;
   }
-  
+
   int delay;
   if (ioctl(m_fd, SNDCTL_DSP_GETODELAY, &delay) == -1)
   {
@@ -444,7 +464,7 @@ void CAESinkOSS::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
     CLog::Log(LOGNOTICE,
 	  "CAESinkOSS::EnumerateDevicesEx - No OSS mixer device present: %s", mixerdev);
     return;
-  }	
+  }
 
 #if defined(SNDCTL_SYSINFO) && defined(SNDCTL_CARDINFO)
   oss_sysinfo sysinfo;
@@ -503,7 +523,7 @@ void CAESinkOSS::EnumerateDevicesEx(AEDeviceInfoList &list, bool force)
     {
       info.m_deviceType = AE_DEVTYPE_PCM;
     }
- 
+
     oss_audioinfo ainfo;
     memset(&ainfo, 0, sizeof(ainfo));
     ainfo.dev = i;

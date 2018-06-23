@@ -34,12 +34,7 @@ extern "C" {
 #define TRUEHD_BUF_SIZE 61440
 
 CDVDAudioCodecPassthrough::CDVDAudioCodecPassthrough(CProcessInfo &processInfo, CAEStreamInfo::DataType streamType) :
-  CDVDAudioCodec(processInfo),
-  m_buffer(NULL),
-  m_bufferSize(0),
-  m_currentPts(DVD_NOPTS_VALUE),
-  m_nextPts(DVD_NOPTS_VALUE),
-  m_trueHDoffset(0)
+  CDVDAudioCodec(processInfo)
 {
   m_format.m_streamInfo.m_type = streamType;
 }
@@ -55,25 +50,25 @@ bool CDVDAudioCodecPassthrough::Open(CDVDStreamInfo &hints, CDVDCodecOptions &op
   switch (m_format.m_streamInfo.m_type)
   {
     case CAEStreamInfo::STREAM_TYPE_AC3:
-      m_processInfo.SetAudioDecoderName("PT_AC3");
+      m_codecName = "pt-ac3";
       break;
 
     case CAEStreamInfo::STREAM_TYPE_EAC3:
-      m_processInfo.SetAudioDecoderName("PT_EAC3");
+      m_codecName = "pt-eac3";
       break;
 
     case CAEStreamInfo::STREAM_TYPE_DTSHD:
-      m_processInfo.SetAudioDecoderName("PT_DTSHD");
+      m_codecName = "pt-dtshd";
       break;
 
     case CAEStreamInfo::STREAM_TYPE_DTSHD_CORE:
-      m_processInfo.SetAudioDecoderName("PT_DTS");
+      m_codecName = "pt-dts";
       m_parser.SetCoreOnly(true);
       break;
 
     case CAEStreamInfo::STREAM_TYPE_TRUEHD:
       m_trueHDBuffer.reset(new uint8_t[TRUEHD_BUF_SIZE]);
-      m_processInfo.SetAudioDecoderName("PT_TRUEHD");
+      m_codecName = "pt-truehd";
       break;
 
     default:
@@ -95,6 +90,10 @@ void CDVDAudioCodecPassthrough::Dispose()
     delete[] m_buffer;
     m_buffer = NULL;
   }
+
+  free(m_backlogBuffer);
+  m_backlogBuffer = nullptr;
+  m_backlogBufferSize = 0;
 
   m_bufferSize = 0;
 }
@@ -146,6 +145,11 @@ bool CDVDAudioCodecPassthrough::AddData(const DemuxPacket &packet)
 
     if (used != iSize)
     {
+      if (m_backlogBufferSize < static_cast<unsigned int>(iSize - used))
+      {
+        m_backlogBufferSize = std::max(61440, iSize - used);
+        m_backlogBuffer = static_cast<uint8_t*>(realloc(m_backlogBuffer, m_backlogBufferSize));
+      }
       m_backlogSize = iSize - used;
       memcpy(m_backlogBuffer, pData + used, m_backlogSize);
       used = iSize;
@@ -153,6 +157,11 @@ bool CDVDAudioCodecPassthrough::AddData(const DemuxPacket &packet)
   }
   else if (pData)
   {
+    if (m_backlogBufferSize < (m_backlogSize + iSize))
+    {
+      m_backlogBufferSize = std::max(61440, static_cast<int>(m_backlogSize + iSize));
+      m_backlogBuffer = static_cast<uint8_t*>(realloc(m_backlogBuffer, m_backlogBufferSize));
+    }
     memcpy(m_backlogBuffer + m_backlogSize, pData, iSize);
     m_backlogSize += iSize;
     used = iSize;

@@ -224,7 +224,7 @@ void CMMALVideo::dec_output_port_cb(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
       assert(omvb->mmal_buffer == buffer);
       bool wanted = true;
       // we don't keep up when running at 60fps in the background so switch to half rate
-      if (m_fps > 40.0f && !g_graphicsContext.IsFullScreenVideo() && !(m_num_decoded & 1))
+      if (m_fps > 40.0f && !CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo() && !(m_num_decoded & 1))
         wanted = false;
       if (g_advancedSettings.m_omxDecodeStartWithValidFrame && (buffer->flags & MMAL_BUFFER_HEADER_FLAG_CORRUPTED))
         wanted = false;
@@ -379,6 +379,14 @@ bool CMMALVideo::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
   {
     case AV_CODEC_ID_H264:
       // H.264
+      switch (hints.profile)
+      {
+        // Cannot hardware decode Hi10P without artifacts - switch to software on Pi2/Pi3
+        case FF_PROFILE_H264_HIGH_10:
+        case FF_PROFILE_H264_HIGH_10_INTRA:
+          if (g_RBP.RaspberryPiVersion() > 1)
+            return false;
+      }
       m_codingType = MMAL_ENCODING_H264;
       m_pFormatName = "mmal-h264";
       if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_SUPPORTMVC))
@@ -818,7 +826,7 @@ CDVDVideoCodec::VCReturn CMMALVideo::GetPicture(VideoPicture* picture)
     // timestamp is in microseconds
     picture->dts = buffer->mmal_buffer->dts == MMAL_TIME_UNKNOWN ? DVD_NOPTS_VALUE : buffer->mmal_buffer->dts;
     picture->pts = buffer->mmal_buffer->pts == MMAL_TIME_UNKNOWN ? DVD_NOPTS_VALUE : buffer->mmal_buffer->pts;
-
+    picture->iRepeatPicture = 0;
     picture->iFlags  = 0;
     if (buffer->mmal_buffer->flags & MMAL_BUFFER_HEADER_FLAG_USER3)
       picture->iFlags |= DVP_FLAG_DROPPED;

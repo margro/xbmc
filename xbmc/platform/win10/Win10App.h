@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "utils/CharsetConverter.h" // Required to initialize converters before usage
 #include "rendering/dx/DeviceResources.h"
 
@@ -30,33 +31,28 @@ namespace KODI
   {
     namespace WINDOWS10
     {
-ref class ViewProvider sealed : Windows::ApplicationModel::Core::IFrameworkViewSource
-{
-public:
-  virtual Windows::ApplicationModel::Core::IFrameworkView^ CreateView();
-};
-
 // Main entry point for our app. Connects the app with the Windows shell and handles application lifecycle events.
-ref class App sealed : public Windows::ApplicationModel::Core::IFrameworkView
+struct App : winrt::implements<App, winrt::Windows::ApplicationModel::Core::IFrameworkViewSource, winrt::Windows::ApplicationModel::Core::IFrameworkView>
 {
-public:
   App();
-
+  winrt::Windows::ApplicationModel::Core::IFrameworkView CreateView()
+  {
+    return *this;
+  }
   // IFrameworkView implementation.
-  virtual void Initialize(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView);
-  virtual void SetWindow(Windows::UI::Core::CoreWindow^ window);
-  virtual void Load(Platform::String^ entryPoint);
-  virtual void Run();
-  virtual void Uninitialize();
+  void Initialize(const winrt::Windows::ApplicationModel::Core::CoreApplicationView&);
+  void SetWindow(const winrt::Windows::UI::Core::CoreWindow&);
+  void Load(const winrt::hstring& entryPoint);
+  void Run();
+  void Uninitialize();
 
 protected:
   // Application lifecycle event handlers.
-  void OnActivated(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView, Windows::ApplicationModel::Activation::IActivatedEventArgs^ args);
-  void OnSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ args);
-  void OnResuming(Platform::Object^ sender, Platform::Object^ args);
+  void OnActivated(const winrt::Windows::ApplicationModel::Core::CoreApplicationView&, const winrt::Windows::ApplicationModel::Activation::IActivatedEventArgs&);
+  void OnSuspending(const winrt::Windows::Foundation::IInspectable&, const winrt::Windows::ApplicationModel::SuspendingEventArgs&);
+  void OnResuming(const winrt::Windows::Foundation::IInspectable&, const winrt::Windows::Foundation::IInspectable&);
 
 private:
-  Windows::Foundation::IAsyncAction^ m_renderLoopWorker;
   std::vector<char*> m_argv;
 };
     } // namespace WINDOWS10

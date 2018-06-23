@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "XBDateTime.h"
 #include "addons/IAddon.h"
 #include "addons/Webinterface.h"
@@ -29,7 +30,7 @@ class CHTTPPythonHandler : public IHTTPRequestHandler
 public:
   CHTTPPythonHandler();
   ~CHTTPPythonHandler() override = default;
-  
+
   IHTTPRequestHandler* Create(const HTTPRequest &request) const override { return new CHTTPPythonHandler(request); }
   bool CanHandleRequest(const HTTPRequest &request) const override;
   bool CanHandleRanges() const override { return false; }
@@ -47,11 +48,7 @@ public:
 protected:
   explicit CHTTPPythonHandler(const HTTPRequest &request);
 
-#if (MHD_VERSION >= 0x00040001)
   bool appendPostData(const char *data, size_t size) override;
-#else
-  bool appendPostData(const char *data, unsigned int size) override;
-#endif
 
 private:
   std::string m_scriptPath;

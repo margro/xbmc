@@ -22,7 +22,7 @@
 #include "VideoSyncOsx.h"
 #include "ServiceBroker.h"
 #include "utils/MathUtils.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "utils/TimeUtils.h"
 #include "windowing/WinSystem.h"
 #include <QuartzCore/CVDisplayLink.h>
@@ -33,7 +33,7 @@
 bool CVideoSyncOsx::Setup(PUPDATECLOCK func)
 {
   CLog::Log(LOGDEBUG, "CVideoSyncOsx::%s setting up OSX", __FUNCTION__);
-  
+
   //init the vblank timestamp
   m_LastVBlankTime = 0;
   UpdateClock = func;
@@ -41,8 +41,8 @@ bool CVideoSyncOsx::Setup(PUPDATECLOCK func)
   m_displayReset = false;
   m_lostEvent.Reset();
 
-  CServiceBroker::GetWinSystem().Register(this);
-  
+  CServiceBroker::GetWinSystem()->Register(this);
+
   return true;
 }
 
@@ -71,12 +71,12 @@ void CVideoSyncOsx::Cleanup()
   CLog::Log(LOGDEBUG, "CVideoSyncOsx::%s cleaning up OSX", __FUNCTION__);
   m_lostEvent.Set();
   m_LastVBlankTime = 0;
-  CServiceBroker::GetWinSystem().Unregister(this);
+  CServiceBroker::GetWinSystem()->Unregister(this);
 }
 
 float CVideoSyncOsx::GetFps()
 {
-  m_fps = g_graphicsContext.GetFPS();
+  m_fps = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
   CLog::Log(LOGDEBUG, "CVideoSyncOsx::%s Detected refreshrate: %f hertz", __FUNCTION__, m_fps);
   return m_fps;
 }
@@ -105,7 +105,7 @@ void CVideoSyncOsx::VblankHandler(int64_t nowtime, uint32_t timebase)
   int           NrVBlanks;
   double        VBlankTime;
   int64_t       Now = CurrentHostCounter();
-  
+
   if (m_LastVBlankTime != 0)
   {
     VBlankTime = (double)(nowtime - m_LastVBlankTime) / (double)timebase;
@@ -124,17 +124,17 @@ static CVReturn DisplayLinkCallBack(CVDisplayLinkRef displayLink, const CVTimeSt
 {
   // Create an autorelease pool (necessary to call into non-Obj-C code from Obj-C code)
   void* pool = Cocoa_Create_AutoReleasePool();
-  
+
   CVideoSyncOsx *VideoSyncOsx = reinterpret_cast<CVideoSyncOsx*>(displayLinkContext);
 
   if (inOutputTime->flags & kCVTimeStampHostTimeValid)
     VideoSyncOsx->VblankHandler(inOutputTime->hostTime, CVGetHostClockFrequency());
   else
     VideoSyncOsx->VblankHandler(CVGetCurrentHostTime(), CVGetHostClockFrequency());
-  
+
   // Destroy the autorelease pool
   Cocoa_Destroy_AutoReleasePool(pool);
-  
+
   return kCVReturnSuccess;
 }
 

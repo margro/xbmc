@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2017 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "IVideoInfoTagLoader.h"
 
@@ -66,5 +67,8 @@ protected:
 
   //! \brief Load tags from MP4 file.
   CInfoScanner::INFO_TYPE LoadMP4(CVideoInfoTag& tag, std::vector<EmbeddedArt>* art);
+
+  //! \brief Load tags from AVI file.
+  CInfoScanner::INFO_TYPE LoadAVI(CVideoInfoTag& tag, std::vector<EmbeddedArt>* art);
 };
 

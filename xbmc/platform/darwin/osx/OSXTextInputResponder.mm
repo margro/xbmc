@@ -23,13 +23,11 @@
 
 #import "OSXTextInputResponder.h"
 
-#define BOOL XBMC_BOOL
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "utils/log.h"
 #include "messaging/ApplicationMessenger.h"
 #include "input/Key.h"
-#undef BOOL
 
 using namespace KODI::MESSAGING;
 
@@ -52,7 +50,7 @@ void SendEditingText(const char *text, unsigned int location, unsigned int lengt
 //  CLog::Log(LOGDEBUG, "SendEditingText(%s, %u, %u)", text, location, length);
 //  CGUIMessage msg(GUI_MSG_INPUT_TEXT_EDIT, 0, 0, location, length);
 //  msg.SetLabel(text);
-//  g_windowManager.SendThreadMessage(msg, g_windowManager.GetActiveWindowOrDialog());
+//  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog());
 }
 
 @implementation OSXTextInputResponder

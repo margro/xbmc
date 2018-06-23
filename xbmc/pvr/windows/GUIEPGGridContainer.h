@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <string>
 #include <vector>
@@ -87,6 +88,10 @@ namespace PVR
     void GoToEnd();
     void GoToNow();
     void GoToDate(const CDateTime &date);
+    void GoToTop();
+    void GoToBottom();
+    void GoToMostLeft();
+    void GoToMostRight();
 
     void SetTimelineItems(const std::unique_ptr<CFileItemList> &items, const CDateTime &gridStart, const CDateTime &gridEnd);
     /*!

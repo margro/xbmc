@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <string>
 #include <vector>
@@ -55,6 +55,8 @@ protected:
   void UpdateButtons();
   int GetSelectedItem();
   void HighlightItem(int item);
+  std::string GetUniqueMediaSourceName();
+  static void OnMediaSourceChanged(const std::string& type, const std::string& oldName, const CMediaSource& share);
 
   std::vector<std::string> GetPaths() const;
 

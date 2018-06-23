@@ -19,8 +19,12 @@
  */
 
 #include "GUILabelControl.h"
+#include "GUIMessage.h"
 #include "utils/CharsetConverter.h"
+#include "utils/Color.h"
 #include "utils/StringUtils.h"
+
+using namespace KODI::GUILIB;
 
 CGUILabelControl::CGUILabelControl(int parentID, int controlID, float posX, float posY, float width, float height, const CLabelInfo& labelInfo, bool wrapMultiLine, bool bHasPath)
     : CGUIControl(parentID, controlID, posX, posY, width, height)
@@ -58,7 +62,7 @@ void CGUILabelControl::SetCursorPos(int iPos)
   m_iCursorPos = iPos;
 }
 
-void CGUILabelControl::SetInfo(const CGUIInfoLabel &infoLabel)
+void CGUILabelControl::SetInfo(const GUIINFO::CGUIInfoLabel &infoLabel)
 {
   m_infoLabel = infoLabel;
 }
@@ -81,10 +85,10 @@ void CGUILabelControl::UpdateInfo(const CGUIListItem *item)
     std::wstring utf16;
     g_charsetConverter.utf8ToW(label, utf16);
     vecText text; text.reserve(utf16.size()+1);
-    vecColors colors;
+    std::vector<UTILS::Color> colors;
     colors.push_back(m_label.GetLabelInfo().textColor);
     colors.push_back(m_label.GetLabelInfo().disabledColor);
-    color_t select = m_label.GetLabelInfo().selectedColor;
+    UTILS::Color select = m_label.GetLabelInfo().selectedColor;
     if (!select)
       select = 0xFFFF0000;
     colors.push_back(select);

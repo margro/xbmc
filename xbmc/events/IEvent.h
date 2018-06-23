@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team Kodi
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 #include <string>
 
@@ -37,7 +38,7 @@ enum class EventLevel
 class IEvent : public ISortable
 {
 public:
-  ~IEvent() override = default;
+  virtual ~IEvent() = default;
 
   virtual const char* GetType() const = 0;
   virtual std::string GetIdentifier() const = 0;

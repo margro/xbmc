@@ -23,21 +23,24 @@
 #include "Application.h"
 #include "FileItem.h"
 #include "ServiceBroker.h"
+#include "addons/PVRClient.h"
 #include "dialogs/GUIDialogBusy.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
+#include "input/InputManager.h"
 #include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
 #include "network/Network.h"
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
-#include "threads/Thread.h"
+#include "threads/IRunnable.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/log.h"
@@ -133,9 +136,13 @@ namespace PVR
   private:
     bool DoRun(const CFileItemPtr &item) override
     {
-      PVR_ERROR error;
-      CServiceBroker::GetPVRManager().Clients()->SetRecordingPlayCount(*item->GetPVRRecordingInfoTag(), item->GetPVRRecordingInfoTag()->GetLocalPlayCount(), &error);
-      return error == PVR_ERROR_NO_ERROR;
+      const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(*item);
+      if (client)
+      {
+        const CPVRRecordingPtr recording = item->GetPVRRecordingInfoTag();
+        return client->SetRecordingPlayCount(*recording, recording->GetLocalPlayCount()) == PVR_ERROR_NO_ERROR;
+      }
+      return false;
     }
   };
 
@@ -144,9 +151,10 @@ namespace PVR
   private:
     bool DoRun(const CFileItemPtr &item) override
     {
-      PVR_ERROR error;
-      CServiceBroker::GetPVRManager().Clients()->SetRecordingLifetime(*item->GetPVRRecordingInfoTag(), &error);
-      return error == PVR_ERROR_NO_ERROR;
+      const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(*item);
+      if (client)
+        return client->SetRecordingLifetime(*item->GetPVRRecordingInfoTag()) == PVR_ERROR_NO_ERROR;
+      return false;
     }
   };
 
@@ -157,6 +165,7 @@ namespace PVR
       CSettings::SETTING_PVRMANAGER_PRESELECTPLAYINGCHANNEL,
       CSettings::SETTING_PVRRECORD_INSTANTRECORDTIME,
       CSettings::SETTING_PVRRECORD_INSTANTRECORDACTION,
+      CSettings::SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH,
       CSettings::SETTING_PVRPLAYBACK_SWITCHTOFULLSCREEN,
       CSettings::SETTING_PVRPARENTAL_PIN,
       CSettings::SETTING_PVRPARENTAL_ENABLED,
@@ -169,7 +178,7 @@ namespace PVR
   bool CPVRGUIActions::ShowEPGInfo(const CFileItemPtr &item) const
   {
     const CPVRChannelPtr channel(CPVRItem(item).GetChannel());
-    if (channel && !CheckParentalLock(channel))
+    if (channel && CheckParentalLock(channel) != ParentalCheckResult::SUCCESS)
       return false;
 
     const CPVREpgInfoTagPtr epgTag(CPVRItem(item).GetEpgInfoTag());
@@ -179,7 +188,7 @@ namespace PVR
       return false;
     }
 
-    CGUIDialogPVRGuideInfo* pDlgInfo = g_windowManager.GetWindow<CGUIDialogPVRGuideInfo>(WINDOW_DIALOG_PVR_GUIDE_INFO);
+    CGUIDialogPVRGuideInfo* pDlgInfo = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogPVRGuideInfo>(WINDOW_DIALOG_PVR_GUIDE_INFO);
     if (!pDlgInfo)
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_PVR_GUIDE_INFO!", __FUNCTION__);
@@ -195,10 +204,10 @@ namespace PVR
   bool CPVRGUIActions::ShowChannelEPG(const CFileItemPtr &item) const
   {
     const CPVRChannelPtr channel(CPVRItem(item).GetChannel());
-    if (channel && !CheckParentalLock(channel))
+    if (channel && CheckParentalLock(channel) != ParentalCheckResult::SUCCESS)
       return false;
 
-    CGUIDialogPVRChannelGuide* pDlgInfo = g_windowManager.GetWindow<CGUIDialogPVRChannelGuide>(WINDOW_DIALOG_PVR_CHANNEL_GUIDE);
+    CGUIDialogPVRChannelGuide* pDlgInfo = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogPVRChannelGuide>(WINDOW_DIALOG_PVR_CHANNEL_GUIDE);
     if (!pDlgInfo)
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_PVR_CHANNEL_GUIDE!", __FUNCTION__);
@@ -218,7 +227,7 @@ namespace PVR
       return false;
     }
 
-    CGUIDialogPVRRecordingInfo* pDlgInfo = g_windowManager.GetWindow<CGUIDialogPVRRecordingInfo>(WINDOW_DIALOG_PVR_RECORDING_INFO);
+    CGUIDialogPVRRecordingInfo* pDlgInfo = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogPVRRecordingInfo>(WINDOW_DIALOG_PVR_RECORDING_INFO);
     if (!pDlgInfo)
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_PVR_RECORDING_INFO!", __FUNCTION__);
@@ -237,9 +246,9 @@ namespace PVR
     int windowSearchId = bRadio ? WINDOW_RADIO_SEARCH : WINDOW_TV_SEARCH;
     CGUIWindowPVRSearchBase *windowSearch;
     if (bRadio)
-      windowSearch = g_windowManager.GetWindow<CGUIWindowPVRRadioSearch>(windowSearchId);
+      windowSearch = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowPVRRadioSearch>(windowSearchId);
     else
-      windowSearch = g_windowManager.GetWindow<CGUIWindowPVRTVSearch>(windowSearchId);
+      windowSearch = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowPVRTVSearch>(windowSearchId);
 
     if (!windowSearch)
     {
@@ -251,13 +260,13 @@ namespace PVR
       windowToClose->Close();
 
     windowSearch->SetItemToSearch(item);
-    g_windowManager.ActivateWindow(windowSearchId);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(windowSearchId);
     return true;
   };
 
   bool CPVRGUIActions::ShowTimerSettings(const CPVRTimerInfoTagPtr &timer) const
   {
-    CGUIDialogPVRTimerSettings* pDlgInfo = g_windowManager.GetWindow<CGUIDialogPVRTimerSettings>(WINDOW_DIALOG_PVR_TIMER_SETTING);
+    CGUIDialogPVRTimerSettings* pDlgInfo = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogPVRTimerSettings>(WINDOW_DIALOG_PVR_TIMER_SETTING);
     if (!pDlgInfo)
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_PVR_TIMER_SETTING!", __FUNCTION__);
@@ -300,7 +309,7 @@ namespace PVR
       return false;
     }
 
-    if (!CheckParentalLock(channel))
+    if (CheckParentalLock(channel) != ParentalCheckResult::SUCCESS)
       return false;
 
     const CPVREpgInfoTagPtr epgTag(CPVRItem(item).GetEpgInfoTag());
@@ -346,7 +355,8 @@ namespace PVR
       return false;
     }
 
-    if (!CServiceBroker::GetPVRManager().Clients()->GetClientCapabilities(item->m_iClientId).SupportsTimers())
+    const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(item->m_iClientId);
+    if (client && !client->GetClientCapabilities().SupportsTimers())
     {
       HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19215}); // "Information", "The PVR backend does not support timers."
       return false;
@@ -358,7 +368,7 @@ namespace PVR
       return false;
     }
 
-    if (!CheckParentalLock(item->Channel()))
+    if (CheckParentalLock(item->Channel()) != ParentalCheckResult::SUCCESS)
       return false;
 
     if (!CServiceBroker::GetPVRManager().Timers()->AddTimer(item))
@@ -402,7 +412,7 @@ namespace PVR
 
     InstantRecordingActionSelector::InstantRecordingActionSelector(int iInstantRecordTime)
     : m_iInstantRecordTime(iInstantRecordTime),
-      m_pDlgSelect(g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT))
+      m_pDlgSelect(CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT))
     {
       if (m_pDlgSelect)
       {
@@ -496,10 +506,11 @@ namespace PVR
     if (!channel)
       return bReturn;
 
-    if (!CheckParentalLock(channel))
+    if (CheckParentalLock(channel) != ParentalCheckResult::SUCCESS)
       return bReturn;
 
-    if (CServiceBroker::GetPVRManager().Clients()->GetClientCapabilities(channel->ClientID()).SupportsTimers())
+    const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(channel->ClientID());
+    if (client && client->GetClientCapabilities().SupportsTimers())
     {
       /* timers are supported on this channel */
       if (bOnOff && !channel->IsRecording())
@@ -727,7 +738,7 @@ namespace PVR
       return false;
     }
 
-    CGUIWindowPVRBase *pvrWindow = dynamic_cast<CGUIWindowPVRBase*>(g_windowManager.GetWindow(g_windowManager.GetActiveWindow()));
+    CGUIWindowPVRBase *pvrWindow = dynamic_cast<CGUIWindowPVRBase*>(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow()));
     if (pvrWindow)
       pvrWindow->DoRefresh();
     else
@@ -996,7 +1007,7 @@ namespace PVR
 
   bool CPVRGUIActions::ShowRecordingSettings(const CPVRRecordingPtr &recording) const
   {
-    CGUIDialogPVRRecordingSettings* pDlgInfo = g_windowManager.GetWindow<CGUIDialogPVRRecordingSettings>(WINDOW_DIALOG_PVR_RECORDING_SETTING);
+    CGUIDialogPVRRecordingSettings* pDlgInfo = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogPVRRecordingSettings>(WINDOW_DIALOG_PVR_RECORDING_SETTING);
     if (!pDlgInfo)
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_PVR_RECORDING_SETTING!", __FUNCTION__);
@@ -1066,8 +1077,8 @@ namespace PVR
 
     if (bFullscreen)
     {
-      CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, g_windowManager.GetActiveWindow());
-      g_windowManager.SendMessage(msg);
+      CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
     }
   }
 
@@ -1088,8 +1099,8 @@ namespace PVR
 
     if (CServiceBroker::GetPVRManager().IsPlayingRecording(recording))
     {
-      CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, g_windowManager.GetActiveWindow());
-      g_windowManager.SendMessage(msg);
+      CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
       return true;
     }
 
@@ -1110,8 +1121,8 @@ namespace PVR
 
     if (CServiceBroker::GetPVRManager().IsPlayingEpgTag(epgTag))
     {
-      CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, g_windowManager.GetActiveWindow());
-      g_windowManager.SendMessage(msg);
+      CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
       return true;
     }
 
@@ -1121,11 +1132,6 @@ namespace PVR
 
   bool CPVRGUIActions::SwitchToChannel(const CFileItemPtr &item, bool bCheckResume) const
   {
-    return SwitchToChannel(item, bCheckResume, m_settings.GetBoolValue(CSettings::SETTING_PVRPLAYBACK_SWITCHTOFULLSCREEN));
-  }
-
-  bool CPVRGUIActions::SwitchToChannel(const CFileItemPtr &item, bool bCheckResume, bool bFullscreen) const
-  {
     if (item->m_bIsFolder)
       return false;
 
@@ -1133,14 +1139,15 @@ namespace PVR
     if ((channel && CServiceBroker::GetPVRManager().IsPlayingChannel(channel)) ||
         (channel && channel->HasRecording() && CServiceBroker::GetPVRManager().IsPlayingRecording(channel->GetRecording())))
     {
-      CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, g_windowManager.GetActiveWindow());
-      g_windowManager.SendMessage(msg);
+      CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow());
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
       return true;
     }
 
-    // switch to channel or if recording present, ask whether to switch or play recording...
-    if (channel && CheckParentalLock(channel))
+    ParentalCheckResult result = channel ? CheckParentalLock(channel) : ParentalCheckResult::FAILED;
+    if (result == ParentalCheckResult::SUCCESS)
     {
+      // switch to channel or if recording present, ask whether to switch or play recording...
       const CPVRRecordingPtr recording(channel->GetRecording());
       if (recording)
       {
@@ -1163,16 +1170,17 @@ namespace PVR
         }
       }
 
-      StartPlayback(new CFileItem(channel), bFullscreen);
+      StartPlayback(new CFileItem(channel), m_settings.GetBoolValue(CSettings::SETTING_PVRPLAYBACK_SWITCHTOFULLSCREEN));
       return true;
     }
+    else if (result == ParentalCheckResult::FAILED)
+    {
+      const std::string channelName = channel ? channel->ChannelName() : g_localizeStrings.Get(19029); // Channel
+      const std::string msg = StringUtils::Format(g_localizeStrings.Get(19035).c_str(), channelName.c_str()); // CHANNELNAME could not be played. Check the log for details.
 
-    std::string channelName = g_localizeStrings.Get(19029); // Channel
-    if (channel)
-      channelName = channel->ChannelName();
-    std::string msg = StringUtils::Format(g_localizeStrings.Get(19035).c_str(), channelName.c_str()); // CHANNELNAME could not be played. Check the log for details.
+      CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, g_localizeStrings.Get(19166), msg); // PVR information
+    }
 
-    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, g_localizeStrings.Get(19166), msg); // PVR information
     return false;
   }
 
@@ -1266,7 +1274,7 @@ namespace PVR
 
     CLog::Log(LOGNOTICE, "PVRGUIActions - %s - start playback of channel '%s'", __FUNCTION__, item->GetPVRChannelInfoTag()->ChannelName().c_str());
     CServiceBroker::GetPVRManager().SetPlayingGroup(group);
-    return SwitchToChannel(item, true, m_settings.GetBoolValue(CSettings::SETTING_PVRPLAYBACK_SWITCHTOFULLSCREEN));
+    return SwitchToChannel(item, true);
   }
 
   bool CPVRGUIActions::PlayMedia(const CFileItemPtr &item) const
@@ -1310,7 +1318,7 @@ namespace PVR
     if (!CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(channel->IsRadio())->RemoveFromGroup(channel))
       return false;
 
-    CGUIWindowPVRBase *pvrWindow = dynamic_cast<CGUIWindowPVRBase*>(g_windowManager.GetWindow(g_windowManager.GetActiveWindow()));
+    CGUIWindowPVRBase *pvrWindow = dynamic_cast<CGUIWindowPVRBase*>(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow()));
     if (pvrWindow)
       pvrWindow->DoRefresh();
     else
@@ -1331,7 +1339,7 @@ namespace PVR
     /* multiple clients found */
     if (possibleScanClients.size() > 1)
     {
-      CGUIDialogSelect* pDialog= g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
+      CGUIDialogSelect* pDialog= CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
       if (!pDialog)
       {
         CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_SELECT!", __FUNCTION__);
@@ -1436,7 +1444,7 @@ namespace PVR
       else if (clients.size() > 1)
       {
         // have user select client
-        CGUIDialogSelect* pDialog= g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
+        CGUIDialogSelect* pDialog= CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
         if (!pDialog)
         {
           CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_SELECT!", __FUNCTION__);
@@ -1464,12 +1472,12 @@ namespace PVR
     }
 
     if (iClientID < 0)
-      iClientID = CServiceBroker::GetPVRManager().Clients()->GetPlayingClientID();
+      iClientID = CServiceBroker::GetPVRManager().GetPlayingClientID();
 
     CPVRClientPtr client;
     if (CServiceBroker::GetPVRManager().Clients()->GetCreatedClient(iClientID, client) && client->HasMenuHooks(menuCategory))
     {
-      CGUIDialogSelect* pDialog= g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
+      CGUIDialogSelect* pDialog= CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
       if (!pDialog)
       {
         CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_SELECT!", __FUNCTION__);
@@ -1513,7 +1521,7 @@ namespace PVR
   {
     CLog::Log(LOGNOTICE,"CPVRGUIActions - %s - clearing the PVR database", __FUNCTION__);
 
-    CGUIDialogProgress* pDlgProgress = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
+    CGUIDialogProgress* pDlgProgress = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
     if (!pDlgProgress)
     {
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - unable to get WINDOW_DIALOG_PROGRESS!", __FUNCTION__);
@@ -1528,7 +1536,7 @@ namespace PVR
     }
     else
     {
-      if (!CheckParentalPIN() ||
+      if (CheckParentalPIN() != ParentalCheckResult::SUCCESS ||
           !CGUIDialogYesNo::ShowAndGetInput(CVariant{19098},  // "Warning!"
                                             CVariant{19186})) // "All your TV related data (channels, groups, guide) will be cleared. Are you sure?"
         return false;
@@ -1613,37 +1621,44 @@ namespace PVR
     return true;
   }
 
-  bool CPVRGUIActions::CheckParentalLock(const CPVRChannelPtr &channel) const
+  ParentalCheckResult CPVRGUIActions::CheckParentalLock(const CPVRChannelPtr &channel) const
   {
-    bool bReturn = !CServiceBroker::GetPVRManager().IsParentalLocked(channel) || CheckParentalPIN();
+    if (!CServiceBroker::GetPVRManager().IsParentalLocked(channel))
+      return ParentalCheckResult::SUCCESS;
 
-    if (!bReturn)
+    ParentalCheckResult ret = CheckParentalPIN();
+
+    if (ret == ParentalCheckResult::FAILED)
       CLog::Log(LOGERROR, "CPVRGUIActions - %s - parental lock verification failed for channel '%s': wrong PIN entered.", __FUNCTION__, channel->ChannelName().c_str());
 
-    return bReturn;
+    return ret;
   }
 
-  bool CPVRGUIActions::CheckParentalPIN() const
+  ParentalCheckResult CPVRGUIActions::CheckParentalPIN() const
   {
+    if (!m_settings.GetBoolValue(CSettings::SETTING_PVRPARENTAL_ENABLED))
+      return ParentalCheckResult::SUCCESS;
+
     std::string pinCode = m_settings.GetStringValue(CSettings::SETTING_PVRPARENTAL_PIN);
+    if (pinCode.empty())
+      return ParentalCheckResult::SUCCESS;
 
-    if (!m_settings.GetBoolValue(CSettings::SETTING_PVRPARENTAL_ENABLED) || pinCode.empty())
-      return true;
+    InputVerificationResult ret = CGUIDialogNumeric::ShowAndVerifyInput(pinCode, g_localizeStrings.Get(19262), true); // "Parental control. Enter PIN:"
 
-    // Locked channel. Enter PIN:
-    bool bValidPIN = CGUIDialogNumeric::ShowAndVerifyInput(pinCode, g_localizeStrings.Get(19262), true); // "Parental control. Enter PIN:"
-    if (!bValidPIN)
+    if (ret == InputVerificationResult::SUCCESS)
     {
-      // display message: The entered PIN number was incorrect
+      CServiceBroker::GetPVRManager().RestartParentalTimer();
+      return ParentalCheckResult::SUCCESS;
+    }
+    else if (ret == InputVerificationResult::FAILED)
+    {
       HELPERS::ShowOKDialogText(CVariant{19264}, CVariant{19265}); // "Incorrect PIN", "The entered PIN was incorrect."
+      return ParentalCheckResult::FAILED;
     }
     else
     {
-      // restart the parental timer
-      CServiceBroker::GetPVRManager().RestartParentalTimer();
+      return ParentalCheckResult::CANCELED;
     }
-
-    return bValidPIN;
   }
 
   bool CPVRGUIActions::CanSystemPowerdown(bool bAskUser /*= true*/) const
@@ -1776,10 +1791,13 @@ namespace PVR
   {
     if (item && item->HasPVRTimerInfoTag())
     {
-      const CPVRTimerInfoTagPtr tag(item->GetPVRTimerInfoTag());
-      std::string hostname(CServiceBroker::GetPVRManager().Clients()->GetBackendHostnameByClientId(tag->m_iClientId));
-      if (!hostname.empty() && CServiceBroker::GetNetwork().IsLocalHost(hostname))
-        return true;
+      const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(*item);
+      if (client)
+      {
+        const std::string hostname = client->GetBackendHostname();
+        if (!hostname.empty() && CServiceBroker::GetNetwork().IsLocalHost(hostname))
+          return true;
+      }
     }
     return false;
   }
@@ -1821,7 +1839,7 @@ namespace PVR
   CPVRChannelNumberInputHandler &CPVRGUIActions::GetChannelNumberInputHandler()
   {
     // window/dialog specific input handler
-    CPVRChannelNumberInputHandler *windowInputHandler = dynamic_cast<CPVRChannelNumberInputHandler*>(g_windowManager.GetWindow(g_windowManager.GetActiveWindowOrDialog()));
+    CPVRChannelNumberInputHandler *windowInputHandler = dynamic_cast<CPVRChannelNumberInputHandler*>(CServiceBroker::GetGUI()->GetWindowManager().GetWindow(CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog()));
     if (windowInputHandler)
       return *windowInputHandler;
 
@@ -1862,6 +1880,18 @@ namespace PVR
     }
 
     CPVRChannelNumberInputHandler::AppendChannelNumberCharacter(cCharacter);
+  }
+
+  void CPVRChannelSwitchingInputHandler::GetChannelNumbers(std::vector<std::string>& channelNumbers)
+  {
+    CPVRManager& pvrMgr = CServiceBroker::GetPVRManager();
+    const CPVRChannelPtr playingChannel = pvrMgr.GetPlayingChannel();
+    if (playingChannel)
+    {
+      const CPVRChannelGroupPtr group = pvrMgr.ChannelGroups()->GetGroupAll(playingChannel->IsRadio());
+      if (group)
+        group->GetChannelNumbers(channelNumbers);
+    }
   }
 
   void CPVRChannelSwitchingInputHandler::OnInputDone()

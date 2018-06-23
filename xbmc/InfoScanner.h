@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <set>
@@ -52,7 +53,8 @@ public:
     URL_NFO      = 2, //!< A URL to grab info from was found
     OVERRIDE_NFO = 3, //!< Override info was found
     COMBINED_NFO = 4, //!< A URL to grab info from + override info was found
-    ERROR_NFO    = 5  //!< Error processing info
+    ERROR_NFO    = 5, //!< Error processing info
+    TITLE_NFO    = 6  //!< At least Title was read (and optionally the Year)
   };
 
   //! \brief Empty destructor.

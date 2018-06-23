@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <cstdio>
 #include <string>
 #include <cstdint>
@@ -31,7 +31,7 @@ public:
   {
     m_file = NULL;
   }
-  
+
   ~CFile()
   {
     Close();
@@ -70,7 +70,7 @@ public:
       return size;
     return 0;
   }
-  
+
   FILE *getFP()
   {
     return m_file;

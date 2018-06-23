@@ -19,7 +19,7 @@
  */
 
 #include "RenderContext.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "rendering/RenderSystem.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
@@ -84,6 +84,9 @@ static ESHADERMETHOD TranslateShaderMethod(GL_SHADER_METHOD method)
   {
   case GL_SHADER_METHOD::DEFAULT: return SM_DEFAULT;
   case GL_SHADER_METHOD::TEXTURE: return SM_TEXTURE;
+#if defined(HAS_GLES)
+  case GL_SHADER_METHOD::TEXTURE_RGBA_OES: return SM_TEXTURE_RGBA_OES;
+#endif
   default:
     break;
   }
@@ -225,7 +228,7 @@ RESOLUTION CRenderContext::GetVideoResolution()
   return m_graphicsContext.GetVideoResolution();
 }
 
-void CRenderContext::Clear(color_t color /* = 0 */)
+void CRenderContext::Clear(UTILS::Color color /* = 0 */)
 {
   m_graphicsContext.Clear(color);
 }
@@ -240,7 +243,7 @@ void CRenderContext::SetRenderingResolution(const RESOLUTION_INFO &res, bool nee
   m_graphicsContext.SetRenderingResolution(res, needsScaling);
 }
 
-color_t CRenderContext::MergeAlpha(color_t color)
+UTILS::Color CRenderContext::MergeAlpha(UTILS::Color color)
 {
   return m_graphicsContext.MergeAlpha(color);
 }

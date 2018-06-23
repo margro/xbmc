@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <androidjni/Activity.h>
 #include <androidjni/InputManager.h>
@@ -46,7 +47,7 @@ public:
   static void unregisterMediaButtonEventReceiver();
 
   CJNIRect getDisplayRect();
-  
+
 private:
   static CJNIMainActivity *m_appInstance;
 

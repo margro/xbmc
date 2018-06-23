@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 #include <string>
 #include <utility>
@@ -38,11 +39,10 @@ typedef enum
   PARTYMODECONTEXT_VIDEO
 } PartyModeContext;
 
-class CPartyModeManager
+class CPartyModeManager final
 {
 public:
   CPartyModeManager(void);
-  virtual ~CPartyModeManager(void);
 
   bool Enable(PartyModeContext context=PARTYMODECONTEXT_MUSIC, const std::string& strXspPath = "");
   void Disable();

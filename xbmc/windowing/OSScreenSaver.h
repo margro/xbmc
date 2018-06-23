@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <memory>
@@ -81,6 +82,16 @@ public:
    * MUST NOT produce any side-effects.
    */
   virtual void Uninhibit() = 0;
+};
+
+/**
+ * Dummy implementation of IOSScreenSaver
+ */
+class CDummyOSScreenSaver : public IOSScreenSaver
+{
+public:
+  void Inhibit() override {}
+  void Uninhibit() override {}
 };
 
 /**

@@ -21,12 +21,13 @@
 #include "OMXImage.h"
 
 #include "ServiceBroker.h"
+#include "URL.h"
 #include "utils/log.h"
 #include "platform/linux/XMemUtils.h"
 
 #include <sys/time.h>
 #include <inttypes.h>
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
@@ -119,7 +120,7 @@ COMXImageFile *COMXImage::LoadJpeg(const std::string& texturePath)
   COMXImageFile *file = new COMXImageFile();
   if (!file->ReadFile(texturePath))
   {
-    CLog::Log(LOGNOTICE, "%s: unable to load %s", __func__, texturePath.c_str());
+    CLog::Log(LOGNOTICE, "%s: unable to load %s", __func__, CURL::GetRedacted(texturePath).c_str());
     delete file;
     file = NULL;
   }
@@ -150,7 +151,7 @@ bool COMXImage::DecodeJpeg(COMXImageFile *file, unsigned int width, unsigned int
 
 bool COMXImage::ClampLimits(unsigned int &width, unsigned int &height, unsigned int m_width, unsigned int m_height, bool transposed)
 {
-  RESOLUTION_INFO& res_info = CDisplaySettings::GetInstance().GetResolutionInfo(g_graphicsContext.GetVideoResolution());
+  RESOLUTION_INFO& res_info = CDisplaySettings::GetInstance().GetResolutionInfo(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution());
   unsigned int max_width = width;
   unsigned int max_height = height;
   const unsigned int gui_width = transposed ? res_info.iHeight:res_info.iWidth;
@@ -224,8 +225,8 @@ bool COMXImage::SendMessage(bool (*callback)(EGLDisplay egl_display, EGLContext 
   // we can only call gl functions from the application thread or texture thread
   if ( g_application.IsCurrentThread() )
   {
-    CWinSystemRpiGLESContext &winsystem = static_cast<CWinSystemRpiGLESContext &>(CServiceBroker::GetWinSystem());
-    return callback(winsystem.GetEGLDisplay(), GetEGLContext(), cookie);
+    CWinSystemRpiGLESContext *winsystem = static_cast<CWinSystemRpiGLESContext *>(CServiceBroker::GetWinSystem());
+    return callback(winsystem->GetEGLDisplay(), GetEGLContext(), cookie);
   }
   struct callbackinfo mess;
   mess.callback = callback;
@@ -316,7 +317,6 @@ bool COMXImage::DecodeJpegToTexture(COMXImageFile *file, unsigned int width, uns
   tex->height = height;
   tex->texture = 0;
   tex->egl_image = NULL;
-  tex->filename = file->GetFilename();
 
   SendMessage(AllocTextureCallback, tex);
 
@@ -337,9 +337,9 @@ bool COMXImage::DecodeJpegToTexture(COMXImageFile *file, unsigned int width, uns
 EGLContext COMXImage::GetEGLContext()
 {
   CSingleLock lock(m_texqueue_lock);
-  CWinSystemRpiGLESContext &winsystem = static_cast<CWinSystemRpiGLESContext &>(CServiceBroker::GetWinSystem());
+  CWinSystemRpiGLESContext *winsystem = static_cast<CWinSystemRpiGLESContext *>(CServiceBroker::GetWinSystem());
   if (g_application.IsCurrentThread())
-    return winsystem.GetEGLContext();
+    return winsystem->GetEGLContext();
   if (m_egl_context == EGL_NO_CONTEXT)
     CreateContext();
   return m_egl_context;
@@ -389,8 +389,8 @@ void COMXImage::CreateContext()
 {
   EGLConfig egl_config;
   GLint m_result;
-  CWinSystemRpiGLESContext &winsystem = static_cast<CWinSystemRpiGLESContext &>(CServiceBroker::GetWinSystem());
-  EGLDisplay egl_display = winsystem.GetEGLDisplay();
+  CWinSystemRpiGLESContext *winsystem = static_cast<CWinSystemRpiGLESContext *>(CServiceBroker::GetWinSystem());
+  EGLDisplay egl_display = winsystem->GetEGLDisplay();
 
   eglInitialize(egl_display, NULL, NULL);
   CheckError();
@@ -417,7 +417,7 @@ void COMXImage::CreateContext()
     CLog::Log(LOGERROR, "%s: Could not find a compatible configuration",__FUNCTION__);
     return;
   }
-  m_egl_context = eglCreateContext(egl_display, egl_config, winsystem.GetEGLContext(), contextAttrs);
+  m_egl_context = eglCreateContext(egl_display, egl_config, winsystem->GetEGLContext(), contextAttrs);
   CheckError();
   if (m_egl_context == EGL_NO_CONTEXT)
   {
@@ -455,8 +455,8 @@ void COMXImage::Process()
       m_texqueue.pop();
       lock.Leave();
 
-      CWinSystemRpiGLESContext &winsystem = static_cast<CWinSystemRpiGLESContext &>(CServiceBroker::GetWinSystem());
-      mess->result = mess->callback(winsystem.GetEGLDisplay(), GetEGLContext(), mess->cookie);
+      CWinSystemRpiGLESContext *winsystem = static_cast<CWinSystemRpiGLESContext *>(CServiceBroker::GetWinSystem());
+      mess->result = mess->callback(winsystem->GetEGLDisplay(), GetEGLContext(), mess->cookie);
       {
         CSingleLock lock(m_texqueue_lock);
         mess->sync.Set();
@@ -620,7 +620,7 @@ OMX_IMAGE_CODINGTYPE COMXImageFile::GetCodingType(unsigned int &width, unsigned 
     unsigned short block_size = 0;
     bool nMarker = false;
 
-    while(p < q)
+    while(p < q && !progressive)
     {
       switch(marker)
       {
@@ -725,7 +725,7 @@ OMX_IMAGE_CODINGTYPE COMXImageFile::GetCodingType(unsigned int &width, unsigned 
           bool bError = false;
           SKIPN(p, 1 * 2);
           readBits += 2;
-        
+
           char o1 = READ8(p);
           char o2 = READ8(p);
           readBits += 2;
@@ -737,14 +737,14 @@ OMX_IMAGE_CODINGTYPE COMXImageFile::GetCodingType(unsigned int &width, unsigned 
             bMotorola = false;
           else
             bError = true;
-        
+
           SKIPN(p, 1 * 2);
           readBits += 2;
 
           if(!bError)
           {
             unsigned int offset, a, b, numberOfTags, tagNumber;
-  
+
             // Get first IFD offset (offset to IFD0)
             if(bMotorola)
             {
@@ -772,7 +772,7 @@ OMX_IMAGE_CODINGTYPE COMXImageFile::GetCodingType(unsigned int &width, unsigned 
             {
               SKIPN(p, 1 * offset);
               readBits += offset;
-            } 
+            }
 
             // Get the number of directory entries contained in this IFD
             if(bMotorola)
@@ -879,7 +879,7 @@ OMX_IMAGE_CODINGTYPE COMXImageFile::GetCodingType(unsigned int &width, unsigned 
 bool COMXImageFile::ReadFile(const std::string& inputFile, int orientation)
 {
   XFILE::CFile      m_pFile;
-  m_filename = inputFile.c_str();
+  m_filename = CURL::GetRedacted(inputFile).c_str();
   if(!m_pFile.Open(inputFile, 0))
   {
     CLog::Log(LOGERROR, "%s::%s %s not found\n", CLASSNAME, __func__, m_filename);
@@ -903,7 +903,7 @@ bool COMXImageFile::ReadFile(const std::string& inputFile, int orientation)
     CLog::Log(LOGERROR, "%s::%s %s m_image_buffer null (%lu)\n", CLASSNAME, __func__, m_filename, m_image_size);
     return false;
   }
-  
+
   m_pFile.Read(m_image_buffer, m_image_size);
   m_pFile.Close();
 
@@ -1263,7 +1263,7 @@ bool COMXImageEnc::Encode(unsigned char *buffer, int size, unsigned width, unsig
   if (pitch == 0)
      pitch = 4 * width;
 
-  if (!buffer || !size) 
+  if (!buffer || !size)
   {
     CLog::Log(LOGERROR, "%s::%s error no buffer\n", CLASSNAME, __func__);
     return false;
@@ -1987,8 +1987,8 @@ void COMXTexture::Close()
 
 bool COMXTexture::HandlePortSettingChange(unsigned int resize_width, unsigned int resize_height, void *egl_image, bool port_settings_changed)
 {
-  CWinSystemRpiGLESContext &winsystem = static_cast<CWinSystemRpiGLESContext &>(CServiceBroker::GetWinSystem());
-  EGLDisplay egl_display = winsystem.GetEGLDisplay();
+  CWinSystemRpiGLESContext *winsystem = static_cast<CWinSystemRpiGLESContext *>(CServiceBroker::GetWinSystem());
+  EGLDisplay egl_display = winsystem->GetEGLDisplay();
   OMX_ERRORTYPE omx_err;
 
   if (port_settings_changed)

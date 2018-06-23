@@ -1,13 +1,3 @@
-/*!
-\file GUIFadeLabelControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUIFADELABELCONTROL_H
-#define GUILIB_GUIFADELABELCONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -28,10 +18,18 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIFadeLabelControl.h
+\brief
+*/
+
 #include <vector>
 
 #include "GUIControl.h"
 #include "GUILabel.h"
+#include "guilib/guiinfo/GUIInfoLabel.h"
 
 /*!
  \ingroup controls
@@ -50,7 +48,7 @@ public:
   bool CanFocus() const override;
   bool OnMessage(CGUIMessage& message) override;
 
-  void SetInfo(const std::vector<CGUIInfoLabel> &vecInfo);
+  void SetInfo(const std::vector<KODI::GUILIB::GUIINFO::CGUIInfoLabel> &vecInfo);
   void SetScrolling(bool scroll) { m_scroll = scroll; }
 
 protected:
@@ -68,7 +66,7 @@ protected:
    */
   std::string GetLabel();
 
-  std::vector< CGUIInfoLabel > m_infoLabels;
+  std::vector<KODI::GUILIB::GUIINFO::CGUIInfoLabel> m_infoLabels;
   unsigned int m_currentLabel;
   unsigned int m_lastLabel;
 
@@ -86,4 +84,4 @@ protected:
   bool m_resetOnLabelChange;
   bool m_randomized;
 };
-#endif
+

@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,11 +18,13 @@
  *
  */
 
+#pragma once
+
 #include "XBApplicationEx.h"
 
 #include "addons/AddonSystemSettings.h"
 #include "guilib/IMsgTargetCallback.h"
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 #include "utils/GlobalsHandling.h"
 #include "messaging/IMessageTarget.h"
 #include "ServiceManager.h"
@@ -36,29 +36,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-class CAction;
-class CFileItem;
-class CFileItemList;
-class CKey;
-
-
-namespace ADDON
-{
-  class CSkinInfo;
-  class IAddon;
-  typedef std::shared_ptr<IAddon> AddonPtr;
-}
-
-namespace MEDIA_DETECT
-{
-  class CAutorun;
-}
-
-namespace PLAYLIST
-{
-  class CPlayList;
-}
 
 #include "cores/IPlayerCallback.h"
 #include "settings/lib/ISettingsHandler.h"
@@ -79,12 +56,40 @@ namespace PLAYLIST
 #include "ApplicationPlayer.h"
 #include "FileItem.h"
 
+class CAction;
+class CFileItem;
+class CFileItemList;
+class CKey;
 class CSeekHandler;
 class CInertialScrollingHandler;
 class DPMSSupport;
 class CSplash;
 class CBookmark;
 class IActionListener;
+class CGUIComponent;
+class CAppInboundProtocol;
+
+namespace ADDON
+{
+  class CSkinInfo;
+  class IAddon;
+  typedef std::shared_ptr<IAddon> AddonPtr;
+}
+
+namespace MEDIA_DETECT
+{
+  class CAutorun;
+}
+
+namespace PLAYLIST
+{
+  class CPlayList;
+}
+
+namespace ActiveAE
+{
+  class CActiveAE;
+}
 
 namespace VIDEO
 {
@@ -121,6 +126,8 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
                      public ISettingCallback, public ISettingsHandler, public ISubSettings,
                      public KODI::MESSAGING::IMessageTarget
 {
+friend class CAppInboundProtocol;
+
 public:
 
   enum ESERVERS
@@ -178,13 +185,14 @@ public:
   void OnPlayBackSeekChapter(int iChapter) override;
   void OnPlayBackSpeedChanged(int iSpeed) override;
   void OnAVChange() override;
+  void OnAVStarted(const CFileItem &file) override;
   void RequestVideoSettings(const CFileItem &fileItem) override;
   void StoreVideoSettings(const CFileItem &fileItem, CVideoSettings vs) override;
 
   int  GetMessageMask() override;
   void OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg) override;
 
-  bool PlayMedia(const CFileItem& item, const std::string &player, int iPlaylist);
+  bool PlayMedia(CFileItem& item, const std::string &player, int iPlaylist);
   bool ProcessAndStartPlaylist(const std::string& strPlayList, PLAYLIST::CPlayList& playlist, int iPlaylist, int track=0);
   bool PlayFile(CFileItem item, const std::string& player, bool bRestart = false);
   void StopPlaying();
@@ -282,9 +290,9 @@ public:
 
   void UpdateLibraries();
 
-  bool ExecuteXBMCAction(std::string action, const CGUIListItemPtr &item = NULL);
+  void UpdateCurrentPlayArt();
 
-  bool OnEvent(XBMC_Event& newEvent);
+  bool ExecuteXBMCAction(std::string action, const CGUIListItemPtr &item = NULL);
 
 #ifdef HAS_DVD_DRIVE
   std::unique_ptr<MEDIA_DETECT::CAutorun> m_Autorun;
@@ -321,16 +329,6 @@ public:
     return m_bStandalone;
   }
 
-  void SetEnableLegacyRes(bool value)
-  {
-    m_bEnableLegacyRes = value;
-  }
-
-  bool IsEnableLegacyRes()
-  {
-    return m_bEnableLegacyRes;
-  }
-
   void SetEnableTestMode(bool value)
   {
     m_bTestMode = value;
@@ -348,7 +346,6 @@ public:
 
   bool SwitchToFullScreen(bool force = false);
 
-  void SetRenderGUI(bool renderGUI) override;
   bool GetRenderGUI() const { return m_renderGUI; };
 
   bool SetLanguage(const std::string &strLanguage);
@@ -357,7 +354,7 @@ public:
   ReplayGainSettings& GetReplayGainSettings() { return m_replayGainSettings; }
 
   void SetLoggingIn(bool switchingProfiles);
-  
+
   /*!
    \brief Register an action listener.
    \param listener The listener to register
@@ -383,10 +380,8 @@ public:
 
 protected:
   bool OnSettingsSaving() const override;
-
   bool Load(const TiXmlNode *settings) override;
   bool Save(TiXmlNode *settings) const override;
-
   void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
   void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
   bool OnSettingUpdate(std::shared_ptr<CSetting> setting, const char *oldSettingId, const TiXmlNode *oldSettingNode) override;
@@ -394,6 +389,11 @@ protected:
   bool LoadSkin(const std::string& skinID);
 
   void CheckOSScreenSaverInhibitionSetting();
+  void PlaybackCleanup();
+
+  // inbound protocol
+  bool OnEvent(XBMC_Event& newEvent);
+  void SetRenderGUI(bool renderGUI);
 
   /*!
    \brief Delegates the action to all registered action handlers.
@@ -401,6 +401,13 @@ protected:
    \return true, if the action was taken by one of the action listener.
    */
   bool NotifyActionListeners(const CAction &action) const;
+
+  std::unique_ptr<CGUIComponent> m_pGUI;
+  std::unique_ptr<CWinSystemBase> m_pWinSystem;
+  std::unique_ptr<ActiveAE::CActiveAE> m_pActiveAE;
+  std::shared_ptr<CAppInboundProtocol> m_pAppPort;
+  std::deque<XBMC_Event> m_portEvents;
+  CCriticalSection m_portSection;
 
   bool m_confirmSkinChange;
   bool m_ignoreSkinSettingChanges;
@@ -457,7 +464,6 @@ protected:
   bool m_skipGuiRender;
 
   bool m_bStandalone;
-  bool m_bEnableLegacyRes;
   bool m_bTestMode;
   bool m_bSystemScreenSaverEnable;
 
@@ -480,7 +486,7 @@ protected:
   bool InitDirectoriesOSX();
   bool InitDirectoriesWin32();
   void CreateUserDirs() const;
-  void HandleWinEvents();
+  void HandlePortEvents();
 
   /*! \brief Helper method to determine how to handle TMSG_SHUTDOWN
   */
@@ -491,7 +497,6 @@ protected:
   ReplayGainSettings m_replayGainSettings;
   std::vector<IActionListener *> m_actionListeners;
   std::vector<std::string> m_incompatibleAddons;  /*!< Result of addon migration */
-  std::deque<XBMC_Event> m_winEvents;
 
 private:
   CCriticalSection m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
@@ -501,6 +506,7 @@ private:
   unsigned int m_ProcessedExternalCalls;          /*!< counts calls wich are processed during one "door open" cycle in FrameMove */
   unsigned int m_ProcessedExternalDecay = 0;      /*!< counts to close door after a few frames of no python activity */
   CApplicationPlayer m_appPlayer;
+  CEvent m_playerEvent;
   CApplicationStackHelper m_stackHelper;
 };
 

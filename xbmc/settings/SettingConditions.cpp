@@ -20,7 +20,7 @@
 
 #include "SettingConditions.h"
 #include "Application.h"
-#include "GUIPassword.h"
+#include "LockType.h"
 #include "Util.h"
 #include "addons/AddonManager.h"
 #include "addons/binary-addons/BinaryAddonManager.h"
@@ -32,8 +32,8 @@
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAESettings.h"
 #include "ServiceBroker.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
-#include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 #include "guilib/LocalizeStrings.h"
+#include "GUIPassword.h"
 #if defined(HAS_WEB_SERVER)
 #include "network/WebServer.h"
 #endif
@@ -79,7 +79,7 @@ bool CheckMasterLock(const std::string &condition, const std::string &value, Set
 
 bool CheckPVRParentalPin(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN();
+  return CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN() == PVR::ParentalCheckResult::SUCCESS;
 }
 
 bool HasPeripherals(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
@@ -109,7 +109,7 @@ bool HasPowerOffFeature(const std::string &condition, const std::string &value, 
 
 bool IsFullscreen(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
-  return CServiceBroker::GetWinSystem().IsFullScreen();
+  return CServiceBroker::GetWinSystem()->IsFullScreen();
 }
 
 bool IsMasterUser(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
@@ -330,6 +330,12 @@ void CSettingConditions::Initialize(const CProfilesManager &profileManager)
 #ifdef TARGET_DARWIN
   m_simpleConditions.insert("HasVTB");
 #endif
+#ifdef TARGET_DARWIN_OSX
+  m_simpleConditions.insert("have_osx");
+#endif
+#ifdef TARGET_DARWIN_IOS
+  m_simpleConditions.insert("have_ios");
+#endif
 #ifdef HAS_LIBAMCODEC
   if (aml_present())
     m_simpleConditions.insert("have_amcodec");
@@ -382,7 +388,6 @@ void CSettingConditions::Initialize(const CProfilesManager &profileManager)
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilehasvideoslocked",        ProfileHasVideosLocked));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilelockmode",               ProfileLockMode));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("aesettingvisible",              ActiveAE::CActiveAESettings::IsSettingVisible));
-  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("codecoptionvisible",            CDVDVideoCodec::IsSettingVisible));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("gt",                            GreaterThan));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("gte",                           GreaterThanOrEqual));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("lt",                            LessThan));

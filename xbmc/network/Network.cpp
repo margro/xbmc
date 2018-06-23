@@ -18,6 +18,7 @@
  *
  */
 
+#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -136,18 +137,18 @@ int NetworkAccessPoint::FreqToChannel(float frequency)
   return 0; // unknown
 }
 
-
-CNetwork::CNetwork()
+CNetworkBase::CNetworkBase(CSettings &settings) :
+  m_services(new CNetworkServices(settings))
 {
   CApplicationMessenger::GetInstance().PostMsg(TMSG_NETWORKMESSAGE, SERVICES_UP, 0);
 }
 
-CNetwork::~CNetwork()
+CNetworkBase::~CNetworkBase()
 {
   CApplicationMessenger::GetInstance().PostMsg(TMSG_NETWORKMESSAGE, SERVICES_DOWN, 0);
 }
 
-int CNetwork::ParseHex(char *str, unsigned char *addr)
+int CNetworkBase::ParseHex(char *str, unsigned char *addr)
 {
    int len = 0;
 
@@ -166,7 +167,7 @@ int CNetwork::ParseHex(char *str, unsigned char *addr)
    return len;
 }
 
-bool CNetwork::GetHostName(std::string& hostname)
+bool CNetworkBase::GetHostName(std::string& hostname)
 {
   char hostName[128];
   if (gethostname(hostName, sizeof(hostName)))
@@ -182,7 +183,7 @@ bool CNetwork::GetHostName(std::string& hostname)
   return true;
 }
 
-bool CNetwork::IsLocalHost(const std::string& hostname)
+bool CNetworkBase::IsLocalHost(const std::string& hostname)
 {
   if (hostname.empty())
     return false;
@@ -211,7 +212,7 @@ bool CNetwork::IsLocalHost(const std::string& hostname)
   return false;
 }
 
-CNetworkInterface* CNetwork::GetFirstConnectedInterface()
+CNetworkInterface* CNetworkBase::GetFirstConnectedInterface()
 {
    std::vector<CNetworkInterface*>& ifaces = GetInterfaceList();
    std::vector<CNetworkInterface*>::const_iterator iter = ifaces.begin();
@@ -226,7 +227,7 @@ CNetworkInterface* CNetwork::GetFirstConnectedInterface()
    return NULL;
 }
 
-bool CNetwork::HasInterfaceForIP(unsigned long address)
+bool CNetworkBase::HasInterfaceForIP(unsigned long address)
 {
    unsigned long subnet;
    unsigned long local;
@@ -248,18 +249,18 @@ bool CNetwork::HasInterfaceForIP(unsigned long address)
    return false;
 }
 
-bool CNetwork::IsAvailable(void)
+bool CNetworkBase::IsAvailable(void)
 {
   std::vector<CNetworkInterface*>& ifaces = GetInterfaceList();
   return (ifaces.size() != 0);
 }
 
-bool CNetwork::IsConnected()
+bool CNetworkBase::IsConnected()
 {
    return GetFirstConnectedInterface() != NULL;
 }
 
-CNetworkInterface* CNetwork::GetInterfaceByName(const std::string& name)
+CNetworkInterface* CNetworkBase::GetInterfaceByName(const std::string& name)
 {
    std::vector<CNetworkInterface*>& ifaces = GetInterfaceList();
    std::vector<CNetworkInterface*>::const_iterator iter = ifaces.begin();
@@ -274,25 +275,25 @@ CNetworkInterface* CNetwork::GetInterfaceByName(const std::string& name)
    return NULL;
 }
 
-void CNetwork::NetworkMessage(EMESSAGE message, int param)
+void CNetworkBase::NetworkMessage(EMESSAGE message, int param)
 {
   switch( message )
   {
     case SERVICES_UP:
       CLog::Log(LOGDEBUG, "%s - Starting network services",__FUNCTION__);
-      CNetworkServices::GetInstance().Start();
+      m_services->Start();
       break;
 
     case SERVICES_DOWN:
       CLog::Log(LOGDEBUG, "%s - Signaling network services to stop",__FUNCTION__);
-      CNetworkServices::GetInstance().Stop(false); // tell network services to stop, but don't wait for them yet
+      m_services->Stop(false); // tell network services to stop, but don't wait for them yet
       CLog::Log(LOGDEBUG, "%s - Waiting for network services to stop",__FUNCTION__);
-      CNetworkServices::GetInstance().Stop(true); // wait for network services to stop
+      m_services->Stop(true); // wait for network services to stop
       break;
   }
 }
 
-bool CNetwork::WakeOnLan(const char* mac)
+bool CNetworkBase::WakeOnLan(const char* mac)
 {
   int i, j, packet;
   unsigned char ethaddr[8];
@@ -312,7 +313,7 @@ bool CNetwork::WakeOnLan(const char* mac)
     CLog::Log(LOGERROR, "%s - Unable to create socket (%s)", __FUNCTION__, strerror (errno));
     return false;
   }
- 
+
   // Set socket options
   struct sockaddr_in saddr;
   saddr.sin_family = AF_INET;
@@ -326,7 +327,7 @@ bool CNetwork::WakeOnLan(const char* mac)
     closesocket(packet);
     return false;
   }
- 
+
   // Build the magic packet (6 x 0xff + 16 x MAC address)
   ptr = buf;
   for (i = 0; i < 6; i++)
@@ -335,7 +336,7 @@ bool CNetwork::WakeOnLan(const char* mac)
   for (j = 0; j < 16; j++)
     for (i = 0; i < 6; i++)
       *ptr++ = ethaddr[i];
- 
+
   // Send the magic packet
   if (sendto (packet, (char *)buf, 102, 0, (struct sockaddr *)&saddr, sizeof (saddr)) < 0)
   {
@@ -376,8 +377,8 @@ static const char* ConnectHostPort(SOCKET soc, const struct sockaddr_in& addr, s
 
     { // wait for connect to complete
       fd_set wset;
-      FD_ZERO(&wset); 
-      FD_SET(soc, &wset); 
+      FD_ZERO(&wset);
+      FD_SET(soc, &wset);
 
       result = select(FD_SETSIZE, 0, &wset, 0, &timeOut);
     }
@@ -405,8 +406,8 @@ static const char* ConnectHostPort(SOCKET soc, const struct sockaddr_in& addr, s
   if (tryRead)
   {
     fd_set rset;
-    FD_ZERO(&rset); 
-    FD_SET(soc, &rset); 
+    FD_ZERO(&rset);
+    FD_SET(soc, &rset);
 
     result = select(FD_SETSIZE, &rset, 0, 0, &timeOut);
 
@@ -427,25 +428,25 @@ static const char* ConnectHostPort(SOCKET soc, const struct sockaddr_in& addr, s
   return 0; // success
 }
 
-bool CNetwork::PingHost(unsigned long ipaddr, unsigned short port, unsigned int timeOutMs, bool readability_check)
+bool CNetworkBase::PingHost(unsigned long ipaddr, unsigned short port, unsigned int timeOutMs, bool readability_check)
 {
   if (port == 0) // use icmp ping
     return PingHost (ipaddr, timeOutMs);
 
-  struct sockaddr_in addr; 
-  addr.sin_family = AF_INET; 
-  addr.sin_port = htons(port); 
-  addr.sin_addr.s_addr = ipaddr; 
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
+  addr.sin_addr.s_addr = ipaddr;
 
-  SOCKET soc = socket(AF_INET, SOCK_STREAM, 0); 
+  SOCKET soc = socket(AF_INET, SOCK_STREAM, 0);
 
   const char* err_msg = "invalid socket";
 
   if (soc != INVALID_SOCKET)
   {
-    struct timeval tmout; 
-    tmout.tv_sec = timeOutMs / 1000; 
-    tmout.tv_usec = (timeOutMs % 1000) * 1000; 
+    struct timeval tmout;
+    tmout.tv_sec = timeOutMs / 1000;
+    tmout.tv_usec = (timeOutMs % 1000) * 1000;
 
     err_msg = ConnectHostPort (soc, addr, tmout, readability_check);
 
@@ -466,95 +467,63 @@ bool CNetwork::PingHost(unsigned long ipaddr, unsigned short port, unsigned int 
   return err_msg == 0;
 }
 
-//creates, binds and listens a tcp socket on the desired port. Set bindLocal to
-//true to bind to localhost only. The socket will listen over ipv6 if possible
-//and fall back to ipv4 if ipv6 is not available on the platform.
-int CreateTCPServerSocket(const int port, const bool bindLocal, const int backlog, const char *callerName)
+//creates, binds and listens tcp sockets on the desired port. Set bindLocal to
+//true to bind to localhost only.
+std::vector<SOCKET> CreateTCPServerSocket(const int port, const bool bindLocal, const int backlog, const char *callerName)
 {
-  struct sockaddr_storage addr;
-  int    sock = -1;
-
 #ifdef WINSOCK_VERSION
   int yes = 1;
-  int no = 0;
 #else
   unsigned int yes = 1;
-  unsigned int no = 0;
 #endif
-  
-  // first try ipv6
-  if ((sock = socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP)) >= 0)
+
+  std::vector<SOCKET> sockets;
+  struct addrinfo* results = nullptr;
+
+  std::string sPort = StringUtils::Format("%d", port);
+  struct addrinfo hints = { 0 };
+  hints.ai_family = PF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_PASSIVE;
+  hints.ai_protocol = 0;
+
+  int error = getaddrinfo(bindLocal ? "localhost" : nullptr, sPort.c_str(), &hints, &results);
+  if (error != 0)
+    return sockets;
+
+  for (struct addrinfo* result = results; result != nullptr; result = result->ai_next)
   {
-    // in case we're on ipv6, make sure the socket is dual stacked
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&no, sizeof(no)) < 0)
-    {
-#ifdef _MSC_VER
-      std::string sock_err = CWIN32Util::WUSysMsg(WSAGetLastError());
-#else
-      std::string sock_err = strerror(errno);
-#endif
-      CLog::Log(LOGWARNING, "%s Server: Only IPv6 supported (%s)", callerName, sock_err.c_str());
-    }
+    SOCKET sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (sock == INVALID_SOCKET)
+      continue;
 
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&yes, sizeof(yes));
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&yes), sizeof(yes));
+    setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&yes), sizeof(yes));
 
-    struct sockaddr_in6 *s6;
-    memset(&addr, 0, sizeof(addr));
-    addr.ss_family = AF_INET6;
-    s6 = (struct sockaddr_in6 *) &addr;
-    s6->sin6_port = htons(port);
-    if (bindLocal)
-      s6->sin6_addr = in6addr_loopback;
-    else
-      s6->sin6_addr = in6addr_any;
-
-    if (bind( sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_in6)) < 0)
+    if (bind(sock, result->ai_addr, result->ai_addrlen) != 0)
     {
       closesocket(sock);
-      sock = -1;
-      CLog::Log(LOGDEBUG, "%s Server: Failed to bind ipv6 serversocket, trying ipv4", callerName);
+      CLog::Log(LOGDEBUG, "%s Server: Failed to bind %s serversocket", callerName, result->ai_family == AF_INET6 ? "IPv6" : "IPv4");
+      continue;
     }
-  }
-  
-  // ipv4 fallback
-  if (sock < 0 && (sock = socket(PF_INET, SOCK_STREAM, 0)) >= 0)
-  {
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&yes, sizeof(yes));
 
-    struct sockaddr_in  *s4;
-    memset(&addr, 0, sizeof(addr));
-    addr.ss_family = AF_INET;
-    s4 = (struct sockaddr_in *) &addr;
-    s4->sin_port = htons(port);
-    if (bindLocal)
-      s4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (listen(sock, backlog) == 0)
+      sockets.push_back(sock);
     else
-      s4->sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (bind( sock, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) < 0)
     {
       closesocket(sock);
-      CLog::Log(LOGERROR, "%s Server: Failed to bind ipv4 serversocket", callerName);
-      return INVALID_SOCKET;
+      CLog::Log(LOGERROR, "%s Server: Failed to set listen", callerName);
     }
   }
-  else if (sock < 0)
-  {
-    CLog::Log(LOGERROR, "%s Server: Failed to create serversocket", callerName);
-    return INVALID_SOCKET;
-  }
+  freeaddrinfo(results);
 
-  if (listen(sock, backlog) < 0)
-  {
-    closesocket(sock);
-    CLog::Log(LOGERROR, "%s Server: Failed to set listen", callerName);
-    return INVALID_SOCKET;
-  }
+  if (sockets.empty())
+    CLog::Log(LOGERROR, "%s Server: Failed to create serversocket(s)", callerName);
 
-  return sock;
+  return sockets;
 }
 
-void CNetwork::WaitForNet()
+void CNetworkBase::WaitForNet()
 {
   const int timeout = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_POWERMANAGEMENT_WAITFORNETWORK);
   if (timeout <= 0)

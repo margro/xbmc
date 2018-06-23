@@ -17,8 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
+#include "cores/RetroPlayer/guibridge/IGameCallback.h"
 #include "cores/IPlayer.h"
 #include "games/GameTypes.h"
 #include "guilib/DispResource.h"
@@ -35,14 +37,13 @@ namespace GAME
 
 namespace RETRO
 {
-  class CRetroPlayerAudio;
   class CRetroPlayerAutoSave;
   class CRetroPlayerInput;
-  class CRetroPlayerVideo;
   class CRPProcessInfo;
   class CRPRenderManager;
+  class CRPStreamManager;
 
-  class CRetroPlayer : public IPlayer, public IRenderLoop
+  class CRetroPlayer : public IPlayer, public IRenderLoop, public IGameCallback
   {
   public:
     explicit CRetroPlayer(IPlayerCallback& callback);
@@ -130,6 +131,9 @@ namespace RETRO
     //void RenderCapture(unsigned int captureId, unsigned int width, unsigned int height, int flags) override { }
     //bool RenderCaptureGetPixels(unsigned int captureId, unsigned int millis, uint8_t *buffer, unsigned int size) override { return false; }
 
+    // Implementation of IGameCallback
+    std::string GameClientID() const override;
+
   private:
     void SetSpeedInternal(double speed);
 
@@ -169,8 +173,7 @@ namespace RETRO
     double                             m_priorSpeed = 0.0f; // Speed of gameplay before entering OSD
     std::unique_ptr<CRPProcessInfo>    m_processInfo;
     std::unique_ptr<CRPRenderManager>  m_renderManager;
-    std::unique_ptr<CRetroPlayerAudio> m_audio;
-    std::unique_ptr<CRetroPlayerVideo> m_video;
+    std::unique_ptr<CRPStreamManager>  m_streamManager;
     std::unique_ptr<CRetroPlayerInput> m_input;
     std::unique_ptr<CRetroPlayerAutoSave> m_autoSave;
     GAME::GameClientPtr                m_gameClient;

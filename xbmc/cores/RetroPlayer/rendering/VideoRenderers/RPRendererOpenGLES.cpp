@@ -85,6 +85,8 @@ void CRenderBufferOpenGLES::CreateTexture()
   glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  glBindTexture(m_textureTarget, 0);
 }
 
 bool CRenderBufferOpenGLES::UploadTexture()
@@ -124,6 +126,8 @@ bool CRenderBufferOpenGLES::UploadTexture()
     for (unsigned int y = 0; y < m_height; ++y, pixels += stride)
       glTexSubImage2D(m_textureTarget, 0, 0, y, m_width, 1, m_pixelformat, m_pixeltype, pixels);
   }
+
+  glBindTexture(m_textureTarget, 0);
 
   return true;
 }
@@ -259,13 +263,12 @@ void CRPRendererOpenGLES::FlushInternal()
   glFinish();
 }
 
-bool CRPRendererOpenGLES::Supports(ERENDERFEATURE feature) const
+bool CRPRendererOpenGLES::Supports(RENDERFEATURE feature) const
 {
-  if (feature == RENDERFEATURE_STRETCH         ||
-      feature == RENDERFEATURE_ZOOM            ||
-      feature == RENDERFEATURE_VERTICAL_SHIFT  ||
-      feature == RENDERFEATURE_PIXEL_RATIO     ||
-      feature == RENDERFEATURE_ROTATION)
+  if (feature == RENDERFEATURE::STRETCH         ||
+      feature == RENDERFEATURE::ZOOM            ||
+      feature == RENDERFEATURE::PIXEL_RATIO     ||
+      feature == RENDERFEATURE::ROTATION)
   {
     return true;
   }
@@ -273,10 +276,10 @@ bool CRPRendererOpenGLES::Supports(ERENDERFEATURE feature) const
   return false;
 }
 
-bool CRPRendererOpenGLES::SupportsScalingMethod(ESCALINGMETHOD method)
+bool CRPRendererOpenGLES::SupportsScalingMethod(SCALINGMETHOD method)
 {
-  if (method == VS_SCALINGMETHOD_NEAREST ||
-      method == VS_SCALINGMETHOD_LINEAR)
+  if (method == SCALINGMETHOD::NEAREST ||
+      method == SCALINGMETHOD::LINEAR)
   {
     return true;
   }
@@ -431,7 +434,7 @@ void CRPRendererOpenGLES::Render(uint8_t alpha)
   glBindTexture(m_textureTarget, renderBuffer->TextureID());
 
   GLint filter = GL_NEAREST;
-  if (GetRenderSettings().VideoSettings().GetScalingMethod() == VS_SCALINGMETHOD_LINEAR)
+  if (GetRenderSettings().VideoSettings().GetScalingMethod() == SCALINGMETHOD::LINEAR)
     filter = GL_LINEAR;
   glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, filter);
   glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, filter);

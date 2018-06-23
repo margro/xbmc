@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include "platform/darwin/AutoPool.h"
 
@@ -32,17 +32,12 @@ extern "C"
   bool Cocoa_CVDisplayLinkCreate(void *displayLinkcallback, void *displayLinkContext);
   void Cocoa_CVDisplayLinkRelease(void);
   void Cocoa_CVDisplayLinkUpdate(void);
-  double Cocoa_GetCVDisplayLinkRefreshPeriod(void);
 
   // AppleScript
   //
   void Cocoa_DoAppleScript(const char* scriptSource);
   void Cocoa_DoAppleScriptFile(const char* filePath);
-  
-  // Application support
-  //
-  const char* Cocoa_GetIconFromBundle(const char *_bundlePath, const char *_iconName);
-  
+
   // Devices
   //
   char* Cocoa_MountPoint2DeviceName(char *path);
@@ -52,11 +47,6 @@ extern "C"
   //
   void Cocoa_HideMouse();
   void Cocoa_ShowMouse();
-  void Cocoa_HideDock();
-
-  // Version.
-  //
-  bool Cocoa_GPUForDisplayIsNvidiaPureVideo3();
 
   const char *Cocoa_Paste() ;
 

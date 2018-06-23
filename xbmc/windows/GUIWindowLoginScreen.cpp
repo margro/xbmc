@@ -19,28 +19,19 @@
  */
 
 #include "GUIWindowLoginScreen.h"
-
-#include "Application.h"
-#include "ContextMenuManager.h"
 #include "FileItem.h"
 #include "GUIPassword.h"
 #include "ServiceBroker.h"
-#include "addons/AddonManager.h"
 #include "addons/Skin.h"
-#include "cores/AudioEngine/Engines/ActiveAE/AudioDSPAddons/ActiveAEDSP.h"
 #include "dialogs/GUIDialogContextMenu.h"
-#include "favourites/FavouritesService.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "guilib/StereoscopicsManager.h"
 #include "input/Key.h"
 #include "interfaces/builtins/Builtins.h"
-#include "interfaces/json-rpc/JSONRPC.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogOKHelper.h"
-#include "network/Network.h"
-#include "PlayListPlayer.h"
 #include "profiles/Profile.h"
 #include "profiles/ProfilesManager.h"
 #include "profiles/dialogs/GUIDialogProfileSettings.h"
@@ -51,7 +42,6 @@
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include "view/ViewState.h"
-#include "weather/WeatherManager.h"
 
 using namespace KODI::MESSAGING;
 
@@ -113,7 +103,7 @@ bool CGUIWindowLoginScreen::OnMessage(CGUIMessage& message)
           if (bOkay)
           {
             if (iItem >= 0)
-              LoadProfile((unsigned int)iItem);
+              CApplicationMessenger::GetInstance().PostMsg(TMSG_LOADPROFILE, iItem);
           }
           else
           {
@@ -164,7 +154,7 @@ bool CGUIWindowLoginScreen::OnBack(int actionID)
 
 void CGUIWindowLoginScreen::FrameMove()
 {
-  if (GetFocusedControlID() == CONTROL_BIG_LIST && !g_windowManager.HasModalDialog())
+  if (GetFocusedControlID() == CONTROL_BIG_LIST && !CServiceBroker::GetGUI()->GetWindowManager().HasModalDialog(true))
   {
     if (m_viewControl.HasControl(CONTROL_BIG_LIST))
       m_iSelectedItem = m_viewControl.GetSelectedItem();
@@ -286,81 +276,4 @@ CFileItemPtr CGUIWindowLoginScreen::GetCurrentListItem(int offset)
   item = (item + offset) % m_vecItems->Size();
   if (item < 0) item += m_vecItems->Size();
   return m_vecItems->Get(item);
-}
-
-void CGUIWindowLoginScreen::LoadProfile(unsigned int profile)
-{
-  CServiceBroker::GetContextMenuManager().Deinit();
-
-  CServiceBroker::GetServiceAddons().Stop();
-
-  // stop PVR related services
-  CServiceBroker::GetPVRManager().Stop();
-
-  CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
-
-  if (profile != 0 || !profileManager.IsMasterProfile())
-  {
-    CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_DOWN, 1);
-    profileManager.LoadProfile(profile);
-  }
-  else
-  {
-    CGUIWindow* pWindow = g_windowManager.GetWindow(WINDOW_HOME);
-    if (pWindow)
-      pWindow->ResetControlStates();
-  }
-  CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_UP, 1);
-
-  profileManager.UpdateCurrentProfileDate();
-  profileManager.Save();
-
-  if (profileManager.GetLastUsedProfileIndex() != profile)
-  {
-    CServiceBroker::GetPlaylistPlayer().ClearPlaylist(PLAYLIST_VIDEO);
-    CServiceBroker::GetPlaylistPlayer().ClearPlaylist(PLAYLIST_MUSIC);
-    CServiceBroker::GetPlaylistPlayer().SetCurrentPlaylist(PLAYLIST_NONE);
-  }
-
-  // reload the add-ons, or we will first load all add-ons from the master account without checking disabled status
-  CServiceBroker::GetAddonMgr().ReInit();
-
-  // let CApplication know that we are logging into a new profile
-  g_application.SetLoggingIn(true);
-
-  if (!g_application.LoadLanguage(true))
-  {
-    CLog::Log(LOGFATAL, "CGUIWindowLoginScreen: unable to load language for profile \"%s\"", profileManager.GetCurrentProfile().getName().c_str());
-    return;
-  }
-
-  CServiceBroker::GetWeatherManager().Refresh();
-
-  JSONRPC::CJSONRPC::Initialize();
-
-  // Restart context menu manager
-  CServiceBroker::GetContextMenuManager().Init();
-
-  // restart PVR services
-  CServiceBroker::GetPVRManager().Init();
-
-  CServiceBroker::GetFavouritesService().ReInit(profileManager.GetProfileUserDataFolder());
-
-  CServiceBroker::GetServiceAddons().Start();
-
-  int firstWindow = g_SkinInfo->GetFirstWindow();
-  // the startup window is considered part of the initialization as it most likely switches to the final window
-  bool uiInitializationFinished = firstWindow != WINDOW_STARTUP_ANIM;
-
-  g_windowManager.ChangeActiveWindow(firstWindow);
-
-  g_application.UpdateLibraries();
-  CStereoscopicsManager::GetInstance().Initialize();
-
-  // if the user interfaces has been fully initialized let everyone know
-  if (uiInitializationFinished)
-  {
-    CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UI_READY);
-    g_windowManager.SendThreadMessage(msg);
-  }
 }

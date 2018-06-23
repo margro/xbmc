@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -19,7 +18,7 @@
  *
  */
 
-#include <map>
+#pragma once
 
 #include "XBDateTime.h"
 #include "threads/CriticalSection.h"

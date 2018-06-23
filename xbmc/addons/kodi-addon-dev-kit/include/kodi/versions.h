@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2016-2017 Team KODI
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <string.h>
 
@@ -41,7 +42,7 @@
  * overview.
  */
 
-#define ADDON_GLOBAL_VERSION_MAIN                     "1.0.12"
+#define ADDON_GLOBAL_VERSION_MAIN                     "1.0.13"
 #define ADDON_GLOBAL_VERSION_MAIN_MIN                 "1.0.12"
 #define ADDON_GLOBAL_VERSION_MAIN_XML_ID              "kodi.binary.global.main"
 #define ADDON_GLOBAL_VERSION_MAIN_DEPENDS             "AddonBase.h" \
@@ -76,11 +77,6 @@
 #define ADDON_GLOBAL_VERSION_NETWORK_XML_ID           "kodi.binary.global.network"
 #define ADDON_GLOBAL_VERSION_NETWORK_DEPENDS          "Network.h"
 
-#define ADDON_INSTANCE_VERSION_ADSP                   "0.2.0"
-#define ADDON_INSTANCE_VERSION_ADSP_MIN               "0.2.0"
-#define ADDON_INSTANCE_VERSION_ADSP_XML_ID            "kodi.binary.instance.adsp"
-#define ADDON_INSTANCE_VERSION_ADSP_DEPENDS           "addon-instance/AudioDSP.h"
-
 #define ADDON_INSTANCE_VERSION_AUDIODECODER           "2.0.0"
 #define ADDON_INSTANCE_VERSION_AUDIODECODER_MIN       "2.0.0"
 #define ADDON_INSTANCE_VERSION_AUDIODECODER_XML_ID    "kodi.binary.instance.audiodecoder"
@@ -91,8 +87,8 @@
 #define ADDON_INSTANCE_VERSION_AUDIOENCODER_XML_ID    "kodi.binary.instance.audioencoder"
 #define ADDON_INSTANCE_VERSION_AUDIOENCODER_DEPENDS   "addon-instance/AudioEncoder.h"
 
-#define ADDON_INSTANCE_VERSION_GAME                   "1.0.36"
-#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.36"
+#define ADDON_INSTANCE_VERSION_GAME                   "1.0.38"
+#define ADDON_INSTANCE_VERSION_GAME_MIN               "1.0.38"
 #define ADDON_INSTANCE_VERSION_GAME_XML_ID            "kodi.binary.instance.game"
 #define ADDON_INSTANCE_VERSION_GAME_DEPENDS           "kodi_game_dll.h" \
                                                       "kodi_game_types.h" \
@@ -103,8 +99,8 @@
 #define ADDON_INSTANCE_VERSION_IMAGEDECODER_XML_ID    "kodi.binary.instance.imagedecoder"
 #define ADDON_INSTANCE_VERSION_IMAGEDECODER_DEPENDS   "addon-instance/ImageDecoder.h"
 
-#define ADDON_INSTANCE_VERSION_INPUTSTREAM            "2.0.6"
-#define ADDON_INSTANCE_VERSION_INPUTSTREAM_MIN        "2.0.6"
+#define ADDON_INSTANCE_VERSION_INPUTSTREAM            "2.0.7"
+#define ADDON_INSTANCE_VERSION_INPUTSTREAM_MIN        "2.0.7"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_XML_ID     "kodi.binary.instance.inputstream"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_DEPENDS    "addon-instance/Inputstream.h"
 
@@ -114,8 +110,8 @@
 #define ADDON_INSTANCE_VERSION_PERIPHERAL_DEPENDS     "addon-instance/Peripheral.h" \
                                                       "addon-instance/PeripheralUtils.h"
 
-#define ADDON_INSTANCE_VERSION_PVR                    "5.8.0"
-#define ADDON_INSTANCE_VERSION_PVR_MIN                "5.8.0"
+#define ADDON_INSTANCE_VERSION_PVR                    "5.10.1"
+#define ADDON_INSTANCE_VERSION_PVR_MIN                "5.10.0"
 #define ADDON_INSTANCE_VERSION_PVR_XML_ID             "kodi.binary.instance.pvr"
 #define ADDON_INSTANCE_VERSION_PVR_DEPENDS            "xbmc_pvr_dll.h" \
                                                       "xbmc_pvr_types.h" \
@@ -164,7 +160,6 @@ typedef enum ADDON_TYPE
   ADDON_GLOBAL_MAX = 5, // Last used global id, used in loops to check versions. Need to change if new global type becomes added.
 
   /* addon type instances */
-  ADDON_INSTANCE_ADSP = 101,
   ADDON_INSTANCE_AUDIODECODER = 102,
   ADDON_INSTANCE_AUDIOENCODER = 103,
   ADDON_INSTANCE_GAME = 104,
@@ -224,10 +219,6 @@ inline const char* GetTypeVersion(int type)
 #endif
 
     /* addon type instances */
-#if !defined(BUILD_KODI_ADDON) || defined(ADDON_INSTANCE_VERSION_ADSP_USED)
-    case ADDON_INSTANCE_ADSP:
-      return ADDON_INSTANCE_VERSION_ADSP;
-#endif
 #if !defined(BUILD_KODI_ADDON) || defined(ADDON_INSTANCE_VERSION_AUDIODECODER_USED)
     case ADDON_INSTANCE_AUDIODECODER:
       return ADDON_INSTANCE_VERSION_AUDIODECODER;
@@ -303,8 +294,6 @@ inline const char* GetTypeMinVersion(int type)
       return ADDON_GLOBAL_VERSION_NETWORK_MIN;
 
     /* addon type instances */
-    case ADDON_INSTANCE_ADSP:
-      return ADDON_INSTANCE_VERSION_ADSP_MIN;
     case ADDON_INSTANCE_AUDIODECODER:
       return ADDON_INSTANCE_VERSION_AUDIODECODER_MIN;
     case ADDON_INSTANCE_AUDIOENCODER:
@@ -357,8 +346,6 @@ inline const char* GetTypeName(int type)
       return "Network";
 
     /* addon type instances */
-    case ADDON_INSTANCE_ADSP:
-      return "ADSP";
     case ADDON_INSTANCE_AUDIODECODER:
       return "AudioDecoder";
     case ADDON_INSTANCE_AUDIOENCODER:
@@ -408,8 +395,6 @@ inline int GetTypeId(const char* name)
       return ADDON_GLOBAL_FILESYSTEM;
     else if (strcmp(name, "network") == 0)
       return ADDON_GLOBAL_NETWORK;
-    else if (strcmp(name, "adsp") == 0)
-      return ADDON_INSTANCE_ADSP;
     else if (strcmp(name, "audiodecoder") == 0)
       return ADDON_INSTANCE_AUDIODECODER;
     else if (strcmp(name, "audioencoder") == 0)

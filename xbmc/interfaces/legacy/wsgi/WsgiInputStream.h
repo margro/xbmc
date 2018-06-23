@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 #include <vector>
 
 #include "interfaces/legacy/AddonClass.h"
@@ -34,8 +36,7 @@ namespace XBMCAddon
     {
     public:
       WsgiInputStreamIterator();
-      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
-      virtual ~WsgiInputStreamIterator();
+      ~WsgiInputStreamIterator() override;
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       /// \ingroup python_xbmcwsgi_WsgiInputStream
@@ -92,7 +93,7 @@ namespace XBMCAddon
       bool operator!=(const WsgiInputStreamIterator& rhs);
       String& operator*();
       inline bool end() const { return m_remaining <= 0; }
-      
+
     protected:
       String m_data;
       mutable unsigned long m_offset;
@@ -116,8 +117,7 @@ namespace XBMCAddon
     {
     public:
       WsgiInputStream();
-      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
-      virtual ~WsgiInputStream();
+      ~WsgiInputStream() override;
 
 #if !defined SWIG && !defined DOXYGEN_SHOULD_SKIP_THIS
       WsgiInputStreamIterator* begin();

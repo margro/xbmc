@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
 #include "cores/VideoPlayer/Process/VideoBuffer.h"
@@ -122,6 +122,7 @@ public:
   {
     VC_NONE = 0,
     VC_ERROR,           //< an error occured, no other messages will be returned
+    VC_FATAL,           //< non recoverable error
     VC_BUFFER,          //< the decoder needs more data
     VC_PICTURE,         //< the decoder got a picture, call Decode(NULL, 0) again to parse the rest of the data
     VC_FLUSHED,         //< the decoder lost it's state, we need to restart decoding again
@@ -195,16 +196,6 @@ public:
    * calling decode on the next demux packet
    */
   virtual unsigned GetAllowedReferences() { return 0; }
-
-  /**
-   * Hide or Show Settings depending on the currently running hardware
-   */
-  static bool IsSettingVisible(const std::string &condition, const std::string &value, std::shared_ptr<const CSetting> setting, void *data);
-
-  /**
-   * Interact with user settings so that user disabled codecs are disabled
-   */
-  static bool IsCodecDisabled(const std::map<AVCodecID, std::string> &map, AVCodecID id);
 
   /**
    * For calculation of dropping requirements player asks for some information.

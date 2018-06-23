@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -32,15 +33,13 @@
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 
-#define EPG_DEBUGGING 0
-
 class CVariant;
 
 namespace PVR
 {
   class CPVREpg;
 
-  class CPVREpgInfoTag : public ISerializable, public std::enable_shared_from_this<CPVREpgInfoTag>
+  class CPVREpgInfoTag final : public ISerializable, public std::enable_shared_from_this<CPVREpgInfoTag>
   {
     friend class CPVREpg;
     friend class CPVREpgDatabase;
@@ -72,8 +71,6 @@ namespace PVR
     CPVREpgInfoTag &operator =(const CPVREpgInfoTag &other) = delete;
 
   public:
-    ~CPVREpgInfoTag() override = default;
-
     bool operator ==(const CPVREpgInfoTag& right) const;
     bool operator !=(const CPVREpgInfoTag& right) const;
 
@@ -450,6 +447,12 @@ namespace PVR
      * @return True if something changed, false otherwise.
      */
     bool Update(const CPVREpgInfoTag &tag, bool bUpdateBroadcastId = true);
+
+    /*!
+     * @brief Retrieve the edit decision list (EDL) of an EPG tag.
+     * @return The edit decision list (empty on error)
+     */
+    std::vector<PVR_EDL_ENTRY> GetEdl() const;
 
     /*!
      * @return True if this tag has any series attributes, false otherwise

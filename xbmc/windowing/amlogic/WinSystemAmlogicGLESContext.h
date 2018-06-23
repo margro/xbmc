@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "GLContextEGL.h"
+#include "utils/EGLUtils.h"
 #include "rendering/gles/RenderSystemGLES.h"
 #include "utils/GlobalsHandling.h"
 #include "WinSystemAmlogic.h"
@@ -31,6 +31,8 @@ public:
   CWinSystemAmlogicGLESContext() = default;
   virtual ~CWinSystemAmlogicGLESContext() = default;
 
+  // Implementation of CWinSystemBase via CWinSystemAmlogic
+  CRenderSystemBase *GetRenderSystem() override { return this; }
   bool InitWindowSystem() override;
   bool CreateNewWindow(const std::string& name,
                        bool fullScreen,
@@ -50,9 +52,6 @@ protected:
   void PresentRenderImpl(bool rendered) override;
 
 private:
-  CGLContextEGL m_pGLContext;
+  CEGLContextUtils m_pGLContext;
 
 };
-
-XBMC_GLOBAL_REF(CWinSystemAmlogicGLESContext, g_Windowing);
-#define g_Windowing XBMC_GLOBAL_USE(CWinSystemAmlogicGLESContext)

@@ -24,6 +24,8 @@
 
 #include "settings/AdvancedSettings.h"
 #include "Application.h"
+#include "AppInboundProtocol.h"
+#include "ServiceBroker.h"
 #include "messaging/ApplicationMessenger.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
@@ -69,7 +71,7 @@ using namespace KODI::MESSAGING;
 //--------------------------------------------------------------
 - (void) resizeFrameBuffer
 {
-  CGRect frame = [IOSScreenManager getLandscapeResolution: currentScreen];
+  CGRect frame = [currentScreen bounds];
   CAEAGLLayer *eaglLayer = (CAEAGLLayer *)[self layer];
   //allow a maximum framebuffer size of 1080p
   //needed for tvout on iPad3/4 and iphone4/5 and maybe AppleTV3
@@ -314,14 +316,18 @@ using namespace KODI::MESSAGING;
 {
   PRINT_SIGNATURE();
   pause = TRUE;
-  g_application.SetRenderGUI(false);
+  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+  if (appPort)
+    appPort->SetRenderGUI(false);
 }
 //--------------------------------------------------------------
 - (void) resumeAnimation
 {
   PRINT_SIGNATURE();
   pause = FALSE;
-  g_application.SetRenderGUI(true);
+  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+  if (appPort)
+    appPort->SetRenderGUI(true);
 }
 //--------------------------------------------------------------
 - (void) startAnimation

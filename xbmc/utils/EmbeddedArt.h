@@ -1,4 +1,3 @@
-#pragma once
 /*
 *      Copyright (C) 2015 Team XBMC
 *      http://kodi.tv
@@ -19,6 +18,8 @@
 *
 */
 
+#pragma once
+
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -30,7 +31,6 @@ class EmbeddedArtInfo : public IArchivable
 public:
   EmbeddedArtInfo() : m_size(0) { }
   EmbeddedArtInfo(size_t size, const std::string &mime, const std::string& type = "");
-  ~EmbeddedArtInfo() override = default;
 
   // implementation of IArchivable
   void Archive(CArchive& ar) override;
@@ -52,7 +52,6 @@ public:
   EmbeddedArt() = default;
   EmbeddedArt(const uint8_t *data, size_t size,
               const std::string &mime, const std::string& type = "");
-  ~EmbeddedArt() override = default;
 
   void Set(const uint8_t *data, size_t size,
            const std::string &mime, const std::string& type = "");

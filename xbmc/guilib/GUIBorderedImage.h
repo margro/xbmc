@@ -1,6 +1,3 @@
-#ifndef CGUIBorderedImage_H
-#define CGUIBorderedImage_H
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -21,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "GUIControl.h"
 #include "TextureManager.h"
 #include "GUIImage.h"
@@ -38,7 +37,7 @@ public:
   void AllocResources() override;
   void FreeResources(bool immediately = false) override;
   void DynamicResourceAlloc(bool bOnOff) override;
-  
+
   CRect CalcRenderRegion() const override;
 
 protected:
@@ -46,4 +45,3 @@ protected:
   CRect m_borderSize;
 };
 
-#endif

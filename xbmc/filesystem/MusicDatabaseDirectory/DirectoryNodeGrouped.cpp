@@ -31,7 +31,7 @@ NODE_TYPE CDirectoryNodeGrouped::GetChildType() const
 {
   if (GetType() == NODE_TYPE_YEAR)
     return NODE_TYPE_YEAR_ALBUM;
-  
+
   return NODE_TYPE_ARTIST;
 }
 
@@ -58,6 +58,8 @@ std::string CDirectoryNodeGrouped::GetContentType() const
   {
     case NODE_TYPE_GENRE:
       return "genres";
+    case NODE_TYPE_SOURCE:
+      return "sources";
     case NODE_TYPE_ROLE:
       return "roles";
     case NODE_TYPE_YEAR:

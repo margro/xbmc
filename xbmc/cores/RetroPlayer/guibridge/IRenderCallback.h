@@ -17,9 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "cores/IPlayer.h"
+#include "cores/GameSettings.h"
 
 namespace KODI
 {
@@ -30,8 +31,8 @@ namespace RETRO
   public:
     virtual ~IRenderCallback() = default;
 
-    virtual bool SupportsRenderFeature(ERENDERFEATURE feature) const = 0;
-    virtual bool SupportsScalingMethod(ESCALINGMETHOD method) const = 0;
+    virtual bool SupportsRenderFeature(RENDERFEATURE feature) const = 0;
+    virtual bool SupportsScalingMethod(SCALINGMETHOD method) const = 0;
   };
 }
 }

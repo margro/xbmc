@@ -22,11 +22,16 @@
 #include "ServiceBroker.h"
 #include "settings/Settings.h"
 #include "threads/SingleLock.h"
+#include "utils/Color.h"
 #include "utils/RssManager.h"
 #include "utils/RssReader.h"
 #include "utils/StringUtils.h"
 
-CGUIRSSControl::CGUIRSSControl(int parentID, int controlID, float posX, float posY, float width, float height, const CLabelInfo& labelInfo, const CGUIInfoColor &channelColor, const CGUIInfoColor &headlineColor, std::string& strRSSTags)
+using namespace KODI::GUILIB;
+
+CGUIRSSControl::CGUIRSSControl(int parentID, int controlID, float posX, float posY, float width, float height,
+                               const CLabelInfo& labelInfo, const GUIINFO::CGUIInfoColor &channelColor,
+                               const GUIINFO::CGUIInfoColor &headlineColor, std::string& strRSSTags)
 : CGUIControl(parentID, controlID, posX, posY, width, height),
   m_strRSSTags(strRSSTags),
   m_label(labelInfo),
@@ -162,7 +167,7 @@ void CGUIRSSControl::Render()
 
     if (m_label.font)
     {
-      vecColors colors;
+      std::vector<UTILS::Color> colors;
       colors.push_back(m_label.textColor);
       colors.push_back(m_headlineColor);
       colors.push_back(m_channelColor);

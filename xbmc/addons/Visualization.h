@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/Visualization.h"
 #include "addons/binary-addons/AddonInstanceHandler.h"
@@ -43,7 +44,7 @@ public:
   int GetActivePreset();
   std::string GetActivePresetName();
   bool IsLocked();
- 
+
 private:
   std::string m_name; /*!< To add-on sended name */
   std::string m_presetsPath; /*!< To add-on sended preset path */

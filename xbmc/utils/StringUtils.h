@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 //-----------------------------------------------------------------------
 //
 //  File:      StringUtils.h
@@ -45,6 +47,22 @@
 #include "LangInfo.h"
 #include "XBDateTime.h"
 #include "utils/params_check_macros.h"
+
+/*! \brief  C-processor Token stringification
+
+The following macros can be used to stringify definitions to
+C style strings.
+
+Example:
+
+#define foo 4
+DEF_TO_STR_NAME(foo)  // outputs "foo"
+DEF_TO_STR_VALUE(foo) // outputs "4"
+
+*/
+
+#define DEF_TO_STR_NAME(x) #x
+#define DEF_TO_STR_VALUE(x) DEF_TO_STR_NAME(x)
 
 class StringUtils
 {
@@ -206,13 +224,13 @@ public:
       StringUtils::Replace(str, delimiters[di], delimiters[0]);
     return SplitTo(dest, str, delimiters[0]);
   }
-  
+
   /*! \brief Splits the given input strings using the given delimiters into further separate strings.
 
   If the given input string vector is empty the result will be an empty array (not
   an array containing an empty string).
 
-  Delimiter strings are applied in order, so once the (optional) maximum number of 
+  Delimiter strings are applied in order, so once the (optional) maximum number of
   items is produced no other delimiters are applied. This produces different results
   to applying all delimiters at once e.g. "a/b#c/d" becomes "a", "b#c", "d" rather
   than "a", "b", "c/d"
@@ -258,27 +276,27 @@ public:
   /* The next several isasciiXX and asciiXXvalue functions are locale independent (US-ASCII only),
    * as opposed to standard ::isXX (::isalpha, ::isdigit...) which are locale dependent.
    * Next functions get parameter as char and don't need double cast ((int)(unsigned char) is required for standard functions). */
-  inline static bool isasciidigit(char chr) // locale independent 
+  inline static bool isasciidigit(char chr) // locale independent
   {
-    return chr >= '0' && chr <= '9'; 
+    return chr >= '0' && chr <= '9';
   }
-  inline static bool isasciixdigit(char chr) // locale independent 
+  inline static bool isasciixdigit(char chr) // locale independent
   {
-    return (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F'); 
+    return (chr >= '0' && chr <= '9') || (chr >= 'a' && chr <= 'f') || (chr >= 'A' && chr <= 'F');
   }
-  static int asciidigitvalue(char chr); // locale independent 
-  static int asciixdigitvalue(char chr); // locale independent 
+  static int asciidigitvalue(char chr); // locale independent
+  static int asciixdigitvalue(char chr); // locale independent
   inline static bool isasciiuppercaseletter(char chr) // locale independent
   {
-    return (chr >= 'A' && chr <= 'Z'); 
+    return (chr >= 'A' && chr <= 'Z');
   }
   inline static bool isasciilowercaseletter(char chr) // locale independent
   {
-    return (chr >= 'a' && chr <= 'z'); 
+    return (chr >= 'a' && chr <= 'z');
   }
   inline static bool isasciialphanum(char chr) // locale independent
   {
-    return isasciiuppercaseletter(chr) || isasciilowercaseletter(chr) || isasciidigit(chr); 
+    return isasciiuppercaseletter(chr) || isasciilowercaseletter(chr) || isasciidigit(chr);
   }
   static std::string SizeToString(int64_t size);
   static const std::string Empty;
@@ -301,6 +319,13 @@ public:
   \return Converted string
   */
   static std::string BinaryStringToString(const std::string& in);
+  /**
+   * Convert each character in the string to its hexadecimal
+   * representation and return the concatenated result
+   *
+   * example: "abc\n" -> "6162630a"
+   */
+  static std::string ToHexadecimal(const std::string& in);
   /*! \brief Format the string with locale separators.
 
   Format the string with locale separators.

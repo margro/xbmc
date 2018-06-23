@@ -17,14 +17,16 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
+
 #include "DVDCodecs/Video/DXVA.h"
 #include <wrl/client.h>
 
 class CVideoBuffer;
 struct VideoPicture;
 
-enum EBufferFormat 
+enum EBufferFormat
 {
   BUFFER_FMT_NONE = 0,
   BUFFER_FMT_YUV420P,
@@ -52,12 +54,12 @@ public:
   bool CreateBuffer(EBufferFormat format, unsigned width, unsigned height, bool software);
   bool UploadBuffer();
   void AppendPicture(const VideoPicture &picture);
+  void ReleasePicture();
 
   unsigned int GetActivePlanes() const { return m_activePlanes; }
+  HRESULT GetResource(ID3D11Resource** ppResource, unsigned* arrayIdx);
   ID3D11View* GetView(unsigned idx = 0);
-  ID3D11View* GetHWView() const; // ??
 
-  ID3D11Resource* GetResource(unsigned idx = 0) const;
   void GetDataPtr(unsigned idx, void **pData, int *pStride) const;
   bool MapPlane(unsigned idx, void **pData, int *pStride) const;
   bool UnmapPlane(unsigned idx) const;
@@ -77,6 +79,7 @@ public:
   AVColorTransferCharacteristic color_transfer;
   bool full_range;
   int bits;
+  uint8_t texBits;
 
   bool hasDisplayMetadata = false;
   bool hasLightMetadata = false;
@@ -85,9 +88,10 @@ public:
 
 private:
   bool CopyToD3D11();
-  bool CopyToStaging(ID3D11View* pView);
+  bool CopyToStaging();
   void CopyFromStaging() const;
   bool CopyBuffer();
+  HRESULT GetDXVAResource(ID3D11Resource** ppResource, unsigned* arrayIdx);
 
   bool m_locked;
   bool m_bPending;
@@ -102,6 +106,7 @@ private:
   D3D11_MAP m_mapType;
   CD3D11_TEXTURE2D_DESC m_sDesc;
   Microsoft::WRL::ComPtr<ID3D11Texture2D> m_staging;
+  Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_planes[2];
 
   D3D11_MAPPED_SUBRESOURCE m_rects[YuvImage::MAX_PLANES];
   CD3DTexture m_textures[YuvImage::MAX_PLANES];

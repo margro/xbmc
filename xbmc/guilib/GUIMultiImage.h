@@ -1,13 +1,3 @@
-/*!
-\file GUIMultiImage.h
-\brief
-*/
-
-#ifndef GUILIB_GUIMULTIIMAGECONTROL_H
-#define GUILIB_GUIMULTIIMAGECONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -27,6 +17,13 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
+/*!
+\file GUIMultiImage.h
+\brief
+*/
 
 #include <vector>
 
@@ -61,7 +58,7 @@ public:
   bool CanFocus() const override;
   std::string GetDescription() const override;
 
-  void SetInfo(const CGUIInfoLabel &info);
+  void SetInfo(const KODI::GUILIB::GUIINFO::CGUIInfoLabel &info);
   void SetAspectRatio(const CAspectRatio &ratio);
 
 protected:
@@ -83,7 +80,7 @@ protected:
     std::string              m_path;
   };
 
-  CGUIInfoLabel m_texturePath;
+  KODI::GUILIB::GUIINFO::CGUIInfoLabel m_texturePath;
   std::string m_currentPath;
   unsigned int m_currentImage;
   CStopWatch m_imageTimer;
@@ -101,4 +98,4 @@ protected:
   DIRECTORY_STATUS m_directoryStatus;
   unsigned int m_jobID;
 };
-#endif
+

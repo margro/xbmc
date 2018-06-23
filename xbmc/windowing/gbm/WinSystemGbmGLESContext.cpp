@@ -20,8 +20,10 @@
 
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecDRMPRIME.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.h"
+#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIMEGLES.h"
 
 #include "cores/RetroPlayer/process/gbm/RPProcessInfoGbm.h"
+#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGBM.h"
 #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
@@ -43,6 +45,7 @@ bool CWinSystemGbmGLESContext::InitWindowSystem()
 {
   CLinuxRendererGLES::Register();
   RETRO::CRPProcessInfoGbm::Register();
+  RETRO::CRPProcessInfoGbm::RegisterRendererFactory(new RETRO::CRendererFactoryGBM);
   RETRO::CRPProcessInfoGbm::RegisterRendererFactory(new RETRO::CRendererFactoryOpenGLES);
 
   if (!CWinSystemGbm::InitWindowSystem())
@@ -50,24 +53,25 @@ bool CWinSystemGbmGLESContext::InitWindowSystem()
     return false;
   }
 
-  if (!m_pGLContext.CreateDisplay(m_nativeDisplay,
+  if (!m_pGLContext.CreateDisplay(m_GBM->GetDevice(),
                                   EGL_OPENGL_ES2_BIT,
                                   EGL_OPENGL_ES_API))
   {
     return false;
   }
 
-  bool general, hevc;
+  bool general, deepColor;
   m_vaapiProxy.reset(GBM::VaapiProxyCreate());
   GBM::VaapiProxyConfig(m_vaapiProxy.get(), m_pGLContext.m_eglDisplay);
-  GBM::VAAPIRegisterRender(m_vaapiProxy.get(), general, hevc);
+  GBM::VAAPIRegisterRender(m_vaapiProxy.get(), general, deepColor);
 
   if (general)
   {
-    GBM::VAAPIRegister(m_vaapiProxy.get(), hevc);
+    GBM::VAAPIRegister(m_vaapiProxy.get(), deepColor);
   }
 
-  CRendererDRMPRIME::Register(this);
+  CRendererDRMPRIMEGLES::Register();
+  CRendererDRMPRIME::Register();
   CDVDVideoCodecDRMPRIME::Register();
 
   return true;
@@ -99,12 +103,17 @@ bool CWinSystemGbmGLESContext::CreateNewWindow(const std::string& name,
     return false;
   }
 
-  if (!m_pGLContext.CreateSurface(m_nativeWindow))
+  if (!m_pGLContext.CreateSurface(reinterpret_cast<EGLNativeWindowType>(m_GBM->GetSurface())))
   {
     return false;
   }
 
-  if (!m_pGLContext.CreateContext())
+  const EGLint contextAttribs[] =
+  {
+    EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE
+  };
+
+  if (!m_pGLContext.CreateContext(contextAttribs))
   {
     return false;
   }
@@ -124,8 +133,8 @@ bool CWinSystemGbmGLESContext::CreateNewWindow(const std::string& name,
 
 bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
 {
-  if (res.iWidth != m_DRM->m_mode->hdisplay ||
-      res.iHeight != m_DRM->m_mode->vdisplay)
+  if (res.iWidth != m_DRM->GetCurrentMode()->hdisplay ||
+      res.iHeight != m_DRM->GetCurrentMode()->vdisplay)
   {
     CLog::Log(LOGDEBUG, "CWinSystemGbmGLESContext::%s - resolution changed, creating a new window", __FUNCTION__);
     CreateNewWindow("", fullScreen, res);
@@ -135,6 +144,14 @@ bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& r
 
   CWinSystemGbm::SetFullScreen(fullScreen, res, blankOtherDisplays);
   CRenderSystemGLES::ResetRenderSystem(res.iWidth, res.iHeight);
+
+  if (!m_delayDispReset)
+  {
+    CSingleLock lock(m_resourceSection);
+
+    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
+      (*i)->OnResetDisplay();
+  }
 
   return true;
 }
@@ -153,6 +170,15 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
   else
   {
     CWinSystemGbm::WaitVBlank();
+  }
+
+  if (m_delayDispReset && m_dispResetTimer.IsTimePast())
+  {
+    m_delayDispReset = false;
+    CSingleLock lock(m_resourceSection);
+
+    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
+      (*i)->OnResetDisplay();
   }
 }
 

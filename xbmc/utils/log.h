@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2014 Team XBMC
  *      http://kodi.tv
@@ -20,12 +18,12 @@
  *
  */
 
-#include <memory>
+#pragma once
+
 #include <string>
 #include <utility>
 
 #include "commons/ilog.h"
-#include "utils/GlobalsHandling.h"
 #include "utils/StringUtils.h"
 
 
@@ -103,6 +101,7 @@ public:
     }
   }
 #define LogF(loglevel, ...) LogFunction((loglevel), __FUNCTION__, ##__VA_ARGS__)
+#define LogFC(loglevel, component, ...) LogFunction((loglevel), __FUNCTION__, (component), ##__VA_ARGS__)
   static void MemDump(char *pData, int length);
   static bool Init(const std::string& path);
   static void PrintDebugString(const std::string& line); // universal interface for printing debug strings

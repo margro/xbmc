@@ -27,6 +27,7 @@
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogSelect.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -111,7 +112,7 @@ static int SelectBool(const std::vector<std::string>& params)
 {
   std::vector<std::pair<std::string, std::string>> settings;
 
-  CGUIDialogSelect* pDlgSelect = g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
+  CGUIDialogSelect* pDlgSelect = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
   pDlgSelect->Reset();
   pDlgSelect->SetHeading(CVariant{g_localizeStrings.Get(atoi(params[0].c_str()))});
 
@@ -221,7 +222,7 @@ static int SetPath(const std::vector<std::string>& params)
  *  \param params The parameters.
  *  \details params[0] = Name of skin setting.
  *           params[1] = File mask or add-on type (optional).
- *           params[2] = Extra URL to allow selection from or 
+ *           params[2] = Extra URL to allow selection from or
  *                       content type if mask is an addon-on type (optional).
  */
 static int SetFile(const std::vector<std::string>& params)
@@ -259,7 +260,7 @@ static int SetFile(const std::vector<std::string>& params)
         CSkinSettings::GetInstance().SetString(string, replace);
     }
   }
-  else 
+  else
   {
     if (params.size() > 2)
     {

@@ -1,6 +1,3 @@
-#ifndef MOUSE_STAT_H
-#define MOUSE_STAT_H
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "windowing/XBMC_events.h"
 
@@ -47,8 +46,8 @@
 
 #define MOUSE_MAX_BUTTON 7
 
-enum MOUSE_STATE 
-{ 
+enum MOUSE_STATE
+{
   MOUSE_STATE_NORMAL = 1, /*! < Normal state */
   MOUSE_STATE_FOCUS,      /*! < Control below the mouse is currently in focus */
   MOUSE_STATE_DRAG,       /*! < A drag operation is being performed */
@@ -198,8 +197,4 @@ private:
 
   uint32_t m_Key;
 };
-
-#endif
-
-
 

@@ -27,7 +27,7 @@ CGUIRadioButtonControl::CGUIRadioButtonControl(int parentID, int controlID, floa
     const CTextureInfo& textureFocus, const CTextureInfo& textureNoFocus,
     const CLabelInfo& labelInfo,
     const CTextureInfo& radioOnFocus, const CTextureInfo& radioOnNoFocus,
-    const CTextureInfo& radioOffFocus, const CTextureInfo& radioOffNoFocus, 
+    const CTextureInfo& radioOffFocus, const CTextureInfo& radioOffNoFocus,
     const CTextureInfo& radioOnDisabled, const CTextureInfo& radioOffDisabled)
     : CGUIButtonControl(parentID, controlID, posX, posY, width, height, textureFocus, textureNoFocus, labelInfo)
     , m_imgRadioOnFocus(posX, posY, 16, 16, radioOnFocus)
@@ -242,5 +242,5 @@ bool CGUIRadioButtonControl::UpdateColors()
 
 void CGUIRadioButtonControl::SetToggleSelect(const std::string &toggleSelect)
 {
-  m_toggleSelect = g_infoManager.Register(toggleSelect, GetParentID());
+  m_toggleSelect = CServiceBroker::GetGUI()->GetInfoManager().Register(toggleSelect, GetParentID());
 }

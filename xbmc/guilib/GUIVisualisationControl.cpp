@@ -21,13 +21,14 @@
 #include "GUIVisualisationControl.h"
 
 #include "Application.h"
+#include "GUIComponent.h"
 #include "GUIInfoManager.h"
 #include "GUIUserMessages.h"
 #include "GUIWindowManager.h"
 #include "ServiceBroker.h"
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "filesystem/SpecialProtocol.h"
-#include "guiinfo/GUIInfoLabels.h"
+#include "guilib/guiinfo/GUIInfoLabels.h"
 #include "input/Key.h"
 #include "music/tags/MusicInfoTag.h"
 #include "settings/AdvancedSettings.h"
@@ -170,7 +171,7 @@ void CGUIVisualisationControl::Process(unsigned int currentTime, CDirtyRegionLis
     }
     else if (m_callStart && m_instance)
     {
-      g_graphicsContext.CaptureStateBlock();
+      CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
       if (m_alreadyStarted)
       {
         m_instance->Stop();
@@ -178,11 +179,11 @@ void CGUIVisualisationControl::Process(unsigned int currentTime, CDirtyRegionLis
       }
 
       std::string songTitle = URIUtils::GetFileName(g_application.CurrentFile());
-      const MUSIC_INFO::CMusicInfoTag* tag = g_infoManager.GetCurrentSongTag();
+      const MUSIC_INFO::CMusicInfoTag* tag = CServiceBroker::GetGUI()->GetInfoManager().GetCurrentSongTag();
       if (tag && !tag->GetTitle().empty())
         songTitle = tag->GetTitle();
       m_alreadyStarted = m_instance->Start(m_channels, m_samplesPerSec, m_bitsPerSample, songTitle);
-      g_graphicsContext.ApplyStateBlock();
+      CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
       m_callStart = false;
       m_updateTrack = true;
     }
@@ -215,13 +216,13 @@ void CGUIVisualisationControl::Render()
      * the addon renders, so the best we can do is attempt to define
      * a viewport??
      */
-    g_graphicsContext.SetViewPort(m_posX, m_posY, m_width, m_height);
-    g_graphicsContext.CaptureStateBlock();
+    CServiceBroker::GetWinSystem()->GetGfxContext().SetViewPort(m_posX, m_posY, m_width, m_height);
+    CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
     m_instance->Render();
-    g_graphicsContext.ApplyStateBlock();
-    g_graphicsContext.RestoreViewPort();
+    CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
+    CServiceBroker::GetWinSystem()->GetGfxContext().RestoreViewPort();
   }
-  
+
   CGUIControl::Render();
 }
 
@@ -242,7 +243,7 @@ bool CGUIVisualisationControl::CanFocusFromPoint(const CPoint &point) const
 void CGUIVisualisationControl::FreeResources(bool immediately)
 {
   DeInitVisualization();
-  
+
   CGUIControl::FreeResources(immediately);
 
   CLog::Log(LOGDEBUG, "FreeVisualisation() done");
@@ -299,7 +300,7 @@ void CGUIVisualisationControl::UpdateTrack()
     return;
 
   // get the current album art filename
-  m_albumThumb = CSpecialProtocol::TranslatePath(g_infoManager.GetImage(MUSICPLAYER_COVER, WINDOW_INVALID));
+  m_albumThumb = CSpecialProtocol::TranslatePath(CServiceBroker::GetGUI()->GetInfoManager().GetImage(MUSICPLAYER_COVER, WINDOW_INVALID));
   if (m_albumThumb == "DefaultAlbumCover.png")
     m_albumThumb = "";
   else
@@ -307,7 +308,7 @@ void CGUIVisualisationControl::UpdateTrack()
 
   m_instance->OnAction(VIS_ACTION_UPDATE_ALBUMART, (void*)(m_albumThumb.c_str()));
 
-  const MUSIC_INFO::CMusicInfoTag* tag = g_infoManager.GetCurrentSongTag();
+  const MUSIC_INFO::CMusicInfoTag* tag = CServiceBroker::GetGUI()->GetInfoManager().GetCurrentSongTag();
   if (!tag)
     return;
 
@@ -384,28 +385,28 @@ bool CGUIVisualisationControl::InitVisualization()
   if (!addonBase)
     return false;
 
-  CServiceBroker::GetActiveAE().RegisterAudioCallback(this);
+  CServiceBroker::GetActiveAE()->RegisterAudioCallback(this);
 
-  g_graphicsContext.CaptureStateBlock();
+  CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
 
-  float x = g_graphicsContext.ScaleFinalXCoord(GetXPosition(), GetYPosition());
-  float y = g_graphicsContext.ScaleFinalYCoord(GetXPosition(), GetYPosition());
-  float w = g_graphicsContext.ScaleFinalXCoord(GetXPosition() + GetWidth(), GetYPosition() + GetHeight()) - x;
-  float h = g_graphicsContext.ScaleFinalYCoord(GetXPosition() + GetWidth(), GetYPosition() + GetHeight()) - y;
+  float x = CServiceBroker::GetWinSystem()->GetGfxContext().ScaleFinalXCoord(GetXPosition(), GetYPosition());
+  float y = CServiceBroker::GetWinSystem()->GetGfxContext().ScaleFinalYCoord(GetXPosition(), GetYPosition());
+  float w = CServiceBroker::GetWinSystem()->GetGfxContext().ScaleFinalXCoord(GetXPosition() + GetWidth(), GetYPosition() + GetHeight()) - x;
+  float h = CServiceBroker::GetWinSystem()->GetGfxContext().ScaleFinalYCoord(GetXPosition() + GetWidth(), GetYPosition() + GetHeight()) - y;
   if (x < 0)
     x = 0;
   if (y < 0)
     y = 0;
-  if (x + w > g_graphicsContext.GetWidth())
-    w = g_graphicsContext.GetWidth() - x;
-  if (y + h > g_graphicsContext.GetHeight())
-    h = g_graphicsContext.GetHeight() - y;
+  if (x + w > CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth())
+    w = CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth() - x;
+  if (y + h > CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight())
+    h = CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight() - y;
 
   m_instance = new ADDON::CVisualization(addonBase, x, y, w, h);
   CreateBuffers();
 
   m_alreadyStarted = false;
-  g_graphicsContext.ApplyStateBlock();
+  CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
   return true;
 }
 
@@ -414,17 +415,14 @@ void CGUIVisualisationControl::DeInitVisualization()
   if (!m_attemptedLoad)
     return;
 
-  /*
-   * Prevent "UnregisterAudioCallback" in case Kodi is stopped. There becomes
-   * audio engine stopped before gui!
-   */
-  if (!g_application.m_bStop)
-    CServiceBroker::GetActiveAE().UnregisterAudioCallback(this);
-  
+  IAE * ae = CServiceBroker::GetActiveAE();
+  if (ae)
+    ae->UnregisterAudioCallback(this);
+
   m_attemptedLoad = false;
 
   CGUIMessage msg(GUI_MSG_VISUALISATION_UNLOADING, m_controlID, 0);
-  g_windowManager.SendMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
 
   CLog::Log(LOGDEBUG, "FreeVisualisation() started");
 
@@ -432,9 +430,9 @@ void CGUIVisualisationControl::DeInitVisualization()
   {
     if (m_alreadyStarted)
     {
-      g_graphicsContext.CaptureStateBlock();
+      CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
       m_instance->Stop();
-      g_graphicsContext.ApplyStateBlock();
+      CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
       m_alreadyStarted = false;
     }
 
@@ -452,7 +450,7 @@ void CGUIVisualisationControl::CreateBuffers()
   // Get the number of buffers from the current vis
   VIS_INFO info { false, 0 };
 
-  if (m_instance && m_alreadyStarted)
+  if (m_instance)
     m_instance->GetInfo(&info);
 
   m_numBuffers = info.iSyncDelay + 1;

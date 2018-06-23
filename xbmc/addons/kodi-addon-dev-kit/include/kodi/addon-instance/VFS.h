@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team Kodi
  *
@@ -17,6 +16,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "../AddonBase.h"
 #include "../Filesystem.h"
@@ -578,7 +579,7 @@ namespace addon
                                            int* num_entries,
                                            char* rootpath)
     {
-      std::string cppRootPath; 
+      std::string cppRootPath;
       std::vector<kodi::vfs::CDirEntry> addonEntries;
       bool ret = instance->toAddon.addonInstance->ContainsFiles(*url, addonEntries, cppRootPath);
       if (ret)

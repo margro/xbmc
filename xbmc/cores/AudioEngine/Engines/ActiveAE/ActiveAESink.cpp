@@ -82,6 +82,8 @@ void CActiveAESink::Dispose()
 
   delete m_packer;
   m_packer = nullptr;
+
+  CAESinkFactory::Cleanup();
 }
 
 AEDeviceType CActiveAESink::GetDeviceType(const std::string &device)
@@ -672,6 +674,9 @@ void CActiveAESink::Process()
 void CActiveAESink::EnumerateSinkList(bool force)
 {
   if (!m_sinkInfoList.empty() && !force)
+    return;
+
+  if (!CAESinkFactory::HasSinks())
     return;
 
   unsigned int c_retry = 4;

@@ -23,10 +23,11 @@
 #include <gbm.h>
 #include <EGL/egl.h>
 
+#include "platform/linux/input/LibInputHandler.h"
+#include "platform/linux/OptionalsReg.h"
 #include "threads/CriticalSection.h"
 #include "windowing/WinSystem.h"
 #include "DRMUtils.h"
-#include "GLContextEGL.h"
 
 class IDispResource;
 
@@ -51,21 +52,32 @@ public:
   void FlipPage(bool rendered, bool videoLayer);
   void WaitVBlank();
 
+  bool CanDoWindowed() override { return false; }
   void UpdateResolutions() override;
+
+  bool UseLimitedColor() override;
 
   bool Hide() override;
   bool Show(bool raise = true) override;
   virtual void Register(IDispResource *resource);
   virtual void Unregister(IDispResource *resource);
 
-  std::shared_ptr<CDRMUtils> m_DRM;
+  std::string GetModule() const { return m_DRM->GetModule(); }
+  std::string GetDevicePath() const { return m_DRM->GetDevicePath(); }
+  struct gbm_device *GetGBMDevice() const { return m_GBM->GetDevice(); }
+  std::shared_ptr<CDRMUtils> GetDrm() const { return m_DRM; }
 
 protected:
-  std::unique_ptr<CGBMUtils> m_GBM;
+  void OnLostDevice();
 
-  EGLDisplay m_nativeDisplay;
-  EGLNativeWindowType m_nativeWindow;
+  std::shared_ptr<CDRMUtils> m_DRM;
+  std::unique_ptr<CGBMUtils> m_GBM;
 
   CCriticalSection m_resourceSection;
   std::vector<IDispResource*>  m_resources;
+
+  bool m_delayDispReset;
+  XbmcThreads::EndTime m_dispResetTimer;
+  std::unique_ptr<OPTIONALS::CLircContainer, OPTIONALS::delete_CLircContainer> m_lirc;
+  std::unique_ptr<CLibInputHandler> m_libinput;
 };

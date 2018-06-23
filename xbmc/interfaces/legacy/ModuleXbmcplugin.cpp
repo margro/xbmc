@@ -31,6 +31,8 @@ namespace XBMCAddon
     bool addDirectoryItem(int handle, const String& url, const xbmcgui::ListItem* listItem,
                           bool isFolder, int totalItems)
     {
+      if (listItem == nullptr)
+        throw new XBMCAddon::WrongTypeException("None not allowed as argument for listitem");
       AddonClass::Ref<xbmcgui::ListItem> pListItem(listItem);
       pListItem->item->SetPath(url);
       pListItem->item->m_bIsFolder = isFolder;
@@ -39,8 +41,8 @@ namespace XBMCAddon
       return XFILE::CPluginDirectory::AddItem(handle, pListItem->item.get(), totalItems);
     }
 
-    bool addDirectoryItems(int handle, 
-                           const std::vector<Tuple<String,const XBMCAddon::xbmcgui::ListItem*,bool> >& items, 
+    bool addDirectoryItems(int handle,
+                           const std::vector<Tuple<String,const XBMCAddon::xbmcgui::ListItem*,bool> >& items,
                            int totalItems)
     {
       CFileItemList fitems;
@@ -60,7 +62,7 @@ namespace XBMCAddon
       return XFILE::CPluginDirectory::AddItems(handle, &fitems, totalItems);
     }
 
-    void endOfDirectory(int handle, bool succeeded, bool updateListing, 
+    void endOfDirectory(int handle, bool succeeded, bool updateListing,
                         bool cacheToDisc)
     {
       // tell the directory class that we're done
@@ -69,6 +71,8 @@ namespace XBMCAddon
 
     void setResolvedUrl(int handle, bool succeeded, const xbmcgui::ListItem* listItem)
     {
+      if (listItem == nullptr)
+        throw new XBMCAddon::WrongTypeException("None not allowed as argument for listitem");
       AddonClass::Ref<xbmcgui::ListItem> pListItem(listItem);
       XFILE::CPluginDirectory::SetResolvedUrl(handle, succeeded, pListItem->item.get());
     }
@@ -103,7 +107,7 @@ namespace XBMCAddon
       XFILE::CPluginDirectory::SetProperty(handle, "plugincategory", category);
     }
 
-    void setPluginFanart(int handle, const char* image, 
+    void setPluginFanart(int handle, const char* image,
                          const char* color1,
                          const char* color2,
                          const char* color3)
@@ -122,6 +126,6 @@ namespace XBMCAddon
     {
       XFILE::CPluginDirectory::SetProperty(handle, key, value);
     }
-    
+
   }
 }

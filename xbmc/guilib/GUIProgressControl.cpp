@@ -21,6 +21,7 @@
 #include "GUIProgressControl.h"
 #include "GUIInfoManager.h"
 #include "GUIListItem.h"
+#include "GUIMessage.h"
 #include "utils/StringUtils.h"
 
 CGUIProgressControl::CGUIProgressControl(int parentID, int controlID,
@@ -82,10 +83,10 @@ void CGUIProgressControl::Render()
     {
       if (m_bReveal && !m_guiMidClipRect.IsEmpty())
       {
-        bool restore = g_graphicsContext.SetClipRegion(m_guiMidClipRect.x1, m_guiMidClipRect.y1, m_guiMidClipRect.Width(), m_guiMidClipRect.Height());
+        bool restore = CServiceBroker::GetWinSystem()->GetGfxContext().SetClipRegion(m_guiMidClipRect.x1, m_guiMidClipRect.y1, m_guiMidClipRect.Width(), m_guiMidClipRect.Height());
         m_guiMid.Render();
         if (restore)
-          g_graphicsContext.RestoreClipRegion();
+          CServiceBroker::GetWinSystem()->GetGfxContext().RestoreClipRegion();
       }
       else if (!m_bReveal && m_guiMid.GetWidth() > 0)
         m_guiMid.Render();
@@ -96,10 +97,10 @@ void CGUIProgressControl::Render()
 
       if (m_bReveal && !m_guiMidClipRect.IsEmpty())
       {
-        bool restore = g_graphicsContext.SetClipRegion(m_guiMidClipRect.x1, m_guiMidClipRect.y1, m_guiMidClipRect.Width(), m_guiMidClipRect.Height());
+        bool restore = CServiceBroker::GetWinSystem()->GetGfxContext().SetClipRegion(m_guiMidClipRect.x1, m_guiMidClipRect.y1, m_guiMidClipRect.Width(), m_guiMidClipRect.Height());
         m_guiMid.Render();
         if (restore)
-          g_graphicsContext.RestoreClipRegion();
+          CServiceBroker::GetWinSystem()->GetGfxContext().RestoreClipRegion();
       }
       else if (!m_bReveal && m_guiMid.GetWidth() > 0)
         m_guiMid.Render();
@@ -322,7 +323,7 @@ void CGUIProgressControl::UpdateInfo(const CGUIListItem *item)
     if (m_iInfoCode)
     {
       int value;
-      if (g_infoManager.GetInt(value, m_iInfoCode, m_parentID, item))
+      if (CServiceBroker::GetGUI()->GetInfoManager().GetInt(value, m_iInfoCode, m_parentID, item))
         m_fPercent = (float)value;
 
       if (m_fPercent < 0.0f) m_fPercent = 0.0f;

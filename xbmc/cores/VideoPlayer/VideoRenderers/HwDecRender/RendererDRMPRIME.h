@@ -29,17 +29,18 @@ class CRendererDRMPRIME
 {
 public:
   CRendererDRMPRIME(std::shared_ptr<CDRMUtils> drm);
-  virtual ~CRendererDRMPRIME();
+  ~CRendererDRMPRIME();
 
   // Registration
   static CBaseRenderer* Create(CVideoBuffer* buffer);
-  static bool Register(CWinSystemGbmGLESContext *winSystem);
+  static bool Register();
 
   // Player functions
   bool Configure(const VideoPicture& picture, float fps, unsigned int orientation) override;
   bool IsConfigured() override { return m_bConfigured; };
   void AddVideoPicture(const VideoPicture& picture, int index, double currentClock) override;
   void UnInit() override {};
+  void Flush() override;
   void ReleaseBuffer(int idx) override;
   bool NeedBuffer(int idx) override;
   bool IsGuiLayer() override { return false; };
@@ -60,13 +61,11 @@ private:
 
   bool m_bConfigured = false;
   int m_iLastRenderBuffer = -1;
-  static const int m_numRenderBuffers = 4;
 
   std::shared_ptr<CDRMUtils> m_DRM;
 
   struct BUFFER
   {
-    BUFFER() : videoBuffer(nullptr) {};
-    CVideoBuffer* videoBuffer;
-  } m_buffers[m_numRenderBuffers];
+    CVideoBuffer* videoBuffer = nullptr;
+  } m_buffers[NUM_BUFFERS];
 };

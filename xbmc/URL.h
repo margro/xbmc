@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <stdlib.h>
 #include <string>
@@ -52,6 +53,11 @@ public:
   void SetUserName(const std::string& strUserName)
   {
     m_strUserName = strUserName;
+  }
+
+  void SetDomain(const std::string& strDomain)
+  {
+    m_strDomain = strDomain;
   }
 
   void SetPassword(const std::string& strPassword)

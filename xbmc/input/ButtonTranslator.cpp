@@ -102,7 +102,7 @@ bool CButtonTranslator::Load()
     if (XFILE::CDirectory::Exists(dir))
     {
       CFileItemList files;
-      XFILE::CDirectory::GetDirectory(dir, files, ".xml");
+      XFILE::CDirectory::GetDirectory(dir, files, ".xml", XFILE::DIR_FLAG_DEFAULTS);
       // Sort the list for filesystem based priorities, e.g. 01-keymap.xml, 02-keymap-overrides.xml
       files.Sort(SortByFile, SortOrderAscending);
       for(int fileIndex = 0; fileIndex<files.Size(); ++fileIndex)
@@ -121,7 +121,7 @@ bool CButtonTranslator::Load()
         if (XFILE::CDirectory::Exists(devicedir))
         {
           CFileItemList files;
-          XFILE::CDirectory::GetDirectory(devicedir, files, ".xml");
+          XFILE::CDirectory::GetDirectory(devicedir, files, ".xml", XFILE::DIR_FLAG_DEFAULTS);
           // Sort the list for filesystem based priorities, e.g. 01-keymap.xml, 02-keymap-overrides.xml
           files.Sort(SortByFile, SortOrderAscending);
           for(int fileIndex = 0; fileIndex<files.Size(); ++fileIndex)
@@ -203,27 +203,17 @@ CAction CButtonTranslator::GetAction(int window, const CKey &key, bool fallback)
   // try to get the action from the current window
   unsigned int actionID = GetActionCode(window, key, strAction);
 
-  // if it's invalid, try to get it from the global map
-  if (actionID == ACTION_NONE && fallback)
+  if (fallback)
   {
-    //! @todo Refactor fallback logic
-    int fallbackWindow = CWindowTranslator::GetFallbackWindow(window);
-    if (fallbackWindow > -1)
-      actionID = GetActionCode(fallbackWindow, key, strAction);
-
-    // still no valid action? use global map
-    if (actionID == ACTION_NONE)
-      actionID = GetActionCode(-1, key, strAction);
+    // if it's invalid, try to get it from fallback windows or the global map (window == -1)
+    while (actionID == ACTION_NONE && window > -1)
+    {
+      window = CWindowTranslator::GetFallbackWindow(window);
+      actionID = GetActionCode(window, key, strAction);
+    }
   }
 
-  // Now fill our action structure
-  CAction action(actionID, strAction, key);
-  return action;
-}
-
-CAction CButtonTranslator::GetGlobalAction(const CKey &key)
-{
-  return GetAction(-1, key, true);
+  return CAction(actionID, strAction, key);
 }
 
 bool CButtonTranslator::HasLongpressMapping(int window, const CKey &key)
@@ -336,7 +326,7 @@ void CButtonTranslator::MapAction(uint32_t buttonCode, const std::string &szActi
 
 void CButtonTranslator::MapWindowActions(const TiXmlNode *pWindow, int windowID)
 {
-  if (pWindow == nullptr || windowID == WINDOW_INVALID) 
+  if (pWindow == nullptr || windowID == WINDOW_INVALID)
     return;
 
   const TiXmlNode *pDevice;

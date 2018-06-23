@@ -198,9 +198,24 @@ CDVDVideoCodec::VCReturn CAddonVideoCodec::GetPicture(VideoPicture* pVideoPictur
     pVideoPicture->iHeight = picture.height;
     pVideoPicture->pts = static_cast<double>(picture.pts);
     pVideoPicture->dts = DVD_NOPTS_VALUE;
-    pVideoPicture->color_range = 0;
-    pVideoPicture->color_space = 4;
     pVideoPicture->iFlags = 0;
+    pVideoPicture->chroma_position = 0;
+    pVideoPicture->colorBits = 8;
+    pVideoPicture->color_primaries = 0;
+    pVideoPicture->color_range = 0;
+    pVideoPicture->color_space = AVCOL_SPC_UNSPECIFIED;
+    pVideoPicture->color_transfer = 0;
+    pVideoPicture->hasDisplayMetadata = false;
+    pVideoPicture->hasLightMetadata = false;
+    pVideoPicture->iDuration = 0;
+    pVideoPicture->iFrameType = 0;
+    pVideoPicture->iRepeatPicture = 0;
+    pVideoPicture->pict_type = 0;
+    pVideoPicture->qp_table = nullptr;
+    pVideoPicture->qscale_type = 0;
+    pVideoPicture->qstride = 0;
+    pVideoPicture->stereoMode.clear();
+
     if (m_codecFlags & DVD_CODEC_CTRL_DROP)
       pVideoPicture->iFlags |= DVP_FLAG_DROPPED;
 
@@ -281,7 +296,7 @@ void CAddonVideoCodec::Reset()
 
 bool CAddonVideoCodec::GetFrameBuffer(VIDEOCODEC_PICTURE &picture)
 {
-  CVideoBuffer *videoBuffer = m_processInfo.GetVideoBufferManager().Get(AV_PIX_FMT_YUV420P, picture.decodedDataSize);
+  CVideoBuffer *videoBuffer = m_processInfo.GetVideoBufferManager().Get(AV_PIX_FMT_YUV420P, picture.decodedDataSize, nullptr);
   if (!videoBuffer)
   {
     CLog::Log(LOGERROR,"CAddonVideoCodec::GetFrameBuffer Failed to allocate buffer");

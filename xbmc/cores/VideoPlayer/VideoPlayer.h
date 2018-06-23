@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <atomic>
 #include <memory>
@@ -110,6 +110,7 @@ struct SPlayerState
     cache_delay = 0.0;
     cache_offset = 0.0;
     lastSeek = 0;
+    streamsReady = false;
   }
 
   double timestamp;         // last time of update
@@ -125,6 +126,7 @@ struct SPlayerState
   std::string player_state; // full player state
   bool isInMenu;
   bool hasMenu;
+  bool streamsReady;
 
   int chapter;              // current chapter
   std::vector<std::pair<std::string, int64_t>> chapters; // name and position for chapters
@@ -390,6 +392,8 @@ public:
   CVideoSettings GetVideoSettings() override;
   void SetVideoSettings(CVideoSettings& settings) override;
 
+  void SetUpdateStreamDetails();
+
 protected:
   friend class CSelectionStreams;
 
@@ -485,6 +489,8 @@ protected:
 
   void UpdateContent();
   void UpdateContentState();
+
+  void UpdateFileItemStreamDetails(CFileItem& item);
 
   bool m_players_created;
 
@@ -582,6 +588,8 @@ protected:
 
   bool m_HasVideo;
   bool m_HasAudio;
+
+  bool m_UpdateStreamDetails;
 
   std::atomic<bool> m_displayLost;
 

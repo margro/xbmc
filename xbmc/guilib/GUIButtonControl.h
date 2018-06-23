@@ -1,13 +1,3 @@
-/*!
-\file GUIButtonControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUIBUTTONCONTROL_H
-#define GUILIB_GUIBUTTONCONTROL_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -28,9 +18,20 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIButtonControl.h
+\brief
+*/
+
+#include "guilib/guiinfo/GUIInfoLabel.h"
+#include "utils/Color.h"
+
 #include "GUITexture.h"
 #include "GUILabel.h"
 #include "GUIControl.h"
+#include "GUIAction.h"
 
 /*!
  \ingroup controls
@@ -71,8 +72,8 @@ public:
   virtual void SetMinWidth(float minWidth);
   void SetAlpha(unsigned char alpha);
 
-  void PythonSetLabel(const std::string &strFont, const std::string &strText, color_t textColor, color_t shadowColor, color_t focusedColor);
-  void PythonSetDisabledColor(color_t disabledColor);
+  void PythonSetLabel(const std::string &strFont, const std::string &strText, UTILS::Color textColor, UTILS::Color shadowColor, UTILS::Color focusedColor);
+  void PythonSetDisabledColor(UTILS::Color disabledColor);
 
   virtual void OnClick();
   bool HasClickActions() const { return m_clickActions.HasActionsMeetingCondition(); };
@@ -98,8 +99,8 @@ protected:
   float m_minWidth;
   float m_maxWidth;
 
-  CGUIInfoLabel  m_info;
-  CGUIInfoLabel  m_info2;
+  KODI::GUILIB::GUIINFO::CGUIInfoLabel  m_info;
+  KODI::GUILIB::GUIINFO::CGUIInfoLabel  m_info2;
   CGUILabel      m_label;
   CGUILabel      m_label2;
 
@@ -109,4 +110,4 @@ protected:
 
   bool m_bSelected;
 };
-#endif
+

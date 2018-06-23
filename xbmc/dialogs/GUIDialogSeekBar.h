@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "guilib/GUIDialog.h"
 
 class CGUIDialogSeekBar : public CGUIDialog
@@ -30,5 +30,10 @@ public:
   bool OnMessage(CGUIMessage& message) override;
   void FrameMove() override;
 private:
+  float GetSeekPercent() const;
+  int GetEpgEventProgress() const;
+  int GetEpgEventSeekPercent() const;
+
   unsigned int m_lastPercent = ~0U;
+  unsigned int m_lastEpgEventPercent = ~0U;
 };

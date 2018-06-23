@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,12 +18,14 @@
  *
  */
 
+#pragma once
+
 #include <list>
 
 #include "cores/VideoPlayer/VideoRenderers/BaseRenderer.h"
 #include "cores/VideoPlayer/VideoRenderers/OverlayRenderer.h"
 #include "utils/Geometry.h"
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 #include "threads/CriticalSection.h"
 #include "cores/VideoSettings.h"
 #include "OverlayRenderer.h"
@@ -97,9 +97,10 @@ public:
 
   int GetSkippedFrames()  { return m_QueueSkip; }
 
-  bool Configure(const VideoPicture& picture, float fps, bool fullscreen, unsigned int orientation, int buffers = 0);
+  bool Configure(const VideoPicture& picture, float fps, unsigned int orientation, int buffers = 0);
   bool AddVideoPicture(const VideoPicture& picture, volatile std::atomic_bool& bStop, EINTERLACEMETHOD deintMethod, bool wait);
   void AddOverlay(CDVDOverlay* o, double pts);
+  void ShowVideo(bool enable);
 
   /**
    * If player uses buffering it has to wait for a buffer before it calls
@@ -154,7 +155,7 @@ protected:
   bool m_renderedOverlay = false;
   bool m_renderDebug = false;
   XbmcThreads::EndTime m_debugTimer;
-
+  std::atomic_bool m_showVideo = {false};
 
   enum EPRESENTSTEP
   {
@@ -210,7 +211,6 @@ protected:
   float m_fps = 0.0;
   unsigned int m_orientation = 0;
   int m_NumberBuffers = 0;
-  bool m_fullscreen = false;
   std::string m_stereomode;
 
   int m_lateframes = -1;

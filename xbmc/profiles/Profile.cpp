@@ -19,7 +19,7 @@
  */
 
 #include "Profile.h"
-#include "GUIInfoManager.h"
+#include "XBDateTime.h"
 #include "utils/XMLUtils.h"
 
 CProfile::CLock::CLock(LockType type, const std::string &password):
@@ -40,7 +40,7 @@ void CProfile::CLock::Validate()
 {
   if (mode != LOCK_MODE_EVERYONE && (code == "-" || code.empty()))
     mode = LOCK_MODE_EVERYONE;
-  
+
   if (code.empty() || mode == LOCK_MODE_EVERYONE)
     code = "-";
 }
@@ -61,8 +61,9 @@ CProfile::~CProfile(void) = default;
 
 void CProfile::setDate()
 {
-  std::string strDate = g_infoManager.GetDate(true);
-  std::string strTime = g_infoManager.GetTime();
+  const CDateTime now = CDateTime::GetCurrentDateTime();
+  std::string strDate = now.GetAsLocalizedDate(false);
+  std::string strTime = now.GetAsLocalizedTime(TIME_FORMAT_GUESS);
   if (strDate.empty() || strTime.empty())
     setDate("-");
   else
@@ -72,7 +73,7 @@ void CProfile::setDate()
 void CProfile::Load(const TiXmlNode *node, int nextIdProfile)
 {
   if (!XMLUtils::GetInt(node, "id", m_id))
-    m_id = nextIdProfile; 
+    m_id = nextIdProfile;
 
   XMLUtils::GetString(node, "name", m_name);
   XMLUtils::GetPath(node, "directory", m_directory);
@@ -91,13 +92,13 @@ void CProfile::Load(const TiXmlNode *node, int nextIdProfile)
   XMLUtils::GetBoolean(node, "lockpictures", m_locks.pictures);
   XMLUtils::GetBoolean(node, "lockprograms", m_locks.programs);
   XMLUtils::GetBoolean(node, "lockgames", m_locks.games);
-  
+
   int lockMode = m_locks.mode;
   XMLUtils::GetInt(node, "lockmode", lockMode);
   m_locks.mode = (LockType)lockMode;
   if (m_locks.mode > LOCK_MODE_QWERTY || m_locks.mode < LOCK_MODE_EVERYONE)
     m_locks.mode = LOCK_MODE_EVERYONE;
-  
+
   XMLUtils::GetString(node, "lockcode", m_locks.code);
   XMLUtils::GetString(node, "lastdate", m_date);
 }

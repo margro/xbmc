@@ -23,6 +23,7 @@
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "GUIInfoManager.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
@@ -50,7 +51,7 @@ CGUIDialogPVRChannelsOSD::~CGUIDialogPVRChannelsOSD()
 {
   delete m_vecItems;
 
-  g_infoManager.UnregisterObserver(this);
+  CServiceBroker::GetGUI()->GetInfoManager().UnregisterObserver(this);
   CServiceBroker::GetPVRManager().EpgContainer().UnregisterObserver(this);
 }
 
@@ -69,6 +70,10 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
 
         if (iAction == ACTION_SELECT_ITEM || iAction == ACTION_MOUSE_LEFT_CLICK)
         {
+          // If direct channel number input is active, select the entered channel.
+          if (CServiceBroker::GetPVRManager().GUIActions()->GetChannelNumberInputHandler().CheckInputAndExecuteAction())
+            return true;
+
           /* Switch to channel */
           GotoChannel(iItem);
           return true;
@@ -178,7 +183,7 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
 
 void CGUIDialogPVRChannelsOSD::Update()
 {
-  g_infoManager.RegisterObserver(this);
+  CServiceBroker::GetGUI()->GetInfoManager().RegisterObserver(this);
   CServiceBroker::GetPVRManager().EpgContainer().RegisterObserver(this);
 
   m_viewControl.SetCurrentView(DEFAULT_VIEW_LIST);
@@ -301,6 +306,12 @@ std::string CGUIDialogPVRChannelsOSD::GetLastSelectedItemPath(int iGroupID) cons
   if (it != m_groupSelectedItemPaths.end())
     return it->second;
   return "";
+}
+
+void CGUIDialogPVRChannelsOSD::GetChannelNumbers(std::vector<std::string>& channelNumbers)
+{
+  if (m_group)
+    m_group->GetChannelNumbers(channelNumbers);
 }
 
 void CGUIDialogPVRChannelsOSD::OnInputDone()

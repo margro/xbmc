@@ -110,7 +110,6 @@ cmake_install.cmake
 /addons/skin.pm3-hd/media/Textures.xbt
 /addons/audioencoder.*
 /addons/pvr.*
-/addons/adsp.*
 /addons/peripheral.*
 /addons/game.*
 /addons/kodi.binary.global.audioengine/addon.xml
@@ -119,7 +118,6 @@ cmake_install.cmake
 /addons/kodi.binary.global.gui/addon.xml
 /addons/kodi.binary.global.main/addon.xml
 /addons/kodi.binary.global.network/addon.xml
-/addons/kodi.binary.instance.adsp/addon.xml
 /addons/kodi.binary.instance.audiodecoder/addon.xml
 /addons/kodi.binary.instance.audioencoder/addon.xml
 /addons/kodi.binary.instance.game/addon.xml
@@ -146,38 +144,27 @@ cmake_install.cmake
 
 # /lib/cpluff/
 /lib/cpluff/ABOUT-NLS
+/lib/cpluff/Makefile
+/lib/cpluff/Makefile.in
 /lib/cpluff/aclocal.m4
-/lib/cpluff/autom4te.cache
-/lib/cpluff/auxliary
-/lib/cpluff/m4
+/lib/cpluff/autom4te.cache/
+/lib/cpluff/auxliary/
 /lib/cpluff/config.h
 /lib/cpluff/config.h.in
-/lib/cpluff/config.h.in~
-/lib/cpluff/configure
-/lib/cpluff/config.cache
 /lib/cpluff/config.log
 /lib/cpluff/config.status
-/lib/cpluff/Makefile.in
-/lib/cpluff/*/Makefile.in
-/lib/cpluff/*/*/Makefile.in
-/lib/cpluff/*/*/*/Makefile.in
-/lib/cpluff/*/*/*/*/Makefile.in
-/lib/cpluff/Makefile
-/lib/cpluff/*/Makefile
-/lib/cpluff/*/*/Makefile
-/lib/cpluff/*/*/*/Makefile
-/lib/cpluff/*/*/*/*/Makefile
-/lib/cpluff/po/*template
-/lib/cpluff/po/*header
-lib/cpluff/console/cpluff-console
-lib/cpluff/examples/cpfile/cpfile
-lib/cpluff/libcpluff/cpluffdef.h
-lib/cpluff/libcpluff/docsrc/Doxyfile-impl
-lib/cpluff/libcpluff/docsrc/Doxyfile-ref
-lib/cpluff/libtool
-lib/cpluff/loader/cpluff-loader
-lib/cpluff/po/POTFILES
-lib/cpluff/stamp-h1
+/lib/cpluff/configure
+/lib/cpluff/**/Makefile
+/lib/cpluff/**/Makefile.in
+/lib/cpluff/console/cpluff-console
+/lib/cpluff/examples/cpfile/cpfile
+/lib/cpluff/kazlib/.dirstamp
+/lib/cpluff/libcpluff/cpluffdef.h
+/lib/cpluff/libcpluff/docsrc/Doxyfile-*
+/lib/cpluff/libtool
+/lib/cpluff/loader/cpluff-loader
+/lib/cpluff/m4/
+/lib/cpluff/stamp-h1
 
 # /lib/gtest
 /lib/gtest/Makefile.in
@@ -315,7 +302,6 @@ lib/cpluff/stamp-h1
 /tools/depends/**/config.log
 /tools/depends/**/config.status
 /tools/depends/native/*/*native/
-/tools/depends/target/*/aarch64-linux-gnu/
 /tools/depends/native/JsonSchemaBuilder/bin/
 /tools/depends/native/TexturePacker/bin/
 /tools/depends/target/ffmpeg/.ffmpeg-installed
@@ -383,7 +369,6 @@ lib/cpluff/stamp-h1
 /portable_data
 
 /pvr-addons
-/adsp-addons
 
 # Doxygen generated files
 /docs/html

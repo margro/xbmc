@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <string>
@@ -33,7 +34,7 @@ namespace HARDWARE
   {
   public:
     virtual ~IHardwareInput() = default;
-    
+
     /*!
      * \brief A hardware reset button has been pressed
      */

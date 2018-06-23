@@ -667,7 +667,6 @@ msgctxt "#156"
 msgid "Free"
 msgstr ""
 
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
 #: addons/skin.estuary/xml/Includes.xml
 msgctxt "#157"
 msgid "Video"
@@ -796,6 +795,7 @@ msgctxt "#180"
 msgid "Duration"
 msgstr ""
 
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 #: xbmc/music/MusicDatabase.cpp
 msgctxt "#181"
 msgid "Select album"
@@ -1156,7 +1156,6 @@ msgstr ""
 
 #: xbmc/dialogs/GUIDialogMediaSource.cpp
 #: xbmc/media/MediaTypes.cpp
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
 msgctxt "#249"
 msgid "Music"
 msgstr ""
@@ -1231,9 +1230,10 @@ msgctxt "#263"
 msgid "Allow remote control via HTTP"
 msgstr ""
 
-#. Label for a context menu entry to start/schedule a recording
+#. Label for a context menu entry / button to start/schedule a recording
 #: xbmc/music/windows/GUIWindowMusicBase.cpp
 #: xbmc/pvr/dialogs/GUIDialogPVRGuideInfo.cpp
+#: xbmc/pvr/windows/GUIWIndowPVRGuide.cpp
 #: xbmc/pvr/PVRContextMenus.cpp
 #: addons/skin.estuary/xml/Variables.xml
 msgctxt "#264"
@@ -1429,11 +1429,20 @@ msgctxt "#306"
 msgid "Non-interleaved"
 msgstr ""
 
-#empty string with id 307
-
+#. Select option for the setting "Preferred audio language".
+#. Will prefer the stream marked as "default" if available.
 #: xbmc/LangInfo.cpp
+#: xbmc/cores/VideoPlayer/VideoPlayer.cpp
+msgctxt "#307"
+msgid "Media default"
+msgstr ""
+
+#. Select option for the setting "Preferred audio language".
+#. Will prefer the stream marked as "original" if available.
+#: xbmc/LangInfo.cpp
+#: xbmc/cores/VideoPlayer/VideoPlayer.cpp
 msgctxt "#308"
-msgid "Original stream's language"
+msgid "Original language"
 msgstr ""
 
 #: xbmc/LangInfo.cpp
@@ -1546,6 +1555,7 @@ msgctxt "#330"
 msgid "This may take some time..."
 msgstr ""
 
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 #: xbmc/music/MusicDatabase.cpp
 msgctxt "#331"
 msgid "Compressing database..."
@@ -1588,6 +1598,7 @@ msgctxt "#339"
 msgid "Optimized"
 msgstr ""
 
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 msgctxt "#340"
 msgid "Various artists"
 msgstr ""
@@ -2315,11 +2326,17 @@ msgctxt "#504"
 msgid "Empty"
 msgstr ""
 
+#. label for library update progress bar when scanning media files
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 msgctxt "#505"
 msgid "Loading media information from files..."
 msgstr ""
 
-#empty string with id 506
+#. label for library update progress bar when checking for new or changed media files
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
+msgctxt "#506"
+msgid "Checking media files..."
+msgstr ""
 
 msgctxt "#507"
 msgid "Sort by: Usage"
@@ -2589,6 +2606,7 @@ msgstr ""
 
 #: xbmc/dialogs/GUIDialogMediaFilter.cpp
 #: xbmc/playlists/SmartPlaylist.cpp
+#: xbmc/music/MusicUtils.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 #: addons/skin.estuary/xml/DialogVideoInfo.xml
 #: addons/skin.estuary/xml/DialogFullScreenInfo.xml
@@ -2824,7 +2842,6 @@ msgctxt "#612"
 msgid "Bits/sample"
 msgstr ""
 
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
 #: addons/skin.estuary/xml/MusicVisualisation.xml
 msgctxt "#613"
 msgid "Sample rate"
@@ -3142,8 +3159,14 @@ msgctxt "#683"
 msgid "Verbose logging of [B]audio/video timing information[/B]"
 msgstr ""
 
-#empty strings from id 684 to 699
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#684"
+msgid "Verbose logging of [B]Windowing[/B] component"
+msgstr ""
 
+#empty strings from id 685 to 699
+
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 #: xbmc/music/MusicDatabase.cpp
 msgctxt "#700"
 msgid "Cleaning up library"
@@ -3322,6 +3345,7 @@ msgctxt "#743"
 msgid "Yellow"
 msgstr ""
 
+#: system/library/music/files.xml
 #: xbmc/dialogs/GUIDialogMediaSource.cpp
 msgctxt "#744"
 msgid "Files"
@@ -3955,7 +3979,6 @@ msgstr ""
 
 #: xbmc/dialogs/GUIDialogFavourites.cpp
 #: xbmc/music/dialogs/GUIDialogMusicInfo.cpp
-#: xbmc/music/dialogs/GUIDialogSongInfo.cpp
 msgctxt "#1030"
 msgid "Browse for image"
 msgstr ""
@@ -5060,7 +5083,11 @@ msgctxt "#10126"
 msgid "File browser"
 msgstr ""
 
-#empty string with id 10127
+#. Audio Channel count
+#: xbmc/video/dialogs/GUIDialogAudioSettings.cpp
+msgctxt "#10127"
+msgid "channels"
+msgstr ""
 
 #: xbmc/guilib/WindowIDs.h
 msgctxt "#10128"
@@ -5168,24 +5195,21 @@ msgctxt "#10153"
 msgid "Subtitle search"
 msgstr ""
 
-#: xbmc/guilib/WindowIDs.h
-msgctxt "#10154"
-msgid "Audio DSP manager"
-msgstr ""
-
-#: xbmc/guilib/WindowIDs.h
-msgctxt "#10155"
-msgid "OSD audio DSP settings"
-msgstr ""
-
-#empty string with id 10156
+#empty strings from id 10154 to 10156
 
 #: xbmc/guilib/WindowIDs.h
 msgctxt "#10157"
 msgid "OSD CMS settings"
 msgstr ""
 
-#empty strings from id 10158 to 10209
+#empty string with id 10158
+
+#: xbmc/guilib/WindowIDs.h
+msgctxt "#10159"
+msgid "Subtitle OSD settings"
+msgstr ""
+
+#empty strings from id 10160 to 10209
 
 msgctxt "#10210"
 msgid "Looking for subtitles..."
@@ -5776,7 +5800,6 @@ msgstr ""
 
 #empty strings from id 12374 to 12375
 
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
 #: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#12376"
@@ -6322,6 +6345,7 @@ msgstr ""
 #: xbmc/pvr/PVRGUIInfo.cpp
 #: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
 #: xbmc/video/PlayerController.cpp
+#: xbmc/video/dialogs/GUIDialogAudioSettings.cpp
 msgctxt "#13205"
 msgid "Unknown"
 msgstr ""
@@ -6857,7 +6881,7 @@ msgstr ""
 #: addons/skin.estuary/xml/Custom_1106_VideoOSDSettings.xml
 #: addons/skin.estuary/xml/Variables.xml
 msgctxt "#13396"
-msgid "Audio and subtitle settings"
+msgid "Audio settings"
 msgstr ""
 
 msgctxt "#13397"
@@ -7004,7 +7028,10 @@ msgctxt "#13429"
 msgid "Allow hardware acceleration - VTBDecoder"
 msgstr ""
 
-#empty string with id 13430
+#: system/settings/settings.xml
+msgctxt "#13430"
+msgid "Allow hardware acceleration - PRIME"
+msgstr ""
 
 #: system/settings/settings.xml
 #: xbmc/cores/VideoPlayer/VideoRenderers/BaseRenderer.cpp
@@ -7121,7 +7148,27 @@ msgctxt "#13452"
 msgid "Enable this option to use hardware acceleration for VC-1 based codecs. If disabled the CPU will be used instead. Especially VC-1 interlaced fails hard on Intel hardware."
 msgstr ""
 
-#empty strings from id 13453 to 13456
+#: system/settings/settings.xml
+msgctxt "#13453"
+msgid "Use VP8 VAAPI"
+msgstr ""
+
+#. Description of setting with label #13453 "Use VP8 VAAPI"
+#: system/settings/settings.xml
+msgctxt "#13454"
+msgid "Enable this option to use hardware acceleration for the VP8 codec. If disabled the CPU will be used instead."
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#13455"
+msgid "Use VP9 VAAPI"
+msgstr ""
+
+#. Description of setting with label #13453 "Use VP9 VAAPI"
+#: system/settings/settings.xml
+msgctxt "#13456"
+msgid "Enable this option to use hardware acceleration for the VP9 codec. If disabled the CPU will be used instead."
+msgstr ""
 
 #. Option for video related setting #13454: sw filter
 #: system/settings/settings.xml
@@ -7140,7 +7187,42 @@ msgctxt "#13459"
 msgid "Use OMXPlayer for decoding of video files."
 msgstr ""
 
-#empty strings from id 13460 to 13504
+#: system/settings/settings.xml
+msgctxt "#13460"
+msgid "Use HEVC VAAPI"
+msgstr ""
+
+#. Description of setting with label #13460 "Use HEVC VAAPI"
+#: system/settings/settings.xml
+msgctxt "#13461"
+msgid "Enable this option to use hardware acceleration for the HEVC codec. If disabled the CPU will be used instead."
+msgstr ""
+
+#. Option for setting the PRIME render method
+#: system/settings/settings.xml
+msgctxt "#13462"
+msgid "PRIME Render Method"
+msgstr ""
+
+#. Description of setting with label #13462 "PRIME Render Method"
+#: system/settings/settings.xml
+msgctxt "#13463"
+msgid "This option switches between direct-to-plane and EGL rendering methods."
+msgstr ""
+
+#. String for options 1 of setting with label #13462 "PRIME Render Method"
+#: system/settings/settings.xml
+msgctxt "#13464"
+msgid "Direct To Plane"
+msgstr ""
+
+#. String for options 2 of setting with label #13462 "PRIME Render Method"
+#: system/settings/settings.xml
+msgctxt "#13465"
+msgid "EGL"
+msgstr ""
+
+#empty strings from id 13466 to 13504
 
 #: system/settings/settings.xml
 msgctxt "#13505"
@@ -7171,11 +7253,13 @@ msgctxt "#13510"
 msgid "Sync playback to display"
 msgstr ""
 
+#: xbmc/music/dialogs/GUIDialogSongInfo.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#13511"
 msgid "Choose art"
 msgstr ""
 
+#: xbmc/music/dialogs/GUIDialogSongInfo.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#13512"
 msgid "Current art"
@@ -7186,19 +7270,23 @@ msgctxt "#13513"
 msgid "Remote art"
 msgstr ""
 
+#: xbmc/music/dialogs/GUIDialogMusicInfo.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#13514"
 msgid "Local art"
 msgstr ""
 
+#: xbmc/music/dialogs/GUIDialogSongInfo.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#13515"
 msgid "No art"
 msgstr ""
 
+#. Button to add a new type of art e.g. "thumb", "poster", "fanart" etc.
+#: xbmc/music/MusicUtils.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#13516"
-msgid "Add art"
+msgid "Add art type"
 msgstr ""
 
 #: system/settings/settings.xml
@@ -7221,7 +7309,13 @@ msgctxt "#13520"
 msgid "Embedded fanart"
 msgstr ""
 
-#empty strings from id 13521 to 13549
+#. Heading for selection of a type of art e.g. "thumb", "poster", "fanart" etc.
+#: xbmc/music/MusicUtils.cpp
+msgctxt "#13521"
+msgid "Choose art type"
+msgstr ""
+
+#empty strings from id 13522 to 13549
 
 #: system/settings/settings.xml
 msgctxt "#13550"
@@ -7582,11 +7676,7 @@ msgctxt "#14060"
 msgid "Unknown type cache - Internet"
 msgstr ""
 
-#. Name of a class/preset for audio DSP
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#14061"
-msgid "Auto"
-msgstr ""
+#empty string with id 14061
 
 msgctxt "#14062"
 msgid "Enter username for"
@@ -7671,11 +7761,7 @@ msgctxt "#14081"
 msgid "File lists"
 msgstr ""
 
-#. Label of button in Settings -> Audio output to clear the audio DSP database.
-#: system/settings/settings.xml
-msgctxt "#14082"
-msgid "Reset the Audio DSP database..."
-msgstr ""
+#empty string with id 14082
 
 #: system/settings/settings.xml
 msgctxt "#14083"
@@ -7687,7 +7773,10 @@ msgctxt "#14084"
 msgid "Queue songs on selection"
 msgstr ""
 
-#empty string with id 14085
+#: system/settings/settings.xml
+msgctxt "#14085"
+msgid "Whitelist"
+msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#14086"
@@ -8137,10 +8226,7 @@ msgctxt "#14250"
 msgid "Audio Decoder"
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#14251"
-msgid "Audio DSP"
-msgstr ""
+#empty string with id 14251
 
 #: system/settings/settings.xml
 msgctxt "#14252"
@@ -8226,33 +8312,7 @@ msgctxt "#14304"
 msgid "RDS Radio"
 msgstr ""
 
-#empty strings from id 14305 to 15003
-
-#. Name of a class/preset for audio DSP
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15004"
-msgid "Basic"
-msgstr ""
-
-#. Name of a class/preset for audio DSP
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15005"
-msgid "Application"
-msgstr ""
-
-#. Name of a class/preset for audio DSP
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15006"
-msgid "Phone"
-msgstr ""
-
-#. Name of a class/preset for audio DSP
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15007"
-msgid "Message"
-msgstr ""
-
-#empty strings from id 15008 to 15010
+#empty strings from id 14305 to 15010
 
 #: xbmc/music/MusicDatabase.cpp
 #: xbmc/video/VideoDatabase.cpp
@@ -8282,7 +8342,6 @@ msgid "Remove"
 msgstr ""
 
 #: system/settings/settings.xml
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
 msgctxt "#15016"
 msgid "Games"
 msgstr ""
@@ -8293,127 +8352,7 @@ msgctxt "#15019"
 msgid "Add"
 msgstr ""
 
-#: addons/skin.estuary/xml/Custom_1106_VideoOSDSettings.xml
-#: addons/skin.estuary/xml/Custom_1105_MusicOSDSettings.xml
-msgctxt "#15020"
-msgid "Audio DSP manager"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15021"
-msgid "Content type"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15022"
-msgid "Listening mode"
-msgstr ""
-
-#: xbmc/cores/AudioEngine/DSPAddons/ActiveAEDSPMode.cpp
-msgctxt "#15023"
-msgid "Master mode"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15024"
-msgid "Pre-process setup..."
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15025"
-msgid "Listening mode setup..."
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15026"
-msgid "Speaker / Output setup..."
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15027"
-msgid "Audio information..."
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15028"
-msgid "Audio DSP settings - Main"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15029"
-msgid "Audio DSP settings - Listening mode"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15030"
-msgid "Audio DSP settings - Speaker / Output"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15031"
-msgid "Audio DSP settings - Audio information"
-msgstr ""
-
-#empty string with id 15032
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15033"
-msgid "Resampler setup..."
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15034"
-msgid "Miscellaneous..."
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15035"
-msgid "Audio DSP settings - Resampler"
-msgstr ""
-
-#empty string with id 15036
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15037"
-msgid "Audio DSP settings - Pre-process"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15038"
-msgid "Audio DSP settings - Miscellaneous"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15039"
-msgid "Pre-processing setup..."
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPManager.cpp
-msgctxt "#15040"
-msgid "The settings dialogue can only be opened from the OSD menu during playback"
-msgstr ""
-
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15041"
-msgid "Unknown mode name"
-msgstr ""
-
-#: addons/skin.estuary/xml/DialogAudioDSPSettings.xml
-msgctxt "#15042"
-msgid "Content:"
-msgstr ""
-
-#empty strings from id 15043 to 15046
-
-#. Label for a context menu entry and dialog button to open audio DSP settings dialog
-#: xbmc/pvr/PVRContextMenus.cpp
-#: xbmc/music/windows/GUIWindowMusicBase.cpp
-#: addons/skin.estuary/xml/Custom_1105_MusicOSDSettings.xml
-msgctxt "#15047"
-msgid "Audio DSP settings"
-msgstr ""
-
-#empty strings from id 15048 to 15049
+#empty strings from id 15020 to 15049
 
 #. Name of a list with amount of entries behind on GUI
 msgctxt "#15050"
@@ -8430,166 +8369,18 @@ msgctxt "#15052"
 msgid "Password"
 msgstr ""
 
-#empty strings from id 15053 to 15056
-
-#. Chain select button name
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15057"
-msgid "Input resampling"
-msgstr ""
-
-#. Chain select button name
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15058"
-msgid "Pre-processing"
-msgstr ""
-
-#. Chain select button name
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15059"
-msgid "Master processing"
-msgstr ""
-
-#. Chain select button name
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15060"
-msgid "Post-processing"
-msgstr ""
-
-#. Chain select button name
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15061"
-msgid "Output resampling"
-msgstr ""
-
-#. Header on detailed add-on dsp mode description
-#: xbmc/settings/dialogs/GUIDialogAudioDSPManager.cpp
-msgctxt "#15062"
-msgid "Detailed description"
-msgstr ""
-
-#. Fallback string if nothing from addon is present
-#: xbmc/settings/dialogs/GUIDialogAudioDSPManager.cpp
-msgctxt "#15063"
-msgid "No description available"
-msgstr ""
-
-#. DSP manager boolean enable/disable value text
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15064"
-msgid "Apply changes directly"
-msgstr ""
-
-#. Warning if no dsp modes are present
-#: xbmc/settings/dialogs/GUIDialogAudioDSPManager.cpp
-msgctxt "#15065"
-msgid "No audio DSP modes available"
-msgstr ""
+#empty strings from id 15053 to 15065
 
 #. Button to disable all enabled modes on current selected type
 msgctxt "#15066"
 msgid "Clear active modes"
 msgstr ""
 
-#. Close the DSP manager window
 msgctxt "#15067"
 msgid "Close"
 msgstr ""
 
-#empty strings from id 15068 to 15077
-
-#. DSP manager dialog context menu entry
-#: xbmc/settings/dialogs/GUIDialogAudioDSPManager.cpp
-msgctxt "#15078"
-msgid "Mode settings"
-msgstr ""
-
-#. DSP manager yes/no dialog text
-#: xbmc/settings/dialogs/GUIDialogAudioDSPManager.cpp
-msgctxt "#15079"
-msgid "You have changed some audio DSP settings.\nWould you like to keep the new settings?"
-msgstr ""
-
-#. DSP manager dialog context menu entry
-#: xbmc/settings/dialogs/GUIDialogAudioDSPManager.cpp
-msgctxt "#15080"
-msgid "Change resampler"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15081"
-msgid "Process chain (with CPU usage)"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15082"
-msgid "Resampling to {0:d} Hz"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15083"
-msgid "Final resampling to {0:d} Hz"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15084"
-msgid "Master process"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15085"
-msgid "Pre-process"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15086"
-msgid "Post-process"
-msgstr ""
-
-#. Audio DSP process chain indication - this is in the context of input signal
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-#: system/settings/settings.xml
-msgctxt "#15087"
-msgid "Input"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15088"
-msgid "Output"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15089"
-msgid "Input signal"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15090"
-msgid "Output signal"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15091"
-msgid "Positions"
-msgstr ""
-
-#. Audio DSP process chain indication
-#: xbmc/settings/dialogs/GUIDialogAudioDSPSettings.cpp
-msgctxt "#15092"
-msgid "CPU usage for DSP"
-msgstr ""
-
-#empty strings from id 15093 to 15099
+#empty strings from id 15068 to 15099
 
 msgctxt "#15100"
 msgid "Library"
@@ -8657,32 +8448,7 @@ msgctxt "#15112"
 msgid "Default theme"
 msgstr ""
 
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15113"
-msgid "Here you can configure pre-processing modes. This processing stage only change the input data stream."
-msgstr ""
-
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15114"
-msgid "Here you can configure an input resampling process. Notice: Only one active mode is allowed!"
-msgstr ""
-
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15115"
-msgid "Here you can configure master processing modes. Notice: On playback only one active mode can be selected!"
-msgstr ""
-
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15116"
-msgid "Here you can configure a output resampling process. Notice: Only one active mode is allowed!"
-msgstr ""
-
-#: addons/skin.estuary/xml/DialogAudioDSPManager.xml
-msgctxt "#15117"
-msgid "Here you can configure post-processing modes. This processing stage can be used for equalizing and volume correction..."
-msgstr ""
-
-#empty strings from id 15118 to 15199
+#empty strings from id 15113 to 15199
 
 msgctxt "#15200"
 msgid "Last.fm"
@@ -8789,6 +8555,7 @@ msgctxt "#16010"
 msgid "Enter the profile name"
 msgstr ""
 
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 msgctxt "#16011"
 msgid "Enter the album name"
 msgstr ""
@@ -8857,6 +8624,7 @@ msgctxt "#16024"
 msgid "Cancelling..."
 msgstr ""
 
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 msgctxt "#16025"
 msgid "Enter the artist name"
 msgstr ""
@@ -9902,10 +9670,8 @@ msgstr ""
 
 #. generic warning label used at several places
 #: xbmc/addons/AddonSystemSettings.cpp
-#: xbmc/cores/AudioEngine/DSPAddons/ActiveAEDSP.cpp
 #: xbmc/pvr/channels/PVRChannelGroupInternal.cpp
 #: xbmc/pvr/PVRManager.cpp
-#: xbmc/settings/dialogs/GUIDialogAudioDSPManager.cpp
 msgctxt "#19098"
 msgid "Warning!"
 msgstr ""
@@ -10293,7 +10059,9 @@ msgctxt "#19164"
 msgid "Could not start recording. Check the log for more information about this message."
 msgstr ""
 
+#. Label for "switch to channel" button""
 #: addons/skin.estuary/xml/DialogPVRInfo.xml
+#: xbmc/pvr/windows/GUIWIndowPVRGuide.cpp
 msgctxt "#19165"
 msgid "Switch"
 msgstr ""
@@ -11106,7 +10874,13 @@ msgctxt "#19301"
 msgid "Horizontal channels, no group selector"
 msgstr ""
 
-#empty strings from id 19302 to 19498
+#. text for yes no dialog shown when user selects a future programme in the guide window and default select action is 'smart select'
+#: xbmc/pvr/windows/GUIWindowPVRGuide.cpp
+msgctxt "#19302"
+msgid "Do you want to record the selected programme or to switch to the current programme?"
+msgstr ""
+
+#empty strings from id 19303 to 19498
 
 #. label for epg genre value
 #: xbmc/epg/Epg.cpp
@@ -11804,7 +11578,6 @@ msgstr ""
 
 #: xbmc/dialogs/GUIDialogContextMenu.cpp
 #: xbmc/music/dialogs/GUIDialogMusicInfo.cpp
-#: xbmc/music/dialogs/GUIDialogSongInfo.cpp
 msgctxt "#20016"
 msgid "Current thumb"
 msgstr ""
@@ -11818,7 +11591,6 @@ msgstr ""
 
 #: xbmc/dialogs/GUIDialogContextMenu.cpp
 #: xbmc/music/dialogs/GUIDialogMusicInfo.cpp
-#: xbmc/music/dialogs/GUIDialogSongInfo.cpp
 msgctxt "#20018"
 msgid "No thumb"
 msgstr ""
@@ -11830,6 +11602,7 @@ msgid "Choose thumbnail"
 msgstr ""
 
 #. Name of an artwork type
+#: xbmc/music/MusicUtils.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 #: addons/skin.estuary/xml/View_501_Banner.xml
 msgctxt "#20020"
@@ -11837,6 +11610,7 @@ msgid "Banner"
 msgstr ""
 
 #. Name of an artwork type
+#: xbmc/music/MusicUtils.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 #: addons/skin.estuary/xml/View_51_Poster.xml
 msgctxt "#20021"
@@ -12601,11 +12375,23 @@ msgstr ""
 
 #: system/settings/settings.xml
 #: xbmc/settings/dialogs/GUIDialogLibExportSettings.cpp
+#: xbmc/music/dialogs/GUIDialogMusicInfo.cpp
 msgctxt "#20223"
 msgid "Artist information folder"
 msgstr ""
 
-#empty strings from id 20224 to 20239
+#: system/settings/settings.xml
+msgctxt "#20224"
+msgid "Prefer online album art"
+msgstr ""
+
+#. Description of setting with label #20224 "Prefer online album art"
+#: system/settings/settings.xml
+msgctxt "#20225"
+msgid "Where no local album cover exists, online art will be used. Where neither is available, cover images embedded in music files will be used"
+msgstr ""
+
+#empty strings from id 20226 to 20239
 
 #: xbmc/dialogs/GUIDialogMediaSource.cpp
 msgctxt "#20240"
@@ -12776,10 +12562,12 @@ msgctxt "#20319"
 msgid "Scanning TV shows using {0:s}"
 msgstr ""
 
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 msgctxt "#20320"
 msgid "Scanning artists using {0:s}"
 msgstr ""
 
+#: xbmc/music/infoscanner/MusicInfoScanner.cpp
 msgctxt "#20321"
 msgid "Scanning albums using {0:s}"
 msgstr ""
@@ -12885,6 +12673,7 @@ msgstr ""
 #: xbmc/dialogs/GUIDialogSmartPlaylistRule.cpp
 #: xbmc/media/MediaTypes.cpp
 #: addons/skin.estuary/xml/Variables.xml
+#: xbmc/view/GUIViewState.cpp
 msgctxt "#20342"
 msgid "Movies"
 msgstr ""
@@ -12895,6 +12684,7 @@ msgstr ""
 #: addons/skin.estuary/xml/Home.xml
 #: addons/skin.estuary/xml/SkinSettings.xml
 #: addons/skin.estuary/xml/Variables.xml
+#: xbmc/view/GUIViewState.cpp
 msgctxt "#20343"
 msgid "TV shows"
 msgstr ""
@@ -12987,6 +12777,7 @@ msgstr ""
 #: xbmc/playlists/SmartPlaylist.cpp
 #: addons/skin.estuary/xml/View_51_Poster.xml
 #: addons/skin.estuary/xml/Variables.xml
+#: xbmc/view/GUIViewState.cpp
 msgctxt "#20360"
 msgid "Episodes"
 msgstr ""
@@ -13129,6 +12920,7 @@ msgstr ""
 #: xbmc/filesystem/VideoDatabaseDirectory/DirectoryNodeOverview.cpp
 #: xbmc/media/MediaTypes.cpp
 #: addons/skin.estuary/xml/Variables.xml
+#: xbmc/view/GUIViewState.cpp
 msgctxt "#20389"
 msgid "Music videos"
 msgstr ""
@@ -13397,6 +13189,8 @@ msgctxt "#20444"
 msgid "Add to library"
 msgstr ""
 
+#. Name of an artwork type
+#: xbmc/music/MusicUtils.cpp
 #: xbmc/music/dialogs/GUIDialogMusicInfo.cpp
 #: addons/skin.estuary/xml/View_502_FanArt.xml
 msgctxt "#20445"
@@ -13605,7 +13399,13 @@ msgctxt "#21344"
 msgid "If mp4 or mkv files have tags, use this for library metadata"
 msgstr ""
 
-#empty strings from id 21345 to 21357
+#. Used in AutoPlayNextItem dialogs for not categorized listItem directories
+#: xbmc/view/GUIViewState.cpp
+msgctxt "#21345"
+msgid "Uncategorized"
+msgstr ""
+
+#empty strings from id 21346 to 21357
 
 #: system/settings/settings.xml
 msgctxt "#21358"
@@ -13669,6 +13469,11 @@ msgctxt "#21370"
 msgid "Play GUI sounds during media playback"
 msgstr ""
 
+#. Name of an artwork type
+#: xbmc/music/MusicUtils.cpp
+#: xbmc/music/dialogs/GUIDialogSongInfo.cpp
+#: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
+#: xbmc/dialogs/GUIDialogFileBrowser.h
 msgctxt "#21371"
 msgid "Thumbnail"
 msgstr ""
@@ -14515,6 +14320,7 @@ msgctxt "#21890"
 msgid "Select artist"
 msgstr ""
 
+#: xbmc/music/dialogs/GUIDialogMusicInfo.cpp
 #: xbmc/music/ContextMenus.h
 msgctxt "#21891"
 msgid "Artist information"
@@ -15232,11 +15038,7 @@ msgctxt "#24087"
 msgid "All repositories"
 msgstr ""
 
-#. Description on error dialog why not possible
-#: xbmc/addons/GUIDialogAddonInfo.h
-msgctxt "#24088"
-msgid "The DSP add-on is currently in use and can't be modified."
-msgstr ""
+#empty string with id 24088
 
 msgctxt "#24089"
 msgid "Add-on restarts"
@@ -15467,29 +15269,17 @@ msgctxt "#24132"
 msgid "Would you like to switch to this language?"
 msgstr ""
 
-#empty strings from id 24133 to 24134
-
-#. Folder name in addon settings window
-#: xbmc/addons/addon.cpp
-msgctxt "#24135"
-msgid "Audio DSP"
+#: xbmc/dialogs/GUIDialogSubtitles.cpp
+msgctxt "#24133"
+msgid "Subtitle settings"
 msgstr ""
 
-#. To open dsp submenu
-#: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
-msgctxt "#24136"
-msgid "Audio DSP..."
+#: xbmc/dialogs/GUIDialogSubtitles.cpp
+msgctxt "#24134"
+msgid "Download subtitle..."
 msgstr ""
 
-#: xbmc/cores/AudioEngine/DSPAddons/ActiveAEDSP.cpp
-msgctxt "#24137"
-msgid "Not allowed"
-msgstr ""
-
-#: xbmc/cores/AudioEngine/DSPAddons/ActiveAEDSP.cpp
-msgctxt "#24138"
-msgid "DSP add-on is currently in use and can't be removed."
-msgstr ""
+#empty strings from id 24135 to 24138
 
 #. Label for the action provided by addon management events to jump to a specific Add-on
 #: xbmc/events/AddonManagementEvent.cpp
@@ -17569,7 +17359,49 @@ msgctxt "#35225"
 msgid "Video filter"
 msgstr ""
 
-#empty strings from id 35226 to 35249
+#. Label of button in the in-game menu for advanced settings
+#: addons/skin.estuary/xml/Custom_1101_SettingsList.xml
+msgctxt "#35226"
+msgid "Advanced settings"
+msgstr ""
+
+#. Label of button in the in-game menu for changing the video rotation
+#: addons/skin.estuary/xml/Custom_1101_SettingsList.xml
+msgctxt "#35227"
+msgid "Rotation"
+msgstr ""
+
+#. Label of the thumbnail for when the video is not rotated and is displayed normally
+#: xbmc/games/dialogs/osd/DialogGameVideoRotation.cpp
+msgctxt "#35228"
+msgid "0°"
+msgstr ""
+
+#. Label of the thumbnail for when the video is rotated to the right
+#: xbmc/games/dialogs/osd/DialogGameVideoRotation.cpp
+msgctxt "#35229"
+msgid "90°"
+msgstr ""
+
+#. Label of the thumbnail for when the video is rotated upside down
+#: xbmc/games/dialogs/osd/DialogGameVideoRotation.cpp
+msgctxt "#35230"
+msgid "180°"
+msgstr ""
+
+#. Label of the thumbnail for when the video is rotated to the left
+#: xbmc/games/dialogs/osd/DialogGameVideoRotation.cpp
+msgctxt "#35231"
+msgid "270°"
+msgstr ""
+
+#. Label of thumbnail in the in-game menu for stretching the video to fullscreen
+#: xbmc/games/dialogs/osd/DialogGameViewMode.h
+msgctxt "#35232"
+msgid "Fullscreen"
+msgstr ""
+
+#empty strings from id 35233 to 35249
 
 #: xbmc/windows/GUIMediaWindow.cpp
 msgctxt "#35250"
@@ -18221,7 +18053,7 @@ msgstr ""
 #. Description of setting with label #13433 "Play next video automatically"
 #: system/settings/settings.xml
 msgctxt "#36152"
-msgid "Enable automatic playback of the next file in the list."
+msgid "Enable automatic playback of the next file in the list for selected playlist types."
 msgstr ""
 
 #. Description of setting with label #13415 "Render method"
@@ -18338,7 +18170,11 @@ msgctxt "#36171"
 msgid "Select the zoom level that 4:3 videos are shown on widescreen displays."
 msgstr ""
 
-#empty string with id 36172
+#. Description of setting with label #13430 "Allow hardware acceleration - PRIME"
+#: system/settings/settings.xml
+msgctxt "#36172"
+msgid "Enable PRIME hardware decoding of video files, used if ffmpeg PRIME hwaccel is available."
+msgstr ""
 
 #. Description of setting with label #14109 "Short date format"
 #: system/settings/settings.xml
@@ -19310,7 +19146,11 @@ msgctxt "#36355"
 msgid "In a multi-screen configuration, the screens not displaying this application are blacked out."
 msgstr ""
 
-#empty string with id 36356
+#. Description of setting with label #14085 "Whitelist"
+#: system/settings/settings.xml
+msgctxt "#36356"
+msgid "Whitelisted modes are allowed to be switched to when changing resolution and refresh rate"
+msgstr ""
 
 #. Description of setting with label #214 "Video calibration..."
 #: system/settings/settings.xml
@@ -19769,41 +19609,7 @@ msgctxt "#36435"
 msgid "Use VideoPlayer for decoding of video files with MMAL acceleration."
 msgstr ""
 
-#. Button on settings to opend DSP manager dialog
-#: system/settings/settings.xml
-msgctxt "#36436"
-msgid "Audio DSP manager..."
-msgstr ""
-
-#. Description of setting with label 36436 "Audio DSP manager..."
-#: system/settings/settings.xml
-msgctxt "#36437"
-msgid "Allows to configure available modes for different stages in audio processing and to arrange the steps within the processing chain of each selected mode."
-msgstr ""
-
-#. Description of setting with label 36441 "Enable Audio DSP processing"
-#: system/settings/settings.xml
-msgctxt "#36438"
-msgid "Enables digital signal processing (DSP) of audio channels specified by the speaker configuration."
-msgstr ""
-
-#. Description of setting with label 14082 "Reset the Audio DSP database..."
-#: system/settings/settings.xml
-msgctxt "#36439"
-msgid "All data (add-on settings and audio DSP manager settings) in the audio DSP database will be erased."
-msgstr ""
-
-#. Used in confirm on dialog to erase database
-#: xbmc/cores/AudioEngine/DSPAddons/ActiveAEDSP.cpp
-msgctxt "#36440"
-msgid "Erasing all DSP add-on and audio DSP manager settings in the audio DSP database."
-msgstr ""
-
-#. Settings boolean value name
-#: system/settings/settings.xml
-msgctxt "#36441"
-msgid "Enable audio DSP processing"
-msgstr ""
+#empty strings from id 36436 to 36441
 
 #. Description of setting "System -> Audio output -> Volume control steps" with label #1302
 #: system/settings/settings.xml
@@ -20089,7 +19895,31 @@ msgctxt "#36552"
 msgid "Defines the number of presentation buffers used by the graphics driver. Select 2 if the driver uses double buffering or 3 for triple buffering."
 msgstr ""
 
-#empty strings from id 36553 to 36559
+#. label of a setting, allowing to specify tonemap method
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+msgctxt "#36553"
+msgid "Tone mapping"
+msgstr ""
+
+#. label of a setting, tone mapping method
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+msgctxt "#36554"
+msgid "off"
+msgstr ""
+
+#. label of a setting, tone mapping method
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+msgctxt "#36555"
+msgid "Reinhard"
+msgstr ""
+
+#. label of a setting, allowing to specify tone mapping parameter
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+msgctxt "#36556"
+msgid "Tone mapping parameter"
+msgstr ""
+
+#empty strings from id 36557 to 36559
 
 #: system/settings/settings.xml
 msgctxt "#36560"
@@ -20849,12 +20679,16 @@ msgstr ""
 
 #empty strings from id 38019 to 38021
 
-#. Used for the viewstate selection
+#. Used for the rating selection
+#: xbmc/music/MusicUtils.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#38022"
 msgid "No rating"
 msgstr ""
 
+#. Used for the rating selection
+#: xbmc/music/MusicUtils.cpp
+#: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 msgctxt "#38023"
 msgid "Set my rating"
 msgstr ""
@@ -20910,6 +20744,7 @@ msgstr ""
 
 #: xbmc/dialogs/GUIDialogSmartPlaylistRule.cpp
 #: xbmc/playlists/SmartPlaylist.cpp
+#: xbmc/filesystem/MusicDatabaseDirectory/DirectoryNodeOverview.cpp
 msgctxt "#38033"
 msgid "Role"
 msgstr ""
@@ -21500,7 +21335,24 @@ msgctxt "#39027"
 msgid "Sortname"
 msgstr ""
 
-#empty strings from id 39028 to 39099
+#empty strings from id 39028 to 39029
+
+#. Media source, a filter and smart playlist rule option 
+#: xbmc/dialogs/GUIDialogMediaFilter.cpp
+#: xbmc/dialogs/GUIDialogSmartPlaylistRule.cpp
+#: xbmc/playlists/SmartPlaylist.cpp
+msgctxt "#39030"
+msgid "Source"
+msgstr ""
+
+#. Node title, plural of #39030
+#: system/library/music/files.xml
+#: xbmc/filesystem/MusicDatabaseDirectory/DirectoryNodeOverview.cpp
+msgctxt "#39031"
+msgid "Sources"
+msgstr ""
+
+#empty strings from id 39032 to 39099
 
 #: system/settings/settings.xml
 msgctxt "#39100"
@@ -21528,27 +21380,27 @@ msgctxt "#39104"
 msgid "View as text"
 msgstr ""
 
-#. audio/video/subtilte flag - FLAG_DEFAULT
+#. audio/video/subtitle flag - FLAG_DEFAULT
 #: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#39105"
 msgid "default"
 msgstr ""
 
-#. audio/video/subtilte flag - FLAG_FORCED
+#. audio/video/subtitle flag - FLAG_FORCED
 #: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#39106"
 msgid "forced"
 msgstr ""
 
-#. audio/video/subtilte flag - FLAG_HEARING_IMPAIRED
+#. audio/video/subtitle flag - FLAG_HEARING_IMPAIRED
 #: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
 msgctxt "#39107"
 msgid "captions"
 msgstr ""
 
-#. audio/video/subtilte flag - FLAG_VISUAL_IMPAIRED
+#. audio/video/subtitle flag - FLAG_VISUAL_IMPAIRED
 #: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
 msgctxt "#39108"
 msgid "audio description"
@@ -21557,4 +21409,16 @@ msgstr ""
 #: xbmc/video/PlayerController.cpp
 msgctxt "#39109"
 msgid "Select Program"
+msgstr ""
+
+#: xbmc/video/PlayerController.cpp
+msgctxt "#39110"
+msgid "Select Resolution"
+msgstr ""
+
+#. audio flag - FLAG_ORIGINAL
+#. language prefix displayed in audio settings stream selection
+#: xbmc/video/dialogs/GUIDialogAudioSubtitleSettings.cpp
+msgctxt "#39111"
+msgid "original"
 msgstr ""

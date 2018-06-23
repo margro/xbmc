@@ -1,12 +1,3 @@
-/*!
-\file GUIControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUICONTROL_H
-#define GUILIB_GUICONTROL_H
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -27,18 +18,27 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIControl.h
+\brief
+*/
+
 #include <vector>
 
-#include "GraphicContext.h" // needed by any rendering operation (all controls)
-#include "GUIMessage.h"     // needed by practically all controls
+#include "utils/Color.h"
+#include "windowing/GraphicContext.h" // needed by any rendering operation (all controls)
 #include "VisibleEffect.h"  // needed for the CAnimation members
-#include "GUIInfoTypes.h"   // needed for CGUIInfoColor to handle infolabel'ed colors
+#include "guiinfo/GUIInfoColor.h" // needed for CGUIInfoColor to handle infolabel'ed colors
+#include "guiinfo/GUIInfoBool.h"
 #include "DirtyRegion.h"
-#include "GUIAction.h"
 
 class CGUIListItem; // forward
 class CAction;
 class CMouseEvent;
+class CGUIMessage;
+class CGUIAction;
 
 enum ORIENTATION { HORIZONTAL = 0, VERTICAL };
 
@@ -89,6 +89,7 @@ class CGUIControl
 public:
   CGUIControl();
   CGUIControl(int parentID, int controlID, float posX, float posY, float width, float height);
+  CGUIControl(const CGUIControl &);
   virtual ~CGUIControl(void);
   virtual CGUIControl *Clone() const=0;
 
@@ -175,10 +176,10 @@ public:
   bool IsVisibleFromSkin() const { return m_visibleFromSkinCondition; };
   virtual bool IsDisabled() const;
   virtual void SetPosition(float posX, float posY);
-  virtual void SetHitRect(const CRect &rect, const color_t &color);
+  virtual void SetHitRect(const CRect &rect, const UTILS::Color &color);
   virtual void SetCamera(const CPoint &camera);
   virtual void SetStereoFactor(const float &factor);
-  bool SetColorDiffuse(const CGUIInfoColor &color);
+  bool SetColorDiffuse(const KODI::GUILIB::GUIINFO::CGUIInfoColor &color);
   CPoint GetRenderPosition() const;
   virtual float GetXPosition() const;
   virtual float GetYPosition() const;
@@ -342,8 +343,8 @@ protected:
   float m_height;
   float m_width;
   CRect m_hitRect;
-  color_t m_hitColor;
-  CGUIInfoColor m_diffuseColor;
+  UTILS::Color m_hitColor;
+  KODI::GUILIB::GUIINFO::CGUIInfoColor m_diffuseColor;
   int m_controlID;
   int m_parentID;
   bool m_bHasFocus;
@@ -360,7 +361,7 @@ protected:
   GUIVISIBLE m_visible;
   bool m_visibleFromSkinCondition;
   bool m_forceHidden;       // set from the code when a hidden operation is given - overrides m_visible
-  CGUIInfoBool m_allowHiddenFocus;
+  KODI::GUILIB::GUIINFO::CGUIInfoBool m_allowHiddenFocus;
   bool m_hasProcessed;
   // enable/disable state
   INFO::InfoPtr m_enableCondition;
@@ -383,4 +384,3 @@ protected:
   CRect m_renderRegion;         // In screen coordinates
 };
 
-#endif

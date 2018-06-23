@@ -1,10 +1,3 @@
-/*!
-\file GUIDialog.h
-\brief
-*/
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -25,6 +18,13 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIDialog.h
+\brief
+*/
+
 #include "GUIWindow.h"
 #include "WindowIDs.h"
 
@@ -34,8 +34,7 @@
 enum class DialogModalityType
 {
   MODELESS,
-  MODAL,
-  PARENTLESS_MODAL
+  MODAL
 };
 #ifdef TARGET_WINDOWS_STORE
 #pragma pack(pop)
@@ -58,12 +57,12 @@ public:
   void Render() override;
 
   void Open(const std::string &param = "");
-  
+
   bool OnBack(int actionID) override;
 
   bool IsDialogRunning() const override { return m_active; };
   bool IsDialog() const override { return true;};
-  bool IsModalDialog() const override { return m_modalityType == DialogModalityType::MODAL || m_modalityType == DialogModalityType::PARENTLESS_MODAL; };
+  bool IsModalDialog() const override { return m_modalityType == DialogModalityType::MODAL; };
   virtual DialogModalityType GetModalityType() const { return m_modalityType; };
 
   void SetAutoClose(unsigned int timeoutMs);

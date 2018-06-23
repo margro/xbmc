@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2014 Team XBMC
  *      http://kodi.tv
@@ -18,7 +17,11 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 #include <vector>
+#include <list>
 
 #include "IAnnouncer.h"
 #include "FileItem.h"

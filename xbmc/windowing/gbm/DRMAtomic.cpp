@@ -23,98 +23,14 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
+#include "ServiceBroker.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
 
 #include "DRMAtomic.h"
 #include "WinSystemGbmGLESContext.h"
-
-bool CDRMAtomic::AddConnectorProperty(drmModeAtomicReq *req, int obj_id, const char *name, int value)
-{
-  struct connector *obj = m_connector;
-  int prop_id = 0;
-
-  for (unsigned int i = 0 ; i < obj->props->count_props ; i++)
-  {
-    if (strcmp(obj->props_info[i]->name, name) == 0)
-    {
-      prop_id = obj->props_info[i]->prop_id;
-      break;
-    }
-  }
-
-  if (prop_id < 0)
-  {
-    CLog::Log(LOGERROR, "CDRMAtomic::%s - no connector property: %s", __FUNCTION__, name);
-    return false;
-  }
-
-  auto ret = drmModeAtomicAddProperty(req, obj_id, prop_id, value);
-  if (ret < 0)
-  {
-    return false;
-  }
-
-  return true;
-}
-
-bool CDRMAtomic::AddCrtcProperty(drmModeAtomicReq *req, int obj_id, const char *name, int value)
-{
-  struct crtc *obj = m_crtc;
-  int prop_id = -1;
-
-  for (unsigned int i = 0 ; i < obj->props->count_props ; i++)
-  {
-    if (strcmp(obj->props_info[i]->name, name) == 0)
-    {
-      prop_id = obj->props_info[i]->prop_id;
-      break;
-    }
-  }
-
-  if (prop_id < 0)
-  {
-    CLog::Log(LOGERROR, "CDRMAtomic::%s - no crtc property: %s", __FUNCTION__, name);
-    return false;
-  }
-
-  auto ret = drmModeAtomicAddProperty(req, obj_id, prop_id, value);
-  if (ret < 0)
-  {
-    return false;
-  }
-
-  return true;
-}
-
-bool CDRMAtomic::AddPlaneProperty(drmModeAtomicReq *req, struct plane *obj, const char *name, int value)
-{
-  int prop_id = -1;
-
-  for (unsigned int i = 0 ; i < obj->props->count_props ; i++)
-  {
-    if (strcmp(obj->props_info[i]->name, name) == 0)
-    {
-      prop_id = obj->props_info[i]->prop_id;
-      break;
-    }
-  }
-
-  if (prop_id < 0)
-  {
-    CLog::Log(LOGERROR, "CDRMAtomic::%s - no plane property: %s", __FUNCTION__, name);
-    return false;
-  }
-
-  auto ret = drmModeAtomicAddProperty(req, obj->plane->plane_id, prop_id, value);
-  if (ret < 0)
-  {
-    return false;
-  }
-
-  return true;
-}
 
 void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool videoLayer)
 {
@@ -123,7 +39,7 @@ void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool video
 
   if (flags & DRM_MODE_ATOMIC_ALLOW_MODESET)
   {
-    if (!AddConnectorProperty(m_req, m_connector->connector->connector_id, "CRTC_ID", m_crtc->crtc->crtc_id))
+    if (!AddProperty(m_connector, "CRTC_ID", m_crtc->crtc->crtc_id))
     {
       return;
     }
@@ -133,12 +49,12 @@ void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool video
       return;
     }
 
-    if (!AddCrtcProperty(m_req, m_crtc->crtc->crtc_id, "MODE_ID", blob_id))
+    if (!AddProperty(m_crtc, "MODE_ID", blob_id))
     {
       return;
     }
 
-    if (!AddCrtcProperty(m_req, m_crtc->crtc->crtc_id, "ACTIVE", 1))
+    if (!AddProperty(m_crtc, "ACTIVE", m_active ? 1 : 0))
     {
       return;
     }
@@ -146,8 +62,8 @@ void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool video
     if (!videoLayer)
     {
       // disable overlay plane on modeset
-      AddPlaneProperty(m_req, m_overlay_plane, "FB_ID", 0);
-      AddPlaneProperty(m_req, m_overlay_plane, "CRTC_ID", 0);
+      AddProperty(m_overlay_plane, "FB_ID", 0);
+      AddProperty(m_overlay_plane, "CRTC_ID", 0);
     }
   }
 
@@ -158,22 +74,22 @@ void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool video
 
   if (rendered)
   {
-    AddPlaneProperty(m_req, plane, "FB_ID", fb_id);
-    AddPlaneProperty(m_req, plane, "CRTC_ID", m_crtc->crtc->crtc_id);
-    AddPlaneProperty(m_req, plane, "SRC_X", 0);
-    AddPlaneProperty(m_req, plane, "SRC_Y", 0);
-    AddPlaneProperty(m_req, plane, "SRC_W", m_mode->hdisplay << 16);
-    AddPlaneProperty(m_req, plane, "SRC_H", m_mode->vdisplay << 16);
-    AddPlaneProperty(m_req, plane, "CRTC_X", 0);
-    AddPlaneProperty(m_req, plane, "CRTC_Y", 0);
-    AddPlaneProperty(m_req, plane, "CRTC_W", m_mode->hdisplay);
-    AddPlaneProperty(m_req, plane, "CRTC_H", m_mode->vdisplay);
+    AddProperty(plane, "FB_ID", fb_id);
+    AddProperty(plane, "CRTC_ID", m_crtc->crtc->crtc_id);
+    AddProperty(plane, "SRC_X", 0);
+    AddProperty(plane, "SRC_Y", 0);
+    AddProperty(plane, "SRC_W", m_mode->hdisplay << 16);
+    AddProperty(plane, "SRC_H", m_mode->vdisplay << 16);
+    AddProperty(plane, "CRTC_X", 0);
+    AddProperty(plane, "CRTC_Y", 0);
+    AddProperty(plane, "CRTC_W", m_mode->hdisplay);
+    AddProperty(plane, "CRTC_H", m_mode->vdisplay);
   }
-  else if (videoLayer && !g_windowManager.HasVisibleControls())
+  else if (videoLayer && !CServiceBroker::GetGUI()->GetWindowManager().HasVisibleControls())
   {
     // disable gui plane when video layer is active and gui has no visible controls
-    AddPlaneProperty(m_req, plane, "FB_ID", 0);
-    AddPlaneProperty(m_req, plane, "CRTC_ID", 0);
+    AddProperty(plane, "FB_ID", 0);
+    AddProperty(plane, "CRTC_ID", 0);
   }
 
   auto ret = drmModeAtomicCommit(m_fd, m_req, flags | DRM_MODE_ATOMIC_TEST_ONLY, nullptr);
@@ -188,6 +104,12 @@ void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool video
     {
       CLog::Log(LOGERROR, "CDRMAtomic::%s - atomic commit failed: %s", __FUNCTION__, strerror(errno));
     }
+  }
+
+  if (flags & DRM_MODE_ATOMIC_ALLOW_MODESET)
+  {
+    if (drmModeDestroyPropertyBlob(m_fd, blob_id) != 0)
+      CLog::Log(LOGERROR, "CDRMAtomic::%s - failed to destroy property blob: %s", __FUNCTION__, strerror(errno));
   }
 
   drmModeAtomicFree(m_req);
@@ -252,9 +174,32 @@ void CDRMAtomic::DestroyDrm()
   m_req = nullptr;
 }
 
-bool CDRMAtomic::SetVideoMode(RESOLUTION_INFO res, struct gbm_bo *bo)
+bool CDRMAtomic::SetVideoMode(const RESOLUTION_INFO& res, struct gbm_bo *bo)
 {
   m_need_modeset = true;
+
+  return true;
+}
+
+bool CDRMAtomic::SetActive(bool active)
+{
+  m_need_modeset = true;
+  m_active = active;
+
+  return true;
+}
+
+bool CDRMAtomic::AddProperty(struct drm_object *object, const char *name, uint64_t value)
+{
+  uint32_t property_id = this->GetPropertyId(object, name);
+  if (!property_id)
+    return false;
+
+  if (drmModeAtomicAddProperty(m_req, object->id, property_id, value) < 0)
+  {
+    CLog::Log(LOGERROR, "CDRMAtomic::%s - could not add property %s", __FUNCTION__, name);
+    return false;
+  }
 
   return true;
 }

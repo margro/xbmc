@@ -23,11 +23,14 @@
 #include <utility>
 
 #include "FileItem.h"
+#include "GUIPassword.h"
 #include "ServiceBroker.h"
+#include "addons/PVRClient.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIEditControl.h"
 #include "guilib/GUIWindowManager.h"
@@ -240,7 +243,7 @@ bool CGUIDialogPVRChannelManager::OnClickButtonRadioTV(CGUIMessage &message)
 {
   if (m_bContainsChanges)
   {
-    CGUIDialogYesNo* pDialog = g_windowManager.GetWindow<CGUIDialogYesNo>(WINDOW_DIALOG_YES_NO);
+    CGUIDialogYesNo* pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogYesNo>(WINDOW_DIALOG_YES_NO);
     if (!pDialog)
       return true;
 
@@ -294,7 +297,7 @@ bool CGUIDialogPVRChannelManager::OnClickButtonRadioParentalLocked(CGUIMessage &
   bool selected(msg.GetParam1() == 1);
 
   // ask for PIN first
-  if (!CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN())
+  if (CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN() != ParentalCheckResult::SUCCESS)
   { // failed - reset to previous
     SET_CONTROL_SELECTED(GetID(), RADIOBUTTON_PARENTAL_LOCK, !selected);
     return false;
@@ -435,7 +438,7 @@ bool CGUIDialogPVRChannelManager::OnClickEPGSourceSpin(CGUIMessage &message)
 bool CGUIDialogPVRChannelManager::OnClickButtonGroupManager(CGUIMessage &message)
 {
   /* Load group manager dialog */
-  CGUIDialogPVRGroupManager* pDlgInfo = g_windowManager.GetWindow<CGUIDialogPVRGroupManager>(WINDOW_DIALOG_PVR_GROUP_MANAGER);
+  CGUIDialogPVRGroupManager* pDlgInfo = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogPVRGroupManager>(WINDOW_DIALOG_PVR_GROUP_MANAGER);
   if (!pDlgInfo)
     return false;
 
@@ -453,7 +456,7 @@ bool CGUIDialogPVRChannelManager::OnClickButtonNewChannel()
   int iSelection = 0;
   if (CServiceBroker::GetPVRManager().Clients()->CreatedClientAmount() > 1)
   {
-    CGUIDialogSelect* pDlgSelect = g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
+    CGUIDialogSelect* pDlgSelect = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
     if (!pDlgSelect)
       return false;
 
@@ -466,16 +469,22 @@ bool CGUIDialogPVRChannelManager::OnClickButtonNewChannel()
     iSelection = pDlgSelect->GetSelectedItem();
   }
 
-  if (iSelection >= 0 && iSelection < (int)m_clientsWithSettingsList.size())
+  if (iSelection >= 0 && iSelection < static_cast<int>(m_clientsWithSettingsList.size()))
   {
     int iClientID = m_clientsWithSettingsList[iSelection]->GetID();
 
     CPVRChannelPtr channel(new CPVRChannel(m_bIsRadio));
     channel->SetChannelName(g_localizeStrings.Get(19204)); // New channel
-    channel->SetEPGEnabled(CServiceBroker::GetPVRManager().Clients()->GetClientCapabilities(iClientID).SupportsEPG());
     channel->SetClientID(iClientID);
 
-    PVR_ERROR ret = CServiceBroker::GetPVRManager().Clients()->OpenDialogChannelAdd(channel);
+    PVR_ERROR ret = PVR_ERROR_UNKNOWN;
+    const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(iClientID);
+    if (client)
+    {
+      channel->SetEPGEnabled(client->GetClientCapabilities().SupportsEPG());
+      ret = client->OpenDialogChannelAdd(channel);
+    }
+
     if (ret == PVR_ERROR_NO_ERROR)
       Update();
     else if (ret == PVR_ERROR_NOT_IMPLEMENTED)
@@ -607,7 +616,11 @@ bool CGUIDialogPVRChannelManager::OnContextButton(int itemNumber, CONTEXT_BUTTON
   }
   else if (button == CONTEXT_BUTTON_SETTINGS)
   {
-    PVR_ERROR ret = CServiceBroker::GetPVRManager().Clients()->OpenDialogChannelSettings(pItem->GetPVRChannelInfoTag());
+    const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(*pItem);
+    PVR_ERROR ret = PVR_ERROR_UNKNOWN;
+    if (client)
+      ret = client->OpenDialogChannelSettings(pItem->GetPVRChannelInfoTag());
+
     if (ret == PVR_ERROR_NOT_IMPLEMENTED)
       HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19038}); // "Information", "Not supported by the PVR backend."
     else if (ret != PVR_ERROR_NO_ERROR)
@@ -615,7 +628,7 @@ bool CGUIDialogPVRChannelManager::OnContextButton(int itemNumber, CONTEXT_BUTTON
   }
   else if (button == CONTEXT_BUTTON_DELETE)
   {
-    CGUIDialogYesNo* pDialog = g_windowManager.GetWindow<CGUIDialogYesNo>(WINDOW_DIALOG_YES_NO);
+    CGUIDialogYesNo* pDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogYesNo>(WINDOW_DIALOG_YES_NO);
     if (!pDialog)
       return true;
 
@@ -625,19 +638,23 @@ bool CGUIDialogPVRChannelManager::OnContextButton(int itemNumber, CONTEXT_BUTTON
 
     if (pDialog->IsConfirmed())
     {
-      CPVRChannelPtr channel = pItem->GetPVRChannelInfoTag();
-      PVR_ERROR ret = CServiceBroker::GetPVRManager().Clients()->DeleteChannel(channel);
-      if (ret == PVR_ERROR_NO_ERROR)
+      const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(*pItem);
+      if (client)
       {
-        CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(channel->IsRadio())->RemoveFromGroup(channel);
-        m_channelItems->Remove(m_iSelected);
-        m_viewControl.SetItems(*m_channelItems);
-        Renumber();
+        const CPVRChannelPtr channel = pItem->GetPVRChannelInfoTag();
+        PVR_ERROR ret = client->DeleteChannel(channel);
+        if (ret == PVR_ERROR_NO_ERROR)
+        {
+          CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(channel->IsRadio())->RemoveFromGroup(channel);
+          m_channelItems->Remove(m_iSelected);
+          m_viewControl.SetItems(*m_channelItems);
+          Renumber();
+        }
+        else if (ret == PVR_ERROR_NOT_IMPLEMENTED)
+          HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19038}); // "Information", "Not supported by the PVR backend."
+        else
+          HELPERS::ShowOKDialogText(CVariant{2103}, CVariant{16029});  // "Add-on error", "Check the log for more information about this message."
       }
-      else if (ret == PVR_ERROR_NOT_IMPLEMENTED)
-        HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19038}); // "Information", "Not supported by the PVR backend."
-      else
-        HELPERS::ShowOKDialogText(CVariant{2103}, CVariant{16029});  // "Add-on error", "Check the log for more information about this message."
     }
   }
   return true;
@@ -691,10 +708,12 @@ void CGUIDialogPVRChannelManager::Update()
     channelFile->SetProperty("ParentalLocked", channel->IsLocked());
     channelFile->SetProperty("Number", StringUtils::Format("%i", channel->ChannelNumber().GetChannelNumber()));
 
-    std::string clientName;
-    CServiceBroker::GetPVRManager().Clients()->GetClientFriendlyName(channel->ClientID(), clientName);
-    channelFile->SetProperty("ClientName", clientName);
-    channelFile->SetProperty("SupportsSettings", CServiceBroker::GetPVRManager().Clients()->GetClientCapabilities(channel->ClientID()).SupportsChannelSettings());
+    const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(*channelFile);
+    if (client)
+    {
+      channelFile->SetProperty("ClientName", client->GetFriendlyName());
+      channelFile->SetProperty("SupportsSettings", client->GetClientCapabilities().SupportsChannelSettings());
+    }
 
     m_channelItems->Add(channelFile);
   }
@@ -734,7 +753,8 @@ void CGUIDialogPVRChannelManager::RenameChannel(const CFileItemPtr &pItem)
     CPVRChannelPtr channel = pItem->GetPVRChannelInfoTag();
     channel->SetChannelName(strChannelName);
 
-    if (!CServiceBroker::GetPVRManager().Clients()->RenameChannel(channel))
+    const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(*pItem);
+    if (!client || (client->RenameChannel(channel) != PVR_ERROR_NO_ERROR))
       HELPERS::ShowOKDialogText(CVariant{2103}, CVariant{16029});  // Add-on error;Check the log file for details.
   }
 }
@@ -762,7 +782,7 @@ void CGUIDialogPVRChannelManager::SaveList(void)
    return;
 
   /* display the progress dialog */
-  CGUIDialogProgress* pDlgProgress = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
+  CGUIDialogProgress* pDlgProgress = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
   pDlgProgress->SetHeading(CVariant{190});
   pDlgProgress->SetLine(0, CVariant{""});
   pDlgProgress->SetLine(1, CVariant{328});

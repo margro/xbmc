@@ -1,13 +1,3 @@
-/*!
-\file GUIWindowManager.h
-\brief
-*/
-
-#ifndef GUILIB_CGUIWindowManager_H
-#define GUILIB_CGUIWindowManager_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -27,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <list>
 #include <utility>
@@ -209,8 +201,8 @@ public:
   void AddMsgTarget( IMsgTargetCallback* pMsgTarget );
   int GetActiveWindow() const;
   int GetActiveWindowOrDialog() const;
-  bool HasModalDialog(const std::vector<DialogModalityType>& types = std::vector<DialogModalityType>(), bool ignoreClosing = true) const;
-  bool HasVisibleModalDialog(const std::vector<DialogModalityType>& types = std::vector<DialogModalityType>()) const;
+  bool HasModalDialog(bool ignoreClosing) const;
+  bool HasVisibleModalDialog() const;
   bool IsDialogTopmost(int id, bool modal = false) const;
   bool IsDialogTopmost(const std::string &xmlFile, bool modal = false) const;
   bool IsModalDialogTopmost(int id) const;
@@ -255,7 +247,7 @@ private:
   int GetTopmostDialog(bool modal, bool ignoreClosing) const;
 
   friend class KODI::MESSAGING::CApplicationMessenger;
-  
+
   /*! \brief Activate the given window.
    *
    * \param windowID The window ID to activate.
@@ -265,7 +257,7 @@ private:
    */
   void ActivateWindow_Internal(int windowID, const std::vector<std::string> &params, bool swappingWindows, bool force = false);
 
-  void ProcessRenderLoop(bool renderOnly = false);
+  bool ProcessRenderLoop(bool renderOnly);
 
   bool HandleAction(const CAction &action) const;
 
@@ -289,12 +281,3 @@ private:
   CDirtyRegionList m_dirtyregions;
   CDirtyRegionTracker m_tracker;
 };
-
-/*!
- \ingroup winman
- \brief
- */
-XBMC_GLOBAL_REF(CGUIWindowManager,g_windowManager);
-#define g_windowManager XBMC_GLOBAL_USE(CGUIWindowManager)
-#endif
-

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "AEChannelInfo.h"
 #include "AEStreamInfo.h"
@@ -76,7 +77,7 @@ struct AEAudioFormat
             m_frameSize     ==  fmt.m_frameSize     &&
             m_streamInfo    ==  fmt.m_streamInfo;
   }
- 
+
   AEAudioFormat& operator=(const AEAudioFormat& fmt)
   {
     m_dataFormat = fmt.m_dataFormat;

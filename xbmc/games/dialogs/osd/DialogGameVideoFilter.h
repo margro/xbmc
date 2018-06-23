@@ -17,10 +17,11 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "DialogGameVideoSelect.h"
-#include "cores/IPlayer.h"
+#include "cores/GameSettings.h"
 #include "FileItem.h"
 
 namespace KODI
@@ -43,9 +44,9 @@ namespace GAME
     void PostExit() override;
 
   private:
-    void InitScalingMethods();
+    void InitVideoFilters();
 
-    static void GetProperties(const CFileItem &item, ESCALINGMETHOD &scalingMethod, std::string &description);
+    static void GetProperties(const CFileItem &item, std::string &videoFilter, std::string &description);
 
     CFileItemList m_items;
 

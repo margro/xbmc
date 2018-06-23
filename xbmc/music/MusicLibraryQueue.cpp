@@ -22,7 +22,9 @@
 
 #include <utility>
 
+#include "ServiceBroker.h"
 #include "dialogs/GUIDialogProgress.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "music/jobs/MusicLibraryCleaningJob.h"
@@ -58,7 +60,7 @@ void CMusicLibraryQueue::ExportLibrary(const CLibExportSettings& settings, bool 
   CGUIDialogProgress* progress = NULL;
   if (showDialog)
   {
-    progress = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
+    progress = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
     if (progress)
     {
       progress->SetHeading(CVariant{ 20196 }); //"Export music library"
@@ -71,10 +73,10 @@ void CMusicLibraryQueue::ExportLibrary(const CLibExportSettings& settings, bool 
 
   CMusicLibraryExportJob* exportJob = new CMusicLibraryExportJob(settings, progress);
   if (showDialog)
-  {    
+  {
     AddJob(exportJob);
 
-    // Wait for export to complete or be canceled, but render every 10ms so that the 
+    // Wait for export to complete or be canceled, but render every 10ms so that the
     // pointer movements work on dialog even when export is reporting progress infrequently
     if (progress)
       progress->Wait();
@@ -151,7 +153,7 @@ void CMusicLibraryQueue::CleanLibrary(bool showDialog /* = false */)
   CGUIDialogProgress* progress = NULL;
   if (showDialog)
   {
-    progress = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
+    progress = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
     if (progress)
     {
       progress->SetHeading(CVariant{ 700 });
@@ -161,10 +163,10 @@ void CMusicLibraryQueue::CleanLibrary(bool showDialog /* = false */)
     }
   }
 
-  CMusicLibraryCleaningJob* cleaningJob = new CMusicLibraryCleaningJob(progress);  
+  CMusicLibraryCleaningJob* cleaningJob = new CMusicLibraryCleaningJob(progress);
   AddJob(cleaningJob);
 
-  // Wait for cleaning to complete or be canceled, but render every 20ms so that the 
+  // Wait for cleaning to complete or be canceled, but render every 20ms so that the
   // pointer movements work on dialog even when cleaning is reporting progress infrequently
   if (progress)
     progress->Wait(20);
@@ -177,7 +179,7 @@ void CMusicLibraryQueue::CleanLibraryModal()
     return;
 
   CGUIDialogProgress* progress = nullptr;
-  progress = g_windowManager.GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
+  progress = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogProgress>(WINDOW_DIALOG_PROGRESS);
   if (progress)
   {
     progress->SetHeading(CVariant{ 700 });
@@ -260,7 +262,7 @@ void CMusicLibraryQueue::Refresh()
 {
   CUtil::DeleteMusicDatabaseDirectoryCache();
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 void CMusicLibraryQueue::OnJobComplete(unsigned int jobID, bool success, CJob *job)

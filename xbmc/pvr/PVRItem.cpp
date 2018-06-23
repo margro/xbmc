@@ -54,6 +54,29 @@ namespace PVR
     return CPVREpgInfoTagPtr();
   }
 
+  CPVREpgInfoTagPtr CPVRItem::GetNextEpgInfoTag() const
+  {
+    if (m_item->IsEPG())
+    {
+      return m_item->GetEPGInfoTag()->GetNextEvent();
+    }
+    else if (m_item->IsPVRChannel())
+    {
+      return m_item->GetPVRChannelInfoTag()->GetEPGNext();
+    }
+    else if (m_item->IsPVRTimer())
+    {
+      const CPVREpgInfoTagPtr current = m_item->GetPVRTimerInfoTag()->GetEpgInfoTag();
+      if (current)
+        return current->GetNextEvent();
+    }
+    else
+    {
+      CLog::Log(LOGERROR, "CPVRItem - %s - unsupported item type!", __FUNCTION__);
+    }
+    return CPVREpgInfoTagPtr();
+  }
+
   CPVRChannelPtr CPVRItem::GetChannel() const
   {
     if (m_item->IsPVRChannel())
@@ -66,9 +89,7 @@ namespace PVR
     }
     else if (m_item->IsPVRTimer())
     {
-      const CPVREpgInfoTagPtr epgTag(m_item->GetPVRTimerInfoTag()->GetEpgInfoTag());
-      if (epgTag)
-        return epgTag->Channel();
+      return m_item->GetPVRTimerInfoTag()->Channel();
     }
     else
     {

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <set>
 #include <string>
@@ -109,6 +110,15 @@ public:
    \param callback ISettingCallback implementation
    */
   void UnregisterCallback(ISettingCallback* callback);
+
+  /*!
+  \brief Search in a list of Ints for a given value.
+
+  \param id Setting identifier
+  \param value value to search for
+  \return True if value was found in list, false otherwise
+  */
+  bool FindIntInList(const std::string &id, int value) const;
 
   /*!
    \brief Gets the setting with the given identifier.

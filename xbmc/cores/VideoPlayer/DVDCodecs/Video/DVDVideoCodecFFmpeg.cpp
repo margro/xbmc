@@ -317,33 +317,9 @@ enum AVPixelFormat CDVDVideoCodecFFmpeg::GetFormat(struct AVCodecContext * avctx
 CDVDVideoCodecFFmpeg::CDVDVideoCodecFFmpeg(CProcessInfo &processInfo)
 : CDVDVideoCodec(processInfo), m_postProc(processInfo)
 {
-  m_pCodecContext = nullptr;
-  m_pFrame = nullptr;
-  m_pDecodedFrame = nullptr;
-  m_pFilterGraph = nullptr;
-  m_pFilterIn = nullptr;
-  m_pFilterOut = nullptr;
-  m_pFilterFrame = nullptr;
   m_videoBufferPool = std::make_shared<CVideoBufferPoolFFmpeg>();
 
-  m_iPictureWidth = 0;
-  m_iPictureHeight = 0;
-  m_iScreenWidth = 0;
-  m_iScreenHeight = 0;
-  m_iOrientation = 0;
   m_decoderState = STATE_NONE;
-  m_pHardware = nullptr;
-  m_iLastKeyframe = 0;
-  m_dts = DVD_NOPTS_VALUE;
-  m_started = false;
-  m_decoderPts = DVD_NOPTS_VALUE;
-  m_codecControlFlags = 0;
-  m_requestSkipDeint = false;
-  m_skippedDeint = 0;
-  m_droppedFrames = 0;
-  m_interlaced = false;
-  m_eof = false;
-  m_DAR = 1.0;
 }
 
 CDVDVideoCodecFFmpeg::~CDVDVideoCodecFFmpeg()
@@ -353,6 +329,12 @@ CDVDVideoCodecFFmpeg::~CDVDVideoCodecFFmpeg()
 
 bool CDVDVideoCodecFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
 {
+  if (hints.cryptoSession)
+  {
+    CLog::Log(LOGERROR,"CDVDVideoCodecFFmpeg::Open() CryptoSessions unsuppoted!");
+    return false;
+  }
+
   m_hints = hints;
   m_options = options;
 
@@ -519,7 +501,7 @@ void CDVDVideoCodecFFmpeg::SetFilters()
       case 180:
         m_filters_next += "vflip,hflip";
         break;
-      case 270:  
+      case 270:
         m_filters_next += "transpose=2";
         break;
       default:
@@ -621,12 +603,18 @@ bool CDVDVideoCodecFFmpeg::AddData(const DemuxPacket &packet)
   if (m_iLastKeyframe > 300)
     m_iLastKeyframe = 300;
 
+  m_startedInput = true;
+
   return true;
 }
 
 CDVDVideoCodec::VCReturn CDVDVideoCodecFFmpeg::GetPicture(VideoPicture* pVideoPicture)
 {
-  if (m_eof)
+  if (!m_startedInput)
+  {
+    return VC_BUFFER;
+  }
+  else if (m_eof)
   {
     return VC_EOF;
   }
@@ -743,7 +731,7 @@ CDVDVideoCodec::VCReturn CDVDVideoCodecFFmpeg::GetPicture(VideoPicture* pVideoPi
   }
 
   // here we got a frame
-  int64_t framePTS = av_frame_get_best_effort_timestamp(m_pDecodedFrame);
+  int64_t framePTS = m_pDecodedFrame->best_effort_timestamp;
 
   if (m_pCodecContext->skip_frame > AVDISCARD_DEFAULT)
   {
@@ -768,6 +756,8 @@ CDVDVideoCodec::VCReturn CDVDVideoCodecFFmpeg::GetPicture(VideoPicture* pVideoPi
     m_interlaced = true;
   else
     m_interlaced = false;
+
+  m_processInfo.SetVideoInterlaced(m_interlaced);
 
   if (!m_started)
   {
@@ -795,6 +785,11 @@ CDVDVideoCodec::VCReturn CDVDVideoCodecFFmpeg::GetPicture(VideoPicture* pVideoPi
     {
       Reset();
       return ret;
+    }
+    else if (ret == VC_FATAL)
+    {
+      m_decoderState = STATE_HW_FAILED;
+      return VC_REOPEN;
     }
     else if (ret == VC_PICTURE)
     {
@@ -887,6 +882,7 @@ bool CDVDVideoCodecFFmpeg::SetPictureParams(VideoPicture* pVideoPicture)
 void CDVDVideoCodecFFmpeg::Reset()
 {
   m_started = false;
+  m_startedInput = false;
   m_interlaced = false;
   m_decoderPts = DVD_NOPTS_VALUE;
   m_skippedDeint = 0;
@@ -961,7 +957,7 @@ bool CDVDVideoCodecFFmpeg::GetPictureCommon(VideoPicture* pVideoPicture)
 
   pVideoPicture->pts = DVD_NOPTS_VALUE;
 
-  AVDictionaryEntry * entry = av_dict_get(av_frame_get_metadata(m_pFrame), "stereo_mode", NULL, 0);
+  AVDictionaryEntry * entry = av_dict_get(m_pFrame->metadata, "stereo_mode", NULL, 0);
   if(entry && entry->value)
   {
     pVideoPicture->stereoMode = (const char*)entry->value;
@@ -1031,7 +1027,7 @@ bool CDVDVideoCodecFFmpeg::GetPictureCommon(VideoPicture* pVideoPicture)
 
   m_dts = DVD_NOPTS_VALUE;
 
-  int64_t bpts = av_frame_get_best_effort_timestamp(m_pFrame);
+  int64_t bpts = m_pFrame->best_effort_timestamp;
   if (bpts != AV_NOPTS_VALUE)
   {
     pVideoPicture->pts = (double)bpts * DVD_TIME_BASE / AV_TIME_BASE;

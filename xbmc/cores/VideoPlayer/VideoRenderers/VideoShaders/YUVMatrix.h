@@ -17,9 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "guilib/TransformMatrix.h"
+#include "utils/TransformMatrix.h"
 #include "ShaderFormats.h"
 
 void CalculateYUVMatrix(TransformMatrix &matrix

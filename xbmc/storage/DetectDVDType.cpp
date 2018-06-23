@@ -37,13 +37,12 @@
 #include "settings/AdvancedSettings.h"
 #include "GUIUserMessages.h"
 #include "utils/URIUtils.h"
-#if defined (LIBCDIO_VERSION_NUM) && (LIBCDIO_VERSION_NUM > 77) || defined (TARGET_DARWIN)
-#define USING_CDIO78
-#endif
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "FileItem.h"
 #include "Application.h"
 #include "IoSupport.h"
+#include "ServiceBroker.h"
 #include "storage/MediaManager.h"
 
 
@@ -134,7 +133,7 @@ void CDetectDVDMedia::UpdateDvdrom()
           SetNewDVDShareUrl("D:\\", false, g_localizeStrings.Get(502));
           m_isoReader.Reset();
           CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_REMOVED_MEDIA);
-          g_windowManager.SendThreadMessage( msg );
+          CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage( msg );
           waitLock.Leave();
           m_DriveState = DRIVE_OPEN;
           return;
@@ -156,7 +155,7 @@ void CDetectDVDMedia::UpdateDvdrom()
           }
           waitLock.Leave();
           CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_SOURCES);
-          g_windowManager.SendThreadMessage( msg );
+          CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage( msg );
           // Do we really need sleep here? This will fix: [ 1530771 ] "Open tray" problem
           // Sleep(6000);
           return ;
@@ -172,7 +171,7 @@ void CDetectDVDMedia::UpdateDvdrom()
           // Send Message to GUI that disc has changed
           CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_SOURCES);
           waitLock.Leave();
-          g_windowManager.SendThreadMessage( msg );
+          CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage( msg );
           return ;
         }
         break;
@@ -189,7 +188,7 @@ void CDetectDVDMedia::UpdateDvdrom()
             DetectMediaType();
             CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_SOURCES);
             waitLock.Leave();
-            g_windowManager.SendThreadMessage( msg );
+            CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage( msg );
             // Tell the application object that a new Cd is inserted
             // So autorun can be started.
             if ( !m_bStartup )
@@ -314,49 +313,6 @@ DWORD CDetectDVDMedia::GetTrayState()
   if (strlen(dvdDevice) == 0)
     return DRIVE_NONE;
 
-#ifndef USING_CDIO78
-
-  int fd = 0;
-
-  fd = open(dvdDevice, O_RDONLY | O_NONBLOCK);
-  if (fd<0)
-  {
-    CLog::Log(LOGERROR, "Unable to open CD-ROM device %s for polling.", dvdDevice);
-    return DRIVE_NOT_READY;
-  }
-
-  int drivestatus = ioctl(fd, CDROM_DRIVE_STATUS, 0);
-
-  switch(drivestatus)
-  {
-  case CDS_NO_INFO:
-    m_dwTrayState = TRAY_CLOSED_NO_MEDIA;
-    break;
-
-  case CDS_NO_DISC:
-    m_dwTrayState = TRAY_CLOSED_NO_MEDIA;
-    break;
-
-  case CDS_TRAY_OPEN:
-    m_dwTrayState = TRAY_OPEN;
-    break;
-
-  case CDS_DISC_OK:
-    m_dwTrayState = TRAY_CLOSED_MEDIA_PRESENT;
-    break;
-
-  case CDS_DRIVE_NOT_READY:
-    close(fd);
-    return DRIVE_NOT_READY;
-
-  default:
-    m_dwTrayState = TRAY_CLOSED_NO_MEDIA;
-  }
-
-  close(fd);
-
-#else
-
   // The following code works with libcdio >= 0.78
   // To enable it, download and install the latest version from
   // http://www.gnu.org/software/libcdio/
@@ -393,7 +349,6 @@ DWORD CDetectDVDMedia::GetTrayState()
   else
     return DRIVE_NOT_READY;
 
-#endif // USING_CDIO78
 #endif // TARGET_POSIX
 
   if (m_dwTrayState == TRAY_CLOSED_MEDIA_PRESENT)

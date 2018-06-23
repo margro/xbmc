@@ -18,7 +18,6 @@
  *
  */
 
-
 #pragma once
 
 #include <mir_toolkit/mir_client_library.h>
@@ -52,6 +51,9 @@ public:
   bool Show(bool raise = true) override;
   virtual void Register(IDispResource *resource);
   virtual void Unregister(IDispResource *resource);
+
+  // winevents override
+  bool MessagePump() override;
 
 protected:
   MirConnection* m_connection;

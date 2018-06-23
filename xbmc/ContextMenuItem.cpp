@@ -24,11 +24,13 @@
 #include "addons/ContextMenuAddon.h"
 #include "addons/IAddon.h"
 #include "GUIInfoManager.h"
+#include "guilib/GUIComponent.h"
 #ifdef HAS_PYTHON
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "interfaces/python/ContextItemAddonInvoker.h"
 #include "interfaces/python/XBPython.h"
 #endif
+#include "ServiceBroker.h"
 #include "utils/StringUtils.h"
 
 
@@ -36,7 +38,7 @@ bool CContextMenuItem::IsVisible(const CFileItem& item) const
 {
   if (!m_infoBoolRegistered)
   {
-    m_infoBool = g_infoManager.Register(m_visibilityCondition, 0);
+    m_infoBool = CServiceBroker::GetGUI()->GetInfoManager().Register(m_visibilityCondition, 0);
     m_infoBoolRegistered = true;
   }
   return IsGroup() || (m_infoBool && m_infoBool->Get(&item));

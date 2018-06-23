@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2015 Team KODI
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <deque>
 #include <string>
 
@@ -31,7 +32,7 @@
 namespace PVR
 {
 
-class CPVRRadioRDSInfoTag : public IArchivable, public ISerializable
+class CPVRRadioRDSInfoTag final : public IArchivable, public ISerializable
 {
 public:
   /*!
@@ -47,10 +48,8 @@ private:
 
   CPVRRadioRDSInfoTag(const CPVRRadioRDSInfoTag& tag) = delete;
   const CPVRRadioRDSInfoTag& operator =(const CPVRRadioRDSInfoTag& tag) = delete;
-  
-public:
-  ~CPVRRadioRDSInfoTag() override;
 
+public:
   bool operator ==(const CPVRRadioRDSInfoTag& tag) const;
   bool operator !=(const CPVRRadioRDSInfoTag& tag) const;
 

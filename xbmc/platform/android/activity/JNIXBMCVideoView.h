@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Christian Browet
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <androidjni/JNIBase.h>
 
 #include <androidjni/Context.h>
@@ -36,7 +37,7 @@ public:
   ~CJNIXBMCVideoView();
 
   static void RegisterNatives(JNIEnv* env);
-  
+
   static CJNIXBMCVideoView* createVideoView(CJNISurfaceHolderCallback* callback);
 
   // CJNISurfaceHolderCallback interface

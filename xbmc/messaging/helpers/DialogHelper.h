@@ -1,4 +1,3 @@
-#pragma once
 /*
 *      Copyright (C) 2005-2015 Team Kodi
 *      http://kodi.tv
@@ -18,6 +17,8 @@
 *  <http://www.gnu.org/licenses/>.
 *
 */
+
+#pragma once
 
 #include "utils/Variant.h"
 
@@ -98,7 +99,7 @@ DialogResponse ShowYesNoCustomDialog(CVariant heading, CVariant text, CVariant n
 
 /*!
   \brief This is a helper method to send a threadmessage to open a Yes/No dialog box
-  
+
   \param[in]  heading           The text to display as the dialog box header
   \param[in]  line0             The text to display on the first line
   \param[in]  line1             The text to display on the second line

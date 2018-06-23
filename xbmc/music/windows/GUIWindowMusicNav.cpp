@@ -37,6 +37,7 @@
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "video/windows/GUIWindowVideoNav.h"
 #include "music/tags/MusicInfoTag.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "view/GUIViewState.h"
@@ -119,7 +120,7 @@ bool CGUIWindowMusicNav::OnMessage(CGUIMessage& message)
             m_viewControl.SetSelectedItem(i);
             i = -1;
             if (url.GetOption("showinfo") == "true")
-              OnItemInfo(pItem.get(), true);
+              OnItemInfo(i);
             break;
           }
         }
@@ -300,8 +301,8 @@ bool CGUIWindowMusicNav::ManageInfoProvider(const CFileItemPtr item)
         if (content == CONTENT_ARTISTS)
           msgctxt = 38068;
         if (CGUIDialogYesNo::ShowAndGetInput(CVariant{ 20195 }, msgctxt)) // Change information provider, confirm for all shown
-        { 
-          // Set scraper for all items on curent view. 
+        {
+          // Set scraper for all items on curent view.
           std::string strPath = "musicdb://";
           if (content == CONTENT_ARTISTS)
             strPath += "artists";
@@ -315,24 +316,24 @@ bool CGUIWindowMusicNav::ManageInfoProvider(const CFileItemPtr item)
             musicUrl.RemoveOption("artistid");
           else
             musicUrl.RemoveOption("albumid");
-         strPath += musicUrl.GetOptions();        
+         strPath += musicUrl.GetOptions();
           result = m_musicdatabase.SetScraperAll(strPath, scraper);
         }
       }
       break;
     case INFOPROVIDERAPPLYOPTIONS::INFOPROVIDER_DEFAULT: // Change information provider for all items
       {
-        msgctxt = 38071; 
+        msgctxt = 38071;
         if (content == CONTENT_ARTISTS)
           msgctxt = 38070;
         if (CGUIDialogYesNo::ShowAndGetInput(CVariant{20195}, msgctxt)) // Change information provider, confirm default and clear
         {
           // Save scraper addon default setting values
           scraper->SaveSettings();
-          // Set default scraper 
+          // Set default scraper
           if (content == CONTENT_ARTISTS)
             CServiceBroker::GetSettings().SetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSSCRAPER, scraper->ID());
-          else 
+          else
             CServiceBroker::GetSettings().SetString(CSettings::SETTING_MUSICLIBRARY_ALBUMSSCRAPER, scraper->ID());
           CServiceBroker::GetSettings().Save();
           // Clear all item specifc settings
@@ -350,7 +351,7 @@ bool CGUIWindowMusicNav::ManageInfoProvider(const CFileItemPtr item)
 
     // Refresh additional information using the new settings
     if (applyto == INFOPROVIDERAPPLYOPTIONS::INFOPROVIDER_ALLVIEW || applyto == INFOPROVIDERAPPLYOPTIONS::INFOPROVIDER_DEFAULT)
-    { 
+    {
       // Change information provider, all artists or albums
       if (CGUIDialogYesNo::ShowAndGetInput(CVariant{20195}, CVariant{38072}))
         OnItemInfoAll(m_vecItems->GetPath(), true);
@@ -389,7 +390,7 @@ bool CGUIWindowMusicNav::OnClick(int iItem, const std::string &player /* = "" */
   }
   if (item->IsMusicDb() && !item->m_bIsFolder)
     m_musicdatabase.SetPropertiesForFileItem(*item);
-    
+
   return CGUIWindowMusicBase::OnClick(iItem, player);
 }
 
@@ -470,6 +471,8 @@ bool CGUIWindowMusicNav::GetDirectory(const std::string &strDirectory, CFileItem
       items.SetContent("songs");
     else if (node == NODE_TYPE_GENRE)
       items.SetContent("genres");
+    else if (node == NODE_TYPE_SOURCE)
+      items.SetContent("sources");
     else if (node == NODE_TYPE_ROLE)
       items.SetContent("roles");
     else if (node == NODE_TYPE_YEAR)
@@ -479,7 +482,7 @@ bool CGUIWindowMusicNav::GetDirectory(const std::string &strDirectory, CFileItem
   }
   else if (items.IsPlayList())
     items.SetContent("songs");
-  else if (URIUtils::PathEquals(strDirectory, "special://musicplaylists/") || 
+  else if (URIUtils::PathEquals(strDirectory, "special://musicplaylists/") ||
            URIUtils::PathEquals(strDirectory, "library://music/playlists.xml/"))
     items.SetContent("playlists");
   else if (URIUtils::PathEquals(strDirectory, "plugin://music/"))
@@ -769,7 +772,7 @@ bool CGUIWindowMusicNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
       database.Open();
       strPath = StringUtils::Format("videodb://musicvideos/artists/%i/",
         database.GetMatchingMusicVideo(item->GetMusicInfoTag()->GetArtistString()));
-      g_windowManager.ActivateWindow(WINDOW_VIDEO_NAV,strPath);
+      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_VIDEO_NAV,strPath);
       return true;
     }
 
@@ -796,7 +799,9 @@ bool CGUIWindowMusicNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     if (item->IsPlayList() || item->IsSmartPlayList())
     {
       item->m_bIsFolder = false;
-      CFileUtils::DeleteItem(item);
+      CGUIComponent *gui = CServiceBroker::GetGUI();
+      if (gui && gui->ConfirmDelete(item->GetPath()))
+        CFileUtils::DeleteItem(item);
     }
     else if (!item->IsVideoDb())
       OnDeleteItem(itemNumber);
@@ -808,7 +813,7 @@ bool CGUIWindowMusicNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     Refresh();
     return true;
 
-  case CONTEXT_BUTTON_SET_CONTENT:    
+  case CONTEXT_BUTTON_SET_CONTENT:
     return ManageInfoProvider(item);
 
   default:

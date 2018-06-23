@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2016 Team Kodi
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 #include <string>
 
@@ -29,6 +30,7 @@
 #include "pvr/PVRSettings.h"
 #include "pvr/PVRTypes.h"
 
+class CAction;
 class CFileItem;
 typedef std::shared_ptr<CFileItem> CFileItemPtr;
 
@@ -43,10 +45,18 @@ namespace PVR
     PlaybackTypeRadio
   };
 
+  enum class ParentalCheckResult
+  {
+    CANCELED,
+    FAILED,
+    SUCCESS
+  };
+
   class CPVRChannelSwitchingInputHandler : public CPVRChannelNumberInputHandler
   {
   public:
     // CPVRChannelNumberInputHandler implementation
+    void GetChannelNumbers(std::vector<std::string>& channelNumbers) override;
     void AppendChannelNumberCharacter(char cCharacter) override;
     void OnInputDone() override;
 
@@ -324,15 +334,15 @@ namespace PVR
     /*!
      * @brief Check if channel is parental locked. Ask for PIN if necessary.
      * @param channel The channel to do the check for.
-     * @return True if channel is unlocked (by default or PIN unlocked), false otherwise.
+     * @return the result of the check (success, failed, or canceled by user).
      */
-    bool CheckParentalLock(const CPVRChannelPtr &channel) const;
+    ParentalCheckResult CheckParentalLock(const CPVRChannelPtr &channel) const;
 
     /*!
      * @brief Open Numeric dialog to check for parental PIN.
-     * @return True if entered PIN was correct, false otherwise.
+     * @return the result of the check (success, failed, or canceled by user).
      */
-    bool CheckParentalPIN() const;
+    ParentalCheckResult CheckParentalPIN() const;
 
     /*!
      * @brief Check whether the system Kodi is running on can be powered down
@@ -472,15 +482,6 @@ namespace PVR
      * @param bFullscreen switch to fullscreen or set windowed playback.
      */
     void CheckAndSwitchToFullscreen(bool bFullscreen) const;
-
-    /*!
-     * @brief Switch channel.
-     * @param item containing a channel or an epg tag.
-     * @param bCheckResume controls resume check in case a recording for the current epg event is present.
-     * @param bFullscreen start playback fullscreen or not.
-     * @return true on success, false otherwise.
-     */
-    bool SwitchToChannel(const CFileItemPtr &item, bool bCheckResume, bool bFullscreen) const;
 
     /*!
      * @brief Start playback of the given item.

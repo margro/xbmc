@@ -45,12 +45,12 @@ CGUIFontTTFDX::CGUIFontTTFDX(const std::string& strFileName)
   m_vertexBuffer   = nullptr;
   m_vertexWidth    = 0;
   m_buffers.clear();
-  DX::Windowing().Register(this);
+  DX::Windowing()->Register(this);
 }
 
 CGUIFontTTFDX::~CGUIFontTTFDX(void)
 {
-  DX::Windowing().Unregister(this);
+  DX::Windowing()->Unregister(this);
 
   if (m_speedupTexture)
   {
@@ -75,7 +75,7 @@ bool CGUIFontTTFDX::FirstBegin()
   if (!DX::DeviceResources::Get()->GetD3DContext())
     return false;
 
-  CGUIShaderDX* pGUIShader = DX::Windowing().GetGUIShader();
+  CGUIShaderDX* pGUIShader = DX::Windowing()->GetGUIShader();
   pGUIShader->Begin(SHADER_METHOD_RENDER_FONT);
 
   return true;
@@ -99,11 +99,11 @@ void CGUIFontTTFDX::LastEnd()
   unsigned int offset = 0;
   unsigned int stride = sizeof(SVertex);
 
-  CGUIShaderDX* pGUIShader = DX::Windowing().GetGUIShader();
+  CGUIShaderDX* pGUIShader = DX::Windowing()->GetGUIShader();
   // Set font texture as shader resource
   pGUIShader->SetShaderViews(1, m_speedupTexture->GetAddressOfSRV());
   // Enable alpha blend
-  DX::Windowing().SetAlphaBlendEnable(true);
+  DX::Windowing()->SetAlphaBlendEnable(true);
   // Set our static index buffer
   pContext->IASetIndexBuffer(m_staticIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
   // Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
@@ -126,7 +126,7 @@ void CGUIFontTTFDX::LastEnd()
       size_t count = size - character;
       count = std::min<size_t>(count, ELEMENT_ARRAY_MAX_CHAR_INDEX);
 
-      // 6 indices and 4 vertices per character 
+      // 6 indices and 4 vertices per character
       pGUIShader->DrawIndexed(count * 6, 0, character * 4);
     }
   }
@@ -138,7 +138,7 @@ void CGUIFontTTFDX::LastEnd()
     // Store current GPU transform
     XMMATRIX view = pGUIShader->GetView();
     // Store current scissor
-    CRect scissor = g_graphicsContext.StereoCorrection(g_graphicsContext.GetScissors());
+    CRect scissor = CServiceBroker::GetWinSystem()->GetGfxContext().StereoCorrection(CServiceBroker::GetWinSystem()->GetGfxContext().GetScissors());
 
     for (size_t i = 0; i < m_vertexTrans.size(); i++)
     {
@@ -147,7 +147,7 @@ void CGUIFontTTFDX::LastEnd()
         continue;
 
       // Apply the clip rectangle
-      CRect clip = DX::Windowing().ClipRectToScissorRect(m_vertexTrans[i].clip);
+      CRect clip = DX::Windowing()->ClipRectToScissorRect(m_vertexTrans[i].clip);
       // Intersect with current scissors
       clip.Intersect(scissor);
 
@@ -155,7 +155,7 @@ void CGUIFontTTFDX::LastEnd()
       if (clip.IsEmpty())
         continue;
 
-      DX::Windowing().SetScissors(clip);
+      DX::Windowing()->SetScissors(clip);
 
       // Apply the translation to the model view matrix
       XMMATRIX translation = XMMatrixTranslation(m_vertexTrans[i].translateX, m_vertexTrans[i].translateY, m_vertexTrans[i].translateZ);
@@ -173,13 +173,13 @@ void CGUIFontTTFDX::LastEnd()
         size_t count = m_vertexTrans[i].vertexBuffer->size - character;
         count = std::min<size_t>(count, ELEMENT_ARRAY_MAX_CHAR_INDEX);
 
-        // 6 indices and 4 vertices per character 
+        // 6 indices and 4 vertices per character
         pGUIShader->DrawIndexed(count * 6, 0, character * 4);
       }
     }
 
     // restore scissor
-    DX::Windowing().SetScissors(scissor);
+    DX::Windowing()->SetScissors(scissor);
 
     // Restore the original transform
     pGUIShader->SetView(view);

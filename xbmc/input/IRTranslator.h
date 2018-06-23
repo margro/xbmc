@@ -17,19 +17,19 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <map>
 #include <memory>
 #include <string>
 
-class CProfilesManager;
 class TiXmlNode;
 
 class CIRTranslator
 {
 public:
-  CIRTranslator(const CProfilesManager &profileManager);
+  CIRTranslator();
 
   /*!
    * \brief Loads Lircmap.xml/IRSSmap.xml
@@ -49,9 +49,6 @@ public:
 private:
   bool LoadIRMap(const std::string &irMapPath);
   void MapRemote(TiXmlNode *pRemote, const std::string &szDevice);
-
-  // Construction parameters
-  const CProfilesManager &m_profileManager;
 
   using IRButtonMap = std::map<std::string, std::string>;
 

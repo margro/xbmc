@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2016 Team Kodi
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "platform/Platform.h"
 
 class CPlatformDarwin : public CPlatform
@@ -27,9 +27,9 @@ class CPlatformDarwin : public CPlatform
   public:
     /**\brief C'tor */
     CPlatformDarwin();
-  
+
     /**\brief D'tor */
     virtual ~CPlatformDarwin();
-  
+
     void Init() override;
 };

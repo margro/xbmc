@@ -17,12 +17,14 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "RPBaseRenderer.h"
-#include "cores/RetroPlayer/process/BaseRenderBufferPool.h"
-#include "cores/RetroPlayer/process/RenderBufferSysMem.h"
+#include "cores/RetroPlayer/buffers/video/RenderBufferSysMem.h"
+#include "cores/RetroPlayer/buffers/BaseRenderBufferPool.h"
 #include "cores/RetroPlayer/process/RPProcessInfo.h"
+#include "cores/GameSettings.h"
 
 #include "system_gl.h"
 
@@ -112,10 +114,10 @@ namespace RETRO
     ~CRPRendererOpenGLES() override;
 
     // implementation of CRPBaseRenderer
-    bool Supports(ERENDERFEATURE feature) const override;
-    ESCALINGMETHOD GetDefaultScalingMethod() const override { return VS_SCALINGMETHOD_NEAREST; }
+    bool Supports(RENDERFEATURE feature) const override;
+    SCALINGMETHOD GetDefaultScalingMethod() const override { return SCALINGMETHOD::NEAREST; }
 
-    static bool SupportsScalingMethod(ESCALINGMETHOD method);
+    static bool SupportsScalingMethod(SCALINGMETHOD method);
 
   protected:
     // implementation of CRPBaseRenderer
@@ -135,7 +137,7 @@ namespace RETRO
      */
     void DrawBlackBars();
 
-    void Render(uint8_t alpha);
+    virtual void Render(uint8_t alpha);
 
     GLenum m_textureTarget = GL_TEXTURE_2D;
     float m_clearColour = 0.0f;

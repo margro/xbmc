@@ -21,20 +21,17 @@
 #include "ProfileBuiltins.h"
 
 #include "addons/AddonManager.h"
-#include "Application.h"
 #include "messaging/ApplicationMessenger.h"
 #include "dialogs/GUIDialogKaiToast.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIPassword.h"
 #include "GUIUserMessages.h"
-#include "network/Network.h"
-#include "network/NetworkServices.h"
 #include "profiles/ProfilesManager.h"
 #include "ServiceBroker.h"
 #include "Util.h"
 #include "utils/StringUtils.h"
-#include "video/VideoLibraryQueue.h"
 
 using namespace KODI::MESSAGING;
 
@@ -65,32 +62,8 @@ static int LoadProfile(const std::vector<std::string>& params)
  */
 static int LogOff(const std::vector<std::string>& params)
 {
-  // there was a commit from cptspiff here which was reverted
-  // for keeping the behaviour from Eden in Frodo - see
-  // git rev 9ee5f0047b
-  if (g_windowManager.GetActiveWindow() == WINDOW_LOGIN_SCREEN)
-    return -1;
-
-  g_application.StopPlaying();
-  if (g_application.IsMusicScanning())
-    g_application.StopMusicScan();
-
-  if (CVideoLibraryQueue::GetInstance().IsRunning())
-    CVideoLibraryQueue::GetInstance().CancelAllJobs();
-
-  CServiceBroker::GetNetwork().NetworkMessage(CNetwork::SERVICES_DOWN,1);
-
-
   CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
-  profileManager.LoadMasterProfileForLogin();
-
-  g_passwordManager.bMasterUser = false;
-
-  g_application.WakeUpScreenSaverAndDPMS();
-  g_windowManager.ActivateWindow(WINDOW_LOGIN_SCREEN, {}, false);
-
-  if (!CNetworkServices::GetInstance().StartEventServer()) // event server could be needed in some situations
-    CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Warning, g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
+  profileManager.LogOff();
 
   return 0;
 }
@@ -115,7 +88,7 @@ static int MasterMode(const std::vector<std::string>& params)
 
   CUtil::DeleteVideoDatabaseDirectoryCache();
   CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE);
-  g_windowManager.SendMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendMessage(msg);
 
   return 0;
 }

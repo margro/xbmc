@@ -156,6 +156,8 @@ static KeyMap keyMap[] = {
   { AKEYCODE_PROG_GREEN      , XBMCK_GREEN },
   { AKEYCODE_PROG_YELLOW     , XBMCK_YELLOW },
   { AKEYCODE_PROG_BLUE       , XBMCK_BLUE },
+  { AKEYCODE_CHANNEL_UP      , XBMCK_PAGEUP },
+  { AKEYCODE_CHANNEL_DOWN    , XBMCK_PAGEDOWN },
 
   { AKEYCODE_F1              , XBMCK_F1 },
   { AKEYCODE_F2              , XBMCK_F2 },
@@ -333,5 +335,5 @@ void CAndroidKey::XBMC_Key(uint8_t code, uint16_t key, uint16_t modifiers, uint1
   newEvent.key.keysym.mod = (XBMCMod)modifiers;
 
   //CXBMCApp::android_printf("XBMC_Key(%u, %u, 0x%04X, %d)", code, key, modifiers, up);
-  dynamic_cast<CWinSystemAndroid&>(CServiceBroker::GetWinSystem()).MessagePush(&newEvent);
+  dynamic_cast<CWinSystemAndroid*>(CServiceBroker::GetWinSystem())->MessagePush(&newEvent);
 }

@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2010-2015 Team Kodi
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 
 // We forward declare CFStringRef in order to avoid
@@ -31,7 +31,6 @@ class CDarwinUtils
 {
 public:
   static const char *getIosPlatformString(void);
-  static bool        IsMavericksOrHigher(void);
   static bool        DeviceHasRetina(double &scale);
   static const char *GetOSReleaseString(void);
   static const char *GetOSVersionString(void);
@@ -40,14 +39,13 @@ public:
   static const char *GetOSXVersionString(void);
   static int         GetFrameworkPath(bool forPython, char* path, size_t *pathsize);
   static int         GetExecutablePath(char* path, size_t *pathsize);
-  static const char *GetUserHomeDirectory(void);
   static const char *GetAppRootFolder(void);
   static bool        IsIosSandboxed(void);
   static bool        HasVideoToolboxDecoder(void);
   static int         BatteryLevel(void);
   static void        EnableOSScreenSaver(bool enable);
   static void        ResetSystemIdleTimer();
-  static void        SetScheduling(int message);
+  static void        SetScheduling(bool realtime);
   static void        PrintDebugString(std::string debugString);
   static bool        CFStringRefToString(CFStringRef source, std::string& destination);
   static bool        CFStringRefToUTF8String(CFStringRef source, std::string& destination);

@@ -17,11 +17,14 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 /*!
  \file MusicDatabase.h
 \brief
 */
-#pragma once
+
 #include <utility>
 #include <vector>
 
@@ -29,6 +32,7 @@
 #include "Album.h"
 #include "dbwrappers/Database.h"
 #include "MusicDbUrl.h"
+#include "MediaSource.h"
 #include "settings/LibExportSettings.h"
 #include "utils/SortUtils.h"
 
@@ -208,6 +212,7 @@ public:
   bool Search(const std::string& search, CFileItemList &items);
   bool RemoveSongsFromPath(const std::string &path, MAPSONGS& songs, bool exact=true);
   bool SetSongUserrating(const std::string &filePath, int userrating);
+  bool SetSongUserrating(int idSong, int userrating);
   bool SetSongVotes(const std::string &filePath, int votes);
   int  GetSongByArtistAndAlbumAndTitle(const std::string& strArtist, const std::string& strAlbum, const std::string& strTitle);
 
@@ -216,9 +221,10 @@ public:
   /////////////////////////////////////////////////
   /*! \brief Add an album and all its songs to the database
   \param album the album to add
+  \param idSource the music source id
   \return the id of the album
   */
-  bool AddAlbum(CAlbum& album);
+  bool AddAlbum(CAlbum& album, int idSource);
 
   /*! \brief Update an album and all its nested entities (artists, songs etc)
    \param album the album to update
@@ -234,14 +240,14 @@ public:
    \param strGenre the album genre(s)
    \param year the year
    \param strRecordLabel the recording label
-   \param strType album type (Musicbrainz release type e.g. "Broadcast, Soundtrack, live"), 
+   \param strType album type (Musicbrainz release type e.g. "Broadcast, Soundtrack, live"),
    \param bCompilation if the album is a compilation
    \param releaseType "album" or "single"
    \return the id of the album
    */
   int  AddAlbum(const std::string& strAlbum, const std::string& strMusicBrainzAlbumID,
                 const std::string& strReleaseGroupMBID,
-                const std::string& strArtist, const std::string& strArtistSort, 
+                const std::string& strArtist, const std::string& strArtistSort,
                 const std::string& strGenre, int year,
                 const std::string& strRecordLabel, const std::string& strType,
                 bool bCompilation, CAlbum::ReleaseType releaseType);
@@ -317,14 +323,18 @@ public:
   bool ClearArtistLastScrapedTime(int idArtist);
   int  AddArtistDiscography(int idArtist, const std::string& strAlbum, const std::string& strYear);
   bool DeleteArtistDiscography(int idArtist);
+  bool GetArtistDiscography(int idArtist, CFileItemList& items);
 
   std::string GetArtistById(int id);
   int GetArtistByName(const std::string& strArtist);
   int GetArtistByMatch(const CArtist& artist);
+  bool GetArtistFromSong(int idSong, CArtist &artist);
+  bool IsSongArtist(int idSong, int idArtist);
+  bool IsSongAlbumArtist(int idSong, int idArtist);
   std::string GetRoleById(int id);
 
   /*! \brief Propagate artist sort name into the concatenated artist sort name strings
-  held for songs and albums 
+  held for songs and albums
   \param int idArtist to propagate sort name for, -1 means all artists
   */
   bool UpdateArtistSortNames(int idArtist = -1);
@@ -337,7 +347,9 @@ public:
   bool GetPaths(std::set<std::string> &paths);
   bool SetPathHash(const std::string &path, const std::string &hash);
   bool GetPathHash(const std::string &path, std::string &hash);
+  bool GetAlbumPaths(int idAlbum, std::vector<std::pair<std::string, int>>& paths);
   bool GetAlbumPath(int idAlbum, std::string &basePath);
+  int GetDiscnumberForPathID(int idPath);
   bool GetOldArtistPath(int idArtist, std::string &path);
   bool GetArtistPath(const CArtist& artist, std::string &path);
   bool GetAlbumFolder(const CAlbum& album, const std::string &strAlbumPath, std::string &strFolder);
@@ -345,11 +357,30 @@ public:
   bool GetArtistFolderName(const std::string &strArtist, const std::string &strMusicBrainzArtistID, std::string &strFolder);
 
   /////////////////////////////////////////////////
+  // Sources
+  /////////////////////////////////////////////////
+  bool UpdateSources();
+  int AddSource(const std::string& strName, const std::string& strMultipath, const std::vector<std::string>& vecPaths, int id = -1);
+  int UpdateSource(const std::string& strOldName, const std::string& strName, const std::string& strMultipath, const std::vector<std::string>& vecPaths);
+  bool RemoveSource(const std::string& strName);
+  int GetSourceFromPath(const std::string& strPath);
+  bool AddAlbumSource(int idAlbum, int idSource);
+  bool AddAlbumSources(int idAlbum,  const std::string& strPath);
+  bool GetSources(CFileItemList& items);
+
+  bool GetSourcesByArtist(int idArtist, CFileItem* item);
+  bool GetSourcesByAlbum(int idAlbum, CFileItem* item);
+  bool GetSourcesBySong(int idSong, const std::string& strPath, CFileItem* item);
+  int GetSourceByName(const std::string& strSource);
+  std::string GetSourceById(int id);
+
+  /////////////////////////////////////////////////
   // Genres
   /////////////////////////////////////////////////
   int AddGenre(std::string& strGenre);
   std::string GetGenreById(int id);
   int GetGenreByName(const std::string& strGenre);
+  bool GetGenresJSON(CFileItemList& items, bool bSources = false);
 
   /////////////////////////////////////////////////
   // Link tables
@@ -404,7 +435,7 @@ public:
 
   int GetArtistCountForRole(int role);
   int GetArtistCountForRole(const std::string& strRole);
-  
+
   /*! \brief Increment the playcount of an item
    Increments the playcount and updates the last played date
    \param item CFileItem to increment the playcount for
@@ -416,6 +447,7 @@ public:
   // VIEWS
   /////////////////////////////////////////////////
   bool GetGenresNav(const std::string& strBaseDir, CFileItemList& items, const Filter &filter = Filter(), bool countOnly = false);
+  bool GetSourcesNav(const std::string& strBaseDir, CFileItemList& items, const Filter &filter = Filter(), bool countOnly = false);
   bool GetYearsNav(const std::string& strBaseDir, CFileItemList& items, const Filter &filter = Filter());
   bool GetRolesNav(const std::string& strBaseDir, CFileItemList& items, const Filter &filter = Filter());
   bool GetArtistsNav(const std::string& strBaseDir, CFileItemList& items, bool albumArtistsOnly = false, int idGenre = -1, int idAlbum = -1, int idSong = -1, const Filter &filter = Filter(), const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
@@ -442,7 +474,7 @@ public:
   bool SetScraper(int id, const CONTENT_TYPE &content, const ADDON::ScraperPtr scraper);
   bool SetScraperAll(const std::string& strBaseDir, const ADDON::ScraperPtr scraper);
   bool GetScraper(int id, const CONTENT_TYPE &content, ADDON::ScraperPtr& scraper);
-  
+
   /*! \brief Check whether a given scraper is in use.
    \param scraperID the scraper to check for.
    \return true if the scraper is in use, false otherwise.
@@ -472,7 +504,6 @@ public:
   /////////////////////////////////////////////////
   // Art
   /////////////////////////////////////////////////
-  bool SaveAlbumThumb(int idAlbum, const std::string &thumb);
   /*! \brief Sets art for a database item.
    Sets a single piece of art for a database item.
    \param mediaId the id in the media (song/artist/album) table.
@@ -495,18 +526,18 @@ public:
 
   /*! \brief Fetch all related art for a database item.
   Fetches multiple pieces of art for a database item including that for related media types
-  Given song id art for the related album, artist(s) and albumartist(s) will also be fetched, looking up the 
+  Given song id art for the related album, artist(s) and albumartist(s) will also be fetched, looking up the
   album and artist when ids are not provided.
-  Given album id (and not song id) art for the related artist(s) will also be fetched, looking up the 
+  Given album id (and not song id) art for the related artist(s) will also be fetched, looking up the
   artist(s) when id are not provided.
   \param songId the id in the song table, -1 when song art not being fetched
   \param albumId the id in the album table, -1 when album art not being fetched
   \param artistId the id in the artist table, -1 when artist not known
   \param bPrimaryArtist true if art from only the first song artist or album artist is to be fetched
-  \param art [out] a vector, each element having media type e.g. "artist", "album" or "song", 
+  \param art [out] a vector, each element having media type e.g. "artist", "album" or "song",
   artType e.g. "thumb", "fanart", etc., prefix of "", "artist" or "albumartist" etc. giving the kind of artist
   relationship, and the original url of the art.
-  
+
   \return true if art is retrieved, false if no art is found.
   \sa SetArtForItem
   */
@@ -552,10 +583,17 @@ public:
   */
   bool RemoveArtForItem(int mediaId, const MediaType &mediaType, const std::set<std::string> &artTypes);
 
+  /*! \brief Fetch the distinct types of art held in the database for a type of media.
+  \param mediaType the type of media, which corresponds to the table the item resides in (song/artist/album).
+  \param artTypes [out] the types of art e.g. "thumb", "fanart", etc.
+  \return true if art is found, false if no art is found.
+  */
+  bool GetArtTypes(const MediaType &mediaType, std::vector<std::string> &artTypes);
+
   /////////////////////////////////////////////////
   // Tag Scan Version
   /////////////////////////////////////////////////
-  /*! \brief Check if music files need all tags rescanning regardless of file being unchanged 
+  /*! \brief Check if music files need all tags rescanning regardless of file being unchanged
   because the tag processing has changed (which may happen without db version changes) since they
   where last scanned.
   \return -1 if an error occured, 0 if no scan is needed, or the version number of tags if not the same as current.
@@ -567,15 +605,18 @@ public:
   */
   void SetMusicNeedsTagScan(int version);
 
-  /*! \brief Set the version number of tag data 
+  /*! \brief Set the version number of tag data
   \param version the version number of db when tags last scanned, 0 (default) means current db version
   */
   void SetMusicTagScanVersion(int version = 0);
 
+std::string GetLibraryLastUpdated();
+void SetLibraryLastUpdated();
+
 protected:
   std::map<std::string, int> m_genreCache;
   std::map<std::string, int> m_pathCache;
-  
+
   void CreateTables() override;
   void CreateAnalytics() override;
   int GetMinSchemaVersion() const override { return 32; }
@@ -618,6 +659,17 @@ private:
   bool SearchAlbums(const std::string& search, CFileItemList &albums);
   bool SearchSongs(const std::string& strSearch, CFileItemList &songs);
   int GetSongIDFromPath(const std::string &filePath);
+
+  /*! \brief Checks that source table matches sources.xml
+  returns true when they do 
+  */
+  bool CheckSources(VECSOURCES& sources);
+
+  /*! \brief Initially fills source table from sources.xml for use only at
+  migration of db from an earlier version than 72
+  returns true when successfuly done
+  */
+  bool MigrateSources();
 
   bool m_translateBlankArtist;
 

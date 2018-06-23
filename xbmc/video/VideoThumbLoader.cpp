@@ -28,6 +28,7 @@
 #include "ServiceBroker.h"
 #include "filesystem/DirectoryCache.h"
 #include "filesystem/StackDirectory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/StereoscopicsManager.h"
 #include "GUIUserMessages.h"
@@ -115,7 +116,7 @@ bool CThumbExtractor::DoWork()
     // construct the thumb cache file
     CTextureDetails details;
     details.file = CTextureCache::GetCacheFile(m_target) + ".jpg";
-    result = CDVDFileInfo::ExtractThumb(m_item.GetPath(), details, m_fillStreamDetails ? &m_item.GetVideoInfoTag()->m_streamDetails : NULL, (int) m_pos);
+    result = CDVDFileInfo::ExtractThumb(m_item, details, m_fillStreamDetails ? &m_item.GetVideoInfoTag()->m_streamDetails : nullptr, m_pos);
     if(result)
     {
       CTextureCache::GetInstance().AddCachedTexture(m_target, details);
@@ -556,7 +557,7 @@ std::string CVideoThumbLoader::GetLocalArt(const CFileItem &item, const std::str
 
   /* Cache directory for (sub) folders on streamed filesystems. We need to do this
      else entering (new) directories from the app thread becomes much slower. This
-     is caused by the fact that Curl Stat/Exist() is really slow and that the 
+     is caused by the fact that Curl Stat/Exist() is really slow and that the
      thumbloader thread accesses the streamed filesystem at the same time as the
      App thread and the latter has to wait for it.
    */
@@ -632,7 +633,7 @@ void CVideoThumbLoader::OnJobComplete(unsigned int jobID, bool success, CJob* jo
       m_pObserver->OnItemLoaded(&loader->m_item);
     CFileItemPtr pItem(new CFileItem(loader->m_item));
     CGUIMessage msg(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_UPDATE_ITEM, 0, pItem);
-    g_windowManager.SendThreadMessage(msg);
+    CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
   }
   CJobQueue::OnJobComplete(jobID, success, job);
 }
@@ -662,10 +663,14 @@ void CVideoThumbLoader::DetectAndAddMissingItemData(CFileItem &item)
     }
   }
 
+  const CStereoscopicsManager &stereoscopicsManager = CServiceBroker::GetGUI()->GetStereoscopicsManager();
+
   std::string stereoMode;
+
   // detect stereomode for videos
   if (item.HasVideoInfoTag())
     stereoMode = item.GetVideoInfoTag()->m_streamDetails.GetStereoMode();
+
   if (stereoMode.empty())
   {
     std::string path = item.GetPath();
@@ -676,14 +681,17 @@ void CVideoThumbLoader::DetectAndAddMissingItemData(CFileItem &item)
     CVideoSettings itemVideoSettings;
     m_videoDatabase->Open();
     if (m_videoDatabase->GetVideoSettings(item, itemVideoSettings) && itemVideoSettings.m_StereoMode != RENDER_STEREO_MODE_OFF)
-      stereoMode = CStereoscopicsManager::GetInstance().ConvertGuiStereoModeToString( (RENDER_STEREO_MODE) itemVideoSettings.m_StereoMode );
+    {
+      stereoMode = CStereoscopicsManager::ConvertGuiStereoModeToString(static_cast<RENDER_STEREO_MODE>(itemVideoSettings.m_StereoMode));
+    }
     m_videoDatabase->Close();
 
     // still empty, try grabbing from filename
     //! @todo in case of too many false positives due to using the full path, extract the filename only using string utils
     if (stereoMode.empty())
-      stereoMode = CStereoscopicsManager::GetInstance().DetectStereoModeByString( path );
+      stereoMode = stereoscopicsManager.DetectStereoModeByString(path);
   }
+
   if (!stereoMode.empty())
-    item.SetProperty("stereomode", CStereoscopicsManager::GetInstance().NormalizeStereoMode(stereoMode));
+    item.SetProperty("stereomode", CStereoscopicsManager::NormalizeStereoMode(stereoMode));
 }

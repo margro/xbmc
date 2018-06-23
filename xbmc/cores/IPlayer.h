@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <vector>
 #include <string>
@@ -45,13 +45,15 @@ public:
     starttime = 0LL;
     startpercent = 0LL;
     fullscreen = false;
-    video_only = false;
+    videoOnly = false;
+    preferStereo = false;
   }
-  double  starttime; /* start time in seconds */
-  double  startpercent; /* start time in percent */  
+  double starttime; /* start time in seconds */
+  double startpercent; /* start time in percent */
   std::string state;  /* potential playerstate to restore to */
-  bool    fullscreen; /* player is allowed to switch to fullscreen */
-  bool    video_only; /* player is not allowed to play audio streams, video streams only */
+  bool fullscreen; /* player is allowed to switch to fullscreen */
+  bool videoOnly; /* player is not allowed to play audio streams, video streams only */
+  bool preferStereo; /* prefer stereo streams when selecting initial audio stream*/
 };
 
 class CFileItem;
@@ -87,7 +89,8 @@ enum ERENDERFEATURE
   RENDERFEATURE_ZOOM,
   RENDERFEATURE_VERTICAL_SHIFT,
   RENDERFEATURE_PIXEL_RATIO,
-  RENDERFEATURE_POSTPROCESS
+  RENDERFEATURE_POSTPROCESS,
+  RENDERFEATURE_TONEMAP
 };
 
 class IPlayer
@@ -170,8 +173,8 @@ public:
   virtual bool SeekTimeRelative(int64_t iTime) { return false; }
 
   /*!
-   \brief Sets the current time. This 
-   can be used for injecting the current time. 
+   \brief Sets the current time. This
+   can be used for injecting the current time.
    This is not to be confused with a seek. It just
    can be used if endless streams contain multiple
    tracks in reality (like with airtunes)
@@ -203,7 +206,7 @@ public:
   //returns a state that is needed for resuming from a specific time
   virtual std::string GetPlayerState() { return ""; };
   virtual bool SetPlayerState(const std::string& state) { return false;};
-  
+
   virtual void GetAudioCapabilities(std::vector<int> &audioCaps) { audioCaps.assign(1,IPC_AUD_ALL); };
   /*!
    \brief define the subtitle capabilities of the player

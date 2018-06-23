@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <deque>
 #include <sys/types.h>
@@ -59,7 +59,6 @@ protected:
   std::atomic_bool          m_bAbortOutput;
   double                    m_iSubtitleDelay;
   bool                      m_bRenderSubs;
-  bool                      m_bAllowFullscreen;
 
   float                     m_fForcedAspectRatio;
 
@@ -114,10 +113,8 @@ public:
   void SetSubtitleDelay(double delay)               override { m_iSubtitleDelay = delay; }
   void EnableSubtitle(bool bEnable)                 override { m_bRenderSubs = bEnable; }
   bool IsSubtitleEnabled()                          override { return m_bRenderSubs; }
-  void EnableFullscreen(bool bEnable)               override { m_bAllowFullscreen = bEnable; }
   float GetAspectRatio()                                     { return m_renderManager.GetAspectRatio(); }
   void  SetVideoRect(const CRect &SrcRect, const CRect &DestRect);
   void ResolutionUpdateCallBack(uint32_t width, uint32_t height, float framerate, float pixel_aspect);
   static void ResolutionUpdateCallBack(void *ctx, uint32_t width, uint32_t height, float framerate, float pixel_aspect);
 };
-

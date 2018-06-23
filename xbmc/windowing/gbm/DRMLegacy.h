@@ -28,8 +28,10 @@ public:
   CDRMLegacy() = default;
   ~CDRMLegacy() { DestroyDrm(); };
   virtual void FlipPage(struct gbm_bo *bo, bool rendered, bool videoLayer) override;
-  virtual bool SetVideoMode(RESOLUTION_INFO res, struct gbm_bo *bo) override;
+  virtual bool SetVideoMode(const RESOLUTION_INFO& res, struct gbm_bo *bo) override;
+  virtual bool SetActive(bool active) override;
   virtual bool InitDrm() override;
+  virtual bool SetProperty(struct drm_object *object, const char *name, uint64_t value) override;
 
 private:
   bool WaitingForFlip();

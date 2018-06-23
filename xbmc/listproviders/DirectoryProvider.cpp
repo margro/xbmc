@@ -28,6 +28,7 @@
 #include "FileItem.h"
 #include "filesystem/Directory.h"
 #include "favourites/FavouritesService.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "interfaces/AnnouncementManager.h"
 #include "messaging/ApplicationMessenger.h"
@@ -80,7 +81,7 @@ public:
   bool DoWork() override
   {
     CFileItemList items;
-    if (CDirectory::GetDirectory(m_url, items, ""))
+    if (CDirectory::GetDirectory(m_url, items, "", DIR_FLAG_DEFAULTS))
     {
       // sort the items if necessary
       if (m_sort.sortBy != SortByNone)
@@ -102,7 +103,7 @@ public:
       }
       m_target = items.GetProperty("node.target").asString();
     }
-    return true;    
+    return true;
   }
 
   std::shared_ptr<CThumbLoader> getThumbLoader(CGUIStaticItemPtr &item)
@@ -246,6 +247,7 @@ void CDirectoryProvider::Announce(AnnouncementFlag flag, const char *sender, con
     if (flag & Player)
     {
       if (strcmp(message, "OnPlay") == 0 ||
+          strcmp(message, "OnResume") == 0 ||
           strcmp(message, "OnStop") == 0)
       {
         if (m_currentSort.sortBy == SortByNone || // not nice, but many directories that need to be refreshed on start/stop have no special sort order (e.g. in progress movies)
@@ -382,7 +384,7 @@ bool CDirectoryProvider::OnClick(const CGUIListItemPtr &item)
   {
     CGUIMessage message(GUI_MSG_EXECUTE, 0, 0);
     message.SetStringParam(execute);
-    g_windowManager.SendMessage(message);
+    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(message);
     return true;
   }
   return false;
@@ -419,7 +421,7 @@ bool CDirectoryProvider::OnInfo(const CGUIListItemPtr& item)
   }
   else if (fileItem->HasMusicInfoTag())
   {
-    CGUIDialogMusicInfo::ShowFor(*fileItem.get());
+    CGUIDialogMusicInfo::ShowFor(fileItem.get());
     return true;
   }
   return false;

@@ -18,14 +18,15 @@
  *
  */
 
-#if defined(HAVE_LIBCEC)
 #include "PeripheralCecAdapter.h"
 #include "input/remote/IRRemote.h"
 #include "Application.h"
+#include "ServiceBroker.h"
 #include "messaging/ApplicationMessenger.h"
 #include "DynamicDll.h"
 #include "threads/SingleLock.h"
 #include "dialogs/GUIDialogKaiToast.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
 #include "guilib/LocalizeStrings.h"
@@ -65,31 +66,9 @@ using namespace CEC;
 /* time in seconds to suppress source activation after receiving OnStop */
 #define CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP 2
 
-class DllLibCECInterface
-{
-public:
-  virtual ~DllLibCECInterface() = default;
-  virtual ICECAdapter* CECInitialise(libcec_configuration *configuration)=0;
-  virtual void*        CECDestroy(ICECAdapter *adapter)=0;
-};
-
-class DllLibCEC : public DllDynamic, DllLibCECInterface
-{
-  DECLARE_DLL_WRAPPER(DllLibCEC, DLL_PATH_LIBCEC)
-
-  DEFINE_METHOD1(ICECAdapter*, CECInitialise, (libcec_configuration *p1))
-  DEFINE_METHOD1(void*       , CECDestroy,    (ICECAdapter *p1))
-
-  BEGIN_METHOD_RESOLVE()
-    RESOLVE_METHOD_RENAME(CECInitialise,  CECInitialise)
-    RESOLVE_METHOD_RENAME(CECDestroy, CECDestroy)
-  END_METHOD_RESOLVE()
-};
-
 CPeripheralCecAdapter::CPeripheralCecAdapter(CPeripherals& manager, const PeripheralScanResult& scanResult, CPeripheralBus* bus) :
   CPeripheralHID(manager, scanResult, bus),
   CThread("CECAdapter"),
-  m_dll(NULL),
   m_cecAdapter(NULL)
 {
   ResetMembers();
@@ -108,22 +87,18 @@ CPeripheralCecAdapter::~CPeripheralCecAdapter(void)
   StopThread(true);
   delete m_queryThread;
 
-  if (m_dll && m_cecAdapter)
+  if (m_cecAdapter)
   {
-    m_dll->CECDestroy(m_cecAdapter);
+    CECDestroy(m_cecAdapter);
     m_cecAdapter = NULL;
-    delete m_dll;
-    m_dll = NULL;
   }
 }
 
 void CPeripheralCecAdapter::ResetMembers(void)
 {
-  if (m_cecAdapter && m_dll)
-    m_dll->CECDestroy(m_cecAdapter);
+  if (m_cecAdapter)
+    CECDestroy(m_cecAdapter);
   m_cecAdapter               = NULL;
-  delete m_dll;
-  m_dll                        = NULL;
   m_bStarted                   = false;
   m_bHasButton                 = false;
   m_bIsReady                   = false;
@@ -221,7 +196,7 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
     m_preventActivateSourceOnPlay = CDateTime::GetCurrentDateTime();
     m_bOnPlayReceived = false;
   }
-  else if (flag == Player && !strcmp(sender, "xbmc") && !strcmp(message, "OnPlay"))
+  else if (flag == Player && !strcmp(sender, "xbmc") && (!strcmp(message, "OnPlay") || !strcmp(message, "OnResume")))
   {
     // activate the source when playback started, and the option is enabled
     bool bActivateSource(false);
@@ -259,19 +234,7 @@ bool CPeripheralCecAdapter::InitialiseFeature(const PeripheralFeature feature)
     m_configuration.callbackParam    = this;
     m_configuration.callbacks        = &m_callbacks;
 
-    m_dll = new DllLibCEC;
-    if (m_dll->Load() && m_dll->IsLoaded())
-      m_cecAdapter = m_dll->CECInitialise(&m_configuration);
-    else
-    {
-      // display warning: libCEC could not be loaded
-      CLog::Log(LOGERROR, "%s", g_localizeStrings.Get(36017).c_str());
-      CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, g_localizeStrings.Get(36000), g_localizeStrings.Get(36017));
-      delete m_dll;
-      m_dll = NULL;
-      m_features.clear();
-      return false;
-    }
+    m_cecAdapter = CECInitialise(&m_configuration);
 
     if (m_configuration.serverVersion < CEC_LIB_SUPPORTED_VERSION)
     {
@@ -283,7 +246,7 @@ bool CPeripheralCecAdapter::InitialiseFeature(const PeripheralFeature feature)
       CGUIDialogKaiToast::QueueNotification(CGUIDialogKaiToast::Error, g_localizeStrings.Get(36000), strMessage);
       m_bError = true;
       if (m_cecAdapter)
-        m_dll->CECDestroy(m_cecAdapter);
+        CECDestroy(m_cecAdapter);
       m_cecAdapter = NULL;
 
       m_features.clear();
@@ -324,7 +287,7 @@ bool CPeripheralCecAdapter::OpenConnection(void)
     m_bStarted = false;
     return bIsOpen;
   }
-  
+
   // open the CEC adapter
   CLog::Log(LOGDEBUG, "%s - opening a connection to the CEC adapter: %s", __FUNCTION__, m_strComPort.c_str());
 
@@ -639,7 +602,7 @@ void CPeripheralCecAdapter::OnTvStandby(void)
   case LOCALISED_ID_HIBERNATE:
     m_bStarted = false;
     KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_SYSTEM_POWERDOWN, TMSG_HIBERNATE);
-    break;    
+    break;
   case LOCALISED_ID_QUIT:
     m_bStarted = false;
     KODI::MESSAGING::CApplicationMessenger::GetInstance().PostMsg(TMSG_QUIT);
@@ -1196,8 +1159,8 @@ void CPeripheralCecAdapter::CecSourceActivated(void *cbParam, const CEC::cec_log
 
   if (adapter->GetSettingInt("pause_or_stop_playback_on_deactivate") != LOCALISED_ID_NONE)
   {
-    bool bShowingSlideshow = (g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW);
-    CGUIWindowSlideShow *pSlideShow = bShowingSlideshow ? g_windowManager.GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW) : NULL;
+    bool bShowingSlideshow = (CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_SLIDESHOW);
+    CGUIWindowSlideShow *pSlideShow = bShowingSlideshow ? CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW) : NULL;
     bool bPlayingAndDeactivated = activated == 0 && (
         (pSlideShow && pSlideShow->IsPlaying()) || !g_application.GetAppPlayer().IsPausedPlayback());
     bool bPausedAndActivated = activated == 1 && adapter->m_bPlaybackPaused && (
@@ -1810,5 +1773,3 @@ bool CPeripheralCecAdapter::ToggleDeviceState(CecStateChange mode /*= STATE_SWIT
 
   return false;
 }
-
-#endif

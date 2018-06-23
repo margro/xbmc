@@ -27,6 +27,8 @@
  * available at http://sourceforge.net/projects/ccdecoder/.
  */
 
+#pragma once
+
 #include <stdint.h>
 
 #define CC_ROWS 15
@@ -41,7 +43,7 @@ typedef struct cc_attribute_s {
 } cc_attribute_t;
 
 /* CC character cell */
-typedef struct cc_char_cell_s 
+typedef struct cc_char_cell_s
 {
   uint8_t c;                   /* character code, not the same as ASCII */
   cc_attribute_t attributes;   /* attributes of this character, if changed */
@@ -61,7 +63,7 @@ typedef struct cc_row_s
 } cc_row_t;
 
 /* closed captioning memory for a single channel */
-typedef struct cc_buffer_s 
+typedef struct cc_buffer_s
 {
   cc_row_t rows[CC_ROWS];
   int rowpos;              /* row cursor position */

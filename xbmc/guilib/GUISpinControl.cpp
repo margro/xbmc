@@ -19,6 +19,7 @@
  */
 
 #include "GUISpinControl.h"
+#include "GUIMessage.h"
 #include "input/Key.h"
 #include "utils/StringUtils.h"
 #include <stdio.h>
@@ -542,6 +543,9 @@ void CGUISpinControl::SetValueFromLabel(const std::string &label)
   }
   else
     m_iValue = atoi(label.c_str());
+
+  MarkDirtyRegion();
+  SetInvalid();
 }
 
 void CGUISpinControl::SetValue(int iValue)
@@ -556,6 +560,7 @@ void CGUISpinControl::SetValue(int iValue)
   else
     m_iValue = iValue;
 
+  MarkDirtyRegion();
   SetInvalid();
 }
 

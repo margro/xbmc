@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <string>
@@ -27,13 +28,10 @@ class CURL;
 class URIUtils
 {
 public:
-  URIUtils(void);
-  virtual ~URIUtils(void);
-
   static std::string GetDirectory(const std::string &strFilePath);
 
-  static const std::string GetFileName(const CURL& url);
-  static const std::string GetFileName(const std::string& strFileNameAndPath);
+  static std::string GetFileName(const CURL& url);
+  static std::string GetFileName(const std::string& strFileNameAndPath);
 
   static std::string GetExtension(const CURL& url);
   static std::string GetExtension(const std::string& strFileName);
@@ -63,7 +61,7 @@ public:
   static void RemoveExtension(std::string& strFileName);
   static std::string ReplaceExtension(const std::string& strFile,
                                      const std::string& strNewExtension);
-  static void Split(const std::string& strFileNameAndPath, 
+  static void Split(const std::string& strFileNameAndPath,
                     std::string& strPath, std::string& strFileName);
   static std::vector<std::string> SplitPath(const std::string& strPath);
 

@@ -1,13 +1,3 @@
-/*!
-\file GUIRSSControl.h
-\brief
-*/
-
-#ifndef GUILIB_GUIRSSControl_H
-#define GUILIB_GUIRSSControl_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -28,14 +18,18 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIRSSControl.h
+\brief
+*/
+
 #include <vector>
 
 #include "GUIControl.h"
 #include "GUILabel.h"
 #include "utils/IRssObserver.h"
-
-typedef uint32_t color_t;
-typedef std::vector<color_t> vecColors;
 
 class CRssReader;
 
@@ -46,7 +40,9 @@ class CRssReader;
 class CGUIRSSControl : public CGUIControl, public IRssObserver
 {
 public:
-  CGUIRSSControl(int parentID, int controlID, float posX, float posY, float width, float height, const CLabelInfo& labelInfo, const CGUIInfoColor &channelColor, const CGUIInfoColor &headlineColor, std::string& strRSSTags);
+  CGUIRSSControl(int parentID, int controlID, float posX, float posY, float width, float height,
+                 const CLabelInfo& labelInfo, const KODI::GUILIB::GUIINFO::CGUIInfoColor &channelColor,
+                 const KODI::GUILIB::GUIINFO::CGUIInfoColor &headlineColor, std::string& strRSSTags);
   CGUIRSSControl(const CGUIRSSControl &from);
   ~CGUIRSSControl(void) override;
   CGUIRSSControl *Clone() const override { return new CGUIRSSControl(*this); };
@@ -74,8 +70,8 @@ protected:
   std::string m_strRSSTags;
 
   CLabelInfo m_label;
-  CGUIInfoColor m_channelColor;
-  CGUIInfoColor m_headlineColor;
+  KODI::GUILIB::GUIINFO::CGUIInfoColor m_channelColor;
+  KODI::GUILIB::GUIINFO::CGUIInfoColor m_headlineColor;
 
   std::vector<std::string> m_vecUrls;
   std::vector<int> m_vecIntervals;
@@ -85,4 +81,4 @@ protected:
   bool m_stopped;
   int  m_urlset;
 };
-#endif
+

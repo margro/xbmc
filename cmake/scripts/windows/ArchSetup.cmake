@@ -1,3 +1,12 @@
+# Minimum SDK version we support
+set(VS_MINIMUM_SDK_VERSION 10.0.14393.0)
+
+if(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION VERSION_LESS VS_MINIMUM_SDK_VERSION)
+  message(FATAL_ERROR "Detected Windows SDK version is ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}.\n"
+    "Windows SDK ${VS_MINIMUM_SDK_VERSION} or higher is required.\n"
+    "INFO: Windows SDKs can be installed from the Visual Studio installer.")
+endif()
+
 # -------- Architecture settings ---------
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -78,9 +87,9 @@ foreach(_lib ${_nodefaultlibs_DEBUG})
 endforeach()
 
 # DELAYLOAD option
-set(_delayloadlibs zlib.dll libmysql.dll libxslt.dll dnssd.dll dwmapi.dll ssh.dll sqlite3.dll
-                   avcodec-57.dll avfilter-6.dll avformat-57.dll avutil-55.dll
-                   postproc-54.dll swresample-2.dll swscale-4.dll d3dcompiler_47.dll)
+set(_delayloadlibs zlib.dll libmysql.dll libxslt.dll dnssd.dll dwmapi.dll sqlite3.dll
+                   avcodec-58.dll avfilter-7.dll avformat-58.dll avutil-56.dll
+                   postproc-55.dll swresample-3.dll swscale-5.dll d3dcompiler_47.dll)
 foreach(_lib ${_delayloadlibs})
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DELAYLOAD:\"${_lib}\"")
 endforeach()

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include <string>
 
 #include "MediaSource.h"
@@ -33,7 +34,7 @@ public:
   static CMediaSourceSettings& GetInstance();
 
   static std::string GetSourcesFile();
-  
+
   void OnSettingsLoaded() override;
   void OnSettingsUnloaded() override;
 

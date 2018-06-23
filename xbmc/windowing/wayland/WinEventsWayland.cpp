@@ -29,12 +29,13 @@
 
 #include <wayland-client.hpp>
 
-#include "Application.h"
+#include "AppInboundProtocol.h"
+#include "ServiceBroker.h"
 #include "threads/CriticalSection.h"
 #include "threads/SingleLock.h"
 #include "threads/Thread.h"
 #include "utils/log.h"
-#include "utils/posix/FileHandle.h"
+#include "platform/posix/utils/FileHandle.h"
 
 using namespace KODI::UTILS::POSIX;
 using namespace KODI::WINDOWING::WAYLAND;
@@ -192,7 +193,7 @@ private:
           // Read away the char so we don't get another notification
           // Indepentent from m_roundtripQueue so there are no races
           char c;
-          read(m_pipeRead, &c, 1); 
+          read(m_pipeRead, &c, 1);
         }
       }
 
@@ -252,6 +253,7 @@ void CWinEventsWayland::RoundtripQueue(const wayland::event_queue_t& queue)
 
 bool CWinEventsWayland::MessagePump()
 {
+  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
   // Forward any events that may have been pushed to our queue
   while (true)
   {
@@ -271,7 +273,8 @@ bool CWinEventsWayland::MessagePump()
       m_queue.pop();
     }
 
-    g_application.OnEvent(event);
+    if (appPort)
+      appPort->OnEvent(event);
   }
 
   return true;

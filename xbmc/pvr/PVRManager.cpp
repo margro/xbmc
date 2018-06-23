@@ -23,6 +23,7 @@
 #include <utility>
 
 #include "ServiceBroker.h"
+#include "addons/PVRClient.h"
 #include "guilib/LocalizeStrings.h"
 #include "interfaces/AnnouncementManager.h"
 #include "messaging/ApplicationMessenger.h"
@@ -147,7 +148,8 @@ CPVRManager::CPVRManager(void) :
       CSettings::SETTING_PVRPOWERMANAGEMENT_SETWAKEUPCMD,
       CSettings::SETTING_PVRPARENTAL_ENABLED,
       CSettings::SETTING_PVRPARENTAL_DURATION
-    })
+    }),
+    m_playingClientId(-1)
 {
   CAnnouncementManager::GetInstance().AddAnnouncer(this);
 }
@@ -203,6 +205,31 @@ CPVRClientsPtr CPVRManager::Clients(void) const
 {
   // note: m_addons is const (only set/reset in ctor/dtor). no need for a lock here.
   return m_addons;
+}
+
+CPVRClientPtr CPVRManager::GetClient(const CFileItem &item) const
+{
+  int iClientID = PVR_INVALID_CLIENT_ID;
+
+  if (item.HasPVRChannelInfoTag())
+    iClientID = item.GetPVRChannelInfoTag()->ClientID();
+  else if (item.HasPVRRecordingInfoTag())
+    iClientID = item.GetPVRRecordingInfoTag()->m_iClientId;
+  else if (item.HasPVRTimerInfoTag())
+    iClientID = item.GetPVRTimerInfoTag()->m_iClientId;
+  else if (item.HasEPGInfoTag())
+    iClientID = item.GetEPGInfoTag()->ClientID();
+
+  return GetClient(iClientID);
+}
+
+CPVRClientPtr CPVRManager::GetClient(int iClientId) const
+{
+  CPVRClientPtr client;
+  if (iClientId != PVR_INVALID_CLIENT_ID)
+    m_addons->GetCreatedClient(iClientId, client);
+
+  return client;
 }
 
 CPVRGUIActionsPtr CPVRManager::GUIActions(void) const
@@ -642,10 +669,32 @@ CPVREpgInfoTagPtr CPVRManager::GetPlayingEpgTag(void) const
   return m_playingEpgTag;
 }
 
+std::string CPVRManager::GetPlayingClientName(void) const
+{
+  return m_strPlayingClientName;
+}
+
+int CPVRManager::GetPlayingClientID(void) const
+{
+  return m_playingClientId;
+}
+
 bool CPVRManager::IsRecordingOnPlayingChannel(void) const
 {
   const CPVRChannelPtr currentChannel = GetPlayingChannel();
   return currentChannel && currentChannel->IsRecording();
+}
+
+bool CPVRManager::IsTimeshifting(void) const
+{
+  bool bTimeshifting = false;
+  if (m_playingChannel)
+  {
+    const CPVRClientPtr client = GetClient(m_playingChannel->ClientID());
+    if (client)
+      client->IsTimeshifting(bTimeshifting);
+  }
+  return bTimeshifting;
 }
 
 bool CPVRManager::CanRecordOnPlayingChannel(void) const
@@ -718,55 +767,40 @@ CPVRChannelGroupPtr CPVRManager::GetPlayingGroup(bool bRadio /* = false */)
   return CPVRChannelGroupPtr();
 }
 
-bool CPVRManager::OpenLiveStream(const CFileItem &fileItem)
-{
-  bool bReturn(false);
-
-  if (!fileItem.HasPVRChannelInfoTag())
-    return bReturn;
-
-  CLog::Log(LOGDEBUG,"PVRManager - %s - opening live stream on channel '%s'",
-      __FUNCTION__, fileItem.GetPVRChannelInfoTag()->ChannelName().c_str());
-
-  // check if we're allowed to play this file
-  const CPVRChannelPtr channel = fileItem.GetPVRChannelInfoTag();
-  if (!IsParentalLocked(channel))
-    bReturn = m_addons->OpenStream(channel);
-
-  return bReturn;
-}
-
-bool CPVRManager::OpenRecordedStream(const CPVRRecordingPtr &recording)
-{
-  return m_addons->OpenStream(recording);
-}
-
-void CPVRManager::CloseStream(void)
-{
-  m_addons->CloseStream();
-}
-
 void CPVRManager::OnPlaybackStarted(const CFileItemPtr item)
 {
   m_playingChannel.reset();
   m_playingRecording.reset();
   m_playingEpgTag.reset();
+  m_playingClientId = -1;
+  m_strPlayingClientName.clear();
 
   if (item->HasPVRChannelInfoTag())
   {
     const CPVRChannelPtr channel(item->GetPVRChannelInfoTag());
 
     m_playingChannel = channel;
+    m_playingClientId = m_playingChannel->ClientID();
+
     SetPlayingGroup(channel);
     UpdateLastWatched(channel);
   }
   else if (item->HasPVRRecordingInfoTag())
   {
     m_playingRecording = item->GetPVRRecordingInfoTag();
+    m_playingClientId = m_playingRecording->m_iClientId;
   }
   else if (item->HasEPGInfoTag())
   {
     m_playingEpgTag = item->GetEPGInfoTag();
+    m_playingClientId = m_playingEpgTag->ClientID();
+  }
+
+  if (m_playingClientId != -1)
+  {
+    const CPVRClientPtr client = GetClient(m_playingClientId);
+    if (client)
+      m_strPlayingClientName = client->GetFriendlyName();
   }
 
   m_guiActions->OnPlaybackStarted(item);
@@ -780,14 +814,20 @@ void CPVRManager::OnPlaybackStopped(const CFileItemPtr item)
   {
     UpdateLastWatched(item->GetPVRChannelInfoTag());
     m_playingChannel.reset();
+    m_playingClientId = -1;
+    m_strPlayingClientName.clear();
   }
   else if (item->HasPVRRecordingInfoTag() && item->GetPVRRecordingInfoTag() == m_playingRecording)
   {
     m_playingRecording.reset();
+    m_playingClientId = -1;
+    m_strPlayingClientName.clear();
   }
   else if (item->HasEPGInfoTag() && item->GetEPGInfoTag() == m_playingEpgTag)
   {
     m_playingEpgTag.reset();
+    m_playingClientId = -1;
+    m_strPlayingClientName.clear();
   }
 
   m_guiActions->OnPlaybackStopped(item);
@@ -797,36 +837,6 @@ void CPVRManager::OnPlaybackEnded(const CFileItemPtr item)
 {
   // Playback ended, but not due to user interaction
   OnPlaybackStopped(item);
-}
-
-int CPVRManager::GetTotalTime(void) const
-{
-  return IsStarted() && m_guiInfo ? m_guiInfo->GetDuration() : 0;
-}
-
-int CPVRManager::GetStartTime(void) const
-{
-  return IsStarted() && m_guiInfo ? m_guiInfo->GetPlayingTime() : 0;
-}
-
-bool CPVRManager::TranslateBoolInfo(DWORD dwInfo) const
-{
-   return IsStarted() && m_guiInfo ? m_guiInfo->TranslateBoolInfo(dwInfo) : false;
-}
-
-bool CPVRManager::TranslateCharInfo(DWORD dwInfo, std::string &strValue) const
-{
-  return IsStarted() && m_guiInfo ? m_guiInfo->TranslateCharInfo(dwInfo, strValue) : false;
-}
-
-int CPVRManager::TranslateIntInfo(const CFileItem &item, DWORD dwInfo) const
-{
-  return IsStarted() && m_guiInfo ? m_guiInfo->TranslateIntInfo(item, dwInfo) : 0;
-}
-
-bool CPVRManager::GetVideoLabel(const CFileItem &item, int iLabel, std::string &strValue) const
-{
-  return IsStarted() && m_guiInfo ? m_guiInfo->GetVideoLabel(item, iLabel, strValue) : false;
 }
 
 bool CPVRManager::IsRecording(void) const
@@ -878,14 +888,17 @@ void CPVRManager::SearchMissingChannelIcons(void)
 
 bool CPVRManager::FillStreamFileItem(CFileItem &fileItem)
 {
-  if (fileItem.IsPVRChannel())
-    return m_addons->FillChannelStreamFileItem(fileItem);
-  else if (fileItem.IsPVRRecording())
-    return m_addons->FillRecordingStreamFileItem(fileItem);
-  else if (fileItem.IsEPG())
-    return m_addons->FillEpgTagStreamFileItem(fileItem);
-  else
-    return false;
+  const CPVRClientPtr client = GetClient(fileItem);
+  if (client)
+  {
+    if (fileItem.IsPVRChannel())
+      return client->FillChannelStreamFileItem(fileItem) == PVR_ERROR_NO_ERROR;
+    else if (fileItem.IsPVRRecording())
+      return client->FillRecordingStreamFileItem(fileItem) == PVR_ERROR_NO_ERROR;
+    else if (fileItem.IsEPG())
+      return client->FillEpgTagStreamFileItem(fileItem) == PVR_ERROR_NO_ERROR;
+  }
+  return false;
 }
 
 void CPVRManager::TriggerEpgsCreate(void)
@@ -935,11 +948,6 @@ bool CPVRManager::CreateChannelEpgs(void)
   CSingleLock lock(m_critSection);
   m_bEpgsCreated = bEpgsCreated;
   return m_bEpgsCreated;
-}
-
-std::string CPVRManager::GetPlayingTVGroupName()
-{
-  return IsStarted() && m_guiInfo ? m_guiInfo->GetPlayingTVGroup() : "";
 }
 
 void CPVRManager::UpdateLastWatched(const CPVRChannelPtr &channel)

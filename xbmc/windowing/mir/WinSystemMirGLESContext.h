@@ -18,7 +18,6 @@
  *
  */
 
-
 #pragma once
 
 #include "GLContextEGL.h"
@@ -32,12 +31,14 @@ public:
   CWinSystemMirGLESContext() = default;
   virtual ~CWinSystemMirGLESContext() = default;
 
+  // Implementation of CWinSystemBase via CWinSystemMir
+  CRenderSystemBase *GetRenderSystem() override { return this; }
   bool CreateNewWindow(const std::string& name,
                        bool fullScreen,
                        RESOLUTION_INFO& res) override;
 
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
-  bool IsExtSupported(const char* extension) override;
+  bool IsExtSupported(const char* extension) const override;
   EGLDisplay GetEGLDisplay() const;
   EGLSurface GetEGLSurface() const;
   EGLContext GetEGLContext() const;
@@ -51,8 +52,3 @@ private:
   CGLContextEGL m_pGLContext;
 
 };
-
-#if defined(HAS_GLES)
-XBMC_GLOBAL_REF(CWinSystemMirGLESContext, g_Windowing);
-#define g_Windowing XBMC_GLOBAL_USE(CWinSystemMirGLESContext)
-#endif

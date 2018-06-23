@@ -1,4 +1,3 @@
-#pragma once
 /*
 *      Copyright (C) 2017 Team Kodi
 *      http://kodi.tv
@@ -19,9 +18,11 @@
 *
 */
 
+#pragma once
+
 #include <stdint.h>
 
-class CBitstreamWriter 
+class CBitstreamWriter
 {
 public:
   CBitstreamWriter(uint8_t *buffer, unsigned int buffer_size, int writer_le);

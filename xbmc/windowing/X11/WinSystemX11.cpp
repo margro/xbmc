@@ -23,7 +23,7 @@
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
 #include "settings/lib/Setting.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "guilib/Texture.h"
 #include "guilib/DispResource.h"
 #include "utils/log.h"
@@ -41,7 +41,7 @@
 #include "WinEventsX11.h"
 #include "input/InputManager.h"
 #include "OSScreenSaverX11.h"
-#include "powermanagement/linux/LinuxPowerSyscall.h"
+#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
 
 using namespace KODI::MESSAGING;
 using namespace KODI::WINDOWING;
@@ -415,7 +415,7 @@ void CWinSystemX11::UpdateResolutions()
       res.fRefreshRate = mode.hz;
       res.bFullScreen  = true;
 
-      g_graphicsContext.ResetOverscan(res);
+      CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(res);
       CDisplaySettings::GetInstance().AddResolutionInfo(res);
     }
   }
@@ -454,6 +454,11 @@ bool CWinSystemX11::HasCalibration(const RESOLUTION_INFO &resInfo)
     return true;
 
   return false;
+}
+
+bool CWinSystemX11::UseLimitedColor()
+{
+  return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
 }
 
 void CWinSystemX11::GetConnectedOutputs(std::vector<std::string> *outputs)
@@ -551,7 +556,7 @@ void CWinSystemX11::NotifyXRREvent()
 {
   CLog::Log(LOGDEBUG, "%s - notify display reset event", __FUNCTION__);
 
-  CSingleLock lock(g_graphicsContext);
+  CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
   if (!g_xrandr.Query(true))
   {
@@ -572,7 +577,7 @@ void CWinSystemX11::RecreateWindow()
 {
   m_windowDirty = true;
 
-  CSingleLock lock(g_graphicsContext);
+  CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
   XOutput *out = g_xrandr.GetOutput(m_userOutput);
   XMode   mode = g_xrandr.GetCurrentMode(m_userOutput);
@@ -602,18 +607,15 @@ void CWinSystemX11::RecreateWindow()
     i = RES_DESKTOP;
   }
 
-  if (g_graphicsContext.IsFullScreenRoot())
-    g_graphicsContext.SetVideoResolution((RESOLUTION)i, true);
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
+    CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution((RESOLUTION)i, true);
   else
-    g_graphicsContext.SetVideoResolution(RES_WINDOW, true);
+    CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(RES_WINDOW, true);
 }
 
 void CWinSystemX11::OnLostDevice()
 {
   CLog::Log(LOGDEBUG, "%s - notify display change event", __FUNCTION__);
-
-  // make sure renderer has no invalid references
-  KODI::MESSAGING::CApplicationMessenger::GetInstance().SendMsg(TMSG_RENDERER_FLUSH);
 
   { CSingleLock lock(m_resourceSection);
     for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
@@ -1057,5 +1059,10 @@ void CWinSystemX11::UpdateCrtc()
                         &posx, &posy, &child);
 
   m_crtc = g_xrandr.GetCrtc(posx+winattr.width/2, posy+winattr.height/2, fps);
-  g_graphicsContext.SetFPS(fps);
+  CServiceBroker::GetWinSystem()->GetGfxContext().SetFPS(fps);
+}
+
+bool CWinSystemX11::MessagePump()
+{
+  return m_winEvents->MessagePump();
 }

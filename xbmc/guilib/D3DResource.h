@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "utils/Color.h"
 #include "utils/Geometry.h"
 #include "GUIColorManager.h"
 
@@ -50,6 +51,12 @@ public:
 
   virtual void OnDestroyDevice(bool fatal)=0;
   virtual void OnCreateDevice()=0;
+
+protected:
+  void Register();
+  void Unregister();
+
+  bool m_bRegistered = false;
 };
 
 class CD3DHelper
@@ -116,16 +123,16 @@ public:
   void GenerateMipmaps();
 
   // static methods
-  static void DrawQuad(const CPoint points[4], color_t color, CD3DTexture *texture, const CRect *texCoords,
+  static void DrawQuad(const CPoint points[4], UTILS::Color color, CD3DTexture *texture, const CRect *texCoords,
     SHADER_METHOD options = SHADER_METHOD_RENDER_TEXTURE_BLEND);
 
-  static void DrawQuad(const CPoint points[4], color_t color, unsigned numViews, ID3D11ShaderResourceView **view, const CRect *texCoords,
+  static void DrawQuad(const CPoint points[4], UTILS::Color color, unsigned numViews, ID3D11ShaderResourceView **view, const CRect *texCoords,
     SHADER_METHOD options = SHADER_METHOD_RENDER_TEXTURE_BLEND);
 
-  static void DrawQuad(const CRect &coords, color_t color, CD3DTexture *texture, const CRect *texCoords,
+  static void DrawQuad(const CRect &coords, UTILS::Color color, CD3DTexture *texture, const CRect *texCoords,
     SHADER_METHOD options = SHADER_METHOD_RENDER_TEXTURE_BLEND);
 
-  static void DrawQuad(const CRect &coords, color_t color, unsigned numViews, ID3D11ShaderResourceView **view, const CRect *texCoords,
+  static void DrawQuad(const CRect &coords, UTILS::Color color, unsigned numViews, ID3D11ShaderResourceView **view, const CRect *texCoords,
     SHADER_METHOD options = SHADER_METHOD_RENDER_TEXTURE_BLEND);
 
   void OnDestroyDevice(bool fatal) override;

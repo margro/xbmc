@@ -17,7 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
+
 #include <string>
 
 #include "settings/lib/ISettingsHandler.h"
@@ -27,7 +29,7 @@ class CUPnPSettings : public ISettingsHandler
 {
 public:
   static CUPnPSettings& GetInstance();
-  
+
   void OnSettingsUnloaded() override;
 
   bool Load(const std::string &file);

@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "input/joysticks/JoystickTypes.h"
@@ -66,7 +67,7 @@ class IWindowKeymap
 {
 public:
   virtual ~IWindowKeymap() = default;
-  
+
   /*!
    * \brief The controller ID
    *

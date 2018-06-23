@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -19,9 +18,11 @@
  *
  */
 
+#pragma once
+
 extern "C"
 {
-  
+
 struct AddonGlobalInterface;
 
 namespace ADDON

@@ -23,7 +23,7 @@
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "threads/SingleLock.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "settings/Settings.h"
 #include "windowing/VideoSync.h"
 #include "windowing/WinSystem.h"
@@ -74,7 +74,7 @@ void CVideoReferenceClock::Process()
 
   while(!m_bStop)
   {
-    m_pVideoSync = CServiceBroker::GetWinSystem().GetVideoSync(this);
+    m_pVideoSync = CServiceBroker::GetWinSystem()->GetVideoSync(this);
 
     if (m_pVideoSync)
     {

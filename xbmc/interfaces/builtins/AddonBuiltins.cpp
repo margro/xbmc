@@ -32,6 +32,7 @@
 #include "FileItem.h"
 #include "filesystem/PluginDirectory.h"
 #include "games/tags/GameInfoTag.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
@@ -40,6 +41,7 @@
 #include "utils/URIUtils.h"
 #include "Application.h"
 #include "PlayListPlayer.h"
+#include "ServiceBroker.h"
 
 #if defined(TARGET_DARWIN)
 #include "filesystem/SpecialProtocol.h"
@@ -249,7 +251,7 @@ static int OpenDefaultSettings(const std::vector<std::string>& params)
   {
     bool changed = CGUIDialogAddonSettings::ShowForAddon(addon);
     if (type == ADDON_VIZ && changed)
-      g_windowManager.SendMessage(GUI_MSG_VISUALISATION_RELOAD, 0, 0);
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(GUI_MSG_VISUALISATION_RELOAD, 0, 0);
   }
 
   return 0;
@@ -267,12 +269,12 @@ static int SetDefaultAddon(const std::vector<std::string>& params)
   if (type == ADDON_VIZ)
     allowNone = true;
 
-  if (type != ADDON_UNKNOWN && 
+  if (type != ADDON_UNKNOWN &&
       CGUIWindowAddonBrowser::SelectAddonID(type,addonID,allowNone))
   {
     CAddonSystemSettings::GetInstance().SetActive(type, addonID);
     if (type == ADDON_VIZ)
-      g_windowManager.SendMessage(GUI_MSG_VISUALISATION_RELOAD, 0, 0);
+      CServiceBroker::GetGUI()->GetWindowManager().SendMessage(GUI_MSG_VISUALISATION_RELOAD, 0, 0);
   }
 
   return 0;

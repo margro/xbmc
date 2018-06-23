@@ -20,12 +20,14 @@
 
 #include "VideoLibraryRefreshingJob.h"
 #include "NfoFile.h"
+#include "ServiceBroker.h"
 #include "TextureDatabase.h"
 #include "addons/Scraper.h"
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogYesNo.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -39,6 +41,7 @@
 #include "video/VideoInfoScanner.h"
 #include "video/tags/IVideoInfoTagLoader.h"
 #include "video/tags/VideoInfoTagLoaderFactory.h"
+#include "video/tags/VideoTagLoaderPlugin.h"
 
 using namespace KODI::MESSAGING;
 using namespace VIDEO;
@@ -94,18 +97,32 @@ bool CVideoLibraryRefreshingJob::Work(CVideoDatabase &db)
   bool failure = false;
   do
   {
+    std::unique_ptr<CVideoInfoTag> pluginTag;
+    std::unique_ptr<CGUIListItem::ArtMap> pluginArt;
+
     if (!ignoreNfo)
     {
       std::unique_ptr<IVideoInfoTagLoader> loader;
       loader.reset(CVideoInfoTagLoaderFactory::CreateLoader(*m_item, scraper,
-                                                            scanSettings.parent_name_root));
+                                                            scanSettings.parent_name_root, m_forceRefresh));
       // check if there's an NFO for the item
       CInfoScanner::INFO_TYPE nfoResult = CInfoScanner::NO_NFO;
       if (loader)
       {
-        CVideoInfoTag dummy;
-        nfoResult = loader->Load(dummy, false);
-        if (nfoResult == CInfoScanner::URL_NFO)
+        std::unique_ptr<CVideoInfoTag> tag(new CVideoInfoTag());
+        nfoResult = loader->Load(*tag, false);
+        if (nfoResult == CInfoScanner::FULL_NFO && m_item->IsPlugin() && scraper->ID() == "metadata.local")
+        {
+          // get video info and art from plugin source with metadata.local scraper
+          if (scraper->Content() == CONTENT_TVSHOWS && !m_item->m_bIsFolder && tag->m_iIdShow < 0)
+            // preserve show_id for episode
+            tag->m_iIdShow = m_item->GetVideoInfoTag()->m_iIdShow;
+          pluginTag = std::move(tag);
+          CVideoTagLoaderPlugin* nfo = dynamic_cast<CVideoTagLoaderPlugin*>(loader.get());
+          if (nfo && nfo->GetArt())
+            pluginArt = std::move(nfo->GetArt());
+        }
+        else if (nfoResult == CInfoScanner::URL_NFO)
           scraperUrl = loader->ScraperUrl();
       }
 
@@ -155,7 +172,7 @@ bool CVideoLibraryRefreshingJob::Work(CVideoDatabase &db)
 
       // try to find a matching item
       MOVIELIST itemResultList;
-      int result = infoDownloader.FindMovie(itemTitle, itemResultList, GetProgressDialog());
+      int result = infoDownloader.FindMovie(itemTitle, -1, itemResultList, GetProgressDialog());
 
       // close the progress dialog
       MarkFinished();
@@ -171,7 +188,7 @@ bool CVideoLibraryRefreshingJob::Work(CVideoDatabase &db)
           else
           {
             // ask the user what to do
-            CGUIDialogSelect* selectDialog = g_windowManager.GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
+            CGUIDialogSelect* selectDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogSelect>(WINDOW_DIALOG_SELECT);
             selectDialog->Reset();
             selectDialog->SetHeading(scraper->Content() == CONTENT_TVSHOWS ? 20356 : 196);
             for (const auto& itemResult : itemResultList)
@@ -304,6 +321,16 @@ bool CVideoLibraryRefreshingJob::Work(CVideoDatabase &db)
           db.DeleteDetailsForTvShow(dbId);
       }
     }
+
+    if (pluginTag || pluginArt)
+      // set video info and art from plugin source with metadata.local scraper to items
+      for (auto &i: items)
+      {
+        if (pluginTag)
+          *i->GetVideoInfoTag() = *pluginTag;
+        if (pluginArt)
+          i->SetArt(*pluginArt);
+      }
 
     // finally download the information for the item
     CVideoInfoScanner scanner;

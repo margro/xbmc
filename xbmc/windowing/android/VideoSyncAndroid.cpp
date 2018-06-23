@@ -25,7 +25,7 @@
 #include "utils/TimeUtils.h"
 #include "platform/android/activity/XBMCApp.h"
 #include "windowing/WinSystem.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "utils/MathUtils.h"
 #include "platform/linux/XTimeUtils.h"
 
@@ -40,7 +40,7 @@ bool CVideoSyncAndroid::Setup(PUPDATECLOCK func)
   m_abortEvent.Reset();
 
   CXBMCApp::InitFrameCallback(this);
-  CServiceBroker::GetWinSystem().Register(this);
+  CServiceBroker::GetWinSystem()->Register(this);
 
   return true;
 }
@@ -55,12 +55,12 @@ void CVideoSyncAndroid::Cleanup()
 {
   CLog::Log(LOGDEBUG, "CVideoSyncAndroid::%s cleaning up", __FUNCTION__);
   CXBMCApp::DeinitFrameCallback();
-  CServiceBroker::GetWinSystem().Unregister(this);
+  CServiceBroker::GetWinSystem()->Unregister(this);
 }
 
 float CVideoSyncAndroid::GetFps()
 {
-  m_fps = g_graphicsContext.GetFPS();
+  m_fps = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
   CLog::Log(LOGDEBUG, "CVideoSyncAndroid::%s Detected refreshrate: %f hertz", __FUNCTION__, m_fps);
   return m_fps;
 }

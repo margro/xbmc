@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,13 +18,14 @@
  *
  */
 
+#pragma once
+
 #include "Addon.h"
 #include "AddonDatabase.h"
 #include "Repository.h"
 #include "threads/CriticalSection.h"
 #include "utils/EventStream.h"
 
-class DllLibCPluff;
 extern "C"
 {
 #include "lib/cpluff/libcpluff/cpluff.h"
@@ -150,7 +150,7 @@ namespace ADDON
     bool FindInstallableById(const std::string& addonId, AddonPtr& addon);
 
     void AddToUpdateableAddons(AddonPtr &pAddon);
-    void RemoveFromUpdateableAddons(AddonPtr &pAddon);    
+    void RemoveFromUpdateableAddons(AddonPtr &pAddon);
     bool ReloadSettings(const std::string &id);
 
     /*! Get addons with available updates */
@@ -288,14 +288,13 @@ namespace ADDON
     std::vector<DependencyInfo> GetDepsRecursive(const std::string& id);
 
     static AddonPtr Factory(const cp_plugin_info_t* plugin, TYPE type);
-    static bool Factory(const cp_plugin_info_t* plugin, TYPE type, CAddonBuilder& builder, bool ignoreExtensions = false);
-    static void FillCpluffMetadata(const cp_plugin_info_t* plugin, CAddonBuilder& builder);
+    static bool Factory(const cp_plugin_info_t* plugin, TYPE type, CAddonBuilder& builder, bool ignoreExtensions = false, const CRepository::DirInfo& repo = {});
+    static void FillCpluffMetadata(const cp_plugin_info_t* plugin, CAddonBuilder& builder, const CRepository::DirInfo& repo);
 
   private:
     CAddonMgr& operator=(CAddonMgr const&) = delete;
     /* libcpluff */
     cp_context_t *m_cp_context;
-    std::unique_ptr<DllLibCPluff> m_cpluff;
     VECADDONS    m_updateableAddons;
 
     /*! \brief Check whether this addon is supported on the current platform

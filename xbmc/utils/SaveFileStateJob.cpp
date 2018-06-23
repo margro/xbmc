@@ -29,12 +29,14 @@
 #include "video/VideoDatabase.h"
 #include "interfaces/AnnouncementManager.h"
 #include "Util.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
 #include "GUIUserMessages.h"
 #include "music/MusicDatabase.h"
 #include "xbmc/music/tags/MusicInfoTag.h"
 #include "Application.h"
+#include "ServiceBroker.h"
 
 void CSaveFileState::DoWork(CFileItem& item,
                             CBookmark& bookmark,
@@ -74,6 +76,19 @@ void CSaveFileState::DoWork(CFileItem& item,
       }
       else
       {
+        if (URIUtils::IsPlugin(progressTrackingFile) && !(item.HasVideoInfoTag() && item.GetVideoInfoTag()->m_iDbId >= 0))
+        {
+          // FileItem from plugin can lack information, make sure all needed fields are set
+          CVideoInfoTag *tag = item.GetVideoInfoTag();
+          CStreamDetails streams = tag->m_streamDetails;
+          if (videodatabase.LoadVideoInfo(progressTrackingFile, *tag))
+          {
+            item.SetPath(progressTrackingFile);
+            item.ClearProperty("original_listitem_url");
+            tag->m_streamDetails = streams;
+          }
+        }
+
         bool updateListing = false;
         // No resume & watched status for livetv
         if (!item.IsLiveTV())
@@ -155,8 +170,8 @@ void CSaveFileState::DoWork(CFileItem& item,
           CFileItemPtr msgItem(new CFileItem(item));
           if (item.HasProperty("original_listitem_url"))
             msgItem->SetPath(item.GetProperty("original_listitem_url").asString());
-          CGUIMessage message(GUI_MSG_NOTIFY_ALL, g_windowManager.GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, 1, msgItem); // 1 to update the listing as well
-          g_windowManager.SendThreadMessage(message);
+          CGUIMessage message(GUI_MSG_NOTIFY_ALL, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, 0, msgItem);
+          CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(message);
         }
       }
     }

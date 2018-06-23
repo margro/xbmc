@@ -15,9 +15,10 @@
 /target/*/x86/*
 /target/*/x86_64-linux-gnu-*/*
 /target/*/armeabi-v7a-*/*
-/target/*/arm-linux-gnueabihf-*/*
-/target/*/arm-linux-androideabi-*/*
-/target/*/arm-linux-gnueabi-*/*
+/target/*/arm*-linux-gnueabihf-*/*
+/target/*/arm*-linux-androideabi-*/*
+/target/*/arm*-linux-gnueabi-*/*
+/target/*/aarch64-linux-gnu-*/*
 /target/*/macosx*.*_x86_64-target-*/
 /target/*/macosx*.*_x86_64-target-*/*
 /target/*/macosx*.*_i386-target-*/
@@ -48,5 +49,6 @@ config.site.native
 /tools/depends/target/ffmpeg/ffmpeg-install/
 /tools/depends/target/Toolchain_binaddons.cmake
 /tools/depends/target/config-binaddons.site
+/target/cross-file.meson
 /target/libfmt/fmt-*.tar.gz
 /target/rapidjson/rapidjson-*.tar.gz

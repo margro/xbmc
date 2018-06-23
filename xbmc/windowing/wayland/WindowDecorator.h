@@ -17,6 +17,7 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <array>
@@ -32,7 +33,7 @@
 #include "threads/CriticalSection.h"
 #include "Util.h"
 #include "utils/Geometry.h"
-#include "utils/posix/SharedMemory.h"
+#include "platform/posix/utils/SharedMemory.h"
 #include "WindowDecorationHandler.h"
 
 namespace KODI

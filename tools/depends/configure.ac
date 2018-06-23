@@ -3,7 +3,7 @@ AC_INIT([xbmc-depends], [2.00], [http://trac.xbmc.org])
 :${CFLAGS=""}
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_FILES([target/config.site native/config.site.native Makefile.include target/Toolchain.cmake
-                 target/config-binaddons.site target/Toolchain_binaddons.cmake])
+                 target/config-binaddons.site target/Toolchain_binaddons.cmake target/cross-file.meson])
 AC_CANONICAL_HOST
 
 m4_include([m4/xbmc_arch.m4])
@@ -184,6 +184,7 @@ case $build in
   ;;
   *darwin*)
     build_os="osx"
+    native_platform_min_version=-mmacosx-version-min=`sw_vers | grep ProductVersion | sed -E "s/.*:.*(10\..*)\.?.*/\1/"`
   ;;
   *)
     AC_MSG_ERROR(unsupported native build platform: $build)
@@ -257,33 +258,21 @@ case $host in
       prefix=/Users/Shared/xbmc-depends
     fi
 
-    native_platform_min_version=-mmacosx-version-min=`sw_vers | grep ProductVersion | sed -E "s/.*:.*(10\..*)\.?.*/\1/"`
     use_xcodepath=`xcode-select -print-path`
     use_xcodebuild=$use_xcodepath/usr/bin/xcodebuild
-    use_xcode=[`$use_xcodebuild -version | grep Xcode | awk '{ print $2}'`]
     AC_MSG_RESULT(found xcodebuild at $use_xcodebuild)
     use_build_toolchain=$use_xcodepath
+    use_toolchain="${use_xcodepath}/Toolchains/XcodeDefault.xctoolchain"
 
     # darwin builds are always cross
     cross_compiling="yes"
 
-    platform_cflags="-std=gnu99 -no_compact_linkedit -no-cpp-precomp"
-    platform_ldflags="-Wl,-search_paths_first -no_compact_linkedit"
-    platform_cxxflags="-no_compact_linkedit -no-cpp-precomp"
+    platform_cc=clang
+    platform_cxx=clang++
+    platform_cflags="-fheinous-gnu-extensions -no-cpp-precomp"
+    platform_ldflags="-Wl,-search_paths_first"
+    platform_cxxflags="-no-cpp-precomp"
 
-    case $use_xcode in
-      4.* | 4.*.*)
-        platform_cc=llvm-gcc-4.2
-        platform_cxx=llvm-g++-4.2
-        ;;
-      *)
-        platform_cc=clang
-        platform_cxx=clang++
-        platform_cflags="-fheinous-gnu-extensions -no-cpp-precomp"
-        platform_ldflags="-Wl,-search_paths_first"
-        platform_cxxflags="-no-cpp-precomp"
-        ;;
-    esac
     case $host in
       *86*-apple-darwin)
         MC_CHECK_NOT_CPU([$use_cpu], "arm")
@@ -311,7 +300,6 @@ case $host in
 
         # now that we know which sdk, error check sdk_name
         case $use_sdk in
-          10.8);;
           10.9);;
           10.10);;
           10.11);;
@@ -321,20 +309,10 @@ case $host in
             AC_MSG_ERROR(error in configure of --with-sdk=$use_sdk)
         esac
         sdk_name=macosx$use_sdk
-        platform_min_version="macosx-version-min=10.8"
+        platform_min_version="macosx-version-min=10.9"
 
         use_sdk_path=[`$use_xcodebuild -version -sdk $sdk_name Path`]
         platform_os="osx"
-
-        # find the matching toolchain
-        case $use_xcode in
-          5.* | 5.*.* )
-            use_toolchain="${use_xcodepath}/Toolchains/XcodeDefault.xctoolchain"
-            ;;
-          *)
-            use_toolchain="${use_toolchain:-$use_xcodepath}"
-            ;;
-        esac
       ;;
 
       arm-apple-darwin*)
@@ -377,8 +355,6 @@ case $host in
             ;;
         esac
 
-        use_toolchain="${use_xcodepath}/Toolchains/XcodeDefault.xctoolchain"
-
         platform_os="ios"
 
         if [ ! test "x$use_cpu" = "xarm64" ]; then
@@ -389,9 +365,9 @@ case $host in
         platform_cflags+=" -Wreturn-type -Wunused-variable -fmessage-length=0 -gdwarf-2"
         platform_cflags+=" -Wno-error=implicit-function-declaration"
         optimize_flags="-O3"
+        use_sdk_path=[`$use_xcodebuild -version -sdk $sdk_name | grep ^Path | awk '{ print $2}'`]
         platform_ldflags+=" -L$use_sdk_path/usr/lib/system"
         platform_cxxflags+=" $cpu_flags"
-        use_sdk_path=[`$use_xcodebuild -version -sdk $sdk_name | grep ^Path | awk '{ print $2}'`]
       ;;
     esac
     platform_cflags+=" -arch $use_cpu -m$platform_min_version"
@@ -429,8 +405,16 @@ case $use_platform in
      target_platform=raspberry-pi
      use_cpu=cortex-a7
      ffmpeg_options_default="--cpu=cortex-a7"
-     platform_cflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4"
-     platform_cxxflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4"
+     platform_cflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4 -mvectorize-with-neon-quad"
+     platform_cxxflags="-fPIC -mcpu=cortex-a7 -mfloat-abi=hard -mfpu=neon-vfpv4 -mvectorize-with-neon-quad"
+     platform_ldflags="-lpthread"
+     ;;
+  raspberry-pi3)
+     target_platform=raspberry-pi
+     use_cpu=cortex-a53
+     ffmpeg_options_default="--cpu=cortex-a53"
+     platform_cflags="-fPIC -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mvectorize-with-neon-quad"
+     platform_cxxflags="-fPIC -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mvectorize-with-neon-quad"
      platform_ldflags="-lpthread"
      ;;
   auto)
@@ -685,7 +669,6 @@ AC_SUBST(has_zlib)
 AC_SUBST(link_iconv)
 AC_SUBST(need_libiconv)
 AC_SUBST(use_gplv3)
-AC_SUBST(use_xcode)
 AC_SUBST(use_ccache)
 AC_SUBST(native_platform_min_version)
 AC_SUBST(app_rendersystem)
@@ -711,6 +694,7 @@ cp -vf target/config.site $prefix/$deps_dir/share
 cp -vf target/config-binaddons.site $prefix/$tool_dir/share
 cp -vf target/Toolchain.cmake $prefix/$deps_dir/share
 cp -vf target/Toolchain_binaddons.cmake $prefix/$deps_dir/share
+cp -vf target/cross-file.meson $prefix/$deps_dir/share
 cp -vf native/config.site.native $prefix/$tool_dir/share/config.site
 
 

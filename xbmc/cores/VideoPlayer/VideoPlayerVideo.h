@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "threads/Thread.h"
 #include "IVideoPlayer.h"
@@ -74,7 +74,6 @@ public:
 
   void EnableSubtitle(bool bEnable) override { m_bRenderSubs = bEnable; }
   bool IsSubtitleEnabled() override { return m_bRenderSubs; }
-  void EnableFullscreen(bool bEnable) override { m_bAllowFullscreen = bEnable; }
   double GetSubtitleDelay() override { return m_iSubtitleDelay; }
   void SetSubtitleDelay(double delay) override { m_iSubtitleDelay = delay; }
   bool IsStalled() const override { return m_stalled; }
@@ -129,7 +128,6 @@ protected:
                              //this is increased exponentially from CVideoPlayerVideo::CalcFrameRate()
 
   bool m_bFpsInvalid;        // needed to ignore fps (e.g. dvd stills)
-  bool m_bAllowFullscreen;
   bool m_bRenderSubs;
   float m_fForcedAspectRatio;
   int m_speed;

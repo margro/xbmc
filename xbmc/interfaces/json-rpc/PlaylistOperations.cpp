@@ -36,15 +36,15 @@ JSONRPC_STATUS CPlaylistOperations::GetPlaylists(const std::string &method, ITra
 {
   result = CVariant(CVariant::VariantTypeArray);
   CVariant playlist = CVariant(CVariant::VariantTypeObject);
-  
+
   playlist["playlistid"] = PLAYLIST_MUSIC;
   playlist["type"] = "audio";
   result.append(playlist);
-  
+
   playlist["playlistid"] = PLAYLIST_VIDEO;
   playlist["type"] = "video";
   result.append(playlist);
-  
+
   playlist["playlistid"] = PLAYLIST_PICTURE;
   playlist["type"] = "picture";
   result.append(playlist);
@@ -83,7 +83,7 @@ JSONRPC_STATUS CPlaylistOperations::GetItems(const std::string &method, ITranspo
       break;
 
     case PLAYLIST_PICTURE:
-      slideshow = g_windowManager.GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
+      slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
       if (slideshow)
         slideshow->GetSlideShowContents(list);
       break;
@@ -115,7 +115,7 @@ JSONRPC_STATUS CPlaylistOperations::Add(const std::string &method, ITransportLay
   CGUIWindowSlideShow *slideshow = NULL;
   if (playlist == PLAYLIST_PICTURE)
   {
-    slideshow = g_windowManager.GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
+    slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
     if (slideshow == NULL)
       return FailedToExecute;
   }
@@ -149,7 +149,7 @@ JSONRPC_STATUS CPlaylistOperations::Add(const std::string &method, ITransportLay
     default:
       return InvalidParams;
   }
-  
+
   NotifyAll();
   return ACK;
 }
@@ -178,7 +178,7 @@ JSONRPC_STATUS CPlaylistOperations::Remove(const std::string &method, ITransport
   int playlist = GetPlaylist(parameterObject["playlistid"]);
   if (playlist == PLAYLIST_PICTURE)
     return FailedToExecute;
-  
+
   int position = (int)parameterObject["position"].asInteger();
   if (CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() == playlist && CServiceBroker::GetPlaylistPlayer().GetCurrentSong() == position)
     return InvalidParams;
@@ -201,7 +201,7 @@ JSONRPC_STATUS CPlaylistOperations::Clear(const std::string &method, ITransportL
       break;
 
     case PLAYLIST_PICTURE:
-      slideshow = g_windowManager.GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
+      slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
       if (!slideshow)
         return FailedToExecute;
       CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_SLIDESHOW, -1, static_cast<void*>(new CAction(ACTION_STOP)));
@@ -240,7 +240,7 @@ int CPlaylistOperations::GetPlaylist(const CVariant &playlist)
 void CPlaylistOperations::NotifyAll()
 {
   CGUIMessage msg(GUI_MSG_PLAYLIST_CHANGED, 0, 0);
-  g_windowManager.SendThreadMessage(msg);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 JSONRPC_STATUS CPlaylistOperations::GetPropertyValue(int playlist, const std::string &property, CVariant &result)
@@ -252,11 +252,11 @@ JSONRPC_STATUS CPlaylistOperations::GetPropertyValue(int playlist, const std::st
       case PLAYLIST_MUSIC:
         result = "audio";
         break;
-        
+
       case PLAYLIST_VIDEO:
         result = "video";
         break;
-        
+
       case PLAYLIST_PICTURE:
         result = "pictures";
         break;
@@ -279,7 +279,7 @@ JSONRPC_STATUS CPlaylistOperations::GetPropertyValue(int playlist, const std::st
         break;
 
       case PLAYLIST_PICTURE:
-        slideshow = g_windowManager.GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
+        slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
         if (slideshow)
           result = slideshow->NumSlides();
         else

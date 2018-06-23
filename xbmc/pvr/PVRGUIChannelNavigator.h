@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2017 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "threads/CriticalSection.h"
 
@@ -58,6 +59,12 @@ namespace PVR
      * @return True, if the currently selected channel is different from the currently playing channel, False otherwise.
      */
     bool IsPreview() const;
+
+    /*!
+     * @brief Query the state of channel preview and channel info OSD.
+     * @return True, if the currently selected channel is different from the currently playing channel and channel info OSD is active, False otherwise.
+     */
+    bool IsPreviewAndShowInfo() const;
 
     /*!
      * @brief Show the channel info OSD.

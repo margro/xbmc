@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,13 +18,15 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "threads/CriticalSection.h"
 #include "threads/SystemClock.h"
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 #include "cores/IPlayer.h"
 #include "SeekHandler.h"
 
@@ -159,6 +159,8 @@ public:
   void SetVideoSettings(CVideoSettings& settings);
 
   CSeekHandler& GetSeekHandler();
+
+  void SetUpdateStreamDetails();
 
 private:
   std::shared_ptr<IPlayer> GetInternal() const;

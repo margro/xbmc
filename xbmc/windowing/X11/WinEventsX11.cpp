@@ -22,6 +22,7 @@
 #include "xbmc/windowing/WinEvents.h"
 #include "WinEventsX11.h"
 #include "Application.h"
+#include "AppInboundProtocol.h"
 #include "messaging/ApplicationMessenger.h"
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
@@ -30,6 +31,7 @@
 #include "X11/XF86keysym.h"
 #include "utils/log.h"
 #include "utils/CharsetConverter.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/mouse/MouseStat.h"
 #include "input/InputManager.h"
@@ -293,6 +295,7 @@ bool CWinEventsX11::MessagePump()
   bool ret = false;
   XEvent xevent;
   unsigned long serial = 0;
+  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
 
   while (m_display && XPending(m_display))
   {
@@ -324,13 +327,15 @@ bool CWinEventsX11::MessagePump()
     {
       case MapNotify:
       {
-        g_application.SetRenderGUI(true);
+        if (appPort)
+          appPort->SetRenderGUI(true);
         break;
       }
 
       case UnmapNotify:
       {
-        g_application.SetRenderGUI(false);
+        if (appPort)
+          appPort->SetRenderGUI(false);
         break;
       }
 
@@ -358,7 +363,7 @@ bool CWinEventsX11::MessagePump()
 
       case Expose:
       {
-        g_windowManager.MarkDirty();
+        CServiceBroker::GetGUI()->GetWindowManager().MarkDirty();
         break;
       }
 
@@ -373,8 +378,9 @@ bool CWinEventsX11::MessagePump()
         newEvent.type = XBMC_VIDEORESIZE;
         newEvent.resize.w = xevent.xconfigure.width;
         newEvent.resize.h = xevent.xconfigure.height;
-        ret |= g_application.OnEvent(newEvent);
-        g_windowManager.MarkDirty();
+        if (appPort)
+          ret |= appPort->OnEvent(newEvent);
+        CServiceBroker::GetGUI()->GetWindowManager().MarkDirty();
         break;
       }
 
@@ -513,7 +519,8 @@ bool CWinEventsX11::MessagePump()
         newEvent.type = XBMC_MOUSEMOTION;
         newEvent.motion.x = (int16_t)xevent.xmotion.x;
         newEvent.motion.y = (int16_t)xevent.xmotion.y;
-        ret |= g_application.OnEvent(newEvent);
+        if (appPort)
+          ret |= appPort->OnEvent(newEvent);
         break;
       }
 
@@ -525,7 +532,8 @@ bool CWinEventsX11::MessagePump()
         newEvent.button.button = (unsigned char)xevent.xbutton.button;
         newEvent.button.x = (int16_t)xevent.xbutton.x;
         newEvent.button.y = (int16_t)xevent.xbutton.y;
-        ret |= g_application.OnEvent(newEvent);
+        if (appPort)
+          ret |= appPort->OnEvent(newEvent);
         break;
       }
 
@@ -537,7 +545,8 @@ bool CWinEventsX11::MessagePump()
         newEvent.button.button = (unsigned char)xevent.xbutton.button;
         newEvent.button.x = (int16_t)xevent.xbutton.x;
         newEvent.button.y = (int16_t)xevent.xbutton.y;
-        ret |= g_application.OnEvent(newEvent);
+        if (appPort)
+          ret |= appPort->OnEvent(newEvent);
         break;
       }
 
@@ -634,7 +643,10 @@ bool CWinEventsX11::ProcessKey(XBMC_Event &event)
     event.key.keysym.mod = (XBMCMod)m_keymodState;
   }
 
-  return g_application.OnEvent(event);
+  std::shared_ptr<CAppInboundProtocol> appPort = CServiceBroker::GetAppPort();
+  if (appPort)
+    appPort->OnEvent(event);
+  return true;
 }
 
 XBMCKey CWinEventsX11::LookupXbmcKeySym(KeySym keysym)

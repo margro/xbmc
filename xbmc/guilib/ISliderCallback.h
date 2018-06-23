@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2013 Team XBMC
  *      http://www.xbmc.org
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 class CGUISliderControl;
 
 /*!
@@ -37,7 +37,7 @@ class ISliderCallback
 {
 public:
   virtual ~ISliderCallback() = default;
-  
+
   /*!
    \brief Callback function called whenever the user moves the slider
 

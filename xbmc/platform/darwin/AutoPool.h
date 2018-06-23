@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2009-2015 Team Kodi
  *      http://kodi.tv
@@ -20,6 +18,8 @@
  *
  */
 
+#pragma once
+
 class CCocoaAutoPool
 {
   public:
@@ -37,7 +37,7 @@ extern "C"
   //
   void* Cocoa_Create_AutoReleasePool(void);
   void Cocoa_Destroy_AutoReleasePool(void* pool);
-  
+
 #ifdef __cplusplus
 }
 #endif

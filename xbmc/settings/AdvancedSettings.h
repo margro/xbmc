@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <set>
 #include <string>
@@ -205,6 +206,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     bool m_extraLogEnabled;
     int m_extraLogLevels;
     std::string m_cddbAddress;
+    bool m_addSourceOnTop; //!< True to put 'add source' buttons on top
 
     //airtunes + airplay
     int m_airTunesPort;
@@ -232,6 +234,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     StringMapping m_pathSubstitutions;
     int m_remoteDelay; ///< \brief number of remote messages to ignore before repeating
     float m_controllerDeadzone;
+    bool m_bScanIRServer;
 
     bool m_playlistAsFolders;
     bool m_detectAsUdf;
@@ -250,6 +253,8 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
 
     std::string m_musicThumbs;
     std::string m_fanartImages;
+    std::vector<std::string> m_musicArtistExtraArt;
+    std::vector<std::string> m_musicAlbumExtraArt;
 
     int m_iMusicLibraryRecentlyAddedItems;
     int m_iMusicLibraryDateAdded;
@@ -314,6 +319,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     float m_sleepBeforeFlip; ///< if greater than zero, XBMC waits for raster to be this amount through the frame prior to calling the flip
     bool m_bVirtualShares;
     bool m_bAllowDeferredRendering;
+    bool m_bTry10bitOutput;
 
     std::string m_cpuTempCmd;
     std::string m_gpuTempCmd;
@@ -335,7 +341,6 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     DatabaseSettings m_databaseVideo; // advanced video database setup
     DatabaseSettings m_databaseTV;    // advanced tv database setup
     DatabaseSettings m_databaseEpg;   /*!< advanced EPG database setup */
-    DatabaseSettings m_databaseADSP;  /*!< advanced audio dsp database setup */
     DatabaseSettings m_databaseSavestates; /*!< advanced savestate database setup */
 
     bool m_guiVisualizeDirtyRegions;
@@ -374,6 +379,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     std::string m_stereoscopicregex_tab;
 
     bool m_useDisplayControlHWStereo;
+    bool m_allowUseSeparateDeviceForDecoding;
 
     /*!< @brief position behavior of ass subtitles when setting "subtitle position on screen" set to "fixed"
     True to show at the fixed position set in video calibration

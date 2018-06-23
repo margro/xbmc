@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2011-2013 Team XBMC
  *      http://kodi.tv
@@ -20,12 +18,14 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include <vector>
 
 #include <androidjni/Display.h>
 
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 
 class CAndroidUtils
 {

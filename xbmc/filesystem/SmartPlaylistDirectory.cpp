@@ -55,10 +55,10 @@ namespace XFILE
     bool result = GetDirectory(playlist, items);
     if (result)
       items.SetProperty("library.smartplaylist", true);
-    
+
     return result;
   }
-  
+
   bool CSmartPlaylistDirectory::GetDirectory(const CSmartPlaylist &playlist, CFileItemList& items, const std::string &strBaseDir /* = "" */, bool filter /* = false */)
   {
     bool success = false, success2 = false;
@@ -137,7 +137,7 @@ namespace XFILE
           videoUrl.AddOption(option, xsp);
         else
           videoUrl.RemoveOption(option);
-        
+
         CDatabase::Filter dbfilter;
         success = db.GetItems(videoUrl.ToString(), items, dbfilter, sorting);
         db.Close();
@@ -252,7 +252,7 @@ namespace XFILE
           videoUrl.AddOption(option, xsp);
         else
           videoUrl.RemoveOption(option);
-        
+
         CFileItemList items2;
         CDatabase::Filter dbfilter;
         success2 = db.GetItems(videoUrl.ToString(), items2, dbfilter, sorting);
@@ -317,9 +317,9 @@ namespace XFILE
     CFileItemList list;
     bool filesExist = false;
     if (CSmartPlaylist::IsMusicType(playlistType))
-      filesExist = CDirectory::GetDirectory("special://musicplaylists/", list, ".xsp", false);
+      filesExist = CDirectory::GetDirectory("special://musicplaylists/", list, ".xsp", DIR_FLAG_DEFAULTS);
     else // all others are video
-      filesExist = CDirectory::GetDirectory("special://videoplaylists/", list, ".xsp", false);
+      filesExist = CDirectory::GetDirectory("special://videoplaylists/", list, ".xsp", DIR_FLAG_DEFAULTS);
     if (filesExist)
     {
       for (int i = 0; i < list.Size(); i++)

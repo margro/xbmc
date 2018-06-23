@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
@@ -82,12 +82,6 @@ public:
   virtual bool AddData(const DemuxPacket &packet) = 0;
 
   /*
-   * returns nr of bytes in decode buffer
-   * the data is valid until the next call
-   */
-  virtual int GetData(uint8_t** dst) = 0;
-
-  /*
    * the data is valid until the next call
    */
   virtual void GetData(DVDAudioFrame &frame) = 0;
@@ -115,7 +109,7 @@ public:
   /*
    * should return codecs name
    */
-  virtual const char* GetName() = 0;
+  virtual std::string GetName() = 0;
 
   /*
    * should return amount of data decoded has buffered in preparation for next audio frame

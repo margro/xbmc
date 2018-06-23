@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -18,23 +17,25 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
- 
+
+#pragma once
+
 #include <android_native_app_glue.h>
 
 #include "IActivityHandler.h"
 #include "IInputHandler.h"
- 
+
 class CEventLoop
 {
 public:
   CEventLoop(android_app* application);
-  
+
   void run(IActivityHandler &activityHandler, IInputHandler &inputHandler);
-  
+
 protected:
   void activate();
   void deactivate();
-  
+
   void processActivity(int32_t command);
   int32_t processInput(AInputEvent* event);
 

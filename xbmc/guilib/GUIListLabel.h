@@ -1,10 +1,3 @@
-/*!
-\file GUIListLabel.h
-\brief
-*/
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -25,8 +18,16 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIListLabel.h
+\brief
+*/
+
 #include "GUIControl.h"
 #include "GUILabel.h"
+#include "guilib/guiinfo/GUIInfoLabel.h"
 
 /*!
  \ingroup controls
@@ -36,7 +37,8 @@ class CGUIListLabel :
       public CGUIControl
 {
 public:
-  CGUIListLabel(int parentID, int controlID, float posX, float posY, float width, float height, const CLabelInfo& labelInfo, const CGUIInfoLabel &label, CGUIControl::GUISCROLLVALUE scroll);
+  CGUIListLabel(int parentID, int controlID, float posX, float posY, float width, float height,
+                const CLabelInfo& labelInfo, const KODI::GUILIB::GUIINFO::CGUIInfoLabel &label, CGUIControl::GUISCROLLVALUE scroll);
   ~CGUIListLabel(void) override;
   CGUIListLabel *Clone() const override { return new CGUIListLabel(*this); };
 
@@ -63,6 +65,6 @@ protected:
   bool UpdateColors() override;
 
   CGUILabel     m_label;
-  CGUIInfoLabel m_info;
+  KODI::GUILIB::GUIINFO::CGUIInfoLabel m_info;
   CGUIControl::GUISCROLLVALUE m_scroll;
 };

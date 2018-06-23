@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2012 Team XBMC
  *      http://www.xbmc.org
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "filesystem/OverrideFile.h"
 #include "video/VideoDatabase.h"
 
@@ -31,7 +32,7 @@ public:
   ~CVideoDatabaseFile(void) override;
 
   static CVideoInfoTag GetVideoTag(const CURL& url);
-  
+
 protected:
   std::string TranslatePath(const CURL& url) override;
   static VIDEODB_CONTENT_TYPE GetType(const CURL& url);

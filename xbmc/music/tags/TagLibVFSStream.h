@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 #include "filesystem/File.h"
 #include <taglib/tiostream.h>
 
@@ -36,7 +38,7 @@ namespace MUSIC_INFO
      * Destroys this ByteVectorStream instance.
      */
     ~TagLibVFSStream() override;
-    
+
     /*!
      * Returns the file name in the local file system encoding.
      */

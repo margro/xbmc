@@ -28,7 +28,7 @@
 #include "platform/linux/RBP.h"
 #include "utils/StringUtils.h"
 #include "settings/Settings.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "guilib/StereoscopicsManager.h"
 #include "rendering/RenderSystem.h"
 #include <cassert>
@@ -128,7 +128,7 @@ bool CRPIUtils::SetNativeResolution(const RESOLUTION_INFO res, EGLSurface m_nati
 
   DestroyDispmanxWindow();
 
-  RENDER_STEREO_MODE stereo_mode = g_graphicsContext.GetStereoMode();
+  RENDER_STEREO_MODE stereo_mode = CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
   if(GETFLAGS_GROUP(res.dwFlags) && GETFLAGS_MODE(res.dwFlags))
   {
     uint32_t mode3d = HDMI_3D_FORMAT_NONE;
@@ -170,7 +170,7 @@ bool CRPIUtils::SetNativeResolution(const RESOLUTION_INFO res, EGLSurface m_nati
     {
       CLog::Log(LOGDEBUG, "EGL set HDMI mode (%d,%d)=%d %s%s\n",
                           GETFLAGS_GROUP(res.dwFlags), GETFLAGS_MODE(res.dwFlags), success,
-                          CStereoscopicsManager::GetInstance().ConvertGuiStereoModeToString(stereo_mode),
+                          CStereoscopicsManager::ConvertGuiStereoModeToString(stereo_mode),
                           mode3d==HDMI_3D_FORMAT_FRAME_PACKING ? " FP" : mode3d==HDMI_3D_FORMAT_SBS_HALF ? " SBS" : mode3d==HDMI_3D_FORMAT_TB_HALF ? " TB" : "");
 
       sem_wait(&m_tv_synced);
@@ -179,7 +179,7 @@ bool CRPIUtils::SetNativeResolution(const RESOLUTION_INFO res, EGLSurface m_nati
     {
       CLog::Log(LOGERROR, "EGL failed to set HDMI mode (%d,%d)=%d %s%s\n",
                           GETFLAGS_GROUP(res.dwFlags), GETFLAGS_MODE(res.dwFlags), success,
-                          CStereoscopicsManager::GetInstance().ConvertGuiStereoModeToString(stereo_mode),
+                          CStereoscopicsManager::ConvertGuiStereoModeToString(stereo_mode),
                           mode3d==HDMI_3D_FORMAT_FRAME_PACKING ? " FP" : mode3d==HDMI_3D_FORMAT_SBS_HALF ? " SBS" : mode3d==HDMI_3D_FORMAT_TB_HALF ? " TB" : "");
     }
     m_DllBcmHost->vc_tv_unregister_callback(CallbackTvServiceCallback);

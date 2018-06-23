@@ -86,12 +86,11 @@ namespace XBMCAddon
 #endif
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-      // Construct a Player proxying the given generated binding. The 
-      //  construction of a Player needs to identify whether or not any 
+      // Construct a Player proxying the given generated binding. The
+      //  construction of a Player needs to identify whether or not any
       //  callbacks will be executed asynchronously or not.
       explicit Player(int playerCore = 0);
-      //! @todo Switch to 'override' usage once 14.04 (Trusty) hits EOL. swig <3.0 doesn't understand C++11
-      virtual ~Player(void);
+      ~Player(void) override;
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -219,11 +218,41 @@ namespace XBMCAddon
       ///-----------------------------------------------------------------------
       /// onPlayBackStarted method.
       ///
-      /// Will be called when Kodi starts playing a file.
+      /// Will be called when Kodi starts playing a file. Video or audio might not be available at this point.
       ///
       onPlayBackStarted();
 #else
       virtual void onPlayBackStarted();
+#endif
+
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_PlayerCB
+      /// @brief \python_func{ onAVStarted() }
+      ///-----------------------------------------------------------------------
+      /// onAVStarted method.
+      ///
+      /// Will be called when Kodi has a video- or audiostream.
+      ///
+      onAVStarted();
+#else
+      virtual void onAVStarted();
+#endif
+
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_PlayerCB
+      /// @brief \python_func{ onAVChange() }
+      ///-----------------------------------------------------------------------
+      /// onAVChange method.
+      ///
+      /// Will be called when Kodi has a video- or audiostream. Also happens when the stream changes.
+      ///
+      onAVChange();
+#else
+      virtual void onAVChange();
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -418,6 +447,25 @@ namespace XBMCAddon
       isPlayingRDS();
 #else
       bool isPlayingRDS();
+#endif
+
+#ifdef DOXYGEN_SHOULD_USE_THIS
+      ///
+      /// \ingroup python_Player
+      /// @brief \python_func{ isExternalPlayer() }
+      ///-----------------------------------------------------------------------
+      /// Check for external player.
+      ///
+      /// @return                    True if kodi is playing using an
+      ///                            external player.
+      ///
+      ///
+      ///-----------------------------------------------------------------------
+      /// @python_v18 New function added.
+      ///
+      isExternalPlayer();
+#else
+      bool isExternalPlayer();
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
@@ -759,6 +807,8 @@ namespace XBMCAddon
 
 #if !defined SWIG && !defined DOXYGEN_SHOULD_SKIP_THIS
       SWIGHIDDENVIRTUAL void OnPlayBackStarted(const CFileItem &file) override;
+      SWIGHIDDENVIRTUAL void OnAVStarted(const CFileItem &file) override;
+      SWIGHIDDENVIRTUAL void OnAVChange() override;
       SWIGHIDDENVIRTUAL void OnPlayBackEnded() override;
       SWIGHIDDENVIRTUAL void OnPlayBackStopped() override;
       SWIGHIDDENVIRTUAL void OnPlayBackError() override;

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "utils/UrlOptions.h"
 
 class CFileItemList;
@@ -36,6 +37,7 @@ namespace XFILE
       NODE_TYPE_OVERVIEW,
       NODE_TYPE_TOP100,
       NODE_TYPE_ROLE,
+      NODE_TYPE_SOURCE,
       NODE_TYPE_GENRE,
       NODE_TYPE_ARTIST,
       NODE_TYPE_ALBUM,

@@ -17,10 +17,12 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "guilib/Resolution.h"
+#include "windowing/Resolution.h"
 #include "rendering/RenderSystemTypes.h"
+#include "utils/Color.h"
 #include "utils/Geometry.h"
 
 class CCriticalSection;
@@ -37,6 +39,7 @@ enum class GL_SHADER_METHOD
 {
   DEFAULT,
   TEXTURE,
+  TEXTURE_RGBA_OES,
 };
 
 namespace KODI
@@ -86,10 +89,10 @@ namespace RETRO
     bool IsFullScreenVideo();
     bool IsCalibrating();
     RESOLUTION GetVideoResolution();
-    void Clear(color_t color = 0);
+    void Clear(UTILS::Color color = 0);
     RESOLUTION_INFO GetResInfo();
     void SetRenderingResolution(const RESOLUTION_INFO &res, bool needsScaling);
-    color_t MergeAlpha(color_t color);
+    UTILS::Color MergeAlpha(UTILS::Color color);
     void SetTransform(const TransformMatrix &matrix, float scaleX, float scaleY);
     void RemoveTransform();
     CRect StereoCorrection(const CRect &rect);

@@ -17,9 +17,11 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "threads/CriticalSection.h"
+#include <atomic>
+
 #include "threads/Event.h"
 #include "threads/Thread.h"
 
@@ -65,16 +67,15 @@ namespace GAME
 
   private:
     double FrameTimeMs() const;
-    double SleepTimeMs(double nowMs) const;
+    double SleepTimeMs() const;
     double NowMs() const;
 
     IGameLoopCallback* const m_callback;
     const double             m_fps;
-    double                   m_speedFactor;
-    bool                     m_bPauseAsync = false;
+    std::atomic<double>      m_speedFactor;
     double                   m_lastFrameMs;
+    mutable double           m_adjustTime;
     CEvent                   m_sleepEvent;
-    CCriticalSection         m_mutex;
   };
 }
 }

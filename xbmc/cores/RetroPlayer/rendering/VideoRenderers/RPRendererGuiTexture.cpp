@@ -19,7 +19,7 @@
  */
 
 #include "RPRendererGuiTexture.h"
-#include "cores/RetroPlayer/process/RenderBufferGuiTexture.h"
+#include "cores/RetroPlayer/buffers/video/RenderBufferGuiTexture.h"
 #include "cores/RetroPlayer/rendering/RenderContext.h"
 #include "cores/RetroPlayer/rendering/RenderVideoSettings.h"
 
@@ -50,15 +50,15 @@ RenderBufferPoolVector CRendererFactoryGuiTexture::CreateBufferPools(CRenderCont
 {
   return {
 #if !defined(HAS_DX)
-    std::make_shared<CRenderBufferPoolGuiTexture>(VS_SCALINGMETHOD_NEAREST),
+    std::make_shared<CRenderBufferPoolGuiTexture>(SCALINGMETHOD::NEAREST),
 #endif
-    std::make_shared<CRenderBufferPoolGuiTexture>(VS_SCALINGMETHOD_LINEAR),
+    std::make_shared<CRenderBufferPoolGuiTexture>(SCALINGMETHOD::LINEAR),
   };
 }
 
 // --- CRenderBufferPoolGuiTexture -----------------------------------------------
 
-CRenderBufferPoolGuiTexture::CRenderBufferPoolGuiTexture(ESCALINGMETHOD scalingMethod) :
+CRenderBufferPoolGuiTexture::CRenderBufferPoolGuiTexture(SCALINGMETHOD scalingMethod) :
   m_scalingMethod(scalingMethod)
 {
 }
@@ -83,12 +83,12 @@ CRPRendererGuiTexture::CRPRendererGuiTexture(const CRenderSettings &renderSettin
 {
 }
 
-bool CRPRendererGuiTexture::Supports(ERENDERFEATURE feature) const
+bool CRPRendererGuiTexture::Supports(RENDERFEATURE feature) const
 {
-  if (feature == RENDERFEATURE_STRETCH         ||
-      feature == RENDERFEATURE_ZOOM            ||
-      feature == RENDERFEATURE_PIXEL_RATIO     ||
-      feature == RENDERFEATURE_ROTATION)
+  if (feature == RENDERFEATURE::STRETCH         ||
+      feature == RENDERFEATURE::ZOOM            ||
+      feature == RENDERFEATURE::PIXEL_RATIO     ||
+      feature == RENDERFEATURE::ROTATION)
   {
     return true;
   }
@@ -210,9 +210,9 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
 
   if (m_context.UseLimitedColor())
   {
-    colour[0] = (235 - 16) * colour[0] / 255;
-    colour[1] = (235 - 16) * colour[1] / 255;
-    colour[2] = (235 - 16) * colour[2] / 255;
+    colour[0] = (235 - 16) * colour[0] / 255 + 16;
+    colour[1] = (235 - 16) * colour[1] / 255 + 16;
+    colour[2] = (235 - 16) * colour[2] / 255 + 16;
   }
 
   glUniform4f(uniColLoc, (colour[0] / 255.0f), (colour[1] / 255.0f),

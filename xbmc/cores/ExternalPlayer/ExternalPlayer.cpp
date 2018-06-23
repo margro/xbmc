@@ -24,6 +24,7 @@
 #include "ExternalPlayer.h"
 #include "windowing/WinSystem.h"
 #include "dialogs/GUIDialogOK.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "Application.h"
 #include "filesystem/MusicDatabaseFile.h"
@@ -285,7 +286,7 @@ void CExternalPlayer::Process()
   if (m_hidexbmc && !m_islauncher)
   {
     CLog::Log(LOGNOTICE, "%s: Hiding %s window", __FUNCTION__, CCompileInfo::GetAppName());
-    CServiceBroker::GetWinSystem().Hide();
+    CServiceBroker::GetWinSystem()->Hide();
   }
 #if defined(TARGET_WINDOWS_DESKTOP)
   else if (currentStyle & WS_EX_TOPMOST)
@@ -302,10 +303,10 @@ void CExternalPlayer::Process()
 
   /* Suspend AE temporarily so exclusive or hog-mode sinks */
   /* don't block external player's access to audio device  */
-  CServiceBroker::GetActiveAE().Suspend();
+  CServiceBroker::GetActiveAE()->Suspend();
   // wait for AE has completed suspended
   XbmcThreads::EndTime timer(2000);
-  while (!timer.IsTimePast() && !CServiceBroker::GetActiveAE().IsSuspended())
+  while (!timer.IsTimePast() && !CServiceBroker::GetActiveAE()->IsSuspended())
   {
     Sleep(50);
   }
@@ -315,6 +316,7 @@ void CExternalPlayer::Process()
   }
 
   m_callback.OnPlayBackStarted(m_file);
+  m_callback.OnAVStarted(m_file);
 
   bool ret = true;
 #if defined(TARGET_WINDOWS_DESKTOP)
@@ -331,11 +333,11 @@ void CExternalPlayer::Process()
     if (m_hidexbmc)
     {
       CLog::Log(LOGNOTICE, "%s: %s cannot stay hidden for a launcher process", __FUNCTION__, CCompileInfo::GetAppName());
-      CServiceBroker::GetWinSystem().Show(false);
+      CServiceBroker::GetWinSystem()->Show(false);
     }
 
     {
-      m_dialog = g_windowManager.GetWindow<CGUIDialogOK>(WINDOW_DIALOG_OK);
+      m_dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogOK>(WINDOW_DIALOG_OK);
       m_dialog->SetHeading(CVariant{23100});
       m_dialog->SetLine(1, CVariant{23104});
       m_dialog->SetLine(2, CVariant{23105});
@@ -350,7 +352,7 @@ void CExternalPlayer::Process()
   CLog::Log(LOGNOTICE, "%s: Stop", __FUNCTION__);
 
 #if defined(TARGET_WINDOWS_DESKTOP)
-  CServiceBroker::GetWinSystem().Restore();
+  CServiceBroker::GetWinSystem()->Restore();
 
   if (currentStyle & WS_EX_TOPMOST)
   {
@@ -362,7 +364,7 @@ void CExternalPlayer::Process()
 #endif
   {
     CLog::Log(LOGNOTICE, "%s: Showing %s window", __FUNCTION__, CCompileInfo::GetAppName());
-    CServiceBroker::GetWinSystem().Show();
+    CServiceBroker::GetWinSystem()->Show();
   }
 
 #if defined(TARGET_WINDOWS_DESKTOP)
@@ -381,7 +383,7 @@ void CExternalPlayer::Process()
 #endif
 
   /* Resume AE processing of XBMC native audio */
-  if (!CServiceBroker::GetActiveAE().Resume())
+  if (!CServiceBroker::GetActiveAE()->Resume())
   {
     CLog::Log(LOGFATAL, "%s: Failed to restart AudioEngine after return from external player",__FUNCTION__);
   }
@@ -457,14 +459,7 @@ bool CExternalPlayer::ExecuteAppLinux(const char* strSwitches)
 {
   CLog::Log(LOGNOTICE, "%s: %s", __FUNCTION__, strSwitches);
 
-  bool remoteUsed = CServiceBroker::GetInputManager().IsRemoteControlEnabled();
-  CServiceBroker::GetInputManager().DisableRemoteControl();
-
   int ret = system(strSwitches);
-
-  if (remoteUsed)
-    CServiceBroker::GetInputManager().EnableRemoteControl();
-
   if (ret != 0)
   {
     CLog::Log(LOGNOTICE, "%s: Failure: %d", __FUNCTION__, ret);

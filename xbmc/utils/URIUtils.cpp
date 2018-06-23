@@ -175,14 +175,14 @@ std::string URIUtils::ReplaceExtension(const std::string& strFile,
   return strChangedFile;
 }
 
-const std::string URIUtils::GetFileName(const CURL& url)
+std::string URIUtils::GetFileName(const CURL& url)
 {
   return GetFileName(url.GetFileName());
 }
 
 /* returns a filename given an url */
 /* handles both / and \, and options in urls*/
-const std::string URIUtils::GetFileName(const std::string& strFileNameAndPath)
+std::string URIUtils::GetFileName(const std::string& strFileNameAndPath)
 {
   if(IsURL(strFileNameAndPath))
   {
@@ -243,10 +243,10 @@ std::vector<std::string> URIUtils::SplitPath(const std::string& strPath)
 
   // split the filename portion of the URL up into separate dirs
   std::vector<std::string> dirs = StringUtils::Split(url.GetFileName(), sep);
-  
+
   // we start with the root path
   std::string dir = url.GetWithoutFilename();
-  
+
   if (!dir.empty())
     dirs.insert(dirs.begin(), dir);
 
@@ -961,7 +961,7 @@ bool URIUtils::IsDAV(const std::string& strFile)
   CURL url(strFile);
   if (HasParentInHostname(url))
     return IsDAV(url.GetHostName());
-  
+
   return IsProtocol(strFile, "dav") ||
          IsProtocol(strFile, "davs");
 }
@@ -982,6 +982,7 @@ bool URIUtils::IsInternetStream(const CURL& url, bool bStrictCheck /* = false */
     return IsInternetStream(CStackDirectory::GetFirstStackedFile(url.Get()));
 
   // Special case these
+  //! @todo sftp special case has to be handled by vfs addon
   if (url.IsProtocol("ftp") || url.IsProtocol("ftps")  ||
       url.IsProtocol("dav") || url.IsProtocol("davs")  ||
       url.IsProtocol("sftp"))
@@ -1231,7 +1232,7 @@ std::string URIUtils::CanonicalizePath(const std::string& path, const char slash
   return result;
 }
 
-std::string URIUtils::AddFileToFolder(const std::string& strFolder, 
+std::string URIUtils::AddFileToFolder(const std::string& strFolder,
                                 const std::string& strFile)
 {
   if (IsURL(strFolder))
@@ -1310,7 +1311,7 @@ std::string URIUtils::GetRealPath(const std::string &path)
   CURL url(path);
   url.SetHostName(GetRealPath(url.GetHostName()));
   url.SetFileName(resolvePath(url.GetFileName()));
-  
+
   return url.Get();
 }
 
@@ -1363,7 +1364,7 @@ bool URIUtils::UpdateUrlEncoding(std::string &strFilename)
 {
   if (strFilename.empty())
     return false;
-  
+
   CURL url(strFilename);
   // if this is a stack:// URL we need to work with its filename
   if (URIUtils::IsStack(strFilename))
@@ -1394,7 +1395,7 @@ bool URIUtils::UpdateUrlEncoding(std::string &strFilename)
   std::string newFilename = url.Get();
   if (newFilename == strFilename)
     return false;
-  
+
   strFilename = newFilename;
   return true;
 }

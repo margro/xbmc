@@ -17,9 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "cores/RetroPlayer/process/BaseRenderBuffer.h"
+#include "cores/RetroPlayer/buffers/BaseRenderBuffer.h"
 
 #include <interface/mmal/mmal.h>
 

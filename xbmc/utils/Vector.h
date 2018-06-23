@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -19,23 +18,34 @@
  *
  */
 
+#pragma once
+
 class CVector
 {
 public:
-  CVector();
-  CVector(float xCoord, float yCoord);
-  virtual ~CVector() = default;
-  
-  virtual void reset();
-  
-  const CVector operator+(const CVector &other) const;
-  const CVector operator-(const CVector &other) const;
+  CVector() = default;
+  constexpr CVector(float xCoord, float yCoord):x(xCoord), y(yCoord) {}
+
+  constexpr CVector operator+(const CVector &other) const
+  {
+    return CVector(x + other.x, y + other.y);
+  }
+
+  constexpr CVector operator-(const CVector &other) const
+  {
+    return CVector(x - other.x, y - other.y);
+  }
+
   CVector& operator+=(const CVector &other);
   CVector& operator-=(const CVector &other);
-  
-  float scalar(const CVector &other) const;
+
+  constexpr float scalar(const CVector &other) const
+  {
+    return x * other.x + y * other.y;
+  }
+
   float length() const;
-  
-  float x;
-  float y;
+
+  float x = 0;
+  float y = 0;
 };

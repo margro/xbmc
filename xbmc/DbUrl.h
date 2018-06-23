@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "utils/UrlOptions.h"
 #include "URL.h"
@@ -57,7 +58,7 @@ public:
 protected:
   virtual bool parse() = 0;
   virtual bool validateOption(const std::string &key, const CVariant &value);
-  
+
   CURL m_url;
   std::string m_type;
 

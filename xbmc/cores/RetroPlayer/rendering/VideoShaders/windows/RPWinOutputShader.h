@@ -17,9 +17,11 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include "cores/VideoPlayer/VideoRenderers/VideoShaders/WinVideoFilter.h"
+#include "cores/GameSettings.h"
 
 namespace KODI
 {
@@ -31,7 +33,7 @@ class CRPWinOutputShader : public CWinShader
 public:
   ~CRPWinOutputShader() = default;
 
-  bool Create(ESCALINGMETHOD scalingMethod);
+  bool Create(SCALINGMETHOD scalingMethod);
   void Render(CD3DTexture &sourceTexture, unsigned sourceWidth, unsigned sourceHeight, CRect sourceRect, const CPoint points[4]
     , CRect &viewPort, CD3DTexture *target, unsigned range = 0);
 

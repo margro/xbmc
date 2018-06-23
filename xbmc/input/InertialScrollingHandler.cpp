@@ -24,6 +24,7 @@
 #include "ServiceBroker.h"
 #include "utils/TimeUtils.h"
 #include "input/Key.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "windowing/WinSystem.h"
 
@@ -56,7 +57,7 @@ bool CInertialScrollingHandler::CheckForInertialScrolling(const CAction* action)
 {
   bool ret = false;//return value - false no inertial scrolling - true - inertial scrolling
 
-  if(CServiceBroker::GetWinSystem().HasInertialGestures())
+  if(CServiceBroker::GetWinSystem()->HasInertialGestures())
   {
     return ret;//no need for emulating inertial scrolling - windowing does support it natively.
   }
@@ -90,16 +91,14 @@ bool CInertialScrollingHandler::CheckForInertialScrolling(const CAction* action)
     //for making switching between multiple lists
     //possible
     CGUIMessage message(GUI_MSG_EXCLUSIVE_MOUSE, 0, 0);
-    g_windowManager.SendMessage(message);
+    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(message);
     m_bScrolling = false;
     //wakeup screensaver on pan begin
-    g_application.ResetScreenSaver();    
+    g_application.ResetScreenSaver();
     g_application.WakeUpScreenSaverAndDPMS();
   }
   else if(action->GetID() == ACTION_GESTURE_END && !m_panPoints.empty()) //do we need to animate inertial scrolling?
   {
-    PanPoint lastPanPoint = m_panPoints.front();
-
     // Calculate velocity in the last MAXIMUM_DELAY_FOR_INERTIA milliseconds.
     // Do not use the velocity given by the ACTION_GESTURE_END data - it is calculated
     // for the whole duration of the touch and thus useless for inertia. The user
@@ -119,7 +118,7 @@ bool CInertialScrollingHandler::CheckForInertialScrolling(const CAction* action)
       CGUIMessage message(GUI_MSG_GESTURE_NOTIFY, 0, 0, static_cast<int> (velocityX), static_cast<int> (velocityY));
 
       //ask if the control wants inertial scrolling
-      if(g_windowManager.SendMessage(message))
+      if(CServiceBroker::GetGUI()->GetWindowManager().SendMessage(message))
       {
         int result = 0;
         if (message.GetPointer())
@@ -136,8 +135,8 @@ bool CInertialScrollingHandler::CheckForInertialScrolling(const CAction* action)
         }
       }
 
-      if( inertialRequested )                                                                                                             
-      {        
+      if( inertialRequested )
+      {
         m_iFlickVelocity.x = velocityX;//in pixels per sec
         m_iFlickVelocity.y = velocityY;//in pixels per sec
         m_iLastGesturePoint.x = action->GetAmount(2);//last gesture point x
@@ -146,7 +145,7 @@ bool CInertialScrollingHandler::CheckForInertialScrolling(const CAction* action)
         //calc deacceleration for fullstop in TIME_TO_ZERO_SPEED secs
         //v = a*t + v0 -> set v = 0 because we want to stop scrolling
         //a = -v0 / t
-        m_inertialDeacceleration.x = -1*m_iFlickVelocity.x/TIME_TO_ZERO_SPEED;    
+        m_inertialDeacceleration.x = -1*m_iFlickVelocity.x/TIME_TO_ZERO_SPEED;
         m_inertialDeacceleration.y = -1*m_iFlickVelocity.y/TIME_TO_ZERO_SPEED;
 
         //CLog::Log(LOGDEBUG, "initial pos: %f,%f velocity: %f,%f dec: %f,%f", m_iLastGesturePoint.x, m_iLastGesturePoint.y, m_iFlickVelocity.x, m_iFlickVelocity.y, m_inertialDeacceleration.x, m_inertialDeacceleration.y);
@@ -166,7 +165,7 @@ bool CInertialScrollingHandler::CheckForInertialScrolling(const CAction* action)
 }
 
 bool CInertialScrollingHandler::ProcessInertialScroll(float frameTime)
-{  
+{
   //do inertial scroll animation by sending gesture_pan
   if( m_bScrolling)
   {
@@ -206,7 +205,7 @@ bool CInertialScrollingHandler::ProcessInertialScroll(float frameTime)
       {
         m_iFlickVelocity.y = 0;
       }
-    }   
+    }
     else//no movement -> done
     {
       m_bAborting = true;//we are done

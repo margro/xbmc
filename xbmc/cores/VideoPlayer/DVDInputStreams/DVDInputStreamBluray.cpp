@@ -153,7 +153,7 @@ BD_DIR_H* DllLibbluray::dir_open(void *handle, const char* rel_path)
   CLog::Log(LOGDEBUG, "CDVDInputStreamBluray - Opening dir %s\n", CURL::GetRedacted(strDirname).c_str());
 
   SDirState *st = new SDirState();
-  if (!CDirectory::GetDirectory(strDirname, st->list))
+  if (!CDirectory::GetDirectory(strDirname, st->list, "", DIR_FLAG_DEFAULTS))
   {
     if (!CFile::Exists(strDirname))
       CLog::Log(LOGDEBUG, "CDVDInputStreamBluray - Error opening dir! (%s)\n", CURL::GetRedacted(strDirname).c_str());
@@ -537,7 +537,7 @@ void CDVDInputStreamBluray::ProcessEvent() {
 
   int pid = -1;
   switch (m_event.event) {
-  
+
    /* errors */
 
   case BD_EVENT_ERROR:
@@ -864,7 +864,7 @@ void CDVDInputStreamBluray::OverlayClear(SPlane& plane, int x, int y, int w, int
                                             , itr->y1
                                             , itr->Width()
                                             , itr->Height())
-                    , std::ptr_fun(CDVDOverlay::Release));
+                    , [](CDVDOverlay* ov) { ov->Release(); });
       add.push_back(overlay);
     }
 
@@ -930,7 +930,7 @@ void CDVDInputStreamBluray::OverlayCallback(const BD_OVERLAY * const ov)
   /* uncompress and draw bitmap */
   if (ov->img && ov->cmd == BD_OVERLAY_DRAW)
   {
-    SOverlay overlay(new CDVDOverlayImage(), std::ptr_fun(CDVDOverlay::Release));
+    SOverlay overlay(new CDVDOverlayImage(), [](CDVDOverlay* ov) { ov->Release(); });
 
     if (ov->palette)
     {
@@ -1124,7 +1124,7 @@ int64_t CDVDInputStreamBluray::GetLength()
   return m_dll->bd_get_title_size(m_bd);
 }
 
-static bool find_stream(int pid, BLURAY_STREAM_INFO *info, int count, char* language)
+static bool find_stream(int pid, BLURAY_STREAM_INFO *info, int count, std::string &language)
 {
   int i=0;
   for(;i<count;i++,info++)
@@ -1134,11 +1134,11 @@ static bool find_stream(int pid, BLURAY_STREAM_INFO *info, int count, char* lang
   }
   if(i==count)
     return false;
-  memcpy(language, info->lang, 4);
+  language = reinterpret_cast<char*>(info->lang);
   return true;
 }
 
-void CDVDInputStreamBluray::GetStreamInfo(int pid, char* language)
+void CDVDInputStreamBluray::GetStreamInfo(int pid, std::string &language)
 {
   if(!m_title || m_clip >= m_title->clip_count)
     return;

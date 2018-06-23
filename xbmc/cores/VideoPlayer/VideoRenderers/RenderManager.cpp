@@ -22,7 +22,7 @@
 #include "RenderFlags.h"
 #include "RenderFactory.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "utils/MathUtils.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
@@ -96,7 +96,7 @@ void CRenderManager::SetVideoSettings(CVideoSettings settings)
   }
 }
 
-bool CRenderManager::Configure(const VideoPicture& picture, float fps, bool fullscreen, unsigned int orientation, int buffers)
+bool CRenderManager::Configure(const VideoPicture& picture, float fps, unsigned int orientation, int buffers)
 {
 
   // check if something has changed
@@ -154,7 +154,6 @@ bool CRenderManager::Configure(const VideoPicture& picture, float fps, bool full
     m_dvdClock.SetVsyncAdjust(0);
     m_pConfigPicture.reset(new VideoPicture());
     m_pConfigPicture->CopyRef(picture);
-    m_fullscreen = fullscreen;
 
     CSingleLock lock2(m_presentlock);
     m_presentstep = PRESENT_READY;
@@ -262,6 +261,13 @@ bool CRenderManager::IsConfigured() const
     return false;
 }
 
+void CRenderManager::ShowVideo(bool enable)
+{
+  m_showVideo = enable;
+  if (!enable)
+    DiscardBuffer();
+}
+
 void CRenderManager::FrameWait(int ms)
 {
   XbmcThreads::EndTime timeout(ms);
@@ -300,12 +306,6 @@ void CRenderManager::FrameMove()
 
       firstFrame = true;
       FrameWait(50);
-
-      if (m_fullscreen)
-      {
-        CApplicationMessenger::GetInstance().PostMsg(TMSG_SWITCHTOFULLSCREEN);
-        m_fullscreen = false;
-      }
     }
 
     CheckEnableClockSync();
@@ -357,6 +357,12 @@ void CRenderManager::FrameMove()
 
 void CRenderManager::PreInit()
 {
+  {
+    CSingleLock lock(m_statelock);
+    if (m_renderState != STATE_UNCONFIGURED)
+      return;
+  }
+
   if (!g_application.IsCurrentThread())
   {
     m_initEvent.Reset();
@@ -419,7 +425,7 @@ bool CRenderManager::Flush(bool wait)
   {
     CLog::Log(LOGDEBUG, "%s - flushing renderer", __FUNCTION__);
 
-    CSingleExit exitlock(g_graphicsContext);
+    CSingleExit exitlock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
     CSingleLock lock(m_statelock);
     CSingleLock lock2(m_presentlock);
@@ -673,7 +679,7 @@ void CRenderManager::SetViewMode(int iViewMode)
 
 RESOLUTION CRenderManager::GetResolution()
 {
-  RESOLUTION res = g_graphicsContext.GetVideoResolution();
+  RESOLUTION res = CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution();
 
   CSingleLock lock(m_statelock);
   if (m_renderState == STATE_UNCONFIGURED)
@@ -687,7 +693,7 @@ RESOLUTION CRenderManager::GetResolution()
 
 void CRenderManager::Render(bool clear, DWORD flags, DWORD alpha, bool gui)
 {
-  CSingleExit exitLock(g_graphicsContext);
+  CSingleExit exitLock(CServiceBroker::GetWinSystem()->GetGfxContext());
 
   {
     CSingleLock lock(m_statelock);
@@ -854,9 +860,9 @@ void CRenderManager::PresentBlend(bool clear, DWORD flags, DWORD alpha)
 
 void CRenderManager::UpdateLatencyTweak()
 {
-  float fps = g_graphicsContext.GetFPS();
+  float fps = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
   float refresh = fps;
-  if (g_graphicsContext.GetVideoResolution() == RES_WINDOW)
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution() == RES_WINDOW)
     refresh = 0; // No idea about refresh rate when windowed, just get the default latency
   m_latencyTweak = g_advancedSettings.GetLatencyTweak(refresh);
 }
@@ -865,13 +871,15 @@ void CRenderManager::UpdateResolution()
 {
   if (m_bTriggerUpdateResolution)
   {
-    if (g_graphicsContext.IsFullScreenVideo() && g_graphicsContext.IsFullScreenRoot())
+    if (CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenVideo() && CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
     {
       if (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_ADJUSTREFRESHRATE) != ADJUST_REFRESHRATE_OFF && m_fps > 0.0f)
       {
         RESOLUTION res = CResolutionUtils::ChooseBestResolution(m_fps, m_width, !m_stereomode.empty());
-        g_graphicsContext.SetVideoResolution(res, false);
+        CServiceBroker::GetWinSystem()->GetGfxContext().SetVideoResolution(res, false);
         UpdateLatencyTweak();
+        if (m_pRenderer)
+          m_pRenderer->Update();
       }
       m_bTriggerUpdateResolution = false;
       m_playerPort->VideoParamsChange();
@@ -1080,10 +1088,13 @@ void CRenderManager::PrepareNextRender()
     return;
   }
 
-  double frameOnScreen = m_dvdClock.GetClock();
-  double frametime = 1.0 / g_graphicsContext.GetFPS() * DVD_TIME_BASE;
+  if (!m_showVideo && !m_forceNext)
+    return;
 
-  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + g_graphicsContext.GetDisplayLatency() - m_videoDelay - CServiceBroker::GetWinSystem().GetFrameLatencyAdjustment());
+  double frameOnScreen = m_dvdClock.GetClock();
+  double frametime = 1.0 / CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS() * DVD_TIME_BASE;
+
+  m_displayLatency = DVD_MSEC_TO_TIME(m_latencyTweak + CServiceBroker::GetWinSystem()->GetGfxContext().GetDisplayLatency() - m_videoDelay - CServiceBroker::GetWinSystem()->GetFrameLatencyAdjustment());
 
   double renderPts = frameOnScreen + m_displayLatency;
 
@@ -1220,7 +1231,7 @@ void CRenderManager::CheckEnableClockSync()
       fps *= clockspeed;
     }
 
-    diff = g_graphicsContext.GetFPS() / fps;
+    diff = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS() / fps;
     if (diff < 1.0)
       diff = 1.0 / diff;
 

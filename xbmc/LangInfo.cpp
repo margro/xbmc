@@ -202,31 +202,10 @@ struct SortLanguage
   }
 };
 
-CLangInfo::CRegion::CRegion(const CRegion& region):
-  m_strLangLocaleName(region.m_strLangLocaleName),
-  m_strLangLocaleCodeTwoChar(region.m_strLangLocaleCodeTwoChar),
-  m_strRegionLocaleName(region.m_strRegionLocaleName),
-  m_strName(region.m_strName),
-  m_strDateFormatLong(region.m_strDateFormatLong),
-  m_strDateFormatShort(region.m_strDateFormatShort),
-  m_strTimeFormat(region.m_strTimeFormat),
-  m_strTimeZone(region.m_strTimeZone)
-{
-  m_strMeridiemSymbols[MeridiemSymbolPM] = region.m_strMeridiemSymbols[MeridiemSymbolPM];
-  m_strMeridiemSymbols[MeridiemSymbolAM] = region.m_strMeridiemSymbols[MeridiemSymbolAM];
-  m_tempUnit=region.m_tempUnit;
-  m_speedUnit=region.m_speedUnit;
-  m_cThousandsSep = region.m_cThousandsSep;
-  m_strGrouping = region.m_strGrouping;
-  m_cDecimalSep = region.m_cDecimalSep;
-}
-
 CLangInfo::CRegion::CRegion()
 {
   SetDefaults();
 }
-
-CLangInfo::CRegion::~CRegion() = default;
 
 void CLangInfo::CRegion::SetDefaults()
 {
@@ -735,6 +714,7 @@ void CLangInfo::SetAudioLanguage(const std::string& language)
   if (language.empty()
     || StringUtils::EqualsNoCase(language, "default")
     || StringUtils::EqualsNoCase(language, "original")
+    || StringUtils::EqualsNoCase(language, "mediadefault")
     || !g_LangCodeExpander.ConvertToISO6392B(language, m_audioLanguage))
     m_audioLanguage.clear();
 }
@@ -932,9 +912,9 @@ const std::string& CLangInfo::MeridiemSymbolToString(MeridiemSymbol symbol)
 // Fills the array with the region names available for this language
 void CLangInfo::GetRegionNames(std::vector<std::string>& array)
 {
-  for (ITMAPREGIONS it=m_regions.begin(); it!=m_regions.end(); ++it)
+  for (const auto &region : m_regions)
   {
-    std::string strName=it->first;
+    std::string strName=region.first;
     if (strName=="N/A")
       strName=g_localizeStrings.Get(416);
     array.emplace_back(std::move(strName));
@@ -1130,8 +1110,8 @@ void CLangInfo::SettingOptionsLanguageNamesFiller(SettingConstPtr setting, std::
   if (!CServiceBroker::GetAddonMgr().GetAddons(addons, ADDON::ADDON_RESOURCE_LANGUAGE))
     return;
 
-  for (ADDON::VECADDONS::const_iterator addon = addons.begin(); addon != addons.end(); ++addon)
-    list.emplace_back((*addon)->Name(), (*addon)->Name());
+  for (const auto &addon : addons)
+    list.emplace_back(addon->Name(), addon->Name());
 
   sort(list.begin(), list.end(), SortLanguage());
 }
@@ -1141,12 +1121,13 @@ void CLangInfo::SettingOptionsISO6391LanguagesFiller(SettingConstPtr setting, st
   // get a list of language names
   std::vector<std::string> languages = g_LangCodeExpander.GetLanguageNames(CLangCodeExpander::ISO_639_1, true);
   sort(languages.begin(), languages.end(), sortstringbyname());
-  for (std::vector<std::string>::const_iterator language = languages.begin(); language != languages.end(); ++language)
-    list.emplace_back(*language, *language);
+  for (const auto &language : languages)
+    list.emplace_back(language, language);
 }
 
 void CLangInfo::SettingOptionsAudioStreamLanguagesFiller(SettingConstPtr setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
+  list.emplace_back(g_localizeStrings.Get(307), "mediadefault");
   list.emplace_back(g_localizeStrings.Get(308), "original");
   list.emplace_back(g_localizeStrings.Get(309), "default");
 

@@ -81,6 +81,7 @@ set(package_files strings.xml
                   src/interfaces/XBMCNsdManagerResolveListener.java
                   src/interfaces/XBMCNsdManagerRegistrationListener.java
                   src/interfaces/XBMCNsdManagerDiscoveryListener.java
+                  src/interfaces/XBMCMediaDrmOnEventListener.java
                   src/model/TVEpisode.java
                   src/model/Movie.java
                   src/model/TVShow.java
@@ -150,6 +151,7 @@ foreach(lib IN LISTS required_dyload dyload_optional ITEMS Shairplay)
     add_bundle_file(${DEPENDS_PATH}/lib/${lib_so} ${libdir} "")
   endif()
 endforeach()
+add_bundle_file(${ASS_LIBRARY} ${libdir} "")
 add_bundle_file(${SMBCLIENT_LIBRARY} ${libdir} "")
 
 # Main targets from Makefile.in

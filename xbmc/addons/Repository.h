@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,13 +18,18 @@
  *
  */
 
+#pragma once
+
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "Addon.h"
+#include "utils/Digest.h"
 #include "utils/Job.h"
 #include "utils/ProgressJob.h"
+
+struct cp_cfg_element_t;
 
 namespace ADDON
 {
@@ -34,12 +38,13 @@ namespace ADDON
   public:
     struct DirInfo
     {
-      DirInfo() : version("0.0.0"), hashes(false) {}
-      AddonVersion version;
+      AddonVersion version{""};
       std::string info;
       std::string checksum;
+      KODI::UTILITY::CDigest::Type checksumType{KODI::UTILITY::CDigest::Type::INVALID};
       std::string datadir;
-      bool hashes;
+      std::string artdir;
+      KODI::UTILITY::CDigest::Type hashType{KODI::UTILITY::CDigest::Type::INVALID};
     };
 
     typedef std::vector<DirInfo> DirList;
@@ -63,9 +68,18 @@ namespace ADDON
 
     FetchStatus FetchIfChanged(const std::string& oldChecksum, std::string& checksum, VECADDONS& addons) const;
 
+    struct ResolveResult
+    {
+      std::string location;
+      KODI::UTILITY::TypedDigest digest;
+    };
+    ResolveResult ResolvePathAndHash(AddonPtr const& addon) const;
+
   private:
     static bool FetchChecksum(const std::string& url, std::string& checksum) noexcept;
-    static bool FetchIndex(const DirInfo& repo, VECADDONS& addons) noexcept;
+    static bool FetchIndex(const DirInfo& repo, std::string const& digest, VECADDONS& addons) noexcept;
+
+    static DirInfo ParseDirConfiguration(cp_cfg_element_t* configuration);
 
     DirList m_dirs;
   };

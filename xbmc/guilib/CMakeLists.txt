@@ -2,13 +2,13 @@ set(SOURCES DDSImage.cpp
             DirtyRegionSolvers.cpp
             DirtyRegionTracker.cpp
             FFmpegImage.cpp
-            GraphicContext.cpp
             GUIAction.cpp
             GUIAudioManager.cpp
             GUIBaseContainer.cpp
             GUIBorderedImage.cpp
             GUIButtonControl.cpp
             GUIColorManager.cpp
+            GUIComponent.cpp
             GUIControl.cpp
             GUIControlFactory.cpp
             GUIControlGroup.cpp
@@ -25,7 +25,6 @@ set(SOURCES DDSImage.cpp
             GUIFontTTF.cpp
             GUIImage.cpp
             GUIIncludes.cpp
-            GUIInfoTypes.cpp
             GUIKeyboardFactory.cpp
             GUILabelControl.cpp
             GUILabel.cpp
@@ -61,7 +60,6 @@ set(SOURCES DDSImage.cpp
             imagefactory.cpp
             IWindowManagerCallback.cpp
             LocalizeStrings.cpp
-            Resolution.cpp
             StereoscopicsManager.cpp
             TextureBundle.cpp
             TextureBundleXBT.cpp
@@ -77,15 +75,14 @@ set(HEADERS DDSImage.h
             DirtyRegionTracker.h
             DispResource.h
             FFmpegImage.h
-            GraphicContext.h
             gui3d.h
             GUIAction.h
             GUIAudioManager.h
             GUIBaseContainer.h
             GUIBorderedImage.h
             GUIButtonControl.h
-            GUICallback.h
             GUIColorManager.h
+            GUIComponent.h
             GUIControl.h
             GUIControlFactory.h
             GUIControlGroup.h
@@ -102,7 +99,6 @@ set(HEADERS DDSImage.h
             GUIFontTTF.h
             GUIImage.h
             GUIIncludes.h
-            GUIInfoTypes.h
             GUIKeyboard.h
             GUIKeyboardFactory.h
             GUILabel.h
@@ -146,13 +142,11 @@ set(HEADERS DDSImage.h
             ISliderCallback.h
             IWindowManagerCallback.h
             LocalizeStrings.h
-            Resolution.h
             StereoscopicsManager.h
             Texture.h
             TextureBundle.h
             TextureBundleXBT.h
             TextureManager.h
-            TransformMatrix.h
             Tween.h
             VisibleEffect.h
             WindowIDs.h
@@ -162,12 +156,10 @@ set(HEADERS DDSImage.h
 if(OPENGL_FOUND)
   list(APPEND SOURCES GUIFontTTFGL.cpp
                       GUITextureGL.cpp
-                      MatrixGLES.cpp
                       Shader.cpp
                       TextureGL.cpp)
   list(APPEND HEADERS GUIFontTTFGL.h
                       GUITextureGL.h
-                      MatrixGLES.h
                       Shader.h
                       TextureGL.h)
 endif()
@@ -175,12 +167,10 @@ endif()
 if(OPENGLES_FOUND)
   list(APPEND SOURCES GUIFontTTFGL.cpp
                       GUITextureGLES.cpp
-                      MatrixGLES.cpp
                       Shader.cpp
                       TextureGL.cpp)
   list(APPEND HEADERS GUIFontTTFGL.h
                       GUITextureGLES.h
-                      MatrixGLES.h
                       Shader.h
                       TextureGL.h)
 endif()

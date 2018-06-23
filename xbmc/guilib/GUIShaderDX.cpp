@@ -19,7 +19,7 @@
 */
 
 #include "GUIShaderDX.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "rendering/dx/DeviceResources.h"
 #include "rendering/dx/RenderContext.h"
 #include "utils/log.h"
@@ -141,7 +141,7 @@ bool CGUIShaderDX::CreateBuffers()
   m_bIsWVPDirty = true;
 
   CRect viewPort;
-  DX::Windowing().GetViewPort(viewPort);
+  DX::Windowing()->GetViewPort(viewPort);
 
   // initial data for viewport buffer
   m_cbViewPort.TopLeftX = viewPort.x1;
@@ -299,8 +299,8 @@ void CGUIShaderDX::Project(float &x, float &y, float &z)
 #elif defined(_XM_ARM_NEON_INTRINSICS_) && !defined(_XM_NO_INTRINSICS_)
   XMVECTOR vLocation = { x, y };
 #endif
-  XMVECTOR vScreenCoord = XMVector3Project(vLocation, m_cbViewPort.TopLeftX, m_cbViewPort.TopLeftY, 
-                                           m_cbViewPort.Width, m_cbViewPort.Height, 0, 1, 
+  XMVECTOR vScreenCoord = XMVector3Project(vLocation, m_cbViewPort.TopLeftX, m_cbViewPort.TopLeftY,
+                                           m_cbViewPort.Width, m_cbViewPort.Height, 0, 1,
                                            m_cbWorldViewProj.projection, m_cbWorldViewProj.view, m_cbWorldViewProj.world);
   x = XMVectorGetX(vScreenCoord);
   y = XMVectorGetY(vScreenCoord);
@@ -347,8 +347,8 @@ void CGUIShaderDX::ApplyChanges(void)
 
       cbWorld* buffer = (cbWorld*)res.pData;
       buffer->wvp = worldViewProj;
-      buffer->blackLevel = (DX::Windowing().UseLimitedColor() ? 16.f / 255.f : 0.f);
-      buffer->colorRange = (DX::Windowing().UseLimitedColor() ? (235.f - 16.f) / 255.f : 1.0f);
+      buffer->blackLevel = (DX::Windowing()->UseLimitedColor() ? 16.f / 255.f : 0.f);
+      buffer->colorRange = (DX::Windowing()->UseLimitedColor() ? (235.f - 16.f) / 255.f : 1.0f);
 
       pContext->Unmap(m_pWVPBuffer.Get(), 0);
       m_bIsWVPDirty = false;
@@ -382,10 +382,10 @@ void CGUIShaderDX::RestoreBuffers(void)
 void CGUIShaderDX::ClipToScissorParams(void)
 {
   CRect viewPort; // absolute positions of corners
-  DX::Windowing().GetViewPort(viewPort);
+  DX::Windowing()->GetViewPort(viewPort);
 
   // get current GUI transform
-  const TransformMatrix &guiMatrix = g_graphicsContext.GetGUIMatrix();
+  const TransformMatrix &guiMatrix = CServiceBroker::GetWinSystem()->GetGfxContext().GetGUIMatrix();
   // get current GPU transforms
   XMFLOAT4X4 world, view, projection;
   XMStoreFloat4x4(&world, m_cbWorldViewProj.world);

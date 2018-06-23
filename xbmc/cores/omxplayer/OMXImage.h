@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2010-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "OMXCore.h"
 
@@ -57,7 +58,6 @@ public:
     GLuint texture;
     EGLImageKHR egl_image;
     void *parent;
-    const char *filename;
   };
   COMXImage();
   virtual ~COMXImage();

@@ -31,7 +31,6 @@
 #include "utils/TimeUtils.h"
 
 #include <algorithm>
-#include <collection.h>
 #include <ksmedia.h>
 #include <mfapi.h>
 #include <mmdeviceapi.h>
@@ -69,6 +68,8 @@ CAESinkXAudio::CAESinkXAudio() :
   m_dwChunkSize(0),
   m_dwFrameSize(0),
   m_dwBufferLen(0),
+  m_sinkFrames(0),
+  m_framesInBuffers(0),
   m_running(false),
   m_initialized(false),
   m_isSuspended(false),
@@ -166,6 +167,8 @@ void CAESinkXAudio::Deinitialize()
     {
       m_sourceVoice->Stop();
       m_sourceVoice->FlushSourceBuffers();
+      m_sinkFrames = 0;
+      m_framesInBuffers = 0;
     }
     catch (...)
     {
@@ -198,10 +201,10 @@ void CAESinkXAudio::GetDelay(AEDelayStatus& status)
     goto failed;
 
   XAUDIO2_VOICE_STATE state;
-  m_sourceVoice->GetState(&state, XAUDIO2_VOICE_NOSAMPLESPLAYED);
-  
-  uint64_t framesInQueue = state.BuffersQueued * m_format.m_frames;
-  status.SetDelay(framesInQueue / (double)m_format.m_sampleRate);
+  m_sourceVoice->GetState(&state, 0);
+
+  double delay = (double)(m_sinkFrames - state.SamplesPlayed) / m_format.m_sampleRate;
+  status.SetDelay(delay);
   return;
 
 failed:
@@ -241,31 +244,38 @@ unsigned int CAESinkXAudio::AddPackets(uint8_t **data, unsigned int frames, unsi
   LARGE_INTEGER timerFreq;
 #endif
   size_t dataLenght = frames * m_format.m_frameSize;
-  uint8_t* buff = new uint8_t[dataLenght];
-  memcpy(buff, data[0] + offset * m_format.m_frameSize, dataLenght);
+
+  struct buffer_ctx *ctx = new buffer_ctx;
+  ctx->data = new uint8_t[dataLenght];
+  ctx->frames = frames;
+  ctx->sink = this;
+  memcpy(ctx->data, data[0] + offset * m_format.m_frameSize, dataLenght);
 
   XAUDIO2_BUFFER xbuffer = { 0 };
   xbuffer.AudioBytes = dataLenght;
-  xbuffer.pAudioData = buff;
-  xbuffer.pContext = buff;
+  xbuffer.pAudioData = ctx->data;
+  xbuffer.pContext = ctx;
 
   if (!m_running) //first time called, pre-fill buffer then start voice
   {
+    m_sourceVoice->Stop();
     hr = m_sourceVoice->SubmitSourceBuffer(&xbuffer);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__ " SourceVoice submit buffer failed due to %s", WASAPIErrToStr(hr));
-      delete[] buff;
+      CLog::LogF(LOGERROR, "voice submit buffer failed due to %s", WASAPIErrToStr(hr));
+      delete ctx;
       return 0;
     }
     hr = m_sourceVoice->Start(0, XAUDIO2_COMMIT_NOW);
     if (FAILED(hr))
     {
-      CLog::Log(LOGERROR, __FUNCTION__ " SourceVoice start failed due to %s", WASAPIErrToStr(hr));
+      CLog::LogF(LOGERROR, "voice start failed due to %s", WASAPIErrToStr(hr));
       m_isDirty = true; //flag new device or re-init needed
-      delete[] buff;
+      delete ctx;
       return INT_MAX;
     }
+    m_sinkFrames += frames;
+    m_framesInBuffers += frames;
     m_running = true; //signal that we're processing frames
     return frames;
   }
@@ -277,15 +287,16 @@ unsigned int CAESinkXAudio::AddPackets(uint8_t **data, unsigned int frames, unsi
 #endif
 
   /* Wait for Audio Driver to tell us it's got a buffer available */
-  XAUDIO2_VOICE_STATE state;
-  while (m_sourceVoice->GetState(&state), state.BuffersQueued >= XAUDIO_BUFFERS_IN_QUEUE)
+  //XAUDIO2_VOICE_STATE state;
+  //while (m_sourceVoice->GetState(&state), state.BuffersQueued >= XAUDIO_BUFFERS_IN_QUEUE)
+  while (m_format.m_frames * XAUDIO_BUFFERS_IN_QUEUE <= m_framesInBuffers.load())
   {
     DWORD eventAudioCallback;
     eventAudioCallback = WaitForSingleObjectEx(m_voiceCallback.mBufferEnd.get(), 1100, TRUE);
     if (eventAudioCallback != WAIT_OBJECT_0)
     {
-      CLog::Log(LOGERROR, __FUNCTION__": Endpoint Buffer timed out");
-      delete[] buff;
+      CLog::LogF(LOGERROR, "voice buffer timed out");
+      delete ctx;
       return INT_MAX;
     }
   }
@@ -301,7 +312,7 @@ unsigned int CAESinkXAudio::AddPackets(uint8_t **data, unsigned int frames, unsi
 
   if (m_avgTimeWaiting < 3.0)
   {
-    CLog::Log(LOGDEBUG, __FUNCTION__": Possible AQ Loss: Avg. Time Waiting for Audio Driver callback : %dmsec", (int)m_avgTimeWaiting);
+    CLog::LogF(LOGDEBUG, "Possible AQ Loss: Avg. Time Waiting for Audio Driver callback : %dmsec", (int)m_avgTimeWaiting);
   }
 #endif
 
@@ -309,10 +320,14 @@ unsigned int CAESinkXAudio::AddPackets(uint8_t **data, unsigned int frames, unsi
   if (FAILED(hr))
   {
     #ifdef _DEBUG
-      CLog::Log(LOGERROR, __FUNCTION__": SubmitSourceBuffer failed due to %s", WASAPIErrToStr(hr));
+      CLog::LogF(LOGERROR, "submiting buffer failed due to %s", WASAPIErrToStr(hr));
     #endif
+    delete ctx;
     return INT_MAX;
   }
+
+  m_sinkFrames += frames;
+  m_framesInBuffers += frames;
 
   return frames;
 }
@@ -380,7 +395,7 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
     {
       CLog::Log(LOGNOTICE, __FUNCTION__": stream type \"%s\" on device \"%s\" seems to be not supported.", CAEUtil::StreamTypeToStr(CAEStreamInfo::STREAM_TYPE_TRUEHD), details.strDescription.c_str());
     }
-    else 
+    else
     {
       deviceInfo.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_TRUEHD);
       add192 = true;
@@ -402,7 +417,7 @@ void CAESinkXAudio::EnumerateDevicesEx(AEDeviceInfoList &deviceInfoList, bool fo
     {
       CLog::Log(LOGNOTICE, __FUNCTION__": stream type \"%s\" on device \"%s\" seems to be not supported.", CAEUtil::StreamTypeToStr(CAEStreamInfo::STREAM_TYPE_EAC3), details.strDescription.c_str());
     }
-    else 
+    else
     {
       deviceInfo.m_streamTypes.push_back(CAEStreamInfo::STREAM_TYPE_EAC3);
       add192 = true;
@@ -759,10 +774,10 @@ initialize:
     return false;
   }
 
-  m_uiBufferLen = (int)(format.m_sampleRate * 0.015);
+  m_uiBufferLen = (int)(format.m_sampleRate * 0.02);
   m_dwFrameSize = wfxex.Format.nBlockAlign;
   m_dwChunkSize = m_dwFrameSize * m_uiBufferLen;
-  m_dwBufferLen = m_dwChunkSize * 4; 
+  m_dwBufferLen = m_dwChunkSize * 4;
   m_AvgBytesPerSec = wfxex.Format.nAvgBytesPerSec;
 
   CLog::Log(LOGINFO, __FUNCTION__": XAudio Sink Initialized using: %s, %d, %d",
@@ -790,6 +805,9 @@ void CAESinkXAudio::Drain()
     try
     {
       m_sourceVoice->Stop();
+      m_sourceVoice->FlushSourceBuffers();
+      m_sinkFrames = 0;
+      m_framesInBuffers = 0;
     }
     catch (...)
     {
@@ -801,7 +819,7 @@ void CAESinkXAudio::Drain()
 
 bool CAESinkXAudio::IsUSBDevice()
 {
-#if 0 // TODO 
+#if 0 // TODO
   IPropertyStore *pProperty = nullptr;
   PROPVARIANT varName;
   PropVariantInit(&varName);

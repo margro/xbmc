@@ -19,11 +19,12 @@
  */
 
 #include "GUIWindowScreensaver.h"
-
+#include "GUIPassword.h"
 #include "Application.h"
 #include "GUIUserMessages.h"
 #include "ServiceBroker.h"
 #include "addons/ScreenSaver.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/Settings.h"
 
@@ -37,16 +38,16 @@ void CGUIWindowScreensaver::Process(unsigned int currentTime, CDirtyRegionList &
 {
   MarkDirtyRegion();
   CGUIWindow::Process(currentTime, regions);
-  m_renderRegion.SetRect(0, 0, (float)g_graphicsContext.GetWidth(), (float)g_graphicsContext.GetHeight());
+  m_renderRegion.SetRect(0, 0, (float)CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(), (float)CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight());
 }
 
 void CGUIWindowScreensaver::Render()
 {
   if (m_addon)
   {
-    g_graphicsContext.CaptureStateBlock();
+    CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
     m_addon->Render();
-    g_graphicsContext.ApplyStateBlock();
+    CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
     return;
   }
 
@@ -56,7 +57,7 @@ void CGUIWindowScreensaver::Render()
 // called when the mouse is moved/clicked etc. etc.
 EVENT_RESULT CGUIWindowScreensaver::OnMouseEvent(const CPoint &point, const CMouseEvent &event)
 {
-  g_windowManager.PreviousWindow();
+  CServiceBroker::GetGUI()->GetWindowManager().PreviousWindow();
   return EVENT_RESULT_HANDLED;
 }
 
@@ -73,7 +74,7 @@ bool CGUIWindowScreensaver::OnMessage(CGUIMessage& message)
         m_addon = nullptr;
       }
 
-      g_graphicsContext.ApplyStateBlock();
+      CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
     }
     break;
 
@@ -81,7 +82,7 @@ bool CGUIWindowScreensaver::OnMessage(CGUIMessage& message)
     {
       CGUIWindow::OnMessage(message);
 
-      g_graphicsContext.CaptureStateBlock();
+      CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
 
       const ADDON::BinaryAddonBasePtr addonBase = CServiceBroker::GetBinaryAddonManager().GetInstalledAddonInfo(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SCREENSAVER_MODE), ADDON::ADDON_SCREENSAVER);
       if (!addonBase)

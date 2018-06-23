@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,18 +18,18 @@
  *
  */
 
+#pragma once
+
 class CSong;
 class CArtist;
 class CVariant;
 
-#include <stdint.h>
 #include <string>
 #include <vector>
 
 #include "ReplayGain.h"
 #include "XBDateTime.h"
 #include "music/Album.h"
-#include "music/Artist.h"
 #include "utils/IArchivable.h"
 #include "utils/ISerializable.h"
 #include "utils/ISortable.h"
@@ -38,13 +37,10 @@ class CVariant;
 
 namespace MUSIC_INFO
 {
-class CMusicInfoTag : public IArchivable, public ISerializable, public ISortable
+class CMusicInfoTag final : public IArchivable, public ISerializable, public ISortable
 {
 public:
   CMusicInfoTag(void);
-  CMusicInfoTag(const CMusicInfoTag& tag);
-  ~CMusicInfoTag() override;
-  CMusicInfoTag& operator =(const CMusicInfoTag& tag);
   bool operator !=(const CMusicInfoTag& tag) const;
   bool Loaded() const;
   const std::string& GetTitle() const;
@@ -119,7 +115,7 @@ public:
   void SetLoaded(bool bOnOff = true);
   void SetArtist(const CArtist& artist);
   void SetAlbum(const CAlbum& album);
-  void SetSong(const CSong& song);  
+  void SetSong(const CSong& song);
   void SetMusicBrainzTrackID(const std::string& strTrackID);
   void SetMusicBrainzArtistID(const std::vector<std::string>& musicBrainzArtistId);
   void SetMusicBrainzArtistHints(const std::vector<std::string>& musicBrainzArtistHints);
@@ -165,7 +161,7 @@ public:
    \param genre genre to add.
    */
   void AppendGenre(const std::string &genre);
-  
+
   void AddArtistRole(const std::string& Role, const std::string& strArtist);
   void AddArtistRole(const std::string& Role, const std::vector<std::string>& artists);
   void AppendArtistRole(const CMusicRole& ArtistRole);

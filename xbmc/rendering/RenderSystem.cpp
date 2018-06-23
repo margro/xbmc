@@ -34,8 +34,6 @@ CRenderSystemBase::CRenderSystemBase()
   m_maxTextureSize = 2048;
   m_RenderVersionMajor = 0;
   m_RenderVersionMinor = 0;
-  m_renderCaps = 0;
-  m_renderQuirks = 0;
   m_minDXTPitch = 0;
 }
 
@@ -50,23 +48,9 @@ void CRenderSystemBase::GetRenderVersion(unsigned int& major, unsigned int& mino
 bool CRenderSystemBase::SupportsNPOT(bool dxt) const
 {
   if (dxt)
-    return (m_renderCaps & RENDER_CAPS_DXT_NPOT) == RENDER_CAPS_DXT_NPOT;
-  return (m_renderCaps & RENDER_CAPS_NPOT) == RENDER_CAPS_NPOT;
-}
+    return false;
 
-bool CRenderSystemBase::SupportsDXT() const
-{
-  return (m_renderCaps & RENDER_CAPS_DXT) == RENDER_CAPS_DXT;
-}
-
-bool CRenderSystemBase::SupportsBGRA() const
-{
-  return (m_renderCaps & RENDER_CAPS_BGRA) == RENDER_CAPS_BGRA;
-}
-
-bool CRenderSystemBase::SupportsBGRAApple() const
-{
-  return (m_renderCaps & RENDER_CAPS_BGRA_APPLE) == RENDER_CAPS_BGRA_APPLE;
+  return true;
 }
 
 bool CRenderSystemBase::SupportsStereo(RENDER_STEREO_MODE mode) const
@@ -90,16 +74,16 @@ void CRenderSystemBase::ShowSplash(const std::string& message)
 
   if (!m_splashImage)
   {
-    m_splashImage = std::unique_ptr<CGUIImage>(new CGUIImage(0, 0, 0, 0, g_graphicsContext.GetWidth(),
-                                                       g_graphicsContext.GetHeight(), CTextureInfo(CUtil::GetSplashPath())));
+    m_splashImage = std::unique_ptr<CGUIImage>(new CGUIImage(0, 0, 0, 0, CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(),
+                                                       CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight(), CTextureInfo(CUtil::GetSplashPath())));
     m_splashImage->SetAspectRatio(CAspectRatio::AR_SCALE);
   }
 
-  g_graphicsContext.lock();
-  g_graphicsContext.Clear();
+  CServiceBroker::GetWinSystem()->GetGfxContext().lock();
+  CServiceBroker::GetWinSystem()->GetGfxContext().Clear();
 
-  RESOLUTION_INFO res = g_graphicsContext.GetResInfo();
-  g_graphicsContext.SetRenderingResolution(res, true);
+  RESOLUTION_INFO res = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
+  CServiceBroker::GetWinSystem()->GetGfxContext().SetRenderingResolution(res, true);
 
   //render splash image
   BeginRender();
@@ -123,8 +107,8 @@ void CRenderSystemBase::ShowSplash(const std::string& message)
       float textWidth, textHeight;
       m_splashMessageLayout->GetTextExtent(textWidth, textHeight);
 
-      int width = g_graphicsContext.GetWidth();
-      int height = g_graphicsContext.GetHeight();
+      int width = CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
+      int height = CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight();
       float y = height - textHeight - 100;
       m_splashMessageLayout->RenderOutline(width/2, y, 0, 0xFF000000, XBFONT_CENTER_X, width);
     }
@@ -132,7 +116,7 @@ void CRenderSystemBase::ShowSplash(const std::string& message)
 
   //show it on screen
   EndRender();
-  g_graphicsContext.unlock();
-  g_graphicsContext.Flip(true, false);
+  CServiceBroker::GetWinSystem()->GetGfxContext().unlock();
+  CServiceBroker::GetWinSystem()->GetGfxContext().Flip(true, false);
 }
 

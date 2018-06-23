@@ -21,13 +21,15 @@
 #include "ProfilesOperations.h"
 #include "messaging/ApplicationMessenger.h"
 #include "guilib/LocalizeStrings.h"
+#include "GUIPassword.h"
 #include "profiles/ProfilesManager.h"
-#include "utils/md5.h"
+#include "utils/Digest.h"
 #include "utils/Variant.h"
 #include "ServiceBroker.h"
 
 using namespace JSONRPC;
 using namespace KODI::MESSAGING;
+using KODI::UTILITY::CDigest;
 
 JSONRPC_STATUS CProfilesOperations::GetProfiles(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
@@ -97,7 +99,7 @@ JSONRPC_STATUS CProfilesOperations::LoadProfile(const std::string &method, ITran
 
   std::string profilename = parameterObject["profile"].asString();
   int index = profileManager.GetProfileIndex(profilename);
-  
+
   if (index < 0)
     return InvalidParams;
 
@@ -121,12 +123,12 @@ JSONRPC_STATUS CProfilesOperations::LoadProfile(const std::string &method, ITran
     const CVariant &passwordObject = parameterObject["password"];
     std::string strToVerify = profile->getLockCode();
     std::string password = passwordObject["value"].asString();
-		
+
     // Create password hash from the provided password if md5 is not used
     std::string md5pword2;
     std::string encryption = passwordObject["encryption"].asString();
     if (encryption == "none")
-      md5pword2 = XBMC::XBMC_MD5::GetMD5(password);
+      md5pword2 = CDigest::Calculate(CDigest::Type::MD5, password);
     else if (encryption == "md5")
       md5pword2 = password;
 

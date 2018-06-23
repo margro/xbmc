@@ -1,6 +1,3 @@
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -20,6 +17,9 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 #if !defined(__arm__) && !defined(__aarch64__)
 #include "WinSystemOSX.h"
 #include "rendering/gl/RenderSystemGL.h"
@@ -29,6 +29,9 @@ class CWinSystemOSXGL : public CWinSystemOSX, public CRenderSystemGL
 public:
   CWinSystemOSXGL();
   virtual ~CWinSystemOSXGL();
+
+  // Implementation of CWinSystemBase via CWinSystemOSX
+  CRenderSystemBase *GetRenderSystem() override { return this; }
   virtual bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
   virtual bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
 

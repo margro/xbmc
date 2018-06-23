@@ -1,10 +1,3 @@
-/*!
-\file GUIListContainer.h
-\brief
-*/
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -25,7 +18,17 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIListContainer.h
+\brief
+*/
+
 #include "GUIBaseContainer.h"
+
+class CLabelInfo;
+class CTextureInfo;
 
 /*!
  \ingroup controls

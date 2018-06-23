@@ -1,10 +1,10 @@
-set(SOURCES GLContextEGL.cpp
+set(SOURCES OSScreenSaverAndroid.cpp
             WinEventsAndroid.cpp
             WinSystemAndroid.cpp
             AndroidUtils.cpp
             VideoSyncAndroid.cpp)
 
-set(HEADERS GLContextEGL.h
+set(HEADERS OSScreenSaverAndroid.h
             WinEventsAndroid.h
             WinSystemAndroid.h
             AndroidUtils.h

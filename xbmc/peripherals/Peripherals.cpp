@@ -22,6 +22,7 @@
 
 #include <utility>
 
+#include "EventScanner.h"
 #include "addons/PeripheralAddon.h"
 #include "addons/AddonButtonMap.h"
 #include "addons/AddonManager.h"
@@ -30,7 +31,7 @@
 #include "bus/PeripheralBus.h"
 #include "bus/PeripheralBusUSB.h"
 #if defined(TARGET_ANDROID)
-#include "bus/android/PeripheralBusAndroid.h"
+#include "platform/android/peripherals/PeripheralBusAndroid.h"
 #endif
 #include "bus/virtual/PeripheralBusAddon.h"
 #include "devices/PeripheralBluetooth.h"
@@ -50,6 +51,7 @@
 #include "input/joysticks/interfaces/IButtonMapper.h"
 #include "interfaces/AnnouncementManager.h"
 #include "filesystem/Directory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
@@ -84,7 +86,7 @@ CPeripherals::CPeripherals(ANNOUNCEMENT::CAnnouncementManager &announcements,
   m_announcements(announcements),
   m_inputManager(inputManager),
   m_controllerProfiles(controllerProfiles),
-  m_eventScanner(this)
+  m_eventScanner(new CEventScanner(*this))
 {
   // Register settings
   std::set<std::string> settingSet;
@@ -106,6 +108,8 @@ CPeripherals::~CPeripherals()
 
 void CPeripherals::Initialise()
 {
+  Clear();
+
 #if !defined(TARGET_DARWIN_IOS)
   CDirectory::Create("special://profile/peripheral_data");
 
@@ -135,7 +139,7 @@ void CPeripherals::Initialise()
   for (auto& bus : busses)
     bus->Initialise();
 
-  m_eventScanner.Start();
+  m_eventScanner->Start();
 
   MESSAGING::CApplicationMessenger::GetInstance().RegisterReceiver(this);
   m_announcements.AddAnnouncer(this);
@@ -146,7 +150,7 @@ void CPeripherals::Clear()
 {
   m_announcements.RemoveAnnouncer(this);
 
-  m_eventScanner.Stop();
+  m_eventScanner->Stop();
 
   // avoid deadlocks by copying all busses into a temporary variable and destroying them from there
   std::vector<PeripheralBusPtr> busses;
@@ -414,7 +418,7 @@ void CPeripherals::OnDeviceChanged()
 {
   // refresh settings (peripherals manager could be enabled/disabled now)
   CGUIMessage msgSettings(GUI_MSG_UPDATE, WINDOW_SETTINGS_SYSTEM, 0);
-  g_windowManager.SendThreadMessage(msgSettings, WINDOW_SETTINGS_SYSTEM);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msgSettings, WINDOW_SETTINGS_SYSTEM);
 
   SetChanged();
 }
@@ -774,6 +778,16 @@ bool CPeripherals::GetNextKeypress(float frameTime, CKey &key)
   return false;
 }
 
+EventPollHandlePtr CPeripherals::RegisterEventPoller()
+{
+  return m_eventScanner->RegisterPollHandle();
+}
+
+EventLockHandlePtr CPeripherals::RegisterEventLock()
+{
+  return m_eventScanner->RegisterLock();
+}
+
 void CPeripherals::OnUserNotification()
 {
   if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_INPUT_RUMBLENOTIFY))
@@ -921,7 +935,7 @@ void CPeripherals::OnSettingAction(std::shared_ptr<const CSetting> setting)
   if (settingId == CSettings::SETTING_INPUT_PERIPHERALS)
     CGUIDialogPeripherals::Show(*this);
   else if (settingId == CSettings::SETTING_INPUT_CONTROLLERCONFIG)
-    g_windowManager.ActivateWindow(WINDOW_DIALOG_GAME_CONTROLLERS);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_DIALOG_GAME_CONTROLLERS);
   else if (settingId == CSettings::SETTING_INPUT_TESTRUMBLE)
     TestFeature(FEATURE_RUMBLE);
   else if (settingId == CSettings::SETTING_INPUT_PERIPHERALLIBRARIES)

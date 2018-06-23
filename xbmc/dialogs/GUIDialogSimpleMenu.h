@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,7 +18,10 @@
  *
  */
 
+#pragma once
+
 #include "FileItem.h"
+#include "filesystem/Directory.h"
 #include <string>
 
 class CGUIDialogSimpleMenu
@@ -29,4 +31,7 @@ public:
   /*! \brief Show dialog allowing selection of wanted playback item */
   static bool ShowPlaySelection(CFileItem& item);
   static bool ShowPlaySelection(CFileItem& item, const std::string& directory);
+
+protected:
+  static bool GetDirectoryItems(const std::string &path, CFileItemList &items, const XFILE::CDirectory::CHints &hints);
 };

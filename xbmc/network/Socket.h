@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  * Socket classes
  *      Copyright (c) 2008 d4rk
@@ -21,6 +19,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "PlatformDefs.h"
 
@@ -125,7 +125,7 @@ namespace SOCKETS
           hash = 0xfffffffeu;
         return (unsigned long)htonl(hash);
       }
-      else 
+      else
         return (unsigned long)saddr.saddr4.sin_addr.s_addr;
     }
   };

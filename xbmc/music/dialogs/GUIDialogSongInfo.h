@@ -1,7 +1,5 @@
-#pragma once
-
 /*
- *      Copyright (C) 2005-2013 Team XBMC
+ *      Copyright (C) 2005-2018 Team XBMC
  *      http://kodi.tv
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,9 +18,11 @@
  *
  */
 
-#include "guilib/GUIDialog.h"
+#pragma once
 
-class CFileItem;
+#include "guilib/GUIDialog.h"
+#include "FileItem.h"
+#include "threads/Event.h"
 
 class CGUIDialogSongInfo :
       public CGUIDialog
@@ -31,24 +31,33 @@ public:
   CGUIDialogSongInfo(void);
   ~CGUIDialogSongInfo(void) override;
   bool OnMessage(CGUIMessage& message) override;
-  void SetSong(CFileItem *item);
-  bool OnAction(const CAction &action) override;
+  bool SetSong(CFileItem* item);
+  void SetArtTypeList(CFileItemList& artlist);
+  bool OnAction(const CAction& action) override;
   bool OnBack(int actionID) override;
-  bool NeedsUpdate() const { return m_needsUpdate; };
+  bool HasUpdatedUserrating() const { return m_hasUpdatedUserrating; };
 
   bool HasListItems() const override { return true; };
   CFileItemPtr GetCurrentListItem(int offset = 0) override;
+  std::string GetContent();
+  //const CFileItemList& CurrentDirectory() const { return m_artTypeList; };
+  bool IsCancelled() const { return m_cancelled; };
+  void FetchComplete();
+
+  static void ShowFor(CFileItem* pItem);
 protected:
   void OnInitWindow() override;
   void Update();
-  bool DownloadThumbnail(const std::string &thumbFile);
-  void OnGetThumb();
+  void OnGetArt();
   void SetUserrating(int userrating);
   void OnSetUserrating();
 
   CFileItemPtr m_song;
+  CFileItemList m_artTypeList;
+  CEvent m_event;
   int m_startUserrating;
   bool m_cancelled;
-  bool m_needsUpdate;
+  bool m_hasUpdatedUserrating;
   long m_albumId;
+
 };

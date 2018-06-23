@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2017 Team Kodi
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "AddonBase.h"
 
@@ -40,7 +41,7 @@
   #define _SSIZE_T_DEFINED
 #endif // !_SSIZE_T_DEFINED
 #endif
-  
+
 #ifndef S_ISDIR
   #define S_ISDIR(mode)  ((((mode)) & 0170000) == (0040000))
 #endif
@@ -895,7 +896,7 @@ namespace vfs
     return strReturn;
   }
   //----------------------------------------------------------------------------
-  
+
   //============================================================================
   ///
   /// @ingroup cpp_kodi_vfs

@@ -17,9 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "cores/IPlayer.h"
+#include "cores/GameSettings.h"
 
 namespace KODI
 {
@@ -34,8 +35,8 @@ namespace RETRO
     virtual ~CGUIGameVideoHandle();
 
     bool IsPlayingGame();
-    bool SupportsRenderFeature(ERENDERFEATURE feature);
-    bool SupportsScalingMethod(ESCALINGMETHOD method);
+    bool SupportsRenderFeature(RENDERFEATURE feature);
+    bool SupportsScalingMethod(SCALINGMETHOD method);
 
   private:
     // Construction parameters

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -19,10 +18,16 @@
  *
  */
 
+#pragma once
+
 #include "GUIControl.h"
 #include "addons/Visualization.h"
 #include "cores/AudioEngine/Interfaces/IAudioCallback.h"
 #include "utils/rfft.h"
+
+#include <string>
+#include <vector>
+#include <list>
 
 #define AUDIO_BUFFER_SIZE 512 // MUST BE A POWER OF 2!!!
 #define MAX_AUDIO_BUFFERS 16

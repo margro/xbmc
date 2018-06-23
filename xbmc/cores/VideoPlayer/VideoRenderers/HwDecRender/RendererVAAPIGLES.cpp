@@ -40,9 +40,27 @@ CBaseRenderer* CRendererVAAPI::Create(CVideoBuffer *buffer)
   return nullptr;
 }
 
-void CRendererVAAPI::Register(IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDisplay eglDisplay, bool &general, bool &hevc)
+void CRendererVAAPI::Register(IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDisplay eglDisplay, bool &general, bool &deepColor)
 {
-  CVaapiTexture::TestInterop(vaDpy, eglDisplay, general, hevc);
+  general = deepColor = false;
+
+  int major_version, minor_version;
+  if (vaInitialize(vaDpy, &major_version, &minor_version) != VA_STATUS_SUCCESS)
+  {
+    vaTerminate(vaDpy);
+    return;
+  }
+
+  CVaapi2Texture::TestInterop(vaDpy, eglDisplay, general, deepColor);
+  CLog::Log(LOGDEBUG, "Vaapi2 EGL interop test results: general %s, deepColor %s", general ? "yes" : "no", deepColor ? "yes" : "no");
+  if (!general)
+  {
+    CVaapi1Texture::TestInterop(vaDpy, eglDisplay, general, deepColor);
+    CLog::Log(LOGDEBUG, "Vaapi1 EGL interop test results: general %s, deepColor %s", general ? "yes" : "no", deepColor ? "yes" : "no");
+  }
+
+  vaTerminate(vaDpy);
+
   if (general)
   {
     VIDEOPLAYER::CRendererFactory::RegisterRenderer("vaapi", CRendererVAAPI::Create);
@@ -75,9 +93,19 @@ bool CRendererVAAPI::Configure(const VideoPicture &picture, float fps, unsigned 
   interop.glEGLImageTargetTexture2DOES = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)eglGetProcAddress("glEGLImageTargetTexture2DOES");
   interop.eglDisplay = m_pWinSystem->GetEGLDisplay();
 
+  bool useVaapi2 = VAAPI::CVaapi2Texture::TestInteropGeneral(pic->vadsp, CRendererVAAPI::m_pWinSystem->GetEGLDisplay());
+
   for (auto &tex : m_vaapiTextures)
   {
-    tex.Init(interop);
+    if (useVaapi2)
+    {
+      tex.reset(new VAAPI::CVaapi2Texture);
+    }
+    else
+    {
+      tex.reset(new VAAPI::CVaapi1Texture);
+    }
+    tex->Init(interop);
   }
   for (auto &fence : m_fences)
   {
@@ -135,7 +163,7 @@ bool CRendererVAAPI::CreateTexture(int index)
     return CreateNV12Texture(index);
   }
 
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
   YuvImage &im = buf.image;
   YUVPLANE (&planes)[YuvImage::MAX_PLANES] = buf.fields[0];
 
@@ -163,7 +191,7 @@ void CRendererVAAPI::DeleteTexture(int index)
     return;
   }
 
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
   buf.fields[FIELD_FULL][0].id = 0;
   buf.fields[FIELD_FULL][1].id = 0;
   buf.fields[FIELD_FULL][2].id = 0;
@@ -176,7 +204,7 @@ bool CRendererVAAPI::UploadTexture(int index)
     return UploadNV12Texture(index);
   }
 
-  YUVBUFFER &buf = m_buffers[index];
+  CPictureBuffer &buf = m_buffers[index];
 
   CVaapiRenderPicture *pic = dynamic_cast<CVaapiRenderPicture*>(buf.videoBuffer);
 
@@ -185,13 +213,14 @@ bool CRendererVAAPI::UploadTexture(int index)
     return false;
   }
 
-  m_vaapiTextures[index].Map(pic);
+  m_vaapiTextures[index]->Map(pic);
 
   YuvImage &im = buf.image;
   YUVPLANE (&planes)[3] = buf.fields[0];
 
-  planes[0].texwidth  = m_vaapiTextures[index].m_texWidth;
-  planes[0].texheight = m_vaapiTextures[index].m_texHeight;
+  auto size = m_vaapiTextures[index]->GetTextureSize();
+  planes[0].texwidth  = size.Width();
+  planes[0].texheight = size.Height();
 
   planes[1].texwidth  = planes[0].texwidth  >> im.cshift_x;
   planes[1].texheight = planes[0].texheight >> im.cshift_y;
@@ -205,9 +234,9 @@ bool CRendererVAAPI::UploadTexture(int index)
   }
 
   // set textures
-  planes[0].id = m_vaapiTextures[index].m_textureY;
-  planes[1].id = m_vaapiTextures[index].m_textureVU;
-  planes[2].id = m_vaapiTextures[index].m_textureVU;
+  planes[0].id = m_vaapiTextures[index]->GetTextureY();
+  planes[1].id = m_vaapiTextures[index]->GetTextureVU();
+  planes[2].id = m_vaapiTextures[index]->GetTextureVU();
 
   for (int p=0; p<2; p++)
   {
@@ -263,6 +292,6 @@ void CRendererVAAPI::ReleaseBuffer(int idx)
     glDeleteSync(m_fences[idx]);
     m_fences[idx] = GL_NONE;
   }
-  m_vaapiTextures[idx].Unmap();
+  m_vaapiTextures[idx]->Unmap();
   CLinuxRendererGLES::ReleaseBuffer(idx);
 }

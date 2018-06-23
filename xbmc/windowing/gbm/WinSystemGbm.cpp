@@ -19,53 +19,66 @@
  */
 
 #include "WinSystemGbm.h"
-
+#include "ServiceBroker.h"
+#include "settings/DisplaySettings.h"
+#include "settings/Settings.h"
+#include "settings/lib/Setting.h"
 #include <string.h>
 
 #include "OptionalsReg.h"
-#include "guilib/GraphicContext.h"
-#include "powermanagement/linux/LinuxPowerSyscall.h"
+#include "platform/linux/OptionalsReg.h"
+#include "windowing/GraphicContext.h"
+#include "platform/linux/powermanagement/LinuxPowerSyscall.h"
 #include "settings/DisplaySettings.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
-#include "../WinEventsLinux.h"
 #include "DRMAtomic.h"
 #include "DRMLegacy.h"
+#include "messaging/ApplicationMessenger.h"
+
 
 CWinSystemGbm::CWinSystemGbm() :
   m_DRM(nullptr),
   m_GBM(new CGBMUtils),
-  m_nativeDisplay(nullptr),
-  m_nativeWindow(nullptr)
+  m_delayDispReset(false),
+  m_libinput(new CLibInputHandler)
 {
   std::string envSink;
-  if (getenv("AE_SINK"))
-    envSink = getenv("AE_SINK");
+  if (getenv("KODI_AE_SINK"))
+    envSink = getenv("KODI_AE_SINK");
   if (StringUtils::EqualsNoCase(envSink, "ALSA"))
   {
-    GBM::ALSARegister();
+    OPTIONALS::ALSARegister();
   }
   else if (StringUtils::EqualsNoCase(envSink, "PULSE"))
   {
-    GBM::PulseAudioRegister();
+    OPTIONALS::PulseAudioRegister();
+  }
+  else if (StringUtils::EqualsNoCase(envSink, "OSS"))
+  {
+    OPTIONALS::OSSRegister();
   }
   else if (StringUtils::EqualsNoCase(envSink, "SNDIO"))
   {
-    GBM::SndioRegister();
+    OPTIONALS::SndioRegister();
   }
   else
   {
-    if (!GBM::PulseAudioRegister())
+    if (!OPTIONALS::PulseAudioRegister())
     {
-      if (!GBM::ALSARegister())
+      if (!OPTIONALS::ALSARegister())
       {
-        GBM::SndioRegister();
+        if (!OPTIONALS::SndioRegister())
+        {
+          OPTIONALS::OSSRegister();
+        }
       }
     }
   }
 
-  m_winEvents.reset(new CWinEventsLinux());
   CLinuxPowerSyscall::Register();
+  m_lirc.reset(OPTIONALS::LircRegister());
+  m_libinput->Start();
 }
 
 bool CWinSystemGbm::InitWindowSystem()
@@ -87,13 +100,11 @@ bool CWinSystemGbm::InitWindowSystem()
     }
   }
 
-  if (!m_GBM->CreateDevice(m_DRM->m_fd))
+  if (!m_GBM->CreateDevice(m_DRM->GetFileDescriptor()))
   {
     m_GBM.reset();
     return false;
   }
-
-  m_nativeDisplay = m_GBM->m_device;
 
   CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - initialized DRM", __FUNCTION__);
   return CWinSystemBase::InitWindowSystem();
@@ -102,10 +113,7 @@ bool CWinSystemGbm::InitWindowSystem()
 bool CWinSystemGbm::DestroyWindowSystem()
 {
   m_GBM->DestroySurface();
-  m_nativeWindow = nullptr;
-
   m_GBM->DestroyDevice();
-  m_nativeDisplay = nullptr;
 
   CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - deinitialized DRM", __FUNCTION__);
   return true;
@@ -115,19 +123,22 @@ bool CWinSystemGbm::CreateNewWindow(const std::string& name,
                                     bool fullScreen,
                                     RESOLUTION_INFO& res)
 {
+  //Notify other subsystems that we change resolution
+  OnLostDevice();
+
   if(!m_DRM->SetMode(res))
   {
     CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to set DRM mode", __FUNCTION__);
     return false;
   }
 
-  if(!m_GBM->CreateSurface(m_DRM->m_mode->hdisplay, m_DRM->m_mode->vdisplay))
+  if(!m_GBM->CreateSurface(m_DRM->GetCurrentMode()->hdisplay, m_DRM->GetCurrentMode()->vdisplay))
   {
     CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to initialize GBM", __FUNCTION__);
     return false;
   }
 
-  m_nativeWindow = m_GBM->m_surface;
+  m_bFullScreen = fullScreen;
 
   CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - initialized GBM", __FUNCTION__);
   return true;
@@ -136,7 +147,6 @@ bool CWinSystemGbm::CreateNewWindow(const std::string& name,
 bool CWinSystemGbm::DestroyWindow()
 {
   m_GBM->DestroySurface();
-  m_nativeWindow = nullptr;
 
   CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - deinitialized GBM", __FUNCTION__);
   return true;
@@ -148,13 +158,12 @@ void CWinSystemGbm::UpdateResolutions()
 
   UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP),
                           0,
-                          m_DRM->m_mode->hdisplay,
-                          m_DRM->m_mode->vdisplay,
-                          m_DRM->m_mode->vrefresh);
+                          m_DRM->GetCurrentMode()->hdisplay,
+                          m_DRM->GetCurrentMode()->vdisplay,
+                          m_DRM->GetCurrentMode()->vrefresh);
 
-  std::vector<RESOLUTION_INFO> resolutions;
-
-  if (!m_DRM->GetModes(resolutions) || resolutions.empty())
+  auto resolutions = m_DRM->GetModes();
+  if (resolutions.empty())
   {
     CLog::Log(LOGWARNING, "CWinSystemGbm::%s - Failed to get resolutions", __FUNCTION__);
   }
@@ -162,19 +171,19 @@ void CWinSystemGbm::UpdateResolutions()
   {
     CDisplaySettings::GetInstance().ClearCustomResolutions();
 
-    for (unsigned int i = 0; i < resolutions.size(); i++)
+    for (auto &res : resolutions)
     {
-      g_graphicsContext.ResetOverscan(resolutions[i]);
-      CDisplaySettings::GetInstance().AddResolutionInfo(resolutions[i]);
+      CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(res);
+      CDisplaySettings::GetInstance().AddResolutionInfo(res);
 
       CLog::Log(LOGNOTICE, "Found resolution %dx%d for display %d with %dx%d%s @ %f Hz",
-                resolutions[i].iWidth,
-                resolutions[i].iHeight,
-                resolutions[i].iScreen,
-                resolutions[i].iScreenWidth,
-                resolutions[i].iScreenHeight,
-                resolutions[i].dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
-                resolutions[i].fRefreshRate);
+                res.iWidth,
+                res.iHeight,
+                res.iScreen,
+                res.iScreenWidth,
+                res.iScreenHeight,
+                res.dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",
+                res.fRefreshRate);
     }
   }
 
@@ -188,6 +197,9 @@ bool CWinSystemGbm::ResizeWindow(int newWidth, int newHeight, int newLeft, int n
 
 bool CWinSystemGbm::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
 {
+  // Notify other subsystems that we will change resolution
+  OnLostDevice();
+
   if(!m_DRM->SetMode(res))
   {
     CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to set DRM mode", __FUNCTION__);
@@ -196,13 +208,24 @@ bool CWinSystemGbm::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
 
   struct gbm_bo *bo = nullptr;
 
-  if (!m_DRM->m_req)
+  if (!std::dynamic_pointer_cast<CDRMAtomic>(m_DRM))
   {
     bo = m_GBM->LockFrontBuffer();
   }
 
   auto result = m_DRM->SetVideoMode(res, bo);
-  m_GBM->ReleaseBuffer();
+
+  if (!std::dynamic_pointer_cast<CDRMAtomic>(m_DRM))
+  {
+    m_GBM->ReleaseBuffer();
+  }
+
+  int delay = CServiceBroker::GetSettings().GetInt("videoscreen.delayrefreshchange");
+  if (delay > 0)
+  {
+    m_delayDispReset = true;
+    m_dispResetTimer.Set(delay * 100);
+  }
 
   return result;
 }
@@ -221,14 +244,23 @@ void CWinSystemGbm::WaitVBlank()
   m_DRM->WaitVBlank();
 }
 
+bool CWinSystemGbm::UseLimitedColor()
+{
+  return CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
+}
+
 bool CWinSystemGbm::Hide()
 {
-  return false;
+  bool ret = m_DRM->SetActive(false);
+  FlipPage(false, false);
+  return ret;
 }
 
 bool CWinSystemGbm::Show(bool raise)
 {
-  return true;
+  bool ret = m_DRM->SetActive(true);
+  FlipPage(false, false);
+  return ret;
 }
 
 void CWinSystemGbm::Register(IDispResource *resource)
@@ -244,5 +276,15 @@ void CWinSystemGbm::Unregister(IDispResource *resource)
   if (i != m_resources.end())
   {
     m_resources.erase(i);
+  }
+}
+
+void CWinSystemGbm::OnLostDevice()
+{
+  CLog::Log(LOGDEBUG, "%s - notify display change event", __FUNCTION__);
+
+  { CSingleLock lock(m_resourceSection);
+    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
+      (*i)->OnLostDisplay();
   }
 }

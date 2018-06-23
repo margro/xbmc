@@ -46,12 +46,6 @@
 #ifdef HAS_PYTHON
 #include "interfaces/python/XBPython.h"
 #endif
-#if defined(TARGET_DARWIN)
-#include "../platform/darwin/OSXGNUReplacements.h"
-#endif
-#ifdef TARGET_FREEBSD
-#include "freebsd/FreeBSDGNUReplacements.h"
-#endif
 
 using XFILE::CDirectory;
 using XFILE::CFile;
@@ -200,7 +194,7 @@ void CAddon::SaveSettings(void)
     doc.SaveFile(m_userSettingsPath);
 
   m_hasUserSettings = true;
-  
+
   //push the settings changes to the running addon instance
   CServiceBroker::GetAddonMgr().ReloadSettings(ID());
 #ifdef HAS_PYTHON

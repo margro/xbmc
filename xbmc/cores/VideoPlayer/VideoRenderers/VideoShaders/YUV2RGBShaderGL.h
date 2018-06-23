@@ -17,9 +17,10 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "guilib/TransformMatrix.h"
+#include "utils/TransformMatrix.h"
 #include "ShaderFormats.h"
 #include "GLSLOutput.h"
 #include "guilib/Shader.h"
@@ -55,6 +56,7 @@ public:
   void SetNonLinStretch(float stretch) { m_stretch = stretch; }
   void SetDisplayMetadata(bool hasDisplayMetadata, AVMasteringDisplayMetadata displayMetadata,
                           bool hasLightMetadata, AVContentLightMetadata lightMetadata);
+  void SetToneMapParam(float param) { m_toneMappingParam = param; }
 
   void SetConvertFullColorRange(bool convertFullRange) { m_convertFullRange = convertFullRange; }
 
@@ -63,7 +65,7 @@ public:
   GLint GetUcoordLoc() { return m_hUcoord; }
   GLint GetVcoordLoc() { return m_hVcoord; }
 
-  void SetMatrices(GLfloat *p, GLfloat *m) { m_proj = p; m_model = m; }
+  void SetMatrices(const GLfloat *p, const GLfloat *m) { m_proj = p; m_model = m; }
   void SetAlpha(GLfloat alpha)  { m_alpha = alpha; }
 
 protected:
@@ -83,13 +85,14 @@ protected:
   bool m_hasLightMetadata = false;
   AVContentLightMetadata m_lightMetadata;
   bool m_toneMapping = false;
+  float m_toneMappingParam = 1.0;
 
   float m_black;
   float m_contrast;
   float m_stretch;
 
-  GLfloat *m_proj = nullptr;
-  GLfloat *m_model = nullptr;
+  const GLfloat *m_proj = nullptr;
+  const GLfloat *m_model = nullptr;
   GLfloat m_alpha = 1.0f;
 
   std::string m_defines;

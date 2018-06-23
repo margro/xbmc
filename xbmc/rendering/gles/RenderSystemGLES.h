@@ -22,6 +22,7 @@
 
 #include "system_gl.h"
 #include "rendering/RenderSystem.h"
+#include "utils/Color.h"
 #include "GLESShader.h"
 
 enum ESHADERMETHOD
@@ -53,8 +54,8 @@ public:
   bool BeginRender() override;
   bool EndRender() override;
   void PresentRender(bool rendered, bool videoLayer) override;
-  bool ClearBuffers(color_t color) override;
-  bool IsExtSupported(const char* extension) override;
+  bool ClearBuffers(UTILS::Color color) override;
+  bool IsExtSupported(const char* extension) const override;
 
   void SetVSync(bool vsync);
   void ResetVSync() { m_bVsyncInit = false; }
@@ -72,17 +73,14 @@ public:
 
   void SetCameraPosition(const CPoint &camera, int screenWidth, int screenHeight, float stereoFactor = 0.0f) override;
 
-  void ApplyHardwareTransform(const TransformMatrix &matrix) override;
-  void RestoreHardwareTransform() override;
   bool SupportsStereo(RENDER_STEREO_MODE mode) const override;
-
-  bool TestRender() override;
 
   void Project(float &x, float &y, float &z) override;
 
   std::string GetShaderPath(const std::string &filename) override { return "GLES/2.0/"; }
 
-  void InitialiseShader();
+  void InitialiseShaders();
+  void ReleaseShaders();
   void EnableGUIShader(ESHADERMETHOD method);
   void DisableGUIShader();
 

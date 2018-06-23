@@ -1,6 +1,3 @@
-#ifndef __XBMC_CLIENT_H__
-#define __XBMC_CLIENT_H__
-
 /*
  *      Copyright (C) 2008-2015 Team Kodi
  *      http://kodi.tv
@@ -20,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,7 +103,7 @@ public:
   CAddress(const char *Address, int Port = STD_PORT)
   {
     m_Addr.sin_port = htons(Port);
-    
+
     struct hostent *h;
     if (Address == NULL || (h=gethostbyname(Address)) == NULL)
     {
@@ -330,7 +329,7 @@ public:
 
     unsigned int len = strlen(DevName);
     for (unsigned int i = 0; i < len; i++)
-      m_DeviceName.push_back(DevName[i]);    
+      m_DeviceName.push_back(DevName[i]);
 
     m_IconType = IconType;
 
@@ -648,7 +647,7 @@ public:
     m_Payload.push_back(((m_Y & 0xff00) >> 8));
     m_Payload.push_back( (m_Y & 0x00ff));
   }
-  
+
   virtual ~CPacketMOUSE()
   { }
 };
@@ -693,7 +692,7 @@ public:
 
     m_Payload.push_back('\0');
   }
-  
+
   virtual ~CPacketLOG()
   { }
 };
@@ -729,7 +728,7 @@ public:
 
     m_Payload.push_back('\0');
   }
-  
+
   virtual ~CPacketACTION()
   { }
 };
@@ -828,4 +827,3 @@ public:
   }
 };
 
-#endif

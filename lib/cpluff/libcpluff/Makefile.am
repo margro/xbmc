@@ -10,6 +10,8 @@ LIBS = @LIBS_LIBCPLUFF@ @LTLIBINTL@ @LIBS@
 
 CPPFLAGS = @CPPFLAGS@
 CPPFLAGS += -I. -DCP_C_API=CP_EXPORT -DCP_HOST="\"$(host)\"" -DCP_DATADIR="\"$(datadir)\""
+# the following symbols are clashing with mariadb symbols
+CPPFLAGS += -Dhash_delete=kazlib_hash_delete -Dhash_free=kazlib_hash_free -Dhash_insert=kazlib_hash_insert -Dlist_delete=kazlib_list_delete
 
 DOXYGEN = doxygen
 DOXYGEN_SOURCE = cpluffdef.h $(srcdir)/cpluff.h $(srcdir)/docsrc/*.dox
@@ -59,5 +61,15 @@ dist-hook: refdoc
 
 clean-local:
 	rm -rf doc
+
+check-local:
+	rc=0; \
+		find '$(srcdir)' -name '*.c' -print | while read f; do \
+			if grep -q -E 'cpi_(debug|warn|error)f?\(.*[^N]_\(' "$$f"; then \
+				echo "invalid use of cpi_(debug|warn|error)f? macros in $$f."; \
+				rc=1; \
+			fi; \
+		done; \
+		exit $$rc
 
 .PHONY: doc refdoc impldoc

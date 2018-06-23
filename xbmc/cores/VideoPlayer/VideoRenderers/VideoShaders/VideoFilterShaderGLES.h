@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  *      Copyright (C) 2007-2015 Team Kodi
  *      http://kodi.tv
@@ -19,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include "system_gl.h"
 
@@ -40,7 +40,7 @@ namespace Shaders {
     virtual bool GetTextureFilter(GLint& filter) { return false; }
     virtual GLint GetVertexLoc() { return m_hVertex; }
     virtual GLint GetcoordLoc() { return m_hcoord; }
-    virtual void SetMatrices(GLfloat *p, GLfloat *m) { m_proj = p; m_model = m; }
+    virtual void SetMatrices(const GLfloat *p, const GLfloat *m) { m_proj = p; m_model = m; }
     virtual void SetAlpha(GLfloat alpha)             { m_alpha = alpha; }
 
   protected:
@@ -60,8 +60,8 @@ namespace Shaders {
     GLint m_hModel;
     GLint m_hAlpha;
 
-    GLfloat *m_proj;
-    GLfloat *m_model;
+    const GLfloat *m_proj;
+    const GLfloat *m_model;
     GLfloat  m_alpha;
   };
 

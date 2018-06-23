@@ -17,11 +17,12 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
 // LibExportSettings.h: interface for the CLibExportSettings class.
 //
 //////////////////////////////////////////////////////////////////////
-
-#pragma once
 
 #include <string>
 #include "settings/lib/Setting.h"
@@ -61,7 +62,7 @@ public:
   bool IsSingleFile() const;
   bool IsSeparateFiles() const;
   bool IsToLibFolders() const;
-  
+
   std::string m_strPath;
   bool m_overwrite;
   bool m_artwork;

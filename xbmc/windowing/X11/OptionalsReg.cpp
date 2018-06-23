@@ -58,16 +58,16 @@ void X11::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
   proxy->eglDisplay = eglDpy;
 }
 
-void X11::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
+void X11::VAAPIRegister(CVaapiProxy *winSystem, bool deepColor)
 {
-  VAAPI::CDecoder::Register(winSystem, hevc);
+  VAAPI::CDecoder::Register(winSystem, deepColor);
 }
 
-void X11::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
+void X11::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &deepColor)
 {
   EGLDisplay eglDpy = winSystem->eglDisplay;
   VADisplay vaDpy = vaGetDisplay(winSystem->dpy);
-  CRendererVAAPI::Register(winSystem, vaDpy, eglDpy, general, hevc);
+  CRendererVAAPI::Register(winSystem, vaDpy, eglDpy, general, deepColor);
 }
 
 #else
@@ -89,11 +89,11 @@ void X11::VaapiProxyConfig(CVaapiProxy *proxy, void *dpy, void *eglDpy)
 {
 }
 
-void X11::VAAPIRegister(CVaapiProxy *winSystem, bool hevc)
+void X11::VAAPIRegister(CVaapiProxy *winSystem, bool deepColor)
 {
 }
 
-void X11::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc)
+void X11::VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &deepColor)
 {
 }
 
@@ -183,56 +183,3 @@ void X11::VDPAURegister()
 }
 #endif
 
-//-----------------------------------------------------------------------------
-// ALSA
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_ALSA
-#include "cores/AudioEngine/Sinks/AESinkALSA.h"
-bool X11::ALSARegister()
-{
-  CAESinkALSA::Register();
-  return true;
-}
-#else
-bool X11::ALSARegister()
-{
-  return false;
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// PulseAudio
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_PULSEAUDIO
-#include "cores/AudioEngine/Sinks/AESinkPULSE.h"
-bool X11::PulseAudioRegister()
-{
-  bool ret = CAESinkPULSE::Register();
-  return ret;
-}
-#else
-bool X11::PulseAudioRegister()
-{
-  return false;
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// sndio
-//-----------------------------------------------------------------------------
-
-#ifdef HAS_SNDIO
-#include "cores/AudioEngine/Sinks/AESinkSNDIO.h"
-bool X11::SndioRegister()
-{
-  CAESinkSNDIO::Register();
-  return true;
-}
-#else
-bool X11::SndioRegister()
-{
-  return false;
-}
-#endif

@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2012-2013 Team XBMC
  *      http://kodi.tv
@@ -19,6 +18,8 @@
  *
  */
 
+#pragma once
+
 #include "PeripheralHID.h"
 
 #include <atomic>
@@ -36,7 +37,7 @@ namespace PERIPHERALS
     void OnSettingChanged(const std::string &strChangedSetting) override;
     void OnDeviceRemoved() override;
     void AddSetting(const std::string &strKey, std::shared_ptr<const CSetting> setting, int order) override;
-    inline bool IsImonConflictsWithDInput() 
+    inline bool IsImonConflictsWithDInput()
     { return m_bImonConflictsWithDInput;}
     static inline long GetCountOfImonsConflictWithDInput()
     { return m_lCountOfImonsConflictWithDInput; }

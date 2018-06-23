@@ -32,33 +32,6 @@ namespace GBM
 CVaapiProxy* VaapiProxyCreate();
 void VaapiProxyDelete(CVaapiProxy *proxy);
 void VaapiProxyConfig(CVaapiProxy *proxy, void *eglDpy);
-void VAAPIRegister(CVaapiProxy *winSystem, bool hevc);
-void VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &hevc);
-}
-
-//-----------------------------------------------------------------------------
-// ALSA
-//-----------------------------------------------------------------------------
-
-namespace GBM
-{
-bool ALSARegister();
-}
-
-//-----------------------------------------------------------------------------
-// PulseAudio
-//-----------------------------------------------------------------------------
-
-namespace GBM
-{
-bool PulseAudioRegister();
-}
-
-//-----------------------------------------------------------------------------
-// sndio
-//-----------------------------------------------------------------------------
-
-namespace GBM
-{
-bool SndioRegister();
+void VAAPIRegister(CVaapiProxy *winSystem, bool deepColor);
+void VAAPIRegisterRender(CVaapiProxy *winSystem, bool &general, bool &deepColor);
 }

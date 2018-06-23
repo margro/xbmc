@@ -1,13 +1,3 @@
-/*!
-\file GUIControlFactory.h
-\brief
-*/
-
-#ifndef GUI_CONTROL_FACTORY_H
-#define GUI_CONTROL_FACTORY_H
-
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -28,16 +18,34 @@
  *
  */
 
+#pragma once
+
+/*!
+\file GUIControlFactory.h
+\brief
+*/
+
 #include <string>
 #include <vector>
 
 #include "GUIControl.h"
+#include "utils/Color.h"
 
 class CTextureInfo; // forward
 class CAspectRatio;
-class CGUIInfoLabel;
 class TiXmlNode;
 class CGUIAction;
+
+namespace KODI
+{
+namespace GUILIB
+{
+namespace GUIINFO
+{
+  class CGUIInfoLabel;
+}
+}
+}
 
 /*!
  \ingroup controls
@@ -63,7 +71,7 @@ public:
   static std::string TranslateControlType(CGUIControl::GUICONTROLTYPES type);
 
   static bool GetAspectRatio(const TiXmlNode* pRootNode, const char* strTag, CAspectRatio &aspectRatio);
-  static bool GetInfoTexture(const TiXmlNode* pRootNode, const char* strTag, CTextureInfo &image, CGUIInfoLabel &info, int parentID);
+  static bool GetInfoTexture(const TiXmlNode* pRootNode, const char* strTag, CTextureInfo &image, KODI::GUILIB::GUIINFO::CGUIInfoLabel &info, int parentID);
   static bool GetTexture(const TiXmlNode* pRootNode, const char* strTag, CTextureInfo &image);
   static bool GetAlignment(const TiXmlNode* pRootNode, const char* strTag, uint32_t& dwAlignment);
   static bool GetAlignmentY(const TiXmlNode* pRootNode, const char* strTag, uint32_t& dwAlignment);
@@ -92,11 +100,11 @@ public:
    */
   static float ParsePosition(const char* pos, const float parentSize);
 
-  static bool GetInfoLabelFromElement(const TiXmlElement *element, CGUIInfoLabel &infoLabel, int parentID);
-  static void GetInfoLabel(const TiXmlNode *pControlNode, const std::string &labelTag, CGUIInfoLabel &infoLabel, int parentID);
-  static void GetInfoLabels(const TiXmlNode *pControlNode, const std::string &labelTag, std::vector<CGUIInfoLabel> &infoLabels, int parentID);
-  static bool GetColor(const TiXmlNode* pRootNode, const char* strTag, color_t &value);
-  static bool GetInfoColor(const TiXmlNode* pRootNode, const char* strTag, CGUIInfoColor &value, int parentID);
+  static bool GetInfoLabelFromElement(const TiXmlElement *element, KODI::GUILIB::GUIINFO::CGUIInfoLabel &infoLabel, int parentID);
+  static void GetInfoLabel(const TiXmlNode *pControlNode, const std::string &labelTag, KODI::GUILIB::GUIINFO::CGUIInfoLabel &infoLabel, int parentID);
+  static void GetInfoLabels(const TiXmlNode *pControlNode, const std::string &labelTag, std::vector<KODI::GUILIB::GUIINFO::CGUIInfoLabel> &infoLabels, int parentID);
+  static bool GetColor(const TiXmlNode* pRootNode, const char* strTag, UTILS::Color &value);
+  static bool GetInfoColor(const TiXmlNode* pRootNode, const char* strTag, KODI::GUILIB::GUIINFO::CGUIInfoColor &value, int parentID);
   static std::string FilterLabel(const std::string &label);
   static bool GetConditionalVisibility(const TiXmlNode* control, std::string &condition);
   static bool GetActions(const TiXmlNode* pRootNode, const char* strTag, CGUIAction& actions);
@@ -157,4 +165,4 @@ private:
                             const char *centerRightTag, const char *widthTag, const float parentSize, float &left,
                             float &width, float &min_width);
 };
-#endif
+

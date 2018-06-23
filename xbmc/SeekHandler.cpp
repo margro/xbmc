@@ -26,7 +26,8 @@
 #include "Application.h"
 #include "cores/DataCacheCore.h"
 #include "FileItem.h"
-#include "guilib/GraphicContext.h"
+#include "guilib/GUIComponent.h"
+#include "windowing/GraphicContext.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "ServiceBroker.h"
@@ -150,7 +151,7 @@ void CSeekHandler::Seek(bool forward, float amount, float duration /* = 0 */, bo
     if( duration )
       speed *= duration;
     else
-      speed /= g_graphicsContext.GetFPS();
+      speed /= CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
 
     double totalTime = g_application.GetTotalTime();
     if (totalTime < 0)
@@ -239,7 +240,7 @@ void CSeekHandler::FrameMove()
   if (m_seekChanged)
   {
     m_seekChanged = false;
-    g_windowManager.SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_STATE_CHANGED);
+    CServiceBroker::GetGUI()->GetWindowManager().SendMessage(GUI_MSG_NOTIFY_ALL, 0, 0, GUI_MSG_STATE_CHANGED);
   }
 }
 

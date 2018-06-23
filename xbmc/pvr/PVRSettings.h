@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2015 Team Kodi
  *      http://kodi.tv
@@ -19,20 +18,26 @@
  *
  */
 
+#pragma once
+
 #include <map>
 #include <string>
 #include <utility>
 
 #include "settings/lib/ISettingCallback.h"
+#include "settings/lib/ISettingsHandler.h"
 #include "settings/lib/Setting.h"
 
 namespace PVR
 {
-  class CPVRSettings : private ISettingCallback
+  class CPVRSettings : private ISettingsHandler, private ISettingCallback
   {
   public:
     explicit CPVRSettings(const std::set<std::string> & settingNames);
     ~CPVRSettings() override;
+
+    // ISettingsHandler implementation
+    void OnSettingsLoaded() override;
 
     // ISettingCallback implementation
     void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;

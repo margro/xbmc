@@ -25,6 +25,7 @@
 #include "FileItem.h"
 #include "filesystem/Directory.h"
 #include "URL.h"
+#include "settings/lib/Setting.h"
 #include "utils/log.h"
 #include "utils/XBMCTinyXML.h"
 
@@ -54,7 +55,7 @@ bool CKeyboardLayoutManager::Load(const std::string& path /* = "" */)
   }
 
   CFileItemList layouts;
-  if (!XFILE::CDirectory::GetDirectory(CURL(layoutDirectory), layouts, ".xml") || layouts.IsEmpty())
+  if (!XFILE::CDirectory::GetDirectory(CURL(layoutDirectory), layouts, ".xml", XFILE::DIR_FLAG_DEFAULTS) || layouts.IsEmpty())
   {
     CLog::Log(LOGWARNING, "CKeyboardLayoutManager: no keyboard layouts found in %s", layoutDirectory.c_str());
     return false;

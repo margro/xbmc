@@ -1,11 +1,9 @@
-#pragma once
-
 /*
  *      SDL - Simple DirectMedia Layer
  *      Copyright (C) 1997-2009 Sam Lantinga
  *      Sam Lantinga
  *      slouken@libsdl.org
- *  
+ *
  *      Copyright (C) 2005-2015 Team Kodi
  *      http://kodi.tv
  *
@@ -25,10 +23,12 @@
  *
  */
 
+#pragma once
+
 /* Include file for SDL event handling */
 
 #include "input/XBMC_keyboard.h"
-#include "guilib/Resolution.h"
+#include "Resolution.h"
 
 /* Event enumerations */
 typedef enum {
@@ -43,6 +43,7 @@ typedef enum {
        XBMC_VIDEOMOVE,          /* User moved the window */
        XBMC_MODECHANGE,         /* Video mode must be changed */
        XBMC_TOUCH,
+       XBMC_BUTTON,             /* Button (remote) pressed */
        XBMC_SETFOCUS,
        XBMC_USEREVENT,
 
@@ -114,6 +115,13 @@ typedef struct XBMC_SetFocusEvent {
 	int y;		/* y position */
 } XBMC_SetFocusEvent;
 
+/* Button event structure */
+typedef struct XBMC_ButtonEvent
+{
+  uint32_t button;
+  uint32_t holdtime;
+} XBMC_ButtonEvent;
+
 /* General event structure */
 typedef struct XBMC_Event {
   uint8_t type;
@@ -129,6 +137,7 @@ typedef struct XBMC_Event {
     XBMC_UserEvent user;
     XBMC_AppCommandEvent appcommand;
     XBMC_TouchEvent touch;
+    XBMC_ButtonEvent keybutton;
     XBMC_SetFocusEvent focus;
   };
 } XBMC_Event;

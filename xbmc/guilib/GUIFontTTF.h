@@ -1,12 +1,3 @@
-/*!
-\file GUIFont.h
-\brief
-*/
-
-#ifndef CGUILIB_GUIFONTTTF_H
-#define CGUILIB_GUIFONTTTF_H
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -27,11 +18,14 @@
  *
  */
 
+#pragma once
+
 #include <string>
 #include <stdint.h>
 #include <vector>
 
 #include "utils/auto_buffer.h"
+#include "utils/Color.h"
 #include "utils/Geometry.h"
 
 #ifdef HAS_DX
@@ -43,8 +37,9 @@ using namespace DirectX::PackedVector;
 #endif
 
 constexpr size_t LOOKUPTABLE_SIZE = 256 * 8;
-// forward definition
+
 class CBaseTexture;
+class CRenderSystemBase;
 
 struct FT_FaceRec_;
 struct FT_LibraryRec_;
@@ -59,9 +54,7 @@ typedef struct FT_BitmapGlyphRec_ *FT_BitmapGlyph;
 typedef struct FT_StrokerRec_ *FT_Stroker;
 
 typedef uint32_t character_t;
-typedef uint32_t color_t;
 typedef std::vector<character_t> vecText;
-typedef std::vector<color_t> vecColors;
 
 /*!
  \ingroup textures
@@ -122,7 +115,7 @@ protected:
   float GetLineHeight(float lineSpacing) const;
   float GetFontHeight() const { return m_height; }
 
-  void DrawTextInternal(float x, float y, const vecColors &colors, const vecText &text,
+  void DrawTextInternal(float x, float y, const std::vector<UTILS::Color> &colors, const vecText &text,
                             uint32_t alignment, float maxPixelWidth, bool scrolling);
 
   float m_height;
@@ -131,7 +124,7 @@ protected:
   // Stuff for pre-rendering for speed
   inline Character *GetCharacter(character_t letter);
   bool CacheCharacter(wchar_t letter, uint32_t style, Character *ch);
-  void RenderCharacter(float posX, float posY, const Character *ch, color_t color, bool roundX, std::vector<SVertex> &vertices);
+  void RenderCharacter(float posX, float posY, const Character *ch, UTILS::Color color, bool roundX, std::vector<SVertex> &vertices);
   void ClearCharacterCache();
 
   virtual CBaseTexture* ReallocTexture(unsigned int& newHeight) = 0;
@@ -155,7 +148,7 @@ protected:
   unsigned int GetTextureLineHeight() const;
   static const unsigned int spacing_between_characters_in_texture;
 
-  color_t m_color;
+  UTILS::Color m_color;
 
   Character *m_char;                 // our characters
   Character *m_charquick[LOOKUPTABLE_SIZE];     // ascii chars (7 styles) here
@@ -199,6 +192,8 @@ protected:
   CGUIFontCache<CGUIFontCacheStaticPosition, CGUIFontCacheStaticValue> m_staticCache;
   CGUIFontCache<CGUIFontCacheDynamicPosition, CGUIFontCacheDynamicValue> m_dynamicCache;
 
+  CRenderSystemBase *m_renderSystem = nullptr;
+
 private:
   virtual bool FirstBegin() = 0;
   virtual void LastEnd() = 0;
@@ -215,4 +210,3 @@ private:
 #define CGUIFontTTF CGUIFontTTFDX
 #endif
 
-#endif

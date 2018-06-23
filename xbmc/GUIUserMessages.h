@@ -1,7 +1,3 @@
-//  GUI messages outside GuiLib
-//
-#pragma once
-
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -21,6 +17,11 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
+
+//  GUI messages outside GuiLib
+//
 
 #include "guilib/GUIMessage.h"
 
@@ -139,3 +140,7 @@
 
 // Send to RDS Radiotext handlers to inform about changed data
 #define GUI_MSG_UPDATE_RADIOTEXT      GUI_MSG_USER + 41
+
+#define GUI_MSG_PLAYBACK_ERROR        GUI_MSG_USER + 42
+#define GUI_MSG_PLAYBACK_AVCHANGE     GUI_MSG_USER + 43
+#define GUI_MSG_PLAYBACK_AVSTARTED    GUI_MSG_USER + 44

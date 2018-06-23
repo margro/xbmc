@@ -20,10 +20,10 @@
 
 #include "RPProcessInfo.h"
 #include "ServiceBroker.h"
-#include "cores/RetroPlayer/process/RenderBufferManager.h"
+#include "cores/RetroPlayer/buffers/RenderBufferManager.h"
 #include "cores/RetroPlayer/rendering/RenderContext.h"
 #include "cores/DataCacheCore.h"
-#include "guilib/GraphicContext.h"
+#include "windowing/GraphicContext.h"
 #include "rendering/RenderSystem.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
@@ -47,16 +47,17 @@ CCriticalSection CRPProcessInfo::m_createSection;
 CRPProcessInfo::CRPProcessInfo(std::string platformName) :
   m_platformName(std::move(platformName)),
   m_renderBufferManager(new CRenderBufferManager),
-  m_renderContext(new CRenderContext(&CServiceBroker::GetRenderSystem(),
-                                     &CServiceBroker::GetWinSystem(),
-                                     g_graphicsContext,
+  m_renderContext(new CRenderContext(CServiceBroker::GetRenderSystem(),
+                                     CServiceBroker::GetWinSystem(),
+                                     CServiceBroker::GetWinSystem()->GetGfxContext(),
                                      CDisplaySettings::GetInstance(),
                                      CMediaSettings::GetInstance()))
 {
   for (auto &rendererFactory : m_rendererFactories)
   {
     RenderBufferPoolVector bufferPools = rendererFactory->CreateBufferPools(*m_renderContext);
-    m_renderBufferManager->RegisterPools(rendererFactory.get(), std::move(bufferPools));
+    if (!bufferPools.empty())
+      m_renderBufferManager->RegisterPools(rendererFactory.get(), std::move(bufferPools));
   }
 
   // Initialize default scaling method
@@ -176,16 +177,16 @@ void CRPProcessInfo::ResetInfo()
   }
 }
 
-bool CRPProcessInfo::HasScalingMethod(ESCALINGMETHOD scalingMethod) const
+bool CRPProcessInfo::HasScalingMethod(SCALINGMETHOD scalingMethod) const
 {
   return m_renderBufferManager->HasScalingMethod(scalingMethod);
 }
 
-std::vector<ESCALINGMETHOD> CRPProcessInfo::GetScalingMethods()
+std::vector<SCALINGMETHOD> CRPProcessInfo::GetScalingMethods()
 {
   return {
-    VS_SCALINGMETHOD_NEAREST,
-    VS_SCALINGMETHOD_LINEAR,
+    SCALINGMETHOD::NEAREST,
+    SCALINGMETHOD::LINEAR,
   };
 }
 

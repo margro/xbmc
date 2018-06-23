@@ -32,14 +32,15 @@
 #include "filesystem/MusicDatabaseDirectory.h"
 #include "filesystem/SpecialProtocol.h"
 #include "filesystem/VideoDatabaseDirectory.h"
+#include "guilib/GUIComponent.h"
 #include "guilib/WindowIDs.h"
 #include "guilib/LocalizeStrings.h"
 #include "music/tags/MusicInfoTag.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "utils/Digest.h"
 #include "utils/FileExtensionProvider.h"
 #include "utils/log.h"
-#include "utils/md5.h"
 #include "utils/SortUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -56,6 +57,7 @@ NPT_SET_LOCAL_LOGGER("xbmc.upnp.server")
 
 using namespace ANNOUNCEMENT;
 using namespace XFILE;
+using KODI::UTILITY::CDigest;
 
 namespace UPNP
 {
@@ -250,7 +252,7 @@ NPT_String CUPnPServer::BuildSafeResourceUri(const NPT_HttpUrl &rooturi,
       filename = URIUtils::GetFileName(mapped_file_path);
 
     filename = CURL::Encode(filename);
-    md5 = XBMC::XBMC_MD5::GetMD5(mapped_file_path);
+    md5 = CDigest::Calculate(CDigest::Type::MD5, mapped_file_path);
     md5 += "/" + filename;
     { NPT_AutoLock lock(m_FileMutex);
       NPT_CHECK(m_FileMap.Put(md5.c_str(), mapped_file_path.c_str()));
@@ -288,7 +290,7 @@ CUPnPServer::Build(CFileItemPtr                  item,
             object->m_ObjectID = "0";
             object->m_ParentID = "-1";
             // root has 5 children
-            
+
             //This is dead code because of the HACK a few lines up setting with_count to false
             //if (with_count) {
             //    ((PLT_MediaContainer*)object)->m_ChildrenCount = 5;
@@ -689,7 +691,7 @@ CUPnPServer::OnBrowseDirectChildren(PLT_ActionReference&          action,
                                   + CServiceBroker::GetFileExtensionProvider().GetVideoExtensions() + "|"
                                   + CServiceBroker::GetFileExtensionProvider().GetMusicExtensions() + "|"
                                   + CServiceBroker::GetFileExtensionProvider().GetPictureExtensions();
-            CDirectory::GetDirectory((const char*)parent_id, items, supported);
+            CDirectory::GetDirectory((const char*)parent_id, items, supported, DIR_FLAG_DEFAULTS);
             DefaultSortItems(items);
         }
 
@@ -1123,8 +1125,8 @@ CUPnPServer::OnUpdateObject(PLT_ActionReference&             action,
              CUtil::DeleteMusicDatabaseDirectoryCache();
 
         CFileItemPtr msgItem(new CFileItem(updated));
-        CGUIMessage message(GUI_MSG_NOTIFY_ALL, g_windowManager.GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, 1, msgItem);
-        g_windowManager.SendThreadMessage(message);
+        CGUIMessage message(GUI_MSG_NOTIFY_ALL, CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow(), 0, GUI_MSG_UPDATE_ITEM, 1, msgItem);
+        CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(message);
     }
 
     NPT_CHECK_LABEL(service->PauseEventing(false), error);
@@ -1208,13 +1210,13 @@ CUPnPServer::ServeFile(const NPT_HttpRequest&              request,
 
     // set getCaptionInfo.sec - sets subtitle uri for Samsung devices
     const NPT_String* captionInfoHeader = request.GetHeaders().GetHeaderValue("getCaptionInfo.sec");
-    if (captionInfoHeader) 
+    if (captionInfoHeader)
     {
       NPT_String *sub_uri, movie;
       movie = "subtitle://" + md5;
 
       NPT_AutoLock lock(m_FileMutex);
-      if (NPT_SUCCEEDED(m_FileMap.Get(movie, sub_uri))) 
+      if (NPT_SUCCEEDED(m_FileMap.Get(movie, sub_uri)))
       {
         response.GetHeaders().SetHeader("CaptionInfo.sec", sub_uri->GetChars(), false);
       }

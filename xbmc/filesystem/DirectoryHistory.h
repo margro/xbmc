@@ -1,4 +1,3 @@
-#pragma once
 /*
  *      Copyright (C) 2005-2013 Team XBMC
  *      http://kodi.tv
@@ -18,6 +17,8 @@
  *  <http://www.gnu.org/licenses/>.
  *
  */
+
+#pragma once
 
 #include <map>
 #include <string>
@@ -46,7 +47,7 @@ public:
     std::string m_strPath;
     std::string m_strFilterPath;
   };
-  
+
   CDirectoryHistory() = default;
   virtual ~CDirectoryHistory();
 
@@ -70,7 +71,7 @@ public:
 
 private:
   static std::string preparePath(const std::string &strDirectory, bool tolower = true);
-  
+
   typedef std::map<std::string, CHistoryItem> HistoryMap;
   HistoryMap m_vecHistory;
   std::vector<CPathHistoryItem> m_vecPathHistory; ///< History of traversed directories
