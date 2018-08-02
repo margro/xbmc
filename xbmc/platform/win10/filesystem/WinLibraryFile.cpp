@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinLibraryFile.h"
@@ -269,19 +257,28 @@ bool CWinLibraryFile::IsInAccessList(const CURL& url)
   static std::string localPath;
   static std::string packagePath;
 
-  if (localPath.empty())
-    localPath = FromW(ApplicationData::Current().LocalFolder().Path().c_str());
+  try
+  {
+    if (localPath.empty())
+      localPath = FromW(ApplicationData::Current().LocalFolder().Path().c_str());
 
-  if (packagePath.empty())
-    packagePath = FromW(Package::Current().InstalledLocation().Path().c_str());
+    if (packagePath.empty())
+      packagePath = FromW(Package::Current().InstalledLocation().Path().c_str());
 
-  // don't check files inside local folder and installation folder
-  if ( StringUtils::StartsWithNoCase(url.Get(), localPath)
-    || StringUtils::StartsWithNoCase(url.Get(), packagePath))
-    return false;
+    // don't check files inside local folder and installation folder
+    if ( StringUtils::StartsWithNoCase(url.Get(), localPath)
+      || StringUtils::StartsWithNoCase(url.Get(), packagePath))
+      return false;
 
-  return IsInList(url, StorageApplicationPermissions::FutureAccessList())
-      || IsInList(url, StorageApplicationPermissions::MostRecentlyUsedList());
+    return IsInList(url, StorageApplicationPermissions::FutureAccessList())
+        || IsInList(url, StorageApplicationPermissions::MostRecentlyUsedList());
+  }
+  catch (const winrt::hresult_error& ex)
+  {
+    std::string strError = FromW(ex.message().c_str());
+    CLog::LogF(LOGERROR, "unexpected error occurs during WinRT API call: {}", strError);
+  }
+  return false;
 }
 
 bool CWinLibraryFile::OpenIntenal(const CURL &url, FileAccessMode mode)
@@ -331,20 +328,6 @@ StorageFile CWinLibraryFile::GetFile(const CURL& url)
       return nullptr;
 
     std::string filePath = URIUtils::FixSlashesAndDups(url.GetFileName(), '\\');
-    if (url.GetHostName() == "removable")
-    {
-      // here filePath has the form e\path\file.ext where first segment is
-      // drive letter, we should make path form like regular e:\path\file.ext
-      auto index = filePath.find('\\');
-      if (index == std::string::npos)
-      {
-        CLog::LogF(LOGDEBUG, "wrong file path '%s'", url.GetRedacted().c_str());
-        return nullptr;
-      }
-
-      filePath = filePath.insert(index, 1, ':');
-    }
-
     try
     {
       std::wstring wpath = ToW(filePath);
@@ -384,14 +367,14 @@ StorageFile CWinLibraryFile::GetFile(const CURL& url)
 bool CWinLibraryFile::IsInList(const CURL& url, const IStorageItemAccessList& list)
 {
   auto token = GetTokenFromList(url, list);
-  return token != nullptr && !token.empty();
+  return !token.empty();
 }
 
 winrt::hstring CWinLibraryFile::GetTokenFromList(const CURL& url, const IStorageItemAccessList& list)
 {
   AccessListEntryView listview = list.Entries();
   if (listview.Size() == 0)
-    return nullptr;
+    return winrt::hstring();
 
   using KODI::PLATFORM::WINDOWS::ToW;
   std::wstring filePathW = ToW(url.Get());
@@ -404,7 +387,7 @@ winrt::hstring CWinLibraryFile::GetTokenFromList(const CURL& url, const IStorage
     }
   }
 
-  return nullptr;
+  return winrt::hstring();
 }
 
 int CWinLibraryFile::Stat(const StorageFile& file, struct __stat64* statData)

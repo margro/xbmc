@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "EpgDatabase.h"
@@ -57,9 +45,9 @@ void CPVREpgDatabase::Unlock()
 
 void CPVREpgDatabase::CreateTables(void)
 {
-  CLog::Log(LOGINFO, "EpgDB - %s - creating tables", __FUNCTION__);
+  CLog::Log(LOGINFO, "Creating EPG database tables");
 
-  CLog::Log(LOGDEBUG, "EpgDB - %s - creating table 'epg'", __FUNCTION__);
+  CLog::LogFC(LOGDEBUG, LOGEPG, "Creating table 'epg'");
 
   CSingleLock lock(m_critSection);
 
@@ -71,7 +59,7 @@ void CPVREpgDatabase::CreateTables(void)
       ")"
   );
 
-  CLog::Log(LOGDEBUG, "EpgDB - %s - creating table 'epgtags'", __FUNCTION__);
+  CLog::LogFC(LOGDEBUG, LOGEPG, "Creating table 'epgtags'");
   m_pDS->exec(
       "CREATE TABLE epgtags ("
         "idBroadcast     integer primary key, "
@@ -103,7 +91,8 @@ void CPVREpgDatabase::CreateTables(void)
         "iFlags          integer"
       ")"
   );
-  CLog::Log(LOGDEBUG, "EpgDB - %s - creating table 'lastepgscan'", __FUNCTION__);
+
+  CLog::LogFC(LOGDEBUG, LOGEPG, "Creating table 'lastepgscan'");
   m_pDS->exec("CREATE TABLE lastepgscan ("
         "idEpg integer primary key, "
         "sLastScan varchar(20)"
@@ -113,7 +102,7 @@ void CPVREpgDatabase::CreateTables(void)
 
 void CPVREpgDatabase::CreateAnalytics()
 {
-  CLog::Log(LOGDEBUG, "%s - creating indices", __FUNCTION__);
+  CLog::LogFC(LOGDEBUG, LOGEPG, "Creating EPG database indices");
 
   CSingleLock lock(m_critSection);
   m_pDS->exec("CREATE UNIQUE INDEX idx_epg_idEpg_iStartTime on epgtags(idEpg, iStartTime desc);");
@@ -148,7 +137,7 @@ void CPVREpgDatabase::UpdateTables(int iVersion)
 bool CPVREpgDatabase::DeleteEpg(void)
 {
   bool bReturn(false);
-  CLog::Log(LOGDEBUG, "EpgDB - %s - deleting all EPG data from the database", __FUNCTION__);
+  CLog::LogFC(LOGDEBUG, LOGEPG, "Deleting all EPG data from the database");
 
   CSingleLock lock(m_critSection);
 
@@ -164,7 +153,7 @@ bool CPVREpgDatabase::Delete(const CPVREpg &table)
   /* invalid channel */
   if (table.EpgID() <= 0)
   {
-    CLog::Log(LOGERROR, "EpgDB - %s - invalid channel id: %d", __FUNCTION__, table.EpgID());
+    CLog::LogF(LOGERROR, "Invalid channel id: %d", table.EpgID());
     return false;
   }
 
@@ -200,16 +189,14 @@ bool CPVREpgDatabase::Delete(const CPVREpgInfoTag &tag)
   return DeleteValues("epgtags", filter);
 }
 
-int CPVREpgDatabase::Get(CPVREpgContainer &container)
+std::vector<CPVREpgPtr> CPVREpgDatabase::Get(const CPVREpgContainer &container)
 {
-  int iReturn(-1);
+  std::vector<CPVREpgPtr> result;
 
   CSingleLock lock(m_critSection);
   std::string strQuery = PrepareSQL("SELECT idEpg, sName, sScraperName FROM epg;");
   if (ResultQuery(strQuery))
   {
-    iReturn = 0;
-
     try
     {
       while (!m_pDS->eof())
@@ -218,30 +205,28 @@ int CPVREpgDatabase::Get(CPVREpgContainer &container)
         std::string strName        = m_pDS->fv("sName").get_asString().c_str();
         std::string strScraperName = m_pDS->fv("sScraperName").get_asString().c_str();
 
-        container.InsertFromDatabase(iEpgID, strName, strScraperName);
-        ++iReturn;
+        result.emplace_back(new CPVREpg(iEpgID, strName, strScraperName, true));
         m_pDS->next();
       }
       m_pDS->close();
     }
     catch (...)
     {
-      CLog::Log(LOGERROR, "%s - couldn't load EPG data from the database", __FUNCTION__);
+      CLog::LogF(LOGERROR, "Could not load EPG data from the database");
     }
   }
 
-  return iReturn;
+  return result;
 }
 
-int CPVREpgDatabase::Get(CPVREpg &epg)
+std::vector<CPVREpgInfoTagPtr> CPVREpgDatabase::Get(const CPVREpg &epg)
 {
-  int iReturn(-1);
+  std::vector<CPVREpgInfoTagPtr> result;
 
   CSingleLock lock(m_critSection);
   std::string strQuery = PrepareSQL("SELECT * FROM epgtags WHERE idEpg = %u;", epg.EpgID());
   if (ResultQuery(strQuery))
   {
-    iReturn = 0;
     try
     {
       while (!m_pDS->eof())
@@ -288,8 +273,7 @@ int CPVREpgDatabase::Get(CPVREpg &epg)
         newTag->m_strIconPath        = m_pDS->fv("sIconPath").get_asString().c_str();
         newTag->m_iFlags             = m_pDS->fv("iFlags").get_asInt();
 
-        epg.AddEntry(*newTag);
-        ++iReturn;
+        result.emplace_back(newTag);
 
         m_pDS->next();
       }
@@ -297,10 +281,10 @@ int CPVREpgDatabase::Get(CPVREpg &epg)
     }
     catch (...)
     {
-      CLog::Log(LOGERROR, "%s - couldn't load EPG data from the database", __FUNCTION__);
+      CLog::LogF(LOGERROR, "Could not load EPG data from the database");
     }
   }
-  return iReturn;
+  return result;
 }
 
 bool CPVREpgDatabase::GetLastEpgScanTime(int iEpgId, CDateTime *lastScan)
@@ -366,7 +350,7 @@ int CPVREpgDatabase::Persist(const CPVREpgInfoTag &tag, bool bSingleUpdate /* = 
 
   if (tag.EpgID() <= 0)
   {
-    CLog::Log(LOGERROR, "%s - tag '%s' does not have a valid table", __FUNCTION__, tag.Title(true).c_str());
+    CLog::LogF(LOGERROR, "Tag '%s' does not have a valid table", tag.Title(true).c_str());
     return iReturn;
   }
 

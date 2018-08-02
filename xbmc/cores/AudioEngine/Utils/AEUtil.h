@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -53,18 +41,12 @@ enum AVSync
 
 struct AEDelayStatus
 {
-  AEDelayStatus()
-  : delay(0.0)
-  , maxcorrection(0.0)
-  , tick(0)
-  {}
-
   void   SetDelay(double d);
   double GetDelay();
 
-  double delay;  // delay in sink currently
-  double maxcorrection; // time correction must not be greater than sink delay
-  int64_t tick;  // timestamp when delay was calculated
+  double delay = 0.0;  // delay in sink currently
+  double maxcorrection = 0.0; // time correction must not be greater than sink delay
+  int64_t tick = 0;  // timestamp when delay was calculated
 };
 
 /**
@@ -87,18 +69,13 @@ struct AEDelayStatus
 class CAESpinSection
 {
 public:
-  CAESpinSection()
-  : m_enter(0)
-  , m_leave(0)
-  {}
-
   void enter() { m_enter++; }
   void leave() { m_leave = m_enter; }
 
 protected:
   friend class CAESpinLock;
-  volatile unsigned int m_enter;
-  volatile unsigned int m_leave;
+  volatile unsigned int m_enter = 0;
+  volatile unsigned int m_leave = 0;
 };
 
 class CAESpinLock

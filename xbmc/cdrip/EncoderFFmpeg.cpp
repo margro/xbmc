@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #ifndef __STDC_CONSTANT_MACROS
@@ -47,12 +35,9 @@ CEncoderFFmpeg::CEncoderFFmpeg():
   m_SwrCtx    (NULL),
   m_Stream    (NULL),
   m_Buffer    (NULL),
-  m_BufferSize(0),
   m_BufferFrame(NULL),
   m_ResampledBuffer(NULL),
-  m_ResampledBufferSize(0),
-  m_ResampledFrame(NULL),
-  m_NeedConversion(false)
+  m_ResampledFrame(NULL)
 {
   memset(&m_callbacks, 0, sizeof(m_callbacks));
 }
@@ -297,7 +282,8 @@ bool CEncoderFFmpeg::WriteFrame()
 
   if(m_NeedConversion)
   {
-    if (swr_convert(m_SwrCtx, m_ResampledFrame->extended_data, m_NeededFrames, (const uint8_t**)m_BufferFrame->extended_data, m_NeededFrames) < 0)
+    //! @bug libavresample isn't const correct
+    if (swr_convert(m_SwrCtx, m_ResampledFrame->extended_data, m_NeededFrames, const_cast<const uint8_t**>(m_BufferFrame->extended_data), m_NeededFrames) < 0)
     {
       CLog::Log(LOGERROR, "CEncoderFFmpeg::WriteFrame - Error resampling audio");
       return false;

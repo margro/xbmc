@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -50,30 +38,25 @@ class CLinuxResourceCounter;
 
 struct CoreInfo
 {
-  int    m_id;
-  double m_fSpeed;
-  double m_fPct;
+  int    m_id = 0;
+  double m_fSpeed = .0;
+  double m_fPct = .0;
 #ifdef TARGET_POSIX
-  unsigned long long m_user;
-  unsigned long long m_nice;
-  unsigned long long m_system;
-  unsigned long long m_io;
+  unsigned long long m_user = 0LL;
+  unsigned long long m_nice = 0LL;
+  unsigned long long m_system = 0LL;
+  unsigned long long m_io = 0LL;
 #elif defined(TARGET_WINDOWS)
-  PDH_HCOUNTER m_coreCounter;
-  unsigned long long m_total;
+  PDH_HCOUNTER m_coreCounter = NULL;
+  unsigned long long m_total = 0;
 #endif
-  unsigned long long m_idle;
+  unsigned long long m_idle = 0LL;
   std::string m_strVendor;
   std::string m_strModel;
   std::string m_strBogoMips;
   std::string m_strHardware;
   std::string m_strRevision;
   std::string m_strSerial;
-#ifdef TARGET_POSIX
-  CoreInfo() : m_id(0), m_fSpeed(.0), m_fPct(.0), m_user(0LL), m_nice(0LL), m_system(0LL), m_io(0LL), m_idle(0LL) {}
-#elif defined(TARGET_WINDOWS)
-  CoreInfo() : m_id(0), m_fSpeed(.0), m_fPct(.0), m_coreCounter(NULL), m_total(0LL), m_idle(0LL) {}
-#endif
   bool operator<(const CoreInfo& other) const { return m_id < other.m_id; }
 };
 

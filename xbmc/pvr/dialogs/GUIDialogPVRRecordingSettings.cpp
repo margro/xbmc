@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogPVRRecordingSettings.h"
@@ -42,9 +30,7 @@ using namespace KODI::MESSAGING::HELPERS;
 #define SETTING_RECORDING_LIFETIME "recording.lifetime"
 
 CGUIDialogPVRRecordingSettings::CGUIDialogPVRRecordingSettings() :
-  CGUIDialogSettingsManualBase(WINDOW_DIALOG_PVR_RECORDING_SETTING, "DialogSettings.xml"),
-  m_iPlayCount(0),
-  m_iLifetime(0)
+  CGUIDialogSettingsManualBase(WINDOW_DIALOG_PVR_RECORDING_SETTING, "DialogSettings.xml")
 {
   m_loadType = LOAD_EVERY_TIME;
 }
@@ -53,7 +39,7 @@ void CGUIDialogPVRRecordingSettings::SetRecording(const CPVRRecordingPtr &record
 {
   if (!recording)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRRecordingSettings::SetRecording - no recording given");
+    CLog::LogF(LOGERROR, "No recording given");
     return;
   }
 
@@ -81,14 +67,14 @@ void CGUIDialogPVRRecordingSettings::InitializeSettings()
   const std::shared_ptr<CSettingCategory> category = AddCategory("pvrrecordingsettings", -1);
   if (category == nullptr)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRRecordingSettings::InitializeSettings - Unable to add settings category");
+    CLog::LogF(LOGERROR, "Unable to add settings category");
     return;
   }
 
   const std::shared_ptr<CSettingGroup> group = AddGroup(category);
   if (group == nullptr)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRRecordingSettings::InitializeSettings - Unable to add settings group");
+    CLog::LogF(LOGERROR, "Unable to add settings group");
     return;
   }
 
@@ -112,7 +98,7 @@ bool CGUIDialogPVRRecordingSettings::OnSettingChanging(std::shared_ptr<const CSe
 {
   if (setting == nullptr)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRRecordingSettings::OnSettingChanging - No setting");
+    CLog::LogF(LOGERROR, "No setting");
     return false;
   }
 
@@ -137,7 +123,7 @@ void CGUIDialogPVRRecordingSettings::OnSettingChanged(std::shared_ptr<const CSet
 {
   if (setting == nullptr)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRRecordingSettings::OnSettingChanged - No setting");
+    CLog::LogF(LOGERROR, "No setting");
     return;
   }
 
@@ -201,5 +187,5 @@ void CGUIDialogPVRRecordingSettings::LifetimesFiller(
     }
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRRecordingSettings::LifetimesFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2016 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "cores/VideoPlayer/VideoRenderers/ColorManager.h"
@@ -191,19 +179,19 @@ void CGUIDialogCMSSettings::OnSettingChanged(std::shared_ptr<const CSetting> set
   if (settingId == SETTING_VIDEO_CMSENABLE)
     CServiceBroker::GetSettings().SetBool(SETTING_VIDEO_CMSENABLE, (std::static_pointer_cast<const CSettingBool>(setting)->GetValue()));
   else if (settingId == SETTING_VIDEO_CMSMODE)
-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSMODE, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
+    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSMODE, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
   else if (settingId == SETTING_VIDEO_CMS3DLUT)
-    CServiceBroker::GetSettings().SetString(SETTING_VIDEO_CMS3DLUT, static_cast<std::string>(std::static_pointer_cast<const CSettingString>(setting)->GetValue()));
+    CServiceBroker::GetSettings().SetString(SETTING_VIDEO_CMS3DLUT, std::static_pointer_cast<const CSettingString>(setting)->GetValue());
   else if (settingId == SETTING_VIDEO_CMSWHITEPOINT)
-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSWHITEPOINT, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
+    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSWHITEPOINT, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
   else if (settingId == SETTING_VIDEO_CMSPRIMARIES)
-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSPRIMARIES, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
+    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSPRIMARIES, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
   else if (settingId == SETTING_VIDEO_CMSGAMMAMODE)
-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSGAMMAMODE, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
+    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSGAMMAMODE, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
   else if (settingId == SETTING_VIDEO_CMSGAMMA)
     CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSGAMMA, static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue())*100);
   else if (settingId == SETTING_VIDEO_CMSLUTSIZE)
-    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSLUTSIZE, static_cast<int>(std::static_pointer_cast<const CSettingInt>(setting)->GetValue()));
+    CServiceBroker::GetSettings().SetInt(SETTING_VIDEO_CMSLUTSIZE, std::static_pointer_cast<const CSettingInt>(setting)->GetValue());
 }
 
 bool CGUIDialogCMSSettings::OnBack(int actionID)

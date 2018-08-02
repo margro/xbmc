@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -74,9 +62,7 @@ namespace XBMCAddon
     class Control : public AddonClass
     {
     protected:
-      Control() : iControlId(0), iParentId(0), dwPosX(0), dwPosY(0), dwWidth(0),
-                  dwHeight(0), iControlUp(0), iControlDown(0), iControlLeft(0),
-                  iControlRight(0), pGUIControl(NULL) {}
+      Control() = default;
 
     public:
       ~Control() override;
@@ -629,17 +615,17 @@ namespace XBMCAddon
 #endif
 
 #ifndef SWIG
-      int iControlId;
-      int iParentId;
-      int dwPosX;
-      int dwPosY;
-      int dwWidth;
-      int dwHeight;
-      int iControlUp;
-      int iControlDown;
-      int iControlLeft;
-      int iControlRight;
-      CGUIControl* pGUIControl;
+      int iControlId = 0;
+      int iParentId = 0;
+      int dwPosX = 0;
+      int dwPosY = 0;
+      int dwWidth = 0;
+      int dwHeight = 0;
+      int iControlUp = 0;
+      int iControlDown = 0;
+      int iControlLeft = 0;
+      int iControlRight = 0;
+      CGUIControl* pGUIControl = nullptr;
 #endif
 
     };
@@ -864,18 +850,15 @@ namespace XBMCAddon
 #endif
 
 #ifndef SWIG
-      ControlLabel() :
-        bHasPath(false),
-        iAngle  (0)
-      {}
+      ControlLabel() = default;
 
       std::string strFont;
       std::string strText;
       UTILS::Color textColor;
       UTILS::Color disabledColor;
       uint32_t align;
-      bool bHasPath;
-      int iAngle;
+      bool bHasPath = false;
+      int iAngle = 0;
 
       SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
@@ -1065,9 +1048,7 @@ namespace XBMCAddon
 #endif
 
 #ifndef SWIG
-      ControlEdit() :
-        bIsPassword (false)
-      {}
+      ControlEdit() = default;
 
       std::string strFont;
       std::string strText;
@@ -1076,7 +1057,7 @@ namespace XBMCAddon
       UTILS::Color textColor;
       UTILS::Color disabledColor;
       uint32_t align;
-      bool bIsPassword;
+      bool bIsPassword = false;
 
       SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 #endif
@@ -1627,14 +1608,7 @@ namespace XBMCAddon
 
       // This is called from AddonWindow.cpp but shouldn't be available
       //  to the scripting languages.
-      ControlList() :
-        imageHeight     (0),
-        imageWidth      (0),
-        itemHeight      (0),
-        space           (0),
-        itemTextOffsetX (0),
-        itemTextOffsetY (0)
-      {}
+      ControlList() = default;
 
       std::vector<AddonClass::Ref<ListItem> > vecItems;
       std::string strFont;
@@ -1645,13 +1619,13 @@ namespace XBMCAddon
       std::string strTextureButton;
       std::string strTextureButtonFocus;
 
-      int imageHeight;
-      int imageWidth;
-      int itemHeight;
-      int space;
+      int imageHeight = 0;
+      int imageWidth = 0;
+      int itemHeight = 0;
+      int space = 0;
 
-      int itemTextOffsetX;
-      int itemTextOffsetY;
+      int itemTextOffsetX = 0;
+      int itemTextOffsetY = 0;
       uint32_t alignmentY;
 
       SWIGHIDDENVIRTUAL CGUIControl* Create() override;
@@ -2096,12 +2070,10 @@ namespace XBMCAddon
 #endif
 
 #ifndef SWIG
-      ControlImage() :
-        aspectRatio (0)
-      {}
+      ControlImage() = default;
 
       std::string strFileName;
-      int aspectRatio;
+      int aspectRatio = 0;
       UTILS::Color colorDiffuse;
 
       SWIGHIDDENVIRTUAL CGUIControl* Create() override;
@@ -2244,13 +2216,11 @@ namespace XBMCAddon
       std::string strTextureRight;
       std::string strTextureBg;
       std::string strTextureOverlay;
-      int aspectRatio;
+      int aspectRatio = 0;
       UTILS::Color colorDiffuse;
 
       SWIGHIDDENVIRTUAL CGUIControl* Create() override;
-      ControlProgress() :
-        aspectRatio (0)
-      {}
+      ControlProgress() = default;
 #endif
     };
     /// @}
@@ -2459,15 +2429,15 @@ namespace XBMCAddon
 #ifndef SWIG
       SWIGHIDDENVIRTUAL bool canAcceptMessages(int actionId) override { return true; }
 
-      int textOffsetX;
-      int textOffsetY;
+      int textOffsetX = 0;
+      int textOffsetY = 0;
       UTILS::Color align;
       std::string strFont;
       UTILS::Color textColor;
       UTILS::Color disabledColor;
-      int iAngle;
-      int shadowColor;
-      int focusedColor;
+      int iAngle = 0;
+      int shadowColor = 0;
+      int focusedColor = 0;
       std::string strText;
       std::string strText2;
       std::string strTextureFocus;
@@ -2475,13 +2445,7 @@ namespace XBMCAddon
 
       SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
-      ControlButton() :
-        textOffsetX (0),
-        textOffsetY (0),
-        iAngle      (0),
-        shadowColor (0),
-        focusedColor(0)
-      {}
+      ControlButton() = default;
 #endif
     };
     /// @}
@@ -2780,20 +2744,16 @@ namespace XBMCAddon
       std::string strTextureRadioOffDisabled;
       UTILS::Color textColor;
       UTILS::Color disabledColor;
-      int textOffsetX;
-      int textOffsetY;
+      int textOffsetX = 0;
+      int textOffsetY = 0;
      uint32_t align;
-      int iAngle;
+      int iAngle = 0;
       UTILS::Color shadowColor;
       UTILS::Color focusedColor;
 
       SWIGHIDDENVIRTUAL CGUIControl* Create() override;
 
-      ControlRadioButton() :
-        textOffsetX (0),
-        textOffsetY (0),
-        iAngle      (0)
-      {}
+      ControlRadioButton() = default;
 #endif
     };
     /// @}

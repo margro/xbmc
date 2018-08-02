@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -45,7 +33,7 @@ namespace RETRO
     virtual void UnregisterRenderer(CRPBaseRenderer *renderer) = 0;
     virtual bool HasVisibleRenderer() const = 0;
 
-    virtual bool Configure(AVPixelFormat format, unsigned int width, unsigned int height) = 0;
+    virtual bool Configure(AVPixelFormat format) = 0;
 
     virtual bool IsConfigured() const = 0;
 
@@ -54,16 +42,21 @@ namespace RETRO
     /*!
      * \brief Get a free buffer from the pool, sets ref count to 1
      *
-     * \param Buffer size, must remain constant
+     * \param width The horizontal pixel count of the buffer
+     * \param height The vertical pixel could of the buffer
+     *
+     * \return The allocated buffer, or nullptr on failure
      */
-    virtual IRenderBuffer *GetBuffer(size_t size) = 0;
+    virtual IRenderBuffer *GetBuffer(unsigned int width, unsigned int height) = 0;
 
     /*!
      * \brief Called by buffer when ref count goes to zero
+     *
+     * \param buffer A fully dereferenced buffer
      */
     virtual void Return(IRenderBuffer *buffer) = 0;
 
-    virtual void Prime(size_t bufferSize) = 0;
+    virtual void Prime(unsigned int width, unsigned int height) = 0;
 
     virtual void Flush() = 0;
 

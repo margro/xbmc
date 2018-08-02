@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <errno.h>
@@ -32,10 +20,11 @@
 #include "DRMAtomic.h"
 #include "WinSystemGbmGLESContext.h"
 
+#include <drm_fourcc.h>
+
 void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool videoLayer)
 {
   uint32_t blob_id;
-  struct plane *plane;
 
   if (flags & DRM_MODE_ATOMIC_ALLOW_MODESET)
   {
@@ -58,38 +47,26 @@ void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool video
     {
       return;
     }
-
-    if (!videoLayer)
-    {
-      // disable overlay plane on modeset
-      AddProperty(m_overlay_plane, "FB_ID", 0);
-      AddProperty(m_overlay_plane, "CRTC_ID", 0);
-    }
   }
-
-  if (videoLayer)
-    plane = m_overlay_plane;
-  else
-    plane = m_primary_plane;
 
   if (rendered)
   {
-    AddProperty(plane, "FB_ID", fb_id);
-    AddProperty(plane, "CRTC_ID", m_crtc->crtc->crtc_id);
-    AddProperty(plane, "SRC_X", 0);
-    AddProperty(plane, "SRC_Y", 0);
-    AddProperty(plane, "SRC_W", m_mode->hdisplay << 16);
-    AddProperty(plane, "SRC_H", m_mode->vdisplay << 16);
-    AddProperty(plane, "CRTC_X", 0);
-    AddProperty(plane, "CRTC_Y", 0);
-    AddProperty(plane, "CRTC_W", m_mode->hdisplay);
-    AddProperty(plane, "CRTC_H", m_mode->vdisplay);
+    AddProperty(m_overlay_plane, "FB_ID", fb_id);
+    AddProperty(m_overlay_plane, "CRTC_ID", m_crtc->crtc->crtc_id);
+    AddProperty(m_overlay_plane, "SRC_X", 0);
+    AddProperty(m_overlay_plane, "SRC_Y", 0);
+    AddProperty(m_overlay_plane, "SRC_W", m_width << 16);
+    AddProperty(m_overlay_plane, "SRC_H", m_height << 16);
+    AddProperty(m_overlay_plane, "CRTC_X", 0);
+    AddProperty(m_overlay_plane, "CRTC_Y", 0);
+    AddProperty(m_overlay_plane, "CRTC_W", m_mode->hdisplay);
+    AddProperty(m_overlay_plane, "CRTC_H", m_mode->vdisplay);
   }
   else if (videoLayer && !CServiceBroker::GetGUI()->GetWindowManager().HasVisibleControls())
   {
     // disable gui plane when video layer is active and gui has no visible controls
-    AddProperty(plane, "FB_ID", 0);
-    AddProperty(plane, "CRTC_ID", 0);
+    AddProperty(m_overlay_plane, "FB_ID", 0);
+    AddProperty(m_overlay_plane, "CRTC_ID", 0);
   }
 
   auto ret = drmModeAtomicCommit(m_fd, m_req, flags | DRM_MODE_ATOMIC_TEST_ONLY, nullptr);
@@ -130,6 +107,11 @@ void CDRMAtomic::FlipPage(struct gbm_bo *bo, bool rendered, bool videoLayer)
 
   if (rendered)
   {
+    if (videoLayer)
+      m_overlay_plane->format = DRM_FORMAT_ARGB8888;
+    else
+      m_overlay_plane->format = DRM_FORMAT_XRGB8888;
+
     drm_fb = CDRMUtils::DrmFbGetFromBo(bo);
     if (!drm_fb)
     {
@@ -143,7 +125,7 @@ void CDRMAtomic::FlipPage(struct gbm_bo *bo, bool rendered, bool videoLayer)
 
 bool CDRMAtomic::InitDrm()
 {
-  if (!CDRMUtils::OpenDrm())
+  if (!CDRMUtils::OpenDrm(true))
   {
     return false;
   }
@@ -160,6 +142,11 @@ bool CDRMAtomic::InitDrm()
   if (!CDRMUtils::InitDrm())
   {
     return false;
+  }
+
+  if (!CDRMAtomic::ResetPlanes())
+  {
+    CLog::Log(LOGDEBUG, "CDRMAtomic::%s - failed to reset planes", __FUNCTION__);
   }
 
   CLog::Log(LOGDEBUG, "CDRMAtomic::%s - initialized atomic DRM", __FUNCTION__);
@@ -200,6 +187,42 @@ bool CDRMAtomic::AddProperty(struct drm_object *object, const char *name, uint64
     CLog::Log(LOGERROR, "CDRMAtomic::%s - could not add property %s", __FUNCTION__, name);
     return false;
   }
+
+  return true;
+}
+
+bool CDRMAtomic::ResetPlanes()
+{
+  drmModePlaneResPtr plane_resources = drmModeGetPlaneResources(m_fd);
+  if (!plane_resources)
+  {
+    CLog::Log(LOGERROR, "CDRMAtomic::%s - drmModeGetPlaneResources failed: %s", __FUNCTION__, strerror(errno));
+    return false;
+  }
+
+  for (uint32_t i = 0; i < plane_resources->count_planes; i++)
+  {
+    drmModePlanePtr plane = drmModeGetPlane(m_fd, plane_resources->planes[i]);
+    if (!plane)
+      continue;
+
+    drm_object object;
+
+    if (!CDRMUtils::GetProperties(m_fd, plane->plane_id, DRM_MODE_OBJECT_PLANE, &object))
+    {
+      CLog::Log(LOGERROR, "CDRMAtomic::%s - could not get plane %u properties: %s", __FUNCTION__, plane->plane_id, strerror(errno));\
+      drmModeFreePlane(plane);
+      continue;
+    }
+
+    AddProperty(&object, "FB_ID", 0);
+    AddProperty(&object, "CRTC_ID", 0);
+
+    CDRMUtils::FreeProperties(&object);
+    drmModeFreePlane(plane);
+  }
+
+  drmModeFreePlaneResources(plane_resources);
 
   return true;
 }

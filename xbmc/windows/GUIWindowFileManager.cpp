@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowFileManager.h"
@@ -460,7 +448,7 @@ bool CGUIWindowFileManager::Update(int iList, const std::string &strDirectory)
   int iItem = GetSelectedItem(iList);
   std::string strSelectedItem = "";
 
-  if (iItem >= 0 && iItem < (int)m_vecItems[iList]->Size())
+  if (iItem >= 0 && iItem < m_vecItems[iList]->Size())
   {
     CFileItemPtr pItem = m_vecItems[iList]->Get(iItem);
     if (!pItem->IsParentFolder())
@@ -534,7 +522,7 @@ bool CGUIWindowFileManager::Update(int iList, const std::string &strDirectory)
   }
 
   // if we have a .tbn file, use itself as the thumb
-  for (int i = 0; i < (int)m_vecItems[iList]->Size(); i++)
+  for (int i = 0; i < m_vecItems[iList]->Size(); i++)
   {
     CFileItemPtr pItem = m_vecItems[iList]->Get(i);
     if (pItem->IsHD() &&
@@ -848,7 +836,7 @@ void CGUIWindowFileManager::Refresh()
   Update(0, m_Directory[0]->GetPath());
   Update(1, m_Directory[1]->GetPath());
 
-  while (nSel > (int)m_vecItems[iList]->Size())
+  while (nSel > m_vecItems[iList]->Size())
     nSel--;
 
   CONTROL_SELECT_ITEM(iList + CONTROL_LEFT_LIST, nSel);
@@ -860,7 +848,7 @@ int CGUIWindowFileManager::GetSelectedItem(int iControl)
     return -1;
   CGUIMessage msg(GUI_MSG_ITEM_SELECTED, GetID(), iControl + CONTROL_LEFT_LIST);
   if (OnMessage(msg))
-    return (int)msg.GetParam1();
+    return msg.GetParam1();
   return -1;
 }
 

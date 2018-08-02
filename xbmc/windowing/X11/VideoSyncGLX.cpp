@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2014 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "VideoSyncGLX.h"
@@ -50,7 +38,7 @@ void CVideoSyncGLX::OnResetDisplay()
 
 bool CVideoSyncGLX::Setup(PUPDATECLOCK func)
 {
-  CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
+  CSingleLock lock(m_winSystem.GetGfxContext());
 
   m_glXWaitVideoSyncSGI = NULL;
   m_glXGetVideoSyncSGI = NULL;
@@ -99,9 +87,9 @@ bool CVideoSyncGLX::Setup(PUPDATECLOCK func)
     return false;
   }
 
-  bool          ExtensionFound = false;
-  std::istringstream Extensions(glXQueryExtensionsString(m_Dpy, m_winSystem.GetCurrentScreen()));
-  std::string        ExtensionStr;
+  bool ExtensionFound = false;
+  std::istringstream Extensions(glXQueryExtensionsString(m_Dpy, m_winSystem.GetScreen()));
+  std::string ExtensionStr;
 
   while (!ExtensionFound)
   {
@@ -119,7 +107,7 @@ bool CVideoSyncGLX::Setup(PUPDATECLOCK func)
     return false;
   }
 
-  m_vInfo = glXChooseVisual(m_Dpy, m_winSystem.GetCurrentScreen(), singleBufferAttributes);
+  m_vInfo = glXChooseVisual(m_Dpy, m_winSystem.GetScreen(), singleBufferAttributes);
   if (!m_vInfo)
   {
     CLog::Log(LOGDEBUG, "CVideoReferenceClock: glXChooseVisual returned NULL");
@@ -255,7 +243,7 @@ void CVideoSyncGLX::Cleanup()
   CLog::Log(LOGDEBUG, "CVideoReferenceClock: Cleaning up GLX");
 
   {
-    CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
+    CSingleLock lock(m_winSystem.GetGfxContext());
 
     if (m_vInfo)
     {
@@ -281,6 +269,6 @@ void CVideoSyncGLX::Cleanup()
 
 float CVideoSyncGLX::GetFps()
 {
-  m_fps = CServiceBroker::GetWinSystem()->GetGfxContext().GetFPS();
+  m_fps = m_winSystem.GetGfxContext().GetFPS();
   return m_fps;
 }

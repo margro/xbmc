@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DVDInputStreamNavigator.h"
@@ -175,21 +163,24 @@ bool CDVDInputStreamNavigator::Open()
   {
     CLog::Log(LOGERROR, "Error on setting default menu language: %s\n", m_dll.dvdnav_err_to_string(m_dvdnav));
     CLog::Log(LOGERROR, "Defaulting to \"en\"");
-    m_dll.dvdnav_menu_language_select(m_dvdnav, (char*)"en");
+    //! @bug libdvdnav isn't const correct
+    m_dll.dvdnav_menu_language_select(m_dvdnav, const_cast<char*>("en"));
   }
 
   if (m_dll.dvdnav_audio_language_select(m_dvdnav, (char*)language_audio) != DVDNAV_STATUS_OK)
   {
     CLog::Log(LOGERROR, "Error on setting default audio language: %s\n", m_dll.dvdnav_err_to_string(m_dvdnav));
     CLog::Log(LOGERROR, "Defaulting to \"en\"");
-    m_dll.dvdnav_audio_language_select(m_dvdnav, (char*)"en");
+    //! @bug libdvdnav isn't const correct
+    m_dll.dvdnav_audio_language_select(m_dvdnav, const_cast<char*>("en"));
   }
 
   if (m_dll.dvdnav_spu_language_select(m_dvdnav, (char*)language_subtitle) != DVDNAV_STATUS_OK)
   {
     CLog::Log(LOGERROR, "Error on setting default subtitle language: %s\n", m_dll.dvdnav_err_to_string(m_dvdnav));
     CLog::Log(LOGERROR, "Defaulting to \"en\"");
-    m_dll.dvdnav_spu_language_select(m_dvdnav, (char*)"en");
+    //! @bug libdvdnav isn't const correct
+    m_dll.dvdnav_spu_language_select(m_dvdnav, const_cast<char*>("en"));
   }
 
   // set read ahead cache usage

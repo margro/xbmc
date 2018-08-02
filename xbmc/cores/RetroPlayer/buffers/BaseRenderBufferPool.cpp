@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "BaseRenderBufferPool.h"
@@ -59,11 +47,9 @@ bool CBaseRenderBufferPool::HasVisibleRenderer() const
   return false;
 }
 
-bool CBaseRenderBufferPool::Configure(AVPixelFormat format, unsigned int width, unsigned int height)
+bool CBaseRenderBufferPool::Configure(AVPixelFormat format)
 {
   m_format = format;
-  m_width = width;
-  m_height = height;
 
   if (ConfigureInternal())
     m_bConfigured = true;
@@ -71,21 +57,10 @@ bool CBaseRenderBufferPool::Configure(AVPixelFormat format, unsigned int width, 
   return m_bConfigured;
 }
 
-IRenderBuffer *CBaseRenderBufferPool::GetBuffer(size_t size)
+IRenderBuffer *CBaseRenderBufferPool::GetBuffer(unsigned int width, unsigned int height)
 {
   if (!m_bConfigured)
     return nullptr;
-
-  // If frame size is unknown, set it now
-  if (m_frameSize == 0)
-    m_frameSize = size;
-
-  // Changing sizes is not implemented
-  if (m_frameSize != size)
-  {
-    CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: buffer pool frame size change -- not implemented");
-    return nullptr;
-  }
 
   IRenderBuffer *renderBuffer = nullptr;
 
@@ -95,19 +70,34 @@ IRenderBuffer *CBaseRenderBufferPool::GetBuffer(size_t size)
   {
     CSingleLock lock(m_bufferMutex);
 
-    if (!m_free.empty())
+    for (auto it = m_free.begin(); it != m_free.end(); ++it)
     {
-      renderBuffer = m_free.front().release();
-      m_free.pop_front();
-      renderBuffer->SetHeader(header);
+      std::unique_ptr<IRenderBuffer> &buffer = m_free.front();
+
+      // Only return buffers of the same dimensions
+      const unsigned int bufferWidth = buffer->GetWidth();
+      const unsigned int bufferHeight = buffer->GetHeight();
+
+      if (bufferWidth == width && bufferHeight == height)
+      {
+        renderBuffer = buffer.release();
+        renderBuffer->SetHeader(header);
+        m_free.erase(it);
+        break;
+      }
     }
-    else
+
+    if (renderBuffer == nullptr)
     {
-      CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Creating render buffer for buffer pool");
+      CLog::Log(LOGDEBUG, "RetroPlayer[RENDER]: Creating render buffer of size %ux%u for buffer pool",
+                width,
+                height);
 
       std::unique_ptr<IRenderBuffer> renderBufferPtr(CreateRenderBuffer(header));
-      if (renderBufferPtr->Allocate(m_format, m_width, m_height, m_frameSize))
+      if (renderBufferPtr->Allocate(m_format, width, height))
         renderBuffer = renderBufferPtr.release();
+      else
+        CLog::Log(LOGERROR, "RetroPlayer[RENDER]: Failed to allocate render buffer");
     }
 
     if (renderBuffer != nullptr)
@@ -128,18 +118,12 @@ void CBaseRenderBufferPool::Return(IRenderBuffer *buffer)
   buffer->SetRendered(false);
 
   std::unique_ptr<IRenderBuffer> bufferPtr(buffer);
-
-  // Only reclaim buffers of the same size
-  if (buffer->GetFrameSize() == m_frameSize)
-    m_free.emplace_back(std::move(bufferPtr));
+  m_free.emplace_back(std::move(bufferPtr));
 }
 
-void CBaseRenderBufferPool::Prime(size_t bufferSize)
+void CBaseRenderBufferPool::Prime(unsigned int width, unsigned int height)
 {
   CSingleLock lock(m_bufferMutex);
-
-  if (m_frameSize != bufferSize)
-    return;
 
   // Allocate two buffers for double buffering
   unsigned int bufferCount = 2;
@@ -148,7 +132,7 @@ void CBaseRenderBufferPool::Prime(size_t bufferSize)
 
   for (unsigned int i = 0; i < bufferCount; i++)
   {
-    IRenderBuffer *buffer = GetBuffer(0);
+    IRenderBuffer *buffer = GetBuffer(width, height);
     if (buffer == nullptr)
       break;
 
@@ -165,6 +149,5 @@ void CBaseRenderBufferPool::Flush()
   CSingleLock lock(m_bufferMutex);
 
   m_free.clear();
-  m_frameSize = 0;
   m_bConfigured = false;
 }

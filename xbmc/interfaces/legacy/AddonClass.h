@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -69,7 +57,7 @@ namespace XBMCAddon
   {
   private:
     mutable std::atomic<long> refs;
-    bool m_isDeallocating;
+    bool m_isDeallocating = false;
 
     // no copying
     inline AddonClass(const AddonClass&) = delete;
@@ -166,10 +154,10 @@ namespace XBMCAddon
       T * ac;
     public:
       inline Ref() : ac(NULL) {}
-      inline Ref(const T* _ac) : ac((T*)_ac) { if (ac) ac->Acquire(); refcheck; }
+      inline Ref(const T* _ac) : ac(const_cast<T*>(_ac)) { if (ac) ac->Acquire(); refcheck; }
 
       // copy semantics
-      inline Ref(Ref<T> const & oref) : ac((T*)(oref.get())) { if (ac) ac->Acquire(); refcheck; }
+      inline Ref(Ref<T> const & oref) : ac(const_cast<T*>(oref.get())) { if (ac) ac->Acquire(); refcheck; }
       template<class O> inline Ref(Ref<O> const & oref) : ac(static_cast<T*>(oref.get())) { if (ac) ac->Acquire(); refcheck; }
 
       /**
@@ -190,7 +178,7 @@ namespace XBMCAddon
        * opting for the route the boost took here figuring it has more history behind it.
        */
       inline Ref<T>& operator=(Ref<T> const & oref)
-      { T* tmp = ac; ac=((T*)oref.get()); if (ac) ac->Acquire(); if (tmp) tmp->Release(); refcheck; return *this; }
+      { T* tmp = ac; ac = const_cast<T*>(oref.get()); if (ac) ac->Acquire(); if (tmp) tmp->Release(); refcheck; return *this; }
 
       inline T* operator->() const { refcheck; return ac; }
 

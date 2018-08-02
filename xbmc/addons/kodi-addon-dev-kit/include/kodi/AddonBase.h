@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -264,11 +252,11 @@ public:
   explicit CSettingValue(const void *settingValue) : m_settingValue(settingValue) {}
 
   bool empty() const { return (m_settingValue == nullptr) ? true : false; }
-  std::string GetString() const { return (char*)m_settingValue; }
-  int GetInt() const { return *(int*)m_settingValue; }
-  unsigned int GetUInt() const { return *(unsigned int*)m_settingValue; }
-  bool GetBoolean() const { return *(bool*)m_settingValue; }
-  float GetFloat() const { return *(float*)m_settingValue; }
+  std::string GetString() const { return (const char*)m_settingValue; }
+  int GetInt() const { return *(const int*)m_settingValue; }
+  unsigned int GetUInt() const { return *(const unsigned int*)m_settingValue; }
+  bool GetBoolean() const { return *(const bool*)m_settingValue; }
+  float GetFloat() const { return *(const float*)m_settingValue; }
 
 private:
   const void *m_settingValue;

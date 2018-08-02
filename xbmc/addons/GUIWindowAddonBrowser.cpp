@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowAddonBrowser.h"
@@ -183,30 +171,35 @@ void CGUIWindowAddonBrowser::OnEvent(const ADDON::AddonEvent& event)
   CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
+void CGUIWindowAddonBrowser::InstallFromZip()
+{
+  using namespace KODI::MESSAGING::HELPERS;
+
+  if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES))
+  {
+    if (ShowYesNoDialogText(13106, 36617, 186, 10004) == DialogResponse::YES)
+      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_SETTINGS_SYSTEM, CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES);
+  }
+  else
+  {
+    // pop up filebrowser to grab an installed folder
+    VECSOURCES shares = *CMediaSourceSettings::GetInstance().GetSources("files");
+    g_mediaManager.GetLocalDrives(shares);
+    g_mediaManager.GetNetworkLocations(shares);
+    std::string path;
+    if (CGUIDialogFileBrowser::ShowAndGetFile(shares, "*.zip", g_localizeStrings.Get(24041), path))
+    {
+      CAddonInstaller::GetInstance().InstallFromZip(path);
+    }
+  }
+}
+
 bool CGUIWindowAddonBrowser::OnClick(int iItem, const std::string &player)
 {
   CFileItemPtr item = m_vecItems->Get(iItem);
   if (item->GetPath() == "addons://install/")
   {
-    using namespace KODI::MESSAGING::HELPERS;
-
-    if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES))
-    {
-      if (ShowYesNoDialogText(13106, 36617, 186, 10004) == DialogResponse::YES)
-        CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_SETTINGS_SYSTEM, CSettings::SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES);
-    }
-    else
-    {
-      // pop up filebrowser to grab an installed folder
-      VECSOURCES shares = *CMediaSourceSettings::GetInstance().GetSources("files");
-      g_mediaManager.GetLocalDrives(shares);
-      g_mediaManager.GetNetworkLocations(shares);
-      std::string path;
-      if (CGUIDialogFileBrowser::ShowAndGetFile(shares, "*.zip", g_localizeStrings.Get(24041), path))
-      {
-        CAddonInstaller::GetInstance().InstallFromZip(path);
-      }
-    }
+    InstallFromZip();
     return true;
   }
   if (item->GetPath() == "addons://update_all/")

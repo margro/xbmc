@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -78,6 +66,15 @@ namespace GAME
      * \brief Check if this node has a valid controller profile
      */
     bool IsValid() const { return m_controller.get() != nullptr; }
+
+    /*!
+     * \brief Check to see if a controller is compatible with a controller port
+     *
+     * \param controllerId The ID of the controller
+     *
+     * \return True if the controller is compatible with a port, false otherwise
+     */
+    bool IsControllerAccepted(const std::string &controllerId) const;
 
     /*!
      * \brief Check to see if a controller is compatible with a controller port
@@ -166,6 +163,15 @@ namespace GAME
     /*!
      * \brief Check to see if a controller is compatible with this tree
      *
+     * \param controllerId The ID of the controller
+     *
+     * \return True if the controller is compatible with the tree, false otherwise
+     */
+    bool IsControllerAccepted(const std::string &controllerId) const;
+
+    /*!
+     * \brief Check to see if a controller is compatible with this tree
+     *
      * \param portAddress The port address
      * \param controllerId The ID of the controller
      *
@@ -206,6 +212,7 @@ namespace GAME
     const ControllerPortVec &Ports() const { return m_ports; }
     void SetPorts(ControllerPortVec ports);
 
+    bool IsControllerAccepted(const std::string &controllerId) const;
     bool IsControllerAccepted(const std::string &portAddress,
                               const std::string &controllerId) const;
 

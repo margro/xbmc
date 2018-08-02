@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2014 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2014-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AEDeviceEnumerationOSX.h"
@@ -478,14 +466,22 @@ AESampleRateList AEDeviceEnumerationOSX::getSampleRateListForStream(UInt32 strea
 
 std::string AEDeviceEnumerationOSX::getDeviceNameForStream(UInt32 streamIdx) const
 {
-  std::string deviceName = "";
+  std::stringstream deviceIdStr;
+  deviceIdStr << m_deviceID;
+
+  // device name is the devicename from coreaudio + the device id to make it unique
+  // for example devicename could be DisplayPort and couldn't be distinguished if multiple
+  // DisplayPort devices are available
+  std::string deviceName = m_deviceName + "-" + deviceIdStr.str();
   if (m_isPlanar)// planar devices are saved as :stream0
-    deviceName = m_deviceName + ":stream0";
+  {
+    deviceName += ":stream0";
+  }
   else
   {
     std::stringstream streamIdxStr;
     streamIdxStr << streamIdx;
-    deviceName = m_deviceName + ":stream" + streamIdxStr.str();
+    deviceName += ":stream" + streamIdxStr.str();
   }
   return deviceName;
 }

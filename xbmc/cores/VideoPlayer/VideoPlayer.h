@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -104,6 +92,7 @@ struct SPlayerState
     chapters.clear();
     canpause = false;
     canseek = false;
+    cantempo = false;
     caching = false;
     cache_bytes = 0;
     cache_level = 0.0;
@@ -133,6 +122,7 @@ struct SPlayerState
 
   bool canpause;            // pvr: can pause the current playing item
   bool canseek;             // pvr: can seek in the current playing item
+  bool cantempo;
   bool caching;
 
   int64_t cache_bytes;   // number of bytes current's cached
@@ -338,7 +328,7 @@ public:
   void SetProgram(int progId) override;
   int GetProgramsCount() override;
 
-  TextCacheStruct_t* GetTeletextCache() override;
+  std::shared_ptr<TextCacheStruct_t> GetTeletextCache() override;
   void LoadPage(int p, int sp, unsigned char* buffer) override;
 
   std::string GetRadioText(unsigned int line) override;
@@ -515,7 +505,7 @@ protected:
 
   struct SContent
   {
-    CCriticalSection m_section;
+    mutable CCriticalSection m_section;
     CSelectionStreams m_selectionStreams;
     std::vector<ProgramInfo> m_programs;
     int m_program;
@@ -526,16 +516,15 @@ protected:
 
   int m_playSpeed;
   int m_streamPlayerSpeed;
+  int m_demuxerSpeed = DVD_PLAYSPEED_NORMAL;
   struct SSpeedState
   {
-    double  lastpts;  // holds last display pts during ff/rw operations
+    double lastpts;  // holds last display pts during ff/rw operations
     int64_t lasttime;
     double lastseekpts;
-    double  lastabstime;
+    double lastabstime;
   } m_SpeedState;
-  std::atomic_bool m_canTempo;
 
-  int m_errorCount;
   double m_offset_pts;
 
   CDVDMessageQueue m_messenger;
@@ -580,7 +569,7 @@ protected:
   } m_dvd;
 
   SPlayerState m_State;
-  CCriticalSection m_StateSection;
+  mutable CCriticalSection m_StateSection;
   XbmcThreads::EndTime m_syncTimer;
 
   CEdl m_Edl;

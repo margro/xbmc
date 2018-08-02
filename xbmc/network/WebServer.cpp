@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WebServer.h"
@@ -76,13 +64,7 @@ typedef struct {
 } HttpFileDownloadContext;
 
 CWebServer::CWebServer()
-  : m_port(0),
-    m_daemon_ip6(nullptr),
-    m_daemon_ip4(nullptr),
-    m_running(false),
-    m_thread_stacksize(0),
-    m_authenticationRequired(false),
-    m_authenticationUsername("kodi"),
+  : m_authenticationUsername("kodi"),
     m_authenticationPassword(""),
     m_key(),
     m_cert()
@@ -101,14 +83,15 @@ CWebServer::CWebServer()
 #endif
 }
 
-static MHD_Response* create_response(size_t size, void* data, int free, int copy)
+static MHD_Response* create_response(size_t size, const void* data, int free, int copy)
 {
   MHD_ResponseMemoryMode mode = MHD_RESPMEM_PERSISTENT;
   if (copy)
     mode = MHD_RESPMEM_MUST_COPY;
   else if (free)
     mode = MHD_RESPMEM_MUST_FREE;
-  return MHD_create_response_from_buffer(size, data, mode);
+  //! @bug libmicrohttpd isn't const correct
+  return MHD_create_response_from_buffer(size, const_cast<void*>(data), mode);
 }
 
 int CWebServer::AskForAuthentication(const HTTPRequest& request) const
@@ -874,7 +857,7 @@ int CWebServer::CreateFileDownloadResponse(const std::shared_ptr<IHTTPRequestHan
 int CWebServer::CreateErrorResponse(struct MHD_Connection *connection, int responseType, HTTPMethod method, struct MHD_Response *&response) const
 {
   size_t payloadSize = 0;
-  void *payload = nullptr;
+  const void *payload = nullptr;
 
   if (method != HEAD)
   {
@@ -882,12 +865,12 @@ int CWebServer::CreateErrorResponse(struct MHD_Connection *connection, int respo
     {
       case MHD_HTTP_NOT_FOUND:
         payloadSize = strlen(PAGE_FILE_NOT_FOUND);
-        payload = (void *)PAGE_FILE_NOT_FOUND;
+        payload = (const void *)PAGE_FILE_NOT_FOUND;
         break;
 
       case MHD_HTTP_NOT_IMPLEMENTED:
         payloadSize = strlen(NOT_SUPPORTED);
-        payload = (void *)NOT_SUPPORTED;
+        payload = (const void *)NOT_SUPPORTED;
         break;
     }
   }
@@ -1021,7 +1004,7 @@ ssize_t CWebServer::ContentReaderCallback(void *cls, uint64_t pos, char *buf, si
 
   // seek to the position if necessary
   if (context->file->GetPosition() < 0 || context->writePosition != static_cast<uint64_t>(context->file->GetPosition()))
-    context->file->Seek(static_cast<uint64_t>(context->writePosition));
+    context->file->Seek(context->writePosition);
 
   // read data from the file
   ssize_t res = context->file->Read(buf, static_cast<size_t>(maximum));

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 // SMBFile.cpp: implementation of the CSMBFile class.
@@ -190,9 +178,11 @@ void CSMB::Init()
     smbc_setTimeout(m_context, g_advancedSettings.m_sambaclienttimeout * 1000);
     // we do not need to strdup these, smbc_setXXX below will make their own copies
     if (CServiceBroker::GetSettings().GetString(CSettings::SETTING_SMB_WORKGROUP).length() > 0)
-      smbc_setWorkgroup(m_context, (char*)CServiceBroker::GetSettings().GetString(CSettings::SETTING_SMB_WORKGROUP).c_str());
+      //! @bug libsmbclient < 4.9 isn't const correct
+      smbc_setWorkgroup(m_context, const_cast<char*>(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SMB_WORKGROUP).c_str()));
     std::string guest = "guest";
-    smbc_setUser(m_context, (char*)guest.c_str());
+    //! @bug libsmbclient < 4.8 isn't const correct
+    smbc_setUser(m_context, const_cast<char*>(guest.c_str()));
 #else
     m_context->debug = (g_advancedSettings.CanLogComponent(LOGSAMBA) ? 10 : 0);
     m_context->callbacks.auth_fn = xb_smbc_auth;
@@ -564,7 +554,7 @@ int64_t CSMBFile::Seek(int64_t iFilePosition, int iWhence)
     return -1;
   }
 
-  return (int64_t)pos;
+  return pos;
 }
 
 void CSMBFile::Close()
@@ -585,7 +575,7 @@ ssize_t CSMBFile::Write(const void* lpBuf, size_t uiBufSize)
   // lpBuf can be safely casted to void* since xbmc_write will only read from it.
   CSingleLock lock(smb);
 
-  return  smbc_write(m_fd, (void*)lpBuf, uiBufSize);
+  return  smbc_write(m_fd, lpBuf, uiBufSize);
 }
 
 bool CSMBFile::Delete(const CURL& url)

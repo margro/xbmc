@@ -1,25 +1,14 @@
 /*
- *      Copyright (C) 2018 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GameClientStreams.h"
 #include "GameClientStreamAudio.h"
+#include "GameClientStreamSwFramebuffer.h"
 #include "GameClientStreamVideo.h"
 #include "cores/RetroPlayer/streams/IRetroPlayerStream.h"
 #include "cores/RetroPlayer/streams/IStreamManager.h"
@@ -90,6 +79,8 @@ void CGameClientStreams::CloseStream(IGameClientStream *stream)
   if (stream != nullptr)
   {
     std::unique_ptr<IGameClientStream> streamHolder(stream);
+    streamHolder->CloseStream();
+
     m_streamManager->CloseStream(std::move(m_streams[stream]));
     m_streams.erase(stream);
   }
@@ -109,6 +100,11 @@ std::unique_ptr<IGameClientStream> CGameClientStreams::CreateStream(GAME_STREAM_
   case GAME_STREAM_VIDEO:
   {
     gameStream.reset(new CGameClientStreamVideo);
+    break;
+  }
+  case GAME_STREAM_SW_FRAMEBUFFER:
+  {
+    gameStream.reset(new CGameClientStreamSwFramebuffer);
     break;
   }
   default:

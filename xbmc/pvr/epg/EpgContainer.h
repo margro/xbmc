@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -204,7 +192,7 @@ namespace PVR
      * @param tag The epg tag containing the updated data
      * @param eNewState The kind of change (CREATED, UPDATED, DELETED)
      */
-    void UpdateFromClient(const CPVREpgInfoTagPtr tag, EPG_EVENT_STATE eNewState);
+    void UpdateFromClient(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE eNewState);
 
     /*!
      * @brief Get the number of past days to show in the guide and to import from backends.
@@ -253,7 +241,7 @@ namespace PVR
      */
     void LoadFromDB(void);
 
-    void InsertFromDatabase(int iEpgID, const std::string &strName, const std::string &strScraperName);
+    void InsertFromDatabase(const CPVREpgPtr &newEpg);
 
     CPVREpgDatabasePtr m_database; /*!< the EPG database */
 
@@ -272,7 +260,7 @@ namespace PVR
     EPGMAP       m_epgs;                   /*!< the EPGs in this container */
     //@}
 
-    CCriticalSection               m_critSection;    /*!< a critical section for changes to this container */
+    mutable CCriticalSection       m_critSection;    /*!< a critical section for changes to this container */
     CEvent                         m_updateEvent;    /*!< trigger when an update finishes */
 
     std::list<CEpgUpdateRequest> m_updateRequests; /*!< list of update requests triggered by addon */
@@ -281,7 +269,7 @@ namespace PVR
     std::list<CEpgTagStateChange> m_epgTagChanges; /*!< list of updated epg tags announced by addon */
     CCriticalSection m_epgTagChangesLock;          /*!< protect changed epg tags list */
 
-    bool m_bUpdateNotificationPending; /*!< true while an epg updated notification to observers is pending. */
+    bool m_bUpdateNotificationPending = false; /*!< true while an epg updated notification to observers is pending. */
     CPVRSettings m_settings;
   };
 }

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2018 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GameClientStreamAudio.h"
@@ -43,7 +31,7 @@ bool CGameClientStreamAudio::OpenStream(RETRO::IRetroPlayerStream* stream, const
   std::unique_ptr<RETRO::AudioStreamProperties> audioProperties(TranslateProperties(properties.audio, m_sampleRate));
   if (audioProperties)
   {
-    if (audioStream->OpenStream(reinterpret_cast<const RETRO::StreamProperties&>(*audioProperties)))
+    if (audioStream->OpenStream(static_cast<const RETRO::StreamProperties&>(*audioProperties)))
       m_stream = stream;
   }
 
@@ -52,8 +40,11 @@ bool CGameClientStreamAudio::OpenStream(RETRO::IRetroPlayerStream* stream, const
 
 void CGameClientStreamAudio::CloseStream()
 {
-  m_stream->CloseStream();
-  m_stream = nullptr;
+  if (m_stream != nullptr)
+  {
+    m_stream->CloseStream();
+    m_stream = nullptr;
+  }
 }
 
 void CGameClientStreamAudio::AddData(const game_stream_packet &packet)
@@ -70,7 +61,7 @@ void CGameClientStreamAudio::AddData(const game_stream_packet &packet)
       audio.size
     };
 
-    m_stream->AddStreamData(reinterpret_cast<RETRO::StreamPacket&>(audioPacket));
+    m_stream->AddStreamData(static_cast<RETRO::StreamPacket&>(audioPacket));
   }
 }
 

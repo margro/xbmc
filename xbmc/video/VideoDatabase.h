@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -600,11 +588,21 @@ public:
   void SetVideoSettings(int idFile, const CVideoSettings &settings);
 
   /**
-   * Erases settings for all files beginning with the specified path. Defaults
-   * to an empty path, meaning all settings will be erased.
-   * @param path partial path, e.g. pvr://channels
+   * Erases video settings for file item
+   * @param fileitem
    */
-  void EraseVideoSettings(const std::string &path = "");
+  void EraseVideoSettings(const CFileItem &item);
+
+  /**
+   * Erases all video settings
+   */
+  void EraseAllVideoSettings();
+
+  /**
+   * Erases video settings for files starting with path
+   * @param path pattern
+   */
+  void EraseAllVideoSettings(std::string path);
 
   bool GetStackTimes(const std::string &filePath, std::vector<uint64_t> &times);
   void SetStackTimes(const std::string &filePath, const std::vector<uint64_t> &times);

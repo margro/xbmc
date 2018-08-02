@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2015 Team KODI
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with KODI; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogPVRRadioRDSInfo.h"
@@ -53,16 +41,6 @@ using namespace PVR;
 CGUIDialogPVRRadioRDSInfo::CGUIDialogPVRRadioRDSInfo(void)
   : CGUIDialog(WINDOW_DIALOG_PVR_RADIO_RDS_INFO, "DialogPVRRadioRDSInfo.xml")
   , m_rdsItem(new CFileItem)
-  , m_InfoPresent(false)
-  , m_LabelInfoNewsPresent(false)
-  , m_LabelInfoNewsLocalPresent(false)
-  , m_LabelInfoWeatherPresent(false)
-  , m_LabelInfoLotteryPresent(false)
-  , m_LabelInfoSportPresent(false)
-  , m_LabelInfoStockPresent(false)
-  , m_LabelInfoOtherPresent(false)
-  , m_LabelInfoCinemaPresent(false)
-  , m_LabelInfoHoroscopePresent(false)
 {
 }
 

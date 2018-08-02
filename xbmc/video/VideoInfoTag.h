@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -37,7 +25,6 @@ class CVariant;
 
 struct SActorInfo
 {
-  SActorInfo() : order(-1) {};
   bool operator<(const SActorInfo &right) const
   {
     return order < right.order;
@@ -46,17 +33,17 @@ struct SActorInfo
   std::string strRole;
   CScraperUrl thumbUrl;
   std::string thumb;
-  int        order;
+  int        order = -1;
 };
 
 class CRating
 {
 public:
-  CRating(): rating(0.0f), votes(0) {}
-  explicit CRating(float r): rating(r), votes(0) {}
+  CRating() = default;
+  explicit CRating(float r): rating(r) {}
   CRating(float r, int v): rating(r), votes(v) {}
-  float rating;
-  int votes;
+  float rating = 0.0f;
+  int votes = 0;
 };
 typedef std::map<std::string, CRating> RatingMap;
 

@@ -1,22 +1,10 @@
 /*
-*      Copyright (C) 2005-2014 Team XBMC
-*      http://kodi.tv
-*
-*  This Program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  This Program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, see
-*  <http://www.gnu.org/licenses/>.
-*
-*/
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
 
 #include <math.h>
 
@@ -690,18 +678,21 @@ bool CInputManager::AlwaysProcess(const CAction& action)
 bool CInputManager::ExecuteInputAction(const CAction &action)
 {
   bool bResult = false;
+  CGUIComponent* gui = CServiceBroker::GetGUI();
 
   // play sound before the action unless the button is held,
   // where we execute after the action as held actions aren't fired every time.
   if (action.GetHoldTime())
   {
     bResult = g_application.OnAction(action);
-    if (bResult)
-      g_audioManager.PlayActionSound(action);
+    if (bResult && gui)
+      gui->GetAudioManager().PlayActionSound(action);
   }
   else
   {
-    g_audioManager.PlayActionSound(action);
+    if (gui)
+      gui->GetAudioManager().PlayActionSound(action);
+
     bResult = g_application.OnAction(action);
   }
   return bResult;

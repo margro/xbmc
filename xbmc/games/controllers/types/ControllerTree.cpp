@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ControllerTree.h"
@@ -61,6 +49,22 @@ void CControllerNode::SetAddress(std::string address)
 void CControllerNode::SetHub(CControllerHub hub)
 {
   m_hub.reset(new CControllerHub(std::move(hub)));
+}
+
+bool CControllerNode::IsControllerAccepted(const std::string &controllerId) const
+{
+  bool bAccepted = false;
+
+  for (const auto &port : m_hub->Ports())
+  {
+    if (port.IsControllerAccepted(controllerId))
+    {
+      bAccepted = true;
+      break;
+    }
+  }
+
+  return bAccepted;
 }
 
 bool CControllerNode::IsControllerAccepted(const std::string &portAddress,
@@ -128,6 +132,24 @@ void CControllerPortNode::SetCompatibleControllers(ControllerNodeVec controllers
   m_controllers = std::move(controllers);
 }
 
+bool CControllerPortNode::IsControllerAccepted(const std::string &controllerId) const
+{
+  // Base case
+  CControllerPort port;
+  GetControllerPort(port);
+  if (port.IsCompatible(controllerId))
+    return true;
+
+  // Visit nodes
+  for (const auto &node : m_controllers)
+  {
+    if (node.IsControllerAccepted(controllerId))
+      return true;
+  }
+
+  return false;
+}
+
 bool CControllerPortNode::IsControllerAccepted(const std::string &portAddress,
                                                const std::string &controllerId) const
 {
@@ -143,6 +165,7 @@ bool CControllerPortNode::IsControllerAccepted(const std::string &portAddress,
   }
   else
   {
+    // Visit nodes
     for (const auto &node : m_controllers)
     {
       if (node.IsControllerAccepted(portAddress, controllerId))
@@ -182,6 +205,22 @@ CControllerHub &CControllerHub::operator=(const CControllerHub &rhs)
 void CControllerHub::SetPorts(ControllerPortVec ports)
 {
   m_ports = std::move(ports);
+}
+
+bool CControllerHub::IsControllerAccepted(const std::string &controllerId) const
+{
+  bool bAccepted = false;
+
+  for (const CControllerPortNode &port : m_ports)
+  {
+    if (port.IsControllerAccepted(controllerId))
+    {
+      bAccepted = true;
+      break;
+    }
+  }
+
+  return bAccepted;
 }
 
 bool CControllerHub::IsControllerAccepted(const std::string &portAddress,

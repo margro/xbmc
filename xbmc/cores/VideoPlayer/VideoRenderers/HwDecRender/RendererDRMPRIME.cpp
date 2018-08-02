@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RendererDRMPRIME.h"
@@ -24,9 +12,12 @@
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "ServiceBroker.h"
+#include "settings/DisplaySettings.h"
+#include "settings/lib/Setting.h"
 #include "settings/Settings.h"
 #include "utils/log.h"
 #include "windowing/gbm/DRMAtomic.h"
+#include "windowing/GraphicContext.h"
 
 const std::string SETTING_VIDEOPLAYER_USEPRIMERENDERER = "videoplayer.useprimerenderer";
 
@@ -53,10 +44,18 @@ CBaseRenderer* CRendererDRMPRIME::Create(CVideoBuffer* buffer)
   return nullptr;
 }
 
-bool CRendererDRMPRIME::Register()
+void CRendererDRMPRIME::Register()
 {
-  VIDEOPLAYER::CRendererFactory::RegisterRenderer("drm_prime", CRendererDRMPRIME::Create);
-  return true;
+  CWinSystemGbmGLESContext* winSystem = dynamic_cast<CWinSystemGbmGLESContext*>(CServiceBroker::GetWinSystem());
+  if (winSystem && winSystem->GetDrm()->GetPrimaryPlane()->plane &&
+      std::dynamic_pointer_cast<CDRMAtomic>(winSystem->GetDrm()))
+  {
+    VIDEOPLAYER::CRendererFactory::RegisterRenderer("drm_prime", CRendererDRMPRIME::Create);
+    return;
+  }
+
+  CServiceBroker::GetSettings().SetInt(SETTING_VIDEOPLAYER_USEPRIMERENDERER, 1);
+  CServiceBroker::GetSettings().GetSetting(SETTING_VIDEOPLAYER_USEPRIMERENDERER)->SetVisible(false);
 }
 
 bool CRendererDRMPRIME::Configure(const VideoPicture& picture, float fps, unsigned int orientation)
@@ -82,6 +81,20 @@ bool CRendererDRMPRIME::Configure(const VideoPicture& picture, float fps, unsign
   return true;
 }
 
+void CRendererDRMPRIME::ManageRenderArea()
+{
+  CBaseRenderer::ManageRenderArea();
+
+  RESOLUTION_INFO info = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo();
+  if (info.iScreenWidth != info.iWidth)
+  {
+    CalcNormalRenderRect(0, 0, info.iScreenWidth, info.iScreenHeight,
+                         GetAspectRatio() * CDisplaySettings::GetInstance().GetPixelRatio(),
+                         CDisplaySettings::GetInstance().GetZoomAmount(),
+                         CDisplaySettings::GetInstance().GetVerticalShift());
+  }
+}
+
 void CRendererDRMPRIME::AddVideoPicture(const VideoPicture& picture, int index, double currentClock)
 {
   BUFFER& buf = m_buffers[index];
@@ -103,9 +116,10 @@ void CRendererDRMPRIME::Reset()
   m_iLastRenderBuffer = -1;
 }
 
-void CRendererDRMPRIME::Flush()
+bool CRendererDRMPRIME::Flush(bool saveBuffers)
 {
   m_iLastRenderBuffer = -1;
+  return false;
 }
 
 void CRendererDRMPRIME::ReleaseBuffer(int index)
@@ -234,30 +248,15 @@ void CRendererDRMPRIME::SetVideoPlane(CVideoBufferDRMPRIME* buffer)
     uint32_t src_w = buffer->GetWidth() << 16;
     uint32_t src_h = buffer->GetHeight() << 16;
 
-    if(std::dynamic_pointer_cast<CDRMAtomic>(m_DRM))
-    {
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "FB_ID",   buffer->m_fb_id);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_ID", m_DRM->GetCrtc()->crtc->crtc_id);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "SRC_X",   src_x);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "SRC_Y",   src_y);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "SRC_W",   src_w);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "SRC_H",   src_h);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_X",  crtc_x);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_Y",  crtc_y);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_W",  crtc_w);
-      m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_H",  crtc_h);
-    }
-    else
-    {
-      // show the video frame FB on the video plane
-      ret = drmModeSetPlane(m_DRM->GetFileDescriptor(), m_DRM->GetPrimaryPlane()->plane->plane_id, m_DRM->GetCrtc()->crtc->crtc_id, buffer->m_fb_id, 0,
-                            crtc_x, crtc_y, crtc_w, crtc_h,
-                            src_x, src_y, src_w, src_h);
-      if (ret < 0)
-      {
-        CLog::Log(LOGERROR, "CRendererDRMPRIME::%s - failed to set drm plane %d, buffer = %d, ret = %d", __FUNCTION__, m_DRM->GetPrimaryPlane()->plane->plane_id, buffer->m_fb_id, ret);
-        return;
-      }
-    }
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "FB_ID",   buffer->m_fb_id);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_ID", m_DRM->GetCrtc()->crtc->crtc_id);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "SRC_X",   src_x);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "SRC_Y",   src_y);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "SRC_W",   src_w);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "SRC_H",   src_h);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_X",  crtc_x);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_Y",  crtc_y);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_W",  crtc_w);
+    m_DRM->AddProperty(m_DRM->GetPrimaryPlane(), "CRTC_H",  crtc_h);
   }
 }

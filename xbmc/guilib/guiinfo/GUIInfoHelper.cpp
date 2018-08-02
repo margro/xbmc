@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIInfoHelper.h"
@@ -28,6 +16,7 @@
 #include "guilib/LocalizeStrings.h"
 #include "playlists/PlayList.h"
 #include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 #include "windows/GUIMediaWindow.h"
 
 #include "guilib/guiinfo/GUIInfoLabels.h"
@@ -185,6 +174,26 @@ CGUIListItemPtr GetCurrentListItem(int contextWindow, int containerId /* = 0 */,
   }
 
   return item;
+}
+
+std::string GetFileInfoLabelValueFromPath(int info, const std::string& filenameAndPath)
+{
+  std::string value = filenameAndPath;
+
+  if (info == PLAYER_PATH)
+  {
+    // do this twice since we want the path outside the archive if this is to be of use.
+    if (URIUtils::IsInArchive(value))
+      value = URIUtils::GetParentPath(value);
+
+    value = URIUtils::GetParentPath(value);
+  }
+  else if (info == PLAYER_FILENAME)
+  {
+    value = URIUtils::GetFileName(value);
+  }
+
+  return value;
 }
 
 } // namespace GUIINFO

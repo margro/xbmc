@@ -1,24 +1,12 @@
 /*
- *      Copyright (c) 2007 Frodo/jcmarshall/vulkanr/d4rk
+ *  Copyright (c) 2007 Frodo/jcmarshall/vulkanr/d4rk
  *      Based on XBoxRenderer by Frodo/jcmarshall
  *      Portions Copyright (c) by the authors of ffmpeg / xvid /mplayer
- *      Copyright (C) 2007-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2007-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <locale.h>
@@ -212,7 +200,9 @@ bool CLinuxRendererGL::ValidateRenderTarget()
     // call to LoadShaders
     glFinish();
     for (int i = 0 ; i < NUM_BUFFERS ; i++)
+    {
       DeleteTexture(i);
+    }
 
     // trigger update of video filters
     m_scalingMethodGui = (ESCALINGMETHOD)-1;
@@ -264,9 +254,9 @@ bool CLinuxRendererGL::Configure(const VideoPicture &picture, float fps, unsigne
   // frame is loaded after every call to Configure().
   m_bValidated = false;
 
-  m_nonLinStretch    = false;
+  m_nonLinStretch = false;
   m_nonLinStretchGui = false;
-  m_pixelRatio       = 1.0;
+  m_pixelRatio = 1.0;
 
   m_pboSupported = CServiceBroker::GetRenderSystem()->IsExtSupported("GL_ARB_pixel_buffer_object");
 
@@ -464,17 +454,24 @@ void CLinuxRendererGL::LoadPlane(YUVPLANE& plane, int type,
     glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 }
 
-void CLinuxRendererGL::Flush()
+bool CLinuxRendererGL::Flush(bool saveBuffers)
 {
+  bool safe = saveBuffers && CanSaveBuffers();
   glFinish();
 
   for (int i = 0 ; i < m_NumYV12Buffers ; i++)
+  {
+    if (!safe)
+      ReleaseBuffer(i);
     DeleteTexture(i);
+  }
 
   glFinish();
   m_bValidated = false;
   m_fbo.fbo.Cleanup();
   m_iYV12RenderBuffer = 0;
+
+  return safe;
 }
 
 void CLinuxRendererGL::Update()
@@ -991,6 +988,7 @@ void CLinuxRendererGL::UnInit()
   // YV12 textures
   for (int i = 0; i < NUM_BUFFERS; ++i)
   {
+    ReleaseBuffer(i);
     DeleteTexture(i);
   }
 
@@ -1769,7 +1767,8 @@ bool CLinuxRendererGL::CreateTexture(int index)
 
 void CLinuxRendererGL::DeleteTexture(int index)
 {
-  ReleaseBuffer(index);
+  CPictureBuffer& buf = m_buffers[index];
+  buf.loaded = false;
 
   if (m_format == AV_PIX_FMT_NV12)
     DeleteNV12Texture(index);

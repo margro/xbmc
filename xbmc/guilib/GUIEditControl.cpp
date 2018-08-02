@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIEditControl.h"
@@ -91,7 +79,7 @@ bool CGUIEditControl::OnMessage(CGUIMessage &message)
 {
   if (message.GetMessage() == GUI_MSG_SET_TYPE)
   {
-    SetInputType((INPUT_TYPE)message.GetParam1(), (int)message.GetParam2());
+    SetInputType((INPUT_TYPE)message.GetParam1(), message.GetParam2());
     return true;
   }
   else if (message.GetMessage() == GUI_MSG_ITEM_SELECTED)
@@ -138,7 +126,7 @@ bool CGUIEditControl::OnAction(const CAction &action)
     else if (action.GetID() == ACTION_MOVE_RIGHT ||
              action.GetID() == ACTION_CURSOR_RIGHT)
     {
-      if ((unsigned int) m_cursorPos < m_text2.size())
+      if (m_cursorPos < m_text2.size())
       {
         m_cursorPos++;
         UpdateText(false);
@@ -257,7 +245,7 @@ bool CGUIEditControl::OnAction(const CAction &action)
         {
           ClearMD5();
           m_edit.clear();
-          m_text2.insert(m_text2.begin() + m_cursorPos++, static_cast<wchar_t>(action.GetUnicode()));
+          m_text2.insert(m_text2.begin() + m_cursorPos++, action.GetUnicode());
           break;
         }
       }
@@ -714,7 +702,7 @@ bool CGUIEditControl::ValidateInput(const std::wstring &data) const
   if (m_inputValidator == NULL)
     return true;
 
-  return m_inputValidator(GetLabel2(), (void*)(m_inputValidatorData != NULL ? m_inputValidatorData : this));
+  return m_inputValidator(GetLabel2(), m_inputValidatorData != NULL ? m_inputValidatorData : const_cast<void*>((const void*)this));
 }
 
 void CGUIEditControl::ValidateInput()

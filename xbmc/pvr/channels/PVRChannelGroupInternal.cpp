@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRChannelGroupInternal.h"
@@ -69,7 +57,7 @@ bool CPVRChannelGroupInternal::Load(void)
     return true;
   }
 
-  CLog::Log(LOGERROR, "PVRChannelGroupInternal - %s - failed to load channels", __FUNCTION__);
+  CLog::LogF(LOGERROR, "Failed to load channels");
   return false;
 }
 
@@ -136,9 +124,8 @@ bool CPVRChannelGroupInternal::Update(void)
 
 bool CPVRChannelGroupInternal::AddToGroup(const CPVRChannelPtr &channel, const CPVRChannelNumber &channelNumber, bool bUseBackendChannelNumbers)
 {
-  CSingleLock lock(m_critSection);
-
   bool bReturn(false);
+  CSingleLock lock(m_critSection);
 
   /* get the group member, because we need the channel ID in this group, and the channel from this group */
   PVRChannelGroupMember& groupMember = GetByUniqueID(channel->StorageId());
@@ -236,9 +223,7 @@ int CPVRChannelGroupInternal::LoadFromDb(bool bCompress /* = false */)
   int iChannelCount = Size();
 
   if (database->Get(*this, bCompress) == 0)
-  {
-    CLog::Log(LOGINFO, "PVRChannelGroupInternal - %s - no channels in the database", __FUNCTION__);
-  }
+    CLog::LogFC(LOGDEBUG, LOGPVR, "No channels in the database");
 
   SortByChannelNumber();
 
@@ -259,8 +244,6 @@ bool CPVRChannelGroupInternal::IsGroupMember(const CPVRChannelPtr &channel) cons
 bool CPVRChannelGroupInternal::AddAndUpdateChannels(const CPVRChannelGroup &channels, bool bUseBackendChannelNumbers)
 {
   bool bReturn(false);
-  SetPreventSortAndRenumber();
-
   CSingleLock lock(m_critSection);
 
   /* go through the channel list and check for updated or new channels */
@@ -274,7 +257,7 @@ bool CPVRChannelGroupInternal::AddAndUpdateChannels(const CPVRChannelGroup &chan
       if (existingChannel.channel->UpdateFromClient(it->second.channel))
       {
         bReturn = true;
-        CLog::Log(LOGINFO,"PVRChannelGroupInternal - %s - updated %s channel '%s'", __FUNCTION__, m_bRadio ? "radio" : "TV", it->second.channel->ChannelName().c_str());
+        CLog::LogFC(LOGDEBUG, LOGPVR, "Updated %s channel '%s' from PVR client", m_bRadio ? "radio" : "TV", it->second.channel->ChannelName().c_str());
       }
     }
     else
@@ -282,15 +265,38 @@ bool CPVRChannelGroupInternal::AddAndUpdateChannels(const CPVRChannelGroup &chan
       /* new channel */
       UpdateFromClient(it->second.channel, bUseBackendChannelNumbers ? it->second.channel->ClientChannelNumber() : CPVRChannelNumber());
       bReturn = true;
-      CLog::Log(LOGINFO,"PVRChannelGroupInternal - %s - added %s channel '%s'", __FUNCTION__, m_bRadio ? "radio" : "TV", it->second.channel->ChannelName().c_str());
+      CLog::LogFC(LOGDEBUG, LOGPVR,"Added %s channel '%s' from PVR client", m_bRadio ? "radio" : "TV", it->second.channel->ChannelName().c_str());
     }
   }
 
-  SetPreventSortAndRenumber(false);
   if (m_bChanged)
     SortAndRenumber();
 
   return bReturn;
+}
+
+std::vector<CPVRChannelPtr> CPVRChannelGroupInternal::RemoveDeletedChannels(const CPVRChannelGroup &channels)
+{
+  std::vector<CPVRChannelPtr> removedChannels = CPVRChannelGroup::RemoveDeletedChannels(channels);
+
+  if (!removedChannels.empty())
+  {
+    CPVRChannelGroups* groups = CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bRadio);
+    for (const auto& channel : removedChannels)
+    {
+      /* remove this channel from all non-system groups */
+      groups->RemoveFromAllGroups(channel);
+
+      /* do we have valid data from channel's client? */
+      if (!IsMissingChannelsFromClient(channel->ClientID()))
+      {
+        /* since channel was not found in the internal group, it was deleted from the backend */
+        channel->Delete();
+      }
+    }
+  }
+
+  return removedChannels;
 }
 
 bool CPVRChannelGroupInternal::UpdateGroupEntries(const CPVRChannelGroup &channels)
@@ -322,6 +328,7 @@ bool CPVRChannelGroupInternal::CreateChannelEpgs(bool bForce /* = false */)
 {
   if (!CServiceBroker::GetPVRManager().EpgContainer().IsStarted())
     return false;
+
   {
     CSingleLock lock(m_critSection);
     for (PVR_CHANNEL_GROUP_MEMBERS::iterator it = m_members.begin(); it != m_members.end(); ++it)

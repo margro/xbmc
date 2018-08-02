@@ -1,29 +1,18 @@
 /*
- *      Copyright (C) 2016-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "JoystickEasterEgg.h"
 #include "ServiceBroker.h"
 #include "games/controllers/ControllerIDs.h"
+#include "games/GameServices.h"
+#include "games/GameSettings.h"
 #include "guilib/GUIAudioManager.h"
 #include "guilib/WindowIDs.h"
-#include "settings/Settings.h"
 
 using namespace KODI;
 using namespace JOYSTICK;
@@ -77,34 +66,42 @@ bool CJoystickEasterEgg::OnButtonPress(const FeatureName& feature)
   {
     const auto& sequence = it->second;
 
-    // Update state
+    // Reset state if it previously finished
+    if (m_state >= sequence.size())
+      m_state = 0;
+
     if (feature == sequence[m_state])
       m_state++;
     else
       m_state = 0;
 
-    // Capture input when finished with arrows (2 x up/down/left/right)
-    if (m_state > 8)
+    if (IsCapturing())
     {
       bHandled = true;
 
       if (m_state >= sequence.size())
-      {
         OnFinish();
-        m_state = 0;
-      }
     }
   }
 
   return bHandled;
 }
 
+bool CJoystickEasterEgg::IsCapturing()
+{
+  // Capture input when finished with arrows (2 x up/down/left/right)
+  return m_state > 8;
+}
+
 void CJoystickEasterEgg::OnFinish(void)
 {
-  CServiceBroker::GetSettings().ToggleBool(CSettings::SETTING_GAMES_ENABLE);
+  GAME::CGameSettings &gameSettings = CServiceBroker::GetGameServices().GameSettings();
+  gameSettings.ToggleGames();
 
-  WINDOW_SOUND sound = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_GAMES_ENABLE) ? SOUND_INIT : SOUND_DEINIT;
-  g_audioManager.PlayWindowSound(WINDOW_DIALOG_KAI_TOAST, sound);
+  WINDOW_SOUND sound = gameSettings.GamesEnabled() ? SOUND_INIT : SOUND_DEINIT;
+  CGUIComponent* gui = CServiceBroker::GetGUI();
+  if (gui)
+    gui->GetAudioManager().PlayWindowSound(WINDOW_DIALOG_KAI_TOAST, sound);
 
   //! @todo Shake screen
 }

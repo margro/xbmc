@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RPIUtils.h"
@@ -396,7 +384,6 @@ bool CRPIUtils::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
 
     if ((tv_state.state & ( VC_HDMI_HDMI | VC_HDMI_DVI )) != 0) // hdtv
     {
-      m_desktopRes.iScreen      = 0;
       m_desktopRes.bFullScreen  = true;
       m_desktopRes.iWidth       = tv_state.display.hdmi.width;
       m_desktopRes.iHeight      = tv_state.display.hdmi.height;
@@ -411,7 +398,6 @@ bool CRPIUtils::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
     }
     else if ((tv_state.state & ( VC_SDTV_NTSC | VC_SDTV_PAL )) != 0) // sdtv
     {
-      m_desktopRes.iScreen      = 0;
       m_desktopRes.bFullScreen  = true;
       m_desktopRes.iWidth       = tv_state.display.sdtv.width;
       m_desktopRes.iHeight      = tv_state.display.sdtv.height;
@@ -423,7 +409,6 @@ bool CRPIUtils::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
     }
     else if ((tv_state.state & VC_LCD_ATTACHED_DEFAULT) != 0) // lcd
     {
-      m_desktopRes.iScreen      = 0;
       m_desktopRes.bFullScreen  = true;
       m_desktopRes.iWidth       = tv_state.display.sdtv.width;
       m_desktopRes.iHeight      = tv_state.display.sdtv.height;
@@ -543,7 +528,6 @@ void CRPIUtils::GetSupportedModes(HDMI_RES_GROUP_T group, std::vector<RESOLUTION
     {
       RESOLUTION_INFO res;
 
-      res.iScreen       = 0;
       res.bFullScreen   = true;
       res.dwFlags       = MAKEFLAGS(group, tv->code, tv->scan_mode);
       res.fRefreshRate  = (float)tv->frame_rate;

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -124,16 +112,13 @@ public:
   // resolution interfaces
   unsigned int GetWidth() { return m_nWidth; }
   unsigned int GetHeight() { return m_nHeight; }
-  virtual int GetNumScreens() { return 0; }
-  virtual int GetCurrentScreen() { return 0; }
   virtual bool CanDoWindowed() { return true; }
   bool IsFullScreen() { return m_bFullScreen; }
   virtual void UpdateResolutions();
   void SetWindowResolution(int width, int height);
-  int DesktopResolution(int screen);
-  std::vector<RESOLUTION_WHR> ScreenResolutions(int screen, float refreshrate);
-  std::vector<REFRESHRATE> RefreshRates(int screen, int width, int height, uint32_t dwFlags);
-  REFRESHRATE DefaultRefreshRate(int screen, std::vector<REFRESHRATE> rates);
+  std::vector<RESOLUTION_WHR> ScreenResolutions(float refreshrate);
+  std::vector<REFRESHRATE> RefreshRates(int width, int height, uint32_t dwFlags);
+  REFRESHRATE DefaultRefreshRate(std::vector<REFRESHRATE> rates);
   virtual bool HasCalibration(const RESOLUTION_INFO &resInfo) { return true; };
 
   // text input interface
@@ -155,7 +140,7 @@ public:
   CGraphicContext& GetGfxContext();
 
 protected:
-  void UpdateDesktopResolution(RESOLUTION_INFO& newRes, int screen, int width, int height, float refreshRate, uint32_t dwFlags = 0);
+  void UpdateDesktopResolution(RESOLUTION_INFO& newRes, int width, int height, float refreshRate, uint32_t dwFlags);
   virtual std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> GetOSScreenSaverImpl() { return nullptr; }
 
   int m_nWidth = 0;
@@ -164,7 +149,6 @@ protected:
   int m_nLeft = 0;
   bool m_bWindowCreated = false;
   bool m_bFullScreen = false;
-  int m_nScreen = 0;
   bool m_bBlankOtherDisplay = false;
   float m_fRefreshRate = 0.0f;
   std::unique_ptr<KODI::WINDOWING::COSScreenSaverManager> m_screenSaverManager;

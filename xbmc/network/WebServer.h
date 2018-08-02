@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -123,16 +111,16 @@ private:
 
   bool LoadCert(std::string &skey, std::string &scert);
 
-  uint16_t m_port;
-  struct MHD_Daemon *m_daemon_ip6;
-  struct MHD_Daemon *m_daemon_ip4;
-  bool m_running;
-  size_t m_thread_stacksize;
-  bool m_authenticationRequired;
+  uint16_t m_port = 0;
+  struct MHD_Daemon *m_daemon_ip6 = nullptr;
+  struct MHD_Daemon *m_daemon_ip4 = nullptr;
+  bool m_running = false;
+  size_t m_thread_stacksize = 0;
+  bool m_authenticationRequired = false;
   std::string m_authenticationUsername;
   std::string m_authenticationPassword;
   std::string m_key;
   std::string m_cert;
-  CCriticalSection m_critSection;
+  mutable CCriticalSection m_critSection;
   std::vector<IHTTPRequestHandler *> m_requestHandlers;
 };

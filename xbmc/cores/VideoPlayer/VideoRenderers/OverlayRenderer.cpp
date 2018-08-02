@@ -1,22 +1,10 @@
 /*
  *      Initial code sponsored by: Voddler Inc (voddler.com)
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "OverlayRenderer.h"
@@ -33,6 +21,7 @@
 #include "settings/Settings.h"
 #include "settings/AdvancedSettings.h"
 #include "threads/SingleLock.h"
+#include "utils/ColorUtils.h"
 #include "utils/MathUtils.h"
 #include "OverlayRendererUtil.h"
 #include "OverlayRendererGUI.h"
@@ -43,6 +32,12 @@
 #endif
 
 using namespace OVERLAY;
+
+static UTILS::Color bgcolors[5] = { UTILS::COLOR::BLACK,
+  UTILS::COLOR::YELLOW,
+  UTILS::COLOR::WHITE,
+  UTILS::COLOR::LIGHTGREY,
+  UTILS::COLOR::GREY };
 
 COverlay::COverlay()
 {
@@ -177,11 +172,24 @@ void CRenderer::Render(int idx)
     COverlayText *text = dynamic_cast<COverlayText*>(*it);
     if (text)
     {
+      
+      // Compute the color to be used for the overlay background (depending on the opacity)
+      UTILS::Color bgcolor = bgcolors[CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_BGCOLOR)];
+      int bgopacity = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_BGOPACITY);
+      if (bgopacity > 0 && bgopacity < 100)
+      {
+        bgcolor = ColorUtils::ChangeOpacity(bgcolor, bgopacity / 100.0f);
+      }
+      else if (bgopacity == 0)
+      {
+        bgcolor = UTILS::COLOR::NONE;
+      }
+      
       text->PrepareRender(CServiceBroker::GetSettings().GetString(CSettings::SETTING_SUBTITLES_FONT),
                           CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_COLOR),
                           CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_HEIGHT),
                           CServiceBroker::GetSettings().GetInt(CSettings::SETTING_SUBTITLES_STYLE),
-                          m_font, m_fontBorder);
+                          m_font, m_fontBorder, bgcolor);
       o = text;
     }
     else
@@ -238,8 +246,8 @@ void CRenderer::Render(COverlay* o, float adjust_height)
     if(align == COverlay::ALIGN_SCREEN
     || align == COverlay::ALIGN_SUBTITLE)
     {
-      scale_x = (float)m_rv.Width();
-      scale_y = (float)m_rv.Height();
+      scale_x = m_rv.Width();
+      scale_y = m_rv.Height();
     }
 
     if(align == COverlay::ALIGN_VIDEO)
@@ -326,6 +334,8 @@ COverlay* CRenderer::Convert(CDVDOverlaySSA* o, double pts)
   // libass render in a target area which named as frame. the frame size may bigger than video size,
   // and including margins between video to frame edge. libass allow to render subtitles into the margins.
   // this has been used to show subtitles in the top or bottom "black bar" between video to frame border.
+  int sourceWidth = MathUtils::round_int(m_rs.Width());
+  int sourceHeight = MathUtils::round_int(m_rs.Height());
   int videoWidth = MathUtils::round_int(m_rd.Width());
   int videoHeight = MathUtils::round_int(m_rd.Height());
   int targetWidth = MathUtils::round_int(m_rv.Width());
@@ -354,7 +364,8 @@ COverlay* CRenderer::Convert(CDVDOverlaySSA* o, double pts)
   else
     position = 0.0;
   int changes = 0;
-  ASS_Image* images = o->m_libass->RenderImage(targetWidth, targetHeight, videoWidth, videoHeight, pts, useMargin, position, &changes);
+  ASS_Image* images = o->m_libass->RenderImage(targetWidth, targetHeight, videoWidth, videoHeight, sourceWidth, sourceHeight,
+                                               pts, useMargin, position, &changes);
 
   if(o->m_textureid)
   {

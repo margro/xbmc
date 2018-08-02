@@ -64,6 +64,10 @@ msgctxt "#31053"
 msgid "Arial based"
 msgstr "بر اساس قلم Arial"
 
+msgctxt "#31067"
+msgid "Event log"
+msgstr "گزارش رخداد"
+
 msgctxt "#31069"
 msgid "Last Updated"
 msgstr "آخرین بروزرسانی"
@@ -87,3 +91,7 @@ msgstr "Shift"
 msgctxt "#31106"
 msgid "Teletext"
 msgstr "تله تکست"
+
+msgctxt "#31165"
+msgid "Profile name"
+msgstr "نام پروفایل"

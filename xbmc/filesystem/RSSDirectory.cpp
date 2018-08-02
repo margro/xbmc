@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RSSDirectory.h"
@@ -46,23 +34,15 @@ namespace {
 
   struct SResource
   {
-    SResource()
-      : width(0)
-      , height(0)
-      , bitrate(0)
-      , duration(0)
-      , size(0)
-    {}
-
     std::string tag;
     std::string path;
     std::string mime;
     std::string lang;
-    int        width;
-    int        height;
-    int        bitrate;
-    int        duration;
-    int64_t    size;
+    int        width = 0;
+    int        height = 0;
+    int        bitrate = 0;
+    int        duration = 0;
+    int64_t    size = 0;
   };
 
   typedef std::vector<SResource> SResources;

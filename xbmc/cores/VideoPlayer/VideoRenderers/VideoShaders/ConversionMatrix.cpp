@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2018 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
- *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- *
+ *  SPDX-License-Identifier: LGPL-2.1-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ConversionMatrix.h"
@@ -585,9 +573,9 @@ bool CConvertMatrix::GetRGBYuvCoefs(AVColorSpace colspace, float (&coefs)[3])
       break;
     case AVCOL_SPC_BT2020_NCL:
     case AVCOL_SPC_BT2020_CL:
-      coefs[0] = ST240YCbCr.Kr;
-      coefs[1] = 1 - ST240YCbCr.Kr - ST240YCbCr.Kb;
-      coefs[2] = ST240YCbCr.Kb;
+      coefs[0] = BT2020YCbCr.Kr;
+      coefs[1] = 1 - BT2020YCbCr.Kr - BT2020YCbCr.Kb;
+      coefs[2] = BT2020YCbCr.Kb;
       break;
     default:
       return false;

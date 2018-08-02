@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DeviceResources.h"
@@ -380,7 +368,7 @@ void DX::DeviceResources::CreateDeviceResources()
     ComPtr<ID3D11InfoQueue> d3dInfoQueue;
     if (SUCCEEDED(m_d3dDebug.As(&d3dInfoQueue)))
     {
-      D3D11_MESSAGE_ID hide[] =
+      std::vector<D3D11_MESSAGE_ID> hide =
       {
         D3D11_MESSAGE_ID_GETVIDEOPROCESSORFILTERRANGE_UNSUPPORTED,        // avoid GETVIDEOPROCESSORFILTERRANGE_UNSUPPORTED (dx bug)
         D3D11_MESSAGE_ID_DEVICE_RSSETSCISSORRECTS_NEGATIVESCISSOR         // avoid warning for some labels out of screen
@@ -389,8 +377,8 @@ void DX::DeviceResources::CreateDeviceResources()
 
       D3D11_INFO_QUEUE_FILTER filter;
       ZeroMemory(&filter, sizeof(filter));
-      filter.DenyList.NumIDs = _countof(hide);
-      filter.DenyList.pIDList = hide;
+      filter.DenyList.NumIDs = hide.size();
+      filter.DenyList.pIDList = hide.data();
       d3dInfoQueue->AddStorageFilterEntries(&filter);
     }
   }
@@ -504,7 +492,7 @@ HRESULT DX::DeviceResources::CreateSwapChain(DXGI_SWAP_CHAIN_DESC1& desc, DXGI_S
 #else
   hr = m_dxgiFactory->CreateSwapChainForCoreWindow(
     m_d3dDevice.Get(),
-    winrt::get_abi(m_coreWindow),
+    winrt::get_unknown(m_coreWindow),
     &desc,
     nullptr,
     ppSwapChain

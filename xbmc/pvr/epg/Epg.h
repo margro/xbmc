@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -285,7 +273,7 @@ namespace PVR
     bool IsValid(void) const;
 
   private:
-    CPVREpg(void);
+    CPVREpg(void) = default;
 
     /*!
      * @brief Update the EPG from a scraper set in the channel tag.
@@ -328,11 +316,11 @@ namespace PVR
     std::map<CDateTime, CPVREpgInfoTagPtr> m_tags;
     std::map<int, CPVREpgInfoTagPtr>       m_changedTags;
     std::map<int, CPVREpgInfoTagPtr>       m_deletedTags;
-    bool                                m_bChanged;        /*!< true if anything changed that needs to be persisted, false otherwise */
-    bool                                m_bTagsChanged;    /*!< true when any tags are changed and not persisted, false otherwise */
-    bool                                m_bLoaded;         /*!< true when the initial entries have been loaded */
-    bool                                m_bUpdatePending;  /*!< true if manual update is pending */
-    int                                 m_iEpgID;          /*!< the database ID of this table */
+    bool                                m_bChanged = false;        /*!< true if anything changed that needs to be persisted, false otherwise */
+    bool                                m_bTagsChanged = false;    /*!< true when any tags are changed and not persisted, false otherwise */
+    bool                                m_bLoaded = false;         /*!< true when the initial entries have been loaded */
+    bool                                m_bUpdatePending = false;  /*!< true if manual update is pending */
+    int                                 m_iEpgID = 0;          /*!< the database ID of this table */
     std::string                         m_strName;         /*!< the name of this table */
     std::string                         m_strScraperName;  /*!< the name of the scraper to use */
     mutable CDateTime                   m_nowActiveStart;  /*!< the start time of the tag that is currently active */
@@ -341,7 +329,7 @@ namespace PVR
 
     PVR::CPVRChannelPtr                 m_pvrChannel;      /*!< the channel this EPG belongs to */
 
-    CCriticalSection                    m_critSection;     /*!< critical section for changes in this table */
-    bool                                m_bUpdateLastScanTime;
+    mutable CCriticalSection            m_critSection;     /*!< critical section for changes in this table */
+    bool                                m_bUpdateLastScanTime = false;
   };
 }

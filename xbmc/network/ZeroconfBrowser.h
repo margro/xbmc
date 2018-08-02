@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -42,7 +30,7 @@ public:
     public:
       typedef std::map<std::string, std::string> tTxtRecordMap;
 
-      ZeroconfService();
+      ZeroconfService() = default;
       ZeroconfService(const std::string& fcr_name, const std::string& fcr_type, const std::string& fcr_domain);
 
       /// easy conversion to string and back (used in czeronfdiretory to store this service)
@@ -85,7 +73,7 @@ public:
 
       //2 entries below store 1 ip:port pair for this service
       std::string m_ip;
-      int        m_port;
+      int        m_port = 0;
 
       //used for mdns in case dns resolution fails
       //we store the hostname and resolve with mdns functions again
@@ -163,7 +151,7 @@ private:
   CCriticalSection* mp_crit_sec;
   typedef std::set<std::string> tServices;
   tServices m_services;
-  bool m_started;
+  bool m_started = false;
 
   //protects singleton creation/destruction
   static std::atomic_flag sm_singleton_guard;

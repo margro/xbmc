@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "network/EventServer.h"
@@ -241,30 +229,9 @@ CApplication::CApplication(void)
 #ifdef HAS_DVD_DRIVE
   m_Autorun(new CAutorun()),
 #endif
-  m_iScreenSaveLock(0)
-  , m_confirmSkinChange(true)
-  , m_ignoreSkinSettingChanges(false)
-  , m_saveSkinOnUnloading(true)
-  , m_autoExecScriptExecuted(false)
-  , m_screensaverActive(false)
-  , m_bInhibitIdleShutdown(false)
-  , m_dpmsIsActive(false)
-  , m_dpmsIsManual(false)
-  , m_itemCurrentFile(new CFileItem)
-  , m_threadID(0)
-  , m_bInitializing(true)
-  , m_bPlatformDirectories(true)
-  , m_nextPlaylistItem(-1)
-  , m_lastRenderTime(0)
-  , m_skipGuiRender(false)
-  , m_bStandalone(false)
-  , m_bTestMode(false)
-  , m_bSystemScreenSaverEnable(false)
-  , m_muted(false)
-  , m_volumeLevel(VOLUME_MAXIMUM)
+  m_itemCurrentFile(new CFileItem)
   , m_pInertialScrollingHandler(new CInertialScrollingHandler())
   , m_WaitingExternalCalls(0)
-  , m_ProcessedExternalCalls(0)
   , m_playerEvent(true, true)
 {
   TiXmlBase::SetCondenseWhiteSpace(false);
@@ -1571,7 +1538,7 @@ bool CApplication::LoadSkin(const std::string& skinID)
   CServiceBroker::GetWinSystem()->GetGfxContext().SetMediaDir(skin->Path());
   g_directoryCache.ClearSubPaths(skin->Path());
 
-  g_colorManager.Load(m_ServiceManager->GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKINCOLORS));
+  CServiceBroker::GetGUI()->GetColorManager().Load(m_ServiceManager->GetSettings().GetString(CSettings::SETTING_LOOKANDFEEL_SKINCOLORS));
 
   g_SkinInfo->LoadIncludes();
 
@@ -1605,8 +1572,8 @@ bool CApplication::LoadSkin(const std::string& skinID)
   //@todo should be done by GUIComponents
   CServiceBroker::GetGUI()->GetWindowManager().Initialize();
   CTextureCache::GetInstance().Initialize();
-  g_audioManager.Enable(true);
-  g_audioManager.Load();
+  CServiceBroker::GetGUI()->GetAudioManager().Enable(true);
+  CServiceBroker::GetGUI()->GetAudioManager().Load();
 
   if (g_SkinInfo->HasSkinFile("DialogFullScreenInfo.xml"))
     CServiceBroker::GetGUI()->GetWindowManager().Add(new CGUIDialogFullScreenInfo);
@@ -1662,7 +1629,7 @@ void CApplication::UnloadSkin(bool forReload /* = false */)
   else if (!m_saveSkinOnUnloading)
     m_saveSkinOnUnloading = true;
 
-  g_audioManager.Enable(false);
+  CServiceBroker::GetGUI()->GetAudioManager().Enable(false);
 
   CServiceBroker::GetGUI()->GetWindowManager().DeInitialize();
   CTextureCache::GetInstance().Deinitialize();
@@ -1675,7 +1642,7 @@ void CApplication::UnloadSkin(bool forReload /* = false */)
 
   g_fontManager.Clear();
 
-  g_colorManager.Clear();
+  CServiceBroker::GetGUI()->GetColorManager().Clear();
 
   CServiceBroker::GetGUI()->GetInfoManager().Clear();
 
@@ -2078,13 +2045,6 @@ bool CApplication::OnAction(const CAction &action)
   {
     if (m_appPlayer.OnAction(action))
       return true;
-
-    // Player ignored action; popup the OSD
-    if ((action.GetID() == ACTION_MOUSE_MOVE && (action.GetAmount(2) || action.GetAmount(3)))  // filter "false" mouse move from touch
-        || action.GetID() == ACTION_MOUSE_LEFT_CLICK)
-    {
-      CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_TRIGGER_OSD)));
-    }
   }
 
   // stop : stops playing current audio song
@@ -2124,7 +2084,9 @@ bool CApplication::OnAction(const CAction &action)
       if (!m_appPlayer.IsPaused() && m_appPlayer.GetPlaySpeed() != 1)
         m_appPlayer.SetPlaySpeed(1);
 
-      g_audioManager.Enable(m_appPlayer.IsPaused());
+      CGUIComponent *gui = CServiceBroker::GetGUI();
+      if (gui)
+        gui->GetAudioManager().Enable(m_appPlayer.IsPaused());
       return true;
     }
     // play: unpause or set playspeed back to normal
@@ -2184,7 +2146,10 @@ bool CApplication::OnAction(const CAction &action)
       {
         // unpause, and set the playspeed back to normal
         m_appPlayer.Pause();
-        g_audioManager.Enable(m_appPlayer.IsPaused());
+
+        CGUIComponent *gui = CServiceBroker::GetGUI();
+        if (gui)
+          gui->GetAudioManager().Enable(m_appPlayer.IsPaused());
 
         m_appPlayer.SetPlaySpeed(1);
         return true;
@@ -2267,9 +2232,9 @@ bool CApplication::OnAction(const CAction &action)
         step *= action.GetRepeat() * 50; // 50 fps
 #endif
       if (action.GetID() == ACTION_VOLUME_UP)
-        volume += (float)(action.GetAmount() * action.GetAmount() * step);
+        volume += action.GetAmount() * action.GetAmount() * step;
       else if (action.GetID() == ACTION_VOLUME_DOWN)
-        volume -= (float)(action.GetAmount() * action.GetAmount() * step);
+        volume -= action.GetAmount() * action.GetAmount() * step;
       else
         volume = action.GetAmount() * step;
       if (volume != m_volumeLevel)
@@ -2897,7 +2862,10 @@ void CApplication::Stop(int exitCode)
     UnregisterActionListener(&m_appPlayer.GetSeekHandler());
     UnregisterActionListener(&CPlayerController::GetInstance());
 
-    g_audioManager.DeInitialize();
+    CGUIComponent *gui = CServiceBroker::GetGUI();
+    if (gui)
+      gui->GetAudioManager().DeInitialize();
+
     // shutdown the AudioEngine
     CServiceBroker::UnregisterAE();
     m_pActiveAE->Shutdown();
@@ -3086,7 +3054,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
   {
     double fallback = 0.0f;
     if(item.GetProperty("StartPercent").isString())
-      fallback = (double)atof(item.GetProperty("StartPercent").asString().c_str());
+      fallback = atof(item.GetProperty("StartPercent").asString().c_str());
     options.startpercent = item.GetProperty("StartPercent").asDouble(fallback);
   }
 
@@ -3179,7 +3147,7 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
   if (!(options.startpercent > 0.0f || options.starttime > 0.0f) && (item.IsBDFile() || item.IsDiscImage()))
   {
     //check if we must show the simplified bd menu
-    if (!CGUIDialogSimpleMenu::ShowPlaySelection(const_cast<CFileItem&>(item)))
+    if (!CGUIDialogSimpleMenu::ShowPlaySelection(item))
       return false;
   }
 
@@ -3233,7 +3201,9 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
   m_appPlayer.SetMute(m_muted);
 
 #if !defined(TARGET_POSIX)
-  g_audioManager.Enable(false);
+  CGUIComponent *gui = CServiceBroker::GetGUI();
+  if (gui)
+    gui->GetAudioManager().Enable(false);
 #endif
 
   if (item.HasPVRChannelInfoTag())
@@ -3246,7 +3216,9 @@ void CApplication::PlaybackCleanup()
 {
   if (!m_appPlayer.IsPlaying())
   {
-    g_audioManager.Enable(true);
+    CGUIComponent *gui = CServiceBroker::GetGUI();
+    if (gui)
+      CServiceBroker::GetGUI()->GetAudioManager().Enable(true);
     m_appPlayer.OpenNext(m_ServiceManager->GetPlayerCoreFactory());
   }
 
@@ -3548,14 +3520,18 @@ void CApplication::RequestVideoSettings(const CFileItem &fileItem)
 
 void CApplication::StoreVideoSettings(const CFileItem &fileItem, CVideoSettings vs)
 {
-  if (vs != CMediaSettings::GetInstance().GetDefaultVideoSettings())
+  CVideoDatabase dbs;
+  if (dbs.Open())
   {
-    CVideoDatabase dbs;
-    if (dbs.Open())
+    if (vs != CMediaSettings::GetInstance().GetDefaultVideoSettings())
     {
       dbs.SetVideoSettings(fileItem, vs);
-      dbs.Close();
     }
+    else
+    {
+      dbs.EraseVideoSettings(fileItem);
+    }
+    dbs.Close();
   }
 }
 
@@ -4593,13 +4569,13 @@ void CApplication::VolumeChanged()
 int CApplication::GetSubtitleDelay()
 {
   // converts subtitle delay to a percentage
-  return int(((float)(m_appPlayer.GetVideoSettings().m_SubtitleDelay + g_advancedSettings.m_videoSubsDelayRange)) / (2 * g_advancedSettings.m_videoSubsDelayRange)*100.0f + 0.5f);
+  return int(((m_appPlayer.GetVideoSettings().m_SubtitleDelay + g_advancedSettings.m_videoSubsDelayRange)) / (2 * g_advancedSettings.m_videoSubsDelayRange)*100.0f + 0.5f);
 }
 
 int CApplication::GetAudioDelay()
 {
   // converts audio delay to a percentage
-  return int(((float)(m_appPlayer.GetVideoSettings().m_AudioDelay + g_advancedSettings.m_videoAudioDelayRange)) / (2 * g_advancedSettings.m_videoAudioDelayRange)*100.0f + 0.5f);
+  return int(((m_appPlayer.GetVideoSettings().m_AudioDelay + g_advancedSettings.m_videoAudioDelayRange)) / (2 * g_advancedSettings.m_videoAudioDelayRange)*100.0f + 0.5f);
 }
 
 // Returns the total time in seconds of the current media.  Fractional

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystemX11.h"
@@ -350,19 +338,19 @@ void CWinSystemX11::UpdateResolutions()
       mode = g_xrandr.GetPreferredMode(m_userOutput);
     m_bIsRotated = out->isRotated;
     if (!m_bIsRotated)
-      UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP), 0, mode.w, mode.h, mode.hz);
+      UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP), mode.w, mode.h, mode.hz, 0);
     else
-      UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP), 0, mode.h, mode.w, mode.hz);
-    CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP).strId     = mode.id;
+      UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP), mode.h, mode.w, mode.hz, 0);
+    CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP).strId = mode.id;
     CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP).strOutput = m_userOutput;
   }
   else
   {
     m_userOutput = "No Output";
-    m_nScreen = DefaultScreen(m_dpy);
-    int w = DisplayWidth(m_dpy, m_nScreen);
-    int h = DisplayHeight(m_dpy, m_nScreen);
-    UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP), 0, w, h, 0.0);
+    m_screen = DefaultScreen(m_dpy);
+    int w = DisplayWidth(m_dpy, m_screen);
+    int h = DisplayHeight(m_dpy, m_screen);
+    UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP), w, h, 0.0, 0);
   }
 
   // erase previous stored modes
@@ -382,7 +370,6 @@ void CWinSystemX11::UpdateResolutions()
       CLog::Log(LOGINFO, "ID:%s Name:%s Refresh:%f Width:%d Height:%d",
                 mode.id.c_str(), mode.name.c_str(), mode.hz, mode.w, mode.h);
       RESOLUTION_INFO res;
-      res.iScreen = 0; // not used by X11
       res.dwFlags = 0;
       res.iWidth  = mode.w;
       res.iHeight = mode.h;
@@ -529,7 +516,7 @@ bool CWinSystemX11::Minimize()
     CApplicationMessenger::GetInstance().PostMsg(TMSG_TOGGLEFULLSCREEN);
   }
 
-  XIconifyWindow(m_dpy, m_mainWindow, m_nScreen);
+  XIconifyWindow(m_dpy, m_mainWindow, m_screen);
 
   m_minimized = true;
   return true;
@@ -708,7 +695,7 @@ bool CWinSystemX11::SetWindow(int width, int height, bool fullscreen, const std:
       out = g_xrandr.GetOutput(m_currentOutput);
     if (out)
     {
-      m_nScreen = out->screen;
+      m_screen = out->screen;
       x0 = out->x;
       y0 = out->y;
     }
@@ -817,7 +804,7 @@ bool CWinSystemX11::SetWindow(int width, int height, bool fullscreen, const std:
 
       std::string titleString = CCompileInfo::GetAppName();
       std::string classString = titleString;
-      char *title = (char*)titleString.c_str();
+      char *title = const_cast<char*>(titleString.c_str());
 
       XStringListToTextProperty(&title, 1, &windowName);
       XStringListToTextProperty(&title, 1, &iconName);
@@ -828,8 +815,8 @@ bool CWinSystemX11::SetWindow(int width, int height, bool fullscreen, const std:
       wm_hints->flags = StateHint | IconPixmapHint;
 
       class_hints = XAllocClassHint();
-      class_hints->res_class = (char*)classString.c_str();
-      class_hints->res_name = (char*)classString.c_str();
+      class_hints->res_class = const_cast<char*>(classString.c_str());
+      class_hints->res_name = const_cast<char*>(classString.c_str());
 
       XSetWMProperties(m_dpy, m_mainWindow, &windowName, &iconName,
                             NULL, 0, NULL, wm_hints,
@@ -1055,7 +1042,7 @@ void CWinSystemX11::UpdateCrtc()
   float fps = 0.0f;
   Window child;
   XGetWindowAttributes(m_dpy, m_mainWindow, &winattr);
-  XTranslateCoordinates(m_dpy, m_mainWindow, RootWindow(m_dpy, m_nScreen), winattr.x, winattr.y,
+  XTranslateCoordinates(m_dpy, m_mainWindow, RootWindow(m_dpy, m_screen), winattr.x, winattr.y,
                         &posx, &posy, &child);
 
   m_crtc = g_xrandr.GetCrtc(posx+winattr.width/2, posy+winattr.height/2, fps);

@@ -1,22 +1,10 @@
 /*
- *      Copyright (C) 2003 by The Joker / Avalaunch team
- *      Copyright (C) 2003-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2003 by The Joker / Avalaunch team
+ *  Copyright (C) 2003-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -177,7 +165,7 @@ public:
   iso9660( );
   virtual ~iso9660( );
 
-  HANDLE FindFirstFile9660( char *szLocalFolder, WIN32_FIND_DATA *wfdFile );
+  HANDLE FindFirstFile9660(const char *szLocalFolder, WIN32_FIND_DATA *wfdFile );
   int FindNextFile( HANDLE szLocalFolder, WIN32_FIND_DATA *wfdFile );
   bool FindClose( HANDLE szLocalFolder );
   DWORD SetFilePointer(HANDLE hFile, long lDistanceToMove, long* lpDistanceToMoveHigh, DWORD dwMoveMethod );
@@ -194,7 +182,7 @@ public:
 protected:
   void IsoDateTimeToFileTime(iso9660_Datetime* isoDateTime, FILETIME* filetime);
   struct iso_dirtree* ReadRecursiveDirFromSector( DWORD sector, const char * );
-  struct iso_dirtree* FindFolder( char *Folder );
+  struct iso_dirtree* FindFolder(const char *Folder );
   std::string GetThinText(unsigned char* strTxt, int iLen );
   bool ReadSectorFromCache(iso9660::isofile* pContext, DWORD sector, uint8_t** ppBuffer);
   void ReleaseSectorFromCache(iso9660::isofile* pContext, DWORD sector);

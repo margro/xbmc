@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -48,18 +36,18 @@ private:
 
   /* we keep the trueHD and dtsHD buffers separate so that we can handle a fast stream switch */
   uint8_t      *m_trueHD;
-  unsigned int  m_trueHDPos;
+  unsigned int  m_trueHDPos = 0;
 
   uint8_t      *m_dtsHD;
-  unsigned int  m_dtsHDSize;
+  unsigned int  m_dtsHDSize = 0;
 
   uint8_t      *m_eac3;
-  unsigned int  m_eac3Size;
-  unsigned int  m_eac3FramesCount;
-  unsigned int  m_eac3FramesPerBurst;
+  unsigned int  m_eac3Size = 0;
+  unsigned int  m_eac3FramesCount = 0;
+  unsigned int  m_eac3FramesPerBurst = 0;
 
-  unsigned int  m_dataSize;
+  unsigned int  m_dataSize = 0;
   uint8_t       m_packedBuffer[MAX_IEC61937_PACKET];
-  unsigned int m_pauseDuration;
+  unsigned int m_pauseDuration = 0;
 };
 

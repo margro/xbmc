@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "network/Network.h"
@@ -62,7 +50,6 @@
 #include "utils/RegExp.h"
 #include "windowing/GraphicContext.h"
 #include "guilib/TextureManager.h"
-#include "utils/fstrcmp.h"
 #include "storage/MediaManager.h"
 #ifdef TARGET_WINDOWS
 #include "utils/CharsetConverter.h"
@@ -77,8 +64,6 @@
 #include "settings/Settings.h"
 #include "utils/StringUtils.h"
 #include "settings/AdvancedSettings.h"
-#ifdef HAS_IRSERVERSUITE
-#endif
 #include "guilib/LocalizeStrings.h"
 #include "utils/Digest.h"
 #include "utils/FileExtensionProvider.h"
@@ -97,6 +82,8 @@
 #endif
 
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemux.h"
+
+#include <fstrcmp.h>
 
 #ifdef HAS_DVD_DRIVE
 using namespace MEDIA_DETECT;
@@ -342,8 +329,8 @@ std::string CUtil::GetTitleFromPath(const CURL& url, bool bIsFolder /* = false *
   else if (url.IsProtocol("shout"))
   {
     const std::string strFileNameAndPath = url.Get();
-    const int genre = strFileNameAndPath.find_first_of('=');
-    if(genre <0)
+    const size_t genre = strFileNameAndPath.find_first_of('=');
+    if(genre == std::string::npos)
       strFilename = g_localizeStrings.Get(260);
     else
       strFilename = g_localizeStrings.Get(260) + " - " + strFileNameAndPath.substr(genre+1).c_str();
@@ -1429,7 +1416,7 @@ double CUtil::AlbumRelevance(const std::string& strAlbumTemp1, const std::string
   StringUtils::ToLower(strAlbumTemp);
   std::string strAlbum = strAlbum1;
   StringUtils::ToLower(strAlbum);
-  double fAlbumPercentage = fstrcmp(strAlbumTemp.c_str(), strAlbum.c_str(), 0.0f);
+  double fAlbumPercentage = fstrcmp(strAlbumTemp.c_str(), strAlbum.c_str());
   double fArtistPercentage = 0.0f;
   if (!strArtist1.empty())
   {
@@ -1437,7 +1424,7 @@ double CUtil::AlbumRelevance(const std::string& strAlbumTemp1, const std::string
     StringUtils::ToLower(strArtistTemp);
     std::string strArtist = strArtist1;
     StringUtils::ToLower(strArtist);
-    fArtistPercentage = fstrcmp(strArtistTemp.c_str(), strArtist.c_str(), 0.0f);
+    fArtistPercentage = fstrcmp(strArtistTemp.c_str(), strArtist.c_str());
   }
   double fRelevance = fAlbumPercentage * 0.5f + fArtistPercentage * 0.5f;
   return fRelevance;
@@ -1654,7 +1641,7 @@ bool CUtil::Command(const std::vector<std::string>& arrArgs, bool waitExit)
       char **args = (char **)alloca(sizeof(char *) * (arrArgs.size() + 3));
       memset(args, 0, (sizeof(char *) * (arrArgs.size() + 3)));
       for (size_t i=0; i<arrArgs.size(); i++)
-        args[i] = (char *)arrArgs[i].c_str();
+        args[i] = const_cast<char *>(arrArgs[i].c_str());
       execvp(args[0], args);
     }
   }
@@ -1971,7 +1958,7 @@ int CUtil::ScanArchiveForAssociatedItems(const std::string& strArchivePath,
     std::string strExt = URIUtils::GetExtension(strPathInRar);
 
     // check that the found filename matches the movie filename
-    int fnl = videoNameNoExt.size();
+    size_t fnl = videoNameNoExt.size();
     if (fnl && !StringUtils::StartsWithNoCase(URIUtils::GetFileName(strPathInRar), videoNameNoExt))
       continue;
 
@@ -2051,8 +2038,8 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
 
   ScanPathsForAssociatedItems(strSubtitle, items, exts, vecSubtitles);
 
-  int iSize = vecSubtitles.size();
-  for (int i = 0; i < iSize; i++)
+  size_t iSize = vecSubtitles.size();
+  for (size_t i = 0; i < iSize; i++)
   {
     if (URIUtils::HasExtension(vecSubtitles[i], ".smi"))
     {
@@ -2066,7 +2053,7 @@ void CUtil::ScanForExternalSubtitles(const std::string& strMovie, std::vector<st
         {
           for (const auto &lang : TagConv.m_Langclass)
           {
-            std::string strDest = StringUtils::Format("special://temp/subtitle.%s.%d.smi", lang.Name.c_str(), i);
+            std::string strDest = StringUtils::Format("special://temp/subtitle.%s.%zu.smi", lang.Name.c_str(), i);
             if (CFile::Copy(vecSubtitles[i], strDest))
             {
               CLog::Log(LOGINFO, " cached subtitle %s->%s\n", CURL::GetRedacted(vecSubtitles[i]).c_str(), strDest.c_str());

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRClients.h"
@@ -138,7 +126,7 @@ void CPVRClients::UpdateAddons(const std::string &changedAddonId /*= ""*/)
           client = std::dynamic_pointer_cast<CPVRClient>(addon);
           if (!client)
           {
-            CLog::Log(LOGERROR, "CPVRClients - %s - severe error, incorrect add-on type", __FUNCTION__);
+            CLog::LogF(LOGERROR, "Severe error, incorrect add-on type");
             continue;
           }
         }
@@ -164,7 +152,7 @@ void CPVRClients::UpdateAddons(const std::string &changedAddonId /*= ""*/)
 
       if (status != ADDON_STATUS_OK)
       {
-        CLog::Log(LOGERROR, "%s - failed to create add-on %s, status = %d", __FUNCTION__, addon.first->Name().c_str(), status);
+        CLog::LogF(LOGERROR, "Failed to create add-on %s, status = %d", addon.first->Name().c_str(), status);
         if (status == ADDON_STATUS_PERMANENT_FAILURE)
         {
           CServiceBroker::GetAddonMgr().DisableAddon(addon.first->ID());
@@ -594,16 +582,7 @@ void CPVRClients::ConnectionStateChange(
   CPVRClient *client, std::string &strConnectionString, PVR_CONNECTION_STATE newState, std::string &strMessage)
 {
   if (!client)
-  {
-    CLog::Log(LOGDEBUG, "PVR - %s - invalid client id", __FUNCTION__);
     return;
-  }
-
-  if (strConnectionString.empty())
-  {
-    CLog::Log(LOGERROR, "PVR - %s - invalid handler data", __FUNCTION__);
-    return;
-  }
 
   int iMsg = -1;
   bool bError = true;
@@ -639,7 +618,7 @@ void CPVRClients::ConnectionStateChange(
       bNotify = false;
       break;
     default:
-      CLog::Log(LOGERROR, "PVR - %s - unknown connection state", __FUNCTION__);
+      CLog::LogF(LOGERROR, "Unknown connection state");
       return;
   }
 
@@ -657,9 +636,8 @@ void CPVRClients::ConnectionStateChange(
   {
     // update properties on connect
     if (!client->GetAddonProperties())
-    {
-      CLog::Log(LOGERROR, "PVR - %s - error reading properties", __FUNCTION__);
-    }
+      CLog::LogF(LOGERROR, "Error reading PVR client properties");
+
     CServiceBroker::GetPVRManager().Start();
   }
 }
@@ -683,9 +661,9 @@ PVR_ERROR CPVRClients::ForCreatedClients(const char* strFunctionName, PVRClientF
 
     if (currentError != PVR_ERROR_NO_ERROR && currentError != PVR_ERROR_NOT_IMPLEMENTED)
     {
-      CLog::Log(LOGERROR,
-                "CPVRClients - %s - client '%s' returned an error: %s",
-                strFunctionName, clientEntry.second->GetFriendlyName().c_str(), CPVRClient::ToString(currentError));
+      CLog::LogFunction(LOGERROR, strFunctionName,
+                        "PVR client '%s' returned an error: %s",
+                        clientEntry.second->GetFriendlyName().c_str(), CPVRClient::ToString(currentError));
       lastError = currentError;
       failedClients.emplace_back(clientEntry.first);
     }

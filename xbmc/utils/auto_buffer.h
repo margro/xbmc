@@ -1,22 +1,10 @@
 /*
-*      Copyright (C) 2013-2014 Team XBMC
-*      http://kodi.tv
-*
-*  This Program is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  This Program is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-*  GNU General Public License for more details.
-*
-*  You should have received a copy of the GNU General Public License
-*  along with XBMC; see the file COPYING.  If not, see
-*  <http://www.gnu.org/licenses/>.
-*
-*/
+ *  Copyright (C) 2013-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
 
 #pragma once
 
@@ -31,8 +19,7 @@ namespace XUTILS
     /**
      * Create buffer with zero size
      */
-    auto_buffer(void) : p(0), s(0)
-    {}
+    auto_buffer(void) = default;
     /**
      * Create buffer with specified size
      * @param size of created buffer
@@ -100,7 +87,7 @@ namespace XUTILS
     auto_buffer(const auto_buffer& other) = delete; // disallow copy constructor
     auto_buffer& operator=(const auto_buffer& other) = delete; // disallow assignment
 
-    void* p;
-    size_t s;
+    void* p = 0;
+    size_t s = 0;
   };
 }

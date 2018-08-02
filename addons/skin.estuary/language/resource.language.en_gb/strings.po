@@ -603,8 +603,6 @@ msgctxt "#31133"
 msgid "Select Resolution"
 msgstr ""
 
-#empty string with id 31134
-
 #: /xml/DialogSeekBar.xml
 msgctxt "#31134"
 msgid "Remaining"
@@ -742,4 +740,22 @@ msgstr ""
 #: /xml/Custom_1105_MusicOSDSettings.xml
 msgctxt "#31163"
 msgid "Show Fanart background"
+msgstr ""
+
+#. Choose profile identifier
+#: /xml/SkinSettings.xml
+msgctxt "#31164"
+msgid "Choose kind of profile identification"
+msgstr ""
+
+#. Label for the kind of profile identification
+#: /xml/SkinSettings.xml
+msgctxt "#31165"
+msgid "Profile name"
+msgstr ""
+
+#. Label for the kind of profile identification
+#: /xml/SkinSettings.xml
+msgctxt "#31166"
+msgid "Profile avatar"
 msgstr ""

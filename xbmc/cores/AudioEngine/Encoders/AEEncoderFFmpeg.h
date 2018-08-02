@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -51,18 +39,18 @@ private:
 
   std::string m_CodecName;
   AVCodecID m_CodecID;
-  unsigned int m_BitRate;
+  unsigned int m_BitRate = 0;
   AEAudioFormat m_CurrentFormat;
   AVCodecContext *m_CodecCtx;
   SwrContext *m_SwrCtx;
   CAEChannelInfo m_Layout;
   AVPacket m_Pkt;
   uint8_t m_Buffer[8 + AV_INPUT_BUFFER_MIN_SIZE];
-  int m_BufferSize;
-  int m_OutputSize;
-  double m_OutputRatio;
-  double m_SampleRateMul;
-  unsigned int  m_NeededFrames;
-  bool m_NeedConversion;
+  int m_BufferSize = 0;
+  int m_OutputSize = 0;
+  double m_OutputRatio = 0.0;
+  double m_SampleRateMul = 0.0;
+  unsigned int  m_NeededFrames = 0;
+  bool m_NeedConversion = false;
 };
 

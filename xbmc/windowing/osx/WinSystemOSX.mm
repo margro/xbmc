@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystemOSX.h"
@@ -568,7 +556,7 @@ static void DisplayReconfigured(CGDirectDisplayID display,
       return;
 
     NSScreen* pScreen = nil;
-    unsigned int screenIdx = CDisplaySettings::GetInstance().GetResolutionInfo(res).iScreen;
+    unsigned int screenIdx = 0;
 
     if ( screenIdx < [[NSScreen screens] count] )
     {
@@ -959,7 +947,7 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
     {
       // This is Cocoa Windowed FullScreen Mode
       // Get the screen rect of our current display
-      NSScreen* pScreen = [[NSScreen screens] objectAtIndex:res.iScreen];
+      NSScreen* pScreen = [[NSScreen screens] objectAtIndex:0];
       NSRect    screenRect = [pScreen frame];
 
       // remove frame origin offset of original display
@@ -1002,7 +990,7 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
 
       // Blank other displays if requested.
       if (blankOtherDisplays)
-        BlankOtherDisplays(res.iScreen);
+        BlankOtherDisplays(0);
     }
     else
     {
@@ -1014,7 +1002,7 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
 
       // This is OpenGL FullScreen Mode
       // create our new context (sharing with the current one)
-      newContext = (NSOpenGLContext*)CreateFullScreenContext(res.iScreen, (void*)cur_context);
+      newContext = (NSOpenGLContext*)CreateFullScreenContext(0, (void*)cur_context);
       if (!newContext)
         return false;
 
@@ -1028,7 +1016,7 @@ bool CWinSystemOSX::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
       if (blankOtherDisplays == true)
         CGCaptureAllDisplays();
       else
-        CGDisplayCapture(GetDisplayID(res.iScreen));
+        CGDisplayCapture(GetDisplayID(0));
 
       // If we don't hide menu bar, it will get events and interrupt the program.
       SetMenuBarVisible(false);
@@ -1137,7 +1125,7 @@ void CWinSystemOSX::UpdateResolutions()
 
   int dispIdx = GetDisplayIndex(CServiceBroker::GetSettings().GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR));
   GetScreenResolution(&w, &h, &fps, dispIdx);
-  UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP), 0, w, h, fps);
+  UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP), w, h, fps, 0);
   NSString *dispName = screenNameForDisplay(GetDisplayID(dispIdx));
 
   CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP).strOutput = [dispName UTF8String];
@@ -1421,7 +1409,7 @@ void CWinSystemOSX::FillInVideoModes()
           res.strOutput = [dispName UTF8String];
         }
 
-        UpdateDesktopResolution(res, 0, w, h, refreshrate);
+        UpdateDesktopResolution(res, w, h, refreshrate, 0);
 
         // overwrite the mode str because  UpdateDesktopResolution adds a
         // "Full Screen". Since the current resolution is there twice

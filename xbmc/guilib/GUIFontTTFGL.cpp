@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIFont.h"
@@ -335,8 +323,8 @@ CBaseTexture* CGUIFontTTFGL::ReallocTexture(unsigned int& newHeight)
     m_updateY1 = 0;
     m_updateY2 = m_texture->GetHeight();
 
-    unsigned char* src = (unsigned char*) m_texture->GetPixels();
-    unsigned char* dst = (unsigned char*) newTexture->GetPixels();
+    unsigned char* src = m_texture->GetPixels();
+    unsigned char* dst = newTexture->GetPixels();
     for (unsigned int y = 0; y < m_texture->GetHeight(); y++)
     {
       memcpy(dst, src, m_texture->GetPitch());
@@ -355,8 +343,8 @@ bool CGUIFontTTFGL::CopyCharToTexture(FT_BitmapGlyph bitGlyph, unsigned int x1, 
 {
   FT_Bitmap bitmap = bitGlyph->bitmap;
 
-  unsigned char* source = (unsigned char*) bitmap.buffer;
-  unsigned char* target = (unsigned char*) m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
+  unsigned char* source = bitmap.buffer;
+  unsigned char* target = m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
 
   for (unsigned int y = y1; y < y2; y++)
   {

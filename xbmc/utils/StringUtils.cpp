@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 //-----------------------------------------------------------------------
 //
@@ -36,8 +24,9 @@
 
 #include "StringUtils.h"
 #include "CharsetConverter.h"
-#include "utils/fstrcmp.h"
+#include "LangInfo.h"
 #include "Util.h"
+#include <fstrcmp.h>
 #include <functional>
 #include <array>
 #include <iomanip>
@@ -311,9 +300,9 @@ std::wstring StringUtils::FormatV(const wchar_t *fmt, va_list args)
 
 int compareWchar (const void* a, const void* b)
 {
-  if (*(wchar_t*)a <  *(wchar_t*)b)
+  if (*(const wchar_t*)a <  *(const wchar_t*)b)
     return -1;
-  else if (*(wchar_t*)a >  *(wchar_t*)b)
+  else if (*(const wchar_t*)a >  *(const wchar_t*)b)
     return 1;
   return 0;
 }
@@ -768,9 +757,9 @@ int StringUtils::FindNumber(const std::string& strInput, const std::string &strF
 // and 0 if they are identical (essentially calculates left - right)
 int64_t StringUtils::AlphaNumericCompare(const wchar_t *left, const wchar_t *right)
 {
-  wchar_t *l = (wchar_t *)left;
-  wchar_t *r = (wchar_t *)right;
-  wchar_t *ld, *rd;
+  const wchar_t *l = left;
+  const wchar_t *r = right;
+  const wchar_t *ld, *rd;
   wchar_t lc, rc;
   int64_t lnum, rnum;
   const std::collate<wchar_t>& coll = std::use_facet<std::collate<wchar_t> >(g_langInfo.GetSystemLocale());
@@ -1057,12 +1046,12 @@ int IsUTF8Letter(const unsigned char *str)
 size_t StringUtils::FindWords(const char *str, const char *wordLowerCase)
 {
   // NOTE: This assumes word is lowercase!
-  unsigned char *s = (unsigned char *)str;
+  const unsigned char *s = (const unsigned char *)str;
   do
   {
     // start with a compare
-    unsigned char *c = s;
-    unsigned char *w = (unsigned char *)wordLowerCase;
+    const unsigned char *c = s;
+    const unsigned char *w = (const unsigned char *)wordLowerCase;
     bool same = true;
     while (same && *c && *w)
     {
@@ -1153,7 +1142,7 @@ bool StringUtils::ValidateUUID(const std::string &uuid)
 
 double StringUtils::CompareFuzzy(const std::string &left, const std::string &right)
 {
-  return (0.5 + fstrcmp(left.c_str(), right.c_str(), 0.0) * (left.length() + right.length())) / 2.0;
+  return (0.5 + fstrcmp(left.c_str(), right.c_str()) * (left.length() + right.length())) / 2.0;
 }
 
 int StringUtils::FindBestMatch(const std::string &str, const std::vector<std::string> &strings, double &matchscore)
@@ -1278,4 +1267,9 @@ std::string StringUtils::FormatFileSize(uint64_t bytes)
   unsigned int decimals = value < 9.995 ? 2 : (value < 99.95 ? 1 : 0);
   auto frmt = "%.0" + Format("%u", decimals) + "f%s";
   return Format(frmt.c_str(), value, units[i].c_str());
+}
+
+const std::locale& StringUtils::GetOriginalLocale() noexcept
+{
+  return g_langInfo.GetOriginalLocale();
 }

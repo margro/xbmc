@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogPVRChannelManager.h"
@@ -69,11 +57,6 @@ using namespace KODI::MESSAGING;
 
 CGUIDialogPVRChannelManager::CGUIDialogPVRChannelManager(void) :
     CGUIDialog(WINDOW_DIALOG_PVR_CHANNEL_MANAGER, "DialogPVRChannelManager.xml"),
-    m_bIsRadio(false),
-    m_bMovingMode(false),
-    m_bContainsChanges(false),
-    m_bAllowNewChannel(false),
-    m_iSelected(0),
     m_channelItems(new CFileItemList)
 {
 }
@@ -193,7 +176,7 @@ bool CGUIDialogPVRChannelManager::OnClickListChannels(CGUIMessage &message)
     int iItem = m_viewControl.GetSelectedItem();
 
     /* Check file item is in list range and get his pointer */
-    if (iItem < 0 || iItem >= (int)m_channelItems->Size()) return true;
+    if (iItem < 0 || iItem >= m_channelItems->Size()) return true;
 
     /* Process actions */
     if (iAction == ACTION_SELECT_ITEM || iAction == ACTION_CONTEXT_MENU || iAction == ACTION_MOUSE_RIGHT_CLICK)
@@ -603,7 +586,7 @@ bool CGUIDialogPVRChannelManager::OnPopupMenu(int iItem)
 bool CGUIDialogPVRChannelManager::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
 {
   /* Check file item is in list range and get his pointer */
-  if (itemNumber < 0 || itemNumber >= (int)m_channelItems->Size()) return false;
+  if (itemNumber < 0 || itemNumber >= m_channelItems->Size()) return false;
 
   CFileItemPtr pItem = m_channelItems->Get(itemNumber);
   if (!pItem)
@@ -663,7 +646,7 @@ bool CGUIDialogPVRChannelManager::OnContextButton(int itemNumber, CONTEXT_BUTTON
 void CGUIDialogPVRChannelManager::SetData(int iItem)
 {
   /* Check file item is in list range and get his pointer */
-  if (iItem < 0 || iItem >= (int)m_channelItems->Size()) return;
+  if (iItem < 0 || iItem >= m_channelItems->Size()) return;
 
   CFileItemPtr pItem = m_channelItems->Get(iItem);
   if (!pItem)
@@ -704,7 +687,7 @@ void CGUIDialogPVRChannelManager::Update()
     channelFile->SetProperty("Name", channel->ChannelName());
     channelFile->SetProperty("UseEPG", channel->EPGEnabled());
     channelFile->SetProperty("Icon", channel->IconPath());
-    channelFile->SetProperty("EPGSource", (int)0);
+    channelFile->SetProperty("EPGSource", 0);
     channelFile->SetProperty("ParentalLocked", channel->IsLocked());
     channelFile->SetProperty("Number", StringUtils::Format("%i", channel->ChannelNumber().GetChannelNumber()));
 

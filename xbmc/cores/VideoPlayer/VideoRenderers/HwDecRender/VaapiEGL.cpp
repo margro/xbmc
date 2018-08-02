@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2007-2017 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2007-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "VaapiEGL.h"
@@ -512,7 +500,7 @@ bool CVaapi2Texture::Map(CVaapiRenderPicture* pic)
   if (surface.num_objects > m_drmFDs.size())
     throw std::logic_error("Too many fds returned by vaExportSurfaceHandle");
 
-  for (int object = 0; object < surface.num_objects; object++)
+  for (uint32_t object = 0; object < surface.num_objects; object++)
   {
     m_drmFDs[object].attach(surface.objects[object].fd);
   }
@@ -538,7 +526,7 @@ bool CVaapi2Texture::Map(CVaapiRenderPicture* pic)
     m_bits = 8;
   }
 
-  for (int layerNo = 0; layerNo < surface.num_layers; layerNo++)
+  for (uint32_t layerNo = 0; layerNo < surface.num_layers; layerNo++)
   {
     int plane = 0;
     auto const& layer = surface.layers[layerNo];
@@ -581,8 +569,8 @@ bool CVaapi2Texture::Map(CVaapiRenderPicture* pic)
 
     CEGLAttributes<8> attribs; // 6 static + 2 modifiers
     attribs.Add({{EGL_LINUX_DRM_FOURCC_EXT, static_cast<EGLint>(layer.drm_format)},
-      {EGL_WIDTH, static_cast<EGLint>(width)},
-      {EGL_HEIGHT, static_cast<EGLint>(height)},
+      {EGL_WIDTH, width},
+      {EGL_HEIGHT, height},
       {EGL_DMA_BUF_PLANE0_FD_EXT, object.fd},
       {EGL_DMA_BUF_PLANE0_OFFSET_EXT, static_cast<EGLint>(layer.offset[plane])},
       {EGL_DMA_BUF_PLANE0_PITCH_EXT, static_cast<EGLint>(layer.pitch[plane])}});
@@ -719,7 +707,7 @@ bool CVaapi2Texture::TestEsh(VADisplay vaDpy, EGLDisplay eglDisplay, std::uint32
       result = true;
     }
 
-    for (int object = 0; object < drmPrimeSurface.num_objects; object++)
+    for (uint32_t object = 0; object < drmPrimeSurface.num_objects; object++)
     {
       close(drmPrimeSurface.objects[object].fd);
     }

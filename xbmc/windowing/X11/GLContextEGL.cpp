@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2014 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 // always define GL_GLEXT_PROTOTYPES before include gl headers
@@ -49,6 +37,8 @@ CGLContextEGL::~CGLContextEGL()
 
 bool CGLContextEGL::Refresh(bool force, int screen, Window glWindow, bool &newContext)
 {
+  m_sync.cont = 0;
+
   // refresh context
   if (m_eglContext && !force)
   {
@@ -214,6 +204,7 @@ bool CGLContextEGL::Refresh(bool force, int screen, Window glWindow, bool &newCo
     CLog::Log(LOGERROR, "EGL Error: vInfo is NULL!");
   }
 
+  eglGetSyncValuesCHROMIUM = (PFNEGLGETSYNCVALUESCHROMIUMPROC)eglGetProcAddress("eglGetSyncValuesCHROMIUM");
   return retVal;
 }
 
@@ -331,7 +322,100 @@ void CGLContextEGL::SwapBuffers()
   if ((m_eglDisplay == EGL_NO_DISPLAY) || (m_eglSurface == EGL_NO_SURFACE))
     return;
 
+  uint64_t ust1, ust2;
+  uint64_t msc1, msc2;
+  uint64_t sbc1, sbc2;
+  struct timespec nowTs;
+  uint64_t now;
+
+  eglGetSyncValuesCHROMIUM(m_eglDisplay, m_eglSurface, &ust1, &msc1, &sbc1);
+
   eglSwapBuffers(m_eglDisplay, m_eglSurface);
+
+  clock_gettime(CLOCK_MONOTONIC, &nowTs);
+  now = nowTs.tv_sec * 1000000000 + nowTs.tv_nsec;
+
+  eglGetSyncValuesCHROMIUM(m_eglDisplay, m_eglSurface, &ust2, &msc2, &sbc2);
+
+  if ((msc1 - m_sync.msc1) > 2)
+  {
+    m_sync.cont = 0;
+  }
+
+  // we want to block in SwapBuffers
+  // if a vertical retrace occurs 5 times in a row outside
+  // of this function, we take action
+  if (m_sync.cont < 5)
+  {
+    if ((msc1 - m_sync.msc1) == 2)
+    {
+      m_sync.cont = 0;
+    }
+    else if ((msc1 - m_sync.msc1) == 1)
+    {
+      m_sync.interval = (ust1 - m_sync.ust1) / (msc1 - m_sync.msc1);
+      m_sync.cont++;
+    }
+  }
+  else if ((m_sync.cont == 5) && (msc2 == msc1))
+  {
+    // if no vertical retrace has occurred in eglSwapBuffers,
+    // sleep until next vertical retrace
+    uint64_t lastIncrement = (now / 1000 - ust2);
+    if (lastIncrement > m_sync.interval)
+    {
+      lastIncrement = m_sync.interval;
+      CLog::Log(LOGWARNING, "CGLContextEGL::SwapBuffers: last msc time greater than interval");
+    }
+    uint64_t sleeptime = m_sync.interval - lastIncrement;
+    usleep(sleeptime);
+    m_sync.cont++;
+    msc2++;
+  }
+  else if ((m_sync.cont > 5) && (msc2 == m_sync.msc2))
+  {
+    // sleep until next vertical retrace
+    // this avoids blocking outside of this function
+    uint64_t lastIncrement = (now / 1000 - ust2);
+    if (lastIncrement > m_sync.interval)
+    {
+      lastIncrement = m_sync.interval;
+      CLog::Log(LOGWARNING, "CGLContextEGL::SwapBuffers: last msc time greater than interval (1)");
+    }
+    uint64_t sleeptime = m_sync.interval - lastIncrement;
+    usleep(sleeptime);
+    msc2++;
+  }
+
+  m_sync.ust1 = ust1;
+  m_sync.ust2 = ust2;
+  m_sync.msc1 = msc1;
+  m_sync.msc2 = msc2;
+  m_sync.sbc2 = sbc2;
+}
+
+uint64_t CGLContextEGL::GetFrameLatencyAdjustment()
+{
+  struct timespec nowTs;
+  uint64_t now;
+  clock_gettime(CLOCK_MONOTONIC, &nowTs);
+  now = nowTs.tv_sec * 1000000000 + nowTs.tv_nsec;
+  now /= 1000;
+
+  uint64_t interval = (m_sync.cont > 5) ? m_sync.interval : m_sync.ust2 - m_sync.ust1;
+  if (interval == 0)
+    return 0;
+
+  if (now < m_sync.ust2)
+  {
+    return 0;
+  }
+
+  uint64_t ret = now - m_sync.ust2;
+  while (ret > interval)
+    ret -= interval;
+
+  return ret;
 }
 
 void CGLContextEGL::QueryExtensions()

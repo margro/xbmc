@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2015-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "InputStreamAddon.h"
@@ -196,13 +184,6 @@ int64_t CInputStreamAddon::Seek(int64_t offset, int whence)
   return m_struct.toAddon.seek_stream(&m_struct, offset, whence);
 }
 
-int64_t CInputStreamAddon::PositionStream()
-{
-  if (!m_struct.toAddon.position_stream)
-    return -1;
-
-  return m_struct.toAddon.position_stream(&m_struct);
-}
 int64_t CInputStreamAddon::GetLength()
 {
   if (!m_struct.toAddon.length_stream)
@@ -485,7 +466,7 @@ void CInputStreamAddon::SetVideoResolution(int width, int height)
     m_struct.toAddon.set_video_resolution(&m_struct, width, height);
 }
 
-bool CInputStreamAddon::IsRealTimeStream()
+bool CInputStreamAddon::IsRealtime()
 {
   if (m_struct.toAddon.is_real_time_stream)
     return m_struct.toAddon.is_real_time_stream(&m_struct);

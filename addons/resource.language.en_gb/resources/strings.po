@@ -685,10 +685,7 @@ msgctxt "#160"
 msgid "Free"
 msgstr ""
 
-#: addons/skin.estuary/xml/DialogPVRRadioRDSInfo.xml
-msgctxt "#161"
-msgid "Unavailable"
-msgstr ""
+#empty string with id 161
 
 msgctxt "#162"
 msgid "Tray open"
@@ -1958,11 +1955,7 @@ msgctxt "#415"
 msgid "Downloading thumbnail..."
 msgstr ""
 
-#: xbmc/music/dialogs/GUIDialogMusicInfo.cpp
-#: addons/skin.estuary/xml/DialogFullScreenInfo.xml
-msgctxt "#416"
-msgid "Not available"
-msgstr ""
+#empty string with id 416
 
 msgctxt "#417"
 msgid "View: Big icons"
@@ -3164,7 +3157,17 @@ msgctxt "#684"
 msgid "Verbose logging of [B]Windowing[/B] component"
 msgstr ""
 
-#empty strings from id 685 to 699
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#685"
+msgid "Verbose logging of [B]PVR[/B] component"
+msgstr ""
+
+#: xbmc/settings/AdvancedSettings.cpp
+msgctxt "#686"
+msgid "Verbose logging of [B]EPG[/B] component"
+msgstr ""
+
+#empty strings from id 687 to 699
 
 #: xbmc/music/infoscanner/MusicInfoScanner.cpp
 #: xbmc/music/MusicDatabase.cpp
@@ -3286,7 +3289,10 @@ msgctxt "#730"
 msgid "Port"
 msgstr ""
 
-#empty string with id 731
+#: system/settings/settings.xml
+msgctxt "#731"
+msgid "Black"
+msgstr ""
 
 msgctxt "#732"
 msgid "Save & apply"
@@ -3351,7 +3357,14 @@ msgctxt "#744"
 msgid "Files"
 msgstr ""
 
-#empty strings from id 745 to 746
+#: system/settings/settings.xml
+msgctxt "#745"
+msgid "Background colour"
+msgstr ""
+
+msgctxt "#746"
+msgid "Background opacity"
+msgstr ""
 
 msgctxt "#747"
 msgid "Error loading image"
@@ -4775,7 +4788,23 @@ msgctxt "#10004"
 msgid "Settings"
 msgstr ""
 
-#empty strings from id 10005 to 10006
+#: addons/skin.estouchy/xml/DialogAddonInfo.xml
+#: addons/skin.estuary/xml/DialogPVRRadioRDSInfo.xml
+#: addons/skin.estuary/xml/DialogSeekBar.xml
+#: xbmc/LangInfo.cpp
+#: xbmc/addons/Scraper.cpp
+#: xbmc/addons/addons/GUIDialogAddonInfo.cpp
+#: xbmc/guilib/guiinfo/SystemGUIInfo.cpp
+#: xbmc/utils/SystemInfo.cpp
+msgctxt "#10005"
+msgid "Not available"
+msgstr ""
+
+#. Abbreviation of "Not Available"
+#: xbmc/utils/SystemInfo.cpp
+msgctxt "#10006"
+msgid "N/A"
+msgstr ""
 
 #: xbmc/guilib/WindowIDs.h
 msgctxt "#10007"
@@ -17341,11 +17370,7 @@ msgctxt "#35222"
 msgid "Exit"
 msgstr ""
 
-#. Label of button in the in-game menu for opening the input configuration window
-#: addons/skin.estuary/xml/GameOSD.xml
-msgctxt "#35223"
-msgid "Input settings"
-msgstr ""
+#empty string with id 35223
 
 #. Label of button in the in-game menu for pausing and resuming playback
 #: addons/skin.estuary/xml/GameOSD.xml
@@ -17401,7 +17426,20 @@ msgctxt "#35232"
 msgid "Fullscreen"
 msgstr ""
 
-#empty strings from id 35233 to 35249
+#. Label of the setting in the in-game menu for stretching the game to fit the monitor
+#: addons/skin.estuary/xml/Custom_1101_SettingsList.xml
+#: xbmc/games/dialogs/osdDialogGameViewMode.cpp
+msgctxt "#35233"
+msgid "Stretch mode"
+msgstr ""
+
+#. Label of button in the in-game menu for configuring the game's controls
+#: addons/skin.estuary/xml/GameOSD.xml
+msgctxt "#35234"
+msgid "Controls"
+msgstr ""
+
+#empty strings from id 35235 to 35249
 
 #: xbmc/windows/GUIMediaWindow.cpp
 msgctxt "#35250"
@@ -17418,7 +17456,17 @@ msgctxt "#35252"
 msgid "Edit game source"
 msgstr ""
 
-#empty strings from id 35253 to 35255
+#: system/settings/settings.xml
+msgctxt "#35253"
+msgid "Enable autosave if supported"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#35254"
+msgid "Save the game automatically during game play, if supported. Resume playing where you left off."
+msgstr ""
+
+#empty string with id 35255
 
 #. Error message when a game client fails to install when a game is being launched
 #: xbmc/games/dialogs/GUIDialogSelectGameClient.cpp
@@ -18475,14 +18523,22 @@ msgctxt "#36227"
 msgid "Switch to full screen display when starting playback of channels and recordings."
 msgstr ""
 
-#empty string with id 36228
+#. Description of setting with label #745 "Background Colour"
+#: system/settings/settings.xml
+msgctxt "#36228"
+msgid "Set the colour to be used for the subtitle background."
+msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36229"
 msgid "Display signal quality information in the codec information window (if supported by the add-on and backend)."
 msgstr ""
 
-#empty string with id 36230
+#. Description of setting with label #746 "Background Opacity"
+#: system/settings/settings.xml
+msgctxt "#36230"
+msgid "Set the the subtitle background opacity."
+msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36231"
@@ -21337,7 +21393,7 @@ msgstr ""
 
 #empty strings from id 39028 to 39029
 
-#. Media source, a filter and smart playlist rule option 
+#. Media source, a filter and smart playlist rule option
 #: xbmc/dialogs/GUIDialogMediaFilter.cpp
 #: xbmc/dialogs/GUIDialogSmartPlaylistRule.cpp
 #: xbmc/playlists/SmartPlaylist.cpp

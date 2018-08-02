@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2014 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2014-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -27,13 +15,6 @@
 class IEncoder
 {
 public:
-  IEncoder() :
-    m_iTrackLength(0),
-    m_iInChannels(0),
-    m_iInSampleRate(0),
-    m_iInBitsPerSample(0)
-  {
-  }
   virtual ~IEncoder() = default;
   virtual bool Init(AddonToKodiFuncTable_AudioEncoder& callbacks) = 0;
   virtual int Encode(int nNumBytesRead, uint8_t* pbtStream) = 0;
@@ -49,9 +30,9 @@ public:
   std::string m_strTrack;
   std::string m_strYear;
   std::string m_strFile;
-  int m_iTrackLength;
-  int m_iInChannels;
-  int m_iInSampleRate;
-  int m_iInBitsPerSample;
+  int m_iTrackLength = 0;
+  int m_iInChannels = 0;
+  int m_iInSampleRate = 0;
+  int m_iInBitsPerSample = 0;
 };
 

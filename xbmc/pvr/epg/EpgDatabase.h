@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -111,17 +99,17 @@ namespace PVR
 
     /*!
      * @brief Get all EPG tables from the database. Does not get the EPG tables' entries.
-     * @param container The container to fill.
-     * @return The amount of entries that was added.
+     * @param container The container to get the EPG tables for.
+     * @return The entries.
      */
-    int Get(CPVREpgContainer &container);
+    std::vector<CPVREpgPtr> Get(const CPVREpgContainer &container);
 
     /*!
      * @brief Get all EPG entries for a table.
      * @param epg The EPG table to get the entries for.
-     * @return The amount of entries that was added.
+     * @return The entries.
      */
-    int Get(CPVREpg &epg);
+    std::vector<CPVREpgInfoTagPtr> Get(const CPVREpg &epg);
 
     /*!
      * @brief Get the last stored EPG scan time.

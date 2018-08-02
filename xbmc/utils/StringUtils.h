@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -44,7 +32,6 @@
 #include <fmt/printf.h>
 #endif
 
-#include "LangInfo.h"
 #include "XBDateTime.h"
 #include "utils/params_check_macros.h"
 
@@ -82,9 +69,9 @@ public:
   static std::string Format(const std::string& fmt, Args&&... args)
   {
     // coverity[fun_call_w_exception : FALSE]
-    auto result = fmt::format(fmt, std::forward<Args>(args)...);
+    auto result = ::fmt::format(fmt, std::forward<Args>(args)...);
     if (result == fmt)
-      result = fmt::sprintf(fmt, std::forward<Args>(args)...);
+      result = ::fmt::sprintf(fmt, std::forward<Args>(args)...);
 
     return result;
   }
@@ -92,9 +79,9 @@ public:
   static std::wstring Format(const std::wstring& fmt, Args&&... args)
   {
     // coverity[fun_call_w_exception : FALSE]
-    auto result = fmt::format(fmt, std::forward<Args>(args)...);
+    auto result = ::fmt::format(fmt, std::forward<Args>(args)...);
     if (result == fmt)
-      result = fmt::sprintf(fmt, std::forward<Args>(args)...);
+      result = ::fmt::sprintf(fmt, std::forward<Args>(args)...);
 
     return result;
   }
@@ -341,7 +328,7 @@ public:
 // ifdef is needed because when you set _ITERATOR_DEBUG_LEVEL=0 and you use custom numpunct you will get runtime error in debug mode
 // for more info https://connect.microsoft.com/VisualStudio/feedback/details/2655363
 #if !(defined(_DEBUG) && defined(TARGET_WINDOWS))
-    ss.imbue(g_langInfo.GetOriginalLocale());
+    ss.imbue(GetOriginalLocale());
 #endif
     ss.precision(1);
     ss << std::fixed << num;
@@ -380,6 +367,13 @@ public:
    * 102400 bytes as "100kB". See TestStringUtils for more examples.
    */
   static std::string FormatFileSize(uint64_t bytes);
+
+private:
+  /*!
+   * Wrapper for CLangInfo::GetOriginalLocale() which allows us to
+   * avoid including LangInfo.h from this header.
+   */
+  static const std::locale& GetOriginalLocale() noexcept;
 };
 
 struct sortstringbyname

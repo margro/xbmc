@@ -1,21 +1,9 @@
 /*
- *  Copyright (C) 2005-2013 Team XBMC
- *  http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "OverlayRendererGUI.h"
@@ -24,25 +12,25 @@
 #include "filesystem/File.h"
 #include "ServiceBroker.h"
 #include "Util.h"
-#include "utils/Color.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
-#include "guilib/GUITextLayout.h"
 #include "guilib/GUIFontManager.h"
 #include "guilib/GUIFont.h"
+#include "guilib/GUITextLayout.h"
+#include "guilib/GUITexture.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayText.h"
 
 using namespace OVERLAY;
 
-static UTILS::Color colors[8] = { 0xFFFFFF00
-                                , 0xFFFFFFFF
-                                , 0xFF0099FF
-                                , 0xFF00FF00
-                                , 0xFFCCFF00
-                                , 0xFF00FFFF
-                                , 0xFFE5E5E5
-                                , 0xFFC0C0C0 };
+static UTILS::Color colors[8] = { UTILS::COLOR::YELLOW,
+                                  UTILS::COLOR::WHITE,
+                                  UTILS::COLOR::BLUE,
+                                  UTILS::COLOR::BRIGHTGREEN,
+                                  UTILS::COLOR::YELLOWGREEN,
+                                  UTILS::COLOR::CYAN,
+                                  UTILS::COLOR::LIGHTGREY,
+                                  UTILS::COLOR::GREY };
 
 CGUITextLayout* COverlayText::GetFontLayout(const std::string &font, int color, int height, int style,
                                             const std::string &fontcache, const std::string &fontbordercache)
@@ -155,8 +143,8 @@ COverlayText::~COverlayText()
   delete m_layout;
 }
 
-void COverlayText::PrepareRender(const std::string &font, int color, int height, int style,
-                                 const std::string &fontcache, const std::string &fontbordercache)
+void COverlayText::PrepareRender(const std::string &font, int color, int height, int style, const std::string &fontcache,
+                                 const std::string &fontbordercache, const UTILS::Color bgcolor)
 {
   if (!m_layout)
     m_layout = GetFontLayout(font, color, height, style, fontcache, fontbordercache);
@@ -170,6 +158,8 @@ void COverlayText::PrepareRender(const std::string &font, int color, int height,
   float width_max = (float)res.Overscan.right - res.Overscan.left;
   m_layout->Update(m_text, width_max * 0.9f, false, true); // true to force LTR reading order (most Hebrew subs are this format)
   m_layout->GetTextExtent(m_width, m_height);
+  
+  m_bgcolor = bgcolor;
 }
 
 void COverlayText::Render(OVERLAY::SRenderState &state)
@@ -207,6 +197,13 @@ void COverlayText::Render(OVERLAY::SRenderState &state)
   // clamp inside screen
   y = std::max(y, (float) res.Overscan.top);
   y = std::min(y, res.Overscan.bottom - m_height);
+  
+  // draw the overlay background
+  if (m_bgcolor != UTILS::COLOR::NONE)
+  {
+    CRect backgroundbox(x - m_layout->GetTextWidth() * 0.52f, y, x + m_layout->GetTextWidth() * 0.52f, y + m_layout->GetTextHeight());
+    CGUITexture::DrawQuad(backgroundbox, m_bgcolor);
+  }
 
   m_layout->RenderOutline(x, y, 0, 0xFF000000, XBFONT_CENTER_X, width_max);
   CServiceBroker::GetWinSystem()->GetGfxContext().RemoveTransform();

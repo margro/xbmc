@@ -1,22 +1,10 @@
 /*
- *      Copyright (C) 2003 by The Joker / Avalaunch team
- *      Copyright (C) 2003-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2003 by The Joker / Avalaunch team
+ *  Copyright (C) 2003-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 /*
@@ -588,7 +576,7 @@ void iso9660::Reset()
 }
 
 //******************************************************************************************************************
-struct iso_dirtree *iso9660::FindFolder( char *Folder )
+struct iso_dirtree *iso9660::FindFolder(const char *Folder )
 {
   char *work;
 
@@ -630,7 +618,7 @@ struct iso_dirtree *iso9660::FindFolder( char *Folder )
 }
 
 //******************************************************************************************************************
-HANDLE iso9660::FindFirstFile9660(char *szLocalFolder, WIN32_FIND_DATA *wfdFile)
+HANDLE iso9660::FindFirstFile9660(const char *szLocalFolder, WIN32_FIND_DATA *wfdFile)
 {
   if (m_info.ISO_HANDLE == nullptr) return static_cast<HANDLE>(nullptr);
   memset( wfdFile, 0, sizeof(WIN32_FIND_DATA));
@@ -735,7 +723,7 @@ HANDLE iso9660::OpenFile(const char *filename)
   pContext->m_bUseMode2 = false;
   m_info.curr_filepos = 0;
 
-  pointer = (char*)filename;
+  pointer = const_cast<char*>(filename);
   while ( strpbrk( pointer, "\\/" ) )
     pointer = strpbrk( pointer, "\\/" ) + 1;
 

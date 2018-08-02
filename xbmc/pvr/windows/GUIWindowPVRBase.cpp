@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIWindowPVRBase.h"
@@ -54,7 +42,6 @@ namespace PVR
 class CGUIPVRChannelGroupsSelector
 {
 public:
-  CGUIPVRChannelGroupsSelector() : m_control(nullptr) {};
   virtual ~CGUIPVRChannelGroupsSelector() = default;
 
   bool Initialize(CGUIWindow* parent, bool bRadio);
@@ -64,7 +51,7 @@ public:
   bool SelectChannelGroup(const CPVRChannelGroupPtr &newGroup);
 
 private:
-  CGUIControl *m_control;
+  CGUIControl *m_control = nullptr;
   std::vector<CPVRChannelGroupPtr> m_channelGroups;
 };
 
@@ -500,7 +487,7 @@ void CGUIWindowPVRBase::ShowProgressDialog(const std::string &strText, int iProg
     CGUIDialogExtendedProgressBar *loadingProgressDialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogExtendedProgressBar>(WINDOW_DIALOG_EXT_PROGRESS);
     if (!loadingProgressDialog)
     {
-      CLog::Log(LOGERROR, "CGUIWindowPVRBase - %s - unable to get WINDOW_DIALOG_EXT_PROGRESS!", __FUNCTION__);
+      CLog::LogF(LOGERROR, "Unable to get WINDOW_DIALOG_EXT_PROGRESS!");
       return;
     }
     m_progressHandle = loadingProgressDialog->GetHandle(g_localizeStrings.Get(19235)); // PVR manager is starting up

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIInfoManager.h"
@@ -57,8 +45,7 @@ bool InfoBoolComparator(const InfoPtr &right, const InfoPtr &left)
 
 CGUIInfoManager::CGUIInfoManager(void)
 : m_currentFile(new CFileItem),
-  m_bools(&InfoBoolComparator),
-  m_refreshCounter(0)
+  m_bools(&InfoBoolComparator)
 {
 }
 
@@ -345,6 +332,12 @@ const infomap integer_bools[] =  {{ "isequal",          INTEGER_IS_EQUAL },
 ///     Returns true if pvr channel preview is active (used channel tag different
 ///     from played tag)
 ///   }
+///   \table_row3{   <b>`Player.FrameAdvance`</b>,
+///                  \anchor Player_FrameAdvance
+///                  _boolean_,
+///     Returns true if player is in frame advance mode. Skins should hide seek bar
+///     in this mode)
+///   }
 /// \table_end
 /// @}
 const infomap player_labels[] =  {{ "hasmedia",         PLAYER_HAS_MEDIA },           // bools from here
@@ -396,7 +389,8 @@ const infomap player_labels[] =  {{ "hasmedia",         PLAYER_HAS_MEDIA },     
                                   { "istempo", PLAYER_IS_TEMPO},
                                   { "playspeed", PLAYER_PLAYSPEED},
                                   { "hasprograms", PLAYER_HAS_PROGRAMS},
-                                  { "hasresolutions", PLAYER_HAS_RESOLUTIONS}};
+                                  { "hasresolutions", PLAYER_HAS_RESOLUTIONS},
+                                  { "frameadvance", PLAYER_FRAMEADVANCE}};
 
 /// \page modules__General__List_of_gui_access
 /// @{
@@ -739,6 +733,11 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///                  \anchor System_PlatformWindows
 ///                  _boolean_,
 ///     Returns true if Kodi is running on a windows based computer.
+///   }
+///   \table_row3{   <b>`System.Platform.UWP`</b>,
+///                  \anchor System_PlatformUWP
+///                  _boolean_,
+///     Returns true if Kodi is running on Universal Windows Platform (UWP).
 ///   }
 ///   \table_row3{   <b>`System.Platform.OSX`</b>,
 ///                  \anchor System_PlatformOSX
@@ -1370,12 +1369,12 @@ const infomap musicpartymode[] = {{ "enabled",           MUSICPM_ENABLED },
 ///   \table_row3{   <b>`MusicPlayer.Property(Artist_Type)`</b>,
 ///                  \anchor MusicPlayer_Property_Artist_Type
 ///                  _string_,
-///     Type of the currently playing Artist - person, group, orchestra, choir etc.
+///     Type of the currently playing Artist - person\, group\, orchestra\, choir etc.
 ///   }
 ///   \table_row3{   <b>`MusicPlayer.Property(Artist_Gender)`</b>,
 ///                  \anchor MusicPlayer_Property_Artist_Gender
 ///                  _string_,
-///     Gender of the currently playing Artist - male, female, other
+///     Gender of the currently playing Artist - male\, female\, other
 ///   }
 ///   \table_row3{   <b>`MusicPlayer.Property(Artist_Disambiguation)`</b>,
 ///                  \anchor MusicPlayer_Property_Artist_Disambiguation
@@ -1503,16 +1502,16 @@ const infomap musicpartymode[] = {{ "enabled",           MUSICPM_ENABLED },
 ///                  _boolean_,
 ///     Returns true if a playlist is currently playing
 ///   }
-///   \table_row3{   <b>`MusicPlayer.Exists(relative,position)`</b>,
+///   \table_row3{   <b>`MusicPlayer.Exists(relative\,position)`</b>,
 ///                  \anchor MusicPlayer_Exists
 ///                  _boolean_,
 ///     Returns true if the currently playing playlist has a song queued at the given position.
-///     It is possible to define whether the position is relative or not, default is false.
+///     It is possible to define whether the position is relative or not\, default is false.
 ///   }
 ///   \table_row3{   <b>`MusicPlayer.HasPrevious`</b>,
 ///                  \anchor MusicPlayer_HasPrevious
 ///                  _boolean_,
-///     Returns true if the music player has a a Previous Song in the Playlist .
+///     Returns true if the music player has a a Previous Song in the Playlist.
 ///   }
 ///   \table_row3{   <b>`MusicPlayer.HasNext`</b>,
 ///                  \anchor MusicPlayer_HasNext
@@ -1580,7 +1579,7 @@ const infomap musicpartymode[] = {{ "enabled",           MUSICPM_ENABLED },
 ///                  _string_,
 ///     Total size of the current music playlist
 ///   }
-///   \table_row3{   <b>`MusicPlayer.ChannelName`</b>,g
+///   \table_row3{   <b>`MusicPlayer.ChannelName`</b>,
 ///                  \anchor MusicPlayer_ChannelName
 ///                  _string_,
 ///     Channel name of the radio programme that's currently playing (PVR).
@@ -1595,6 +1594,7 @@ const infomap musicpartymode[] = {{ "enabled",           MUSICPM_ENABLED },
 ///                  \anchor MusicPlayer_ChannelGroup
 ///                  _string_,
 ///     Channel group of the radio programme that's currently playing (PVR).
+///   }
 ///   \table_row3{   <b>`MusicPlayer.Property(propname)`</b>,
 ///                  \anchor MusicPlayer_Property_Propname
 ///                  _string_,
@@ -2267,12 +2267,11 @@ const infomap mediacontainer[] = {{ "hasfiles",         CONTAINER_HASFILES },
 ///     Number of all items in the container or grouplist with given id including parent folder item. If no id is
 ///     specified it grabs the current container.
 ///   }
-///   }
 ///   \table_row3{   <b>`Container(id).NumNonFolderItems`</b>,
 ///                  \anchor Container_NumNonFolderItems
 ///                  _boolean_,
 ///     Number of items in the container or grouplist with given id excluding all folder items (example: pvr
-///     recordings folders, parent ".." folder). If no id is specified it grabs the current container.
+///     recordings folders\, parent ".." folder). If no id is specified it grabs the current container.
 ///   }
 ///   \table_row3{   <b>`Container(id).CurrentPage`</b>,
 ///                  \anchor Container_CurrentPage
@@ -2438,14 +2437,15 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///   \table_row3{   <b>`ListItem.Thumb`</b>,
 ///                  \anchor ListItem_Thumb
 ///                  _string_,
-///     Returns the thumbnail (if it exists) of the currently selected item in a list or thumb control.
-///
-///     \deprecated but still available, returns the same as ListItem.Art(thumb).
+///     Returns the thumbnail (if it exists) of the currently selected item
+///     in a list or thumb control.
+///     @deprecated but still available\, returns
+///     the same as `ListItem.Art(thumb)`.\par
 ///   }
 ///   \table_row3{   <b>`ListItem.Icon`</b>,
 ///                  \anchor ListItem_Icon
 ///                  _string_,
-///     Returns the thumbnail (if it exists) of the currently selected item in a list or thumb control. If no thumbnail image exists, it will show the icon.
+///     Returns the thumbnail (if it exists) of the currently selected item in a list or thumb control. If no thumbnail image exists\, it will show the icon.
 ///   }
 ///   \table_row3{   <b>`ListItem.ActualIcon`</b>,
 ///                  \anchor ListItem_ActualIcon
@@ -2590,12 +2590,12 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///   \table_row3{   <b>`ListItem.Property(Artist_Type)`</b>,
 ///                  \anchor ListItem_Property_Artist_Type
 ///                  _string_,
-///     Type of the currently selected Artist - person, group, orchestra, choir etc.
+///     Type of the currently selected Artist - person\, group\, orchestra\, choir etc.
 ///   }
 ///   \table_row3{   <b>`ListItem.Property(Artist_Gender)`</b>,
 ///                  \anchor ListItem_Property_Artist_Gender
 ///                  _string_,
-///     Gender of the currently selected Artist - male, female, other
+///     Gender of the currently selected Artist - male\, female\, other
 ///   }
 ///   \table_row3{   <b>`ListItem.Property(Artist_Disambiguation)`</b>,
 ///                  \anchor ListItem_Property_Artist_Disambiguation
@@ -3656,7 +3656,7 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///   \table_row3{   <b>`ListItem.AddonType`</b>,
 ///                  \anchor ListItem_AddonType
 ///                  _string_,
-///     Returns the type (screensaver, script, skin, etc...) of the currently selected addon
+///     Returns the type (screensaver\, script\, skin\, etc...) of the currently selected addon
 ///   }
 ///   \table_row3{   <b>`ListItem.AddonInstallDate`</b>,
 ///                  \anchor ListItem_AddonInstallDate
@@ -4031,8 +4031,7 @@ const infomap skin_labels[] =    {{ "currenttheme",      SKIN_THEME },
 ///                  _boolean_,
 ///     Returns true if the window with id or title _window_ is on top of the
 ///     window stack (excludes fade out time on dialogs)
-///
-///     \deprecated use `Window.IsDialogTopmost(dialog)` instead
+///     @deprecated use `Window.IsDialogTopmost(dialog)` instead \par
 ///   }
 ///   \table_row3{   <b>`Window.IsDialogTopmost(dialog)`</b>,
 ///                  \anchor Window_IsDialogTopmost
@@ -4510,7 +4509,7 @@ const infomap playlist[] =       {{ "length",           PLAYLIST_LENGTH },
 ///   \table_row3{   <b>`PVR.ChannelNumberInput`</b>,
 ///                  \anchor PVR_ChannelNumberInput
 ///                  _string_,
-///     Returns the currently entered channel number while in numeric channel input mode, an empty string otherwise
+///     Returns the currently entered channel number while in numeric channel input mode\, an empty string otherwise
 ///   }
 ///   \table_row3{   <b>`PVR.CanRecordPlayingChannel`</b>,
 ///                  \anchor PVR_CanRecordPlayingChannel
@@ -6477,8 +6476,8 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
     {
       case STRING_IS_EMPTY:
         // note: Get*Image() falls back to Get*Label(), so this should cover all of them
-        if (item && item->IsFileItem())
-          bReturn = GetItemImage(static_cast<const CFileItem*>(item), contextWindow, info.GetData1()).empty();
+        if (item && item->IsFileItem() && IsListItemInfo(info.GetData1()))
+          bReturn = GetItemImage(item, contextWindow, info.GetData1()).empty();
         else
           bReturn = GetImage(info.GetData1(), contextWindow).empty();
         break;
@@ -6488,8 +6487,8 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
           if (info.GetData2() < 0) // info labels are stored with negative numbers
           {
             int info2 = -info.GetData2();
-            if (item && item->IsFileItem())
-              compare = GetItemImage(static_cast<const CFileItem*>(item), contextWindow, info2);
+            if (item && item->IsFileItem() && IsListItemInfo(info2))
+              compare = GetItemImage(item, contextWindow, info2);
             else
               compare = GetImage(info2, contextWindow);
           }
@@ -6497,8 +6496,8 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
           { // conditional string
             compare = info.GetData3();
           }
-          if (item && item->IsFileItem())
-            bReturn = StringUtils::EqualsNoCase(GetItemImage(static_cast<const CFileItem *>(item), contextWindow, info.GetData1()), compare);
+          if (item && item->IsFileItem() && IsListItemInfo(info.GetData1()))
+            bReturn = StringUtils::EqualsNoCase(GetItemImage(item, contextWindow, info.GetData1()), compare);
           else
             bReturn = StringUtils::EqualsNoCase(GetImage(info.GetData1(), contextWindow), compare);
         }
@@ -6513,8 +6512,8 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
           if (!GetInt(integer, info.GetData1(), contextWindow, item))
           {
             std::string value;
-            if (item && item->IsFileItem())
-              value = GetItemImage(static_cast<const CFileItem*>(item), contextWindow, info.GetData1());
+            if (item && item->IsFileItem() && IsListItemInfo(info.GetData1()))
+              value = GetItemImage(item, contextWindow, info.GetData1());
             else
               value = GetImage(info.GetData1(), contextWindow);
 
@@ -6547,16 +6546,11 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
           // our compare string is already in lowercase, so lower case our label as well
           // as std::string::Find() is case sensitive
           std::string label;
-          if (item && item->IsFileItem())
-          {
-            label = GetItemImage(static_cast<const CFileItem*>(item), contextWindow, info.GetData1());
-            StringUtils::ToLower(label);
-          }
+          if (item && item->IsFileItem() && IsListItemInfo(info.GetData1()))
+            label = GetItemImage(item, contextWindow, info.GetData1());
           else
-          {
             label = GetImage(info.GetData1(), contextWindow);
-            StringUtils::ToLower(label);
-          }
+          StringUtils::ToLower(label);
           if (condition == STRING_STARTS_WITH)
             bReturn = StringUtils::StartsWith(label, compare);
           else if (condition == STRING_ENDS_WITH)
@@ -6656,7 +6650,7 @@ std::string CGUIInfoManager::GetImage(int info, int contextWindow, std::string *
   {
     const CGUIListItemPtr item = GUIINFO::GetCurrentListItem(contextWindow);
     if (item && item->IsFileItem())
-      return GetItemImage(static_cast<CFileItem*>(item.get()), contextWindow, info, fallback);
+      return GetItemImage(item.get(), contextWindow, info, fallback);
   }
 
   return GetLabel(info, contextWindow, fallback);
@@ -6748,6 +6742,15 @@ int CGUIInfoManager::AddMultiInfo(const CGUIInfo &info)
   if (id > MULTI_INFO_END)
     CLog::Log(LOGERROR, "%s - too many multiinfo bool/labels in this skin", __FUNCTION__);
   return id;
+}
+
+bool CGUIInfoManager::IsListItemInfo(int info) const
+{
+  int iResolvedInfo = info;
+  while (iResolvedInfo >= MULTI_INFO_START && iResolvedInfo <= MULTI_INFO_END)
+    iResolvedInfo = m_multiInfo[iResolvedInfo - MULTI_INFO_START].m_info;
+
+  return (iResolvedInfo >= LISTITEM_START && iResolvedInfo <= LISTITEM_END);
 }
 
 bool CGUIInfoManager::GetItemInt(int &value, const CGUIListItem *item, int contextWindow, int info) const
@@ -6879,9 +6882,12 @@ std::string CGUIInfoManager::GetMultiInfoItemLabel(const CFileItem *item, int co
   return value;
 }
 
-std::string CGUIInfoManager::GetItemImage(const CFileItem *item, int contextWindow, int info, std::string *fallback /*= nullptr*/) const
+std::string CGUIInfoManager::GetItemImage(const CGUIListItem *item, int contextWindow, int info, std::string *fallback /*= nullptr*/) const
 {
-  return GetMultiInfoItemImage(item, contextWindow, CGUIInfo(info), fallback);
+  if (!item || !item->IsFileItem())
+    return std::string();
+
+  return GetMultiInfoItemImage(static_cast<const CFileItem*>(item), contextWindow, CGUIInfo(info), fallback);
 }
 
 std::string CGUIInfoManager::GetMultiInfoItemImage(const CFileItem *item, int contextWindow, const CGUIInfo &info, std::string *fallback /*= nullptr*/) const
@@ -7060,10 +7066,20 @@ void CGUIInfoManager::OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg)
 
 void CGUIInfoManager::RegisterInfoProvider(IGUIInfoProvider *provider)
 {
+  if (!CServiceBroker::GetWinSystem())
+    return;
+
+  CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
+
   m_infoProviders.RegisterProvider(provider, false);
 }
 
 void CGUIInfoManager::UnregisterInfoProvider(IGUIInfoProvider *provider)
 {
+  if (!CServiceBroker::GetWinSystem())
+    return;
+
+  CSingleLock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
+
   m_infoProviders.UnregisterProvider(provider);
 }

@@ -1,33 +1,22 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ApplicationOperations.h"
-#include "InputOperations.h"
 #include "Application.h"
-#include "messaging/ApplicationMessenger.h"
+#include "CompileInfo.h"
 #include "FileItem.h"
+#include "GUIInfoManager.h"
+#include "InputOperations.h"
+#include "LangInfo.h"
 #include "Util.h"
 #include "input/Key.h"
+#include "messaging/ApplicationMessenger.h"
 #include "utils/log.h"
-#include "GUIInfoManager.h"
-#include "CompileInfo.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include <string.h>
@@ -114,7 +103,7 @@ JSONRPC_STATUS CApplicationOperations::Quit(const std::string &method, ITranspor
 JSONRPC_STATUS CApplicationOperations::GetPropertyValue(const std::string &property, CVariant &result)
 {
   if (property == "volume")
-    result = (int)g_application.GetVolume();
+    result = static_cast<int>(g_application.GetVolume());
   else if (property == "muted")
     result = g_application.IsMuted();
   else if (property == "name")
@@ -146,6 +135,15 @@ JSONRPC_STATUS CApplicationOperations::GetPropertyValue(const std::string &prope
     else
       result["tag"] = "prealpha";
   }
+  else if (property == "sorttokens")
+  {
+    result = CVariant(CVariant::VariantTypeArray); // Ensure no tokens returns as []
+    std::set<std::string> sortTokens = g_langInfo.GetSortTokens();
+    for (const auto& token : sortTokens)
+      result.append(token);
+  }
+  else if (property == "language")
+    result = g_langInfo.GetLocale().ToShortString();
   else
     return InvalidParams;
 

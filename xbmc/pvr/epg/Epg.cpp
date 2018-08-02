@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "Epg.h"
@@ -41,36 +29,18 @@ using namespace PVR;
 
 CPVREpg::CPVREpg(int iEpgID, const std::string &strName /* = "" */, const std::string &strScraperName /* = "" */, bool bLoadedFromDb /* = false */) :
     m_bChanged(!bLoadedFromDb),
-    m_bTagsChanged(false),
-    m_bLoaded(false),
-    m_bUpdatePending(false),
     m_iEpgID(iEpgID),
     m_strName(strName),
-    m_strScraperName(strScraperName),
-    m_bUpdateLastScanTime(false)
+    m_strScraperName(strScraperName)
 {
 }
 
 CPVREpg::CPVREpg(const CPVRChannelPtr &channel, bool bLoadedFromDb /* = false */) :
     m_bChanged(!bLoadedFromDb),
-    m_bTagsChanged(false),
-    m_bLoaded(false),
-    m_bUpdatePending(false),
     m_iEpgID(channel->EpgID()),
     m_strName(channel->ChannelName()),
     m_strScraperName(channel->EPGScraper()),
-    m_pvrChannel(channel),
-    m_bUpdateLastScanTime(false)
-{
-}
-
-CPVREpg::CPVREpg(void) :
-    m_bChanged(false),
-    m_bTagsChanged(false),
-    m_bLoaded(false),
-    m_bUpdatePending(false),
-    m_iEpgID(0),
-    m_bUpdateLastScanTime(false)
+    m_pvrChannel(channel)
 {
 }
 
@@ -324,19 +294,22 @@ bool CPVREpg::Load(void)
 
   if (!database)
   {
-    CLog::Log(LOGERROR, "EPG - %s - could not open the database", __FUNCTION__);
+    CLog::LogF(LOGERROR, "Could not open the EPG database");
     return bReturn;
   }
 
-  int iEntriesLoaded = database->Get(*this);
+  const std::vector<CPVREpgInfoTagPtr> result = database->Get(*this);
 
   CSingleLock lock(m_critSection);
-  if (iEntriesLoaded <= 0)
+  if (result.empty())
   {
-    CLog::Log(LOGDEBUG, "EPG - %s - no database entries found for table '%s'.", __FUNCTION__, m_strName.c_str());
+    CLog::LogFC(LOGDEBUG, LOGEPG, "No database entries found for table '%s'.", m_strName.c_str());
   }
   else
   {
+    for (const auto& entry : result)
+      AddEntry(*entry);
+
     m_lastScanTime = GetLastScanTime();
     bReturn = true;
   }
@@ -479,7 +452,7 @@ bool CPVREpg::UpdateEntry(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE newState
   }
   else
   {
-    CLog::Log(LOGERROR, "EPG - %s - unknown epg event state value: %d", __FUNCTION__, newState);
+    CLog::LogF(LOGERROR, "Unknown epg event state value: %d", newState);
     bRet = false;
   }
 
@@ -536,7 +509,7 @@ bool CPVREpg::Update(const time_t start, const time_t end, int iUpdateTime, bool
     m_bLoaded = true;
   }
   else
-    CLog::Log(LOGERROR, "EPG - %s - failed to update table '%s'", __FUNCTION__, Name().c_str());
+    CLog::LogF(LOGERROR, "Failed to update table '%s'", Name().c_str());
 
   CSingleLock lock(m_critSection);
   m_bUpdatePending = false;
@@ -582,7 +555,7 @@ bool CPVREpg::Persist(void)
   CPVREpgDatabasePtr database = CServiceBroker::GetPVRManager().EpgContainer().GetEpgDatabase();
   if (!database)
   {
-    CLog::Log(LOGERROR, "EPG - %s - could not open the database", __FUNCTION__);
+    CLog::LogF(LOGERROR, "Could not open the EPG database");
     return false;
   }
 
@@ -694,7 +667,7 @@ bool CPVREpg::UpdateFromScraper(time_t start, time_t end)
 {
   if (m_strScraperName.empty())
   {
-    CLog::Log(LOGERROR, "EPG - %s - no EPG scraper defined for table '%s'", __FUNCTION__, m_strName.c_str());
+    CLog::LogF(LOGERROR, "No EPG scraper defined for table '%s'", m_strName.c_str());
   }
   else if (m_strScraperName == "client")
   {
@@ -712,27 +685,29 @@ bool CPVREpg::UpdateFromScraper(time_t start, time_t end)
       {
         if (!client->GetClientCapabilities().SupportsEPG())
         {
-          CLog::Log(LOGERROR, "EPG - %s - the backend for channel '%s' on client '%i' does not support EPGs", __FUNCTION__, channel->ChannelName().c_str(), channel->ClientID());
+          CLog::LogF(LOGERROR, "The backend for channel '%s' on client '%i' does not support EPGs",
+                     channel->ChannelName().c_str(), channel->ClientID());
         }
         else
         {
-          CLog::Log(LOGDEBUG, "EPG - %s - updating EPG for channel '%s' from client '%i'", __FUNCTION__, channel->ChannelName().c_str(), channel->ClientID());
+          CLog::LogFC(LOGDEBUG, LOGEPG, "Updating EPG for channel '%s' from client '%i'",
+                      channel->ChannelName().c_str(), channel->ClientID());
           return (client->GetEPGForChannel(channel, this, start, end) == PVR_ERROR_NO_ERROR);
         }
       }
       else
       {
-        CLog::Log(LOGERROR, "EPG - %s - client '%i' not found, can't update", __FUNCTION__, channel->ClientID());
+        CLog::LogF(LOGERROR, "Client '%i' not found, can't update", channel->ClientID());
       }
     }
     else
     {
-      CLog::Log(LOGERROR, "EPG - %s - channel not found, can't update", __FUNCTION__);
+      CLog::LogF(LOGERROR, "Channel not found, can't update");
     }
   }
   else // other non-empty scraper name...
   {
-    CLog::Log(LOGERROR, "Loading the EPG via scraper has not been implemented yet!");
+    CLog::LogF(LOGERROR, "Loading the EPG via scraper is not yet implemented!");
     //! @todo Add Support for Web EPG Scrapers here
   }
 

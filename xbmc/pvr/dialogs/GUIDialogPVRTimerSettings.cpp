@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2014 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogPVRTimerSettings.h"
@@ -76,20 +64,7 @@ using namespace PVR;
 
 CGUIDialogPVRTimerSettings::CGUIDialogPVRTimerSettings() :
   CGUIDialogSettingsManualBase(WINDOW_DIALOG_PVR_TIMER_SETTING, "DialogSettings.xml"),
-  m_bIsRadio(false),
-  m_bIsNewTimer(true),
-  m_bTimerActive(false),
-  m_bFullTextEpgSearch(true),
-  m_bStartAnyTime(false),
-  m_bEndAnyTime(false),
-  m_iWeekdays(PVR_WEEKDAY_NONE),
-  m_iPreventDupEpisodes(0),
-  m_iMarginStart(0),
-  m_iMarginEnd(0),
-  m_iPriority(0),
-  m_iLifetime(0),
-  m_iMaxRecordings(0),
-  m_iRecordingGroup(0)
+  m_iWeekdays(PVR_WEEKDAY_NONE)
 {
   m_loadType = LOAD_EVERY_TIME;
 }
@@ -100,7 +75,7 @@ bool CGUIDialogPVRTimerSettings::CanBeActivated() const
 {
   if (!m_timerInfoTag)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::CanBeActivated - no timer info tag");
+    CLog::LogF(LOGERROR, "No timer info tag");
     return false;
   }
   return true;
@@ -110,7 +85,7 @@ void CGUIDialogPVRTimerSettings::SetTimer(const CPVRTimerInfoTagPtr &timer)
 {
   if (!timer)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::SetTimer - no timer given");
+    CLog::LogF(LOGERROR, "No timer given");
     return;
   }
 
@@ -192,7 +167,7 @@ void CGUIDialogPVRTimerSettings::SetTimer(const CPVRTimerInfoTagPtr &timer)
     }
 
     if (!bChannelSet)
-      CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::SetTimer - Unable to map PVR_CHANNEL_INVALID_UID to channel entry!");
+      CLog::LogF(LOGERROR, "Unable to map PVR_CHANNEL_INVALID_UID to channel entry!");
   }
   else
   {
@@ -210,7 +185,7 @@ void CGUIDialogPVRTimerSettings::SetTimer(const CPVRTimerInfoTagPtr &timer)
     }
 
     if (!bChannelSet)
-      CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::SetTimer - Unable to map channel uid to channel entry!");
+      CLog::LogF(LOGERROR, "Unable to map channel uid to channel entry!");
   }
 }
 
@@ -231,14 +206,14 @@ void CGUIDialogPVRTimerSettings::InitializeSettings()
   const std::shared_ptr<CSettingCategory> category = AddCategory("pvrtimersettings", -1);
   if (category == NULL)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::InitializeSettings - Unable to add settings category");
+    CLog::LogF(LOGERROR, "Unable to add settings category");
     return;
   }
 
   const std::shared_ptr<CSettingGroup> group = AddGroup(category);
   if (group == NULL)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::InitializeSettings - Unable to add settings group");
+    CLog::LogF(LOGERROR, "Unable to add settings group");
     return;
   }
 
@@ -377,7 +352,7 @@ int CGUIDialogPVRTimerSettings::GetWeekdaysFromSetting(SettingConstPtr setting)
   std::shared_ptr<const CSettingList> settingList = std::static_pointer_cast<const CSettingList>(setting);
   if (settingList->GetElementType() != SettingType::Integer)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::GetWeekdaysFromSetting - wrong weekdays element type");
+    CLog::LogF(LOGERROR, "Wrong weekdays element type");
     return 0;
   }
   int weekdays = 0;
@@ -386,7 +361,7 @@ int CGUIDialogPVRTimerSettings::GetWeekdaysFromSetting(SettingConstPtr setting)
   {
     if (!value.isInteger())
     {
-      CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::GetWeekdaysFromSetting - wrong weekdays value type");
+      CLog::LogF(LOGERROR, "Wrong weekdays value type");
       return 0;
     }
     weekdays += static_cast<int>(value.asInteger());
@@ -399,7 +374,7 @@ void CGUIDialogPVRTimerSettings::OnSettingChanged(std::shared_ptr<const CSetting
 {
   if (setting == NULL)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::OnSettingChanged - No setting");
+    CLog::LogF(LOGERROR, "No setting");
     return;
   }
 
@@ -420,7 +395,7 @@ void CGUIDialogPVRTimerSettings::OnSettingChanged(std::shared_ptr<const CSetting
     }
     else
     {
-      CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::OnSettingChanged - Unable to get 'type' value");
+      CLog::LogF(LOGERROR, "Unable to get 'type' value");
     }
   }
   else if (settingId == SETTING_TMR_ACTIVE)
@@ -449,7 +424,7 @@ void CGUIDialogPVRTimerSettings::OnSettingChanged(std::shared_ptr<const CSetting
     }
     else
     {
-      CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::OnSettingChanged - Unable to get 'type' value");
+      CLog::LogF(LOGERROR, "Unable to get 'type' value");
     }
   }
   else if (settingId == SETTING_TMR_WEEKDAYS)
@@ -514,7 +489,7 @@ void CGUIDialogPVRTimerSettings::OnSettingAction(std::shared_ptr<const CSetting>
 {
   if (setting == NULL)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::OnSettingAction - No setting");
+    CLog::LogF(LOGERROR, "No setting");
     return;
   }
 
@@ -575,7 +550,7 @@ void CGUIDialogPVRTimerSettings::Save()
   else
   {
     if (m_timerType->IsOnetime() || m_timerType->IsManual())
-      CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::Save - No channel");
+      CLog::LogF(LOGERROR, "No channel");
 
     m_timerInfoTag->m_iClientChannelUid = m_channel.channelUid;
     m_timerInfoTag->m_iClientId         = m_timerType->GetClientId();
@@ -598,28 +573,28 @@ void CGUIDialogPVRTimerSettings::Save()
     {
       if (m_endLocalTime < m_startLocalTime)   // And the end clock is earlier than the start clock
       {
-        CLog::Log(LOGDEBUG, "CGUIDialogPVRTimerSettings::Save - End before start, adding a day.");
+        CLog::LogFC(LOGDEBUG, LOGPVR, "End before start, adding a day.");
         m_endLocalTime += CDateTimeSpan(1, 0, 0, 0);
         if (m_endLocalTime < m_startLocalTime)
         {
-          CLog::Log(LOGWARNING, "CGUIDialogPVRTimerSettings::Save - End before start. Setting end time to start time.");
+          CLog::Log(LOGWARNING, "Timer settings dialog: End before start. Setting end time to start time.");
           m_endLocalTime = m_startLocalTime;
         }
       }
       else if (m_endLocalTime > (m_startLocalTime + CDateTimeSpan(1, 0, 0, 0))) // Or the duration is more than a day
       {
-        CLog::Log(LOGDEBUG, "CGUIDialogPVRTimerSettings::Save - End > 1 day after start, removing a day.");
+        CLog::LogFC(LOGDEBUG, LOGPVR, "End > 1 day after start, removing a day.");
         m_endLocalTime -= CDateTimeSpan(1, 0, 0, 0);
         if (m_endLocalTime > (m_startLocalTime + CDateTimeSpan(1, 0, 0, 0)))
         {
-          CLog::Log(LOGWARNING, "CGUIDialogPVRTimerSettings::Save - End > 1 day after start. Setting end time to start time.");
+          CLog::Log(LOGWARNING, "Timer settings dialog: End > 1 day after start. Setting end time to start time.");
           m_endLocalTime = m_startLocalTime;
         }
       }
     }
     else if (m_endLocalTime < m_startLocalTime) // Assume the user knows what they are doing, but log a warning just in case
     {
-      CLog::Log(LOGWARNING, "CGUIDialogPVRTimerSettings::Save - Specified recording end time < start time: expect errors!");
+      CLog::Log(LOGWARNING, "Timer settings dialog: Specified recording end time < start time: expect errors!");
     }
     m_timerInfoTag->SetStartFromLocalTime(m_startLocalTime);
     m_timerInfoTag->SetEndFromLocalTime(m_endLocalTime);
@@ -836,7 +811,7 @@ void CGUIDialogPVRTimerSettings::TypesFiller(
     }
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::TypesFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::ChannelsFiller(
@@ -874,7 +849,7 @@ void CGUIDialogPVRTimerSettings::ChannelsFiller(
     }
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::ChannelsFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::DaysFiller(
@@ -918,7 +893,7 @@ void CGUIDialogPVRTimerSettings::DaysFiller(
       current = GetDateAsIndex(pThis->m_endLocalTime);
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::DaysFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::DupEpisodesFiller(
@@ -932,7 +907,7 @@ void CGUIDialogPVRTimerSettings::DupEpisodesFiller(
     current = pThis->m_iPreventDupEpisodes;
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::DupEpisodesFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::WeekdaysFiller(
@@ -953,7 +928,7 @@ void CGUIDialogPVRTimerSettings::WeekdaysFiller(
     current = pThis->m_iWeekdays;
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::WeekdaysFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::PrioritiesFiller(
@@ -982,7 +957,7 @@ void CGUIDialogPVRTimerSettings::PrioritiesFiller(
     }
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::PrioritiesFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::LifetimesFiller(
@@ -1011,7 +986,7 @@ void CGUIDialogPVRTimerSettings::LifetimesFiller(
     }
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::LifetimesFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::MaxRecordingsFiller(
@@ -1040,7 +1015,7 @@ void CGUIDialogPVRTimerSettings::MaxRecordingsFiller(
     }
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::MaxRecordingsFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::RecordingGroupFiller(
@@ -1054,7 +1029,7 @@ void CGUIDialogPVRTimerSettings::RecordingGroupFiller(
     current = pThis->m_iRecordingGroup;
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::RecordingGroupFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 void CGUIDialogPVRTimerSettings::MarginTimeFiller(
@@ -1096,7 +1071,7 @@ void CGUIDialogPVRTimerSettings::MarginTimeFiller(
     }
   }
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::MarginTimeFiller - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
 }
 
 std::string CGUIDialogPVRTimerSettings::WeekdaysValueFormatter(SettingConstPtr setting)
@@ -1120,7 +1095,7 @@ bool CGUIDialogPVRTimerSettings::TypeReadOnlyCondition(const std::string &condit
   CGUIDialogPVRTimerSettings *pThis = static_cast<CGUIDialogPVRTimerSettings*>(data);
   if (pThis == NULL)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::TypeReadOnlyCondition - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
     return false;
   }
 
@@ -1162,7 +1137,7 @@ bool CGUIDialogPVRTimerSettings::TypeReadOnlyCondition(const std::string &condit
   if (entry != pThis->m_typeEntries.end())
     return !entry->second->IsReadOnly();
   else
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::TypeReadOnlyCondition - No type entry");
+    CLog::LogF(LOGERROR, "No type entry");
 
   return false;
 }
@@ -1183,7 +1158,7 @@ bool CGUIDialogPVRTimerSettings::TypeSupportsCondition(const std::string &condit
   CGUIDialogPVRTimerSettings *pThis = static_cast<CGUIDialogPVRTimerSettings*>(data);
   if (pThis == NULL)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::TypeSupportsCondition - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
     return false;
   }
 
@@ -1237,11 +1212,11 @@ bool CGUIDialogPVRTimerSettings::TypeSupportsCondition(const std::string &condit
     else if (cond == SETTING_TMR_REC_GROUP)
       return entry->second->SupportsRecordingGroup();
     else
-      CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::TypeSupportsCondition - Unknown condition");
+      CLog::LogF(LOGERROR, "Unknown condition");
   }
   else
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::TypeSupportsCondition - No type entry");
+    CLog::LogF(LOGERROR, "No type entry");
   }
   return false;
 }
@@ -1262,7 +1237,7 @@ bool CGUIDialogPVRTimerSettings::StartAnytimeSetCondition(const std::string &con
   CGUIDialogPVRTimerSettings *pThis = static_cast<CGUIDialogPVRTimerSettings*>(data);
   if (pThis == NULL)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::AnytimeSetCondition - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
     return false;
   }
 
@@ -1305,7 +1280,7 @@ bool CGUIDialogPVRTimerSettings::EndAnytimeSetCondition(const std::string &condi
   CGUIDialogPVRTimerSettings *pThis = static_cast<CGUIDialogPVRTimerSettings*>(data);
   if (pThis == NULL)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRTimerSettings::AnytimeSetCondition - No dialog");
+    CLog::LogF(LOGERROR, "No dialog");
     return false;
   }
 

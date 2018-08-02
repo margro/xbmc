@@ -2,23 +2,11 @@
  * Many concepts and protocol specification in this code are taken
  * from Shairport, by James Laird.
  *
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2.1, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AirTunesServer.h"
@@ -95,7 +83,7 @@ std::map<std::string, std::string> decodeDMAP(const char *buffer, unsigned int s
     std::string tag;
     tag.append(buffer + offset, 4);
     offset += 4;
-    uint32_t length = Endian_SwapBE32(*(uint32_t *)(buffer + offset));
+    uint32_t length = Endian_SwapBE32(*(const uint32_t *)(buffer + offset));
     offset += sizeof(uint32_t);
     std::string content;
     content.append(buffer + offset, length);//possible fixme - utf8?
@@ -350,12 +338,12 @@ LAuE4Pu13aKiJnfft7hIjbK+5kyb3TysZvoyDnb3HOKvInK7vXbKuU4ISgxB2bB3HcYzQMGsz1qJ\
 
 void CAirTunesServer::AudioOutputFunctions::audio_set_metadata(void *cls, void *session, const void *buffer, int buflen)
 {
-  CAirTunesServer::SetMetadataFromBuffer((char *)buffer, buflen);
+  CAirTunesServer::SetMetadataFromBuffer((const char *)buffer, buflen);
 }
 
 void CAirTunesServer::AudioOutputFunctions::audio_set_coverart(void *cls, void *session, const void *buffer, int buflen)
 {
-  CAirTunesServer::SetCoverArtFromBuffer((char *)buffer, buflen);
+  CAirTunesServer::SetCoverArtFromBuffer((const char *)buffer, buflen);
 }
 
 char session[]="Kodi-AirTunes";

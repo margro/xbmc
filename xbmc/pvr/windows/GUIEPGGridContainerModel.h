@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2016 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -37,11 +25,9 @@ namespace PVR
   struct GridItem
   {
     CFileItemPtr item;
-    float originWidth;
-    float width;
-    int progIndex;
-
-    GridItem() : originWidth(0.0f), width(0.0f), progIndex(-1) {}
+    float originWidth = 0.0f;
+    float width = 0.0f;
+    int progIndex = -1;
   };
 
   class CGUIEPGGridContainerModel
@@ -50,7 +36,6 @@ namespace PVR
     static const int MINSPERBLOCK = 5; // minutes
     static const int MAXBLOCKS = 33 * 24 * 60 / MINSPERBLOCK; //! 33 days of 5 minute blocks (31 days for upcoming data + 1 day for past data + 1 day for fillers)
 
-    CGUIEPGGridContainerModel() : m_blocks(0) {}
     virtual ~CGUIEPGGridContainerModel() { Reset(); }
 
     void Refresh(const std::unique_ptr<CFileItemList> &items, const CDateTime &gridStart, const CDateTime &gridEnd, int iRulerUnit, int iBlocksPerPage, float fBlockSize);
@@ -115,6 +100,6 @@ namespace PVR
     std::vector<ItemsPtr> m_epgItemsPtr;
     std::vector<std::vector<GridItem> > m_gridIndex;
 
-    int m_blocks;
+    int m_blocks = 0;
   };
 }

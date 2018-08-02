@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 /*
@@ -645,12 +633,12 @@ bool CTeletextDecoder::InitDecoder()
     m_RenderInfo.axdrcs[i+12+1] = (m_RenderInfo.FontHeight * i + 6) / 10;
 
   /* center screen */
-  m_TypeTTF.face_id   = (FTC_FaceID) m_teletextFont.c_str();
+  m_TypeTTF.face_id   = (FTC_FaceID) const_cast<char*>(m_teletextFont.c_str());
   m_TypeTTF.height    = (FT_UShort) m_RenderInfo.FontHeight;
   m_TypeTTF.flags     = FT_LOAD_MONOCHROME;
   if (FTC_Manager_LookupFace(m_Manager, m_TypeTTF.face_id, &m_Face))
   {
-    m_TypeTTF.face_id = (FTC_FaceID) m_teletextFont.c_str();
+    m_TypeTTF.face_id = (FTC_FaceID) const_cast<char*>(m_teletextFont.c_str());
     if ((error = FTC_Manager_LookupFace(m_Manager, m_TypeTTF.face_id, &m_Face)))
     {
       CLog::Log(LOGERROR, "%s: <FTC_Manager_Lookup_Face failed with Errorcode 0x%.2X>\n", __FUNCTION__, error);
@@ -670,7 +658,7 @@ bool CTeletextDecoder::InitDecoder()
   ClearFB(GetColorRGB(TXT_ColorTransp));
   ClearBB(GetColorRGB(TXT_ColorTransp)); /* initialize backbuffer */
   /* set new colormap */
-  SetColors((unsigned short *)DefaultColors, 0, TXT_Color_SIZECOLTABLE);
+  SetColors(DefaultColors, 0, TXT_Color_SIZECOLTABLE);
 
   for (int i = 0; i < 40 * 25; i++)
   {
@@ -3965,7 +3953,7 @@ int CTeletextDecoder::NextHex(int i) /* return next existing non-decimal page nu
   return i;
 }
 
-void CTeletextDecoder::SetColors(unsigned short *pcolormap, int offset, int number)
+void CTeletextDecoder::SetColors(const unsigned short *pcolormap, int offset, int number)
 {
   int j = offset; /* index in global color table */
 

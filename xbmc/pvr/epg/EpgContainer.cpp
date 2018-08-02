@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "EpgContainer.h"
@@ -61,14 +49,15 @@ void CEpgUpdateRequest::Deliver()
   const CPVRChannelPtr channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetByUniqueID(m_iUniqueChannelID, m_iClientID);
   if (!channel)
   {
-    CLog::Log(LOGERROR, "PVR - %s - invalid channel (%d)! Unable to do the epg update!", __FUNCTION__, m_iUniqueChannelID);
+    CLog::LogF(LOGERROR, "Invalid channel (%d)! Unable to deliver the epg update!", m_iUniqueChannelID);
     return;
   }
 
   const CPVREpgPtr epg = channel->GetEPG();
   if (!epg)
   {
-    CLog::Log(LOGERROR, "PVR - %s - channel '%s' does not have an EPG! Unable to do the epg update!", __FUNCTION__, channel->ChannelName().c_str());
+    CLog::LogF(LOGERROR, "Channel '%s' does not have an EPG! Unable to deliver the epg update!", 
+               channel->ChannelName().c_str());
     return;
   }
 
@@ -78,14 +67,14 @@ void CEpgUpdateRequest::Deliver()
 class CEpgTagStateChange
 {
 public:
-  CEpgTagStateChange() : m_state(EPG_EVENT_CREATED) {}
-  CEpgTagStateChange(const CPVREpgInfoTagPtr tag, EPG_EVENT_STATE eNewState) : m_epgtag(tag), m_state(eNewState) {}
+  CEpgTagStateChange() = default;
+  CEpgTagStateChange(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE eNewState) : m_epgtag(tag), m_state(eNewState) {}
 
   void Deliver();
 
 private:
   CPVREpgInfoTagPtr m_epgtag;
-  EPG_EVENT_STATE m_state;
+  EPG_EVENT_STATE m_state = EPG_EVENT_CREATED;
 };
 
 void CEpgTagStateChange::Deliver()
@@ -93,28 +82,28 @@ void CEpgTagStateChange::Deliver()
   const CPVRChannelPtr channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetByUniqueID(m_epgtag->UniqueChannelID(), m_epgtag->ClientID());
   if (!channel)
   {
-    CLog::Log(LOGERROR, "PVR - %s - invalid channel (%d)! Unable to deliver state change for tag '%d'!",
-              __FUNCTION__, m_epgtag->UniqueChannelID(), m_epgtag->UniqueBroadcastID());
+    CLog::LogF(LOGERROR, "Invalid channel (%d)! Unable to deliver state change for tag '%d'!",
+               m_epgtag->UniqueChannelID(), m_epgtag->UniqueBroadcastID());
     return;
   }
 
   const CPVREpgPtr epg = channel->GetEPG();
   if (!epg)
   {
-    CLog::Log(LOGERROR, "PVR - %s - channel '%s' does not have an EPG! Unable to deliver state change for tag '%d'!",
-              __FUNCTION__, channel->ChannelName().c_str(), m_epgtag->UniqueBroadcastID());
+    CLog::LogF(LOGERROR, "Channel '%s' does not have an EPG! Unable to deliver state change for tag '%d'!",
+                channel->ChannelName().c_str(), m_epgtag->UniqueBroadcastID());
     return;
   }
 
   // update
   if (!epg->UpdateEntry(m_epgtag, m_state, false))
-    CLog::Log(LOGERROR, "PVR - %s - update failed for epgtag change for channel '%s'", __FUNCTION__, channel->ChannelName().c_str());
+    CLog::LogF(LOGERROR, "Update failed for epgtag change for channel '%s'",
+               channel->ChannelName().c_str());
 }
 
 CPVREpgContainer::CPVREpgContainer(void) :
   CThread("EPGUpdater"),
   m_database(new CPVREpgDatabase),
-  m_bUpdateNotificationPending(false),
   m_settings({
     CSettings::SETTING_EPG_IGNOREDBFORCLIENT,
     CSettings::SETTING_EPG_EPGUPDATE,
@@ -146,7 +135,7 @@ CPVREpgDatabasePtr CPVREpgContainer::GetEpgDatabase() const
 {
   CSingleLock lock(m_critSection);
   if (!m_database || !m_database->IsOpen())
-    CLog::Log(LOGERROR, "EpgContainer - %s - failed to open the EPG database", __FUNCTION__);
+    CLog::LogF(LOGERROR, "Failed to open the EPG database");
 
   return m_database;
 }
@@ -175,7 +164,7 @@ void CPVREpgContainer::Clear(bool bClearDb /* = false */)
   bool bThreadRunning = !m_bStop;
   if (bThreadRunning && !Stop())
   {
-    CLog::Log(LOGERROR, "%s - cannot stop the update thread", __FUNCTION__);
+    CLog::LogF(LOGERROR, "Could not stop the EPG update thread");
     return;
   }
 
@@ -267,7 +256,7 @@ void CPVREpgContainer::Start(bool bAsync)
   if (!bStop)
   {
     CServiceBroker::GetPVRManager().TriggerEpgsCreate();
-    CLog::Log(LOGNOTICE, "%s - EPG thread started", __FUNCTION__);
+    CLog::Log(LOGNOTICE, "EPG thread started");
   }
 }
 
@@ -314,8 +303,11 @@ void CPVREpgContainer::LoadFromDB(void)
   m_database->Lock();
   m_iNextEpgId = m_database->GetLastEPGId();
   m_database->DeleteEpgEntries(cleanupTime);
-  m_database->Get(*this);
+  const std::vector<CPVREpgPtr> result = m_database->Get(*this);
   m_database->Unlock();
+
+  for (const auto& entry : result)
+    InsertFromDatabase(entry);
 
   for (const auto &epgEntry : m_epgs)
   {
@@ -409,7 +401,7 @@ void CPVREpgContainer::Process(void)
           if (processTimeslice.IsTimePast() || m_epgTagChanges.empty())
           {
             if (iProcessed > 0)
-              CLog::Log(LOGDEBUG, "PVR - %s - processed %ld queued epg event changes.", __FUNCTION__, iProcessed);
+              CLog::LogFC(LOGDEBUG, LOGEPG, "Processed %ld queued epg event changes.", iProcessed);
 
             break;
           }
@@ -517,13 +509,13 @@ std::vector<CPVREpgInfoTagPtr> CPVREpgContainer::GetEpgTagsForTimer(const CPVRTi
   return std::vector<CPVREpgInfoTagPtr>();
 }
 
-void CPVREpgContainer::InsertFromDatabase(int iEpgID, const std::string &strName, const std::string &strScraperName)
+void CPVREpgContainer::InsertFromDatabase(const CPVREpgPtr &newEpg)
 {
   // table might already have been created when pvr channels were loaded
-  CPVREpgPtr epg = GetById(iEpgID);
+  CPVREpgPtr epg = GetById(newEpg->EpgID());
   if (epg)
   {
-    if (epg->Name() != strName || epg->ScraperName() != strScraperName)
+    if (epg->Name() != newEpg->Name() || epg->ScraperName() != newEpg->ScraperName())
     {
       // current table data differs from the info in the db
       epg->SetChanged();
@@ -533,13 +525,10 @@ void CPVREpgContainer::InsertFromDatabase(int iEpgID, const std::string &strName
   else
   {
     // create a new epg table
-    epg.reset(new CPVREpg(iEpgID, strName, strScraperName, true));
-    if (epg)
-    {
-      m_epgs.insert(std::make_pair(iEpgID, epg));
-      SetChanged();
-      epg->RegisterObserver(this);
-    }
+    epg = newEpg;
+    m_epgs.insert(std::make_pair(epg->EpgID(), epg));
+    SetChanged();
+    epg->RegisterObserver(this);
   }
 }
 
@@ -611,7 +600,7 @@ bool CPVREpgContainer::DeleteEpg(const CPVREpg &epg, bool bDeleteFromDatabase /*
   if (epgEntry == m_epgs.end())
     return false;
 
-  CLog::Log(LOGDEBUG, "deleting EPG table %s (%d)", epg.Name().c_str(), epg.EpgID());
+  CLog::LogFC(LOGDEBUG, LOGEPG, "Deleting EPG table %s (%d)", epg.Name().c_str(), epg.EpgID());
   if (bDeleteFromDatabase && !IgnoreDB())
     m_database->Delete(*epgEntry->second);
 
@@ -867,7 +856,7 @@ void CPVREpgContainer::UpdateRequest(int iClientID, unsigned int iUniqueChannelI
   m_updateRequests.emplace_back(CEpgUpdateRequest(iClientID, iUniqueChannelID));
 }
 
-void CPVREpgContainer::UpdateFromClient(const CPVREpgInfoTagPtr tag, EPG_EVENT_STATE eNewState)
+void CPVREpgContainer::UpdateFromClient(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE eNewState)
 {
   CSingleLock lock(m_epgTagChangesLock);
   m_epgTagChanges.emplace_back(CEpgTagStateChange(tag, eNewState));

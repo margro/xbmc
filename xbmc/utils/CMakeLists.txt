@@ -11,6 +11,7 @@ set(SOURCES ActorProtocol.cpp
             BooleanLogic.cpp
             CharsetConverter.cpp
             CharsetDetection.cpp
+            ColorUtils.cpp
             CPUInfo.cpp
             Crc32.cpp
             CryptThreading.cpp
@@ -22,7 +23,6 @@ set(SOURCES ActorProtocol.cpp
             Fanart.cpp
             FileOperationJob.cpp
             FileUtils.cpp
-            fstrcmp.c
             GroupUtils.cpp
             HTMLUtil.cpp
             HttpHeader.cpp
@@ -88,6 +88,7 @@ set(HEADERS ActorProtocol.h
             CharsetDetection.h
             CPUInfo.h
             Color.h
+            ColorUtils.h
             Crc32.h
             CryptThreading.h
             DatabaseUtils.h
@@ -99,7 +100,6 @@ set(HEADERS ActorProtocol.h
             Fanart.h
             FileOperationJob.h
             FileUtils.h
-            fstrcmp.h
             Geometry.h
             GlobalsHandling.h
             GroupUtils.h

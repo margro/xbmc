@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -67,7 +55,7 @@ namespace PVR
     CCriticalSection m_critSection;
     CEvent m_triggerEvent;
     std::vector<CJob *> m_pendingUpdates;
-    bool m_bStopped;
+    bool m_bStopped = true;
   };
 
   class CPVRManager : private CThread, public Observable, public ANNOUNCEMENT::IAnnouncer
@@ -532,12 +520,12 @@ namespace PVR
     CPVRManagerJobQueue             m_pendingUpdates;              /*!< vector of pending pvr updates */
 
     CPVRDatabasePtr                 m_database;                    /*!< the database for all PVR related data */
-    CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
-    bool                            m_bFirstStart;                 /*!< true when the PVR manager was started first, false otherwise */
-    bool                            m_bEpgsCreated;                /*!< true if epg data for channels has been created */
+    mutable CCriticalSection        m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
+    bool                            m_bFirstStart = true;                 /*!< true when the PVR manager was started first, false otherwise */
+    bool                            m_bEpgsCreated = false;                /*!< true if epg data for channels has been created */
 
-    CCriticalSection                m_managerStateMutex;
-    ManagerState                    m_managerState;
+    mutable CCriticalSection        m_managerStateMutex;
+    ManagerState                    m_managerState = ManagerStateStopped;
     std::unique_ptr<CStopWatch>     m_parentalTimer;
 
     CCriticalSection                m_startStopMutex; // mutex for protecting pvr manager's start/restart/stop sequence */
@@ -551,6 +539,6 @@ namespace PVR
     CPVRRecordingPtr m_playingRecording;
     CPVREpgInfoTagPtr m_playingEpgTag;
     std::string m_strPlayingClientName;
-    int m_playingClientId;
+    int m_playingClientId = -1;
   };
 }

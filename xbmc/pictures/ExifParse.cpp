@@ -1,22 +1,9 @@
 /*
- *      Copyright (C) 2005-2007 Team XboxMediaCenter
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 //--------------------------------------------------------------------------
@@ -201,22 +188,14 @@ static void ErrNonfatal(const char* const msg, int a1, int a2)
 }
 
 //--------------------------------------------------------------------------
-// Constructor.
-//--------------------------------------------------------------------------
-CExifParse::CExifParse () : m_ExifInfo(nullptr),
-        m_FocalPlaneUnits(0.0), m_LargestExifOffset(0),
-        m_ExifImageWidth(0), m_MotorolaOrder(false), m_DateFound(false)
-{}
-
-//--------------------------------------------------------------------------
 // Convert a 16 bit unsigned value from file's native byte order
 //--------------------------------------------------------------------------
 int CExifParse::Get16(const void* const Short, const bool motorolaOrder)
 {
     if (motorolaOrder) {
-        return (((unsigned char *)Short)[0] << 8) | ((unsigned char *)Short)[1];
+        return (((const unsigned char *)Short)[0] << 8) | ((const unsigned char *)Short)[1];
     } else {
-        return (((unsigned char *)Short)[1] << 8) | ((unsigned char *)Short)[0];
+        return (((const unsigned char *)Short)[1] << 8) | ((const unsigned char *)Short)[0];
     }
 }
 
@@ -226,11 +205,11 @@ int CExifParse::Get16(const void* const Short, const bool motorolaOrder)
 int CExifParse::Get32(const void* const Long, const bool motorolaOrder)
 {
     if (motorolaOrder) {
-        return  ((( char *)Long)[0] << 24) | (((unsigned char *)Long)[1] << 16)
-          | (((unsigned char *)Long)[2] << 8 ) | (((unsigned char *)Long)[3] << 0 );
+        return  (((const char *)Long)[0] << 24) | (((const unsigned char *)Long)[1] << 16)
+          | (((const unsigned char *)Long)[2] << 8 ) | (((const unsigned char *)Long)[3] << 0 );
     } else {
-        return  ((( char *)Long)[3] << 24) | (((unsigned char *)Long)[2] << 16)
-          | (((unsigned char *)Long)[1] << 8 ) | (((unsigned char *)Long)[0] << 0 );
+        return  (((const char *)Long)[3] << 24) | (((const unsigned char *)Long)[2] << 16)
+          | (((const unsigned char *)Long)[1] << 8 ) | (((const unsigned char *)Long)[0] << 0 );
     }
 }
 
@@ -262,8 +241,8 @@ double CExifParse::ConvertAnyFormat(const void* const ValuePtr, int Format)
 
   switch(Format)
   {
-    case FMT_SBYTE:     Value = *(  signed char*)ValuePtr;          break;
-    case FMT_BYTE:      Value = *(unsigned char*)ValuePtr;          break;
+    case FMT_SBYTE:     Value = *(const   signed char*)ValuePtr;          break;
+    case FMT_BYTE:      Value = *(const unsigned char*)ValuePtr;          break;
 
     case FMT_USHORT:    Value = Get16(ValuePtr, m_MotorolaOrder);   break;
     case FMT_ULONG:     Value = (unsigned)Get32(ValuePtr, m_MotorolaOrder);   break;
@@ -273,7 +252,7 @@ double CExifParse::ConvertAnyFormat(const void* const ValuePtr, int Format)
     {
       int Num,Den;
       Num = Get32(ValuePtr, m_MotorolaOrder);
-      Den = Get32(4+(char *)ValuePtr, m_MotorolaOrder);
+      Den = Get32(4+(const char *)ValuePtr, m_MotorolaOrder);
 
       if (Den == 0)    Value = 0;
       else             Value = (double)Num/Den;
@@ -284,8 +263,8 @@ double CExifParse::ConvertAnyFormat(const void* const ValuePtr, int Format)
     case FMT_SLONG:     Value = Get32(ValuePtr, m_MotorolaOrder);                  break;
 
     // Not sure if this is correct (never seen float used in Exif format)
-    case FMT_SINGLE:    Value = (double)*(float*)ValuePtr;          break;
-    case FMT_DOUBLE:    Value = *(double*)ValuePtr;                 break;
+    case FMT_SINGLE:    Value = (double)*(const float*)ValuePtr;          break;
+    case FMT_DOUBLE:    Value = *(const double*)ValuePtr;                 break;
 
     default:
       ErrNonfatal("Illegal format code %d",Format,0);
@@ -346,7 +325,7 @@ void CExifParse::ProcessDir(const unsigned char* const DirStart,
   IndentString[NestingLevel * 4] = '\0';
 
 
-  int NumDirEntries = Get16((void*)DirStart, m_MotorolaOrder);
+  int NumDirEntries = Get16((const void*)DirStart, m_MotorolaOrder);
 
   const unsigned char* const DirEnd = DIR_ENTRY_ADDR(DirStart, NumDirEntries);
   if (DirEnd+4 > (OffsetBase+ExifLength))
@@ -399,7 +378,7 @@ void CExifParse::ProcessDir(const unsigned char* const DirStart,
         ErrNonfatal("Illegal value pointer for tag %04x", Tag,0);
         continue;
       }
-      ValuePtr = (unsigned char*)(OffsetBase+OffsetVal);
+      ValuePtr = (unsigned char*)(const_cast<unsigned char*>(OffsetBase)+OffsetVal);
 
       if (OffsetVal > m_LargestExifOffset)
       {
@@ -409,7 +388,7 @@ void CExifParse::ProcessDir(const unsigned char* const DirStart,
     }
     else {
       // 4 bytes or less and value is in the dir entry itself
-      ValuePtr = (unsigned char*)(DirEntry+8);
+      ValuePtr = (unsigned char*)(const_cast<unsigned char*>(DirEntry)+8);
     }
 
 
@@ -771,7 +750,7 @@ bool CExifParse::Process (const unsigned char* const ExifSection, const unsigned
   const char ExifAlignment1[] = "MM";
   const char ExifExtra        = 0x2a;
 
-  char* pos = (char*)(ExifSection + sizeof(short));   // position data pointer after length field
+  const char* pos = (const char*)(ExifSection + sizeof(short));   // position data pointer after length field
 
   if (memcmp(pos, ExifHeader,6))
   {
@@ -796,14 +775,14 @@ bool CExifParse::Process (const unsigned char* const ExifSection, const unsigned
   pos += strlen(ExifAlignment0);
 
   // Check the next value for correctness.
-  if (Get16((void*)(pos), m_MotorolaOrder) != ExifExtra)
+  if (Get16((const void*)(pos), m_MotorolaOrder) != ExifExtra)
   {
     printf("ExifParse: invalid Exif start (1)");
     return false;
   }
   pos += sizeof(short);
 
-  unsigned long FirstOffset = (unsigned)Get32((void*)pos, m_MotorolaOrder);
+  unsigned long FirstOffset = (unsigned)Get32((const void*)pos, m_MotorolaOrder);
   if (FirstOffset < 8 || FirstOffset > 16)
   {
     // Usually set to 8, but other values valid too.

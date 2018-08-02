@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "guilib/guiinfo/PicturesGUIInfo.h"
@@ -131,11 +119,11 @@ bool CPicturesGUIInfo::InitCurrentItem(CFileItem *item)
 
 bool CPicturesGUIInfo::GetLabel(std::string& value, const CFileItem *item, int contextWindow, const CGUIInfo &info, std::string *fallback) const
 {
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // LISTITEM_* / SLIDESHOW_* (values directly supported by PictureInfoTag)
-  ///////////////////////////////////////////////////////////////////////////////////////////////
   if (item->IsPicture() && info.m_info >= LISTITEM_PICTURE_START && info.m_info <= LISTITEM_PICTURE_END)
   {
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // LISTITEM_*
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     const auto& it = listitem2slideshow_map.find(info.m_info);
     if (it != listitem2slideshow_map.end())
     {
@@ -153,8 +141,56 @@ bool CPicturesGUIInfo::GetLabel(std::string& value, const CFileItem *item, int c
   }
   else if (m_currentSlide && info.m_info >= SLIDESHOW_LABELS_START && info.m_info <= SLIDESHOW_LABELS_END)
   {
-    value = m_currentSlide->GetPictureInfoTag()->GetInfo(info.m_info);
-    return true;
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // SLIDESHOW_*
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    switch (info.m_info)
+    {
+      case SLIDESHOW_FILE_NAME:
+      {
+        value = URIUtils::GetFileName(m_currentSlide->GetPath());
+        return true;
+      }
+      case SLIDESHOW_FILE_PATH:
+      {
+        const std::string path = URIUtils::GetDirectory(m_currentSlide->GetPath());
+        value = CURL(path).GetWithoutUserDetails();
+        return true;
+      }
+      case SLIDESHOW_FILE_SIZE:
+      {
+        if (!m_currentSlide->m_bIsFolder || m_currentSlide->m_dwSize)
+        {
+          value = StringUtils::SizeToString(m_currentSlide->m_dwSize);
+          return true;
+        }
+        break;
+      }
+      case SLIDESHOW_FILE_DATE:
+      {
+        if (m_currentSlide->m_dateTime.IsValid())
+        {
+          value = m_currentSlide->m_dateTime.GetAsLocalizedDate();
+          return true;
+        }
+        break;
+      }
+      case SLIDESHOW_INDEX:
+      {
+        CGUIWindowSlideShow *slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
+        if (slideshow && slideshow->NumSlides())
+        {
+          value = StringUtils::Format("%d/%d", slideshow->CurrentSlide(), slideshow->NumSlides());
+          return true;
+        }
+        break;
+      }
+      default:
+      {
+        value = m_currentSlide->GetPictureInfoTag()->GetInfo(info.m_info);
+        return true;
+      }
+    }
   }
 
   if (item->IsPicture())
@@ -173,62 +209,6 @@ bool CPicturesGUIInfo::GetLabel(std::string& value, const CFileItem *item, int c
         }
         break;
       }
-    }
-  }
-
-  if (item->HasPictureInfoTag())
-  {
-    switch (info.m_info)
-    {
-      ///////////////////////////////////////////////////////////////////////////////////////////////
-      // SLIDESHOW_* (values not directly supported by PictureInfoTag)
-      ///////////////////////////////////////////////////////////////////////////////////////////////
-      case SLIDESHOW_FILE_NAME:
-      {
-        value = URIUtils::GetFileName(item->GetPath());
-        return true;
-      }
-      case SLIDESHOW_FILE_PATH:
-      {
-        const std::string path = URIUtils::GetDirectory(item->GetPath());
-        value = CURL(path).GetWithoutUserDetails();
-        return true;
-      }
-      case SLIDESHOW_FILE_SIZE:
-      {
-        if (!item->m_bIsFolder || item->m_dwSize)
-        {
-          value = StringUtils::SizeToString(item->m_dwSize);
-          return true;
-        }
-        break;
-      }
-      case SLIDESHOW_FILE_DATE:
-      {
-        if (item->m_dateTime.IsValid())
-        {
-          value = item->m_dateTime.GetAsLocalizedDate();
-          return true;
-        }
-        break;
-      }
-    }
-  }
-
-  switch (info.m_info)
-  {
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // SLIDESHOW_*
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    case SLIDESHOW_INDEX:
-    {
-      CGUIWindowSlideShow *slideshow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowSlideShow>(WINDOW_SLIDESHOW);
-      if (slideshow && slideshow->NumSlides())
-      {
-        value = StringUtils::Format("%d/%d", slideshow->CurrentSlide(), slideshow->NumSlides());
-        return true;
-      }
-      break;
     }
   }
 

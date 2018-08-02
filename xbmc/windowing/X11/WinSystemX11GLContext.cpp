@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <X11/Xlib.h>
@@ -240,7 +228,7 @@ XVisualInfo* CWinSystemX11GLContext::GetVisual()
 
   int vMask = VisualScreenMask | VisualDepthMask | VisualClassMask;
 
-  vTemplate.screen = m_nScreen;
+  vTemplate.screen = m_screen;
   vTemplate.depth = 24;
   vTemplate.c_class = TrueColor;
 
@@ -260,7 +248,7 @@ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
   bool success = false;
   if (m_pGLContext)
   {
-    success = m_pGLContext->Refresh(force, m_nScreen, m_glWindow, m_newGlContext);
+    success = m_pGLContext->Refresh(force, m_screen, m_glWindow, m_newGlContext);
     return success;
   }
 
@@ -283,7 +271,7 @@ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
   if (gli != "GLX")
   {
     m_pGLContext = new CGLContextEGL(m_dpy);
-    success = m_pGLContext->Refresh(force, m_nScreen, m_glWindow, m_newGlContext);
+    success = m_pGLContext->Refresh(force, m_screen, m_glWindow, m_newGlContext);
     if (success)
     {
       if (!isNvidia)
@@ -308,7 +296,7 @@ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
 
   // fallback for vdpau
   m_pGLContext = X11::GLXContextCreate(m_dpy);
-  success = m_pGLContext->Refresh(force, m_nScreen, m_glWindow, m_newGlContext);
+  success = m_pGLContext->Refresh(force, m_screen, m_glWindow, m_newGlContext);
   if (success)
   {
     X11::VDPAURegister();
@@ -331,6 +319,16 @@ std::unique_ptr<CVideoSync> CWinSystemX11GLContext::GetVideoSync(void *clock)
   }
 
   return pVSync;
+}
+
+float CWinSystemX11GLContext::GetFrameLatencyAdjustment()
+{
+  if (m_pGLContext)
+  {
+    float micros = m_pGLContext->GetFrameLatencyAdjustment();
+    return micros / 1000;
+  }
+  return 0;
 }
 
 void CWinSystemX11GLContext::delete_CVaapiProxy::operator()(CVaapiProxy *p) const

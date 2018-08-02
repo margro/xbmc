@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -380,7 +368,6 @@ public:
   int AddGenre(std::string& strGenre);
   std::string GetGenreById(int id);
   int GetGenreByName(const std::string& strGenre);
-  bool GetGenresJSON(CFileItemList& items, bool bSources = false);
 
   /////////////////////////////////////////////////
   // Link tables
@@ -461,12 +448,22 @@ public:
   bool GetSongsByWhere(const std::string &baseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription());
   bool GetSongsFullByWhere(const std::string &baseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription(), bool artistData = false);
   bool GetAlbumsByWhere(const std::string &baseDir, const Filter &filter, CFileItemList &items, const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
-  bool GetAlbumsByWhere(const std::string &baseDir, const Filter &filter, VECALBUMS& albums, int& total, const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
   bool GetArtistsByWhere(const std::string& strBaseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription = SortDescription(), bool countOnly = false);
   bool GetRandomSong(CFileItem* item, int& idSong, const Filter &filter);
   int GetSongsCount(const Filter &filter = Filter());
   unsigned int GetSongIDs(const Filter &filter, std::vector<std::pair<int,int> > &songIDs);
   bool GetFilter(CDbUrl &musicUrl, Filter &filter, SortDescription &sorting) override;
+
+  /////////////////////////////////////////////////
+  // JSON-RPC 
+  /////////////////////////////////////////////////
+  bool GetGenresJSON(CFileItemList& items, bool bSources = false);
+  bool GetArtistsByWhereJSON(const std::set<std::string>& fields, const std::string& baseDir,
+    CVariant& result, int& total, const SortDescription& sortDescription = SortDescription());
+  bool GetAlbumsByWhereJSON(const std::set<std::string>& fields, const std::string& baseDir,
+    CVariant& result, int& total, const SortDescription& sortDescription = SortDescription());
+  bool GetSongsByWhereJSON(const std::set<std::string>& fields, const std::string& baseDir,
+    CVariant& result, int& total, const SortDescription& sortDescription = SortDescription());
 
   /////////////////////////////////////////////////
   // Scraper
@@ -629,6 +626,8 @@ private:
    */
   virtual void CreateViews();
 
+  void SplitPath(const std::string& strFileNameAndPath, std::string& strPath, std::string& strFileName);
+
   CSong GetSongFromDataset();
   CSong GetSongFromDataset(const dbiplus::sql_record* const record, int offset = 0);
   CArtist GetArtistFromDataset(dbiplus::Dataset* pDS, int offset = 0, bool needThumb = true);
@@ -646,6 +645,7 @@ private:
   void GetFileItemFromDataset(CFileItem* item, const CMusicDbUrl &baseUrl);
   void GetFileItemFromDataset(const dbiplus::sql_record* const record, CFileItem* item, const CMusicDbUrl &baseUrl);
   void GetFileItemFromArtistCredits(VECARTISTCREDITS& artistCredits, CFileItem* item);
+    
   bool CleanupSongs(CGUIDialogProgress* progressDialog = nullptr);
   bool CleanupSongsByIds(const std::string &strSongIds);
   bool CleanupPaths();
@@ -659,6 +659,35 @@ private:
   bool SearchAlbums(const std::string& search, CFileItemList &albums);
   bool SearchSongs(const std::string& strSearch, CFileItemList &songs);
   int GetSongIDFromPath(const std::string &filePath);
+
+  /*! \brief Build SQL  for sort subquery from ignore article token list
+  \param strField original name or title field that articles could be removed from
+  \return SQL string e.g.  WHEN strField LIKE 'the_' ESCAPE '_' THEN SUBSTR(strArtist, 5)
+  */
+  std::string GetIgnoreArticleSQL(const std::string& strField);
+
+  /*! \brief Build SQL for sort name scalar subquery from sort attributes and ignore article list.
+  \param strAlias alias name of scalar subquery field
+  \param sortAttributes the sort attributes e.g. SortAttributeIgnoreArticle
+  \param strField original name or title field that articles could be removed from
+  \param strSortField sort name or title field to be used instead of original (when data not null)
+  \return SQL string e.g. 
+  CASE WHEN strArtistSort IS NOT NULL THEN strArtistSort    
+  WHEN strField LIKE 'the ' OR strField LIKE 'the_' ESCAPE '_' THEN SUBSTR(strArtist, 5)
+  ELSE strField
+  END AS strAlias
+  */
+  std::string SortnameBuildSQL(const std::string& strAlias, const SortAttribute& sortAttributes, 
+    const std::string& strField, const std::string& strSortField);
+
+  /*! \brief Build SQL for sorting field naturally and case insensitvely (in SQLite).
+  \param strField field name
+  \param sortOrder the sort order
+  \return SQL string e.g.   
+  CASE WHEN CAST(strTitle AS INTEGER) = 0 THEN 100000000 
+  ELSE CAST(strTitle AS INTEGER) END DESC, strTitle COLLATE NOCASE DESC
+  */
+  std::string AlphanumericSortSQL(const std::string& strField, const SortOrder& sortOrder);
 
   /*! \brief Checks that source table matches sources.xml
   returns true when they do 
@@ -784,5 +813,58 @@ private:
     artist_dtDateAdded,
     artist_enumCount // end of the enum, do not add past here
   } ArtistFields;
+
+  // Fields fetched by GetArtistsByWhereJSON,  order same as in JSONtoDBArtist
+  static enum _JoinToArtistFields
+  {
+    joinToArtist_isSong = 0,
+    joinToArtist_idSourceAlbum,
+    joinToArtist_idSourceSong,
+    joinToArtist_idSongGenreAlbum,
+    joinToArtist_idSongGenreSong,
+    joinToArtist_strSongGenreAlbum,
+    joinToArtist_strSongGenreSong,
+    joinToArtist_idArt,
+    joinToArtist_artType,
+    joinToArtist_artURL,
+    joinToArtist_idRole,
+    joinToArtist_strRole,
+    joinToArtist_iOrderRole,
+    joinToArtist_isalbumartist,
+    joinToArtist_thumbnail,
+    joinToArtist_fanart,
+    joinToArtist_enumCount // end of the enum, do not add past here
+  } JoinToArtistFields;
+
+  // Fields fetched by GetAlbumsByWhereJSON,  order same as in JSONtoDBAlbum
+  static enum _JoinToAlbumFields
+  {
+    joinToAlbum_idArtist = 0,
+    joinToAlbum_strArtist,
+    joinToAlbum_strArtistMBID,
+    joinToAlbum_idSongGenre,
+    joinToAlbum_strSongGenre,
+    joinToAlbum_enumCount // end of the enum, do not add past here
+  } JoinToAlbumFields;
+
+  // Fields fetched by GetSongsByWhereJSON,  order same as in JSONtoDBSong
+  static enum _JoinToSongFields
+  {
+    // Used by GetSongsByWhereJSON 
+    joinToSongs_idAlbumArtist = 0,
+    joinToSongs_strAlbumArtist,
+    joinToSongs_strAlbumArtistMBID,
+    joinToSongs_iOrderAlbumArtist,
+    joinToSongs_idArtist,
+    joinToSongs_strArtist,
+    joinToSongs_strArtistMBID,
+    joinToSongs_iOrderArtist,
+    joinToSongs_idRole,
+    joinToSongs_strRole,
+    joinToSongs_iOrderRole,
+    joinToSongs_idGenre,
+    joinToSongs_iOrderGenre,
+    joinToSongs_enumCount // end of the enum, do not add past here
+  } JoinToSongFields;
 
 };

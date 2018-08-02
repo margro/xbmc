@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PictureInfoTag.h"
@@ -266,7 +254,7 @@ void CPictureInfoTag::GetStringFromArchive(CArchive &ar, char *string, size_t le
 {
   std::string temp;
   ar >> temp;
-  length = std::min((size_t)temp.size(), length - 1);
+  length = std::min(temp.size(), length - 1);
   if (!temp.empty())
     memcpy(string, temp.c_str(), length);
   string[length] = 0;
@@ -317,7 +305,7 @@ const std::string CPictureInfoTag::GetInfo(int info) const
     // Ascii, Unicode (UCS2), JIS (X208-1990), Unknown (application specific)
     if (m_exifInfo.CommentsCharset == EXIF_COMMENT_CHARSET_UNICODE)
     {
-      g_charsetConverter.ucs2ToUTF8(std::u16string((char16_t*)m_exifInfo.Comments), value);
+      g_charsetConverter.ucs2ToUTF8(std::u16string((const char16_t*)m_exifInfo.Comments), value);
     }
     else
     {
@@ -331,7 +319,7 @@ const std::string CPictureInfoTag::GetInfo(int info) const
   case SLIDESHOW_EXIF_XPCOMMENT:
     if (m_exifInfo.XPCommentsCharset == EXIF_COMMENT_CHARSET_UNICODE)
     {
-      g_charsetConverter.ucs2ToUTF8(std::u16string((char16_t*)m_exifInfo.XPComment), value);
+      g_charsetConverter.ucs2ToUTF8(std::u16string((const char16_t*)m_exifInfo.XPComment), value);
     }
     else
     {

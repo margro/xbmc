@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2015-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "PVRSettings.h"
@@ -52,7 +40,7 @@ void CPVRSettings::Init(const std::set<std::string> &settingNames)
     SettingPtr setting = CServiceBroker::GetSettings().GetSetting(settingName);
     if (!setting)
     {
-      CLog::Log(LOGERROR, "CPVRSettings - %s - Unknown setting '%s'", __FUNCTION__, settingName.c_str());
+      CLog::LogF(LOGERROR, "Unknown PVR setting '%s'", settingName.c_str());
       continue;
     }
 
@@ -82,7 +70,7 @@ void CPVRSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
     return;
 
   CSingleLock lock(m_critSection);
-  m_settings[setting->GetId()] = SettingPtr(setting->Clone(setting->GetId()));
+  m_settings[setting->GetId()] = setting->Clone(setting->GetId());
 }
 
 bool CPVRSettings::GetBoolValue(const std::string &settingName) const
@@ -96,7 +84,7 @@ bool CPVRSettings::GetBoolValue(const std::string &settingName) const
       return setting->GetValue();
   }
 
-  CLog::Log(LOGERROR, "CPVRSettings - %s - setting '%s' not found or wrong type given", __FUNCTION__, settingName.c_str());
+  CLog::LogF(LOGERROR, "PVR setting '%s' not found or wrong type given", settingName.c_str());
   return false;
 }
 
@@ -111,7 +99,7 @@ int CPVRSettings::GetIntValue(const std::string &settingName) const
       return setting->GetValue();
   }
 
-  CLog::Log(LOGERROR, "CPVRSettings - %s - setting '%s' not found or wrong type given", __FUNCTION__, settingName.c_str());
+  CLog::LogF(LOGERROR, "PVR setting '%s' not found or wrong type given", settingName.c_str());
   return -1;
 }
 
@@ -126,7 +114,7 @@ std::string CPVRSettings::GetStringValue(const std::string &settingName) const
       return setting->GetValue();
   }
 
-  CLog::Log(LOGERROR, "CPVRSettings - %s - setting '%s' not found or wrong type given", __FUNCTION__, settingName.c_str());
+  CLog::LogF(LOGERROR, "PVR setting '%s' not found or wrong type given", settingName.c_str());
   return "";
 }
 

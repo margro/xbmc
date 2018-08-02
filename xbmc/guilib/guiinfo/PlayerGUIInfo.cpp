@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "guilib/guiinfo/PlayerGUIInfo.h"
@@ -44,9 +32,7 @@
 using namespace KODI::GUILIB::GUIINFO;
 
 CPlayerGUIInfo::CPlayerGUIInfo()
-: m_AfterSeekTimeout(0),
-  m_seekOffset(0),
-  m_playerShowTime(false),
+: m_playerShowTime(false),
   m_playerShowInfo(false)
 {
 }
@@ -223,18 +209,7 @@ bool CPlayerGUIInfo::GetLabel(std::string& value, const CFileItem *item, int con
     case PLAYER_PATH:
     case PLAYER_FILENAME:
     case PLAYER_FILEPATH:
-      value = item->GetPath();
-
-      if (info.m_info == PLAYER_PATH)
-      {
-        // do this twice since we want the path outside the archive if this
-        // is to be of use.
-        if (URIUtils::IsInArchive(value))
-          value = URIUtils::GetParentPath(value);
-        value = URIUtils::GetParentPath(value);
-      }
-      else if (info.m_info == PLAYER_FILENAME)
-        value = URIUtils::GetFileName(value);
+      value = GUIINFO::GetFileInfoLabelValueFromPath(info.m_info, item->GetPath());
       return true;
     case PLAYER_TITLE:
       // use label or drop down to title from path
@@ -529,6 +504,9 @@ bool CPlayerGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int context
       return true;
     case PLAYER_HASDURATION:
       value = g_application.GetTotalTime() > 0;
+      return true;
+    case PLAYER_FRAMEADVANCE:
+      value = CServiceBroker::GetDataCacheCore().IsFrameAdvance();
       return true;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////

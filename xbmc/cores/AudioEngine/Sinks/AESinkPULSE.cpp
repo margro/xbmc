@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 #include "AESinkPULSE.h"
 #include "utils/log.h"
@@ -217,22 +205,6 @@ static void SinkInputInfoCallback(pa_context *c, const pa_sink_input_info *i, in
     p->UpdateInternalVolume(&(i->volume));
 }
 
-static void SinkInputInfoChangedCallback(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
-{
-  CAESinkPULSE* p = static_cast<CAESinkPULSE*>(userdata);
-  if (!p || !p->IsInitialized())
-    return;
-
-   if (idx != pa_stream_get_index(p->GetInternalStream()))
-     return;
-
-   pa_operation* op = pa_context_get_sink_input_info(c, idx, SinkInputInfoCallback, p);
-   if (op == NULL)
-     CLog::Log(LOGERROR, "PulseAudio: Failed to sync volume");
-   else
-    pa_operation_unref(op);
-}
-
 static void SinkChangedCallback(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
 {
   CAESinkPULSE* p = static_cast<CAESinkPULSE*>(userdata);
@@ -242,19 +214,43 @@ static void SinkChangedCallback(pa_context *c, pa_subscription_event_type_t t, u
   CSingleLock lock(p->m_sec);
   if (p->IsInitialized())
   {
-    if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW)
+    if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) == PA_SUBSCRIPTION_EVENT_SINK_INPUT)
     {
-       CLog::Log(LOGDEBUG, "Sink appeared");
-       CServiceBroker::GetActiveAE()->DeviceChange();
+      // when we get a sink input event volume might have changed
+      if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_CHANGE)
+      {
+        if (idx != pa_stream_get_index(p->GetInternalStream()))
+          return;
+
+        // we need to leave the lock as we trigger a second callback
+        CSingleExit exitlock(p->m_sec);
+        pa_operation* op = pa_context_get_sink_input_info(c, idx, SinkInputInfoCallback, p);
+        if (op == NULL)
+          CLog::Log(LOGERROR, "PulseAudio: Failed to sync volume");
+        else
+          pa_operation_unref(op);
+      }
     }
-    else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_REMOVE)
+    else if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) == PA_SUBSCRIPTION_EVENT_SINK)
     {
-      CLog::Log(LOGDEBUG, "Sink removed");
-      CServiceBroker::GetActiveAE()->DeviceChange();
+      if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW)
+      {
+        CLog::Log(LOGDEBUG, "Sink appeared");
+        CServiceBroker::GetActiveAE()->DeviceChange();
+      }
+      else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_REMOVE)
+      {
+        CLog::Log(LOGDEBUG, "Sink removed");
+        CServiceBroker::GetActiveAE()->DeviceChange();
+      }
+      else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_CHANGE)
+      {
+        CLog::Log(LOGDEBUG, "Sink changed");
+      }
     }
-    else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_CHANGE)
+    else
     {
-      CLog::Log(LOGDEBUG, "Sink changed");
+      CLog::Log(LOGDEBUG, "Not subscribed to Event: %d", static_cast<int>(t));
     }
   }
 }
@@ -819,17 +815,10 @@ bool CAESinkPULSE::Initialize(AEAudioFormat &format, std::string &device)
     CSingleLock lock(m_sec);
     // Register Callback for Sink changes
     pa_context_set_subscribe_callback(m_Context, SinkChangedCallback, this);
-    const pa_subscription_mask_t mask = PA_SUBSCRIPTION_MASK_SINK;
+    const pa_subscription_mask_t mask = pa_subscription_mask_t (PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT);
     pa_operation *op = pa_context_subscribe(m_Context, mask, NULL, this);
     if (op != NULL)
       pa_operation_unref(op);
-
-    // Register Callback for Sink Info changes - this handles volume
-    pa_context_set_subscribe_callback(m_Context, SinkInputInfoChangedCallback, this);
-    const pa_subscription_mask_t mask_input = PA_SUBSCRIPTION_MASK_SINK_INPUT;
-    pa_operation* op_sinfo = pa_context_subscribe(m_Context, mask_input, NULL, this);
-    if (op_sinfo != NULL)
-      pa_operation_unref(op_sinfo);
   }
 
   pa_threaded_mainloop_unlock(m_MainLoop);
@@ -933,7 +922,7 @@ unsigned int CAESinkPULSE::AddPackets(uint8_t **data, unsigned int frames, unsig
   while ((length = pa_stream_writable_size(m_Stream)) < m_periodSize)
     pa_threaded_mainloop_wait(m_MainLoop);
 
-  length =  std::min((unsigned int)length, available);
+  length =  std::min(length, available);
 
   int error = pa_stream_write(m_Stream, buffer, length, NULL, 0, PA_SEEK_RELATIVE);
   pa_threaded_mainloop_unlock(m_MainLoop);
@@ -943,7 +932,7 @@ unsigned int CAESinkPULSE::AddPackets(uint8_t **data, unsigned int frames, unsig
     CLog::Log(LOGERROR, "CPulseAudioDirectSound::AddPackets - pa_stream_write failed\n");
     return 0;
   }
-  unsigned int res = (unsigned int)(length / m_format.m_frameSize);
+  unsigned int res = length / m_format.m_frameSize;
 
   return res;
 }

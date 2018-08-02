@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include <iostream>
@@ -585,6 +573,12 @@ std::string MysqlDatabase::vprepare(const char *format, va_list args)
     pos += 6;
   }
 
+  // Remove COLLATE NOCASE the SQLite case insensitive collation.
+  // In MySQL all tables are defined with case insensitive collation utf8_general_ci
+  pos = 0;
+  while ((pos = strResult.find(" COLLATE NOCASE", pos)) != std::string::npos)
+    strResult.erase(pos++, 15);
+
   return strResult;
 }
 
@@ -804,7 +798,7 @@ void MysqlDatabase::mysqlVXPrintf(
     bool isLike = false;
     if( c!='%' ){
       int amt;
-      bufpt = (char *)fmt;
+      bufpt = const_cast<char *>(fmt);
       amt = 1;
       while( (c=(*++fmt))!='%' && c!=0 ) amt++;
       isLike = mysqlStrAccumAppend(pAccum, bufpt, amt);
@@ -1018,11 +1012,11 @@ void MysqlDatabase::mysqlVXPrintf(
           while( realvalue<1.0 ){ realvalue *= 10.0; exp--; }
           if( exp>350 ){
             if( prefix=='-' ){
-              bufpt = (char *)"-Inf";
+              bufpt = const_cast<char *>("-Inf");
             }else if( prefix=='+' ){
-              bufpt = (char *)"+Inf";
+              bufpt = const_cast<char *>("+Inf");
             }else{
-              bufpt = (char *)"Inf";
+              bufpt = const_cast<char *>("Inf");
             }
             length = strlen(bufpt);
             break;
@@ -1154,7 +1148,7 @@ void MysqlDatabase::mysqlVXPrintf(
       case etDYNSTRING:
         bufpt = va_arg(ap,char*);
         if( bufpt==0 ){
-          bufpt = (char *)"";
+          bufpt = const_cast<char *>("");
         }else if( xtype==etDYNSTRING ){
           zExtra = bufpt;
         }

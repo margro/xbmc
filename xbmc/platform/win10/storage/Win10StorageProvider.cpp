@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 #include "Win10StorageProvider.h"
 #include "guilib/LocalizeStrings.h"
@@ -101,20 +89,21 @@ void CStorageProvider::GetRemovableDrives(VECSOURCES &removableDrives)
     auto devicesView = Wait(winrt::Windows::Storage::KnownFolders::RemovableDevices().GetFoldersAsync());
     for (unsigned i = 0; i < devicesView.Size(); i++)
     {
-      CMediaSource source;
       auto device = devicesView.GetAt(i);
+      if (device.Path().empty())
+        continue;
+      CMediaSource source;
       source.strName = FromW(device.DisplayName().c_str());
-      std::string driveLetter = FromW(device.Name().c_str()).substr(0, 1);
-      std::string root = driveLetter + ":\\";
+      std::string driveLetter = FromW(device.Path().c_str());
 
       // skip exiting in case if we have direct access
-      auto exiting = std::find_if(removableDrives.begin(), removableDrives.end(), [&root](CMediaSource& m) {
-        return m.strPath == root;
+      auto exiting = std::find_if(removableDrives.begin(), removableDrives.end(), [&driveLetter](CMediaSource& m) {
+        return m.strPath == driveLetter;
       });
       if (exiting != removableDrives.end())
         continue;
 
-      UINT uDriveType = GetDriveTypeA(root.c_str());
+      UINT uDriveType = GetDriveTypeA(driveLetter.c_str());
       source.strPath = "win-lib://removable/" + driveLetter + "/";
       source.m_iDriveType = (
         (uDriveType == DRIVE_FIXED) ? CMediaSource::SOURCE_TYPE_LOCAL :

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -325,22 +313,11 @@ namespace PERIPHERALS
   {
   public:
     explicit PeripheralScanResult(const PeripheralBusType busType) :
-      m_type(PERIPHERAL_UNKNOWN),
-      m_iVendorId(0),
-      m_iProductId(0),
-      m_mappedType(PERIPHERAL_UNKNOWN),
       m_busType(busType),
-      m_mappedBusType(busType),
-      m_iSequence(0) {}
+      m_mappedBusType(busType)
+      {}
 
-    PeripheralScanResult(void) :
-      m_type(PERIPHERAL_UNKNOWN),
-      m_iVendorId(0),
-      m_iProductId(0),
-      m_mappedType(PERIPHERAL_UNKNOWN),
-      m_busType(PERIPHERAL_BUS_UNKNOWN),
-      m_mappedBusType(PERIPHERAL_BUS_UNKNOWN),
-      m_iSequence(0) {}
+    PeripheralScanResult(void) = default;
 
     bool operator ==(const PeripheralScanResult& right) const
     {
@@ -356,15 +333,15 @@ namespace PERIPHERALS
       return !(*this == right);
     }
 
-    PeripheralType    m_type;
+    PeripheralType    m_type = PERIPHERAL_UNKNOWN;
     std::string        m_strLocation;
-    int               m_iVendorId;
-    int               m_iProductId;
-    PeripheralType    m_mappedType;
+    int               m_iVendorId = 0;
+    int               m_iProductId = 0;
+    PeripheralType    m_mappedType = PERIPHERAL_UNKNOWN;
     std::string        m_strDeviceName;
-    PeripheralBusType m_busType;
-    PeripheralBusType m_mappedBusType;
-    unsigned int      m_iSequence; // when more than one adapter of the same type is found
+    PeripheralBusType m_busType = PERIPHERAL_BUS_UNKNOWN;
+    PeripheralBusType m_mappedBusType = PERIPHERAL_BUS_UNKNOWN;
+    unsigned int      m_iSequence = 0; // when more than one adapter of the same type is found
   };
 
   struct PeripheralScanResults

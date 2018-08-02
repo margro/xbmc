@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "DVDVideoPPFFmpeg.h"
@@ -71,7 +59,7 @@ bool CDVDVideoPPFFmpeg::CheckInit(int iWidth, int iHeight)
     m_iInitWidth = iWidth;
     m_iInitHeight = iHeight;
 
-    m_pMode = pp_get_mode_by_name_and_quality((char *)m_sType.c_str(), PP_QUALITY_MAX);
+    m_pMode = pp_get_mode_by_name_and_quality(m_sType.c_str(), PP_QUALITY_MAX);
   }
 
   if (m_pMode)
@@ -122,7 +110,8 @@ void CDVDVideoPPFFmpeg::Process(VideoPicture* pPicture)
 
   videoBuffer->SetDimensions(pPicture->iWidth, pPicture->iHeight, srcStrides);
   videoBuffer->GetPlanes(dstPlanes);
-  pp_postprocess((const uint8_t **)srcPlanes, srcStrides,
+  //! @bug libpostproc isn't const correct
+  pp_postprocess(const_cast<const uint8_t **>(srcPlanes), srcStrides,
                  dstPlanes, srcStrides,
                  pSource->iWidth, pSource->iHeight,
                  pSource->qp_table, pSource->qstride,

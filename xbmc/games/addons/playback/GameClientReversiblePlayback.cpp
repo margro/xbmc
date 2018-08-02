@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GameClientReversiblePlayback.h"
@@ -28,7 +16,6 @@
 #include "games/addons/savestates/SavestateWriter.h"
 #include "games/GameServices.h"
 #include "games/GameSettings.h"
-#include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/MathUtils.h"
 #include "ServiceBroker.h"
@@ -54,7 +41,8 @@ CGameClientReversiblePlayback::CGameClientReversiblePlayback(CGameClient* gameCl
 {
   UpdateMemoryStream();
 
-  CServiceBroker::GetGameServices().GameSettings().RegisterObserver(this);
+  CGameSettings &gameSettings = CServiceBroker::GetGameServices().GameSettings();
+  gameSettings.RegisterObserver(this);
 
   m_gameLoop.Start();
 }
@@ -254,7 +242,7 @@ void CGameClientReversiblePlayback::RewindFrames(uint64_t frames)
     UpdatePlaybackStats();
   }
 
-  m_totalFrameCount -= std::min(m_totalFrameCount, static_cast<uint64_t>(frames));
+  m_totalFrameCount -= std::min(m_totalFrameCount, frames);
 }
 
 void CGameClientReversiblePlayback::AdvanceFrames(uint64_t frames)
@@ -303,12 +291,16 @@ void CGameClientReversiblePlayback::UpdateMemoryStream()
 
   bool bRewindEnabled = false;
 
+  CGameSettings &gameSettings = CServiceBroker::GetGameServices().GameSettings();
+
+  gameSettings.UnregisterObserver(this);
+
   if (m_gameClient->SerializeSize() > 0)
-    bRewindEnabled = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_GAMES_ENABLEREWIND);
+    bRewindEnabled = gameSettings.RewindEnabled();
 
   if (bRewindEnabled)
   {
-    unsigned int rewindBufferSec = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_GAMES_REWINDTIME);
+    unsigned int rewindBufferSec = gameSettings.MaxRewindTimeSec();
     if (rewindBufferSec < 10)
       rewindBufferSec = 10; // Sanity check
 

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "AddonBuiltins.h"
@@ -293,6 +281,15 @@ static int AddonSettings(const std::vector<std::string>& params)
   return 0;
 }
 
+/*! \brief Open the settings for a given add-on.
+*  \param params The parameters.
+*/
+static int InstallFromZip(const std::vector<std::string>& params)
+{
+  CGUIWindowAddonBrowser::InstallFromZip();
+  return 0;
+}
+
 /*! \brief Stop a running script.
  *  \param params The parameters.
  *  \details params[0] = The add-on ID of the script to stop
@@ -440,6 +437,7 @@ CBuiltins::CommandMap CAddonBuiltins::GetOperations() const
            {"addon.default.set",          {"Open a select dialog to allow choosing the default addon of the given type", 1, SetDefaultAddon}},
            {"addon.opensettings",         {"Open a settings dialog for the addon of the given id", 1, AddonSettings}},
            {"installaddon",               {"Install the specified plugin/script", 1, InstallAddon}},
+           {"installfromzip",             { "Open the install from zip dialog", 0, InstallFromZip}},
            {"runaddon",                   {"Run the specified plugin/script", 1, RunAddon}},
 #ifdef TARGET_DARWIN
            {"runapplescript",             {"Run the specified AppleScript command", 1, RunScript<true>}},

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "MusicInfoScanner.h"
@@ -72,9 +60,7 @@ using namespace ADDON;
 using KODI::UTILITY::CDigest;
 
 CMusicInfoScanner::CMusicInfoScanner()
-: m_needsCleanup(false),
-  m_scanType(0),
-  m_fileCountReader(this, "MusicFileCounter")
+: m_fileCountReader(this, "MusicFileCounter")
 {
   m_bStop = false;
   m_currentItem=0;
@@ -483,7 +469,10 @@ bool CMusicInfoScanner::DoScan(const std::string& strDirectory)
   // Discard all excluded files defined by m_musicExcludeRegExps
   const std::vector<std::string> &regexps = g_advancedSettings.m_audioExcludeFromScanRegExps;
 
-  if (IsExcluded(strDirectory, regexps))
+  if (CUtil::ExcludeFileOrFolder(strDirectory, regexps))
+    return true;
+
+  if (HasNoMedia(strDirectory))
     return true;
 
   // load subfolder

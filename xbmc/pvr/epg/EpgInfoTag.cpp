@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "EpgInfoTag.h"
@@ -45,38 +33,16 @@ CPVREpgInfoTagPtr CPVREpgInfoTag::CreateDefaultTag()
 }
 
 CPVREpgInfoTag::CPVREpgInfoTag(void) :
-    m_bNotify(false),
-    m_iClientId(-1),
-    m_iBroadcastId(-1),
-    m_iGenreType(0),
-    m_iGenreSubType(0),
-    m_iParentalRating(0),
-    m_iStarRating(0),
-    m_iSeriesNumber(0),
-    m_iEpisodeNumber(0),
-    m_iEpisodePart(0),
     m_iUniqueBroadcastID(EPG_TAG_INVALID_UID),
     m_iUniqueChannelID(PVR_CHANNEL_INVALID_UID),
-    m_iYear(0),
-    m_epg(nullptr),
     m_iFlags(EPG_TAG_FLAG_UNDEFINED)
 {
 }
 
 CPVREpgInfoTag::CPVREpgInfoTag(CPVREpg *epg, const PVR::CPVRChannelPtr &channel, const std::string &strTableName /* = "" */, const std::string &strIconPath /* = "" */) :
-    m_bNotify(false),
     m_iClientId(channel ? channel->ClientID() : -1),
-    m_iBroadcastId(-1),
-    m_iGenreType(0),
-    m_iGenreSubType(0),
-    m_iParentalRating(0),
-    m_iStarRating(0),
-    m_iSeriesNumber(0),
-    m_iEpisodeNumber(0),
-    m_iEpisodePart(0),
     m_iUniqueBroadcastID(EPG_TAG_INVALID_UID),
     m_iUniqueChannelID(channel ? channel->UniqueID() : PVR_CHANNEL_INVALID_UID),
-    m_iYear(0),
     m_strIconPath(strIconPath),
     m_epg(epg),
     m_iFlags(EPG_TAG_FLAG_UNDEFINED),
@@ -88,9 +54,6 @@ CPVREpgInfoTag::CPVREpgInfoTag(CPVREpg *epg, const PVR::CPVRChannelPtr &channel,
 CPVREpgInfoTag::CPVREpgInfoTag(const EPG_TAG &data, int iClientId) :
     m_bNotify(data.bNotify),
     m_iClientId(iClientId),
-    m_iBroadcastId(-1),
-    m_iGenreType(0),
-    m_iGenreSubType(0),
     m_iParentalRating(data.iParentalRating),
     m_iStarRating(data.iStarRating),
     m_iSeriesNumber(data.iSeriesNumber),
@@ -102,7 +65,6 @@ CPVREpgInfoTag::CPVREpgInfoTag(const EPG_TAG &data, int iClientId) :
     m_startTime(data.startTime + g_advancedSettings.m_iPVRTimeCorrection),
     m_endTime(data.endTime + g_advancedSettings.m_iPVRTimeCorrection),
     m_firstAired(data.firstAired + g_advancedSettings.m_iPVRTimeCorrection),
-    m_epg(nullptr),
     m_iFlags(data.iFlags)
 {
   SetGenre(data.iGenreType, data.iGenreSubType, data.strGenreDescription);
@@ -218,6 +180,30 @@ void CPVREpgInfoTag::Serialize(CVariant &value) const
   value["wasactive"] = WasActive();
   value["isseries"] = IsSeries();
   value["serieslink"] = m_strSeriesLink;
+}
+
+void CPVREpgInfoTag::ToSortable(SortItem& sortable, Field field) const
+{
+  if (!m_channel)
+    return;
+
+  switch (field)
+  {
+    case FieldChannelName:
+      sortable[FieldChannelName] = m_channel->ChannelName();
+      break;
+    case FieldChannelNumber:
+      sortable[FieldChannelNumber] = m_channel->ChannelNumber().FormattedChannelNumber();
+      break;
+    case FieldLastPlayed:
+    {
+      const CDateTime lastWatched(m_channel->LastWatched());
+      sortable[FieldLastPlayed] = lastWatched.IsValid() ? lastWatched.GetAsDBDateTime() : StringUtils::Empty;
+      break;
+    }
+    default:
+      break;
+  }
 }
 
 CDateTime CPVREpgInfoTag::GetCurrentPlayingTime() const
@@ -700,7 +686,7 @@ bool CPVREpgInfoTag::Persist(bool bSingleUpdate /* = true */)
   CPVREpgDatabasePtr database = CServiceBroker::GetPVRManager().EpgContainer().GetEpgDatabase();
   if (!database)
   {
-    CLog::Log(LOGERROR, "%s - could not open the database", __FUNCTION__);
+    CLog::LogF(LOGERROR, "Could not open the EPG database");
     return bReturn;
   }
 

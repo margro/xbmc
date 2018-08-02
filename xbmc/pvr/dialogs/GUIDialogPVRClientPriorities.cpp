@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIDialogPVRClientPriorities.h"
@@ -56,7 +44,7 @@ std::string CGUIDialogPVRClientPriorities::GetSettingsLabel(std::shared_ptr<ISet
   if (clientEntry != m_clients.end())
     return clientEntry->second->GetFriendlyName();
 
-  CLog::Log(LOGERROR, "CGUIDialogPVRClientPriorities::GetSettingsLabel - Unable to obtain pvr client with id '%i'", iClientId);
+  CLog::LogF(LOGERROR, "Unable to obtain pvr client with id '%i'", iClientId);
   return CGUIDialogSettingsManualBase::GetLocalizedString(13205); // Unknown
 }
 
@@ -67,14 +55,14 @@ void CGUIDialogPVRClientPriorities::InitializeSettings()
   const std::shared_ptr<CSettingCategory> category = AddCategory("pvrclientpriorities", -1);
   if (category == nullptr)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRClientPriorities::InitializeSettings - Unable to add settings category");
+    CLog::LogF(LOGERROR, "Unable to add settings category");
     return;
   }
 
   const std::shared_ptr<CSettingGroup> group = AddGroup(category);
   if (group == nullptr)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRClientPriorities::InitializeSettings - Unable to add settings group");
+    CLog::LogF(LOGERROR, "Unable to add settings group");
     return;
   }
 
@@ -91,7 +79,7 @@ void CGUIDialogPVRClientPriorities::OnSettingChanged(std::shared_ptr<const CSett
 {
   if (setting == nullptr)
   {
-    CLog::Log(LOGERROR, "CGUIDialogPVRClientPriorities::OnSettingChanged - No setting");
+    CLog::LogF(LOGERROR, "No setting");
     return;
   }
 

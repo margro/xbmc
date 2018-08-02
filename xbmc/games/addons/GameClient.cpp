@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GameClient.h"
@@ -269,6 +257,8 @@ bool CGameClient::OpenFile(const CFileItem& file, RETRO::IStreamManager& streamM
 
   CloseFile();
 
+  Streams().Initialize(streamManager);
+
   GAME_ERROR error = GAME_ERROR_FAILED;
 
   try { LogError(error = m_struct.toAddon.LoadGame(path.c_str()), "LoadGame()"); }
@@ -277,11 +267,15 @@ bool CGameClient::OpenFile(const CFileItem& file, RETRO::IStreamManager& streamM
   if (error != GAME_ERROR_NO_ERROR)
   {
     NotifyError(error);
+    Streams().Deinitialize();
     return false;
   }
 
   if (!InitializeGameplay(file.GetPath(), streamManager, input))
+  {
+    Streams().Deinitialize();
     return false;
+  }
 
   return true;
 }
@@ -297,6 +291,8 @@ bool CGameClient::OpenStandalone(RETRO::IStreamManager& streamManager, IGameInpu
 
   CloseFile();
 
+  Streams().Initialize(streamManager);
+
   GAME_ERROR error = GAME_ERROR_FAILED;
 
   try { LogError(error = m_struct.toAddon.LoadStandalone(), "LoadStandalone()"); }
@@ -305,11 +301,15 @@ bool CGameClient::OpenStandalone(RETRO::IStreamManager& streamManager, IGameInpu
   if (error != GAME_ERROR_NO_ERROR)
   {
     NotifyError(error);
+    Streams().Deinitialize();
     return false;
   }
 
   if (!InitializeGameplay("", streamManager, input))
+  {
+    Streams().Deinitialize();
     return false;
+  }
 
   return true;
 }
@@ -318,7 +318,7 @@ bool CGameClient::InitializeGameplay(const std::string& gamePath, RETRO::IStream
 {
   if (LoadGameInfo())
   {
-    Streams().Initialize(streamManager);
+    Input().Start();
 
     m_bIsPlaying      = true;
     m_gamePath        = gamePath;
@@ -464,16 +464,18 @@ void CGameClient::CloseFile()
     m_inGameSaves->Save();
     m_inGameSaves.reset();
 
+    m_bIsPlaying = false;
+    m_gamePath.clear();
+    m_serializeSize = 0;
+    m_input = nullptr;
+
+    Input().Stop();
+
     try { LogError(m_struct.toAddon.UnloadGame(), "UnloadGame()"); }
     catch (...) { LogException("UnloadGame()"); }
+
+    Streams().Deinitialize();
   }
-
-  m_bIsPlaying = false;
-  m_gamePath.clear();
-  m_serializeSize = 0;
-  m_input = nullptr;
-
-  Streams().Deinitialize();
 }
 
 void CGameClient::RunFrame()

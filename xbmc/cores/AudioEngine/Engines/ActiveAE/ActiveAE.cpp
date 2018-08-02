@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2010-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "ActiveAE.h"
@@ -2171,10 +2159,10 @@ bool CActiveAE::RunStages()
       }// for
 
       // finally clamp samples
-      if(out && needClamp)
+      if (out && needClamp)
       {
         int nb_floats = out->pkt->nb_samples * out->pkt->config.channels / out->pkt->planes;
-        for(int i=0; i<out->pkt->planes; i++)
+        for (int i=0; i<out->pkt->planes; i++)
         {
           CAEUtil::ClampArray((float*)out->pkt->data[i], nb_floats);
         }
@@ -2242,13 +2230,17 @@ bool CActiveAE::RunStages()
 
         if (m_mode == MODE_TRANSCODE && m_encoder)
         {
-          CSampleBuffer *buf = m_encoderBuffers->GetFreeBuffer();
-          buf->pkt->nb_samples = m_encoder->Encode(out->pkt->data[0], out->pkt->planes*out->pkt->linesize,
-                                                   buf->pkt->data[0], buf->pkt->planes*buf->pkt->linesize);
+          CSampleBuffer *buf = nullptr;
+          if (out->pkt->nb_samples)
+          {
+            buf = m_encoderBuffers->GetFreeBuffer();
+            buf->pkt->nb_samples = m_encoder->Encode(out->pkt->data[0], out->pkt->planes*out->pkt->linesize,
+                                                     buf->pkt->data[0], buf->pkt->planes*buf->pkt->linesize);
 
-          // set pts of last sample
-          buf->pkt_start_offset = buf->pkt->nb_samples;
-          buf->timestamp = out->timestamp;
+            // set pts of last sample
+            buf->pkt_start_offset = buf->pkt->nb_samples;
+            buf->timestamp = out->timestamp;
+          }
 
           out->Return();
           out = buf;
@@ -2353,7 +2345,7 @@ CSampleBuffer* CActiveAE::SyncStream(CActiveAEStream *stream)
     }
   }
 
-  int timeout = (stream->m_syncState != CAESyncInfo::AESyncState::SYNC_INSYNC) ? 100 : (int)stream->GetErrorInterval();
+  int timeout = (stream->m_syncState != CAESyncInfo::AESyncState::SYNC_INSYNC) ? 100 : stream->GetErrorInterval();
   bool newerror = stream->m_syncError.Get(error, timeout);
 
   if (newerror && fabs(error) > threshold && stream->m_syncState == CAESyncInfo::AESyncState::SYNC_INSYNC)

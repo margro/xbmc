@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "WinSystemGbm.h"
@@ -34,13 +22,13 @@
 #include "utils/StringUtils.h"
 #include "DRMAtomic.h"
 #include "DRMLegacy.h"
+#include "OffScreenModeSetting.h"
 #include "messaging/ApplicationMessenger.h"
 
 
 CWinSystemGbm::CWinSystemGbm() :
   m_DRM(nullptr),
   m_GBM(new CGBMUtils),
-  m_delayDispReset(false),
   m_libinput(new CLibInputHandler)
 {
   std::string envSink;
@@ -96,7 +84,14 @@ bool CWinSystemGbm::InitWindowSystem()
     {
       CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to initialize Legacy DRM", __FUNCTION__);
       m_DRM.reset();
-      return false;
+
+      m_DRM = std::make_shared<COffScreenModeSetting>();
+      if (!m_DRM->InitDrm())
+      {
+        CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to initialize off screen DRM", __FUNCTION__);
+        m_DRM.reset();
+        return false;
+      }
     }
   }
 
@@ -132,13 +127,16 @@ bool CWinSystemGbm::CreateNewWindow(const std::string& name,
     return false;
   }
 
-  if(!m_GBM->CreateSurface(m_DRM->GetCurrentMode()->hdisplay, m_DRM->GetCurrentMode()->vdisplay))
+  if(!m_GBM->CreateSurface(res.iWidth, res.iHeight))
   {
     CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to initialize GBM", __FUNCTION__);
     return false;
   }
 
   m_bFullScreen = fullScreen;
+  m_nWidth = res.iWidth;
+  m_nHeight = res.iHeight;
+  m_fRefreshRate = res.fRefreshRate;
 
   CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - initialized GBM", __FUNCTION__);
   return true;
@@ -154,13 +152,7 @@ bool CWinSystemGbm::DestroyWindow()
 
 void CWinSystemGbm::UpdateResolutions()
 {
-  CWinSystemBase::UpdateResolutions();
-
-  UpdateDesktopResolution(CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP),
-                          0,
-                          m_DRM->GetCurrentMode()->hdisplay,
-                          m_DRM->GetCurrentMode()->vdisplay,
-                          m_DRM->GetCurrentMode()->vrefresh);
+  RESOLUTION_INFO current = m_DRM->GetCurrentMode();
 
   auto resolutions = m_DRM->GetModes();
   if (resolutions.empty())
@@ -176,10 +168,19 @@ void CWinSystemGbm::UpdateResolutions()
       CServiceBroker::GetWinSystem()->GetGfxContext().ResetOverscan(res);
       CDisplaySettings::GetInstance().AddResolutionInfo(res);
 
-      CLog::Log(LOGNOTICE, "Found resolution %dx%d for display %d with %dx%d%s @ %f Hz",
+      if (current.iScreenWidth == res.iScreenWidth &&
+          current.iScreenHeight == res.iScreenHeight &&
+          current.iWidth == res.iWidth &&
+          current.iHeight == res.iHeight &&
+          current.fRefreshRate == res.fRefreshRate &&
+          current.dwFlags == res.dwFlags)
+      {
+        CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP) = res;
+      }
+
+      CLog::Log(LOGNOTICE, "Found resolution %dx%d with %dx%d%s @ %f Hz",
                 res.iWidth,
                 res.iHeight,
-                res.iScreen,
                 res.iScreenWidth,
                 res.iScreenHeight,
                 res.dwFlags & D3DPRESENTFLAG_INTERLACED ? "i" : "",

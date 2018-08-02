@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2015 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Kodi; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "CurlFile.h"
@@ -29,6 +17,7 @@
 #include "threads/SystemClock.h"
 #include "utils/Base64.h"
 
+#include <algorithm>
 #include <vector>
 #include <climits>
 #include <cassert>
@@ -51,7 +40,6 @@
 using namespace XFILE;
 using namespace XCURL;
 
-#define XMIN(a,b) ((a)<(b)?(a):(b))
 #define FITS_INT(a) (((a) <= INT_MAX) && ((a) >= INT_MIN))
 
 curl_proxytype proxyType2CUrlProxyType[] = {
@@ -81,16 +69,16 @@ extern "C" int debug_callback(CURL_HANDLE *handle, curl_infotype info, char *out
   StringUtils::Tokenize(strLine, vecLines, "\r\n");
   std::vector<std::string>::const_iterator it = vecLines.begin();
 
-  char *infotype;
+  const char *infotype;
   switch(info)
   {
-    case CURLINFO_TEXT         : infotype = (char *) "TEXT: "; break;
-    case CURLINFO_HEADER_IN    : infotype = (char *) "HEADER_IN: "; break;
-    case CURLINFO_HEADER_OUT   : infotype = (char *) "HEADER_OUT: "; break;
-    case CURLINFO_SSL_DATA_IN  : infotype = (char *) "SSL_DATA_IN: "; break;
-    case CURLINFO_SSL_DATA_OUT : infotype = (char *) "SSL_DATA_OUT: "; break;
-    case CURLINFO_END          : infotype = (char *) "END: "; break;
-    default                    : infotype = (char *) ""; break;
+    case CURLINFO_TEXT         : infotype = "TEXT: "; break;
+    case CURLINFO_HEADER_IN    : infotype = "HEADER_IN: "; break;
+    case CURLINFO_HEADER_OUT   : infotype = "HEADER_OUT: "; break;
+    case CURLINFO_SSL_DATA_IN  : infotype = "SSL_DATA_IN: "; break;
+    case CURLINFO_SSL_DATA_OUT : infotype = "SSL_DATA_OUT: "; break;
+    case CURLINFO_END          : infotype = "END: "; break;
+    default                    : infotype = ""; break;
   }
 
   while (it != vecLines.end())
@@ -186,7 +174,7 @@ size_t CCurlFile::CReadState::ReadCallback(char *buffer, size_t size, size_t nit
     return CURL_READFUNC_PAUSE;
   }
 
-  int64_t retSize = XMIN(m_fileSize - m_filePos, int64_t(nitems * size));
+  int64_t retSize = std::min(m_fileSize - m_filePos, int64_t(nitems * size));
   memcpy(buffer, m_readBuffer + m_filePos, retSize);
   m_filePos += retSize;
 
@@ -199,7 +187,7 @@ size_t CCurlFile::CReadState::WriteCallback(char *buffer, size_t size, size_t ni
   if (m_overflowSize)
   {
     // we have our overflow buffer - first get rid of as much as we can
-    unsigned int maxWriteable = XMIN((unsigned int)m_buffer.getMaxWriteSize(), m_overflowSize);
+    unsigned int maxWriteable = std::min(m_buffer.getMaxWriteSize(), m_overflowSize);
     if (maxWriteable)
     {
       if (!m_buffer.WriteData(m_overflowBuffer, maxWriteable))
@@ -220,7 +208,7 @@ size_t CCurlFile::CReadState::WriteCallback(char *buffer, size_t size, size_t ni
     }
   }
   // ok, now copy the data into our ring buffer
-  unsigned int maxWriteable = XMIN((unsigned int)m_buffer.getMaxWriteSize(), amount);
+  unsigned int maxWriteable = std::min(m_buffer.getMaxWriteSize(), amount);
   if (maxWriteable)
   {
     if (!m_buffer.WriteData(buffer, maxWriteable))
@@ -412,11 +400,7 @@ CCurlFile::~CCurlFile()
 }
 
 CCurlFile::CCurlFile()
- : m_writeOffset(0)
- , m_proxytype(PROXY_HTTP)
- , m_proxyport(3128)
- , m_overflowBuffer(NULL)
- , m_overflowSize(0)
+ : m_overflowBuffer(NULL)
 {
   m_opened = false;
   m_forWrite = false;
@@ -468,7 +452,7 @@ void CCurlFile::Close()
   m_inError = false;
 }
 
-void CCurlFile::SetCommonOptions(CReadState* state)
+void CCurlFile::SetCommonOptions(CReadState* state, bool failOnError /* = true */)
 {
   CURL_HANDLE* h = state->m_easyHandle;
 
@@ -521,7 +505,7 @@ void CCurlFile::SetCommonOptions(CReadState* state)
   // resolves. Unfortunately, c-ares does not yet support IPv6.
   g_curlInterface.easy_setopt(h, CURLOPT_NOSIGNAL, CURL_ON);
 
-  if (m_state->m_failOnError)
+  if (failOnError)
   {
     // not interested in failed requests
     g_curlInterface.easy_setopt(h, CURLOPT_FAILONERROR, 1);
@@ -824,6 +808,8 @@ void CCurlFile::ParseAndCorrectUrl(CURL &url2)
           m_cipherlist = value;
         else if (name == "connection-timeout")
           m_connecttimeout = strtol(value.c_str(), NULL, 10);
+        else if (name == "failonerror")
+          m_failOnError = value == "true";
         else if (name == "redirect-limit")
           m_redirectlimit = strtol(value.c_str(), NULL, 10);
         else if (name == "postdata")
@@ -1014,15 +1000,14 @@ bool CCurlFile::Open(const CURL& url)
                                 &m_state->m_multiHandle);
 
   // setup common curl options
-  m_state->m_failOnError = !g_advancedSettings.CanLogComponent(LOGCURL);
-  SetCommonOptions(m_state);
+  SetCommonOptions(m_state, m_failOnError && !g_advancedSettings.CanLogComponent(LOGCURL));
   SetRequestHeaders(m_state);
   m_state->m_sendRange = m_seekable;
   m_state->m_bRetry = m_allowRetry;
 
   m_httpresponse = m_state->Connect(m_bufferSize);
 
-  if (m_httpresponse <= 0 || m_httpresponse >= 400)
+  if (m_httpresponse <= 0 || (m_failOnError && m_httpresponse >= 400))
   {
     std::string error;
     if (m_httpresponse >= 400 && g_advancedSettings.CanLogComponent(LOGCURL))
@@ -1182,7 +1167,7 @@ bool CCurlFile::CReadState::ReadString(char *szLine, int iLineLength)
     return false;
 
   // ensure only available data is considered
-  want = XMIN((unsigned int)m_buffer.getMaxReadSize(), want);
+  want = std::min(m_buffer.getMaxReadSize(), want);
 
   /* check if we finished prematurely */
   if (!m_stillRunning && (m_fileSize == 0 || m_filePos != m_fileSize) && !want)
@@ -1203,7 +1188,7 @@ bool CCurlFile::CReadState::ReadString(char *szLine, int iLineLength)
   } while (((pLine - 1)[0] != '\n') && ((unsigned int)(pLine - szLine) < want));
   pLine[0] = 0;
   m_filePos += (pLine - szLine);
-  return (bool)((pLine - szLine) > 0);
+  return (pLine - szLine) > 0;
 }
 
 bool CCurlFile::ReOpen(const CURL& url)
@@ -1519,7 +1504,7 @@ ssize_t CCurlFile::CReadState::Read(void* lpBuf, size_t uiBufSize)
   }
 
   /* ensure only available data is considered */
-  unsigned int want = (unsigned int)XMIN(m_buffer.getMaxReadSize(), uiBufSize);
+  unsigned int want = std::min<unsigned int>(m_buffer.getMaxReadSize(), uiBufSize);
 
   /* xfer data to caller */
   if (m_buffer.ReadData((char *)lpBuf, want))
@@ -1548,7 +1533,7 @@ int8_t CCurlFile::CReadState::FillBuffer(unsigned int want)
 
   // only attempt to fill buffer if transactions still running and buffer
   // doesnt exceed required size already
-  while ((unsigned int)m_buffer.getMaxReadSize() < want && m_buffer.getMaxWriteSize() > 0 )
+  while (m_buffer.getMaxReadSize() < want && m_buffer.getMaxWriteSize() > 0 )
   {
     if (m_cancelled)
       return FILLBUFFER_NO_DATA;
@@ -1556,7 +1541,7 @@ int8_t CCurlFile::CReadState::FillBuffer(unsigned int want)
     /* if there is data in overflow buffer, try to use that first */
     if (m_overflowSize)
     {
-      unsigned amount = XMIN((unsigned int)m_buffer.getMaxWriteSize(), m_overflowSize);
+      unsigned amount = std::min(m_buffer.getMaxWriteSize(), m_overflowSize);
       m_buffer.WriteData(m_overflowBuffer, amount);
 
       if (amount < m_overflowSize)
@@ -1764,7 +1749,7 @@ int8_t CCurlFile::CReadState::FillBuffer(unsigned int want)
 
 void CCurlFile::CReadState::SetReadBuffer(const void* lpBuf, int64_t uiBufSize)
 {
-  m_readBuffer = (char*)lpBuf;
+  m_readBuffer = const_cast<char*>((const char*)lpBuf);
   m_fileSize = uiBufSize;
   m_filePos = 0;
 }

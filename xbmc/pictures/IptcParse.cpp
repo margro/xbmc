@@ -1,22 +1,9 @@
 /*
- *      Copyright (C) 2005-2007 Team XboxMediaCenter
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 //--------------------------------------------------------------------------
@@ -95,8 +82,8 @@ bool CIptcParse::Process (const unsigned char* const Data, const unsigned short 
   const char IptcSignature3[] = {0x04, 0x04};
 
   // Check IPTC signatures
-  char* pos = (char*)(Data + sizeof(short));  // position data pointer after length field
-  char* maxpos = (char*)(Data+itemlen);
+  const char* pos = (const char*)(Data + sizeof(short));  // position data pointer after length field
+  const char* maxpos = (const char*)(Data+itemlen);
   unsigned char headerLen = 0;
   unsigned char dataLen = 0;
   memset(info, 0, sizeof(IPTCInfo_t));
@@ -139,7 +126,7 @@ bool CIptcParse::Process (const unsigned char* const Data, const unsigned short 
   pos += 4;                                   // move data pointer to the next field
 
   // Now read IPTC data
-  while (pos < (char*)(Data + itemlen-5))
+  while (pos < (const char*)(Data + itemlen-5))
   {
     if (pos + 5 > maxpos) return false;
 

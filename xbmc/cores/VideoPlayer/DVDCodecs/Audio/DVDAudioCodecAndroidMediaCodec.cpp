@@ -1,22 +1,9 @@
 /*
- *      Copyright (C) 2016 Christian Browet
- *      http://kodi.tv
+ *  Copyright (C) 2016 Christian Browet
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *  http://www.gnu.org/copyleft/gpl.html
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 // http://developer.android.com/reference/android/media/MediaCodec.html
@@ -71,15 +58,13 @@ static bool IsDownmixDecoder(const std::string &name)
   return false;
 }
 
-static bool IsDecoderBlacklisted(const std::string &name)
+static bool IsDecoderWhitelisted(const std::string &name)
 {
-  static const char *blacklistDecoders[] = {
-    "OMX.google",
-    "OMX.MTK",
+  static const char *whitelistDecoders[] = {
     // End of list
     NULL
   };
-  for (const char **ptr = blacklistDecoders; *ptr; ptr++)
+  for (const char **ptr = whitelistDecoders; *ptr; ptr++)
   {
     if (!strnicmp(*ptr, name.c_str(), strlen(*ptr)))
       return true;
@@ -224,7 +209,7 @@ bool CDVDAudioCodecAndroidMediaCodec::Open(CDVDStreamInfo &hints, CDVDCodecOptio
 
       std::string codecName = codec_info.getName();
 
-      if (IsDecoderBlacklisted(codecName))
+      if (!IsDecoderWhitelisted(codecName))
         continue;
 
       if (m_hints.channels > 2 && !stereoDownmixAllowed && IsDownmixDecoder(codecName))

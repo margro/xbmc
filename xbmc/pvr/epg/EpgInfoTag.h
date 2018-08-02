@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -27,6 +15,7 @@
 #include "XBDateTime.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "utils/ISerializable.h"
+#include "utils/ISortable.h"
 
 #include "pvr/PVRTypes.h"
 #include "pvr/channels/PVRChannel.h"
@@ -39,7 +28,7 @@ namespace PVR
 {
   class CPVREpg;
 
-  class CPVREpgInfoTag final : public ISerializable, public std::enable_shared_from_this<CPVREpgInfoTag>
+  class CPVREpgInfoTag final : public ISerializable, public ISortable, public std::enable_shared_from_this<CPVREpgInfoTag>
   {
     friend class CPVREpg;
     friend class CPVREpgDatabase;
@@ -75,6 +64,9 @@ namespace PVR
     bool operator !=(const CPVREpgInfoTag& right) const;
 
     void Serialize(CVariant &value) const override;
+
+    // ISortable implementation
+    void ToSortable(SortItem& sortable, Field field) const override;
 
     /*!
      * @brief Get the identifier of the client that serves this event.
@@ -497,16 +489,16 @@ namespace PVR
      */
     CDateTime GetCurrentPlayingTime(void) const;
 
-    bool                     m_bNotify;            /*!< notify on start */
-    int                      m_iClientId;          /*!< client id */
-    int                      m_iBroadcastId;       /*!< database ID */
-    int                      m_iGenreType;         /*!< genre type */
-    int                      m_iGenreSubType;      /*!< genre subtype */
-    int                      m_iParentalRating;    /*!< parental rating */
-    int                      m_iStarRating;        /*!< star rating */
-    int                      m_iSeriesNumber;      /*!< series number */
-    int                      m_iEpisodeNumber;     /*!< episode number */
-    int                      m_iEpisodePart;       /*!< episode part number */
+    bool                     m_bNotify = false;            /*!< notify on start */
+    int                      m_iClientId = -1;          /*!< client id */
+    int                      m_iBroadcastId = -1;       /*!< database ID */
+    int                      m_iGenreType = 0;         /*!< genre type */
+    int                      m_iGenreSubType = 0;      /*!< genre subtype */
+    int                      m_iParentalRating = 0;    /*!< parental rating */
+    int                      m_iStarRating = 0;        /*!< star rating */
+    int                      m_iSeriesNumber = 0;      /*!< series number */
+    int                      m_iEpisodeNumber = 0;     /*!< episode number */
+    int                      m_iEpisodePart = 0;       /*!< episode part number */
     unsigned int             m_iUniqueBroadcastID; /*!< unique broadcast ID */
     unsigned int             m_iUniqueChannelID;   /*!< unique channel ID */
     std::string              m_strTitle;           /*!< title */
@@ -516,7 +508,7 @@ namespace PVR
     std::vector<std::string> m_cast;               /*!< cast */
     std::vector<std::string> m_directors;          /*!< director(s) */
     std::vector<std::string> m_writers;            /*!< writer(s) */
-    int                      m_iYear;              /*!< year */
+    int                      m_iYear = 0;              /*!< year */
     std::string              m_strIMDBNumber;      /*!< imdb number */
     std::vector<std::string> m_genre;              /*!< genre */
     std::string              m_strEpisodeName;     /*!< episode name */
@@ -528,12 +520,12 @@ namespace PVR
 
     PVR::CPVRTimerInfoTagPtr m_timer;
 
-    CPVREpg *                m_epg;                /*!< the schedule that this event belongs to */
+    CPVREpg *                m_epg = nullptr;                /*!< the schedule that this event belongs to */
 
     unsigned int             m_iFlags;             /*!< the flags applicable to this EPG entry */
     std::string              m_strSeriesLink;      /*!< series link */
 
-    CCriticalSection         m_critSection;
+    mutable CCriticalSection m_critSection;
     PVR::CPVRChannelPtr      m_channel;
     PVR::CPVRRecordingPtr    m_recording;
   };

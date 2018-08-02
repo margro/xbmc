@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "RetroPlayerVideo.h"
@@ -46,7 +34,7 @@ CRetroPlayerVideo::~CRetroPlayerVideo()
 
 bool CRetroPlayerVideo::OpenStream(const StreamProperties& properties)
 {
-  const VideoStreamProperties& videoProperties = reinterpret_cast<const VideoStreamProperties&>(properties);
+  const VideoStreamProperties& videoProperties = static_cast<const VideoStreamProperties&>(properties);
 
   if (m_bOpen)
   {
@@ -77,9 +65,25 @@ bool CRetroPlayerVideo::OpenStream(const StreamProperties& properties)
   return m_bOpen;
 }
 
+bool CRetroPlayerVideo::GetStreamBuffer(unsigned int width, unsigned int height, StreamBuffer& buffer)
+{
+  VideoStreamBuffer& videoBuffer = static_cast<VideoStreamBuffer&>(buffer);
+
+  if (m_bOpen)
+  {
+    return m_renderManager.GetVideoBuffer(width,
+                                          height,
+                                          videoBuffer.pixfmt,
+                                          videoBuffer.data,
+                                          videoBuffer.size);
+  }
+
+  return false;
+}
+
 void CRetroPlayerVideo::AddStreamData(const StreamPacket &packet)
 {
-  const VideoStreamPacket& videoPacket = reinterpret_cast<const VideoStreamPacket&>(packet);
+  const VideoStreamPacket& videoPacket = static_cast<const VideoStreamPacket&>(packet);
 
   if (m_bOpen)
   {

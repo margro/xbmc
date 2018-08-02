@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2011-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2011-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 // FileNFS.cpp: implementation of the CNFSFile class.
@@ -51,6 +39,13 @@
 #define CONTEXT_NEW      1    //new context created
 #define CONTEXT_CACHED   2    //context cached and therefore already mounted (no new mount needed)
 
+#if defined(TARGET_WINDOWS)
+#define S_IRGRP 0
+#define S_IROTH 0
+#define S_IWUSR _S_IWRITE
+#define S_IRUSR _S_IREAD
+#endif
+
 using namespace XFILE;
 
 CNfsConnection::CNfsConnection()
@@ -58,11 +53,6 @@ CNfsConnection::CNfsConnection()
 , m_exportPath("")
 , m_hostName("")
 , m_resolvedHostName("")
-, m_readChunkSize(0)
-, m_writeChunkSize(0)
-, m_OpenConnections(0)
-, m_IdleTimeout(0)
-, m_lastAccessedTime(0)
 , m_pLibNfs(new DllLibNfs())
 {
 }
@@ -501,8 +491,7 @@ void CNfsConnection::AddIdleConnection()
 CNfsConnection gNfsConnection;
 
 CNFSFile::CNFSFile()
-: m_fileSize(0)
-, m_pFileHandle(NULL)
+: m_pFileHandle(NULL)
 , m_pNfsContext(NULL)
 {
   gNfsConnection.AddActiveConnection();
@@ -522,7 +511,7 @@ int64_t CNFSFile::GetPosition()
 
   if (gNfsConnection.GetNfsContext() == NULL || m_pFileHandle == NULL) return 0;
 
-  ret = (int)gNfsConnection.GetImpl()->nfs_lseek(gNfsConnection.GetNfsContext(), m_pFileHandle, 0, SEEK_CUR, &offset);
+  ret = gNfsConnection.GetImpl()->nfs_lseek(gNfsConnection.GetNfsContext(), m_pFileHandle, 0, SEEK_CUR, &offset);
 
   if (ret < 0)
   {
@@ -676,7 +665,7 @@ int64_t CNFSFile::Seek(int64_t iFilePosition, int iWhence)
   if (m_pFileHandle == NULL || m_pNfsContext == NULL) return -1;
 
 
-  ret = (int)gNfsConnection.GetImpl()->nfs_lseek(m_pNfsContext, m_pFileHandle, iFilePosition, iWhence, &offset);
+  ret = gNfsConnection.GetImpl()->nfs_lseek(m_pNfsContext, m_pFileHandle, iFilePosition, iWhence, &offset);
   if (ret < 0)
   {
     CLog::Log(LOGERROR, "%s - Error( seekpos: %" PRId64", whence: %i, fsize: %" PRId64", %s)", __FUNCTION__, iFilePosition, iWhence, m_fileSize, gNfsConnection.GetImpl()->nfs_get_error(m_pNfsContext));
@@ -693,7 +682,7 @@ int CNFSFile::Truncate(int64_t iSize)
   if (m_pFileHandle == NULL || m_pNfsContext == NULL) return -1;
 
 
-  ret = (int)gNfsConnection.GetImpl()->nfs_ftruncate(m_pNfsContext, m_pFileHandle, iSize);
+  ret = gNfsConnection.GetImpl()->nfs_ftruncate(m_pNfsContext, m_pFileHandle, iSize);
   if (ret < 0)
   {
     CLog::Log(LOGERROR, "%s - Error( ftruncate: %" PRId64", fsize: %" PRId64", %s)", __FUNCTION__, iSize, m_fileSize, gNfsConnection.GetImpl()->nfs_get_error(m_pNfsContext));
@@ -750,10 +739,11 @@ ssize_t CNFSFile::Write(const void* lpBuf, size_t uiBufSize)
       chunkSize = leftBytes;//write last chunk with correct size
     }
     //write chunk
+    //! @bug libnfs < 2.0.0 isn't const correct
     writtenBytes = gNfsConnection.GetImpl()->nfs_write(m_pNfsContext,
                                   m_pFileHandle,
                                   chunkSize,
-                                  (char *)lpBuf + numberOfBytesWritten);
+                                  const_cast<char*>((const char *)lpBuf) + numberOfBytesWritten);
     //decrease left bytes
     leftBytes-= writtenBytes;
     //increase overall written bytes

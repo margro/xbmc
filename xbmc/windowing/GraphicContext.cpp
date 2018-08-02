@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2005-2013 Team XBMC
- *      http://kodi.tv
+ *  Copyright (C) 2005-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with XBMC; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GraphicContext.h"
@@ -431,7 +419,6 @@ void CGraphicContext::SetVideoResolutionInternal(RESOLUTION res, bool forceUpdat
   // SetFullScreen() is called, so set them anyway and remember the old values.
   int origScreenWidth = m_iScreenWidth;
   int origScreenHeight = m_iScreenHeight;
-  int origScreenId = m_iScreenId;
   float origFPSOverride = m_fFPSOverride;
 
   UpdateInternalStateWithResolution(res);
@@ -471,7 +458,6 @@ void CGraphicContext::SetVideoResolutionInternal(RESOLUTION res, bool forceUpdat
     // Reset old state
     m_iScreenWidth = origScreenWidth;
     m_iScreenHeight = origScreenHeight;
-    m_iScreenId = origScreenId;
     m_fFPSOverride = origFPSOverride;
     if (IsValidResolution(lastRes))
     {
@@ -529,7 +515,6 @@ void CGraphicContext::UpdateInternalStateWithResolution(RESOLUTION res)
 
   m_iScreenWidth = info_mod.iWidth;
   m_iScreenHeight = info_mod.iHeight;
-  m_iScreenId = info_mod.iScreen;
   m_Resolution = res;
   m_fFPSOverride = 0;
 }
@@ -616,8 +601,6 @@ void CGraphicContext::ResetScreenParameters(RESOLUTION res)
 {
   // For now these are all on the first screen.
   RESOLUTION_INFO& info = CDisplaySettings::GetInstance().GetResolutionInfo(res);
-
-  info.iScreen = 0;
 
   // 1080i
   switch (res)
@@ -1130,7 +1113,7 @@ void CGraphicContext::ToggleFullScreen()
     if (CDisplaySettings::GetInstance().GetCurrentResolution() > RES_DESKTOP)
       uiRes = CDisplaySettings::GetInstance().GetCurrentResolution();
     else
-      uiRes = (RESOLUTION) CServiceBroker::GetWinSystem()->DesktopResolution(CServiceBroker::GetWinSystem()->GetCurrentScreen());
+      uiRes = RES_DESKTOP;
   }
 
   CDisplaySettings::GetInstance().SetCurrentResolution(uiRes, true);

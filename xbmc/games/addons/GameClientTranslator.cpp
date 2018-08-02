@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2016-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2016-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GameClientTranslator.h"
@@ -92,6 +80,19 @@ AVPixelFormat CGameClientTranslator::TranslatePixelFormat(GAME_PIXEL_FORMAT form
     break;
   }
   return AV_PIX_FMT_NONE;
+}
+
+GAME_PIXEL_FORMAT CGameClientTranslator::TranslatePixelFormat(AVPixelFormat format)
+{
+  switch (format)
+  {
+  case AV_PIX_FMT_0RGB32: return GAME_PIXEL_FORMAT_0RGB8888;
+  case AV_PIX_FMT_RGB565: return GAME_PIXEL_FORMAT_RGB565;
+  case AV_PIX_FMT_RGB555: return GAME_PIXEL_FORMAT_0RGB1555;
+  default:
+    break;
+  }
+  return GAME_PIXEL_FORMAT_UNKNOWN;
 }
 
 RETRO::PCMFormat CGameClientTranslator::TranslatePCMFormat(GAME_PCM_FORMAT format)

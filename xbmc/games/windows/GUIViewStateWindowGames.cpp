@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2012-2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2012-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #include "GUIViewStateWindowGames.h"
@@ -49,7 +37,7 @@ CGUIViewStateWindowGames::CGUIViewStateWindowGames(const CFileItemList& items) :
     AddSortMethod(SortByDriveType, 564, LABEL_MASKS());
     SetSortMethod(SortByLabel);
     SetSortOrder(SortOrderAscending);
-    SetViewAsControl(DEFAULT_VIEW_ICONS);
+    SetViewAsControl(DEFAULT_VIEW_LIST);
   }
   else
   {
@@ -104,23 +92,6 @@ VECSOURCES& CGUIViewStateWindowGames::GetSources()
   AddOrReplace(*pGameSources, CGUIViewState::GetSources());
 
   return *pGameSources;
-  /*
-  m_sources.clear();
-
-  // Files
-  {
-    CMediaSource share;
-    share.strPath = "sources://games/";
-    share.strName = g_localizeStrings.Get(744); // Files
-    share.m_iDriveType = CMediaSource::SOURCE_TYPE_LOCAL;
-    share.m_strThumbnailImage = "DefaultFolder.png";
-    m_sources.push_back(share);
-  }
-
-  // Add-ons
-  AddAddonsSource("game", g_localizeStrings.Get(27016), "DefaultAddonGame.png"); // Game Add-ons
-  return CGUIViewState::GetSources();
-  */
 }
 
 void CGUIViewStateWindowGames::SaveViewState()

@@ -1,21 +1,9 @@
 /*
- *      Copyright (C) 2017 Team Kodi
- *      http://kodi.tv
+ *  Copyright (C) 2017-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
  *
- *  This Program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This Program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this Program; see the file COPYING.  If not, see
- *  <http://www.gnu.org/licenses/>.
- *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
  */
 
 #pragma once
@@ -45,7 +33,7 @@ namespace RETRO
     virtual IRenderBufferPool *GetPool() = 0;
 
     // Buffer functions
-    virtual bool Allocate(AVPixelFormat format, unsigned int width, unsigned int height, size_t size) = 0;
+    virtual bool Allocate(AVPixelFormat format, unsigned int width, unsigned int height) = 0;
     virtual void Update() { } //! @todo Remove me
     virtual size_t GetFrameSize() const = 0;
     virtual uint8_t *GetMemory() = 0;
@@ -62,6 +50,8 @@ namespace RETRO
     void SetLoaded(bool bLoaded) { m_bLoaded = bLoaded; }
     bool IsRendered() const { return m_bRendered; }
     void SetRendered(bool bRendered) { m_bRendered = bRendered; }
+    unsigned int GetRotation() const { return m_rotationDegCCW; }
+    void SetRotation(unsigned int rotationDegCCW) { m_rotationDegCCW = rotationDegCCW; }
 
   protected:
     AVPixelFormat m_format = AV_PIX_FMT_NONE;
@@ -69,6 +59,7 @@ namespace RETRO
     unsigned int m_height = 0;
     bool m_bLoaded = false;
     bool m_bRendered = false;
+    unsigned int m_rotationDegCCW = 0;
   };
 }
 }
