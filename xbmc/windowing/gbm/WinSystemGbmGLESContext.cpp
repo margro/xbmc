@@ -17,9 +17,9 @@
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
 
-#include "WinSystemGbmGLESContext.h"
 #include "OptionalsReg.h"
 #include "utils/log.h"
+#include "WinSystemGbmGLESContext.h"
 
 #include <gbm.h>
 #include <EGL/egl.h>
@@ -28,7 +28,7 @@
 using namespace KODI;
 
 CWinSystemGbmGLESContext::CWinSystemGbmGLESContext()
-: m_pGLContext{EGL_PLATFORM_GBM_MESA, "EGL_MESA_platform_gbm"}
+: CWinSystemGbmEGLContext(EGL_PLATFORM_GBM_MESA, "EGL_MESA_platform_gbm")
 {}
 
 std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
@@ -44,29 +44,14 @@ bool CWinSystemGbmGLESContext::InitWindowSystem()
   RETRO::CRPProcessInfoGbm::RegisterRendererFactory(new RETRO::CRendererFactoryGBM);
   RETRO::CRPProcessInfoGbm::RegisterRendererFactory(new RETRO::CRendererFactoryOpenGLES);
 
-  if (!CWinSystemGbm::InitWindowSystem())
-  {
-    return false;
-  }
-
-  if (!m_pGLContext.CreatePlatformDisplay(m_GBM->GetDevice(), m_GBM->GetDevice(), EGL_OPENGL_ES2_BIT, EGL_OPENGL_ES_API))
-  {
-    return false;
-  }
-
-  const EGLint contextAttribs[] =
-  {
-    EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE
-  };
-
-  if (!m_pGLContext.CreateContext(contextAttribs))
+  if (!CWinSystemGbmEGLContext::InitWindowSystemEGL(EGL_OPENGL_ES2_BIT, EGL_OPENGL_ES_API))
   {
     return false;
   }
 
   bool general, deepColor;
   m_vaapiProxy.reset(GBM::VaapiProxyCreate());
-  GBM::VaapiProxyConfig(m_vaapiProxy.get(), m_pGLContext.GetEGLDisplay());
+  GBM::VaapiProxyConfig(m_vaapiProxy.get(), m_eglContext.GetEGLDisplay());
   GBM::VAAPIRegisterRender(m_vaapiProxy.get(), general, deepColor);
 
   if (general)
@@ -81,45 +66,6 @@ bool CWinSystemGbmGLESContext::InitWindowSystem()
   return true;
 }
 
-bool CWinSystemGbmGLESContext::DestroyWindowSystem()
-{
-  CDVDFactoryCodec::ClearHWAccels();
-  VIDEOPLAYER::CRendererFactory::ClearRenderer();
-
-  m_pGLContext.Destroy();
-
-  return CWinSystemGbm::DestroyWindowSystem();
-}
-
-bool CWinSystemGbmGLESContext::CreateNewWindow(const std::string& name,
-                                               bool fullScreen,
-                                               RESOLUTION_INFO& res)
-{
-  m_pGLContext.DestroySurface();
-
-  if (!CWinSystemGbm::DestroyWindow())
-  {
-    return false;
-  }
-
-  if (!CWinSystemGbm::CreateNewWindow(name, fullScreen, res))
-  {
-    return false;
-  }
-
-  if (!m_pGLContext.CreatePlatformSurface(m_GBM->GetSurface(), m_GBM->GetSurface()))
-  {
-    return false;
-  }
-
-  if (!m_pGLContext.BindContext())
-  {
-    return false;
-  }
-
-  return true;
-}
-
 bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
 {
   if (res.iWidth != m_nWidth ||
@@ -129,7 +75,7 @@ bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& r
     CreateNewWindow("", fullScreen, res);
   }
 
-  m_pGLContext.SwapBuffers();
+  m_eglContext.SwapBuffers();
 
   CWinSystemGbm::SetFullScreen(fullScreen, res, blankOtherDisplays);
   CRenderSystemGLES::ResetRenderSystem(res.iWidth, res.iHeight);
@@ -138,8 +84,8 @@ bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& r
   {
     CSingleLock lock(m_resourceSection);
 
-    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
-      (*i)->OnResetDisplay();
+    for (auto resource : m_resources)
+      resource->OnResetDisplay();
   }
 
   return true;
@@ -153,7 +99,7 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
   if (rendered || videoLayer)
   {
     if (rendered)
-      m_pGLContext.SwapBuffers();
+      m_eglContext.SwapBuffers();
     CWinSystemGbm::FlipPage(rendered, videoLayer);
   }
   else
@@ -166,32 +112,21 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
     m_delayDispReset = false;
     CSingleLock lock(m_resourceSection);
 
-    for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); ++i)
-      (*i)->OnResetDisplay();
+    for (auto resource : m_resources)
+      resource->OnResetDisplay();
   }
 }
 
-void CWinSystemGbmGLESContext::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
+bool CWinSystemGbmGLESContext::CreateContext()
 {
-  GBM::VaapiProxyDelete(p);
-}
-
-EGLDisplay CWinSystemGbmGLESContext::GetEGLDisplay() const
-{
-  return m_pGLContext.GetEGLDisplay();
-}
-
-EGLSurface CWinSystemGbmGLESContext::GetEGLSurface() const
-{
-  return m_pGLContext.GetEGLSurface();
-}
-
-EGLContext CWinSystemGbmGLESContext::GetEGLContext() const
-{
-  return m_pGLContext.GetEGLContext();
-}
-
-EGLConfig  CWinSystemGbmGLESContext::GetEGLConfig() const
-{
-  return m_pGLContext.GetEGLConfig();
+  const EGLint contextAttribs[] = {
+    EGL_CONTEXT_CLIENT_VERSION, 2,
+    EGL_NONE
+  };
+  if (!m_eglContext.CreateContext(contextAttribs))
+  {
+    CLog::Log(LOGERROR, "EGL context creation failed");
+    return false;
+  }
+  return true;
 }

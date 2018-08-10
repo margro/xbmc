@@ -3093,6 +3093,9 @@ bool CMusicDatabase::CleanupSongs(CGUIDialogProgress* progressDialog /*= nullptr
     int total;
     // Count total number of songs
     total = (int)strtol(GetSingleValue("SELECT COUNT(1) FROM song", m_pDS).c_str(), nullptr, 10);
+    // No songs to clean
+    if (total == 0)
+      return true;
 
     // run through all songs and get all unique path ids
     int iLIMIT = 1000;
@@ -5103,7 +5106,7 @@ bool CMusicDatabase::GetArtistsByWhereJSON(const std::set<std::string>& fields, 
           return false;
         strSongSQL = "SELECT " + songArtistFilter.fields + " FROM song_artist " + strSongSQL;
 
-        joinFilter.AppendJoin("JOIN ((" + strAlbumSQL + " UNION " + strSongSQL + ") AS albumSong) ON id = a1.idArtist");
+        joinFilter.AppendJoin("JOIN (" + strAlbumSQL + " UNION " + strSongSQL + ") AS albumSong ON id = a1.idArtist");
       }
       else
       { //Only join album_artist, so move filter elements to join filter
@@ -5235,7 +5238,6 @@ bool CMusicDatabase::GetArtistsByWhereJSON(const std::set<std::string>& fields, 
           sourceidlist.clear();
           roleidlist.clear();
           bArtDone = false;
-          bIsAlbumArtist = true;
         }
         if (m_pDS->eof())
           continue;  // Having saved the last artist stop
@@ -5856,7 +5858,7 @@ bool CMusicDatabase::GetAlbumsByWhereJSON(const std::set<std::string>& fields, c
               albumObj[JSONtoDBAlbum[dbfieldindex[i]].fieldJSON] = record->at(1 + i).get_asString();
           }
       }
-      if (bJoinAlbumArtist)
+      if (bJoinAlbumArtist && joinLayout.GetRecNo(joinToAlbum_idArtist) > -1)
       {
         if (artistId != record->at(joinLayout.GetRecNo(joinToAlbum_idArtist)).get_asInt())
         {
@@ -5873,14 +5875,15 @@ bool CMusicDatabase::GetAlbumsByWhereJSON(const std::set<std::string>& fields, c
           }
           else
           {
-            if (joinLayout.GetOutput(joinToAlbum_strArtist))
+            if (joinLayout.GetOutput(joinToAlbum_strArtist) && joinLayout.GetRecNo(joinToAlbum_strArtist) > -1)
               albumObj["artist"].append(record->at(joinLayout.GetRecNo(joinToAlbum_strArtist)).get_asString());
-            if (joinLayout.GetOutput(joinToAlbum_strArtistMBID))
+            if (joinLayout.GetOutput(joinToAlbum_strArtistMBID) && joinLayout.GetRecNo(joinToAlbum_strArtistMBID) > -1)
               albumObj["musicbrainzalbumartistid"].append(record->at(joinLayout.GetRecNo(joinToAlbum_strArtistMBID)).get_asString());
           }
         }        
       }
       if (!bSongGenreDone && joinLayout.GetRecNo(joinToAlbum_idSongGenre) > -1 &&
+          joinLayout.GetRecNo(joinToAlbum_strSongGenre) > -1 &&
           !record->at(joinLayout.GetRecNo(joinToAlbum_idSongGenre)).get_isNull())
       {
         CVariant genreObj;
@@ -7688,8 +7691,12 @@ bool CMusicDatabase::GetArtistPath(const CArtist& artist, std::string &path)
 bool CMusicDatabase::GetAlbumFolder(const CAlbum& album, const std::string &strAlbumPath, std::string &strFolder)
 {
   strFolder.clear();
+  // Get a name for the album folder that is unique for the artist to use when
+  // exporting albums to separate nfo files in a folder under an artist folder
 
-  // First try to get a *unique* album folder name from the music file paths
+  // When given an album path (common to all the music files containing *only*
+  // that album) check if that folder name is *unique* looking at folders on
+  // all levels of the music file paths for the artist
   if (!strAlbumPath.empty())
   {
     // Get last folder from full path
@@ -7697,58 +7704,51 @@ bool CMusicDatabase::GetAlbumFolder(const CAlbum& album, const std::string &strA
     if (!folders.empty())
     {
       strFolder = folders.back();
-      // Check paths to see folder name derived this way is unique for the (first) albumartist.
-      // Could have different albums on different path with same first album artist and folder name
-      // or duplicate albums from separate music files on different paths
-      // At least one will have mbid, so append it to start of mbid to folder.
+      // The same folder name could be used on different paths for albums by the
+      // same first artist. The albums could be totally different or also have
+      // the same name (but different mbid). Be over cautious and look for the
+      // name any where in the music file paths
       std::string strSQL = PrepareSQL("SELECT DISTINCT album_artist.idAlbum FROM album_artist "
         "JOIN song ON album_artist.idAlbum = song.idAlbum "
         "JOIN path on path.idPath = song.idPath "
         "WHERE album_artist.iOrder = 0 "
         "AND album_artist.idArtist = %ld "
-        "AND path.strPath LIKE '%%%s%%'",
+        "AND path.strPath LIKE '%%\\%s\\%%'",
         album.artistCredits[0].GetArtistId(), strFolder.c_str());
 
       if (!m_pDS2->query(strSQL))
         return false;
       int iRowsFound = m_pDS2->num_rows();
       m_pDS2->close();
-      if (iRowsFound > 1 && !album.strMusicBrainzAlbumID.empty())
-      { // Only one of the duplicate albums can be without mbid
-        strFolder += "_" + album.strMusicBrainzAlbumID.substr(0, 4);
-      }
-      return true;
+      if (iRowsFound == 1)
+        return true;
     }
   }
-  else
-  {
-    // Create a valid unique folder name from album title
-    // @todo: Does UFT8 matter or need normalizing?
-    // @todo: Simplify punctuation removing unicode appostraphes, "..." etc.?
-    strFolder = CUtil::MakeLegalFileName(album.strAlbum, LEGAL_WIN32_COMPAT);
-    StringUtils::Replace(strFolder, " _ ", "_");
+  // Create a valid unique folder name from album title
+  // @todo: Does UFT8 matter or need normalizing?
+  // @todo: Simplify punctuation removing unicode appostraphes, "..." etc.?
+  strFolder = CUtil::MakeLegalFileName(album.strAlbum, LEGAL_WIN32_COMPAT);
+  StringUtils::Replace(strFolder, " _ ", "_");
 
-    // Check <first albumartist name>/<albumname> is unique e.g. 2 x Bruckner Symphony No. 3
-    // To have duplicate albumartist/album names at least one will have mbid, so append start of mbid to folder.
-    // This will not handle names that only differ by reserved chars e.g. "a>album" and "a?name"
-    // will be unique in db, but produce same folder name "a_name", but that kind of album and artist naming is very unlikely
-    std::string strSQL = PrepareSQL("SELECT COUNT(album_artist.idAlbum) FROM album_artist "
-      "JOIN album ON album_artist.idAlbum = album.idAlbum "
-      "WHERE album_artist.iOrder = 0 "
-      "AND album_artist.idArtist = %ld "
-      "AND album.strAlbum LIKE '%s'  ",
-      album.artistCredits[0].GetArtistId(), album.strAlbum.c_str());
-    std::string strValue = GetSingleValue(strSQL, m_pDS2);
-    if (strValue.empty())
-      return false;
-    int countalbum = static_cast<int>(strtol(strValue.c_str(), NULL, 10));
-    if (countalbum > 1 && !album.strMusicBrainzAlbumID.empty())
-    { // Only one of the duplicate albums can be without mbid
-      strFolder += "_" + album.strMusicBrainzAlbumID.substr(0, 4);
-    }
-    return !strFolder.empty();
+  // Check <first albumartist name>/<albumname> is unique e.g. 2 x Bruckner Symphony No. 3
+  // To have duplicate albumartist/album names at least one will have mbid, so append start of mbid to folder.
+  // This will not handle names that only differ by reserved chars e.g. "a>album" and "a?name"
+  // will be unique in db, but produce same folder name "a_name", but that kind of album and artist naming is very unlikely
+  std::string strSQL = PrepareSQL("SELECT COUNT(album_artist.idAlbum) FROM album_artist "
+    "JOIN album ON album_artist.idAlbum = album.idAlbum "
+    "WHERE album_artist.iOrder = 0 "
+    "AND album_artist.idArtist = %ld "
+    "AND album.strAlbum LIKE '%s'  ",
+    album.artistCredits[0].GetArtistId(), album.strAlbum.c_str());
+  std::string strValue = GetSingleValue(strSQL, m_pDS2);
+  if (strValue.empty())
+    return false;
+  int countalbum = static_cast<int>(strtol(strValue.c_str(), NULL, 10));
+  if (countalbum > 1 && !album.strMusicBrainzAlbumID.empty())
+  { // Only one of the duplicate albums can be without mbid
+    strFolder += "_" + album.strMusicBrainzAlbumID.substr(0, 4);
   }
-  return false;
+  return !strFolder.empty();
 }
 
 bool CMusicDatabase::GetArtistFolderName(const CArtist &artist, std::string &strFolder)
@@ -7946,7 +7946,8 @@ int CMusicDatabase::GetSourceFromPath(const std::string& strPath1)
     if (m_pDS->num_rows() > 0)
       idSource = m_pDS->fv("idSource").get_asInt();
     m_pDS->close();
-    return idSource;
+    if (idSource > 0)
+      return idSource;
 
     // Check if path is a source path (of many) or a subfolder of a single source
     strSQL = PrepareSQL("SELECT DISTINCT idSource FROM source_path "
@@ -9774,7 +9775,7 @@ void CMusicDatabase::ExportToXML(const CLibExportSettings& settings,  CGUIDialog
     if (settings.IsSingleFile())
     {
       std::string xmlFile = URIUtils::AddFileToFolder(strFolder, "kodi_musicdb" + CDateTime::GetCurrentDateTime().GetAsDBDate() + ".xml");
-      if (!settings.m_overwrite && CFile::Exists(xmlFile))
+      if (CFile::Exists(xmlFile))
         xmlFile = URIUtils::AddFileToFolder(strFolder, "kodi_musicdb" + CDateTime::GetCurrentDateTime().GetAsSaveString() + ".xml");
       xmlDoc.SaveFile(xmlFile);
 
