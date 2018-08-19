@@ -2512,8 +2512,13 @@ void CVideoPlayer::OnExit()
   });
 
   CBookmark bookmark;
-  bookmark.totalTimeInSeconds = m_processInfo->GetMaxTime() / 1000;
-  bookmark.timeInSeconds = GetTime() / 1000;
+  bookmark.totalTimeInSeconds = 0;
+  bookmark.timeInSeconds = 0;
+  if (m_State.startTime == 0)
+  {
+    bookmark.totalTimeInSeconds = m_State.timeMax / 1000;
+    bookmark.timeInSeconds = m_State.time / 1000;
+  }
   bookmark.player = m_name;
   bookmark.playerState = GetPlayerState();
   m_outboundEvents->Submit([=]() {
@@ -2575,8 +2580,13 @@ void CVideoPlayer::HandleMessages()
       });
 
       CBookmark bookmark;
-      bookmark.totalTimeInSeconds = m_processInfo->GetMaxTime() / 1000;
-      bookmark.timeInSeconds = GetTime() / 1000;
+      bookmark.totalTimeInSeconds = 0;
+      bookmark.timeInSeconds = 0;
+      if (m_State.startTime == 0)
+      {
+        bookmark.totalTimeInSeconds = m_State.timeMax / 1000;
+        bookmark.timeInSeconds = m_State.time / 1000;
+      }
       bookmark.player = m_name;
       bookmark.playerState = GetPlayerState();
       m_outboundEvents->Submit([=]() {
@@ -4751,9 +4761,6 @@ void CVideoPlayer::UpdatePlayState(double timeout)
     state.timeMax = (double) m_Edl.RemoveCutTime(llrint(state.timeMax));
   }
 
-  if (state.timeMax <= 0)
-    state.canseek = false;
-
   if (m_caching > CACHESTATE_DONE && m_caching < CACHESTATE_PLAY)
     state.caching = true;
   else
@@ -4784,6 +4791,18 @@ void CVideoPlayer::UpdatePlayState(double timeout)
     state.cache_bytes = 0;
 
   state.timestamp = m_clock.GetAbsoluteClock();
+
+  if (state.timeMax <= 0)
+  {
+    state.timeMax = state.time;
+    state.timeMin = state.time;
+  }
+  if (state.timeMin == state.timeMax)
+  {
+    state.canseek = false;
+    state.canpause = false;
+    state.cantempo = false;
+  }
 
   m_processInfo->SetPlayTimes(state.startTime, state.time, state.timeMin, state.timeMax);
 

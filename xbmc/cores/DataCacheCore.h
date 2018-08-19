@@ -68,6 +68,7 @@ public:
   void SetVideoRender(bool video);
   bool GetVideoRender();
   void SetPlayTimes(time_t start, int64_t current, int64_t min, int64_t max);
+  void GetPlayTimes(time_t &start, int64_t &current, int64_t &min, int64_t &max);
 
   /*!
    * \brief Get the start time
@@ -84,6 +85,13 @@ public:
    * This is the time elapsed, in ms, since the start time.
    */
   int64_t GetPlayTime();
+
+  /*!
+   * \brief Get the current percentage of playback if a playback buffer is available.
+   *
+   *  If there is no playback buffer, percentage will be 0.
+   */
+  float GetPlayPercentage();
 
   /*!
    * \brief Get the minumum time

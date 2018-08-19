@@ -41,6 +41,7 @@
 #define SETTING_VIDEO_VERTICAL_SHIFT      "video.verticalshift"
 #define SETTING_VIDEO_TONEMAP_METHOD      "video.tonemapmethod"
 #define SETTING_VIDEO_TONEMAP_PARAM       "video.tonemapparam"
+#define SETTING_VIDEO_ORIENTATION         "video.orientation"
 
 #define SETTING_VIDEO_VDPAU_NOISE         "vdpau.noise"
 #define SETTING_VIDEO_VDPAU_SHARPNESS     "vdpau.sharpness"
@@ -176,6 +177,12 @@ void CGUIDialogVideoSettings::OnSettingChanged(std::shared_ptr<const CSetting> s
   {
     CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
     vs.m_ToneMapParam = static_cast<float>(std::static_pointer_cast<const CSettingNumber>(setting)->GetValue());
+    g_application.GetAppPlayer().SetVideoSettings(vs);
+  }
+  else if (settingId == SETTING_VIDEO_ORIENTATION)
+  {
+    CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
+    vs.m_Orientation = std::static_pointer_cast<const CSettingInt>(setting)->GetValue();
     g_application.GetAppPlayer().SetVideoSettings(vs);
   }
   else if (settingId == SETTING_VIDEO_STEREOSCOPICMODE)
@@ -373,6 +380,9 @@ void CGUIDialogVideoSettings::InitializeSettings()
     AddSlider(groupVideo, SETTING_VIDEO_VERTICAL_SHIFT, 225, SettingLevel::Basic, videoSettings.m_CustomVerticalShift, "%2.2f", -2.0f, 0.01f, 2.0f, 225, usePopup);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_PIXEL_RATIO))
     AddSlider(groupVideo, SETTING_VIDEO_PIXEL_RATIO, 217, SettingLevel::Basic, videoSettings.m_CustomPixelRatio, "%2.2f", 0.5f, 0.01f, 2.0f, 217, usePopup);
+
+  AddList(groupVideo, SETTING_VIDEO_ORIENTATION, 21843, SettingLevel::Basic, videoSettings.m_Orientation, CGUIDialogVideoSettings::VideoOrientationFiller, 21843);
+
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_POSTPROCESS))
     AddToggle(groupVideo, SETTING_VIDEO_POSTPROCESS, 16400, SettingLevel::Basic, videoSettings.m_PostProcess);
   if (g_application.GetAppPlayer().Supports(RENDERFEATURE_BRIGHTNESS))
@@ -472,17 +482,25 @@ void CGUIDialogVideoSettings::VideoStreamsOptionFiller(std::shared_ptr<const CSe
   }
 }
 
+void CGUIDialogVideoSettings::VideoOrientationFiller(std::shared_ptr<const CSetting> setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+{
+  list.push_back(std::make_pair(g_localizeStrings.Get(687), 0));
+  list.push_back(std::make_pair(g_localizeStrings.Get(35229), 90));
+  list.push_back(std::make_pair(g_localizeStrings.Get(35230), 180));
+  list.push_back(std::make_pair(g_localizeStrings.Get(35231), 270));
+}
+
 std::string CGUIDialogVideoSettings::FormatFlags(StreamFlags flags)
 {
   std::vector<std::string> localizedFlags;
   if (flags & StreamFlags::FLAG_DEFAULT)
-    localizedFlags.emplace_back(g_localizeStrings.Get(39104));
-  if (flags & StreamFlags::FLAG_FORCED)
     localizedFlags.emplace_back(g_localizeStrings.Get(39105));
-  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
+  if (flags & StreamFlags::FLAG_FORCED)
     localizedFlags.emplace_back(g_localizeStrings.Get(39106));
-  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
+  if (flags & StreamFlags::FLAG_HEARING_IMPAIRED)
     localizedFlags.emplace_back(g_localizeStrings.Get(39107));
+  if (flags &  StreamFlags::FLAG_VISUAL_IMPAIRED)
+    localizedFlags.emplace_back(g_localizeStrings.Get(39108));
 
   std::string formated = StringUtils::Join(localizedFlags, ", ");
 
