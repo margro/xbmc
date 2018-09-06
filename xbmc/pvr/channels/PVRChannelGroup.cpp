@@ -66,7 +66,6 @@ CPVRChannelGroup::CPVRChannelGroup(const CPVRChannelGroup &group) :
   m_bUsingBackendChannelNumbers = group.m_bUsingBackendChannelNumbers;
   m_iLastWatched                = group.m_iLastWatched;
   m_bHidden                     = group.m_bHidden;
-  m_bSelectedGroup              = group.m_bSelectedGroup;
   m_bPreventSortAndRenumber     = group.m_bPreventSortAndRenumber;
   m_members                     = group.m_members;
   m_sortedMembers               = group.m_sortedMembers;
@@ -290,7 +289,6 @@ bool CPVRChannelGroup::SortAndRenumber(void)
     SortByChannelNumber();
 
   bool bReturn = Renumber();
-  ResetChannelNumberCache();
   return bReturn;
 }
 
@@ -489,20 +487,28 @@ PVR_CHANNEL_GROUP_SORTED_MEMBERS CPVRChannelGroup::GetMembers(void) const
   return m_sortedMembers;
 }
 
-int CPVRChannelGroup::GetMembers(CFileItemList &results, bool bGroupMembers /* = true */) const
+int CPVRChannelGroup::GetMembers(CFileItemList &results, Include eFilter /* = Include::ONLY_VISIBLE */) const
 {
-  const CPVRChannelGroup* channels = bGroupMembers ? this : CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_bRadio).get();
   int iOrigSize = results.Size();
+  CSingleLock lock(m_critSection);
 
-  CSingleLock lock(channels->m_critSection);
-
-  for (PVR_CHANNEL_GROUP_SORTED_MEMBERS::const_iterator it = channels->m_sortedMembers.begin(); it != channels->m_sortedMembers.end(); ++it)
+  for (const auto& member : m_sortedMembers)
   {
-    if (bGroupMembers || !IsGroupMember((*it).channel))
+    switch (eFilter)
     {
-      CFileItemPtr pFileItem(new CFileItem((*it).channel));
-      results.Add(pFileItem);
+      case Include::ONLY_HIDDEN:
+        if (!member.channel->IsHidden())
+          continue;
+        break;
+      case Include::ONLY_VISIBLE:
+        if (member.channel->IsHidden())
+          continue;
+       break;
+      default:
+        break;
     }
+
+    results.Add(std::make_shared<CFileItem>(member.channel));
   }
 
   return results.Size() - iOrigSize;
@@ -838,25 +844,12 @@ bool CPVRChannelGroup::Renumber(void)
       m_bChanged = true;
       (*it).channelNumber = currentChannelNumber;
     }
+
+    (*it).channel->SetChannelNumber((*it).channelNumber);
   }
 
   SortByChannelNumber();
-  ResetChannelNumberCache();
-
   return bReturn;
-}
-
-void CPVRChannelGroup::ResetChannelNumberCache(void)
-{
-  CSingleLock lock(m_critSection);
-  if (!m_bSelectedGroup)
-    return;
-
-  /* set all channel numbers on members of this group */
-  for (PVR_CHANNEL_GROUP_SORTED_MEMBERS::iterator it = m_sortedMembers.begin(); it != m_sortedMembers.end(); ++it)
-  {
-    (*it).channel->SetChannelNumber((*it).channelNumber);
-  }
 }
 
 bool CPVRChannelGroup::HasChangedChannels(void) const
@@ -926,34 +919,6 @@ void CPVRChannelGroup::OnSettingChanged(std::shared_ptr<const CSetting> setting)
       Persist();
     }
   }
-}
-
-int CPVRChannelGroup::GetEPGNowOrNext(CFileItemList &results, bool bGetNext) const
-{
-  int iInitialSize = results.Size();
-  CPVREpgInfoTagPtr epgNext;
-  CPVRChannelPtr channel;
-  CSingleLock lock(m_critSection);
-
-  for (PVR_CHANNEL_GROUP_SORTED_MEMBERS::const_iterator it = m_sortedMembers.begin(); it != m_sortedMembers.end(); ++it)
-  {
-    channel = (*it).channel;
-    CPVREpgPtr epg = channel->GetEPG();
-    if (epg && !channel->IsHidden())
-    {
-      epgNext = bGetNext ? epg->GetTagNext() : epg->GetTagNow();
-      if (epgNext)
-      {
-        CFileItemPtr entry(new CFileItem(epgNext));
-        entry->SetLabel2(epgNext->StartAsLocalTime().GetAsLocalizedTime("", false));
-        entry->SetPath(channel->Path());
-        entry->SetArt("thumb", channel->IconPath());
-        results.Add(entry);
-      }
-    }
-  }
-
-  return results.Size() - iInitialSize;
 }
 
 int CPVRChannelGroup::GetEPGAll(CFileItemList &results, bool bIncludeChannelsWithoutEPG /* = false */) const
@@ -1145,12 +1110,6 @@ bool CPVRChannelGroup::HasChannels() const
 {
   CSingleLock lock(m_critSection);
   return !m_members.empty();
-}
-
-void CPVRChannelGroup::SetSelectedGroup(bool bSetTo)
-{
-  CSingleLock lock(m_critSection);
-  m_bSelectedGroup = bSetTo;
 }
 
 bool CPVRChannelGroup::CreateChannelEpgs(bool bForce /* = false */)

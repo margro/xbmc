@@ -3645,6 +3645,11 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///                  _string_,
 ///     Returns the title of the epg event associated with the item\, if any
 ///   }
+///   \table_row3{   <b>`ListItem.EpgEventIcon`</b>,
+///                  \anchor ListItem_EpgEventIcon
+///                  _string_,
+///     Returns the thumbnail for the epg event associated with the item (if it exists)
+///   }
 ///   \table_row3{   <b>`ListItem.InProgress`</b>,
 ///                  \anchor ListItem_InProgress
 ///                  _boolean_,
@@ -3898,6 +3903,7 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "episodename",      LISTITEM_EPISODENAME },
                                   { "timertype",        LISTITEM_TIMERTYPE },
                                   { "epgeventtitle",    LISTITEM_EPG_EVENT_TITLE },
+                                  { "epgeventicon",     LISTITEM_EPG_EVENT_ICON },
                                   { "timerisactive",    LISTITEM_TIMERISACTIVE },
                                   { "timerhaserror",    LISTITEM_TIMERHASERROR },
                                   { "timerhasconflict", LISTITEM_TIMERHASCONFLICT },
@@ -4558,6 +4564,31 @@ const infomap playlist[] =       {{ "length",           PLAYLIST_LENGTH },
 ///                  _boolean_,
 ///     Returns true if PVR is currently playing a channel and if this channel is currently recorded.
 ///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressPlayPos`</b>,
+///                  \anchor PVR_TimeshiftProgressPlayPos
+///                  _integer_,
+///     Returns the percentage of the current play position within the PVR timeshift progress.
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressEpgStart`</b>,
+///                  \anchor PVR_TimeshiftProgressEpgStart
+///                  _integer_,
+///     Returns the percentage of the start of the currently playing epg event within the PVR timeshift progress.
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressEpgEnd`</b>,
+///                  \anchor PVR_TimeshiftProgressEpgEnd
+///                  _integer_,
+///     Returns the percentage of the end of the currently playing epg event within the PVR timeshift progress.
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressBufferStart`</b>,
+///                  \anchor PVR_TimeshiftProgressBufferStart
+///                  _integer_,
+///     Returns the percentage of the start of the timeshift buffer within the PVR timeshift progress.
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressBufferEnd`</b>,
+///                  \anchor PVR_TimeshiftProgressBufferEnd
+///                  _integer_,
+///     Returns the percentage of the end of the timeshift buffer within the PVR timeshift progress.
+///   }
 /// \table_end
 ///
 /// -----------------------------------------------------------------------------
@@ -4632,13 +4663,23 @@ const infomap pvr[] =            {{ "isrecording",              PVR_IS_RECORDING
                                   { "hasnonrecordingradiotimer",  PVR_HAS_NONRECORDING_RADIO_TIMER },
                                   { "channelnumberinput",         PVR_CHANNEL_NUMBER_INPUT },
                                   { "canrecordplayingchannel",    PVR_CAN_RECORD_PLAYING_CHANNEL },
-                                  { "isrecordingplayingchannel",  PVR_IS_RECORDING_PLAYING_CHANNEL }};
+                                  { "isrecordingplayingchannel",  PVR_IS_RECORDING_PLAYING_CHANNEL },
+                                  { "timeshiftprogressplaypos",   PVR_TIMESHIFT_PROGRESS_PLAY_POS },
+                                  { "timeshiftprogressepgstart",  PVR_TIMESHIFT_PROGRESS_EPG_START },
+                                  { "timeshiftprogressepgend",    PVR_TIMESHIFT_PROGRESS_EPG_END },
+                                  { "timeshiftprogressbufferstart", PVR_TIMESHIFT_PROGRESS_BUFFER_START },
+                                  { "timeshiftprogressbufferend", PVR_TIMESHIFT_PROGRESS_BUFFER_END }};
 
 /// \page modules__General__List_of_gui_access
 /// \section modules__General__List_of_gui_access_PvrTimes PvrTimes
 /// @{
 /// \table_start
 ///   \table_h3{ Labels, Type, Description }
+///   \table_row3{   <b>`PVR.EpgEventIcon`</b>,
+///                  \anchor PVR_EpgEventIcon
+///                  _string_,
+///     Returns the icon of the currently playing epg event, if any.
+///   }
 ///   \table_row3{   <b>`PVR.EpgEventDuration`</b>,
 ///                  \anchor PVR_EpgEventDuration
 ///                  _string_,
@@ -4774,11 +4815,57 @@ const infomap pvr[] =            {{ "isrecording",              PVR_IS_RECORDING
 ///     Added with Leia: (secs)\, (mins)\, (hours) for total time values and (m).
 ///     Example: 3661 seconds => h=1\, hh=01\, m=1\, mm=01\, ss=01\, hours=1\, mins=61\, secs=3661
 ///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressDuration`</b>,
+///                  \anchor PVR_TimeshiftProgressDuration
+///                  _string_,
+///     Returns the duration of the PVR timeshift progress in the
+///     format hh:mm:ss. hh: will be omitted if hours value is zero.
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressDuration(format)`</b>,
+///                  \anchor PVR_TimeshiftProgressDuration_format
+///                  _string_,
+///     Returns the duration of the PVR timeshift progress in different formats:
+///     Hours (hh)\, minutes (mm) or seconds (ss).
+///     Also supported: (hh:mm)\, (mm:ss)\, (hh:mm:ss)\, (h:mm:ss).
+///     Added with Leia: (secs)\, (mins)\, (hours) for total time values and (m).
+///     Example: 3661 seconds => h=1\, hh=01\, m=1\, mm=01\, ss=01\, hours=1\, mins=61\, secs=3661
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressStartTime`</b>,
+///                  \anchor PVR_TimeshiftProgressStartTime
+///                  _string_,
+///     Returns the start time of the PVR timeshift progress in the
+///     format hh:mm:ss. hh: will be omitted if hours value is zero.
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressStartTime(format)`</b>,
+///                  \anchor PVR_TimeshiftProgressStartTime_format
+///                  _string_,
+///     Returns the start time of the PVR timeshift progress in different formats:
+///     Hours (hh)\, minutes (mm) or seconds (ss).
+///     Also supported: (hh:mm)\, (mm:ss)\, (hh:mm:ss)\, (h:mm:ss).
+///     Added with Leia: (secs)\, (mins)\, (hours) for total time values and (m).
+///     Example: 3661 seconds => h=1\, hh=01\, m=1\, mm=01\, ss=01\, hours=1\, mins=61\, secs=3661
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressEndTime`</b>,
+///                  \anchor PVR_TimeshiftProgressEndTime
+///                  _string_,
+///     Returns the end time of the PVR timeshift progress in the
+///     format hh:mm:ss. hh: will be omitted if hours value is zero.
+///   }
+///   \table_row3{   <b>`PVR.TimeshiftProgressEndTime(format)`</b>,
+///                  \anchor PVR_TimeshiftProgressEndTime_format
+///                  _string_,
+///     Returns the end time of the PVR timeshift progress in different formats:
+///     Hours (hh)\, minutes (mm) or seconds (ss).
+///     Also supported: (hh:mm)\, (mm:ss)\, (hh:mm:ss)\, (h:mm:ss).
+///     Added with Leia: (secs)\, (mins)\, (hours) for total time values and (m).
+///     Example: 3661 seconds => h=1\, hh=01\, m=1\, mm=01\, ss=01\, hours=1\, mins=61\, secs=3661
+///   }
 /// \table_end
 ///
 /// -----------------------------------------------------------------------------
 /// @}
-const infomap pvr_times[] =      {{ "epgeventduration",       PVR_EPG_EVENT_DURATION },
+const infomap pvr_times[] =      {{ "epgeventicon",           PVR_EPG_EVENT_ICON },
+                                  { "epgeventduration",       PVR_EPG_EVENT_DURATION },
                                   { "epgeventelapsedtime",    PVR_EPG_EVENT_ELAPSED_TIME },
                                   { "epgeventremainingtime",  PVR_EPG_EVENT_REMAINING_TIME },
                                   { "epgeventfinishtime",     PVR_EPG_EVENT_FINISH_TIME },
@@ -4786,7 +4873,10 @@ const infomap pvr_times[] =      {{ "epgeventduration",       PVR_EPG_EVENT_DURA
                                   { "timeshiftstart",         PVR_TIMESHIFT_START_TIME },
                                   { "timeshiftend",           PVR_TIMESHIFT_END_TIME },
                                   { "timeshiftcur",           PVR_TIMESHIFT_PLAY_TIME },
-                                  { "timeshiftoffset",        PVR_TIMESHIFT_OFFSET }};
+                                  { "timeshiftoffset",        PVR_TIMESHIFT_OFFSET },
+                                  { "timeshiftprogressduration",  PVR_TIMESHIFT_PROGRESS_DURATION },
+                                  { "timeshiftprogressstarttime", PVR_TIMESHIFT_PROGRESS_START_TIME },
+                                  { "timeshiftprogressendtime",   PVR_TIMESHIFT_PROGRESS_END_TIME }};
 
 /// \page modules__General__List_of_gui_access
 /// \section modules__General__List_of_gui_access_RDS Radio RDS
@@ -6524,7 +6614,22 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
           if (info.GetData2() < 0) // info labels are stored with negative numbers
           {
             int info2 = -info.GetData2();
-            if (item && item->IsFileItem() && IsListItemInfo(info2))
+            CGUIListItemPtr item2;
+
+            if (IsListItemInfo(info2))
+            {
+              int iResolvedInfo2 = ResolveMultiInfo(info2);
+              if (iResolvedInfo2 != 0)
+              {
+                const GUIINFO::CGUIInfo& resolvedInfo2 = m_multiInfo[iResolvedInfo2 - MULTI_INFO_START];
+                if (resolvedInfo2.GetInfoFlag() & INFOFLAG_LISTITEM_CONTAINER)
+                  item2 = GUIINFO::GetCurrentListItem(contextWindow, resolvedInfo2.GetData1()); // data1 contains the container id
+              }
+            }
+
+            if (item2 && item2->IsFileItem())
+              compare = GetItemImage(item2.get(), contextWindow, info2);
+            else if (item && item->IsFileItem())
               compare = GetItemImage(item, contextWindow, info2);
             else
               compare = GetImage(info2, contextWindow);
@@ -6759,11 +6864,13 @@ void CGUIInfoManager::UpdateAVInfo()
   {
     VideoStreamInfo video;
     AudioStreamInfo audio;
+    SubtitleStreamInfo subtitle;
 
     g_application.GetAppPlayer().GetVideoStreamInfo(CURRENT_STREAM, video);
     g_application.GetAppPlayer().GetAudioStreamInfo(CURRENT_STREAM, audio);
+    g_application.GetAppPlayer().GetSubtitleStreamInfo(CURRENT_STREAM, subtitle);
 
-    m_infoProviders.UpdateAVInfo(audio, video);
+    m_infoProviders.UpdateAVInfo(audio, video, subtitle);
   }
 }
 
@@ -6779,6 +6886,20 @@ int CGUIInfoManager::AddMultiInfo(const CGUIInfo &info)
   if (id > MULTI_INFO_END)
     CLog::Log(LOGERROR, "%s - too many multiinfo bool/labels in this skin", __FUNCTION__);
   return id;
+}
+
+int CGUIInfoManager::ResolveMultiInfo(int info) const
+{
+  int iLastInfo = 0;
+
+  int iResolvedInfo = info;
+  while (iResolvedInfo >= MULTI_INFO_START && iResolvedInfo <= MULTI_INFO_END)
+  {
+    iLastInfo = iResolvedInfo;
+    iResolvedInfo = m_multiInfo[iResolvedInfo - MULTI_INFO_START].m_info;
+  }
+
+  return iLastInfo;
 }
 
 bool CGUIInfoManager::IsListItemInfo(int info) const

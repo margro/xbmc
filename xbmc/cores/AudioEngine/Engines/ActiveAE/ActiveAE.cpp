@@ -2931,40 +2931,45 @@ bool CActiveAE::CompareFormat(AEAudioFormat &lhs, AEAudioFormat &rhs)
  * later when the engine is idle it will convert the sound to sink format
  */
 
-#define SOUNDBUFFER_SIZE 20480
-
 IAESound *CActiveAE::MakeSound(const std::string& file)
 {
-  AVFormatContext *fmt_ctx = NULL;
-  AVCodecContext *dec_ctx = NULL;
+  AVFormatContext *fmt_ctx = nullptr;
+  AVCodecContext *dec_ctx = nullptr;
   AVIOContext *io_ctx;
-  AVInputFormat *io_fmt = NULL;
-  AVCodec *dec = NULL;
-  CActiveAESound *sound = NULL;
+  AVInputFormat *io_fmt = nullptr;
+  AVCodec *dec = nullptr;
+  CActiveAESound *sound = nullptr;
   SampleConfig config;
 
   sound = new CActiveAESound(file, this);
   if (!sound->Prepare())
   {
     delete sound;
-    return NULL;
+    return nullptr;
   }
   int fileSize = sound->GetFileSize();
 
-  fmt_ctx = avformat_alloc_context();
-  unsigned char* buffer = (unsigned char*)av_malloc(SOUNDBUFFER_SIZE+AV_INPUT_BUFFER_PADDING_SIZE);
-  io_ctx = avio_alloc_context(buffer, SOUNDBUFFER_SIZE, 0,
-                                            sound, CActiveAESound::Read, NULL, CActiveAESound::Seek);
-  io_ctx->max_packet_size = sound->GetChunkSize();
-  if(io_ctx->max_packet_size)
-    io_ctx->max_packet_size *= SOUNDBUFFER_SIZE / io_ctx->max_packet_size;
+  int bufferSize = 4096;
+  int blockSize = sound->GetChunkSize();
+  if (blockSize > 1)
+    bufferSize = blockSize;
 
-  if(!sound->IsSeekPossible())
+  fmt_ctx = avformat_alloc_context();
+  unsigned char* buffer = (unsigned char*)av_malloc(bufferSize);
+  io_ctx = avio_alloc_context(buffer, bufferSize, 0,
+                              sound, CActiveAESound::Read, NULL, CActiveAESound::Seek);
+
+  io_ctx->max_packet_size = bufferSize;
+
+  if (!sound->IsSeekPossible())
+  {
     io_ctx->seekable = 0;
+    io_ctx->max_packet_size = 0;
+  }
 
   fmt_ctx->pb = io_ctx;
 
-  av_probe_input_buffer(io_ctx, &io_fmt, file.c_str(), NULL, 0, 0);
+  av_probe_input_buffer(io_ctx, &io_fmt, file.c_str(), nullptr, 0, 0);
   if (!io_fmt)
   {
     avformat_close_input(&fmt_ctx);
@@ -2978,10 +2983,10 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
   }
 
   // find decoder
-  if (avformat_open_input(&fmt_ctx, file.c_str(), NULL, NULL) == 0)
+  if (avformat_open_input(&fmt_ctx, file.c_str(), nullptr, nullptr) == 0)
   {
     fmt_ctx->flags |= AVFMT_FLAG_NOPARSE;
-    if (avformat_find_stream_info(fmt_ctx, NULL) >= 0)
+    if (avformat_find_stream_info(fmt_ctx, nullptr) >= 0)
     {
       AVCodecID codecId = fmt_ctx->streams[0]->codecpar->codec_id;
       dec = avcodec_find_decoder(codecId);
@@ -3012,32 +3017,25 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
   AVPacket avpkt;
   AVFrame *decoded_frame = NULL;
   decoded_frame = av_frame_alloc();
+  bool error = false;
 
-  if (avcodec_open2(dec_ctx, dec, NULL) >= 0)
+  if (avcodec_open2(dec_ctx, dec, nullptr) >= 0)
   {
     bool init = false;
 
     // decode until eof
     av_init_packet(&avpkt);
-    int len;
-    while (av_read_frame(fmt_ctx, &avpkt) >= 0)
+    int ret;
+    while (av_read_frame(fmt_ctx, &avpkt) >= 0 && !error)
     {
-      int got_frame = 0;
-      len = avcodec_decode_audio4(dec_ctx, decoded_frame, &got_frame, &avpkt);
-      if (len < 0)
+      ret = avcodec_send_packet(dec_ctx, &avpkt);
+      if (ret < 0)
       {
-        av_frame_free(&decoded_frame);
-        avcodec_free_context(&dec_ctx);
-        avformat_close_input(&fmt_ctx);
-        if (io_ctx)
-        {
-          av_freep(&io_ctx->buffer);
-          av_freep(&io_ctx);
-        }
-        delete sound;
-        return NULL;
+        error = true;
+        break;
       }
-      if (got_frame)
+
+      while ((ret = avcodec_receive_frame(dec_ctx, decoded_frame)) == 0)
       {
         if (!init)
         {
@@ -3051,6 +3049,26 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
                           decoded_frame->nb_samples, decoded_frame->linesize[0]);
       }
       av_packet_unref(&avpkt);
+
+      if (ret < 0 && ret != AVERROR(EAGAIN))
+      {
+        error = true;
+        break;
+      }
+    }
+    ret = avcodec_send_packet(dec_ctx, nullptr);
+    while ((ret = avcodec_receive_frame(dec_ctx, decoded_frame)) != AVERROR_EOF)
+    {
+      if (ret == 0)
+      {
+        sound->StoreSound(true, decoded_frame->extended_data,
+                          decoded_frame->nb_samples, decoded_frame->linesize[0]);
+      }
+      else
+      {
+        error = true;
+        break;
+      }
     }
   }
 
@@ -3061,6 +3079,12 @@ IAESound *CActiveAE::MakeSound(const std::string& file)
   {
     av_freep(&io_ctx->buffer);
     av_freep(&io_ctx);
+  }
+
+  if (error)
+  {
+    delete sound;
+    return nullptr;
   }
 
   sound->Finish();
