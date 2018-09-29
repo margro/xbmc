@@ -12,7 +12,7 @@ SET PATH=%PATH%;C:\Program Files (x86)\CMake\bin
 
 cd %~dp0\..
 SET KODI_SRC=%CD%
-SET SOLUTION_DIR=%KODI_SRC%\project\VS2015
+SET SOLUTION_DIR=%KODI_SRC%\project\VS2015_x64
 
 IF NOT EXIST %SOLUTION_DIR% (
 	mkdir %SOLUTION_DIR%
@@ -20,7 +20,7 @@ IF NOT EXIST %SOLUTION_DIR% (
 
 cd %SOLUTION_DIR%
 
-cmake %KODI_SRC% -G "Visual Studio 14" -DCMAKE_SYSTEM_VERSION="8.1"
+cmake %KODI_SRC% -G "Visual Studio 14" -T host=x64 -DCMAKE_SYSTEM_VERSION="8.1"
 
 set KODI_HOME=%SOLUTION_DIR%
 set PATH=%SOLUTION_DIR%\system;%PATH%

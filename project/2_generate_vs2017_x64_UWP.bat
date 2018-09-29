@@ -12,7 +12,7 @@ SET PATH=%PATH%;C:\Program Files (x86)\CMake\bin
 
 cd %~dp0\..
 SET KODI_SRC=%CD%
-SET SOLUTION_DIR=%KODI_SRC%\project\VS2015
+SET SOLUTION_DIR=%KODI_SRC%\project\VS2017-UWP-x64
 
 IF NOT EXIST %SOLUTION_DIR% (
 	mkdir %SOLUTION_DIR%
@@ -20,10 +20,12 @@ IF NOT EXIST %SOLUTION_DIR% (
 
 cd %SOLUTION_DIR%
 
-cmake %KODI_SRC% -G "Visual Studio 14" -DCMAKE_SYSTEM_VERSION="8.1"
+cmake %KODI_SRC% -G "Visual Studio 15 Win64" -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -T host=x64 || pause
+REM -DCMAKE_SYSTEM_VERSION="8.1"
 
 set KODI_HOME=%SOLUTION_DIR%
 set PATH=%SOLUTION_DIR%\system;%PATH%
 IF EXIST %SOLUTION_DIR%\kodi.sln (
-	start %SOLUTION_DIR%\kodi.sln
+	copy %SOLUTION_DIR%\kodi.sln %SOLUTION_DIR%\kodi-pvr.sln
+	start %SOLUTION_DIR%\kodi-pvr.sln
 )

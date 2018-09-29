@@ -380,3 +380,5 @@ exclude_dll.txt
 # VS git tools doesn't work for true out of tree builds and it's
 # useful to be able to work on multiple configs
 /build*/
+/project/VS2017-x86
+/project/VS2017-x64
