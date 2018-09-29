@@ -266,8 +266,8 @@ bool CGUIWindowPVRRecordingsBase::OnMessage(CGUIMessage &message)
       }
       else if (message.GetSenderId() == CONTROL_BTNGROUPITEMS)
       {
-        CServiceBroker::GetSettings().ToggleBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
-        CServiceBroker::GetSettings().Save();
+        CServiceBroker::GetSettings()->ToggleBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
+        CServiceBroker::GetSettings()->Save();
         Refresh(true);
       }
       else if (message.GetSenderId() == CONTROL_BTNSHOWDELETED)
@@ -283,7 +283,7 @@ bool CGUIWindowPVRRecordingsBase::OnMessage(CGUIMessage &message)
       else if (message.GetSenderId() == CONTROL_BTNSHOWMODE)
       {
         CMediaSettings::GetInstance().CycleWatchedMode("recordings");
-        CServiceBroker::GetSettings().Save();
+        CServiceBroker::GetSettings()->Save();
         OnFilterItems(GetProperty("filter").asString());
         UpdateButtons();
         return true;
@@ -331,11 +331,10 @@ void CGUIWindowPVRRecordingsBase::OnPrepareFileItems(CFileItemList& items)
     return;
 
   CFileItemList files;
-  VECFILEITEMS vecItems = items.GetList();
-  for (VECFILEITEMS::const_iterator it = vecItems.begin(); it != vecItems.end(); ++it)
+  for (const auto& item : items)
   {
-    if (!(*it)->m_bIsFolder)
-      files.Add((*it));
+    if (!item->m_bIsFolder)
+      files.Add(item);
   }
 
   if (!files.IsEmpty())

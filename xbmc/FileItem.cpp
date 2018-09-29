@@ -124,7 +124,7 @@ void CFileItem::FillMusicInfoTag(const CPVRChannelPtr& channel, const CPVREpgInf
       musictag->SetGenre(tag->Genre());
       musictag->SetDuration(tag->GetDuration());
     }
-    else if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_EPG_HIDENOINFOAVAILABLE))
+    else if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_EPG_HIDENOINFOAVAILABLE))
     {
       musictag->SetTitle(g_localizeStrings.Get(19055)); // no information available
     }
@@ -145,7 +145,6 @@ CFileItem::CFileItem(const CPVREpgInfoTagPtr& tag)
   m_epgInfoTag = tag;
   m_strPath = tag->Path();
   SetLabel(tag->Title());
-  m_strLabel2 = tag->Plot();
   m_dateTime = tag->StartAsLocalTime();
 
   if (!tag->Icon().empty())
@@ -167,9 +166,6 @@ CFileItem::CFileItem(const CPVRChannelPtr& channel)
   m_bIsFolder = false;
   m_pvrChannelInfoTag = channel;
   SetLabel(channel->ChannelName());
-  m_strLabel2 = epgNow ? epgNow->Title() :
-      CServiceBroker::GetSettings().GetBool(CSettings::SETTING_EPG_HIDENOINFOAVAILABLE) ?
-                            "" : g_localizeStrings.Get(19055); // no information available
 
   if (!channel->IconPath().empty())
     SetIconImage(channel->IconPath());
@@ -194,7 +190,21 @@ CFileItem::CFileItem(const CPVRRecordingPtr& record)
   m_pvrRecordingInfoTag = record;
   m_strPath = record->m_strFileNameAndPath;
   SetLabel(record->m_strTitle);
-  m_strLabel2 = record->RecordingTimeAsLocalTime().GetAsLocalizedDateTime(true, false);
+  m_dateTime = record->RecordingTimeAsLocalTime();
+
+  // Set art
+  if (!record->m_strIconPath.empty())
+  {
+    SetIconImage(record->m_strIconPath);
+    SetArt("icon", record->m_strIconPath);
+  }
+
+  if (!record->m_strThumbnailPath.empty())
+    SetArt("thumb", record->m_strThumbnailPath);
+
+  if (!record->m_strFanartPath.empty())
+    SetArt("fanart", record->m_strFanartPath);
+
   FillInMimeType(false);
 }
 
@@ -206,7 +216,6 @@ CFileItem::CFileItem(const CPVRTimerInfoTagPtr& timer)
   m_pvrTimerInfoTag = timer;
   m_strPath = timer->Path();
   SetLabel(timer->Title());
-  m_strLabel2 = timer->Summary();
   m_dateTime = timer->StartAsLocalTime();
 
   if (!timer->ChannelIcon().empty())
@@ -1173,6 +1182,16 @@ bool CFileItem::IsSourcesPath() const
 bool CFileItem::IsMultiPath() const
 {
   return URIUtils::IsMultiPath(m_strPath);
+}
+
+bool CFileItem::IsBluray() const
+{
+  if (URIUtils::IsBluray(m_strPath))
+    return true;
+  
+  CFileItem item = CFileItem(GetOpticalMediaPath(), false);
+  
+  return item.IsBDFile();
 }
 
 bool CFileItem::IsCDDA() const
@@ -2844,7 +2863,7 @@ void CFileItemList::StackFiles()
         // item->m_bIsFolder = true;  // don't treat stacked files as folders
         // the label may be in a different char set from the filename (eg over smb
         // the label is converted from utf8, but the filename is not)
-        if (!CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_SHOWEXTENSIONS))
+        if (!CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_FILELISTS_SHOWEXTENSIONS))
           URIUtils::RemoveExtension(stackName);
 
         item1->SetLabel(stackName);
@@ -2980,7 +2999,7 @@ std::string CFileItem::GetUserMusicThumb(bool alwaysCheckRemote /* = false */, b
   }
 
   // if a folder, check for folder.jpg
-  if (m_bIsFolder && !IsFileFolder() && (!IsRemote() || alwaysCheckRemote || CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MUSICFILES_FINDREMOTETHUMBS)))
+  if (m_bIsFolder && !IsFileFolder() && (!IsRemote() || alwaysCheckRemote || CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_MUSICFILES_FINDREMOTETHUMBS)))
   {
     std::vector<std::string> thumbs = StringUtils::Split(g_advancedSettings.m_musicThumbs, "|");
     for (std::vector<std::string>::const_iterator i = thumbs.begin(); i != thumbs.end(); ++i)

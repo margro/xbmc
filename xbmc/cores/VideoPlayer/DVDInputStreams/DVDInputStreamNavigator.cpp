@@ -124,7 +124,7 @@ bool CDVDInputStreamNavigator::Open()
     return false;
   }
 
-  int region = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_DVDS_PLAYERREGION);
+  int region = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_DVDS_PLAYERREGION);
   int mask = 0;
   if(region > 0)
     mask = 1 << (region-1);
@@ -202,7 +202,7 @@ bool CDVDInputStreamNavigator::Open()
   }
 
   // jump directly to title menu
-  if(CServiceBroker::GetSettings().GetBool(CSettings::SETTING_DVDS_AUTOMENU))
+  if(CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_DVDS_AUTOMENU))
   {
     int len, event;
     uint8_t buf[2048];
@@ -757,12 +757,12 @@ int CDVDInputStreamNavigator::GetTotalButtons()
   pci_t* pci = m_dll.dvdnav_get_current_nav_pci(m_dvdnav);
 
   int counter = 0;
-  for (int i = 0; i < 36; i++)
+  for (const btni_t& buttonInfo : pci->hli.btnit)
   {
-    if (pci->hli.btnit[i].x_start ||
-        pci->hli.btnit[i].x_end ||
-        pci->hli.btnit[i].y_start ||
-        pci->hli.btnit[i].y_end)
+    if (buttonInfo.x_start ||
+        buttonInfo.x_end ||
+        buttonInfo.y_start ||
+        buttonInfo.y_end)
     {
       counter++;
     }

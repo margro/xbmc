@@ -125,7 +125,10 @@ void CPVRGUITimesInfo::UpdateTimeshiftData()
   {
     // timeshifting supported
     m_iTimeshiftPlayTime = iStartTime + iPlayTime / 1000;
-    m_iTimeshiftOffset = (iMaxTime - iPlayTime) / 1000;
+    if (iMaxTime > iPlayTime)
+      m_iTimeshiftOffset = (iMaxTime - iPlayTime) / 1000;
+    else
+      m_iTimeshiftOffset = 0;
   }
   else
   {
@@ -162,7 +165,7 @@ void CPVRGUITimesInfo::UpdateTimeshiftProgressData()
     time_t start = 0;
     m_playingEpgTag->StartAsUTC().GetAsTime(start);
     if (start < m_iTimeshiftStartTime ||
-        CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRMENU_USESIMPLETIMESHIFTOSD))
+        CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_PVRMENU_USESIMPLETIMESHIFTOSD))
     {
       // playing event started before start of ts buffer or simple ts osd to be used
       m_iTimeshiftProgressStartTime = start;
@@ -185,7 +188,7 @@ void CPVRGUITimesInfo::UpdateTimeshiftProgressData()
     time_t end = 0;
     m_playingEpgTag->EndAsUTC().GetAsTime(end);
     if (end > m_iTimeshiftEndTime ||
-        CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRMENU_USESIMPLETIMESHIFTOSD))
+        CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_PVRMENU_USESIMPLETIMESHIFTOSD))
     {
       // playing event will end after end of ts buffer or simple ts osd to be used
       m_iTimeshiftProgressEndTime = end;

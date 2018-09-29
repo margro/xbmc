@@ -196,7 +196,7 @@ case $host in
     platform_cc=clang
     platform_cxx=clang++
     deps_dir="$use_host-$use_ndk_api-$build_type"
-    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fPIC -DPIC -D_GLIBCXX_USE_C99_MATH_TR1"
+    platform_cflags="-DANDROID -D__ANDROID_API__=$use_ndk_api -fexceptions -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fPIC -DPIC"
     optimize_flags="-Os"
     platform_ldflags="-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a -L$prefix/$deps_dir/lib/android-$use_ndk_api"
 
@@ -305,6 +305,7 @@ case $host in
           10.11);;
           10.12);;
           10.13);;
+          10.14);;
           *)
             AC_MSG_ERROR(error in configure of --with-sdk=$use_sdk)
         esac
@@ -350,6 +351,7 @@ case $host in
           9.*);;
           10.*);;
           11.*);;
+          12.*);;
             *)
               AC_MSG_ERROR(error in configure of --with-sdk=$use_sdk)
             ;;

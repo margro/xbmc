@@ -1093,6 +1093,11 @@
           <default>true</default>
           <control type="toggle" />
         </setting>
+        <setting id="musiclibrary.useartistsortname" type="boolean" label="20228" help="36294">
+          <level>1</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
         <setting id="musiclibrary.overridetags" type="boolean" label="20220" help="20221">
           <level>1</level>
           <default>false</default>
@@ -2015,7 +2020,13 @@
         <setting id="gamesgeneral.enable" type="boolean">
           <visible>false</visible>
           <level>0</level>
-          <default>false</default>
+          <default>true</default>
+          <control type="toggle" />
+        </setting>
+        <setting id="gamesgeneral.showosdhelp" type="boolean">
+          <visible>false</visible>
+          <level>0</level>
+          <default>true</default>
           <control type="toggle" />
         </setting>
         <setting id="gamesgeneral.enableautosave" type="boolean" label="35253" help="35254">

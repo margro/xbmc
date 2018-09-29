@@ -12430,7 +12430,14 @@ msgctxt "#20225"
 msgid "Where no local album cover exists, online art will be used. Where neither is available, cover images embedded in music files will be used"
 msgstr ""
 
-#empty strings from id 20226 to 20239
+#empty strings from id 20226 to 20227
+
+#: system/settings/settings.xml
+msgctxt "#20228"
+msgid "Use artist sortname when sorting by artist"
+msgstr ""
+
+#empty strings from id 20229 to 20239
 
 #: xbmc/dialogs/GUIDialogMediaSource.cpp
 msgctxt "#20240"
@@ -15155,7 +15162,8 @@ msgctxt "#24103"
 msgid "Skin is missing some files"
 msgstr ""
 
-#: xbmc/addons/Repository.cpp
+#. Error message shown when a game add-on can't be loaded due to missing dependencies
+#: xbmc/games/addons/GameClientProperties.cpp
 msgctxt "#24104"
 msgid "Add-on is incompatible due to unmet dependencies."
 msgstr ""
@@ -17304,6 +17312,7 @@ msgstr ""
 
 #. Dialog title when gameplay fails
 #: xbmc/games/addons/GameClient.cpp
+#: xbmc/games/addons/GameClientProperties.cpp
 #: xbmc/games/GameManager.cpp
 msgctxt "#35210"
 msgid "Failed to play game"
@@ -17381,7 +17390,11 @@ msgctxt "#35222"
 msgid "Exit"
 msgstr ""
 
-#empty string with id 35223
+#. Help text shown when playaing a game with missing add-on dependencies. {0:s} - list of add-ons that are missing
+#: xbmc/games/addons/GameClientProperties.cpp
+msgctxt "#35223"
+msgid "Missing: {0:s}"
+msgstr ""
 
 #. Label of button in the in-game menu for pausing and resuming playback
 #: addons/skin.estuary/xml/GameOSD.xml
@@ -17453,7 +17466,13 @@ msgctxt "#35234"
 msgid "Controls"
 msgstr ""
 
-#empty strings from id 35235 to 35249
+#. Help text shown when the user first plays a game. {0:s} - Button combo to open the in-game menu
+#: addons/skin.estuary/xml/GameOSD.xml
+msgctxt "#35235"
+msgid "Press {0:s} to open the in-game menu."
+msgstr ""
+
+#empty strings from id 35236 to 35249
 
 #: xbmc/windows/GUIMediaWindow.cpp
 msgctxt "#35250"
@@ -18906,7 +18925,13 @@ msgctxt "#36293"
 msgid "Select the folder where artist information (nfo files and images) should be saved in."
 msgstr ""
 
-#empty strings from id 36294 to 36301
+#. Description of setting with label #20228 "Use artist sortname"
+#: system/settings/settings.xml
+msgctxt "#36294"
+msgid "When sorting music items by artist use sortname e.g. Parton, Dolly rather than name."
+msgstr ""
+
+#empty strings from id 36295 to 36301
 
 #: system/settings/settings.xml
 msgctxt "#36302"

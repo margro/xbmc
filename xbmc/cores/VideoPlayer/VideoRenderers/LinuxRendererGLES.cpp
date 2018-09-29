@@ -30,11 +30,6 @@
 #include "cores/IPlayer.h"
 #include "windowing/WinSystem.h"
 
-#if defined(__ARM_NEON__) && !defined(__LP64__)
-#include "yuv2rgb.neon.h"
-#include "utils/CPUInfo.h"
-#endif
-
 #if defined(EGL_KHR_reusable_sync) && !defined(EGL_EGLEXT_PROTOTYPES)
 static PFNEGLCREATESYNCKHRPROC eglCreateSyncKHR;
 static PFNEGLDESTROYSYNCKHRPROC eglDestroySyncKHR;
@@ -186,7 +181,7 @@ int CLinuxRendererGLES::NextYV12Texture()
   return (m_iYV12RenderBuffer + 1) % m_NumYV12Buffers;
 }
 
-void CLinuxRendererGLES::AddVideoPicture(const VideoPicture &picture, int index, double currentClock)
+void CLinuxRendererGLES::AddVideoPicture(const VideoPicture &picture, int index)
 {
   CPictureBuffer &buf = m_buffers[index];
   if (buf.videoBuffer)
@@ -517,7 +512,7 @@ void CLinuxRendererGLES::LoadShaders(int field)
 
   if (!LoadShadersHook())
   {
-    int requestedMethod = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD);
+    int requestedMethod = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD);
     CLog::Log(LOGDEBUG, "GLES: Requested render method: %d", requestedMethod);
 
     ReleaseShaders();
@@ -1504,7 +1499,7 @@ bool CLinuxRendererGLES::Supports(ESCALINGMETHOD method)
     // if scaling is below level, avoid hq scaling
     float scaleX = fabs(((float)m_sourceWidth - m_destRect.Width())/m_sourceWidth)*100;
     float scaleY = fabs(((float)m_sourceHeight - m_destRect.Height())/m_sourceHeight)*100;
-    int minScale = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_HQSCALERS);
+    int minScale = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_HQSCALERS);
     if (scaleX < minScale && scaleY < minScale)
       return false;
 

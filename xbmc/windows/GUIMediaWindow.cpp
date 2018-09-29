@@ -520,7 +520,7 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
         // ensure our directory is valid
         dir = GetStartFolder(dir);
         bool resetHistory = false;
-        if (!returning || !m_history.IsInHistory(dir))
+        if (!returning || !URIUtils::PathEquals(dir, m_startDirectory, true))
         { // we're not returning to the same path, so set our directory to the requested path
           m_vecItems->SetPath(dir);
           resetHistory = true;
@@ -632,7 +632,7 @@ void CGUIMediaWindow::SortItems(CFileItemList &items)
       {
         sorting.sortBy = sortBy;
         sorting.sortOrder = items.GetProperty(PROPERTY_SORT_ASCENDING).asBoolean() ? SortOrderAscending : SortOrderDescending;
-        sorting.sortAttributes = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone;
+        sorting.sortAttributes = CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone;
 
         // if the sort order is descending, we need to switch the original sort order, as we assume
         // in CGUIViewState::AddPlaylistOrder that SortByPlaylistOrder is ascending.
@@ -707,7 +707,7 @@ bool CGUIMediaWindow::GetDirectory(const std::string &strDirectory, CFileItemLis
             CURL::GetRedacted(strDirectory).c_str());
   CLog::Log(LOGDEBUG,"  ParentPath = [%s]", CURL::GetRedacted(strParentPath).c_str());
 
-  if (pathToUrl.IsProtocol("plugin"))
+  if (pathToUrl.IsProtocol("plugin") && !pathToUrl.GetHostName().empty())
     CServiceBroker::GetAddonMgr().UpdateLastUsed(pathToUrl.GetHostName());
 
   // see if we can load a previously cached folder

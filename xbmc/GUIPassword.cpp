@@ -62,7 +62,7 @@ bool CGUIPassword::IsItemUnlocked(CFileItem* pItem, const std::string &strType)
     }
     else
     {
-      if (0 != CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES) && pItem->m_iBadPwdCount >= CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES))
+      if (0 != CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES) && pItem->m_iBadPwdCount >= CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES))
       { // user previously exhausted all retries, show access denied error
         HELPERS::ShowOKDialogText(CVariant{12345}, CVariant{12346});
         return false;
@@ -97,7 +97,7 @@ bool CGUIPassword::IsItemUnlocked(CFileItem* pItem, const std::string &strType)
     case 1:
       {
         // password entry failed
-        if (0 != CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES))
+        if (0 != CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES))
           pItem->m_iBadPwdCount++;
         sprintf(buffer,"%i",pItem->m_iBadPwdCount);
         CMediaSourceSettings::GetInstance().UpdateSource(strType, strLabel, "badpwdcount", buffer);
@@ -123,7 +123,7 @@ bool CGUIPassword::CheckStartUpLock()
   std::string strHeader = g_localizeStrings.Get(20075);
 
   if (iMasterLockRetriesLeft == -1)
-    iMasterLockRetriesLeft = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES);
+    iMasterLockRetriesLeft = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES);
 
   if (g_passwordManager.iMasterLockRetriesLeft == 0)
     g_passwordManager.iMasterLockRetriesLeft = 1;
@@ -156,7 +156,7 @@ bool CGUIPassword::CheckStartUpLock()
 
   if (iVerifyPasswordResult == 0)
   {
-    g_passwordManager.iMasterLockRetriesLeft = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES);
+    g_passwordManager.iMasterLockRetriesLeft = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES);
     return true;  // OK The MasterCode Accepted! XBMC Can Run!
   }
   else
@@ -241,7 +241,7 @@ bool CGUIPassword::IsMasterLockUnlocked(bool bPromptUser, bool& bCanceled)
   bCanceled = false;
 
   if (iMasterLockRetriesLeft == -1)
-    iMasterLockRetriesLeft = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES);
+    iMasterLockRetriesLeft = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES);
 
   const CProfilesManager &profileManager = CServiceBroker::GetProfileManager();
 
@@ -286,7 +286,7 @@ void CGUIPassword::UpdateMasterLockRetryCount(bool bResetCount)
   if (!bResetCount)
   {
     // Bad mastercode entered
-    if (0 < CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES))
+    if (0 < CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES))
     {
       // We're keeping track of how many bad passwords are entered
       if (1 < g_passwordManager.iMasterLockRetriesLeft)
@@ -311,7 +311,7 @@ void CGUIPassword::UpdateMasterLockRetryCount(bool bResetCount)
     HELPERS::ShowOKDialogLines(CVariant{20075}, CVariant{12345}, CVariant{std::move(dlgLine1)}, CVariant{0});
   }
   else
-    g_passwordManager.iMasterLockRetriesLeft = CServiceBroker::GetSettings().GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES); // user entered correct mastercode, reset retries to max allowed
+    g_passwordManager.iMasterLockRetriesLeft = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_MASTERLOCK_MAXRETRIES); // user entered correct mastercode, reset retries to max allowed
 }
 
 bool CGUIPassword::CheckLock(LockType btnType, const std::string& strPassword, int iHeading)
@@ -474,10 +474,10 @@ bool CGUIPassword::LockSource(const std::string& strType, const std::string& str
 void CGUIPassword::LockSources(bool lock)
 {
   // lock or unlock all sources (those with locks)
-  const char* strType[] = {"programs", "music", "video", "pictures", "files", "games"};
-  for (unsigned int i = 0; i < sizeof(strType) / sizeof(*strType); ++i)
+  const char* strTypes[] = {"programs", "music", "video", "pictures", "files", "games"};
+  for (const char* const strType : strTypes)
   {
-    VECSOURCES *shares = CMediaSourceSettings::GetInstance().GetSources(strType[i]);
+    VECSOURCES *shares = CMediaSourceSettings::GetInstance().GetSources(strType);
     for (IVECSOURCES it=shares->begin();it != shares->end();++it)
       if (it->m_iLockMode != LOCK_MODE_EVERYONE)
         it->m_iHasLock = lock ? 2 : 1;
@@ -489,16 +489,16 @@ void CGUIPassword::LockSources(bool lock)
 void CGUIPassword::RemoveSourceLocks()
 {
   // remove lock from all sources
-  const char* strType[] = {"programs", "music", "video", "pictures", "files", "games"};
-  for (unsigned int i = 0; i < sizeof(strType) / sizeof(*strType); ++i)
+  const char* strTypes[] = {"programs", "music", "video", "pictures", "files", "games"};
+  for (const char* const strType : strTypes)
   {
-    VECSOURCES *shares = CMediaSourceSettings::GetInstance().GetSources(strType[i]);
+    VECSOURCES *shares = CMediaSourceSettings::GetInstance().GetSources(strType);
     for (IVECSOURCES it=shares->begin();it != shares->end();++it)
       if (it->m_iLockMode != LOCK_MODE_EVERYONE) // remove old info
       {
         it->m_iHasLock = 0;
         it->m_iLockMode = LOCK_MODE_EVERYONE;
-        CMediaSourceSettings::GetInstance().UpdateSource(strType[i], it->strName, "lockmode", "0"); // removes locks from xml
+        CMediaSourceSettings::GetInstance().UpdateSource(strType, it->strName, "lockmode", "0"); // removes locks from xml
       }
   }
   CMediaSourceSettings::GetInstance().Save();

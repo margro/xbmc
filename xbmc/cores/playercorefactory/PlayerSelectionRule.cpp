@@ -64,7 +64,7 @@ void CPlayerSelectionRule::Initialize(TiXmlElement* pRule)
   m_bStreamDetails = m_audioCodec.length() > 0 || m_audioChannels.length() > 0 ||
     m_videoCodec.length() > 0 || m_videoResolution.length() > 0 || m_videoAspect.length() > 0;
 
-  if (m_bStreamDetails && !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS))
+  if (m_bStreamDetails && !CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS))
   {
       CLog::Log(LOGWARNING, "CPlayerSelectionRule::Initialize: rule: %s needs media flagging, which is disabled", m_name.c_str());
   }
@@ -157,7 +157,7 @@ void CPlayerSelectionRule::GetPlayers(const CFileItem& item, std::vector<std::st
       return;
   }
 
-  CURL url(item.GetPath());
+  CURL url(item.GetDynPath());
 
   if (CompileRegExp(m_fileTypes, regExp) && !MatchesRegExp(url.GetFileType(), regExp))
     return;
@@ -168,7 +168,7 @@ void CPlayerSelectionRule::GetPlayers(const CFileItem& item, std::vector<std::st
   if (CompileRegExp(m_mimeTypes, regExp) && !MatchesRegExp(item.GetMimeType(), regExp))
     return;
 
-  if (CompileRegExp(m_fileName, regExp) && !MatchesRegExp(item.GetPath(), regExp))
+  if (CompileRegExp(m_fileName, regExp) && !MatchesRegExp(item.GetDynPath(), regExp))
     return;
 
   CLog::Log(LOGDEBUG, "CPlayerSelectionRule::GetPlayers: matches rule: %s", m_name.c_str());

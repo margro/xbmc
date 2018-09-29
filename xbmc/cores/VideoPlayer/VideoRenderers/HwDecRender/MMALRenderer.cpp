@@ -553,7 +553,7 @@ bool CMMALRenderer::CheckConfigurationVout(uint32_t width, uint32_t height, uint
       return false;
     }
 
-    if (!m_queue_render && !CServiceBroker::GetSettings().GetBool("videoplayer.usedisplayasclock"))
+    if (!m_queue_render && !CServiceBroker::GetSettings()->GetBool("videoplayer.usedisplayasclock"))
     {
       m_queue_render = mmal_queue_create();
       CThread::Create();
@@ -901,7 +901,7 @@ void CMMALRenderer::UpdateFramerateStats(double pts)
     CLog::Log(LOGDEBUG, "%s::%s pts:%.3f diff:%.3f m_frameInterval:%.6f m_frameIntervalDiff:%.6f", CLASSNAME, __func__, pts*1e-6, diff * 1e-6 , m_frameInterval * 1e-6, m_frameIntervalDiff *1e-6);
 }
 
-void CMMALRenderer::AddVideoPicture(const VideoPicture& pic, int id, double currentClock)
+void CMMALRenderer::AddVideoPicture(const VideoPicture& pic, int id)
 {
   CMMALBuffer *buffer = dynamic_cast<CMMALBuffer*>(pic.videoBuffer);
   assert(buffer);

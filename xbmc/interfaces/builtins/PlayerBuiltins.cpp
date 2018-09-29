@@ -271,11 +271,11 @@ static int PlayerControl(const std::vector<std::string>& params)
     {
       case PLAYLIST_MUSIC:
         CMediaSettings::GetInstance().SetMusicPlaylistShuffled(CServiceBroker::GetPlaylistPlayer().IsShuffled(iPlaylist));
-        CServiceBroker::GetSettings().Save();
+        CServiceBroker::GetSettings()->Save();
         break;
       case PLAYLIST_VIDEO:
         CMediaSettings::GetInstance().SetVideoPlaylistShuffled(CServiceBroker::GetPlaylistPlayer().IsShuffled(iPlaylist));
-        CServiceBroker::GetSettings().Save();
+        CServiceBroker::GetSettings()->Save();
       default:
         break;
     }
@@ -319,11 +319,11 @@ static int PlayerControl(const std::vector<std::string>& params)
     {
       case PLAYLIST_MUSIC:
         CMediaSettings::GetInstance().SetMusicPlaylistRepeat(state == PLAYLIST::REPEAT_ALL);
-        CServiceBroker::GetSettings().Save();
+        CServiceBroker::GetSettings()->Save();
         break;
       case PLAYLIST_VIDEO:
         CMediaSettings::GetInstance().SetVideoPlaylistRepeat(state == PLAYLIST::REPEAT_ALL);
-        CServiceBroker::GetSettings().Save();
+        CServiceBroker::GetSettings()->Save();
     }
 
     // send messages so now playing window can get updated
@@ -552,7 +552,7 @@ static int Seek(const std::vector<std::string>& params)
 ///     | Partymode(path to .xsp) | Partymode for *.xsp-file               | Partymode for *.xsp-file    |             |
 ///     | ShowVideoMenu           | Shows the DVD/BR menu if available     | none                        |             |
 ///     <br>
-///     '*' = For these controls, the PlayerControl built-in function can make use of the 'notify'-parameter. For example: PlayerControl(random\, notify)
+///     '*' = For these controls\, the PlayerControl built-in function can make use of the 'notify'-parameter. For example: PlayerControl(random\, notify)
 ///     '**' = If no argument is given for 'partymode'\, the control  will default to music.
 ///     <br>
 ///     @param[in] control               Control to execute.

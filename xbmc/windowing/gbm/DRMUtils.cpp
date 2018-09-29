@@ -165,6 +165,15 @@ void CDRMUtils::FreeProperties(struct drm_object *object)
   object->id = 0;
 }
 
+bool CDRMUtils::SupportsProperty(struct drm_object *object, const char *name)
+{
+  for (uint32_t i = 0; i < object->props->count_props; i++)
+    if (!strcmp(object->props_info[i]->name, name))
+      return true;
+
+  return false;
+}
+
 uint32_t CDRMUtils::GetPropertyId(struct drm_object *object, const char *name)
 {
   for (uint32_t i = 0; i < object->props->count_props; i++)
@@ -428,6 +437,8 @@ bool CDRMUtils::FindPlanes()
   if (!FindModifiersForPlane(m_overlay_plane))
   {
     CLog::Log(LOGDEBUG, "CDRMUtils::%s - no drm modifiers present for the overlay plane", __FUNCTION__);
+    m_overlay_plane->modifiers_map.emplace(DRM_FORMAT_ARGB8888, std::vector<uint64_t>{DRM_FORMAT_MOD_LINEAR});
+    m_overlay_plane->modifiers_map.emplace(DRM_FORMAT_XRGB8888, std::vector<uint64_t>{DRM_FORMAT_MOD_LINEAR});
   }
 
   return true;

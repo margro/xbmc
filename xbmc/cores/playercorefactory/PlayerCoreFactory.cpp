@@ -27,20 +27,20 @@
 
 #define PLAYERCOREFACTORY_XML "playercorefactory.xml"
 
-CPlayerCoreFactory::CPlayerCoreFactory(CSettings &settings,
-                                       const CProfilesManager &profileManager) :
-  m_settings(settings),
+CPlayerCoreFactory::CPlayerCoreFactory(const CProfilesManager &profileManager) :
   m_profileManager(profileManager)
 {
-  if (m_settings.IsLoaded())
+  m_settings = CServiceBroker::GetSettings();
+
+  if (m_settings->IsLoaded())
     OnSettingsLoaded();
 
-  m_settings.GetSettingsManager()->RegisterSettingsHandler(this);
+  m_settings->GetSettingsManager()->RegisterSettingsHandler(this);
 }
 
 CPlayerCoreFactory::~CPlayerCoreFactory()
 {
-  m_settings.GetSettingsManager()->UnregisterSettingsHandler(this);
+  m_settings->GetSettingsManager()->UnregisterSettingsHandler(this);
 
   for(std::vector<CPlayerCoreConfig *>::iterator it = m_vecPlayerConfigs.begin(); it != m_vecPlayerConfigs.end(); ++it)
     delete *it;
@@ -96,9 +96,9 @@ void CPlayerCoreFactory::GetPlayers(std::vector<std::string>&players, const bool
 
 void CPlayerCoreFactory::GetPlayers(const CFileItem& item, std::vector<std::string>&players) const
 {
-  CURL url(item.GetPath());
+  CURL url(item.GetDynPath());
 
-  CLog::Log(LOGDEBUG, "CPlayerCoreFactory::GetPlayers(%s)", CURL::GetRedacted(item.GetPath()).c_str());
+  CLog::Log(LOGDEBUG, "CPlayerCoreFactory::GetPlayers(%s)", CURL::GetRedacted(item.GetDynPath()).c_str());
 
   std::vector<std::string>validPlayers;
   GetPlayers(validPlayers);

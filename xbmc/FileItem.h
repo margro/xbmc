@@ -201,6 +201,7 @@ public:
   bool IsOpticalMediaFile() const;
   bool IsDVDFile(bool bVobs = true, bool bIfos = true) const;
   bool IsBDFile() const;
+  bool IsBluray() const;
   bool IsRAR() const;
   bool IsAPK() const;
   bool IsZIP() const;
@@ -657,7 +658,7 @@ public:
   void Remove(int iItem);
   CFileItemPtr Get(int iItem);
   const CFileItemPtr Get(int iItem) const;
-  const VECFILEITEMS GetList() const { return m_items; }
+  const VECFILEITEMS& GetList() const { return m_items; }
   CFileItemPtr Get(const std::string& strPath);
   const CFileItemPtr Get(const std::string& strPath) const;
   int Size() const;

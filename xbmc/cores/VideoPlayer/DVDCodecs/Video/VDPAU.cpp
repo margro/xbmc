@@ -49,7 +49,6 @@ CDecoder::Desc decoder_profiles[] = {
 {"HEVC_MAIN", VDP_DECODER_PROFILE_HEVC_MAIN},
 #endif
 };
-const size_t decoder_profile_count = sizeof(decoder_profiles)/sizeof(CDecoder::Desc);
 
 static struct SInterlaceMapping
 {
@@ -271,15 +270,15 @@ void CVDPAUContext::SpewHardwareAvailable()  //Copyright (c) 2008 Wladimir J. va
   CLog::Log(LOGNOTICE,"VDPAU Decoder capabilities:");
   CLog::Log(LOGNOTICE,"name          level macbs width height");
   CLog::Log(LOGNOTICE,"------------------------------------");
-  for(unsigned int x=0; x<decoder_profile_count; ++x)
+  for(const CDecoder::Desc& decoder_profile : decoder_profiles)
   {
     VdpBool is_supported = false;
     uint32_t max_level, max_macroblocks, max_width, max_height;
-    rv = m_vdpProcs.vdp_decoder_query_caps(m_vdpDevice, decoder_profiles[x].id,
+    rv = m_vdpProcs.vdp_decoder_query_caps(m_vdpDevice, decoder_profile.id,
                                 &is_supported, &max_level, &max_macroblocks, &max_width, &max_height);
     if(rv == VDP_STATUS_OK && is_supported)
     {
-      CLog::Log(LOGNOTICE,"%-16s %2i %5i %5i %5i\n", decoder_profiles[x].name,
+      CLog::Log(LOGNOTICE,"%-16s %2i %5i %5i %5i\n", decoder_profile.name,
                 max_level, max_macroblocks, max_width, max_height);
     }
   }
@@ -510,8 +509,8 @@ bool CDecoder::Open(AVCodecContext* avctx, AVCodecContext* mainctx, const enum A
     auto entry = settings_map.find(avctx->codec_id);
     if (entry != settings_map.end())
     {
-      bool enabled = CServiceBroker::GetSettings().GetBool(entry->second) &&
-                     CServiceBroker::GetSettings().GetSetting(entry->second)->IsVisible();
+      bool enabled = CServiceBroker::GetSettings()->GetBool(entry->second) &&
+                     CServiceBroker::GetSettings()->GetSetting(entry->second)->IsVisible();
       if (!enabled)
         return false;
     }
@@ -1280,7 +1279,7 @@ bool CDecoder::CheckStatus(VdpStatus vdp_st, int line)
 
 IHardwareDecoder* CDecoder::Create(CDVDStreamInfo &hint, CProcessInfo &processInfo, AVPixelFormat fmt)
  {
-   if (CDecoder::IsVDPAUFormat(fmt) && CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEVDPAU))
+   if (CDecoder::IsVDPAUFormat(fmt) && CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_USEVDPAU))
      return new VDPAU::CDecoder(processInfo);
 
    return nullptr;
@@ -1302,14 +1301,14 @@ void CDecoder::Register()
   std::transform(gpuvendor.begin(), gpuvendor.end(), gpuvendor.begin(), ::tolower);
   bool isNvidia = (gpuvendor.compare(0, 6, "nvidia") == 0);
 
-  CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAU)->SetVisible(true);
+  CServiceBroker::GetSettings()->GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAU)->SetVisible(true);
 
   if (!isNvidia)
   {
-    CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMPEG4)->SetVisible(true);
-    CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAUVC1)->SetVisible(true);
-    CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMPEG2)->SetVisible(true);
-    CServiceBroker::GetSettings().GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMIXER)->SetVisible(true);
+    CServiceBroker::GetSettings()->GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMPEG4)->SetVisible(true);
+    CServiceBroker::GetSettings()->GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAUVC1)->SetVisible(true);
+    CServiceBroker::GetSettings()->GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMPEG2)->SetVisible(true);
+    CServiceBroker::GetSettings()->GetSetting(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMIXER)->SetVisible(true);
   }
 
 }
@@ -2070,7 +2069,7 @@ void CMixer::SetColor()
   }
 
   VdpVideoMixerAttribute attributes[] = { VDP_VIDEO_MIXER_ATTRIBUTE_CSC_MATRIX };
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE))
+  if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE))
   {
     float studioCSC[3][4];
     GenerateStudioCSCMatrix(colorStandard, studioCSC);
@@ -2195,7 +2194,7 @@ void CMixer::SetDeinterlacing()
 
   SetDeintSkipChroma();
 
-  m_config.useInteropYuv = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMIXER);
+  m_config.useInteropYuv = !CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMIXER);
 
   std::string deintStr = GetDeintStrFromInterlaceMethod(method);
   // update deinterlacing method used in processInfo (none if progressive)
@@ -2392,7 +2391,7 @@ void CMixer::Init()
   m_vdpError = false;
 
   m_config.upscale = g_advancedSettings.m_videoVDPAUScaling;
-  m_config.useInteropYuv = !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMIXER);
+  m_config.useInteropYuv = !CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_USEVDPAUMIXER);
 
   CreateVdpauMixer();
 

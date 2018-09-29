@@ -14,7 +14,6 @@
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "URL.h"
-#include "Util.h"
 #include "cores/DataCacheCore.h"
 #include "cores/VideoPlayer/VideoRenderers/BaseRenderer.h"
 #include "guilib/GUIComponent.h"
@@ -94,12 +93,17 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       case PLAYER_PATH:
       case PLAYER_FILENAME:
       case PLAYER_FILEPATH:
+        if (item->HasMusicInfoTag()) // special handling for music videos, which have both a videotag and a musictag
+          break;
+
         value = tag->m_strFileNameAndPath;
         if (value.empty())
           value = item->GetPath();
         value = GUIINFO::GetFileInfoLabelValueFromPath(info.m_info, value);
         return true;
       case PLAYER_TITLE:
+        value = tag->m_strTitle;
+        return !value.empty();
       case VIDEOPLAYER_TITLE:
         value = tag->m_strTitle;
         if (value.empty())
@@ -109,7 +113,7 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
         return true;
       case LISTITEM_TITLE:
         value = tag->m_strTitle;
-        return !value.empty();
+        return true;
       case VIDEOPLAYER_ORIGINALTITLE:
       case LISTITEM_ORIGINALTITLE:
         value = tag->m_strOriginalTitle;
@@ -328,7 +332,7 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
         if (tag->m_type != MediaTypeTvShow &&
             tag->m_type != MediaTypeVideoCollection &&
             tag->GetPlayCount() == 0 &&
-            !CServiceBroker::GetSettings().GetBool(CSettings::SETTING_VIDEOLIBRARY_SHOWUNWATCHEDPLOTS))
+            !CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_VIDEOLIBRARY_SHOWUNWATCHEDPLOTS))
         {
           value = g_localizeStrings.Get(20370);
         }
@@ -417,6 +421,8 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       case LISTITEM_FILE_EXTENSION:
         if (item->IsVideoDb())
           value = URIUtils::GetFileName(tag->m_strFileNameAndPath);
+        else if (item->HasMusicInfoTag()) // special handling for music videos, which have both a videotag and a musictag
+          break;
         else
           value = URIUtils::GetFileName(item->GetPath());
 
@@ -435,6 +441,8 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
           else
             URIUtils::GetParentPath(tag->m_strFileNameAndPath, value);
         }
+        else if (item->HasMusicInfoTag()) // special handling for music videos, which have both a videotag and a musictag
+          break;
         else
           URIUtils::GetParentPath(item->GetPath(), value);
 
@@ -449,6 +457,8 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       case LISTITEM_FILENAME_AND_PATH:
         if (item->IsVideoDb())
           value = tag->m_strFileNameAndPath;
+        else if (item->HasMusicInfoTag()) // special handling for music videos, which have both a videotag and a musictag
+          break;
         else
           value = item->GetPath();
 
@@ -630,7 +640,7 @@ bool CVideoGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int contextW
       return value; // if no match for this provider, other providers shall be asked.
     }
     case VIDEOPLAYER_USING_OVERLAYS:
-      value = (CServiceBroker::GetSettings().GetInt(CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD) == RENDER_OVERLAYS);
+      value = (CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD) == RENDER_OVERLAYS);
       return true;
     case VIDEOPLAYER_ISFULLSCREEN:
       value = CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||

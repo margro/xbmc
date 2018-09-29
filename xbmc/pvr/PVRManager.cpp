@@ -722,7 +722,7 @@ void CPVRManager::SetPlayingGroup(const CPVRChannelPtr &channel)
   }
 }
 
-CPVRChannelGroupPtr CPVRManager::GetPlayingGroup(bool bRadio /* = false */)
+CPVRChannelGroupPtr CPVRManager::GetPlayingGroup(bool bRadio /* = false */) const
 {
   if (m_channelGroups)
     return m_channelGroups->GetSelectedGroup(bRadio);
@@ -767,6 +767,7 @@ void CPVRManager::OnPlaybackStarted(const CFileItemPtr item)
   }
 
   m_guiActions->OnPlaybackStarted(item);
+  m_epgContainer.OnPlaybackStarted(item);
 }
 
 void CPVRManager::OnPlaybackStopped(const CFileItemPtr item)
@@ -797,6 +798,7 @@ void CPVRManager::OnPlaybackStopped(const CFileItemPtr item)
   }
 
   m_guiActions->OnPlaybackStopped(item);
+  m_epgContainer.OnPlaybackStopped(item);
 }
 
 void CPVRManager::OnPlaybackEnded(const CFileItemPtr item)

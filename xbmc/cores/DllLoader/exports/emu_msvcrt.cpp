@@ -187,22 +187,22 @@ extern "C" void __stdcall init_emu_environ()
 extern "C" void __stdcall update_emu_environ()
 {
   // Use a proxy, if the GUI was configured as such
-  if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_NETWORK_USEHTTPPROXY)
-      && !CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER).empty()
-      && CServiceBroker::GetSettings().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT) > 0
-      && CServiceBroker::GetSettings().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYTYPE) == 0)
+  if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_NETWORK_USEHTTPPROXY)
+      && !CServiceBroker::GetSettings()->GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER).empty()
+      && CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT) > 0
+      && CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_NETWORK_HTTPPROXYTYPE) == 0)
   {
     std::string strProxy;
-    if (!CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).empty() &&
-        !CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).empty())
+    if (!CServiceBroker::GetSettings()->GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).empty() &&
+        !CServiceBroker::GetSettings()->GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).empty())
     {
       strProxy = StringUtils::Format("%s:%s@",
-                                     CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).c_str(),
-                                     CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).c_str());
+                                     CServiceBroker::GetSettings()->GetString(CSettings::SETTING_NETWORK_HTTPPROXYUSERNAME).c_str(),
+                                     CServiceBroker::GetSettings()->GetString(CSettings::SETTING_NETWORK_HTTPPROXYPASSWORD).c_str());
     }
 
-    strProxy += CServiceBroker::GetSettings().GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER);
-    strProxy += StringUtils::Format(":%d", CServiceBroker::GetSettings().GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT));
+    strProxy += CServiceBroker::GetSettings()->GetString(CSettings::SETTING_NETWORK_HTTPPROXYSERVER);
+    strProxy += StringUtils::Format(":%d", CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_NETWORK_HTTPPROXYPORT));
 
     CEnvironment::setenv( "HTTP_PROXY", "http://" + strProxy, true );
     CEnvironment::setenv( "HTTPS_PROXY", "http://" + strProxy, true );
@@ -284,9 +284,9 @@ extern "C"
     // close all open dirs...
     if (bVecDirsInited)
     {
-      for (int i=0;i < MAX_OPEN_DIRS; ++i)
+      for (SDirData& dir : vecDirsOpen)
       {
-        vecDirsOpen[i].items.Clear();
+        dir.items.Clear();
       }
       bVecDirsInited = false;
     }
@@ -959,9 +959,9 @@ extern "C"
       return NULL;
 
     bool emulated(false);
-    for (int i = 0; i < MAX_OPEN_DIRS; i++)
+    for (const SDirData& dir : vecDirsOpen)
     {
-      if (dirp == (DIR*)&vecDirsOpen[i])
+      if (dirp == (DIR*)&dir)
       {
         emulated = true;
         break;
@@ -998,9 +998,9 @@ extern "C"
   int dll_closedir(DIR *dirp)
   {
     bool emulated(false);
-    for (int i = 0; i < MAX_OPEN_DIRS; i++)
+    for (const SDirData& dir : vecDirsOpen)
     {
-      if (dirp == (DIR*)&vecDirsOpen[i])
+      if (dirp == (DIR*)&dir)
       {
         emulated = true;
         break;
@@ -1022,9 +1022,9 @@ extern "C"
   void dll_rewinddir(DIR *dirp)
   {
     bool emulated(false);
-    for (int i = 0; i < MAX_OPEN_DIRS; i++)
+    for (const SDirData& dir : vecDirsOpen)
     {
-      if (dirp == (DIR*)&vecDirsOpen[i])
+      if (dirp == (DIR*)&dir)
       {
         emulated = true;
         break;

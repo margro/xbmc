@@ -85,7 +85,6 @@ bool CFileUtils::RenameFile(const std::string &strFile)
 
 bool CFileUtils::RemoteAccessAllowed(const std::string &strPath)
 {
-  const unsigned int SourcesSize = 5;
   std::string SourceNames[] = { "programs", "files", "video", "music", "pictures" };
 
   std::string realPath = URIUtils::GetRealPath(strPath);
@@ -124,15 +123,15 @@ bool CFileUtils::RemoteAccessAllowed(const std::string &strPath)
     return true;
   else
   {
-    std::string strPlaylistsPath = CServiceBroker::GetSettings().GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH);
+    std::string strPlaylistsPath = CServiceBroker::GetSettings()->GetString(CSettings::SETTING_SYSTEM_PLAYLISTSPATH);
     URIUtils::RemoveSlashAtEnd(strPlaylistsPath);
     if (StringUtils::StartsWithNoCase(realPath, strPlaylistsPath))
       return true;
   }
   bool isSource;
-  for (unsigned int index = 0; index < SourcesSize; index++)
+  for (const std::string& sourceName : SourceNames)
   {
-    VECSOURCES* sources = CMediaSourceSettings::GetInstance().GetSources(SourceNames[index]);
+    VECSOURCES* sources = CMediaSourceSettings::GetInstance().GetSources(sourceName);
     int sourceIndex = CUtil::GetMatchingSource(realPath, *sources, isSource);
     if (sourceIndex >= 0 && sourceIndex < (int)sources->size() && sources->at(sourceIndex).m_iHasLock != 2 && sources->at(sourceIndex).m_allowSharing)
       return true;

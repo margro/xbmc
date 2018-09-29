@@ -12,9 +12,13 @@ set(CMAKE_SYSTEM_NAME Darwin)
 if(WITH_ARCH)
   set(ARCH ${WITH_ARCH})
 else()
-  if(CPU STREQUAL armv7 OR CPU STREQUAL arm64)
+  if(CPU STREQUAL armv7)
     set(CMAKE_OSX_ARCHITECTURES ${CPU})
-    set(ARCH arm-osx)
+    set(ARCH arm)
+    set(NEON True)
+  elseif(CPU STREQUAL arm64)
+    set(CMAKE_OSX_ARCHITECTURES ${CPU})
+    set(ARCH aarch64)
     set(NEON True)
   else()
     message(SEND_ERROR "Unknown CPU: ${CPU}")
@@ -36,7 +40,6 @@ list(APPEND DEPLIBS "-framework CoreFoundation" "-framework CoreVideo"
                     "-framework CoreMedia" "-framework AVFoundation"
                     "-framework VideoToolbox")
 
-set(ENABLE_DVDCSS OFF CACHE BOOL "" FORCE)
 set(ENABLE_OPTICAL OFF CACHE BOOL "" FORCE)
 
 set(CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "9.0")

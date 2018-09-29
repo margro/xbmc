@@ -109,7 +109,7 @@ void CPVRRecordings::GetSubDirectories(const CPVRRecordingsPath &recParentPath, 
     else
     {
       pFileItem = results->Get(strFilePath);
-      if (pFileItem->m_dateTime<current->RecordingTimeAsLocalTime())
+      if (pFileItem->m_dateTime < current->RecordingTimeAsLocalTime())
         pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
     }
 
@@ -194,12 +194,8 @@ bool CPVRRecordings::DeleteDirectory(const CFileItem& directory)
   XFILE::CDirectory::GetDirectory(directory.GetPath(), items, "", XFILE::DIR_FLAG_DEFAULTS);
 
   bool allDeleted = true;
-
-  VECFILEITEMS itemList = items.GetList();
-  CFileItem item;
-
-  for (const auto item : itemList)
-    allDeleted &= Delete(*(item.get()));
+  for (const auto& item : items)
+    allDeleted &= Delete(*item);
 
   return allDeleted;
 }
@@ -276,7 +272,7 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
   }
   else
   {
-    bGrouped = CServiceBroker::GetSettings().GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
+    bGrouped = CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
   }
 
   CPVRRecordingsPath recPath(url.GetWithoutOptions());
@@ -291,7 +287,7 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
     // get all files of the current directory or recursively all files starting at the current directory if in flatten mode
     for (const auto recording : m_recordings)
     {
-      CPVRRecordingPtr current = recording.second;
+      const CPVRRecordingPtr current = recording.second;
 
       // Omit recordings not matching criteria
       if (!IsDirectoryMember(strDirectory, current->m_strDirectory, bGrouped) ||
@@ -301,28 +297,9 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
 
       current->UpdateMetadata(GetVideoDatabase());
 
-      CFileItemPtr pFileItem(new CFileItem(current));
-      pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
-
-      // Set art
-      if (!current->m_strIconPath.empty())
-      {
-        pFileItem->SetIconImage(current->m_strIconPath);
-        pFileItem->SetArt("icon", current->m_strIconPath);
-      }
-
-      if (!current->m_strThumbnailPath.empty())
-        pFileItem->SetArt("thumb", current->m_strThumbnailPath);
-
-      if (!current->m_strFanartPath.empty())
-        pFileItem->SetArt("fanart", current->m_strFanartPath);
-
-      // Use the channel icon as a fallback when a thumbnail is not available
-      pFileItem->SetArtFallback("thumb", "icon");
-
-      pFileItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, pFileItem->GetPVRRecordingInfoTag()->GetPlayCount() > 0);
-
-      items.Add(pFileItem);
+      const CFileItemPtr item = std::make_shared<CFileItem>(current);
+      item->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, current->GetPlayCount() > 0);
+      items.Add(item);
     }
   }
 
@@ -334,17 +311,15 @@ void CPVRRecordings::GetAll(CFileItemList &items, bool bDeleted)
   CSingleLock lock(m_critSection);
   for (const auto recording : m_recordings)
   {
-    CPVRRecordingPtr current = recording.second;
+    const CPVRRecordingPtr current = recording.second;
     if (current->IsDeleted() != bDeleted)
       continue;
 
     current->UpdateMetadata(GetVideoDatabase());
 
-    CFileItemPtr pFileItem(new CFileItem(current));
-    pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
-    pFileItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, pFileItem->GetPVRRecordingInfoTag()->GetPlayCount() > 0);
-
-    items.Add(pFileItem);
+    const CFileItemPtr item = std::make_shared<CFileItem>(current);
+    item->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, current->GetPlayCount() > 0);
+    items.Add(item);
   }
 }
 

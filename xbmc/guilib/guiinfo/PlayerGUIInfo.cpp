@@ -24,6 +24,7 @@
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
 #include "utils/log.h"
+#include "URL.h"
 
 #include "guilib/guiinfo/GUIInfo.h"
 #include "guilib/guiinfo/GUIInfoHelper.h"
@@ -157,7 +158,7 @@ bool CPlayerGUIInfo::InitCurrentItem(CFileItem *item)
 {
   if (item && g_application.GetAppPlayer().IsPlaying())
   {
-    CLog::Log(LOGDEBUG,"CPlayerGUIInfo::InitCurrentItem(%s)", item->GetPath().c_str());
+    CLog::Log(LOGDEBUG,"CPlayerGUIInfo::InitCurrentItem(%s)", CURL::GetRedacted(item->GetPath()).c_str());
     m_currentItem.reset(new CFileItem(*item));
   }
   else
@@ -284,6 +285,13 @@ bool CPlayerGUIInfo::GetLabel(std::string& value, const CFileItem *item, int con
     }
     case PLAYER_ITEM_ART:
       value = item->GetArt(info.GetData3());
+      return true;
+    case PLAYER_ICON:
+      value = item->GetArt("thumb");
+      if (value.empty())
+        value = item->GetIconImage();
+      if (fallback)
+        *fallback = item->GetIconImage();
       return true;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////

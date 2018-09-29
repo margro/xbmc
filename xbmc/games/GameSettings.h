@@ -23,11 +23,13 @@ class CGameSettings : public ISettingCallback,
                       public Observable
 {
 public:
-  CGameSettings(CSettings &settings);
+  CGameSettings();
   ~CGameSettings() override;
 
   // General settings
   bool GamesEnabled();
+  bool ShowOSDHelp();
+  void SetShowOSDHelp(bool bShow);
   void ToggleGames();
   bool AutosaveEnabled();
   bool RewindEnabled();
@@ -38,7 +40,7 @@ public:
 
 private:
   // Construction parameters
-  CSettings &m_settings;
+  std::shared_ptr<CSettings> m_settings;
 };
 
 } // namespace GAME

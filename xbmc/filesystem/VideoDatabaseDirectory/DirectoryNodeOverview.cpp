@@ -36,18 +36,18 @@ CDirectoryNodeOverview::CDirectoryNodeOverview(const std::string& strName, CDire
 
 NODE_TYPE CDirectoryNodeOverview::GetChildType() const
 {
-  for (unsigned int i = 0; i < sizeof(OverviewChildren) / sizeof(Node); ++i)
-    if (GetName() == OverviewChildren[i].id)
-      return OverviewChildren[i].node;
+  for (const Node& node : OverviewChildren)
+    if (GetName() == node.id)
+      return node.node;
 
   return NODE_TYPE_NONE;
 }
 
 std::string CDirectoryNodeOverview::GetLocalizedName() const
 {
-  for (unsigned int i = 0; i < sizeof(OverviewChildren) / sizeof(Node); ++i)
-    if (GetName() == OverviewChildren[i].id)
-      return g_localizeStrings.Get(OverviewChildren[i].label);
+  for (const Node& node : OverviewChildren)
+    if (GetName() == node.id)
+      return g_localizeStrings.Get(node.label);
   return "";
 }
 
@@ -61,21 +61,21 @@ bool CDirectoryNodeOverview::GetContent(CFileItemList& items) const
   std::vector<std::pair<const char*, int> > vec;
   if (hasMovies)
   {
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
+    if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
       vec.push_back(std::make_pair("movies/titles", 342));
     else
       vec.push_back(std::make_pair("movies", 342));   // Movies
   }
   if (hasTvShows)
   {
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
+    if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
       vec.push_back(std::make_pair("tvshows/titles", 20343));
     else
       vec.push_back(std::make_pair("tvshows", 20343)); // TV Shows
   }
   if (hasMusicVideos)
   {
-    if (CServiceBroker::GetSettings().GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
+    if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_FLATTEN))
       vec.push_back(std::make_pair("musicvideos/titles", 20389));
     else
       vec.push_back(std::make_pair("musicvideos", 20389)); // Music Videos

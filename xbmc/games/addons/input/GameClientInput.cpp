@@ -15,12 +15,10 @@
 #include "GameClientTopology.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/kodi_game_types.h"
 #include "games/addons/GameClient.h"
+#include "games/addons/GameClientCallbacks.h"
 #include "games/controllers/Controller.h"
 #include "games/controllers/ControllerTopology.h"
 #include "games/GameServices.h"
-#include "guilib/GUIComponent.h"
-#include "guilib/GUIWindowManager.h"
-#include "guilib/WindowIDs.h"
 #include "input/joysticks/JoystickTypes.h"
 #include "peripherals/EventLockHandle.h"
 #include "peripherals/Peripherals.h"
@@ -50,8 +48,10 @@ void CGameClientInput::Initialize()
   LoadTopology();
 }
 
-void CGameClientInput::Start()
+void CGameClientInput::Start(IGameInputCallback *input)
 {
+  m_inputCallback = input;
+
   // Open keyboard
   //! @todo Move to player manager
   if (SupportsKeyboard())
@@ -91,6 +91,9 @@ void CGameClientInput::Start()
 
   // Ensure hardware is open to receive events
   m_hardware.reset(new CGameClientHardware(m_gameClient));
+
+  if (CServiceBroker::IsServiceManagerUp())
+    CServiceBroker::GetPeripherals().RegisterObserver(this);
 }
 
 void CGameClientInput::Deinitialize()
@@ -100,6 +103,9 @@ void CGameClientInput::Deinitialize()
 
 void CGameClientInput::Stop()
 {
+  if (CServiceBroker::IsServiceManagerUp())
+    CServiceBroker::GetPeripherals().UnregisterObserver(this);
+
   m_hardware.reset();
 
   std::vector<std::string> ports;
@@ -113,11 +119,16 @@ void CGameClientInput::Stop()
   CloseMouse();
 
   CloseKeyboard();
+
+  m_inputCallback = nullptr;
 }
 
 bool CGameClientInput::AcceptsInput() const
 {
-  return CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindowOrDialog() == WINDOW_FULLSCREEN_GAME;
+  if (m_inputCallback != nullptr)
+    return m_inputCallback->AcceptsInput();
+
+  return false;
 }
 
 void CGameClientInput::LoadTopology()

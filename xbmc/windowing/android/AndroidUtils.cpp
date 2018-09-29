@@ -152,7 +152,7 @@ CAndroidUtils::CAndroidUtils()
   }
 
   CLog::Log(LOGDEBUG, "CAndroidUtils: maximum/current resolution: %dx%d", m_width, m_height);
-  int limit = CServiceBroker::GetSettings().GetInt("videoscreen.limitgui");
+  int limit = CServiceBroker::GetSettings()->GetInt("videoscreen.limitgui");
   switch (limit)
   {
     case 0: // auto
@@ -232,7 +232,7 @@ bool CAndroidUtils::SetNativeResolution(const RESOLUTION_INFO &res)
 
   if (s_hasModeApi)
   {
-    CXBMCApp::SetDisplayMode(atoi(res.strId.c_str()));
+    CXBMCApp::SetDisplayMode(atoi(res.strId.c_str()), res.fRefreshRate);
     s_res_cur_displayMode = res;
   }
   else if (std::abs(currentRefreshRate() - res.fRefreshRate) > 0.0001)

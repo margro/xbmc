@@ -369,7 +369,7 @@ bool CGUIVisualisationControl::GetPresetList(std::vector<std::string> &vecpreset
 
 bool CGUIVisualisationControl::InitVisualization()
 {
-  const ADDON::BinaryAddonBasePtr addonBase = CServiceBroker::GetBinaryAddonManager().GetInstalledAddonInfo(CServiceBroker::GetSettings().GetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION), ADDON::ADDON_VIZ);
+  const ADDON::BinaryAddonBasePtr addonBase = CServiceBroker::GetBinaryAddonManager().GetInstalledAddonInfo(CServiceBroker::GetSettings()->GetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION), ADDON::ADDON_VIZ);
   if (!addonBase)
     return false;
 
@@ -455,9 +455,9 @@ void CGUIVisualisationControl::ClearBuffers()
   m_numBuffers = 0;
   m_vecBuffers.clear();
 
-  for (int j = 0; j < AUDIO_BUFFER_SIZE; ++j)
+  for (float& freq : m_freq)
   {
-    m_freq[j] = 0.0f;
+    freq = 0.0f;
   }
 
   if (m_transform)

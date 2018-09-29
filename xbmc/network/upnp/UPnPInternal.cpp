@@ -608,7 +608,7 @@ BuildObject(CFileItem&                    item,
     // to look for external subtitles
     if (upnp_server != NULL && item.IsVideo() &&
        (upnp_service == UPnPPlayer || upnp_service == UPnPRenderer ||
-        CServiceBroker::GetSettings().GetBool(CSettings::SETTING_SERVICES_UPNPLOOKFOREXTERNALSUBTITLES)))
+        CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_SERVICES_UPNPLOOKFOREXTERNALSUBTITLES)))
     {
         // find any available external subtitles
         std::vector<std::string> filenames;
@@ -638,7 +638,7 @@ BuildObject(CFileItem&                    item,
         else if (!subtitles.empty())
         {
             /* trying to find subtitle with prefered language settings */
-            std::string preferredLanguage = (CServiceBroker::GetSettings().GetSetting("locale.subtitlelanguage"))->ToString();
+            std::string preferredLanguage = (CServiceBroker::GetSettings()->GetSetting("locale.subtitlelanguage"))->ToString();
             std::string preferredLanguageCode;
             g_LangCodeExpander.ConvertToISO6392B(preferredLanguage, preferredLanguageCode);
 
@@ -1077,9 +1077,9 @@ bool GetResource(const PLT_MediaObject* entry, CFileItem& item)
       , "text/ssa"
       , "text/sub"
       , "text/idx" };
-    for(unsigned type = 0; type < ARRAY_SIZE(allowed); type++)
+    for(const char* const type : allowed)
     {
-      if(info.Match(PLT_ProtocolInfo("*", "*", allowed[type], "*")))
+      if(info.Match(PLT_ProtocolInfo("*", "*", type, "*")))
       {
         std::string prop = StringUtils::Format("subtitle:%d", ++subs);
         item.SetProperty(prop, (const char*)res.m_Uri);
