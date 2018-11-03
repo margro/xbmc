@@ -382,3 +382,5 @@ exclude_dll.txt
 /build*/
 /project/VS2017-x86
 /project/VS2017-x64
+/project/VS2017-UWP-x64
+/project/VS2017
