@@ -14,12 +14,12 @@
 #include "settings/lib/SettingConditions.h"
 
 class CProfile;
-class CProfilesManager;
+class CProfileManager;
 
 class CSettingConditions
 {
 public:
-  static void Initialize(const CProfilesManager &profileManager);
+  static void Initialize();
   static void Deinitialize();
 
   static const CProfile& GetCurrentProfile();
@@ -31,7 +31,7 @@ public:
 
 private:
   // Initialization parameters
-  static const CProfilesManager *m_profileManager;
+  static const CProfileManager *m_profileManager;
 
   static std::set<std::string> m_simpleConditions;
   static std::map<std::string, SettingConditionCheck> m_complexConditions;

@@ -7,24 +7,24 @@
  */
 
 #include "EventServer.h"
-#include "EventPacket.h"
 #include "EventClient.h"
+#include "EventPacket.h"
 #include "Socket.h"
-#include "threads/CriticalSection.h"
-#include "Application.h"
-#include "ServiceBroker.h"
-#include "interfaces/builtins/Builtins.h"
-#include "input/ActionTranslator.h"
-#include "threads/SingleLock.h"
 #include "Zeroconf.h"
 #include "guilib/GUIAudioManager.h"
+#include "input/actions/ActionTranslator.h"
 #include "input/Key.h"
+#include "interfaces/builtins/Builtins.h"
+#include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/SystemInfo.h"
+#include "Application.h"
+#include "ServiceBroker.h"
 #include "Util.h"
+
+#include <cassert>
 #include <map>
 #include <queue>
-#include <cassert>
 
 using namespace EVENTSERVER;
 using namespace EVENTPACKET;
@@ -68,15 +68,16 @@ CEventServer* CEventServer::GetInstance()
 void CEventServer::StartServer()
 {
   CSingleLock lock(m_critSection);
-  if(m_bRunning)
+  if (m_bRunning)
     return;
 
   // set default port
-  m_iPort = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_SERVICES_ESPORT);
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  m_iPort = settings->GetInt(CSettings::SETTING_SERVICES_ESPORT);
   assert(m_iPort <= 65535 && m_iPort >= 1);
 
   // max clients
-  m_iMaxClients = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_SERVICES_ESMAXCLIENTS);
+  m_iMaxClients = settings->GetInt(CSettings::SETTING_SERVICES_ESMAXCLIENTS);
   if (m_iMaxClients < 0)
   {
     CLog::Log(LOGERROR, "ES: Invalid maximum number of clients specified %d", m_iMaxClients);
@@ -161,13 +162,14 @@ void CEventServer::Run()
   }
 
   // bind to IP and start listening on port
-  int port_range = CServiceBroker::GetSettings()->GetInt(CSettings::SETTING_SERVICES_ESPORTRANGE);
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  int port_range = settings->GetInt(CSettings::SETTING_SERVICES_ESPORTRANGE);
   if (port_range < 1 || port_range > 100)
   {
     CLog::Log(LOGERROR, "ES: Invalid port range specified %d, defaulting to 10", port_range);
     port_range = 10;
   }
-  if (!m_pSocket->Bind(!CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_SERVICES_ESALLINTERFACES), m_iPort, port_range))
+  if (!m_pSocket->Bind(!settings->GetBool(CSettings::SETTING_SERVICES_ESALLINTERFACES), m_iPort, port_range))
   {
     CLog::Log(LOGERROR, "ES: Could not listen on port %d", m_iPort);
     return;

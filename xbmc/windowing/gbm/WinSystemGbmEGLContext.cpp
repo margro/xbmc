@@ -13,7 +13,7 @@
 #include "utils/log.h"
 #include "WinSystemGbmEGLContext.h"
 
-using namespace KODI;
+using namespace KODI::WINDOWING::GBM;
 
 bool CWinSystemGbmEGLContext::InitWindowSystemEGL(EGLint renderableType, EGLint apiType)
 {
@@ -22,9 +22,29 @@ bool CWinSystemGbmEGLContext::InitWindowSystemEGL(EGLint renderableType, EGLint 
     return false;
   }
 
-  if (!m_eglContext.CreatePlatformDisplay(m_GBM->GetDevice(), m_GBM->GetDevice(), renderableType, apiType))
+  // we need to provide an alpha format to egl to workaround a mesa bug
+  int visualId = CDRMUtils::FourCCWithAlpha(CWinSystemGbm::GetDrm()->GetOverlayPlane()->format);
+
+  if (!m_eglContext.CreatePlatformDisplay(m_GBM->GetDevice(), m_GBM->GetDevice()))
   {
     return false;
+  }
+
+  if (!m_eglContext.InitializeDisplay(apiType))
+  {
+    return false;
+  }
+
+  if (!m_eglContext.ChooseConfig(renderableType, visualId))
+  {
+    // fallback to 8bit format if no EGL config was found for 10bit
+    CWinSystemGbm::GetDrm()->GetOverlayPlane()->useFallbackFormat = true;
+    visualId = CDRMUtils::FourCCWithAlpha(CWinSystemGbm::GetDrm()->GetOverlayPlane()->GetFormat());
+
+    if (!m_eglContext.ChooseConfig(renderableType, visualId))
+    {
+      return false;
+    }
   }
 
   if (!CreateContext())
@@ -51,7 +71,10 @@ bool CWinSystemGbmEGLContext::CreateNewWindow(const std::string& name,
     return false;
   }
 
-  if (!m_eglContext.CreatePlatformSurface(m_GBM->GetSurface(), m_GBM->GetSurface()))
+  // This check + the reinterpret cast is for security reason, if the user has outdated platform header files which often is the case
+  static_assert(sizeof(EGLNativeWindowType) == sizeof(gbm_surface*), "Declaration specifier differs in size");
+
+  if (!m_eglContext.CreatePlatformSurface(m_GBM->GetSurface(), reinterpret_cast<EGLNativeWindowType>(m_GBM->GetSurface())))
   {
     return false;
   }
@@ -75,7 +98,7 @@ bool CWinSystemGbmEGLContext::DestroyWindowSystem()
 
 void CWinSystemGbmEGLContext::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
 {
-  GBM::VaapiProxyDelete(p);
+  VaapiProxyDelete(p);
 }
 
 EGLDisplay CWinSystemGbmEGLContext::GetEGLDisplay() const

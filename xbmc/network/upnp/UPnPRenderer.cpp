@@ -23,7 +23,6 @@
 #include "pictures/GUIWindowSlideShow.h"
 #include "pictures/PictureInfoTag.h"
 #include "interfaces/AnnouncementManager.h"
-#include "settings/Settings.h"
 #include "PlayListPlayer.h"
 #include "TextureDatabase.h"
 #include "ThumbLoader.h"
@@ -31,7 +30,6 @@
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
 #include "utils/StringUtils.h"
-#include "playlists/PlayList.h"
 #include "GUIUserMessages.h"
 #include "guilib/guiinfo/GUIInfoLabels.h"
 

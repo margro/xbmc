@@ -37,7 +37,6 @@ namespace PLAYLIST
 class CContextMenuManager;
 class XBPython;
 class CDataCacheCore;
-class CSettings;
 class IAE;
 class CFavouritesService;
 class CInputManager;
@@ -49,11 +48,10 @@ class CPowerManager;
 class CWeatherManager;
 class CPlayerCoreFactory;
 class CDatabaseManager;
-class CProfilesManager;
 class CEventLog;
 class CGUIComponent;
 class CAppInboundProtocol;
-class CSettings;
+class CSettingsComponent;
 
 namespace KODI
 {
@@ -106,16 +104,15 @@ public:
   static CWeatherManager& GetWeatherManager();
   static CPlayerCoreFactory &GetPlayerCoreFactory();
   static CDatabaseManager &GetDatabaseManager();
-  static CProfilesManager &GetProfileManager();
   static CEventLog &GetEventLog();
 
   static CGUIComponent* GetGUI();
   static void RegisterGUI(CGUIComponent *gui);
   static void UnregisterGUI();
 
-  static void RegisterSettings(std::shared_ptr<CSettings> settings);
-  static void UnregisterSettings();
-  static std::shared_ptr<CSettings> GetSettings();
+  static void RegisterSettingsComponent(CSettingsComponent *settings);
+  static void UnregisterSettingsComponent();
+  static CSettingsComponent* GetSettingsComponent();
 
   static void RegisterWinSystem(CWinSystemBase *winsystem);
   static void UnregisterWinSystem();
@@ -136,6 +133,5 @@ private:
   static CWinSystemBase* m_pWinSystem;
   static IAE* m_pActiveAE;
   static std::shared_ptr<CAppInboundProtocol> m_pAppPort;
-  static std::shared_ptr<CSettings> m_pSettings;
-
+  static CSettingsComponent* m_pSettingsComponent;
 };

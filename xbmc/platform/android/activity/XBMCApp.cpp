@@ -127,7 +127,9 @@ CCriticalSection CXBMCApp::m_applicationsMutex;
 std::vector<androidPackage> CXBMCApp::m_applications;
 CVideoSyncAndroid* CXBMCApp::m_syncImpl = NULL;
 CEvent CXBMCApp::m_vsyncEvent;
+CEvent CXBMCApp::m_displayChangeEvent;
 std::vector<CActivityResultEvent*> CXBMCApp::m_activityResultEvents;
+
 int64_t CXBMCApp::m_frameTimeNanos = 0;
 float CXBMCApp::m_refreshRate = 0.0f;
 
@@ -514,7 +516,7 @@ void CXBMCApp::SetRefreshRateCallback(CVariant* rateVariant)
   if (window)
   {
     CJNIWindowManagerLayoutParams params = window.getAttributes();
-    if (params.getpreferredRefreshRate() != rate)
+    if (fabs(params.getpreferredRefreshRate() - rate) > 0.001)
     {
       if (g_application.GetAppPlayer().IsPlaying())
       {
@@ -523,9 +525,13 @@ void CXBMCApp::SetRefreshRateCallback(CVariant* rateVariant)
       }
       params.setpreferredRefreshRate(rate);
       if (params.getpreferredRefreshRate() > 0.0)
+      {
         window.setAttributes(params);
+        return;
+      }
     }
   }
+  m_displayChangeEvent.Set();
 }
 
 void CXBMCApp::SetDisplayModeCallback(CVariant* variant)
@@ -548,8 +554,10 @@ void CXBMCApp::SetDisplayModeCallback(CVariant* variant)
       params.setpreferredDisplayModeId(mode);
       params.setpreferredRefreshRate(rate);
       window.setAttributes(params);
+      return;
     }
   }
+  m_displayChangeEvent.Set();
 }
 
 void CXBMCApp::SetRefreshRate(float rate)
@@ -559,8 +567,11 @@ void CXBMCApp::SetRefreshRate(float rate)
 
   m_refreshRate = rate;
 
+  m_displayChangeEvent.Reset();
   CVariant *variant = new CVariant(rate);
   runNativeOnUiThread(SetRefreshRateCallback, variant);
+  if (g_application.IsInitialized())
+    m_displayChangeEvent.WaitMSec(5000);
 }
 
 void CXBMCApp::SetDisplayMode(int mode, float rate)
@@ -568,12 +579,16 @@ void CXBMCApp::SetDisplayMode(int mode, float rate)
   if (mode < 1.0)
     return;
 
+  m_displayChangeEvent.Reset();
+
   std::map<std::string, CVariant> vmap;
   vmap["mode"] = mode;
   vmap["rate"] = rate;
   m_refreshRate = rate;
   CVariant *variant = new CVariant(vmap);
   runNativeOnUiThread(SetDisplayModeCallback, variant);
+  if (g_application.IsInitialized())
+    m_displayChangeEvent.WaitMSec(5000);
 }
 
 int CXBMCApp::android_printf(const char *format, ...)
@@ -1183,10 +1198,21 @@ void CXBMCApp::doFrame(int64_t frameTimeNanos)
 
   // Calculate the time, when next surface buffer should be rendered
   m_frameTimeNanos = frameTimeNanos;
-  if (m_refreshRate)
-    m_frameTimeNanos += static_cast<int64_t>(1500000000ll / m_refreshRate);
 
   m_vsyncEvent.Set();
+}
+
+int64_t CXBMCApp::GetNextFrameTime()
+{
+  if (m_refreshRate > 0.0001f)
+    return m_frameTimeNanos + static_cast<int64_t>(1500000000ll / m_refreshRate);
+  else
+    return m_frameTimeNanos;
+}
+
+float CXBMCApp::GetFrameLatencyMs()
+{
+  return (CurrentHostCounter() - m_frameTimeNanos) * 0.000001;
 }
 
 bool CXBMCApp::WaitVSync(unsigned int milliSeconds)
@@ -1340,7 +1366,6 @@ bool CXBMCApp::onInputDeviceEvent(const AInputEvent* event)
   return false;
 }
 
-
 void CXBMCApp::onDisplayAdded(int displayId)
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
@@ -1348,6 +1373,7 @@ void CXBMCApp::onDisplayAdded(int displayId)
 
 void CXBMCApp::onDisplayChanged(int displayId)
 {
+  m_displayChangeEvent.Set();
   android_printf("%s: ", __PRETTY_FUNCTION__);
 }
 
@@ -1374,12 +1400,14 @@ void CXBMCApp::surfaceCreated(CJNISurfaceHolder holder)
   {
     XBMC_SetupDisplay();
   }
+  g_application.SetRenderGUI(true);
 }
 
 void CXBMCApp::surfaceDestroyed(CJNISurfaceHolder holder)
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
   // If we have exited XBMC, it no longer exists.
+  g_application.SetRenderGUI(false);
   if (!m_exiting)
   {
     XBMC_DestroyDisplay();

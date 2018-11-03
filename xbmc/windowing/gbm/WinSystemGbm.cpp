@@ -10,6 +10,7 @@
 #include "ServiceBroker.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
 #include <string.h>
 
@@ -25,6 +26,7 @@
 #include "OffScreenModeSetting.h"
 #include "messaging/ApplicationMessenger.h"
 
+using namespace KODI::WINDOWING::GBM;
 
 CWinSystemGbm::CWinSystemGbm() :
   m_DRM(nullptr),
@@ -71,6 +73,11 @@ CWinSystemGbm::CWinSystemGbm() :
 
 bool CWinSystemGbm::InitWindowSystem()
 {
+  if (!m_vt.OpenTTY())
+  {
+    return false;
+  }
+
   m_DRM = std::make_shared<CDRMAtomic>();
 
   if (!m_DRM->InitDrm())
@@ -111,6 +118,9 @@ bool CWinSystemGbm::DestroyWindowSystem()
   m_GBM->DestroyDevice();
 
   CLog::Log(LOGDEBUG, "CWinSystemGbm::%s - deinitialized DRM", __FUNCTION__);
+
+  m_libinput.reset();
+
   return true;
 }
 
@@ -129,7 +139,10 @@ bool CWinSystemGbm::CreateNewWindow(const std::string& name,
 
   std::vector<uint64_t> *modifiers = m_DRM->GetOverlayPlaneModifiersForFormat(m_DRM->GetOverlayPlane()->format);
 
-  if (!m_GBM->CreateSurface(res.iWidth, res.iHeight, modifiers->data(), modifiers->size()))
+  // the gbm format needs alpha support
+  uint32_t format = CDRMUtils::FourCCWithAlpha(m_DRM->GetOverlayPlane()->GetFormat());
+
+  if (!m_GBM->CreateSurface(res.iWidth, res.iHeight, format, modifiers->data(), modifiers->size()))
   {
     CLog::Log(LOGERROR, "CWinSystemGbm::%s - failed to initialize GBM", __FUNCTION__);
     return false;
@@ -223,7 +236,7 @@ bool CWinSystemGbm::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
     m_GBM->ReleaseBuffer();
   }
 
-  int delay = CServiceBroker::GetSettings()->GetInt("videoscreen.delayrefreshchange");
+  int delay = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("videoscreen.delayrefreshchange");
   if (delay > 0)
   {
     m_delayDispReset = true;
@@ -256,7 +269,7 @@ void CWinSystemGbm::FlipPage(bool rendered, bool videoLayer)
 
 bool CWinSystemGbm::UseLimitedColor()
 {
-  return CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOSCREEN_LIMITEDRANGE);
 }
 
 bool CWinSystemGbm::Hide()

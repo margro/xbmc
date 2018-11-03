@@ -10,9 +10,9 @@
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "view/ViewState.h"
-#include "settings/AdvancedSettings.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "filesystem/Directory.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
@@ -63,7 +63,7 @@ std::string CGUIViewStateWindowPictures::GetLockType()
 std::string CGUIViewStateWindowPictures::GetExtensions()
 {
   std::string extensions = CServiceBroker::GetFileExtensionProvider().GetPictureExtensions();
-  if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_PICTURES_SHOWVIDEOS))
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_PICTURES_SHOWVIDEOS))
     extensions += "|" + CServiceBroker::GetFileExtensionProvider().GetVideoExtensions();
 
   return extensions;

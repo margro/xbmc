@@ -2090,7 +2090,7 @@
           <control type="spinner" format="string" delayed="true" />
         </setting>
         <setting id="videoscreen.whitelist" type="list[string]" parent="videoscreen.screen" label="14085" help="36356">
-          <level>1</level>
+          <level>3</level>
           <constraints>
             <options>modes</options>
             <default></default>
@@ -2394,16 +2394,6 @@
           <control type="list" format="string" />
         </setting>
         <setting id="videoscreen.guicalibration" type="action" label="214" help="36357">
-          <level>3</level>
-          <control type="button" format="action" />
-        </setting>
-        <setting id="videoscreen.testpattern" type="action" label="226" help="36358">
-          <requirement>
-            <or>
-              <condition>HAS_GL</condition>
-              <condition>HAS_DX</condition>
-            </or>
-          </requirement>
           <level>3</level>
           <control type="button" format="action" />
         </setting>

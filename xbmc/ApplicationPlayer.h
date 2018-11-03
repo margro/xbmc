@@ -35,6 +35,7 @@ public:
 
   // player management
   void ClosePlayer();
+  void ResetPlayer();
   std::string GetCurrentPlayer();
   float GetPlaySpeed();
   float GetPlayTempo();
@@ -150,6 +151,11 @@ public:
   CSeekHandler& GetSeekHandler();
 
   void SetUpdateStreamDetails();
+
+  /*!
+   * \copydoc IPlayer::HasGameAgent
+   */
+  bool HasGameAgent();
 
 private:
   std::shared_ptr<IPlayer> GetInternal() const;

@@ -11,21 +11,35 @@
 using namespace KODI;
 using namespace RETRO;
 
-std::string CRetroPlayerUtils::ViewModeToDescription(VIEWMODE viewMode)
+const char* CRetroPlayerUtils::StretchModeToIdentifier(STRETCHMODE stretchMode)
 {
-  switch (viewMode)
+  switch (stretchMode)
   {
-    case VIEWMODE::Normal:
-      return "normal";
-    case VIEWMODE::Stretch4x3:
-      return "4:3";
-    case VIEWMODE::Fullscreen:
-      return "fullscreen";
-    case VIEWMODE::Original:
-      return "original";
+    case STRETCHMODE::Normal:
+      return STRETCHMODE_NORMAL_ID;
+    case STRETCHMODE::Stretch4x3:
+      return STRETCHMODE_STRETCH_4_3_ID;
+    case STRETCHMODE::Fullscreen:
+      return STRETCHMODE_FULLSCREEN_ID;
+    case STRETCHMODE::Original:
+      return STRETCHMODE_ORIGINAL_ID;
     default:
       break;
   }
 
   return "";
+}
+
+STRETCHMODE CRetroPlayerUtils::IdentifierToStretchMode(const std::string &stretchMode)
+{
+  if (stretchMode == STRETCHMODE_NORMAL_ID)
+    return STRETCHMODE::Normal;
+  else if (stretchMode == STRETCHMODE_STRETCH_4_3_ID)
+    return STRETCHMODE::Stretch4x3;
+  else if (stretchMode == STRETCHMODE_FULLSCREEN_ID)
+    return STRETCHMODE::Fullscreen;
+  else if (stretchMode == STRETCHMODE_ORIGINAL_ID)
+    return STRETCHMODE::Original;
+
+  return STRETCHMODE::Normal;
 }

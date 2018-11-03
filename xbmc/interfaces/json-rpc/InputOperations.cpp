@@ -13,12 +13,9 @@
 #include "guilib/GUIWindow.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/GUIKeyboardFactory.h"
-#include "input/ActionTranslator.h"
+#include "input/actions/ActionTranslator.h"
 #include "input/Key.h"
 #include "utils/Variant.h"
-#include "input/XBMC_keyboard.h"
-#include "input/XBMC_vkeys.h"
-#include "threads/SingleLock.h"
 
 using namespace JSONRPC;
 using namespace KODI::MESSAGING;

@@ -24,6 +24,7 @@
 #include "windowing/GraphicContext.h"
 #include "utils/log.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "ServiceBroker.h"
 #include "utils/StringUtils.h"
 #include "utils/SysfsUtils.h"
@@ -152,7 +153,7 @@ CAndroidUtils::CAndroidUtils()
   }
 
   CLog::Log(LOGDEBUG, "CAndroidUtils: maximum/current resolution: %dx%d", m_width, m_height);
-  int limit = CServiceBroker::GetSettings()->GetInt("videoscreen.limitgui");
+  int limit = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("videoscreen.limitgui");
   switch (limit)
   {
     case 0: // auto
@@ -235,7 +236,7 @@ bool CAndroidUtils::SetNativeResolution(const RESOLUTION_INFO &res)
     CXBMCApp::SetDisplayMode(atoi(res.strId.c_str()), res.fRefreshRate);
     s_res_cur_displayMode = res;
   }
-  else if (std::abs(currentRefreshRate() - res.fRefreshRate) > 0.0001)
+  else
     CXBMCApp::SetRefreshRate(res.fRefreshRate);
   CXBMCApp::SetBuffersGeometry(res.iWidth, res.iHeight, 0);
 

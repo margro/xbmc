@@ -9,6 +9,8 @@
 #include "GBMUtils.h"
 #include "utils/log.h"
 
+using namespace KODI::WINDOWING::GBM;
+
 bool CGBMUtils::CreateDevice(int fd)
 {
   if (m_device)
@@ -36,7 +38,7 @@ void CGBMUtils::DestroyDevice()
   }
 }
 
-bool CGBMUtils::CreateSurface(int width, int height, const uint64_t *modifiers, const int modifiers_count)
+bool CGBMUtils::CreateSurface(int width, int height, uint32_t format, const uint64_t *modifiers, const int modifiers_count)
 {
   if (m_surface)
     CLog::Log(LOGWARNING, "CGBMUtils::%s - surface already created", __FUNCTION__);
@@ -45,7 +47,7 @@ bool CGBMUtils::CreateSurface(int width, int height, const uint64_t *modifiers, 
   m_surface = gbm_surface_create_with_modifiers(m_device,
                                                 width,
                                                 height,
-                                                GBM_FORMAT_ARGB8888,
+                                                format,
                                                 modifiers,
                                                 modifiers_count);
 #endif
@@ -54,7 +56,7 @@ bool CGBMUtils::CreateSurface(int width, int height, const uint64_t *modifiers, 
     m_surface = gbm_surface_create(m_device,
                                    width,
                                    height,
-                                   GBM_FORMAT_ARGB8888,
+                                   format,
                                    GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
   }
 

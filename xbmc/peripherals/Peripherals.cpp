@@ -11,7 +11,6 @@
 #include <utility>
 
 #include "EventScanner.h"
-#include "addons/PeripheralAddon.h"
 #include "addons/AddonButtonMap.h"
 #include "addons/AddonManager.h"
 #include "addons/settings/GUIDialogAddonSettings.h"
@@ -33,7 +32,6 @@
 #include "devices/PeripheralNIC.h"
 #include "devices/PeripheralNyxboard.h"
 #include "devices/PeripheralTuner.h"
-#include "dialogs/GUIDialogKaiToast.h"
 #include "FileItem.h"
 #include "bus/virtual/PeripheralBusApplication.h"
 #include "input/joysticks/interfaces/IButtonMapper.h"
@@ -41,7 +39,6 @@
 #include "filesystem/Directory.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
 #include "GUIUserMessages.h"
 #include "input/Key.h"
@@ -50,6 +47,7 @@
 #include "peripherals/dialogs/GUIDialogPeripherals.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "Util.h"
 #include "utils/log.h"
@@ -60,6 +58,9 @@
 
 #if defined(HAVE_LIBCEC)
 #include "bus/virtual/PeripheralBusCEC.h"
+#else
+#include "dialogs/GUIDialogKaiToast.h"
+#include "guilib/LocalizeStrings.h"
 #endif
 
 using namespace KODI;
@@ -81,13 +82,13 @@ CPeripherals::CPeripherals(CInputManager &inputManager,
   settingSet.insert(CSettings::SETTING_INPUT_CONTROLLERCONFIG);
   settingSet.insert(CSettings::SETTING_INPUT_TESTRUMBLE);
   settingSet.insert(CSettings::SETTING_LOCALE_LANGUAGE);
-  CServiceBroker::GetSettings()->RegisterCallback(this, settingSet);
+  CServiceBroker::GetSettingsComponent()->GetSettings()->RegisterCallback(this, settingSet);
 }
 
 CPeripherals::~CPeripherals()
 {
   // Unregister settings
-  CServiceBroker::GetSettings()->UnregisterCallback(this);
+  CServiceBroker::GetSettingsComponent()->GetSettings()->UnregisterCallback(this);
 
   Clear();
 }
@@ -776,7 +777,7 @@ EventLockHandlePtr CPeripherals::RegisterEventLock()
 
 void CPeripherals::OnUserNotification()
 {
-  if (!CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_INPUT_RUMBLENOTIFY))
+  if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_INPUT_RUMBLENOTIFY))
     return;
 
   PeripheralVector peripherals;
@@ -965,7 +966,7 @@ void CPeripherals::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sen
   {
     if (strcmp(message, "OnQuit") == 0)
     {
-      if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_INPUT_CONTROLLERPOWEROFF))
+      if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_INPUT_CONTROLLERPOWEROFF))
         PowerOffDevices();
     }
   }

@@ -11,11 +11,13 @@
 #include "utils/log.h"
 #include "windowing/WinSystem.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "cores/IPlayer.h"
-#include "rendering/RenderSystem.h"
 #ifdef TARGET_WINDOWS
 #include "rendering/dx/DeviceResources.h"
 #include "rendering/dx/RenderContext.h"
+#else
+#include "rendering/RenderSystem.h"
 #endif
 
 extern "C" {
@@ -41,7 +43,7 @@ bool CRenderCaptureBase::UseOcclusionQuery()
 {
   if (m_flags & CAPTUREFLAG_IMMEDIATELY)
     return false;
-  else if (g_advancedSettings.m_videoCaptureUseOcclusionQuery == 0)
+  else if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoCaptureUseOcclusionQuery == 0)
     return false;
   else
     return true;

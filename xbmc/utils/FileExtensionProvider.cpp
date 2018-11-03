@@ -11,8 +11,11 @@
 #include <string>
 #include <vector>
 
+#include "ServiceBroker.h"
 #include "addons/AddonManager.h"
 #include "addons/binary-addons/BinaryAddonBase.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 
 using namespace ADDON;
 
@@ -24,11 +27,10 @@ const std::vector<TYPE> ADDON_TYPES = {
 
 CFileExtensionProvider::CFileExtensionProvider(ADDON::CAddonMgr &addonManager,
                                                ADDON::CBinaryAddonManager &binaryAddonManager) :
+  m_advancedSettings(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()),
   m_addonManager(addonManager),
   m_binaryAddonManager(binaryAddonManager)
 {
-  m_advancedSettings = g_advancedSettingsRef;
-
   SetAddonExtensions();
 
   m_addonManager.Events().Subscribe(this, &CFileExtensionProvider::OnAddonEvent);
@@ -138,6 +140,16 @@ void CFileExtensionProvider::SetAddonExtensions(const TYPE& type)
         if (addonInfo->Type(type)->GetValue(info2).asBoolean())
           fileFolderExtensions.push_back(ext);
       }
+      if (type == ADDON_VFS)
+      {
+        if (addonInfo->Type(type)->GetValue("@encodedhostname").asBoolean())
+        {
+          std::string prot = addonInfo->Type(type)->GetValue("@protocols").asString();
+          auto prots = StringUtils::Split(prot, "|");
+          for (const std::string& it : prots)
+            m_encoded.push_back(it);
+        }
+      }
     }
   }
 
@@ -165,4 +177,9 @@ void CFileExtensionProvider::OnAddonEvent(const AddonEvent& event)
   {
     SetAddonExtensions();
   }
+}
+
+bool CFileExtensionProvider::EncodedHostName(const std::string& protocol) const
+{
+  return std::find(m_encoded.begin(),m_encoded.end(),protocol) != m_encoded.end();
 }

@@ -13,22 +13,19 @@
 #include "MediaSettings.h"
 #include "Application.h"
 #include "PlayListPlayer.h"
-#include "dialogs/GUIDialogContextMenu.h"
+#include "cores/RetroPlayer/RetroPlayerUtils.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "settings/dialogs/GUIDialogLibExportSettings.h"
 #include "guilib/LocalizeStrings.h"
 #include "interfaces/builtins/Builtins.h"
 #include "music/MusicDatabase.h"
 #include "music/MusicLibraryQueue.h"
-#include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
-#include "profiles/ProfilesManager.h"
 #include "settings/lib/Setting.h"
 #include "settings/Settings.h"
 #include "storage/MediaManager.h"
 #include "threads/SingleLock.h"
 #include "utils/StringUtils.h"
-#include "utils/URIUtils.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
 #include "utils/Variant.h"
@@ -113,6 +110,8 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     XMLUtils::GetBoolean(pElement, "nonlinstretch", m_defaultVideoSettings.m_CustomNonLinStretch);
     if (!XMLUtils::GetInt(pElement, "stereomode", m_defaultVideoSettings.m_StereoMode))
       m_defaultVideoSettings.m_StereoMode = 0;
+    if (!XMLUtils::GetInt(pElement, "centermixlevel", m_defaultVideoSettings.m_CenterMixLevel))
+      m_defaultVideoSettings.m_CenterMixLevel = 0;
 
     m_defaultVideoSettings.m_ToneMapMethod = 1;
     m_defaultVideoSettings.m_ToneMapParam = 1.0f;
@@ -127,9 +126,12 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     if (XMLUtils::GetString(pElement, "videofilter", videoFilter))
       m_defaultGameSettings.SetVideoFilter(videoFilter);
 
-    int viewMode;
-    if (XMLUtils::GetInt(pElement, "viewmode", viewMode, static_cast<int>(RETRO::VIEWMODE::Normal), static_cast<int>(RETRO::VIEWMODE::Max)))
-      m_defaultGameSettings.SetViewMode(static_cast<RETRO::VIEWMODE>(viewMode));
+    std::string stretchMode;
+    if (XMLUtils::GetString(pElement, "stretchmode", stretchMode))
+    {
+      RETRO::STRETCHMODE sm = RETRO::CRetroPlayerUtils::IdentifierToStretchMode(stretchMode);
+      m_defaultGameSettings.SetStretchMode(sm);
+    }
 
     int rotation;
     if (XMLUtils::GetInt(pElement, "rotation", rotation, 0, 270) && rotation >= 0)
@@ -215,6 +217,7 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
   XMLUtils::SetFloat(pNode, "subtitledelay", m_defaultVideoSettings.m_SubtitleDelay);
   XMLUtils::SetBoolean(pNode, "nonlinstretch", m_defaultVideoSettings.m_CustomNonLinStretch);
   XMLUtils::SetInt(pNode, "stereomode", m_defaultVideoSettings.m_StereoMode);
+  XMLUtils::SetInt(pNode, "centermixlevel", m_defaultVideoSettings.m_CenterMixLevel);
 
   // default audio settings for dsp addons
   TiXmlElement audioSettingsNode("defaultaudiosettings");
@@ -229,7 +232,8 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
     return false;
 
   XMLUtils::SetString(pNode, "videofilter", m_defaultGameSettings.VideoFilter());
-  XMLUtils::SetInt(pNode, "viewmode", static_cast<int>(m_defaultGameSettings.ViewMode()));
+  std::string sm = RETRO::CRetroPlayerUtils::StretchModeToIdentifier(m_defaultGameSettings.StretchMode());
+  XMLUtils::SetString(pNode, "stretchmode", sm);
   XMLUtils::SetInt(pNode, "rotation", m_defaultGameSettings.RotationDegCCW());
 
   // mymusic

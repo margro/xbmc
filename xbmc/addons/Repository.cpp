@@ -17,27 +17,19 @@
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
 #include "addons/RepositoryUpdater.h"
-#include "dialogs/GUIDialogKaiToast.h"
-#include "dialogs/GUIDialogYesNo.h"
-#include "events/AddonManagementEvent.h"
-#include "events/EventLog.h"
 #include "FileItem.h"
 #include "filesystem/CurlFile.h"
-#include "filesystem/Directory.h"
 #include "filesystem/File.h"
 #include "filesystem/ZipFile.h"
 #include "messaging/helpers/DialogHelper.h"
-#include "settings/Settings.h"
 #include "TextureDatabase.h"
 #include "URL.h"
 #include "utils/Base64.h"
 #include "utils/Digest.h"
-#include "utils/JobManager.h"
 #include "utils/log.h"
 #include "utils/Mime.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
-#include "utils/Variant.h"
 #include "utils/XBMCTinyXML.h"
 
 using namespace XFILE;
@@ -292,6 +284,10 @@ bool CRepositoryUpdateJob::DoWork()
 
   std::string oldChecksum;
   if (database.GetRepoChecksum(m_repo->ID(), oldChecksum) == -1)
+    oldChecksum = "";
+
+  std::pair<CDateTime, ADDON::AddonVersion> lastCheck = database.LastChecked(m_repo->ID());
+  if (lastCheck.second != m_repo->Version())
     oldChecksum = "";
 
   std::string newChecksum;

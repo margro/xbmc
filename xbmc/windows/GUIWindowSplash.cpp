@@ -8,13 +8,11 @@
 
 #include "GUIWindowSplash.h"
 
-#include "filesystem/File.h"
-#include "filesystem/SpecialProtocol.h"
 #include "guilib/GUIImage.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "Util.h"
-#include "utils/log.h"
 
 CGUIWindowSplash::CGUIWindowSplash(void) : CGUIWindow(WINDOW_SPLASH, "")
 {
@@ -26,7 +24,7 @@ CGUIWindowSplash::~CGUIWindowSplash(void) = default;
 
 void CGUIWindowSplash::OnInitWindow()
 {
-  if (!g_advancedSettings.m_splashImage)
+  if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_splashImage)
     return;
 
   m_image = std::unique_ptr<CGUIImage>(new CGUIImage(0, 0, 0, 0, CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(), CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight(), CTextureInfo(CUtil::GetSplashPath())));

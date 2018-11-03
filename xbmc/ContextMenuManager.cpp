@@ -21,6 +21,7 @@
 
 #include <iterator>
 #include "ContextMenus.h"
+#include "dialogs/GUIDialogContextMenu.h"
 
 using namespace ADDON;
 using namespace PVR;
@@ -39,6 +40,7 @@ CContextMenuManager::~CContextMenuManager()
 
 void CContextMenuManager::Deinit()
 {
+  CPVRContextMenuManager::GetInstance().Events().Unsubscribe(this);
   m_addonMgr.Events().Unsubscribe(this);
   m_items.clear();
 }
@@ -46,6 +48,7 @@ void CContextMenuManager::Deinit()
 void CContextMenuManager::Init()
 {
   m_addonMgr.Events().Subscribe(this, &CContextMenuManager::OnEvent);
+  CPVRContextMenuManager::GetInstance().Events().Subscribe(this, &CContextMenuManager::OnPVREvent);
 
   CSingleLock lock(m_criticalSection);
   m_items = {
@@ -132,6 +135,30 @@ void CContextMenuManager::OnEvent(const ADDON::AddonEvent& event)
     {
       ReloadAddonItems();
     }
+  }
+}
+
+void CContextMenuManager::OnPVREvent(const PVRContextMenuEvent& event)
+{
+  switch (event.action)
+  {
+    case PVRContextMenuEventAction::ADD_ITEM:
+    {
+      CSingleLock lock(m_criticalSection);
+      m_items.emplace_back(event.item);
+      break;
+    }
+    case PVRContextMenuEventAction::REMOVE_ITEM:
+    {
+      CSingleLock lock(m_criticalSection);
+      auto it = std::find(m_items.begin(), m_items.end(), event.item);
+      if (it != m_items.end())
+        m_items.erase(it);
+      break;
+    }
+
+    default:
+      break;
   }
 }
 

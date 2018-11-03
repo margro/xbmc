@@ -10,8 +10,7 @@
 #include "favourites/FavouritesService.h"
 #include "File.h"
 #include "Directory.h"
-#include "Util.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "ServiceBroker.h"
 #include "utils/URIUtils.h"
 
@@ -32,8 +31,7 @@ bool CFavouritesDirectory::Exists(const CURL& url)
     if (XFILE::CFile::Exists("special://xbmc/system/favourites.xml"))
       return true;
 
-    std::string favouritesXml = URIUtils::AddFileToFolder(m_profileManager.GetProfileUserDataFolder(),
-        "favourites.xml");
+    const std::string favouritesXml = URIUtils::AddFileToFolder(m_profileManager->GetProfileUserDataFolder(), "favourites.xml");
 
     return XFILE::CFile::Exists(favouritesXml);
   }

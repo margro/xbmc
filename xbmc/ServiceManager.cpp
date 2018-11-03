@@ -10,6 +10,7 @@
 #include "addons/BinaryAddonCache.h"
 #include "addons/VFSEntry.h"
 #include "addons/binary-addons/BinaryAddonManager.h"
+#include "addons/RepositoryUpdater.h"
 #include "ContextMenuManager.h"
 #include "cores/DataCacheCore.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
@@ -19,17 +20,14 @@
 #include "games/GameServices.h"
 #include "peripherals/Peripherals.h"
 #include "PlayListPlayer.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "utils/log.h"
 #include "input/InputManager.h"
-#include "interfaces/AnnouncementManager.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "interfaces/python/XBPython.h"
 #include "pvr/PVRManager.h"
 #include "network/Network.h"
-#include "settings/Settings.h"
 #include "utils/FileExtensionProvider.h"
-#include "windowing/WinSystem.h"
 #include "powermanagement/PowerManager.h"
 #include "weather/WeatherManager.h"
 #include "DatabaseManager.h"
@@ -53,11 +51,6 @@ CServiceManager::~CServiceManager()
 bool CServiceManager::InitForTesting()
 {
   m_network.reset(new CNetwork());
-
-  m_profileManager.reset(new CProfilesManager());
-  CProfile profile("special://temp");
-  m_profileManager.get()->AddProfile(profile);
-  m_profileManager.get()->CreateProfileFolders();
 
   m_databaseManager.reset(new CDatabaseManager);
 
@@ -89,7 +82,6 @@ void CServiceManager::DeinitTesting()
   m_binaryAddonManager.reset();
   m_addonMgr.reset();
   m_databaseManager.reset();
-  m_profileManager.reset();
   m_network.reset();
 }
 
@@ -108,16 +100,7 @@ bool CServiceManager::InitStageOne()
   return true;
 }
 
-bool CServiceManager::InitStageOnePointFive()
-{
-  m_profileManager.reset(new CProfilesManager());
-  if (!m_profileManager->Load())
-    return false;
-
-  return true;
-}
-
-bool CServiceManager::InitStageTwo(const CAppParamParser &params)
+bool CServiceManager::InitStageTwo(const CAppParamParser &params, const std::string& profilesUserDataFolder)
 {
   // Initialize the addon database (must be before the addon manager is init'd)
   m_databaseManager.reset(new CDatabaseManager);
@@ -151,11 +134,11 @@ bool CServiceManager::InitStageTwo(const CAppParamParser &params)
   m_binaryAddonCache.reset( new ADDON::CBinaryAddonCache());
   m_binaryAddonCache->Init();
 
-  m_favouritesService.reset(new CFavouritesService(m_profileManager->GetProfileUserDataFolder()));
+  m_favouritesService.reset(new CFavouritesService(profilesUserDataFolder));
 
   m_serviceAddons.reset(new ADDON::CServiceAddonManager(*m_addonMgr));
 
-  m_contextMenuManager.reset(new CContextMenuManager(*m_addonMgr.get()));
+  m_contextMenuManager.reset(new CContextMenuManager(*m_addonMgr));
 
   m_gameControllerManager.reset(new GAME::CControllerManager);
   m_inputManager.reset(new CInputManager(params));
@@ -180,7 +163,7 @@ bool CServiceManager::InitStageTwo(const CAppParamParser &params)
 }
 
 // stage 3 is called after successful initialization of WindowManager
-bool CServiceManager::InitStageThree()
+bool CServiceManager::InitStageThree(const std::shared_ptr<CProfileManager>& profileManager)
 {
   // Peripherals depends on strings being loaded before stage 3
   m_peripherals->Initialise();
@@ -188,12 +171,12 @@ bool CServiceManager::InitStageThree()
   m_gameServices.reset(new GAME::CGameServices(*m_gameControllerManager,
     *m_gameRenderManager,
     *m_peripherals,
-    *m_profileManager));
+    *profileManager));
 
   m_contextMenuManager->Init();
   m_PVRManager->Init();
 
-  m_playerCoreFactory.reset(new CPlayerCoreFactory(*m_profileManager));
+  m_playerCoreFactory.reset(new CPlayerCoreFactory(*profileManager));
 
   init_level = 3;
   return true;
@@ -235,11 +218,6 @@ void CServiceManager::DeinitStageTwo()
   m_databaseManager.reset();
 }
 
-void CServiceManager::DeinitStageOnePointFive()
-{
-  m_profileManager.reset();
-}
-
 void CServiceManager::DeinitStageOne()
 {
   init_level = 0;
@@ -254,22 +232,22 @@ void CServiceManager::DeinitStageOne()
 
 ADDON::CAddonMgr &CServiceManager::GetAddonMgr()
 {
-  return *m_addonMgr.get();
+  return *m_addonMgr;
 }
 
 ADDON::CBinaryAddonCache &CServiceManager::GetBinaryAddonCache()
 {
-  return *m_binaryAddonCache.get();
+  return *m_binaryAddonCache;
 }
 
 ADDON::CBinaryAddonManager &CServiceManager::GetBinaryAddonManager()
 {
-  return *m_binaryAddonManager.get();
+  return *m_binaryAddonManager;
 }
 
 ADDON::CVFSAddonCache &CServiceManager::GetVFSAddonCache()
 {
-  return *m_vfsAddonCache.get();
+  return *m_vfsAddonCache;
 }
 
 ADDON::CServiceAddonManager &CServiceManager::GetServiceAddons()
@@ -388,14 +366,4 @@ CPlayerCoreFactory &CServiceManager::GetPlayerCoreFactory()
 CDatabaseManager &CServiceManager::GetDatabaseManager()
 {
   return *m_databaseManager;
-}
-
-CProfilesManager &CServiceManager::GetProfileManager()
-{
-  return *m_profileManager;
-}
-
-CEventLog &CServiceManager::GetEventLog()
-{
-  return m_profileManager->GetEventLog();
 }

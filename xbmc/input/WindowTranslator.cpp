@@ -54,7 +54,6 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "pvrosdguide"              , WINDOW_DIALOG_PVR_CHANNEL_GUIDE }, // backward compatibility to v17
     { "pvrosdteletext"           , WINDOW_DIALOG_OSD_TELETEXT },
     { "systeminfo"               , WINDOW_SYSTEM_INFORMATION },
-    { "testpattern"              , WINDOW_TEST_PATTERN },
     { "screencalibration"        , WINDOW_SCREEN_CALIBRATION },
     { "systemsettings"           , WINDOW_SETTINGS_SYSTEM },
     { "servicesettings"          , WINDOW_SETTINGS_SERVICE },
@@ -145,7 +144,7 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "radiotimerrules"          , WINDOW_RADIO_TIMER_RULES},
     { "gameosd"                  , WINDOW_DIALOG_GAME_OSD },
     { "gamevideofilter"          , WINDOW_DIALOG_GAME_VIDEO_FILTER },
-    { "gameviewmode"             , WINDOW_DIALOG_GAME_STRETCH_MODE },
+    { "gamestretchmode"          , WINDOW_DIALOG_GAME_STRETCH_MODE },
     { "gamevolume"               , WINDOW_DIALOG_GAME_VOLUME },
     { "gameadvancedsettings"     , WINDOW_DIALOG_GAME_ADVANCED_SETTINGS },
     { "gamevideorotation"        , WINDOW_DIALOG_GAME_VIDEO_ROTATION },

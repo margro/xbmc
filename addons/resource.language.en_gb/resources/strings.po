@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: KODI Main\n"
-"Report-Msgid-Bugs-To: http://trac.kodi.tv/\n"
+"Report-Msgid-Bugs-To: https://github.com/xbmc/xbmc/issues/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Kodi Translation Team\n"
@@ -817,10 +817,11 @@ msgctxt "#185"
 msgid "Searching album"
 msgstr ""
 
+#: addons/skin.estuary/xml/DialogPVRGroupManager.xml
 #: xbmc/addons/GUIViewStateAddonBrowser.cpp
 #: xbmc/addons/GUIDialogAddonInfo.cpp
 #: xbmc/dialogs/GUIDialogSelect.cpp
-#: addons/skin.estuary/xml/DialogPVRGroupManager.xml
+#: xbmc/games/controllers/windows/GUIControllerWindow.cpp
 #: xbmc/settings/dialogs/GUIDialogLibExportSettings.cpp
 msgctxt "#186"
 msgid "OK"
@@ -1045,10 +1046,7 @@ msgctxt "#225"
 msgid "Vertical shift"
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#226"
-msgid "Test patterns..."
-msgstr ""
+#empty string with id 226
 
 #: system/settings/settings.xml
 msgctxt "#227"
@@ -4815,12 +4813,7 @@ msgctxt "#10007"
 msgid "System information"
 msgstr ""
 
-#: xbmc/guilib/WindowIDs.h
-msgctxt "#10008"
-msgid "Settings - Test patterns"
-msgstr ""
-
-#empty strings from id 10009 to 10010
+#empty strings from id 10008 to 10010
 
 #: xbmc/guilib/WindowIDs.h
 msgctxt "#10011"
@@ -9300,6 +9293,7 @@ msgstr ""
 #: xbmc/pvr/PVRGUIActions.cpp
 #: xbmc/pvr/PVRManager.cpp
 #: xbmc/video/windows/GUIWindowVideoBase.cpp
+#: addons/skin.estuary/xml/MusicOSD.xml
 #: addons/skin.estuary/xml/VideoOSD.xml
 msgctxt "#19033"
 msgid "Information"
@@ -10276,11 +10270,7 @@ msgctxt "#19194"
 msgid "Continue?"
 msgstr ""
 
-#. label for a context menu entry for pvr client specific actions
-#: xbmc/pvr/PVRContextMenus.cpp
-msgctxt "#19195"
-msgid "Client actions"
-msgstr ""
+#empty string with id 19195
 
 #. value for "pvr client specific actions" dialog headers
 #: xbmc/pvr/PVRGUIActions.cpp
@@ -10550,7 +10540,7 @@ msgstr ""
 #. Label for context menu entry to open settings dialog for a timer (read-only)
 #: xbmc/pvr/PVRContextMenus.cpp
 msgctxt "#19241"
-msgid "View timer information"
+msgid "View timer"
 msgstr ""
 
 #. Label for context menu entry to open settings dialog for a timer
@@ -10919,7 +10909,13 @@ msgctxt "#19303"
 msgid "Use simple timeshift OSD"
 msgstr ""
 
-#empty strings from id 19304 to 19498
+#. Label for context menu entry to open settings dialog for a timer rule (read-only)
+#: xbmc/pvr/PVRContextMenus.cpp
+msgctxt "#19304"
+msgid "View timer rule"
+msgstr ""
+
+#empty strings from id 19305 to 19498
 
 #. label for epg genre value
 #: xbmc/epg/Epg.cpp
@@ -13891,12 +13887,13 @@ msgstr ""
 
 #: xbmc/addons/GUIViewStateAddonBrowser.cpp
 #: xbmc/filesystem/AddonsDirectory.cpp
-#: addons/skin.estuary/xml/MyPrograms.xml
+#: addons/skin.estuary/xml/DialogGameControllers.xml
 #: addons/skin.estuary/xml/Includes.xml
-#: addons/skin.estuary/xml/MyVideoNav.xml
-#: addons/skin.estuary/xml/MyPics.xml
-#: addons/skin.estuary/xml/MyMusicNav.xml
 #: addons/skin.estuary/xml/MyGames.xml
+#: addons/skin.estuary/xml/MyMusicNav.xml
+#: addons/skin.estuary/xml/MyPics.xml
+#: addons/skin.estuary/xml/MyPrograms.xml
+#: addons/skin.estuary/xml/MyVideoNav.xml
 msgctxt "#21452"
 msgid "Get more..."
 msgstr ""
@@ -14060,7 +14057,13 @@ msgctxt "#21482"
 msgid "Subtitle track count"
 msgstr ""
 
-#empty strings from id 21483 to 21601
+#. Label for controls used to view something (e.g. a context menu entry to open read-only timer settings dialog)
+#: xbmc/pvr/PVRContextMenus.cpp
+msgctxt "#21483"
+msgid "View"
+msgstr ""
+
+#empty strings from id 21484 to 21601
 
 #: xbmc/Util.cpp
 msgctxt "#21602"
@@ -14928,6 +14931,7 @@ msgstr ""
 
 #. Used as a title in the progress dialog when installing an add-on
 #: xbmc/addons/AddonInstaller.cpp
+#: xbmc/games/controllers/windows/ControllerInstaller.cpp
 msgctxt "#24057"
 msgid "Installing {0:s}..."
 msgstr ""
@@ -15075,6 +15079,7 @@ msgstr ""
 
 #. Used as a text in the progress dialog when installing an add-on
 #: xbmc/addons/AddonInstaller.cpp
+#: xbmc/games/controllers/windows/ControllerInstaller.cpp
 msgctxt "#24086"
 msgid "Installing add-on..."
 msgstr ""
@@ -15570,6 +15575,8 @@ msgstr ""
 #empty strings from id 29806 to 29899
 
 #. Header string on RDS Radiotext+ Info dialog
+#: addons/skin.estuary/xml/DialogPVRRadioRDSInfo.xml
+#: addons/skin.estuary/xml/Variables.xml
 msgctxt "#29900"
 msgid "Radiotext Plus info"
 msgstr ""
@@ -16028,7 +16035,7 @@ msgstr ""
 #. Help text of boolean on/off value
 #: system/settings/settings.xml
 msgctxt "#29983"
-msgid "RDS inform you about traffic advisory messages"
+msgid "RDS informs you about traffic advisory messages"
 msgstr ""
 
 #. Boolean value on settings
@@ -16856,7 +16863,19 @@ msgctxt "#35020"
 msgid "Press all analog buttons now to detect them:[CR][CR]{0:s}"
 msgstr ""
 
-#empty strings from id 35021 to 35046
+#. Button in the controller configuration dialog to install all controller profiles
+#: addons/skin.estuary/xml/DialogGameControllers.xml
+msgctxt "#35021"
+msgid "Get all"
+msgstr ""
+
+#. Message shown in the controller dialog when there is nothing to map, for example hubs (multitaps) have no buttons
+#: xbmc/games/controllers/windows/GUIFeatureList.cpp
+msgctxt "#35022"
+msgid "Nothing to map"
+msgstr ""
+
+#empty strings from id 35023 to 35046
 
 #. Name of setting to configure peripheral add-ons
 #: system/settings/settings.xml
@@ -16880,6 +16899,7 @@ msgstr ""
 #. Name of controller add-ons
 #: addons/skin.estuary/xml/DialogGameControllers.xml
 #: xbmc/addons/Addon.cpp
+#: xbmc/games/controllers/windows/ControllerInstaller.cpp
 #: xbmc/games/controllers/windows/GUIControllerWindow.cpp
 msgctxt "#35050"
 msgid "Controller profiles"
@@ -16942,6 +16962,7 @@ msgid "Would you like to reset this controller profile for all attached devices?
 msgstr ""
 
 #. Notice that all controller profiles are installed
+#: xbmc/games/controllers/windows/ControllerInstaller.cpp
 #: xbmc/games/controllers/windows/GUIControllerWindow.cpp
 msgctxt "#35062"
 msgid "All available controller profiles are installed."
@@ -17472,7 +17493,13 @@ msgctxt "#35235"
 msgid "Press {0:s} to open the in-game menu."
 msgstr ""
 
-#empty strings from id 35236 to 35249
+#. Additional help text shown when the user first plays a game. This will be removed in the future.
+#: addons/skin.estuary/xml/GameOSD.xml
+msgctxt "#35236"
+msgid "In this release, only controllers can be used to play games."
+msgstr ""
+
+#empty strings from id 35237 to 35249
 
 #: xbmc/windows/GUIMediaWindow.cpp
 msgctxt "#35250"
@@ -17503,6 +17530,7 @@ msgstr ""
 
 #. Error message when a game client fails to install when a game is being launched
 #: xbmc/games/dialogs/GUIDialogSelectGameClient.cpp
+#: xbmc/games/controllers/windows/ControllerInstaller.cpp
 msgctxt "#35256"
 msgid "Failed to install add-on."
 msgstr ""
@@ -19259,11 +19287,7 @@ msgctxt "#36357"
 msgid "Calibrate the user interface by adjusting the overscan. Use this tool if the image being displayed is too large or small for your display."
 msgstr ""
 
-#. Description of setting with label #226 "Test patterns..."
-#: system/settings/settings.xml
-msgctxt "#36358"
-msgid "Test patterns for display hardware calibration."
-msgstr ""
+#empty string with id 36358
 
 #. Description of setting with label #36042 "Use limited colour range (16-235)"
 #: system/settings/settings.xml
@@ -19710,7 +19734,13 @@ msgctxt "#36435"
 msgid "Use VideoPlayer for decoding of video files with MMAL acceleration."
 msgstr ""
 
-#empty strings from id 36436 to 36441
+#. Description for setting #310: "Keyboard layouts"
+#: system/settings/settings.xml
+msgctxt "#36436"
+msgid "Select OS keyboard layout."
+msgstr ""
+
+#empty strings from id 36437 to 36441
 
 #. Description of setting "System -> Audio output -> Volume control steps" with label #1302
 #: system/settings/settings.xml
@@ -21393,6 +21423,7 @@ msgid "installed"
 msgstr ""
 
 #: xbmc/addons/GUIDialogAddonInfo.cpp
+#: xbmc/games/controllers/windows/ControllerInstaller.cpp
 msgctxt "#39020"
 msgid "The following additional add-ons will be installed"
 msgstr ""

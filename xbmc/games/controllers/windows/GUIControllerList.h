@@ -10,7 +10,6 @@
 
 #include "IConfigurationWindow.h"
 #include "addons/AddonEvents.h"
-#include "addons/Addon.h"
 #include "games/GameTypes.h"
 #include "games/controllers/ControllerTypes.h"
 
@@ -30,7 +29,7 @@ namespace GAME
   class CGUIControllerList : public IControllerList
   {
   public:
-    CGUIControllerList(CGUIWindow* window, IFeatureList* featureList);
+    CGUIControllerList(CGUIWindow* window, IFeatureList* featureList, GameClientPtr gameClient);
     virtual ~CGUIControllerList(void) { Deinitialize(); }
 
     // implementation of IControllerList

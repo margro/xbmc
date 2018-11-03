@@ -19,7 +19,6 @@
 #include "utils/URIUtils.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
-#include "filesystem/Directory.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "settings/lib/SettingSection.h"
 #include "utils/log.h"
@@ -372,11 +371,6 @@ void CAddonDll::SaveSettings()
     TransferSettings();
 }
 
-std::string CAddonDll::GetSetting(const std::string& key)
-{
-  return CAddon::GetSetting(key);
-}
-
 ADDON_STATUS CAddonDll::TransferSettings()
 {
   bool restart = false;
@@ -694,13 +688,16 @@ bool CAddonDll::get_setting_int(void* kodiBase, const char* id, int* value)
     return false;
   }
 
-  if (setting->GetType() != SettingType::Integer)
+  if (setting->GetType() != SettingType::Integer && setting->GetType() != SettingType::Number)
   {
     CLog::Log(LOGERROR, "kodi::General::%s - setting '%s' is not a integer in '%s'", __FUNCTION__, id, addon->Name().c_str());
     return false;
   }
 
-  *value = std::static_pointer_cast<CSettingInt>(setting)->GetValue();
+  if (setting->GetType() == SettingType::Integer)
+    *value = std::static_pointer_cast<CSettingInt>(setting)->GetValue();
+  else
+    *value = static_cast<int>(std::static_pointer_cast<CSettingNumber>(setting)->GetValue());
   return true;
 }
 

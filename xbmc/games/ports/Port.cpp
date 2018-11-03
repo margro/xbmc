@@ -9,7 +9,6 @@
 #include "Port.h"
 #include "InputSink.h"
 #include "games/addons/GameClient.h"
-#include "games/addons/input/GameClientInput.h"
 #include "guilib/WindowIDs.h"
 #include "input/joysticks/keymaps/KeymapHandling.h"
 #include "peripherals/devices/Peripheral.h"
@@ -41,9 +40,15 @@ void CPort::RegisterInput(JOYSTICK::IInputProvider *provider)
 void CPort::UnregisterInput(JOYSTICK::IInputProvider *provider)
 {
   // Unregister in reverse order
+  if (provider == nullptr)
+    m_appInput->UnregisterInputProvider();
   m_appInput.reset();
-  provider->UnregisterInputHandler(this);
-  provider->UnregisterInputHandler(m_inputSink.get());
+
+  if (provider != nullptr)
+  {
+    provider->UnregisterInputHandler(this);
+    provider->UnregisterInputHandler(m_inputSink.get());
+  }
 }
 
 std::string CPort::ControllerID() const

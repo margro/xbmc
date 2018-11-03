@@ -13,8 +13,11 @@
 
 #include "addons/ContextMenuAddon.h"
 #include "ContextMenuItem.h"
-#include "dialogs/GUIDialogContextMenu.h"
 
+namespace PVR
+{
+  struct PVRContextMenuEvent;
+}
 
 using ContextMenuView = std::vector<std::shared_ptr<const IContextMenuItem>>;
 
@@ -45,6 +48,8 @@ private:
 
   void ReloadAddonItems();
   void OnEvent(const ADDON::AddonEvent& event);
+
+  void OnPVREvent(const PVR::PVRContextMenuEvent& event);
 
   ADDON::CAddonMgr& m_addonMgr;
 

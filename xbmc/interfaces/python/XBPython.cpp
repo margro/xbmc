@@ -12,7 +12,6 @@
 #include <algorithm>
 
 #include "cores/DllLoader/DllLoaderContainer.h"
-#include "GUIPassword.h"
 #include "XBPython.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
@@ -25,6 +24,7 @@
 #include "utils/SystemInfo.h"
 #endif
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 
 #include "threads/SystemClock.h"
 #include "interfaces/AnnouncementManager.h"
@@ -102,7 +102,7 @@ void XBPython::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender,
   }
 
   std::string jsonData;
-  if (CJSONVariantWriter::Write(data, jsonData, g_advancedSettings.m_jsonOutputCompact))
+  if (CJSONVariantWriter::Write(data, jsonData, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_jsonOutputCompact))
     OnNotification(sender, std::string(ANNOUNCEMENT::AnnouncementFlagToString(flag)) + "." + std::string(message), jsonData);
 }
 

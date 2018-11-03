@@ -12,7 +12,7 @@
 #include "utils/Variant.h"
 
 class CFileItemList;
-class CProfilesManager;
+class CProfileManager;
 class CURL;
 
 namespace XFILE
@@ -49,6 +49,9 @@ namespace XFILE
 class IDirectory
 {
 public:
+  static void RegisterProfileManager(const CProfileManager &profileManager);
+  static void UnregisterProfileManager();
+
   IDirectory();
   virtual ~IDirectory(void);
   /*!
@@ -160,8 +163,7 @@ protected:
    */
   void RequireAuthentication(const CURL& url);
 
-  // Construction parameters
-  const CProfilesManager &m_profileManager;
+  static const CProfileManager *m_profileManager;
 
   std::string m_strFileMask;  ///< Holds the file mask specified by SetMask()
 

@@ -16,7 +16,6 @@
 #include "pictures/PictureScalingAlgorithm.h"
 #include "settings/lib/ISettingCallback.h"
 #include "settings/lib/ISettingsHandler.h"
-#include "utils/GlobalsHandling.h"
 
 #define CACHE_BUFFER_MODE_INTERNET      0
 #define CACHE_BUFFER_MODE_ALL           1
@@ -24,7 +23,9 @@
 #define CACHE_BUFFER_MODE_NONE          3
 #define CACHE_BUFFER_MODE_REMOTE        4
 
-class CProfilesManager;
+class CAppParamParser;
+class CProfileManager;
+class CSettingsManager;
 class CVariant;
 
 class TiXmlElement;
@@ -111,11 +112,11 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
 
     void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
 
-    void Initialize();
-    bool Initialized() { return m_initialized; };
+    void Initialize(const CAppParamParser &params, CSettingsManager& settingsMgr);
+    void Uninitialize(CSettingsManager& settingsMgr);
+    bool Initialized() const { return m_initialized; };
     void AddSettingsFile(const std::string &filename);
-    bool Load(const CProfilesManager &profileManager);
-    void Clear();
+    bool Load(const CProfileManager &profileManager);
 
     static void GetCustomTVRegexps(TiXmlElement *pRootElement, SETTINGS_TVSHOWLIST& settings);
     static void GetCustomRegexps(TiXmlElement *pRootElement, std::vector<std::string> &settings);
@@ -264,6 +265,12 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     bool m_bVideoLibraryExportAutoThumbs;
     bool m_bVideoLibraryImportWatchedState;
     bool m_bVideoLibraryImportResumePoint;
+    std::vector<std::string> m_videoEpisodeExtraArt;
+    std::vector<std::string> m_videoTvShowExtraArt;
+    std::vector<std::string> m_videoTvSeasonExtraArt;
+    std::vector<std::string> m_videoMovieExtraArt;
+    std::vector<std::string> m_videoMovieSetExtraArt;
+    std::vector<std::string> m_videoMusicVideoExtraArt;
 
     bool m_bVideoScannerIgnoreErrors;
     int m_iVideoLibraryDateAdded;
@@ -377,8 +384,8 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     std::string m_userAgent;
 
   private:
-    void setExtraLogLevel(const std::vector<CVariant> &components);
+    void SetExtraLogLevel(const std::vector<CVariant> &components);
+    void Initialize();
+    void Clear();
+    void SetExtraArtwork(const TiXmlElement* arttypes, std::vector<std::string>& artworkMap);
 };
-
-XBMC_GLOBAL_REF(CAdvancedSettings,g_advancedSettings);
-#define g_advancedSettings XBMC_GLOBAL_USE(CAdvancedSettings)

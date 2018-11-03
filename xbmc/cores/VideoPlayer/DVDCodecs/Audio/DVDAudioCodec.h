@@ -9,10 +9,8 @@
 #pragma once
 
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
-#include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
 #include "cores/VideoPlayer/Interface/Addon/DemuxPacket.h"
-#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 
 #include <vector>
 
@@ -40,7 +38,6 @@ typedef struct stDVDAudioFrame
   AEAudioFormat format;
   int bits_per_sample;
   bool passthrough;
-  AEAudioFormat audioFormat;
   enum AVAudioServiceType audio_service_type;
   enum AVMatrixEncoding matrix_encoding;
   int profile;

@@ -12,6 +12,7 @@
 #include <set>
 #include <string>
 #include <stdexcept>
+#include <vector>
 
 #include <EGL/egl.h>
 
@@ -36,6 +37,54 @@ public:
 
 private:
   CEGLUtils();
+};
+
+/**
+ * Convenience wrapper for heap-allocated EGL attribute arrays
+ *
+ * The wrapper makes sure that the key/value pairs are always written in actual
+ * pairs and  that the array is always terminated with EGL_NONE.
+ */
+class CEGLAttributesVec
+{
+public:
+  struct EGLAttribute
+  {
+    EGLint key;
+    EGLint value;
+  };
+
+  /**
+   * Add multiple attributes
+   *
+   * The array is automatically terminated with EGL_NONE
+   */
+  void Add(std::initializer_list<EGLAttribute> const& attributes)
+  {
+    for (auto const& attribute : attributes)
+    {
+      m_attributes.insert(m_attributes.begin(), attribute.value);
+      m_attributes.insert(m_attributes.begin(), attribute.key);
+    }
+  }
+
+  /**
+   * Add one attribute
+   *
+   * The array is automatically terminated with EGL_NONE
+   */
+  void Add(EGLAttribute const& attribute)
+  {
+    Add({attribute});
+  }
+
+  EGLint const * Get() const
+  {
+    return m_attributes.data();
+  }
+
+private:
+  std::vector<EGLint> m_attributes{EGL_NONE};
 };
 
 /**
@@ -119,7 +168,7 @@ public:
   CEGLContextUtils(EGLenum platform, std::string const& platformExtension);
   ~CEGLContextUtils();
 
-  bool CreateDisplay(EGLNativeDisplayType nativeDisplay, EGLint renderableType, EGLint renderingApi);
+  bool CreateDisplay(EGLNativeDisplayType nativeDisplay);
   /**
    * Create EGLDisplay with EGL_EXT_platform_base
    *
@@ -131,11 +180,13 @@ public:
    * \param nativeDisplay native display to use with eglGetPlatformDisplayEXT
    * \param nativeDisplayLegacy native display to use with eglGetDisplay
    */
-  bool CreatePlatformDisplay(void* nativeDisplay, EGLNativeDisplayType nativeDisplayLegacy, EGLint renderableType, EGLint renderingApi);
+  bool CreatePlatformDisplay(void* nativeDisplay, EGLNativeDisplayType nativeDisplayLegacy);
 
   bool CreateSurface(EGLNativeWindowType nativeWindow);
   bool CreatePlatformSurface(void* nativeWindow, EGLNativeWindowType nativeWindowLegacy);
-  bool CreateContext(const EGLint* contextAttribs);
+  bool InitializeDisplay(EGLint renderingApi);
+  bool ChooseConfig(EGLint renderableType, EGLint visualId = 0);
+  bool CreateContext(CEGLAttributesVec contextAttribs);
   bool BindContext();
   void Destroy();
   void DestroySurface();
@@ -162,7 +213,6 @@ public:
   }
 
 private:
-  bool InitializeDisplay(EGLint renderableType, EGLint renderingApi);
   void SurfaceAttrib();
 
   EGLenum m_platform{EGL_NONE};

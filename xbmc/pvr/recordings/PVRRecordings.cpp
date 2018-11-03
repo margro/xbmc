@@ -15,6 +15,7 @@
 #include "URL.h"
 #include "filesystem/Directory.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -22,7 +23,6 @@
 #include "video/VideoDatabase.h"
 
 #include "pvr/PVRManager.h"
-#include "pvr/PVREvent.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/epg/EpgInfoTag.h"
@@ -156,7 +156,7 @@ void CPVRRecordings::Update(void)
 
   CServiceBroker::GetPVRManager().SetChanged();
   CServiceBroker::GetPVRManager().NotifyObservers(ObservableMessageRecordings);
-  CServiceBroker::GetPVRManager().PublishEvent(RecordingsInvalidated);
+  CServiceBroker::GetPVRManager().PublishEvent(PVREvent::RecordingsInvalidated);
 }
 
 int CPVRRecordings::GetNumTVRecordings() const
@@ -272,7 +272,7 @@ bool CPVRRecordings::GetDirectory(const std::string& strPath, CFileItemList &ite
   }
   else
   {
-    bGrouped = CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
+    bGrouped = CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_PVRRECORD_GROUPRECORDINGS);
   }
 
   CPVRRecordingsPath recPath(url.GetWithoutOptions());
@@ -509,7 +509,7 @@ bool CPVRRecordings::ChangeRecordingsPlayCount(const CFileItemPtr &item, int cou
       }
     }
 
-    CServiceBroker::GetPVRManager().PublishEvent(RecordingsInvalidated);
+    CServiceBroker::GetPVRManager().PublishEvent(PVREvent::RecordingsInvalidated);
   }
 
   return bResult;
@@ -538,7 +538,7 @@ bool CPVRRecordings::ResetResumePoint(const CFileItemPtr item)
       db.ClearBookMarksOfFile(item->GetPath(), CBookmark::RESUME);
       recording->SetResumePoint(CBookmark());
 
-      CServiceBroker::GetPVRManager().PublishEvent(RecordingsInvalidated);
+      CServiceBroker::GetPVRManager().PublishEvent(PVREvent::RecordingsInvalidated);
     }
   }
   return bResult;

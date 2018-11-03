@@ -37,17 +37,23 @@ bool CWinSystemRpiGLESContext::InitWindowSystem()
     return false;
   }
 
-  if (!m_pGLContext.CreateDisplay(m_nativeDisplay,
-                                  EGL_OPENGL_ES2_BIT,
-                                  EGL_OPENGL_ES_API))
+  if (!m_pGLContext.CreateDisplay(m_nativeDisplay))
   {
     return false;
   }
 
-  const EGLint contextAttribs[] =
+  if (!m_pGLContext.InitializeDisplay(EGL_OPENGL_ES_API))
   {
-    EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE
-  };
+    return false;
+  }
+
+  if (!m_pGLContext.ChooseConfig(EGL_OPENGL_ES2_BIT))
+  {
+    return false;
+  }
+
+  CEGLAttributesVec contextAttribs;
+  contextAttribs.Add({{EGL_CONTEXT_CLIENT_VERSION, 2}});
 
   if (!m_pGLContext.CreateContext(contextAttribs))
   {

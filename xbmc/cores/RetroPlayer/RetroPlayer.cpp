@@ -21,13 +21,10 @@
 #include "cores/RetroPlayer/rendering/RPRenderManager.h"
 #include "cores/RetroPlayer/savestates/ISavestate.h"
 #include "cores/RetroPlayer/savestates/SavestateDatabase.h"
-#include "cores/RetroPlayer/savestates/SavestateUtils.h"
 #include "cores/RetroPlayer/streams/RPStreamManager.h"
 #include "dialogs/GUIDialogYesNo.h"
-#include "filesystem/File.h"
 #include "games/addons/input/GameClientInput.h"
 #include "games/addons/GameClient.h"
-#include "games/dialogs/osd/DialogGameVideoSelect.h"
 #include "games/tags/GameInfoTag.h"
 #include "games/GameServices.h"
 #include "games/GameSettings.h"
@@ -36,8 +33,8 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/WindowIDs.h"
-#include "input/Action.h"
-#include "input/ActionIDs.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "messaging/ApplicationMessenger.h"
 #include "settings/MediaSettings.h"
 #include "threads/SingleLock.h"
@@ -45,7 +42,6 @@
 #include "utils/log.h"
 #include "utils/MathUtils.h"
 #include "utils/StringUtils.h"
-#include "utils/URIUtils.h"
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "URL.h"
@@ -469,6 +465,14 @@ void CRetroPlayer::Render(bool clear, uint32_t alpha /* = 255 */, bool gui /* = 
 bool CRetroPlayer::IsRenderingVideo()
 {
   return true;
+}
+
+bool CRetroPlayer::HasGameAgent()
+{
+  if (m_gameClient)
+    return m_gameClient->Input().HasAgent();
+
+  return false;
 }
 
 std::string CRetroPlayer::GameClientID() const

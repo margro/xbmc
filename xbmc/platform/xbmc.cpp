@@ -7,7 +7,6 @@
  */
 
 #include "Application.h"
-#include "settings/AdvancedSettings.h"
 
 #ifdef TARGET_RASPBERRY_PI
 #include "platform/linux/RBP.h"
@@ -31,11 +30,6 @@ extern "C" int XBMC_Run(bool renderGUI, const CAppParamParser &params)
 {
   int status = -1;
 
-  if (!g_advancedSettings.Initialized())
-  {
-    g_advancedSettings.Initialize();
-  }
-
   if (!g_application.Create(params))
   {
     CMessagePrinter::DisplayError("ERROR: Unable to create application. Exiting");
@@ -53,6 +47,8 @@ extern "C" int XBMC_Run(bool renderGUI, const CAppParamParser &params)
   if (renderGUI && !g_application.CreateGUI())
   {
     CMessagePrinter::DisplayError("ERROR: Unable to create GUI. Exiting");
+    g_application.Stop(EXITCODE_QUIT);
+    g_application.Cleanup();
     return status;
   }
   if (!g_application.Initialize())

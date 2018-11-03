@@ -17,11 +17,20 @@
 
 #include "windowing/Resolution.h"
 #include "GBMUtils.h"
+#include "platform/posix/utils/FileHandle.h"
+
+namespace KODI
+{
+namespace WINDOWING
+{
+namespace GBM
+{
 
 enum EPLANETYPE
 {
-  VIDEO_PLANE,
-  GUI_PLANE
+  KODI_VIDEO_PLANE,
+  KODI_GUI_PLANE,
+  KODI_GUI_10_PLANE
 };
 
 struct drm_object
@@ -35,7 +44,18 @@ struct drm_object
 struct plane : drm_object
 {
   drmModePlanePtr plane = nullptr;
-  uint32_t format = DRM_FORMAT_XRGB8888;
+  uint32_t format{0};
+  uint32_t fallbackFormat{0};
+  bool useFallbackFormat{false};
+
+  uint32_t GetFormat()
+  {
+    if (useFallbackFormat)
+      return fallbackFormat;
+
+    return format;
+  }
+
   std::map<uint32_t, std::vector<uint64_t>> modifiers_map;
 };
 
@@ -89,6 +109,9 @@ public:
   virtual bool AddProperty(struct drm_object *object, const char *name, uint64_t value) { return false; }
   virtual bool SetProperty(struct drm_object *object, const char *name, uint64_t value) { return false; }
 
+  static uint32_t FourCCWithAlpha(uint32_t fourcc);
+  static uint32_t FourCCWithoutAlpha(uint32_t fourcc);
+
 protected:
   bool OpenDrm(bool needConnector);
   uint32_t GetPropertyId(struct drm_object *object, const char *name);
@@ -96,7 +119,7 @@ protected:
   static bool GetProperties(int fd, uint32_t id, uint32_t type, struct drm_object *object);
   static void FreeProperties(struct drm_object *object);
 
-  int m_fd;
+  KODI::UTILS::POSIX::CFileHandle m_fd;
   struct connector *m_connector = nullptr;
   struct encoder *m_encoder = nullptr;
   struct crtc *m_crtc = nullptr;
@@ -121,6 +144,7 @@ private:
   bool RestoreOriginalMode();
   static void DrmFbDestroyCallback(struct gbm_bo *bo, void *data);
   RESOLUTION_INFO GetResolutionInfo(drmModeModeInfoPtr mode);
+  bool CheckConnector(int connectorId);
 
   int m_crtc_index;
   std::string m_module;
@@ -129,3 +153,7 @@ private:
   drmModeResPtr m_drm_resources = nullptr;
   drmModeCrtcPtr m_orig_crtc = nullptr;
 };
+
+}
+}
+}

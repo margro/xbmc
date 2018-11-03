@@ -16,11 +16,14 @@
 #include <EGL/egl.h>
 #include <unistd.h>
 
+#include "platform/linux/XTimeUtils.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "windowing/GraphicContext.h"
 
 #include "DRMUtils.h"
+
+using namespace KODI::WINDOWING::GBM;
 
 CDRMUtils::CDRMUtils()
   : m_connector(new connector)
@@ -33,6 +36,9 @@ CDRMUtils::CDRMUtils()
 
 bool CDRMUtils::SetMode(const RESOLUTION_INFO& res)
 {
+  if (!CheckConnector(m_connector->connector->connector_id))
+    return false;
+
   m_mode = &m_connector->connector->modes[atoi(res.strId.c_str())];
   m_width = res.iWidth;
   m_height = res.iHeight;
@@ -344,10 +350,9 @@ drmModePlanePtr CDRMUtils::FindPlane(drmModePlaneResPtr resources, int crtc_inde
         {
           switch (type)
           {
-            case VIDEO_PLANE:
+            case KODI_VIDEO_PLANE:
             {
-              if (SupportsFormat(plane, DRM_FORMAT_NV12) ||
-                  SupportsFormat(plane, DRM_FORMAT_YUV420))
+              if (SupportsFormat(plane, DRM_FORMAT_NV12))
               {
                 CLog::Log(LOGDEBUG, "CDRMUtils::%s - found video plane %u", __FUNCTION__, plane->plane_id);
                 drmModeFreeProperty(p);
@@ -357,7 +362,7 @@ drmModePlanePtr CDRMUtils::FindPlane(drmModePlaneResPtr resources, int crtc_inde
 
               break;
             }
-            case GUI_PLANE:
+            case KODI_GUI_PLANE:
             {
               uint32_t plane_id = 0;
               if (m_primary_plane->plane)
@@ -368,6 +373,24 @@ drmModePlanePtr CDRMUtils::FindPlane(drmModePlaneResPtr resources, int crtc_inde
                   SupportsFormat(plane, DRM_FORMAT_XRGB8888))
               {
                 CLog::Log(LOGDEBUG, "CDRMUtils::%s - found gui plane %u", __FUNCTION__, plane->plane_id);
+                drmModeFreeProperty(p);
+                drmModeFreeObjectProperties(props);
+                return plane;
+              }
+
+              break;
+            }
+            case KODI_GUI_10_PLANE:
+            {
+              uint32_t plane_id = 0;
+              if (m_primary_plane->plane)
+                plane_id = m_primary_plane->plane->plane_id;
+
+              if (plane->plane_id != plane_id &&
+                  (plane_id == 0 || SupportsFormat(plane, DRM_FORMAT_ARGB2101010)) &&
+                  SupportsFormat(plane, DRM_FORMAT_XRGB2101010))
+              {
+                CLog::Log(LOGDEBUG, "CDRMUtils::%s - found gui 10 plane %u", __FUNCTION__, plane->plane_id);
                 drmModeFreeProperty(p);
                 drmModeFreeObjectProperties(props);
                 return plane;
@@ -400,14 +423,17 @@ bool CDRMUtils::FindPlanes()
     return false;
   }
 
-  m_primary_plane->plane = FindPlane(plane_resources, m_crtc_index, VIDEO_PLANE);
-  m_overlay_plane->plane = FindPlane(plane_resources, m_crtc_index, GUI_PLANE);
+  m_primary_plane->plane = FindPlane(plane_resources, m_crtc_index, KODI_VIDEO_PLANE);
+  m_overlay_plane->plane = FindPlane(plane_resources, m_crtc_index, KODI_GUI_10_PLANE);
+  m_overlay_plane->format = DRM_FORMAT_XRGB2101010;
+  m_overlay_plane->fallbackFormat = DRM_FORMAT_XRGB8888;
 
-  if (m_overlay_plane->plane == nullptr && m_primary_plane->plane != nullptr)
+  /* fallback to 8bit plane if 10bit plane doesn't exist */
+  if (m_overlay_plane->plane == nullptr)
   {
-    drmModeFreePlane(m_primary_plane->plane);
-    m_primary_plane->plane = nullptr;
-    m_overlay_plane->plane = FindPlane(plane_resources, m_crtc_index, GUI_PLANE);
+    drmModeFreePlane(m_overlay_plane->plane);
+    m_overlay_plane->plane = FindPlane(plane_resources, m_crtc_index, KODI_GUI_PLANE);
+    m_overlay_plane->format = DRM_FORMAT_XRGB8888;
   }
 
   drmModeFreePlaneResources(plane_resources);
@@ -439,6 +465,8 @@ bool CDRMUtils::FindPlanes()
     CLog::Log(LOGDEBUG, "CDRMUtils::%s - no drm modifiers present for the overlay plane", __FUNCTION__);
     m_overlay_plane->modifiers_map.emplace(DRM_FORMAT_ARGB8888, std::vector<uint64_t>{DRM_FORMAT_MOD_LINEAR});
     m_overlay_plane->modifiers_map.emplace(DRM_FORMAT_XRGB8888, std::vector<uint64_t>{DRM_FORMAT_MOD_LINEAR});
+    m_overlay_plane->modifiers_map.emplace(DRM_FORMAT_XRGB2101010, std::vector<uint64_t>{DRM_FORMAT_MOD_LINEAR});
+    m_overlay_plane->modifiers_map.emplace(DRM_FORMAT_XRGB2101010, std::vector<uint64_t>{DRM_FORMAT_MOD_LINEAR});
   }
 
   return true;
@@ -508,13 +536,11 @@ bool CDRMUtils::OpenDrm(bool needConnector)
 
     for (auto module : modules)
     {
-      m_fd = drmOpen(module, device.c_str());
-      if (m_fd >= 0)
+      m_fd.attach(drmOpen(module, device.c_str()));
+      if (m_fd)
       {
         if(!GetResources())
         {
-          drmClose(m_fd);
-          m_fd = -1;
           continue;
         }
 
@@ -522,8 +548,6 @@ bool CDRMUtils::OpenDrm(bool needConnector)
         {
           if(!FindConnector())
           {
-            drmClose(m_fd);
-            m_fd = -1;
             continue;
           }
 
@@ -541,18 +565,17 @@ bool CDRMUtils::OpenDrm(bool needConnector)
         CLog::Log(LOGDEBUG, "CDRMUtils::%s - opened device: %s using module: %s", __FUNCTION__, device.c_str(), module);
         return true;
       }
-
-      drmClose(m_fd);
-      m_fd = -1;
     }
   }
+
+  m_fd.reset();
 
   return false;
 }
 
 bool CDRMUtils::InitDrm()
 {
-  if(m_fd >= 0)
+  if(m_fd)
   {
     /* caps need to be set before allocating connectors, encoders, crtcs, and planes */
     auto ret = drmSetClientCap(m_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
@@ -591,7 +614,7 @@ bool CDRMUtils::InitDrm()
   drmModeFreeResources(m_drm_resources);
   m_drm_resources = nullptr;
 
-  if(m_fd < 0)
+  if(!m_fd)
   {
     return false;
   }
@@ -601,7 +624,29 @@ bool CDRMUtils::InitDrm()
     return false;
   }
 
-  drmSetMaster(m_fd);
+  auto ret = drmSetMaster(m_fd);
+  if (ret < 0)
+  {
+    CLog::Log(LOGWARNING, "CDRMUtils::%s - failed to set drm master, will try to authorize instead: %s", __FUNCTION__, strerror(errno));
+
+    drm_magic_t magic;
+
+    ret = drmGetMagic(m_fd, &magic);
+    if (ret < 0)
+    {
+      CLog::Log(LOGERROR, "CDRMUtils::%s - failed to get drm magic: %s", __FUNCTION__, strerror(errno));
+      return false;
+    }
+
+    ret = drmAuthMagic(m_fd, magic);
+    if (ret < 0)
+    {
+      CLog::Log(LOGERROR, "CDRMUtils::%s - failed to authorize drm magic: %s", __FUNCTION__, strerror(errno));
+      return false;
+    }
+
+    CLog::Log(LOGNOTICE, "CDRMUtils::%s - successfully authorized drm magic", __FUNCTION__);
+  }
 
   m_orig_crtc = drmModeGetCrtc(m_fd, m_crtc->crtc->crtc_id);
 
@@ -642,10 +687,13 @@ void CDRMUtils::DestroyDrm()
 {
   RestoreOriginalMode();
 
-  drmDropMaster(m_fd);
-  close(m_fd);
+  auto ret = drmDropMaster(m_fd);
+  if (ret < 0)
+  {
+    CLog::Log(LOGDEBUG, "CDRMUtils::%s - failed to drop drm master: %s", __FUNCTION__, strerror(errno));
+  }
 
-  m_fd = -1;
+  m_fd.reset();
 
   drmModeFreeResources(m_drm_resources);
   m_drm_resources = nullptr;
@@ -726,4 +774,35 @@ std::vector<RESOLUTION_INFO> CDRMUtils::GetModes()
   }
 
   return resolutions;
+}
+
+uint32_t CDRMUtils::FourCCWithAlpha(uint32_t fourcc)
+{
+  return (fourcc & 0xFFFFFF00) | static_cast<uint32_t>('A');
+}
+
+uint32_t CDRMUtils::FourCCWithoutAlpha(uint32_t fourcc)
+{
+  return (fourcc & 0xFFFFFF00) | static_cast<uint32_t>('X');
+}
+
+bool CDRMUtils::CheckConnector(int connector_id)
+{
+  struct connector connectorcheck;
+  unsigned retryCnt = 7;
+
+  connectorcheck.connector = drmModeGetConnector(m_fd, connector_id);
+  while (connectorcheck.connector->connection != DRM_MODE_CONNECTED  && retryCnt > 0)
+  {
+    CLog::Log(LOGDEBUG, "CDRMUtils::%s - connector is disconnected", __FUNCTION__);
+    retryCnt--;
+    Sleep(1000);
+    drmModeFreeConnector(connectorcheck.connector);
+    connectorcheck.connector = drmModeGetConnector(m_fd, connector_id);
+  }
+
+  int finalConnectionState = connectorcheck.connector->connection;
+  drmModeFreeConnector(connectorcheck.connector);
+
+  return finalConnectionState == DRM_MODE_CONNECTED;
 }

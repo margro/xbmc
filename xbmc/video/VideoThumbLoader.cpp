@@ -8,12 +8,14 @@
 
 #include "VideoThumbLoader.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <utility>
 
 #include "cores/VideoPlayer/DVDFileInfo.h"
 #include "FileItem.h"
 #include "ServiceBroker.h"
+#include "filesystem/Directory.h"
 #include "filesystem/DirectoryCache.h"
 #include "filesystem/StackDirectory.h"
 #include "guilib/GUIComponent.h"
@@ -21,9 +23,9 @@
 #include "guilib/StereoscopicsManager.h"
 #include "GUIUserMessages.h"
 #include "music/MusicDatabase.h"
-#include "rendering/RenderSystem.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "cores/VideoSettings.h"
 #include "TextureCache.h"
 #include "URL.h"
@@ -186,16 +188,14 @@ CVideoThumbLoader::~CVideoThumbLoader()
 void CVideoThumbLoader::OnLoaderStart()
 {
   m_videoDatabase->Open();
-  m_showArt.clear();
-  m_seasonArt.clear();
+  m_artCache.clear();
   CThumbLoader::OnLoaderStart();
 }
 
 void CVideoThumbLoader::OnLoaderFinish()
 {
   m_videoDatabase->Close();
-  m_showArt.clear();
-  m_seasonArt.clear();
+  m_artCache.clear();
   CThumbLoader::OnLoaderFinish();
 }
 
@@ -222,27 +222,65 @@ static void SetupRarOptions(CFileItem& item, const std::string& path)
 
 std::vector<std::string> CVideoThumbLoader::GetArtTypes(const std::string &type)
 {
+  const std::shared_ptr<CAdvancedSettings> advancedSettings = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings();
   std::vector<std::string> ret;
   if (type == MediaTypeEpisode)
-    ret.push_back("thumb");
-  else if (type == MediaTypeTvShow || type == MediaTypeSeason)
   {
-    ret.push_back("banner");
-    ret.push_back("poster");
-    ret.push_back("fanart");
+    ret = {"thumb"};
+    for (auto& artType : advancedSettings->m_videoEpisodeExtraArt)
+    {
+      if (find(ret.begin(), ret.end(), artType) == ret.end())
+        ret.push_back(artType);
+    }
   }
-  else if (type == MediaTypeMovie || type == MediaTypeMusicVideo || type == MediaTypeVideoCollection)
+  else if (type == MediaTypeTvShow)
   {
-    ret.push_back("poster");
-    ret.push_back("fanart");
+    ret = {"poster", "fanart", "banner"};
+    for (auto& artType : advancedSettings->m_videoTvShowExtraArt)
+    {
+      if (find(ret.begin(), ret.end(), artType) == ret.end())
+        ret.push_back(artType);
+    }
   }
-  else if (type.empty()) // unknown - just throw everything in
+  else if (type == MediaTypeSeason)
   {
-    ret.push_back("poster");
-    ret.push_back("banner");
-    ret.push_back("thumb");
-    ret.push_back("fanart");
+    ret = {"poster", "fanart", "banner"};
+    for (auto& artType : advancedSettings->m_videoTvSeasonExtraArt)
+    {
+      if (find(ret.begin(), ret.end(), artType) == ret.end())
+        ret.push_back(artType);
+    }
   }
+  else if (type == MediaTypeMovie)
+  {
+    ret = {"poster", "fanart"};
+    for (auto& artType : advancedSettings->m_videoMovieExtraArt)
+    {
+      if (find(ret.begin(), ret.end(), artType) == ret.end())
+        ret.push_back(artType);
+    }
+  }
+  else if (type == MediaTypeVideoCollection)
+  {
+    ret = {"poster", "fanart"};
+    for (auto& artType : advancedSettings->m_videoMovieSetExtraArt)
+    {
+      if (find(ret.begin(), ret.end(), artType) == ret.end())
+        ret.push_back(artType);
+    }
+  }
+  else if (type == MediaTypeMusicVideo)
+  {
+    ret = {"poster", "fanart"};
+    for (auto& artType : advancedSettings->m_videoMusicVideoExtraArt)
+    {
+      if (find(ret.begin(), ret.end(), artType) == ret.end())
+        ret.push_back(artType);
+    }
+  }
+  else if (type.empty()) // unknown, just the basics
+    ret = { "poster", "fanart", "banner", "thumb" };
+
   return ret;
 }
 
@@ -376,6 +414,7 @@ bool CVideoThumbLoader::LoadItemLookup(CFileItem* pItem)
     if (StringUtils::StartsWith(url, "image://video@") && !CTextureCache::GetInstance().HasCachedImage(url))
       pItem->SetArt("thumb", "");
 
+    const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
     if (!pItem->HasArt("thumb"))
     {
       // create unique thumb for auto generated thumbs
@@ -395,8 +434,8 @@ bool CVideoThumbLoader::LoadItemLookup(CFileItem* pItem)
             m_videoDatabase->SetArtForItem(info->m_iDbId, info->m_type, "thumb", thumbURL);
         }
       }
-      else if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTTHUMB) &&
-               CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS))
+      else if (settings->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTTHUMB) &&
+               settings->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS))
       {
         CFileItem item(*pItem);
         std::string path(item.GetPath());
@@ -412,7 +451,7 @@ bool CVideoThumbLoader::LoadItemLookup(CFileItem* pItem)
     }
 
     // flag extraction
-    if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) &&
+    if (settings->GetBool(CSettings::SETTING_MYVIDEOS_EXTRACTFLAGS) &&
        (!pItem->HasVideoInfoTag()                     ||
         !pItem->GetVideoInfoTag()->HasStreamDetails() ) )
     {
@@ -472,34 +511,27 @@ bool CVideoThumbLoader::FillLibraryArt(CFileItem &item)
       // For episodes and seasons, we want to set fanart for that of the show
       if (!item.HasArt("tvshow.fanart") && tag.m_iIdShow >= 0)
       {
-        ArtCache::const_iterator i = m_showArt.find(tag.m_iIdShow);
-        if (i == m_showArt.end())
+        const ArtMap& artmap = GetArtFromCache(MediaTypeTvShow, tag.m_iIdShow);
+        if (!artmap.empty())
         {
-          std::map<std::string, std::string> showArt;
-          m_videoDatabase->GetArtForItem(tag.m_iIdShow, MediaTypeTvShow, showArt);
-          i = m_showArt.insert(std::make_pair(tag.m_iIdShow, showArt)).first;
-        }
-        if (i != m_showArt.end())
-        {
-          item.AppendArt(i->second, "tvshow");
+          item.AppendArt(artmap, MediaTypeTvShow);
           item.SetArtFallback("fanart", "tvshow.fanart");
           item.SetArtFallback("tvshow.thumb", "tvshow.poster");
         }
       }
 
-      if (!item.HasArt("season.poster") && tag.m_iSeason > -1)
+      if (tag.m_type == MediaTypeEpisode && !item.HasArt("season.poster") && tag.m_iSeason > -1)
       {
-        ArtCache::const_iterator i = m_seasonArt.find(tag.m_iIdSeason);
-        if (i == m_seasonArt.end())
-        {
-          std::map<std::string, std::string> seasonArt;
-          m_videoDatabase->GetArtForItem(tag.m_iIdSeason, MediaTypeSeason, seasonArt);
-          i = m_seasonArt.insert(std::make_pair(tag.m_iIdSeason, seasonArt)).first;
-        }
-
-        if (i != m_seasonArt.end())
-          item.AppendArt(i->second, MediaTypeSeason);
+        const ArtMap& artmap = GetArtFromCache(MediaTypeSeason, tag.m_iIdSeason);
+        if (!artmap.empty())
+          item.AppendArt(artmap, MediaTypeSeason);
       }
+    }
+    else if (tag.m_type == MediaTypeMovie && tag.m_set.id >= 0 && !item.HasArt("set.fanart"))
+    {
+      const ArtMap& artmap = GetArtFromCache(MediaTypeVideoCollection, tag.m_set.id);
+      if (!artmap.empty())
+        item.AppendArt(artmap, MediaTypeVideoCollection);
     }
     m_videoDatabase->Close();
   }
@@ -549,7 +581,7 @@ std::string CVideoThumbLoader::GetLocalArt(const CFileItem &item, const std::str
      thumbloader thread accesses the streamed filesystem at the same time as the
      App thread and the latter has to wait for it.
    */
-  if (item.m_bIsFolder && (item.IsInternetStream(true) || g_advancedSettings.m_cacheBufferMode == CACHE_BUFFER_MODE_ALL))
+  if (item.m_bIsFolder && (item.IsInternetStream(true) || CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_cacheBufferMode == CACHE_BUFFER_MODE_ALL))
   {
     CFileItemList items; // Dummy list
     CDirectory::GetDirectory(item.GetPath(), items, "", DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);
@@ -682,4 +714,17 @@ void CVideoThumbLoader::DetectAndAddMissingItemData(CFileItem &item)
 
   if (!stereoMode.empty())
     item.SetProperty("stereomode", CStereoscopicsManager::NormalizeStereoMode(stereoMode));
+}
+
+const ArtMap& CVideoThumbLoader::GetArtFromCache(const std::string &mediaType, const int id)
+{
+  std::pair<MediaType, int> key = std::make_pair(mediaType, id);
+  auto it = m_artCache.find(key);
+  if (it == m_artCache.end())
+  {
+    ArtMap newart;
+    m_videoDatabase->GetArtForItem(id, mediaType, newart);
+    it = m_artCache.insert(std::make_pair(key, std::move(newart))).first;
+  }
+  return it->second;
 }

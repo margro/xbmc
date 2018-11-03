@@ -13,13 +13,23 @@
 #include "PasswordManager.h"
 #include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
-#include "ServiceBroker.h"
 
 using namespace KODI::MESSAGING;
 using namespace XFILE;
 
-IDirectory::IDirectory() :
-  m_profileManager(CServiceBroker::GetProfileManager())
+const CProfileManager *IDirectory::m_profileManager = nullptr;
+
+void IDirectory::RegisterProfileManager(const CProfileManager &profileManager)
+{
+  m_profileManager = &profileManager;
+}
+
+void IDirectory::UnregisterProfileManager()
+{
+  m_profileManager = nullptr;
+}
+
+IDirectory::IDirectory()
 {
   m_flags = DIR_FLAG_DEFAULTS;
 }

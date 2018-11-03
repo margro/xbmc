@@ -8,7 +8,6 @@
 
 #include "ControllerGrid.h"
 #include "games/controllers/Controller.h"
-#include "games/controllers/ControllerTranslator.h"
 #include "utils/log.h"
 
 #include <algorithm>
@@ -232,7 +231,7 @@ CControllerGrid::GRID_DIRECTION CControllerGrid::GetDirection(const CControllerN
   // Hub controllers are added horizontally, one per row.
   //
   // If the current controller offers a player spot, the row starts to the
-  // right at the same hight as the controller.
+  // right at the same height as the controller.
   //
   // Otherwise, to row starts below the current controller in the same
   // column.

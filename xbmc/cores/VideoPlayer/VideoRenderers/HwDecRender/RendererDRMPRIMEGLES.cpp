@@ -13,6 +13,8 @@
 #include "utils/log.h"
 #include "windowing/gbm/WinSystemGbmGLESContext.h"
 
+using namespace KODI::WINDOWING::GBM;
+
 CRendererDRMPRIMEGLES::~CRendererDRMPRIMEGLES()
 {
   for (int i = 0; i < NUM_BUFFERS; ++i)
@@ -54,12 +56,13 @@ bool CRendererDRMPRIMEGLES::CreateTexture(int index)
 {
   CPictureBuffer &buf = m_buffers[index];
   YuvImage &im = buf.image;
-  YUVPLANE &plane = buf.fields[0][0];
+  CYuvPlane &plane = buf.fields[0][0];
 
   DeleteTexture(index);
 
-  std::memset(&im, 0, sizeof(im));
-  std::memset(&plane, 0, sizeof(YUVPLANE));
+  im = {};
+  plane = {};
+
   im.height = m_sourceHeight;
   im.width  = m_sourceWidth;
   im.cshift_x = 1;
@@ -92,7 +95,7 @@ bool CRendererDRMPRIMEGLES::UploadTexture(int index)
 
   m_DRMPRIMETextures[index].Map(buffer);
 
-  YUVPLANE &plane = buf.fields[0][0];
+  CYuvPlane &plane = buf.fields[0][0];
 
   auto size = m_DRMPRIMETextures[index].GetTextureSize();
   plane.texwidth  = size.Width();
@@ -120,7 +123,7 @@ bool CRendererDRMPRIMEGLES::RenderHook(int index)
   CRenderSystemGLES *renderSystem = dynamic_cast<CRenderSystemGLES*>(CServiceBroker::GetRenderSystem());
   assert(renderSystem);
 
-  YUVPLANE &plane = m_buffers[index].fields[0][0];
+  CYuvPlane &plane = m_buffers[index].fields[0][0];
 
   glDisable(GL_DEPTH_TEST);
 

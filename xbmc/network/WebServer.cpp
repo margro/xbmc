@@ -22,11 +22,11 @@
 #include "network/httprequesthandler/IHTTPRequestHandler.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "ServiceBroker.h"
 #include "threads/SingleLock.h"
-#include "URL.h"
 #include "Util.h"
-#include "utils/Base64.h"
+#include "utils/FileUtils.h"
 #include "utils/log.h"
 #include "utils/Mime.h"
 #include "utils/StringUtils.h"
@@ -733,6 +733,10 @@ int CWebServer::CreateFileDownloadResponse(const std::shared_ptr<IHTTPRequestHan
   std::shared_ptr<XFILE::CFile> file = std::make_shared<XFILE::CFile>();
   std::string filePath = handler->GetResponseFile();
 
+  // access check
+  if (!CFileUtils::CheckFileAccessAllowed(filePath))
+    return SendErrorResponse(request, MHD_HTTP_NOT_FOUND, request.method);
+
   if (!file->Open(filePath, XFILE::READ_NO_CACHE))
   {
     CLog::Log(LOGERROR, "CWebServer[%hu]: Failed to open %s", m_port, filePath.c_str());
@@ -1110,7 +1114,7 @@ struct MHD_Daemon* CWebServer::StartMHD(unsigned int flags, int port)
 
   MHD_set_panic_func(&panicHandlerForMHD, nullptr);
 
-  if (CServiceBroker::GetSettings()->GetBool(CSettings::SETTING_SERVICES_WEBSERVERSSL) &&
+  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_SERVICES_WEBSERVERSSL) &&
       MHD_is_feature_supported(MHD_FEATURE_SSL) == MHD_YES &&
       LoadCert(m_key, m_cert))
     // SSL enabled
@@ -1253,7 +1257,7 @@ void CWebServer::UnregisterRequestHandler(IHTTPRequestHandler *handler)
 
 void CWebServer::LogRequest(const HTTPRequest& request) const
 {
-  if (!g_advancedSettings.CanLogComponent(LOGWEBSERVER))
+  if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGWEBSERVER))
     return;
 
   std::multimap<std::string, std::string> headerValues;
@@ -1278,7 +1282,7 @@ void CWebServer::LogRequest(const HTTPRequest& request) const
 
 void CWebServer::LogResponse(const HTTPRequest& request, int responseStatus) const
 {
-  if (!g_advancedSettings.CanLogComponent(LOGWEBSERVER))
+  if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGWEBSERVER))
     return;
 
   std::multimap<std::string, std::string> headerValues;

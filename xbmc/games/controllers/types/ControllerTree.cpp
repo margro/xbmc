@@ -10,6 +10,7 @@
 #include "games/controllers/Controller.h"
 #include "games/controllers/ControllerTopology.h"
 
+#include <algorithm>
 #include <utility>
 
 using namespace KODI;
@@ -36,9 +37,32 @@ CControllerNode &CControllerNode::operator=(const CControllerNode &rhs)
   return *this;
 }
 
+void CControllerNode::Clear()
+{
+  m_controller.reset();
+  m_address.clear();
+  m_hub.reset(new CControllerHub);
+}
+
 void CControllerNode::SetController(ControllerPtr controller)
 {
   m_controller = std::move(controller);
+}
+
+void CControllerNode::GetControllers(ControllerVector &controllers) const
+{
+  const ControllerPtr &myController = m_controller;
+
+  auto it = std::find_if(controllers.begin(), controllers.end(),
+    [&myController](const ControllerPtr &controller)
+    {
+      return myController->ID() == controller->ID();
+    });
+
+  if (it == controllers.end())
+    controllers.emplace_back(m_controller);
+
+  m_hub->GetControllers(controllers);
 }
 
 void CControllerNode::SetAddress(std::string address)
@@ -114,6 +138,16 @@ const CControllerNode &CControllerPortNode::ActiveController() const
     return m_controllers[m_active];
 
   static const CControllerNode invalid{};
+  return invalid;
+}
+
+CControllerNode &CControllerPortNode::ActiveController()
+{
+  if (m_bConnected && m_active < m_controllers.size())
+    return m_controllers[m_active];
+
+  static CControllerNode invalid;
+  invalid.Clear();
   return invalid;
 }
 
@@ -202,6 +236,11 @@ CControllerHub &CControllerHub::operator=(const CControllerHub &rhs)
   return *this;
 }
 
+void CControllerHub::Clear()
+{
+  m_ports.clear();
+}
+
 void CControllerHub::SetPorts(ControllerPortVec ports)
 {
   m_ports = std::move(ports);
@@ -238,6 +277,22 @@ bool CControllerHub::IsControllerAccepted(const std::string &portAddress,
   }
 
   return bAccepted;
+}
+
+ControllerVector CControllerHub::GetControllers() const
+{
+  ControllerVector controllers;
+  GetControllers(controllers);
+  return controllers;
+}
+
+void CControllerHub::GetControllers(ControllerVector &controllers) const
+{
+  for (const CControllerPortNode &port : m_ports)
+  {
+    for (const CControllerNode &node : port.CompatibleControllers())
+      node.GetControllers(controllers);
+  }
 }
 
 const CControllerPortNode &CControllerHub::GetPort(const std::string &address) const

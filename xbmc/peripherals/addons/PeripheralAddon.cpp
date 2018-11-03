@@ -8,22 +8,16 @@
 
 #include "PeripheralAddon.h"
 #include "PeripheralAddonTranslator.h"
-#include "AddonButtonMap.h"
-#include "PeripheralAddonTranslator.h"
 #include "addons/AddonManager.h"
 #include "filesystem/Directory.h"
 #include "filesystem/SpecialProtocol.h"
 #include "games/controllers/Controller.h"
 #include "games/controllers/ControllerManager.h"
 #include "input/joysticks/interfaces/IButtonMap.h"
-#include "input/joysticks/interfaces/IDriverHandler.h"
 #include "input/joysticks/DriverPrimitive.h"
-#include "input/joysticks/JoystickTranslator.h"
-#include "input/joysticks/JoystickUtils.h"
 #include "peripherals/Peripherals.h"
 #include "peripherals/bus/virtual/PeripheralBusAddon.h"
 #include "peripherals/devices/PeripheralJoystick.h"
-#include "settings/Settings.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
@@ -266,9 +260,9 @@ bool CPeripheralAddon::SupportsFeature(PeripheralFeature feature) const
   return false;
 }
 
-int CPeripheralAddon::GetPeripheralsWithFeature(PeripheralVector &results, const PeripheralFeature feature) const
+unsigned int CPeripheralAddon::GetPeripheralsWithFeature(PeripheralVector &results, const PeripheralFeature feature) const
 {
-  int iReturn(0);
+  unsigned int iReturn = 0;
   CSingleLock lock(m_critSection);
   for (auto it : m_peripherals)
   {
@@ -281,15 +275,15 @@ int CPeripheralAddon::GetPeripheralsWithFeature(PeripheralVector &results, const
   return iReturn;
 }
 
-size_t CPeripheralAddon::GetNumberOfPeripherals(void) const
+unsigned int CPeripheralAddon::GetNumberOfPeripherals(void) const
 {
   CSingleLock lock(m_critSection);
-  return m_peripherals.size();
+  return static_cast<unsigned int>(m_peripherals.size());
 }
 
-size_t CPeripheralAddon::GetNumberOfPeripheralsWithId(const int iVendorId, const int iProductId) const
+unsigned int CPeripheralAddon::GetNumberOfPeripheralsWithId(const int iVendorId, const int iProductId) const
 {
-  int iReturn(0);
+  unsigned int iReturn = 0;
   CSingleLock lock(m_critSection);
   for (auto it : m_peripherals)
   {

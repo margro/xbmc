@@ -25,12 +25,10 @@
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "interfaces/builtins/Builtins.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/windows/GUIControlSettings.h"
 #include "utils/log.h"
-#include "utils/StringUtils.h"
 #include "video/VideoInfoScanner.h"
 
 #define SETTING_CONTENT_TYPE          "contenttype"

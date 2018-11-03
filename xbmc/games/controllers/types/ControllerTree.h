@@ -25,7 +25,7 @@ namespace GAME
   /*!
    * \brief Node in the controller tree
    *
-   * The node identies the controller profile, and optionally the available
+   * The node identifies the controller profile, and optionally the available
    * controller ports.
    */
   class CControllerNode
@@ -37,6 +37,8 @@ namespace GAME
     CControllerNode &operator=(const CControllerNode &rhs);
     ~CControllerNode();
 
+    void Clear();
+
     /*!
      * \brief Controller profile of this code
      *
@@ -46,6 +48,8 @@ namespace GAME
      */
     const ControllerPtr &Controller() const { return m_controller; }
     void SetController(ControllerPtr controller);
+
+    void GetControllers(ControllerVector &controllers) const;
 
     /*!
      * \brief Address given to the node by the implementation
@@ -60,6 +64,7 @@ namespace GAME
      *         has no available ports
      */
     const CControllerHub &Hub() const { return *m_hub; }
+    CControllerHub &Hub() { return *m_hub; }
     void SetHub(CControllerHub hub);
 
     /*!
@@ -126,6 +131,7 @@ namespace GAME
      * \return The active controller, or invalid if port is disconnected
      */
     const CControllerNode &ActiveController() const;
+    CControllerNode &ActiveController();
     void SetActiveController(unsigned int controllerIndex) { m_active = controllerIndex; }
 
     /*!
@@ -208,13 +214,18 @@ namespace GAME
     CControllerHub &operator=(const CControllerHub &rhs);
     ~CControllerHub();
 
+    void Clear();
+
     bool HasPorts() const { return !m_ports.empty(); }
+    ControllerPortVec &Ports() { return m_ports; }
     const ControllerPortVec &Ports() const { return m_ports; }
     void SetPorts(ControllerPortVec ports);
 
     bool IsControllerAccepted(const std::string &controllerId) const;
     bool IsControllerAccepted(const std::string &portAddress,
                               const std::string &controllerId) const;
+    ControllerVector GetControllers() const;
+    void GetControllers(ControllerVector &controllers) const;
 
     const CControllerPortNode &GetPort(const std::string &address) const;
 

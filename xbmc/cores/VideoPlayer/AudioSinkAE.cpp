@@ -14,7 +14,7 @@
 #include "ServiceBroker.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
 #include "cores/AudioEngine/Utils/AEAudioFormat.h"
-#include "settings/MediaSettings.h"
+#include "cores/AudioEngine/Utils/AEStreamData.h"
 #ifdef TARGET_POSIX
 #include "platform/linux/XTimeUtils.h"
 #endif
@@ -68,6 +68,7 @@ bool CAudioSinkAE::Create(const DVDAudioFrame &audioframe, AVCodecID codec, bool
   m_iBitsPerSample = audioframe.bits_per_sample;
   m_bPassthrough = audioframe.passthrough;
   m_channelLayout = audioframe.format.m_channelLayout;
+  m_dataType = audioframe.format.m_streamInfo.m_type;
 
   return true;
 }
@@ -238,6 +239,10 @@ bool CAudioSinkAE::IsValidFormat(const DVDAudioFrame &audioframe)
       m_sampleRate != audioframe.format.m_sampleRate ||
       m_iBitsPerSample != audioframe.bits_per_sample ||
       m_channelLayout != audioframe.format.m_channelLayout)
+    return false;
+
+  if (m_bPassthrough &&
+      m_dataType != audioframe.format.m_streamInfo.m_type)
     return false;
 
   return true;

@@ -9,8 +9,9 @@
 #include "LIRC.h"
 #include "AppInboundProtocol.h"
 #include "ServiceBroker.h"
-#include "profiles/ProfilesManager.h"
+#include "profiles/ProfileManager.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/log.h"
 #include <lirc/lirc_client.h>
 #include <fcntl.h>
@@ -39,7 +40,7 @@ void CLirc::Start()
 
 void CLirc::Process()
 {
-  m_profileId = CServiceBroker::GetProfileManager().GetCurrentProfileId();
+  m_profileId = CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetCurrentProfileId();
   m_irTranslator.Load("Lircmap.xml");
 
   // make sure work-around (CheckDaemon) uses the same socket path as lirc_init
@@ -82,9 +83,10 @@ void CLirc::Process()
       }
       if (code != nullptr)
       {
-        if (m_profileId != CServiceBroker::GetProfileManager().GetCurrentProfileId())
+        int profileId = CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetCurrentProfileId();
+        if (m_profileId != profileId)
         {
-          m_profileId = CServiceBroker::GetProfileManager().GetCurrentProfileId();
+          m_profileId = profileId;
           m_irTranslator.Load("Lircmap.xml");
         }
         ProcessCode(code);
@@ -138,7 +140,7 @@ void CLirc::ProcessCode(char *buf)
       appPort->OnEvent(newEvent);
     return;
   }
-  else if (repeat > g_advancedSettings.m_remoteDelay)
+  else if (repeat > CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_remoteDelay)
   {
     XBMC_Event newEvent;
     newEvent.type = XBMC_BUTTON;

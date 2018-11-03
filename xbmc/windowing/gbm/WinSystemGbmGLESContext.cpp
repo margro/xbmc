@@ -26,7 +26,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-using namespace KODI;
+using namespace KODI::WINDOWING::GBM;
 
 CWinSystemGbmGLESContext::CWinSystemGbmGLESContext()
 : CWinSystemGbmEGLContext(EGL_PLATFORM_GBM_MESA, "EGL_MESA_platform_gbm")
@@ -132,10 +132,9 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
 
 bool CWinSystemGbmGLESContext::CreateContext()
 {
-  const EGLint contextAttribs[] = {
-    EGL_CONTEXT_CLIENT_VERSION, 2,
-    EGL_NONE
-  };
+  CEGLAttributesVec contextAttribs;
+  contextAttribs.Add({{EGL_CONTEXT_CLIENT_VERSION, 2}});
+
   if (!m_eglContext.CreateContext(contextAttribs))
   {
     CLog::Log(LOGERROR, "EGL context creation failed");

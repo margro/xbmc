@@ -12,7 +12,6 @@
 #include "games/addons/GameClient.h"
 #include "games/addons/GameClientTranslator.h"
 #include "input/keyboard/interfaces/IKeyboardInputProvider.h"
-#include "input/Key.h"
 #include "utils/log.h"
 
 #include <utility>
@@ -22,13 +21,11 @@ using namespace GAME;
 
 #define BUTTON_INDEX_MASK  0x01ff
 
-CGameClientKeyboard::CGameClientKeyboard(const CGameClient &gameClient,
+CGameClientKeyboard::CGameClientKeyboard(CGameClient &gameClient,
                                          std::string controllerId,
-                                         const KodiToAddonFuncTable_Game &dllStruct,
                                          KEYBOARD::IKeyboardInputProvider *inputProvider) :
   m_gameClient(gameClient),
   m_controllerId(std::move(controllerId)),
-  m_dllStruct(dllStruct),
   m_inputProvider(inputProvider)
 {
   m_inputProvider->RegisterKeyboardHandler(this, false);
@@ -46,16 +43,7 @@ std::string CGameClientKeyboard::ControllerID() const
 
 bool CGameClientKeyboard::HasKey(const KEYBOARD::KeyName &key) const
 {
-  try
-  {
-    return m_dllStruct.HasFeature(ControllerID().c_str(), key.c_str());
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "GAME: %s: exception caught in HasFeature()", m_gameClient.ID().c_str());
-  }
-
-  return false;
+  return m_gameClient.Input().HasFeature(ControllerID(), key);
 }
 
 bool CGameClientKeyboard::OnKeyPress(const KEYBOARD::KeyName &key, KEYBOARD::Modifier mod, uint32_t unicode)
@@ -66,8 +54,6 @@ bool CGameClientKeyboard::OnKeyPress(const KEYBOARD::KeyName &key, KEYBOARD::Mod
     CLog::Log(LOGDEBUG, "GAME: key press ignored, not in fullscreen game");
     return false;
   }
-
-  bool bHandled = false;
 
   game_input_event event;
 
@@ -80,16 +66,7 @@ bool CGameClientKeyboard::OnKeyPress(const KEYBOARD::KeyName &key, KEYBOARD::Mod
   event.key.unicode     = unicode;
   event.key.modifiers   = CGameClientTranslator::GetModifiers(mod);
 
-  try
-  {
-    bHandled = m_dllStruct.InputEvent(&event);
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "GAME: %s: exception caught in InputEvent()", m_gameClient.ID().c_str());
-  }
-
-  return bHandled;
+  return m_gameClient.Input().InputEvent(event);
 }
 
 void CGameClientKeyboard::OnKeyRelease(const KEYBOARD::KeyName &key, KEYBOARD::Modifier mod, uint32_t unicode)
@@ -105,12 +82,5 @@ void CGameClientKeyboard::OnKeyRelease(const KEYBOARD::KeyName &key, KEYBOARD::M
   event.key.unicode     = unicode;
   event.key.modifiers   = CGameClientTranslator::GetModifiers(mod);
 
-  try
-  {
-    m_dllStruct.InputEvent(&event);
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "GAME: %s: exception caught in InputEvent()", m_gameClient.ID().c_str());
-  }
+  m_gameClient.Input().InputEvent(event);
 }

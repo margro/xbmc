@@ -25,17 +25,23 @@ bool CWinSystemAndroidGLESContext::InitWindowSystem()
     return false;
   }
 
-  if (!m_pGLContext.CreateDisplay(m_nativeDisplay,
-                                  EGL_OPENGL_ES2_BIT,
-                                  EGL_OPENGL_ES_API))
+  if (!m_pGLContext.CreateDisplay(m_nativeDisplay))
   {
     return false;
   }
 
-  const EGLint contextAttribs[] =
+  if (!m_pGLContext.InitializeDisplay(EGL_OPENGL_ES_API))
   {
-    EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE
-  };
+    return false;
+  }
+
+  if (!m_pGLContext.ChooseConfig(EGL_OPENGL_ES2_BIT))
+  {
+    return false;
+  }
+
+  CEGLAttributesVec contextAttribs;
+  contextAttribs.Add({{EGL_CONTEXT_CLIENT_VERSION, 2}});
 
   if (!m_pGLContext.CreateContext(contextAttribs))
   {
@@ -92,12 +98,17 @@ void CWinSystemAndroidGLESContext::PresentRenderImpl(bool rendered)
 {
   // Ignore EGL_BAD_SURFACE: It seems to happen during/after mode changes, but
   // we can't actually do anything about it
-  if (rendered && !m_pGLContext.TrySwapBuffers() && eglGetError() != EGL_BAD_SURFACE)
+  if (rendered && !m_pGLContext.TrySwapBuffers())
   {
     CEGLUtils::LogError("eglSwapBuffers failed");
     throw std::runtime_error("eglSwapBuffers failed");
   }
   CXBMCApp::get()->WaitVSync(1000);
+}
+
+float CWinSystemAndroidGLESContext::GetFrameLatencyAdjustment()
+{
+  return CXBMCApp::GetFrameLatencyMs();
 }
 
 EGLDisplay CWinSystemAndroidGLESContext::GetEGLDisplay() const

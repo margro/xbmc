@@ -191,7 +191,8 @@ public:
   void ProcessSlow();
 
   static bool WaitVSync(unsigned int milliSeconds);
-  static int64_t GetNextFrameTime(){ return m_frameTimeNanos; };
+  static int64_t GetNextFrameTime();
+  static float GetFrameLatencyMs();
 
   bool getVideosurfaceInUse();
   void setVideosurfaceInUse(bool videosurfaceInUse);
@@ -243,6 +244,7 @@ private:
 
   static CVideoSyncAndroid* m_syncImpl;
   static CEvent m_vsyncEvent;
+  static CEvent m_displayChangeEvent;
 
   void XBMC_Pause(bool pause);
   void XBMC_Stop();

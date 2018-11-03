@@ -7,12 +7,7 @@
  */
 
 #include "DVDVideoCodec.h"
-#include "ServiceBroker.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
-#include "rendering/RenderSystem.h"
-#include "settings/Settings.h"
-#include "settings/lib/Setting.h"
-#include "windowing/WinSystem.h"
 #include <string>
 #include <vector>
 

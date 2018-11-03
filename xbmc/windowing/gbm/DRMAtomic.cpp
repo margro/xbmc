@@ -21,6 +21,8 @@
 
 #include <drm_fourcc.h>
 
+using namespace KODI::WINDOWING::GBM;
+
 void CDRMAtomic::DrmAtomicCommit(int fb_id, int flags, bool rendered, bool videoLayer)
 {
   uint32_t blob_id;
@@ -99,9 +101,9 @@ void CDRMAtomic::FlipPage(struct gbm_bo *bo, bool rendered, bool videoLayer)
   if (rendered)
   {
     if (videoLayer)
-      m_overlay_plane->format = DRM_FORMAT_ARGB8888;
+      m_overlay_plane->format = CDRMUtils::FourCCWithAlpha(m_overlay_plane->GetFormat());
     else
-      m_overlay_plane->format = DRM_FORMAT_XRGB8888;
+      m_overlay_plane->format = CDRMUtils::FourCCWithoutAlpha(m_overlay_plane->GetFormat());
 
     drm_fb = CDRMUtils::DrmFbGetFromBo(bo);
     if (!drm_fb)

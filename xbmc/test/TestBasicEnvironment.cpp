@@ -12,8 +12,10 @@
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
+#include "profiles/ProfileManager.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "Application.h"
 #include "AppParamParser.h"
 #include "windowing/WinSystem.h"
@@ -30,17 +32,16 @@
 
 namespace fs = KODI::PLATFORM::FILESYSTEM;
 
+TestBasicEnvironment::TestBasicEnvironment() = default;
+
 void TestBasicEnvironment::SetUp()
 {
-  m_pSettings.reset(new CSettings());
-  CServiceBroker::RegisterSettings(m_pSettings);
+  CAppParamParser params;
+  params.m_platformDirectories = false;
+  m_pSettingsComponent.reset(new CSettingsComponent());
+  m_pSettingsComponent->Init(params);
 
   XFILE::CFile *f;
-
-  /* NOTE: The below is done to fix memleak warning about uninitialized variable
-   * in xbmcutil::GlobalsSingleton<CAdvancedSettings>::getInstance().
-   */
-  g_advancedSettings.Initialize();
 
   g_application.m_ServiceManager.reset(new CServiceManager());
 
@@ -64,8 +65,6 @@ void TestBasicEnvironment::SetUp()
   /* Create a temporary directory and set it to be used throughout the
    * test suite run.
    */
-
-  g_application.EnablePlatformDirectories(false);
 
   std::error_code ec;
   m_tempPath = fs::create_temp_directory(ec);
@@ -92,21 +91,22 @@ void TestBasicEnvironment::SetUp()
     SetUpError();
   }
 
+  const CProfile profile("special://temp");
+  m_pSettingsComponent->GetProfileManager()->AddProfile(profile);
+  m_pSettingsComponent->GetProfileManager()->CreateProfileFolders();
+
   if (!g_application.m_ServiceManager->InitForTesting())
     exit(1);
-
-  CServiceBroker::GetSettings()->Initialize();
 }
 
 void TestBasicEnvironment::TearDown()
 {
   XFILE::CDirectory::RemoveRecursive(m_tempPath);
 
-  CServiceBroker::GetSettings()->Uninitialize();
   g_application.m_ServiceManager->DeinitTesting();
 
-  CServiceBroker::UnregisterSettings();
-  m_pSettings.reset();
+  m_pSettingsComponent->Deinit();
+  m_pSettingsComponent.reset();
 }
 
 void TestBasicEnvironment::SetUpError()

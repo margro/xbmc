@@ -10,6 +10,13 @@
 
 #include <gbm.h>
 
+namespace KODI
+{
+namespace WINDOWING
+{
+namespace GBM
+{
+
 class CGBMUtils
 {
 public:
@@ -17,7 +24,7 @@ public:
   ~CGBMUtils() = default;
   bool CreateDevice(int fd);
   void DestroyDevice();
-  bool CreateSurface(int width, int height, const uint64_t *modifiers, const int modifiers_count);
+  bool CreateSurface(int width, int height, uint32_t format, const uint64_t *modifiers, const int modifiers_count);
   void DestroySurface();
   struct gbm_bo *LockFrontBuffer();
   void ReleaseBuffer();
@@ -31,3 +38,7 @@ protected:
   struct gbm_bo *m_bo = nullptr;
   struct gbm_bo *m_next_bo = nullptr;
 };
+
+}
+}
+}

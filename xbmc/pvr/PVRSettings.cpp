@@ -11,33 +11,58 @@
 #include "ServiceBroker.h"
 #include "guilib/LocalizeStrings.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/SettingsManager.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
 
+#include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
 
 using namespace PVR;
 
+unsigned int CPVRSettings::m_iInstances = 0;
+
 CPVRSettings::CPVRSettings(const std::set<std::string> &settingNames)
 {
   Init(settingNames);
-  CServiceBroker::GetSettings()->GetSettingsManager()->RegisterSettingsHandler(this);
-  CServiceBroker::GetSettings()->RegisterCallback(this, settingNames);
+
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+  settings->GetSettingsManager()->RegisterSettingsHandler(this);
+  settings->RegisterCallback(this, settingNames);
+
+  if (m_iInstances == 0)
+  {
+    // statics must only be registered once, not per instance
+    settings->GetSettingsManager()->RegisterSettingOptionsFiller("pvrrecordmargins", MarginTimeFiller);
+    settings->GetSettingsManager()->AddDynamicCondition("pvrsettingvisible", IsSettingVisible);
+    settings->GetSettingsManager()->AddDynamicCondition("checkpvrparentalpin", CheckParentalPin);
+  }
+  m_iInstances++;
 }
 
 CPVRSettings::~CPVRSettings()
 {
-  CServiceBroker::GetSettings()->UnregisterCallback(this);
-  CServiceBroker::GetSettings()->GetSettingsManager()->UnregisterSettingsHandler(this);
+  const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
+
+  m_iInstances--;
+  if (m_iInstances == 0)
+  {
+    settings->GetSettingsManager()->RemoveDynamicCondition("checkpvrparentalpin");
+    settings->GetSettingsManager()->RemoveDynamicCondition("pvrsettingvisible");
+    settings->GetSettingsManager()->UnregisterSettingOptionsFiller("pvrrecordmargins");
+  }
+
+  settings->UnregisterCallback(this);
+  settings->GetSettingsManager()->UnregisterSettingsHandler(this);
 }
 
 void CPVRSettings::Init(const std::set<std::string> &settingNames)
 {
   for (auto settingName : settingNames)
   {
-    SettingPtr setting = CServiceBroker::GetSettings()->GetSetting(settingName);
+    SettingPtr setting = CServiceBroker::GetSettingsComponent()->GetSettings()->GetSetting(settingName);
     if (!setting)
     {
       CLog::LogF(LOGERROR, "Unknown PVR setting '%s'", settingName.c_str());
@@ -157,4 +182,9 @@ bool CPVRSettings::IsSettingVisible(const std::string &condition, const std::str
     // Show all other settings unconditionally.
     return true;
   }
+}
+
+bool CPVRSettings::CheckParentalPin(const std::string &condition, const std::string &value, std::shared_ptr<const CSetting> setting, void *data)
+{
+  return CServiceBroker::GetPVRManager().GUIActions()->CheckParentalPIN() == ParentalCheckResult::SUCCESS;
 }

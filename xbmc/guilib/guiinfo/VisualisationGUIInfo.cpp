@@ -15,6 +15,7 @@
 #include "guilib/GUIVisualisationControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/URIUtils.h"
 
 #include "guilib/guiinfo/GUIInfo.h"
@@ -53,7 +54,7 @@ bool CVisualisationGUIInfo::GetLabel(std::string& value, const CFileItem *item, 
     case VISUALISATION_NAME:
     {
       ADDON::AddonPtr addon;
-      value = CServiceBroker::GetSettings()->GetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION);
+      value = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION);
       if (CServiceBroker::GetAddonMgr().GetAddon(value, addon) && addon)
       {
         value = addon->Name();
@@ -86,12 +87,13 @@ bool CVisualisationGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int 
       {
         CGUIVisualisationControl *pVis = static_cast<CGUIVisualisationControl*>(msg.GetPointer());
         value = pVis->IsLocked();
+        return true;
       }
       break;
     }
     case VISUALISATION_ENABLED:
     {
-      value = !CServiceBroker::GetSettings()->GetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION).empty();
+      value = !CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_MUSICPLAYER_VISUALISATION).empty();
       return true;
     }
     case VISUALISATION_HAS_PRESETS:

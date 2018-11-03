@@ -8,7 +8,9 @@
 
 #include "XMLUtils.h"
 #include "ScraperUrl.h"
+#include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "CharsetConverter.h"
 #include "utils/CharsetDetection.h"
 #include "utils/StringUtils.h"
@@ -20,6 +22,7 @@
 #include "utils/Mime.h"
 #include "utils/log.h"
 
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 
@@ -187,7 +190,7 @@ bool CScraperUrl::Get(const SUrlEntry& scrURL, std::string& strHTML, XFILE::CCur
 
   if (!scrURL.m_cache.empty())
   {
-    strCachePath = URIUtils::AddFileToFolder(g_advancedSettings.m_cachePath,
+    strCachePath = URIUtils::AddFileToFolder(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_cachePath,
                               "scrapers", cacheContext, scrURL.m_cache);
     if (XFILE::CFile::Exists(strCachePath))
     {
@@ -287,7 +290,7 @@ bool CScraperUrl::Get(const SUrlEntry& scrURL, std::string& strHTML, XFILE::CCur
 
   if (!scrURL.m_cache.empty())
   {
-    std::string strCachePath = URIUtils::AddFileToFolder(g_advancedSettings.m_cachePath,
+    std::string strCachePath = URIUtils::AddFileToFolder(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_cachePath,
                               "scrapers", cacheContext, scrURL.m_cache);
     XFILE::CFile file;
     if (!file.OpenForWrite(strCachePath, true) || file.Write(strHTML.data(), strHTML.size()) != static_cast<ssize_t>(strHTML.size()))
@@ -370,7 +373,7 @@ std::string CScraperUrl::GetThumbURL(const CScraperUrl::SUrlEntry &entry)
   return entry.m_url + "|Referer=" + CURL::Encode(entry.m_spoof);
 }
 
-void CScraperUrl::GetThumbURLs(std::vector<std::string> &thumbs, const std::string &type, int season) const
+void CScraperUrl::GetThumbURLs(std::vector<std::string> &thumbs, const std::string &type, int season, bool unique) const
 {
   for (std::vector<SUrlEntry>::const_iterator iter = m_url.begin(); iter != m_url.end(); ++iter)
   {
@@ -379,7 +382,9 @@ void CScraperUrl::GetThumbURLs(std::vector<std::string> &thumbs, const std::stri
       if ((iter->m_type == CScraperUrl::URL_TYPE_GENERAL && season == -1)
        || (iter->m_type == CScraperUrl::URL_TYPE_SEASON && iter->m_season == season))
       {
-        thumbs.push_back(GetThumbURL(*iter));
+        std::string url = GetThumbURL(*iter);
+        if (!unique || std::find(thumbs.begin(), thumbs.end(), url) == thumbs.end())
+          thumbs.push_back(url);
       }
     }
   }

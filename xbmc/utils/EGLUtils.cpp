@@ -11,9 +11,68 @@
 
 #include "StringUtils.h"
 #include "guilib/IDirtyRegionSolver.h"
+#include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 
 #include <EGL/eglext.h>
+
+namespace
+{
+//! @todo remove when Raspberry Pi updates their EGL headers
+#ifndef EGL_NO_CONFIG_KHR
+#define EGL_NO_CONFIG_KHR static_cast<EGLConfig>(0)
+#endif
+#ifndef EGL_CONTEXT_PRIORITY_LEVEL_IMG
+#define EGL_CONTEXT_PRIORITY_LEVEL_IMG 0x3100
+#endif
+#ifndef EGL_CONTEXT_PRIORITY_HIGH_IMG
+#define EGL_CONTEXT_PRIORITY_HIGH_IMG 0x3101
+#endif
+#ifndef EGL_CONTEXT_PRIORITY_MEDIUM_IMG
+#define EGL_CONTEXT_PRIORITY_MEDIUM_IMG 0x3102
+#endif
+
+#define X(VAL) std::make_pair(VAL, #VAL)
+std::array<std::pair<EGLint, const char*>, 32> eglAttributes =
+{
+  // please keep attributes in accordance to:
+  // https://www.khronos.org/registry/EGL/sdk/docs/man/html/eglGetConfigAttrib.xhtml
+  X(EGL_ALPHA_SIZE),
+  X(EGL_ALPHA_MASK_SIZE),
+  X(EGL_BIND_TO_TEXTURE_RGB),
+  X(EGL_BIND_TO_TEXTURE_RGBA),
+  X(EGL_BLUE_SIZE),
+  X(EGL_BUFFER_SIZE),
+  X(EGL_COLOR_BUFFER_TYPE),
+  X(EGL_CONFIG_CAVEAT),
+  X(EGL_CONFIG_ID),
+  X(EGL_CONFORMANT),
+  X(EGL_DEPTH_SIZE),
+  X(EGL_GREEN_SIZE),
+  X(EGL_LEVEL),
+  X(EGL_LUMINANCE_SIZE),
+  X(EGL_MAX_PBUFFER_WIDTH),
+  X(EGL_MAX_PBUFFER_HEIGHT),
+  X(EGL_MAX_PBUFFER_PIXELS),
+  X(EGL_MAX_SWAP_INTERVAL),
+  X(EGL_MIN_SWAP_INTERVAL),
+  X(EGL_NATIVE_RENDERABLE),
+  X(EGL_NATIVE_VISUAL_ID),
+  X(EGL_NATIVE_VISUAL_TYPE),
+  X(EGL_RED_SIZE),
+  X(EGL_RENDERABLE_TYPE),
+  X(EGL_SAMPLE_BUFFERS),
+  X(EGL_SAMPLES),
+  X(EGL_STENCIL_SIZE),
+  X(EGL_SURFACE_TYPE),
+  X(EGL_TRANSPARENT_TYPE),
+  X(EGL_TRANSPARENT_RED_VALUE),
+  X(EGL_TRANSPARENT_GREEN_VALUE),
+  X(EGL_TRANSPARENT_BLUE_VALUE)
+};
+#undef X
+}
 
 std::set<std::string> CEGLUtils::GetClientExtensions()
 {
@@ -76,7 +135,7 @@ CEGLContextUtils::~CEGLContextUtils()
   Destroy();
 }
 
-bool CEGLContextUtils::CreateDisplay(EGLNativeDisplayType nativeDisplay, EGLint renderableType, EGLint renderingApi)
+bool CEGLContextUtils::CreateDisplay(EGLNativeDisplayType nativeDisplay)
 {
   if (m_eglDisplay != EGL_NO_DISPLAY)
   {
@@ -90,10 +149,10 @@ bool CEGLContextUtils::CreateDisplay(EGLNativeDisplayType nativeDisplay, EGLint 
     return false;
   }
 
-  return InitializeDisplay(renderableType, renderingApi);
+  return true;
 }
 
-bool CEGLContextUtils::CreatePlatformDisplay(void* nativeDisplay, EGLNativeDisplayType nativeDisplayLegacy, EGLint renderableType, EGLint renderingApi)
+bool CEGLContextUtils::CreatePlatformDisplay(void* nativeDisplay, EGLNativeDisplayType nativeDisplayLegacy)
 {
   if (m_eglDisplay != EGL_NO_DISPLAY)
   {
@@ -121,21 +180,33 @@ bool CEGLContextUtils::CreatePlatformDisplay(void* nativeDisplay, EGLNativeDispl
 
   if (m_eglDisplay == EGL_NO_DISPLAY)
   {
-    return CreateDisplay(nativeDisplayLegacy, renderableType, renderingApi);
+    return CreateDisplay(nativeDisplayLegacy);
   }
-  return InitializeDisplay(renderableType, renderingApi);
+
+  return true;
 }
 
-bool CEGLContextUtils::InitializeDisplay(EGLint renderableType, EGLint renderingApi)
+bool CEGLContextUtils::InitializeDisplay(EGLint renderingApi)
 {
-  int major, minor;
-  if (!eglInitialize(m_eglDisplay, &major, &minor))
+  if (!eglInitialize(m_eglDisplay, nullptr, nullptr))
   {
     CEGLUtils::LogError("failed to initialize EGL display");
     Destroy();
     return false;
   }
-  CLog::Log(LOGINFO, "EGL v%d.%d", major, minor);
+
+  const char *value;
+  value = eglQueryString(m_eglDisplay, EGL_VERSION);
+  CLog::Log(LOGNOTICE, "EGL_VERSION = %s", value ? value : "NULL");
+
+  value = eglQueryString(m_eglDisplay, EGL_VENDOR);
+  CLog::Log(LOGNOTICE, "EGL_VENDOR = %s", value ? value : "NULL");
+
+  value = eglQueryString(m_eglDisplay, EGL_EXTENSIONS);
+  CLog::Log(LOGNOTICE, "EGL_EXTENSIONS = %s", value ? value : "NULL");
+
+  value = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+  CLog::Log(LOGNOTICE, "EGL_CLIENT_EXTENSIONS = %s", value ? value : "NULL");
 
   if (eglBindAPI(renderingApi) != EGL_TRUE)
   {
@@ -144,54 +215,117 @@ bool CEGLContextUtils::InitializeDisplay(EGLint renderableType, EGLint rendering
     return false;
   }
 
+  return true;
+}
+
+bool CEGLContextUtils::ChooseConfig(EGLint renderableType, EGLint visualId)
+{
+  EGLint numMatched{0};
+
+  if (m_eglDisplay == EGL_NO_DISPLAY)
+  {
+    throw std::logic_error("Choosing an EGLConfig requires an EGL display");
+  }
+
   EGLint surfaceType = EGL_WINDOW_BIT;
   // for the non-trivial dirty region modes, we need the EGL buffer to be preserved across updates
-  if (g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_COST_REDUCTION ||
-      g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_UNION)
+  int guiAlgorithmDirtyRegions = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAlgorithmDirtyRegions;
+  if (guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_COST_REDUCTION ||
+      guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_UNION)
     surfaceType |= EGL_SWAP_BEHAVIOR_PRESERVED_BIT;
 
-  EGLint attribs[] =
-  {
-    EGL_RED_SIZE, 8,
-    EGL_GREEN_SIZE, 8,
-    EGL_BLUE_SIZE, 8,
-    EGL_ALPHA_SIZE, 8,
-    EGL_DEPTH_SIZE, 16,
-    EGL_STENCIL_SIZE, 0,
-    EGL_SAMPLE_BUFFERS, 0,
-    EGL_SAMPLES, 0,
-    EGL_SURFACE_TYPE, surfaceType,
-    EGL_RENDERABLE_TYPE, renderableType,
-    EGL_NONE
-  };
+  CEGLAttributes<10> attribs;
+  attribs.Add({{EGL_RED_SIZE, 8},
+               {EGL_GREEN_SIZE, 8},
+               {EGL_BLUE_SIZE, 8},
+               {EGL_ALPHA_SIZE, 2},
+               {EGL_DEPTH_SIZE, 16},
+               {EGL_STENCIL_SIZE, 0},
+               {EGL_SAMPLE_BUFFERS, 0},
+               {EGL_SAMPLES, 0},
+               {EGL_SURFACE_TYPE, surfaceType},
+               {EGL_RENDERABLE_TYPE, renderableType}});
 
-  EGLint neglconfigs = 0;
-  if (eglChooseConfig(m_eglDisplay, attribs, &m_eglConfig, 1, &neglconfigs) != EGL_TRUE)
+  if (eglChooseConfig(m_eglDisplay, attribs.Get(), nullptr, 0, &numMatched) != EGL_TRUE)
   {
     CEGLUtils::LogError("failed to query number of EGL configs");
     Destroy();
     return false;
   }
 
-  if (neglconfigs <= 0)
+  std::vector<EGLConfig> eglConfigs(numMatched);
+
+  if (eglChooseConfig(m_eglDisplay, attribs.Get(), eglConfigs.data(), numMatched, &numMatched) != EGL_TRUE)
   {
-    CLog::Log(LOGERROR, "No suitable EGL configs found");
+    CEGLUtils::LogError("failed to find EGL configs with appropriate attributes");
     Destroy();
     return false;
+  }
+
+  EGLint id{0};
+  for (const auto &eglConfig: eglConfigs)
+  {
+    m_eglConfig = eglConfig;
+
+    if (visualId == 0)
+      break;
+
+    if (eglGetConfigAttrib(m_eglDisplay, m_eglConfig, EGL_NATIVE_VISUAL_ID, &id) != EGL_TRUE)
+      CEGLUtils::LogError("failed to query EGL attibute EGL_NATIVE_VISUAL_ID");
+
+    if (visualId == id)
+      break;
+  }
+
+  if (visualId != 0 && visualId != id)
+  {
+    CLog::Log(LOGDEBUG, "failed to find matching EGL visual id");
+    return false;
+  }
+
+  CLog::Log(LOGDEBUG, "EGL Config Attributes:");
+
+  for (const auto &eglAttribute : eglAttributes)
+  {
+    EGLint value{0};
+    if (eglGetConfigAttrib(m_eglDisplay, m_eglConfig, eglAttribute.first, &value) != EGL_TRUE)
+      CEGLUtils::LogError(StringUtils::Format("failed to query EGL attibute %s", eglAttribute.second));
+
+    // we only need to print the hex value if it's an actual EGL define
+    CLog::Log(LOGDEBUG, "  %s: %s", eglAttribute.second, (value >= 0x3000 && value <= 0x3200) ? StringUtils::Format("0x%04x", value) : StringUtils::Format("%d", value));
   }
 
   return true;
 }
 
-bool CEGLContextUtils::CreateContext(const EGLint* contextAttribs)
+bool CEGLContextUtils::CreateContext(CEGLAttributesVec contextAttribs)
 {
   if (m_eglContext != EGL_NO_CONTEXT)
   {
     throw std::logic_error("Do not call CreateContext when context has already been created");
   }
 
-  m_eglContext = eglCreateContext(m_eglDisplay, m_eglConfig,
-                                  EGL_NO_CONTEXT, contextAttribs);
+  EGLConfig eglConfig{m_eglConfig};
+
+  if (CEGLUtils::HasExtension(m_eglDisplay, "EGL_KHR_no_config_context"))
+    eglConfig = EGL_NO_CONFIG_KHR;
+
+  if (CEGLUtils::HasExtension(m_eglDisplay, "EGL_IMG_context_priority"))
+    contextAttribs.Add({{EGL_CONTEXT_PRIORITY_LEVEL_IMG, EGL_CONTEXT_PRIORITY_HIGH_IMG}});
+
+  m_eglContext = eglCreateContext(m_eglDisplay, eglConfig,
+                                  EGL_NO_CONTEXT, contextAttribs.Get());
+
+  if (CEGLUtils::HasExtension(m_eglDisplay, "EGL_IMG_context_priority"))
+  {
+    EGLint value{EGL_CONTEXT_PRIORITY_MEDIUM_IMG};
+
+    if (eglQueryContext(m_eglDisplay, m_eglContext, EGL_CONTEXT_PRIORITY_LEVEL_IMG, &value) != EGL_TRUE)
+      CEGLUtils::LogError("failed to query EGL context attribute EGL_CONTEXT_PRIORITY_LEVEL_IMG");
+
+    if (value != EGL_CONTEXT_PRIORITY_HIGH_IMG)
+      CLog::Log(LOGDEBUG, "Failed to obtain a high priority EGL context");
+  }
 
   if (m_eglContext == EGL_NO_CONTEXT)
   {
@@ -228,8 +362,9 @@ void CEGLContextUtils::SurfaceAttrib()
   }
 
   // for the non-trivial dirty region modes, we need the EGL buffer to be preserved across updates
-  if (g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_COST_REDUCTION ||
-      g_advancedSettings.m_guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_UNION)
+  int guiAlgorithmDirtyRegions = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAlgorithmDirtyRegions;
+  if (guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_COST_REDUCTION ||
+      guiAlgorithmDirtyRegions == DIRTYREGION_SOLVER_UNION)
   {
     if (eglSurfaceAttrib(m_eglDisplay, m_eglSurface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED) != EGL_TRUE)
     {

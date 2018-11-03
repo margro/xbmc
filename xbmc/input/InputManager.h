@@ -13,8 +13,8 @@
 #include <string>
 #include <vector>
 
-#include "Action.h"
 #include "windowing/XBMC_events.h"
+#include "input/actions/Action.h"
 #include "input/mouse/interfaces/IMouseInputProvider.h"
 #include "input/mouse/MouseStat.h"
 #include "input/KeyboardStat.h"
@@ -28,7 +28,7 @@ class CButtonTranslator;
 class CCustomControllerTranslator;
 class CJoystickMapper;
 class CKey;
-class CProfilesManager;
+class CProfileManager;
 class CTouchTranslator;
 class IKeymapEnvironment;
 class IWindowKeymap;

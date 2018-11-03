@@ -15,7 +15,6 @@
 #include "events/NotificationEvent.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
-#include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
@@ -946,7 +945,7 @@ bool CAddonMgr::IsAddonInstalled(const std::string& ID)
 
 bool CAddonMgr::CanAddonBeInstalled(const AddonPtr& addon)
 {
-  return addon != nullptr &&!IsAddonInstalled(addon->ID());
+  return addon != nullptr && !addon->IsBroken() && !IsAddonInstalled(addon->ID());
 }
 
 bool CAddonMgr::CanUninstall(const AddonPtr& addon)
@@ -1026,6 +1025,15 @@ bool CAddonMgr::PlatformSupportsAddon(const cp_plugin_info_t *plugin)
     "all",
 #if defined(TARGET_ANDROID)
     "android",
+#if defined(__ARM_ARCH_7A__)
+    "android-armv7",
+#elif defined(__aarch64__)
+    "android-aarch64",
+#elif defined(__i686__)
+    "android-i686",
+#else
+    #warning no architecture dependant platform tag
+#endif
 #elif defined(TARGET_FREEBSD)
     "freebsd",
     "linux",
@@ -1034,16 +1042,34 @@ bool CAddonMgr::PlatformSupportsAddon(const cp_plugin_info_t *plugin)
 #elif defined(TARGET_WINDOWS_DESKTOP)
     "windx",
     "windows",
+#if defined(_M_IX86)
+    "windows-i686",
+#elif defined(_M_AMD64)
+    "windows-x86_64",
+#else
+#error no architecture dependant platform tag
+#endif
 #elif defined(TARGET_WINDOWS_STORE)
     "windowsstore",
 #elif defined(TARGET_DARWIN_IOS)
     "ios",
+#if defined(__ARM_ARCH_7A__)
+    "ios-armv7",
+#elif defined(__aarch64__)
+    "ios-aarch64",
+#else
+#warning no architecture dependant platform tag
+#endif
 #elif defined(TARGET_DARWIN_OSX)
     "osx",
 #if defined(__x86_64__)
     "osx64",
-#else
+    "osx-x86_64",
+#elif defined(__i686__)
+    "osx-i686",
     "osx32",
+#else
+#warning no architecture dependant platform tag
 #endif
 #endif
   };

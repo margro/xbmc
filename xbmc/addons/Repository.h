@@ -14,7 +14,6 @@
 
 #include "Addon.h"
 #include "utils/Digest.h"
-#include "utils/Job.h"
 #include "utils/ProgressJob.h"
 
 struct cp_cfg_element_t;
@@ -41,11 +40,6 @@ namespace ADDON
 
     explicit CRepository(CAddonInfo addonInfo) : CAddon(std::move(addonInfo)) {};
     CRepository(CAddonInfo addonInfo, DirList dirs);
-
-    /*! \brief Get the md5 hash for an addon.
-     \param the addon in question.
-     */
-    bool GetAddonHash(const AddonPtr& addon, std::string& checksum) const;
 
     enum FetchStatus
     {

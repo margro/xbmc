@@ -14,7 +14,6 @@
 #include <string>
 #include <vector>
 
-#include "addons/Addon.h"
 #include "addons/binary-addons/AddonDll.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 
@@ -24,8 +23,8 @@ namespace PVR
 {
   class CPVRChannelGroups;
   class CPVRTimersContainer;
-
-  typedef std::vector<PVR_MENUHOOK> PVR_MENUHOOKS;
+  class CPVRClientMenuHook;
+  class CPVRClientMenuHooks;
 
   class CPVRClient;
   typedef std::shared_ptr<CPVRClient> CPVRClientPtr;
@@ -395,24 +394,6 @@ namespace PVR
      */
     PVR_ERROR FillEpgTagStreamFileItem(CFileItem &fileItem);
 
-    /*!
-     * @return True if this add-on has menu hooks, false otherwise.
-     */
-    bool HasMenuHooks(PVR_MENUHOOK_CAT cat) const;
-
-    /*!
-     * @return The menu hooks for this add-on.
-     */
-    PVR_MENUHOOKS& GetMenuHooks();
-
-    /*!
-     * @brief Call one of the menu hooks of this client.
-     * @param hook The hook to call.
-     * @param item The selected file item for which the hook was called.
-     * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-     */
-    PVR_ERROR CallMenuHook(const PVR_MENUHOOK &hook, const CFileItemPtr item);
-
     //@}
     /** @name PVR EPG methods */
     //@{
@@ -457,7 +438,7 @@ namespace PVR
 
     /*!
      * @brief Request the list of all group members from the backend.
-     * @param groups The group to get the members for.
+     * @param group The group to get the members for.
      * @return PVR_ERROR_NO_ERROR if the list has been fetched successfully.
      */
     PVR_ERROR GetChannelGroupMembers(CPVRChannelGroup *group);
@@ -546,7 +527,7 @@ namespace PVR
     /*!
     * @brief Set the last watched position of a recording on the backend.
     * @param recording The recording.
-    * @param position The last watched position in seconds
+    * @param lastplayedposition The last watched position in seconds
     * @return PVR_ERROR_NO_ERROR if the position has been stored successfully.
     */
     PVR_ERROR SetRecordingLastPlayedPosition(const CPVRRecording &recording, int lastplayedposition);
@@ -680,7 +661,7 @@ namespace PVR
 
     /*!
      * @brief Get the descramble information of the stream that's currently open.
-     * @param qualityinfo The descramble information.
+     * @param descrambleinfo The descramble information.
      * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
      */
     PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO &descrambleinfo) const;
@@ -823,6 +804,20 @@ namespace PVR
      * @return True on success, false otherwise.
      */
     bool GetAddonProperties(void);
+
+    /*!
+     * @brief Get the client's menu hooks.
+     * @return The hooks. Guaranteed never to be null.
+     */
+    std::shared_ptr<CPVRClientMenuHooks> GetMenuHooks();
+
+    /*!
+     * @brief Call one of the menu hooks of the client.
+     * @param hook The hook to call.
+     * @param item The item associated with the hook to be called.
+     * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
+     */
+    PVR_ERROR CallMenuHook(const CPVRClientMenuHook &hook, const CFileItemPtr &item);
 
     /*!
      * @brief Propagate power management events to this add-on
@@ -1072,7 +1067,6 @@ namespace PVR
     PVR_CONNECTION_STATE   m_connectionState;      /*!< the backend connection state */
     PVR_CONNECTION_STATE   m_prevConnectionState;  /*!< the previous backend connection state */
     bool                   m_ignoreClient;         /*!< signals to PVRManager to ignore this client until it has been connected */
-    PVR_MENUHOOKS          m_menuhooks;            /*!< the menu hooks for this add-on */
     CPVRTimerTypes         m_timertypes;           /*!< timer types supported by this backend */
     int                    m_iClientId;            /*!< unique ID of the client */
     mutable int            m_iPriority;            /*!< priority of the client */
@@ -1085,6 +1079,7 @@ namespace PVR
     std::string            m_strFriendlyName;      /*!< the cached friendly name */
     std::string            m_strBackendHostname;   /*!< the cached backend hostname */
     CPVRClientCapabilities m_clientCapabilities;   /*!< the cached add-on's capabilities */
+    std::shared_ptr<CPVRClientMenuHooks> m_menuhooks; /*!< the menu hooks for this add-on */
 
     /* stored strings to make sure const char* members in PVR_PROPERTIES stay valid */
     std::string            m_strUserPath;         /*!< @brief translated path to the user profile */
