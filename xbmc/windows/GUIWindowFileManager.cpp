@@ -88,7 +88,7 @@ class CGetDirectoryItems : public IRunnable
 {
 public:
   CGetDirectoryItems(XFILE::CVirtualDirectory &dir, CURL &url, CFileItemList &items)
-  : m_dir(dir), m_url(url), m_items(items)
+  : m_result(false), m_dir(dir), m_url(url), m_items(items)
   {
   }
   void Run() override
@@ -444,6 +444,13 @@ void CGUIWindowFileManager::UpdateItemCounts()
 
 bool CGUIWindowFileManager::Update(int iList, const std::string &strDirectory)
 {
+  if (m_updating)
+  {
+    CLog::Log(LOGWARNING, "CGUIWindowFileManager::Update - updating in progress");
+    return true;
+  }
+  CUpdateGuard ug(m_updating);
+
   // get selected item
   int iItem = GetSelectedItem(iList);
   std::string strSelectedItem = "";

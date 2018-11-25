@@ -386,6 +386,7 @@ void CAdvancedSettings::Initialize()
   m_bPVRAutoScanIconsUserSet       = false;
   m_iPVRNumericChannelSwitchTimeout = 2000;
   m_iPVRTimeshiftThreshold = 10;
+  m_bPVRTimeshiftSimpleOSD = true;
 
   m_cacheMemSize = 1024 * 1024 * 20;
   m_cacheBufferMode = CACHE_BUFFER_MODE_INTERNET; // Default (buffer all internet streams/filesystems)
@@ -432,6 +433,8 @@ void CAdvancedSettings::Initialize()
   m_logLevelHint = m_logLevel = LOG_LEVEL_NORMAL;
   m_extraLogEnabled = false;
   m_extraLogLevels = 0;
+
+  m_openGlDebugging = false;
 
   m_userAgent = g_sysinfo.GetUserAgent();
 
@@ -1117,6 +1120,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetBoolean(pPVR, "autoscaniconsuserset", m_bPVRAutoScanIconsUserSet);
     XMLUtils::GetInt(pPVR, "numericchannelswitchtimeout", m_iPVRNumericChannelSwitchTimeout, 50, 60000);
     XMLUtils::GetInt(pPVR, "timeshiftthreshold", m_iPVRTimeshiftThreshold, 0, 60);
+    XMLUtils::GetBoolean(pPVR, "timeshiftsimpleosd", m_bPVRTimeshiftSimpleOSD);
   }
 
   TiXmlElement* pDatabase = pRootElement->FirstChildElement("videodatabase");
@@ -1228,6 +1232,8 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     for(std::vector<std::string>::iterator it = steps.begin(); it != steps.end(); ++it)
       m_seekSteps.push_back(atoi((*it).c_str()));
   }
+
+  XMLUtils::GetBoolean(pRootElement, "opengldebugging", m_openGlDebugging);
 
   // load in the settings overrides
   CServiceBroker::GetSettingsComponent()->GetSettings()->LoadHidden(pRootElement);

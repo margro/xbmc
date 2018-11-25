@@ -9,15 +9,20 @@
 #include "guilib/DirtyRegion.h"
 #include "windowing/GraphicContext.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
 #include "RenderSystemGLES.h"
 #include "rendering/MatrixGL.h"
-#include "utils/log.h"
 #include "utils/GLUtils.h"
+#include "utils/log.h"
 #include "utils/TimeUtils.h"
 #include "utils/SystemInfo.h"
 #include "utils/MathUtils.h"
 #ifdef TARGET_POSIX
 #include "XTimeUtils.h"
+#endif
+
+#if defined(TARGET_LINUX)
+#include "utils/EGLUtils.h"
 #endif
 
 CRenderSystemGLES::CRenderSystemGLES()
@@ -36,9 +41,7 @@ bool CRenderSystemGLES::InitRenderSystem()
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
 
   m_maxTextureSize = maxTextureSize;
-  m_bVSync = false;
-  m_iVSyncMode = 0;
-  m_bVsyncInit = false;
+
   // Get the GLES version number
   m_RenderVersionMajor = 0;
   m_RenderVersionMinor = 0;
@@ -72,6 +75,30 @@ bool CRenderSystemGLES::InitRenderSystem()
   }
 
   m_RenderExtensions += " ";
+
+//! @todo remove TARGET_RASPBERRY_PI when Raspberry Pi updates their GL headers
+#if defined(GL_KHR_debug) && defined(TARGET_LINUX) && !defined(TARGET_RASPBERRY_PI)
+  if (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_openGlDebugging)
+  {
+    if (IsExtSupported("GL_KHR_debug"))
+    {
+      auto glDebugMessageCallback = CEGLUtils::GetRequiredProcAddress<PFNGLDEBUGMESSAGECALLBACKKHRPROC>("glDebugMessageCallbackKHR");
+      auto glDebugMessageControl = CEGLUtils::GetRequiredProcAddress<PFNGLDEBUGMESSAGECONTROLKHRPROC>("glDebugMessageControlKHR");
+
+      glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_KHR);
+      glDebugMessageCallback(KODI::UTILS::GL::GlErrorCallback, nullptr);
+
+      // ignore shader compilation information
+      glDebugMessageControl(GL_DEBUG_SOURCE_SHADER_COMPILER_KHR, GL_DEBUG_TYPE_OTHER_KHR, GL_DONT_CARE, 0, nullptr, GL_FALSE);
+
+      CLog::Log(LOGDEBUG, "OpenGL(ES): debugging enabled");
+    }
+    else
+    {
+      CLog::Log(LOGDEBUG, "OpenGL(ES): debugging requested but the required extension isn't available (GL_KHR_debug)");
+    }
+  }
+#endif
 
   LogGraphicsInfo();
 
@@ -210,7 +237,7 @@ void CRenderSystemGLES::PresentRender(bool rendered, bool videoLayer)
 
 void CRenderSystemGLES::SetVSync(bool enable)
 {
-  if (m_bVSync==enable && m_bVsyncInit == true)
+  if (m_bVsyncInit)
     return;
 
   if (!m_bRenderCreated)
@@ -221,20 +248,9 @@ void CRenderSystemGLES::SetVSync(bool enable)
   else
     CLog::Log(LOGINFO, "GLES: Disabling VSYNC");
 
-  m_iVSyncMode   = 0;
-  m_iVSyncErrors = 0;
-  m_bVSync       = enable;
-  m_bVsyncInit   = true;
+  m_bVsyncInit = true;
 
   SetVSyncImpl(enable);
-
-  if (!enable)
-    return;
-
-  if (!m_iVSyncMode)
-    CLog::Log(LOGERROR, "GLES: Vertical Blank Syncing unsupported");
-  else
-    CLog::Log(LOGINFO, "GLES: Selected vsync mode %d", m_iVSyncMode);
 }
 
 void CRenderSystemGLES::CaptureStateBlock()

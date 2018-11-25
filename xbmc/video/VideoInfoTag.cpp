@@ -215,7 +215,7 @@ bool CVideoInfoTag::Save(TiXmlNode *node, const std::string &tag, bool savePathI
   {
     TiXmlElement set("set");
     XMLUtils::SetString(&set, "name", m_set.title);
-    if (m_set.overview.empty())
+    if (!m_set.overview.empty())
       XMLUtils::SetString(&set, "overview", m_set.overview);
     movie->InsertEndChild(set);
   }
@@ -469,6 +469,8 @@ void CVideoInfoTag::Archive(CArchive& ar)
     ar >> m_strAlbum;
     ar >> m_artist;
     ar >> m_playCount;
+    //re-evaluate the playcount
+    m_playCount = PLAYCOUNT_NOT_SET;
     ar >> m_lastPlayed;
     ar >> m_iTop250;
     ar >> m_iSeason;

@@ -224,6 +224,7 @@ bool CRenderManager::Configure()
     m_renderDebug = false;
     m_clockSync.Reset();
     m_dvdClock.SetVsyncAdjust(0);
+    m_overlays.SetStereoMode(m_stereomode);
 
     m_renderState = STATE_CONFIGURED;
 
@@ -876,12 +877,13 @@ void CRenderManager::UpdateResolution()
   }
 }
 
-void CRenderManager::TriggerUpdateResolution(float fps, int width, std::string &stereomode)
+void CRenderManager::TriggerUpdateResolution(float fps, int width, int height, std::string &stereomode)
 {
   if (width)
   {
     m_fps = fps;
     m_width = width;
+    m_height = height;
     m_stereomode = stereomode;
   }
   m_bTriggerUpdateResolution = true;

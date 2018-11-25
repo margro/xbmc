@@ -968,10 +968,20 @@
           <default>true</default>
           <control type="toggle" />
         </setting>
-        <setting id="videolibrary.showunwatchedplots" type="boolean" label="20369" help="36141">
+        <setting id="videolibrary.showunwatchedplots" type="list[integer]" label="20369" help="36141">
           <level>0</level>
-          <default>true</default>
-          <control type="toggle" />
+          <default>0,1</default> <!-- Show plot for both -->
+          <constraints>
+            <options>
+              <option label="20342">0</option> <!-- Show plot for unwatched movies only -->
+              <option label="20343">1</option> <!-- Show plot for unwatched tv show episodes only -->
+            </options>
+            <delimiter>,</delimiter>
+          </constraints>
+          <control type="list" format="string">
+            <multiselect>true</multiselect>
+            <hidevalue>false</hidevalue>
+          </control>
         </setting>
         <setting id="videolibrary.groupmoviesets" type="boolean" label="20458" help="36145">
           <level>1</level>
@@ -1200,7 +1210,7 @@
         </setting>
         <setting id="scrapers.tvshowsdefault" type="addon" label="21414" help="36199">
           <level>4</level>
-          <default>metadata.tvdb.com</default>
+          <default>metadata.tvshows.themoviedb.org</default>
           <constraints>
             <addontype>xbmc.metadata.scraper.tvshows</addontype>
           </constraints>
@@ -1270,14 +1280,7 @@
       </group>
     </category>
     <category id="pvrmenu" label="19181" help="36211">
-      <group id="1" label="128">
-        <setting id="pvrmenu.usesimpletimeshiftosd" type="boolean" label="19303" help="36235">
-          <level>2</level>
-          <default>true</default>
-          <control type="toggle" />
-        </setting>
-      </group>
-      <group id="2" label="14301">
+      <group id="1" label="14301">
         <setting id="pvrmenu.displaychannelinfo" type="integer" label="19178" help="36212">
           <level>2</level>
           <default>5</default>
@@ -1291,7 +1294,7 @@
           </control>
         </setting>
       </group>
-      <group id="3" label="14302">
+      <group id="2" label="14302">
         <setting id="pvrmenu.iconpath" type="path" label="19018" help="36216">
           <level>2</level>
           <default></default>
@@ -1418,6 +1421,18 @@
           </constraints>
           <control type="spinner" format="string">
             <formatlabel>14046</formatlabel>
+          </control>
+        </setting>
+        <setting id="pvrplayback.delaymarklastwatched" type="integer" label="19195" help="36236">
+          <level>3</level>
+          <default>0</default>
+          <constraints>
+            <minimum>0</minimum>
+            <step>30</step>
+            <maximum>600</maximum>
+          </constraints>
+          <control type="spinner" format="string">
+            <formatlabel>14045</formatlabel>
           </control>
         </setting>
         <setting id="pvrplayback.fps" type="integer" label="19108" help="36261">

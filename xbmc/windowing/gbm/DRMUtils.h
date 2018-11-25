@@ -44,9 +44,16 @@ struct drm_object
 struct plane : drm_object
 {
   drmModePlanePtr plane = nullptr;
-  uint32_t format{0};
-  uint32_t fallbackFormat{0};
   bool useFallbackFormat{false};
+  std::map<uint32_t, std::vector<uint64_t>> modifiers_map;
+
+  void SetFormat(uint32_t newFormat)
+  {
+    if (useFallbackFormat)
+      fallbackFormat = newFormat;
+    else
+      format = newFormat;
+  }
 
   uint32_t GetFormat()
   {
@@ -56,7 +63,9 @@ struct plane : drm_object
     return format;
   }
 
-  std::map<uint32_t, std::vector<uint64_t>> modifiers_map;
+private:
+  uint32_t format{DRM_FORMAT_XRGB2101010};
+  uint32_t fallbackFormat{DRM_FORMAT_XRGB8888};
 };
 
 struct connector : drm_object
@@ -93,12 +102,12 @@ public:
   virtual void DestroyDrm();
 
   std::string GetModule() const { return m_module; }
-  std::string GetDevicePath() const { return m_device_path; }
   int GetFileDescriptor() const { return m_fd; }
-  struct plane* GetPrimaryPlane() const { return m_primary_plane; }
-  struct plane* GetOverlayPlane() const { return m_overlay_plane; }
-  std::vector<uint64_t> *GetPrimaryPlaneModifiersForFormat(uint32_t format) { return &m_primary_plane->modifiers_map[format]; }
-  std::vector<uint64_t> *GetOverlayPlaneModifiersForFormat(uint32_t format) { return &m_overlay_plane->modifiers_map[format]; }
+  int GetRenderNodeFileDescriptor() const { return m_renderFd; }
+  struct plane* GetVideoPlane() const { return m_video_plane; }
+  struct plane* GetGuiPlane() const { return m_gui_plane; }
+  std::vector<uint64_t> *GetVideoPlaneModifiersForFormat(uint32_t format) { return &m_video_plane->modifiers_map[format]; }
+  std::vector<uint64_t> *GetGuiPlaneModifiersForFormat(uint32_t format) { return &m_gui_plane->modifiers_map[format]; }
   struct crtc* GetCrtc() const { return m_crtc; }
 
   virtual RESOLUTION_INFO GetCurrentMode();
@@ -123,8 +132,8 @@ protected:
   struct connector *m_connector = nullptr;
   struct encoder *m_encoder = nullptr;
   struct crtc *m_crtc = nullptr;
-  struct plane *m_primary_plane = nullptr;
-  struct plane *m_overlay_plane = nullptr;
+  struct plane *m_video_plane = nullptr;
+  struct plane *m_gui_plane = nullptr;
   drmModeModeInfo *m_mode = nullptr;
 
   int m_width = 0;
@@ -146,9 +155,9 @@ private:
   RESOLUTION_INFO GetResolutionInfo(drmModeModeInfoPtr mode);
   bool CheckConnector(int connectorId);
 
+  KODI::UTILS::POSIX::CFileHandle m_renderFd;
   int m_crtc_index;
   std::string m_module;
-  std::string m_device_path;
 
   drmModeResPtr m_drm_resources = nullptr;
   drmModeCrtcPtr m_orig_crtc = nullptr;

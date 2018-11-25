@@ -26,6 +26,8 @@ enum CONTEXT_BUTTON { CONTEXT_BUTTON_CANCELLED = 0,
                       CONTEXT_BUTTON_RIP_CD,
                       CONTEXT_BUTTON_CANCEL_RIP_CD,
                       CONTEXT_BUTTON_RIP_TRACK,
+                      CONTEXT_BUTTON_EJECT_DISC,
+                      CONTEXT_BUTTON_EJECT_DRIVE,
                       CONTEXT_BUTTON_EDIT_SOURCE,
                       CONTEXT_BUTTON_REMOVE_SOURCE,
                       CONTEXT_BUTTON_SET_DEFAULT,
@@ -92,6 +94,7 @@ enum CONTEXT_BUTTON { CONTEXT_BUTTON_CANCELLED = 0,
                       CONTEXT_BUTTON_EDIT_SORTTITLE,
                       CONTEXT_BUTTON_DELETE_ALL,
                       CONTEXT_BUTTON_HELP,
+                      CONTEXT_BUTTON_PLAY_NEXT,
                     };
 
 class CContextButtons : public std::vector< std::pair<size_t, std::string> >

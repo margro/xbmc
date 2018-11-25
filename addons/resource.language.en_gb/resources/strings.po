@@ -1999,6 +1999,7 @@ msgctxt "#426"
 msgid "No CD information found"
 msgstr ""
 
+#: addons/skin.estuary/xml/Variables.xml
 msgctxt "#427"
 msgid "Disc"
 msgstr ""
@@ -2540,6 +2541,7 @@ msgstr ""
 
 #: xbmc/filesystem/BlurayDirectory.cpp
 #: xbmc/playlists/SmartPlaylist.cpp
+#: addons/skin.estuary/xml/Variables.xml
 msgctxt "#554"
 msgid "Track"
 msgstr ""
@@ -2560,6 +2562,7 @@ msgstr ""
 #: xbmc/media/MediaTypes.cpp
 #: xbmc/playlists/SmartPlaylist.cpp
 #: addons/skin.estuary/xml/DialogPVRRadioRDSInfo.xml
+#: addons/skin.estuary/xml/Variables.xml
 msgctxt "#557"
 msgid "Artist"
 msgstr ""
@@ -2569,6 +2572,7 @@ msgstr ""
 #: xbmc/media/MediaTypes.cpp
 #: xbmc/playlists/SmartPlaylist.cpp
 #: addons/skin.estuary/xml/DialogPVRRadioRDSInfo.xml
+#: addons/skin.estuary/xml/Variables.xml
 msgctxt "#558"
 msgid "Album"
 msgstr ""
@@ -2591,6 +2595,7 @@ msgstr ""
 #: xbmc/dialogs/GUIDialogMediaFilter.cpp
 #: xbmc/dialogs/GUIDialogSmartPlaylistRule.cpp
 #: xbmc/playlists/SmartPlaylist.cpp
+#: addons/skin.estuary/xml/Variables.xml
 msgctxt "#562"
 msgid "Year"
 msgstr ""
@@ -4813,7 +4818,13 @@ msgctxt "#10007"
 msgid "System information"
 msgstr ""
 
-#empty strings from id 10008 to 10010
+#: xbmc/music/windows/GUIWindowMusicBase.cpp
+#: xbmc/video/windows/GUIWindowVideoBase.cpp
+msgctxt "#10008"
+msgid "Play next"
+msgstr ""
+
+#empty strings from id 10009 to 10010
 
 #: xbmc/guilib/WindowIDs.h
 msgctxt "#10011"
@@ -6874,6 +6885,7 @@ msgctxt "#13390"
 msgid "There are no settings available\nfor this visualisation"
 msgstr ""
 
+#: xbmc/ContextMenus.h
 #: xbmc/dialogs/GUIDialogContextMenu.cpp
 #: xbmc/dialogs/GUIDialogPlayEject.cpp
 msgctxt "#13391"
@@ -7010,6 +7022,7 @@ msgctxt "#13419"
 msgid "Software"
 msgstr ""
 
+#: xbmc/ContextMenus.h
 #: xbmc/dialogs/GUIDialogContextMenu.cpp
 msgctxt "#13420"
 msgid "Remove safely"
@@ -10270,7 +10283,11 @@ msgctxt "#19194"
 msgid "Continue?"
 msgstr ""
 
-#empty string with id 19195
+#. pvr settings "delay mark last watched" setting label
+#: system/settings/settings.xml
+msgctxt "#19195"
+msgid "Delay mark last watched"
+msgstr ""
 
 #. value for "pvr client specific actions" dialog headers
 #: xbmc/pvr/PVRGUIActions.cpp
@@ -10903,11 +10920,7 @@ msgctxt "#19302"
 msgid "Do you want to record the selected programme or to switch to the current programme?"
 msgstr ""
 
-#. pvr setting "Use simple timeshift OSD" value
-#: system/settings/settings.xml
-msgctxt "#19303"
-msgid "Use simple timeshift OSD"
-msgstr ""
+#empty string with id 19303
 
 #. Label for context menu entry to open settings dialog for a timer rule (read-only)
 #: xbmc/pvr/PVRContextMenus.cpp
@@ -12716,6 +12729,7 @@ msgstr ""
 #: xbmc/media/MediaTypes.cpp
 #: addons/skin.estuary/xml/Variables.xml
 #: xbmc/view/GUIViewState.cpp
+#: system/settings/settings.xml
 msgctxt "#20342"
 msgid "Movies"
 msgstr ""
@@ -12727,6 +12741,7 @@ msgstr ""
 #: addons/skin.estuary/xml/SkinSettings.xml
 #: addons/skin.estuary/xml/Variables.xml
 #: xbmc/view/GUIViewState.cpp
+#: system/settings/settings.xml
 msgctxt "#20343"
 msgid "TV shows"
 msgstr ""
@@ -18096,7 +18111,7 @@ msgstr ""
 #. Description of setting with label #20369 "Show plot for unwatched items"
 #: system/settings/settings.xml
 msgctxt "#36141"
-msgid "Show plot information for unwatched media in the video library."
+msgid "Show plot information for unwatched media in the video library. The plot will be shown for the specific category you have selected. For example if 'Movies' is selected, the plot will be shown at the movie library, but will be hidden for TV shows and otherwise."
 msgstr ""
 
 #. Description of setting with label #14106 "Speed unit"
@@ -18621,13 +18636,12 @@ msgctxt "#36234"
 msgid "Duration of instant recordings when pressing the record button. This value will be taken into account if \"Instant recording action\" is set to \"Record for a fixed period of time\""
 msgstr ""
 
-#. help text for pvr setting "Use simple timeshift OSD"
-#: system/settings/settings.xml
-msgctxt "#36235"
-msgid "Normal timeshift OSD always shows the complete timeshift buffer along with with the currently playing show, whereas the simple timeshift OSD only shows the currently playing show with no visual feedback how far in the timeshift buffer you can jump from the currently playing position."
-msgstr ""
+#empty string with id 36235
 
-#empty string with id 36236
+#: system/settings/settings.xml
+msgctxt "#36236"
+msgid "If set to a value greater than zero last watched time of channels will be stored the given amount of time after start of channel playback. Otherwise the last watched time will be stored immediately at start of channel playback."
+msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36237"
@@ -19098,7 +19112,7 @@ msgstr ""
 #. Description of setting with label #21361 "Look for remote UPnP players"
 #: system/settings/settings.xml
 msgctxt "#36326"
-msgid "Enable the UPnP control point. This allows you to stream media to any UPnP client and control it's playback."
+msgid "Enable the UPnP control point. This allows you to stream media to any UPnP client and control its playback."
 msgstr ""
 
 #. Description of settings category with label #20187 "Control"
