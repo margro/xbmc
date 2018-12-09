@@ -565,6 +565,14 @@ void CXBMCApp::SetRefreshRate(float rate)
   if (rate < 1.0)
     return;
 
+  CJNIWindow window = getWindow();
+  if (window)
+  {
+    CJNIWindowManagerLayoutParams params = window.getAttributes();
+    if (fabs(params.getpreferredRefreshRate() - rate) <= 0.001)
+      return;
+  }
+
   m_refreshRate = rate;
 
   m_displayChangeEvent.Reset();
@@ -578,6 +586,15 @@ void CXBMCApp::SetDisplayMode(int mode, float rate)
 {
   if (mode < 1.0)
     return;
+
+  CJNIWindow window = getWindow();
+  if (window)
+  {
+    CJNIWindowManagerLayoutParams params = window.getAttributes();
+    CLog::Log(LOGDEBUG, "XXX %d %d", params.getpreferredDisplayModeId(), mode);
+    if (params.getpreferredDisplayModeId() == mode)
+      return;
+  }
 
   m_displayChangeEvent.Reset();
 
@@ -1003,8 +1020,14 @@ void CXBMCApp::onReceive(CJNIIntent intent)
       m_hdmiPlugged = newstate;
       if (m_hdmiPlugged != m_hdmiReportedState)
       {
-        dynamic_cast<CWinSystemAndroid*>(CServiceBroker::GetWinSystem())->SetHDMIState(m_hdmiPlugged);
-        m_hdmiReportedState = m_hdmiPlugged;
+        if (g_application.IsInitialized())
+        {
+          CWinSystemBase* winSystem = CServiceBroker::GetWinSystem();
+          if (winSystem && dynamic_cast<CWinSystemAndroid*>(winSystem))
+            dynamic_cast<CWinSystemAndroid*>(winSystem)->SetHDMIState(m_hdmiPlugged);
+
+          m_hdmiReportedState = m_hdmiPlugged;
+        }
       }
     }
   }
