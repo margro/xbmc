@@ -916,6 +916,11 @@ namespace PVR
     return true;
   }
 
+  bool CPVRGUIActions::CanEditRecording(const CFileItem& item) const
+  {
+    return CGUIDialogPVRRecordingSettings::CanEditRecording(item);
+  }
+
   bool CPVRGUIActions::RenameRecording(const CFileItemPtr &item) const
   {
     const CPVRRecordingPtr recording(item->GetPVRRecordingInfoTag());
@@ -1184,20 +1189,28 @@ namespace PVR
     switch (type)
     {
       case PlaybackTypeRadio:
+      {
         if (CServiceBroker::GetPVRManager().IsPlayingRadio())
           return true;
 
-        channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllRadio()->GetLastPlayedChannel();
+        const std::shared_ptr<CPVRChannelGroup> allGroup = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllRadio();
+        if (allGroup)
+          channel = allGroup->GetLastPlayedChannel();
+
         bIsRadio = true;
         break;
-
+      }
       case PlaybackTypeTV:
+      {
         if (CServiceBroker::GetPVRManager().IsPlayingTV())
           return true;
 
-        channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllTV()->GetLastPlayedChannel();
-        break;
+        const std::shared_ptr<CPVRChannelGroup> allGroup = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllTV();
+        if (allGroup)
+          channel = allGroup->GetLastPlayedChannel();
 
+        break;
+      }
       default:
         if (CServiceBroker::GetPVRManager().IsPlaying())
           return true;

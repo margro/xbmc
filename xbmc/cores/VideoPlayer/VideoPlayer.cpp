@@ -742,6 +742,8 @@ bool CVideoPlayer::CloseFile(bool reopen)
   if(m_pInputStream)
     m_pInputStream->Abort();
 
+  m_renderManager.UnInit();
+
   CLog::Log(LOGNOTICE, "VideoPlayer: waiting for threads to exit");
 
   // wait for the main thread to finish up
@@ -758,7 +760,6 @@ bool CVideoPlayer::CloseFile(bool reopen)
   m_HasAudio = false;
 
   CLog::Log(LOGNOTICE, "VideoPlayer: finished waiting");
-  m_renderManager.UnInit();
   return true;
 }
 
@@ -1459,11 +1460,14 @@ void CVideoPlayer::Process()
       continue;
     }
 
-    if (m_demuxerSpeed == DVD_PLAYSPEED_PAUSE)
+    // adjust demuxer speed; some rtsp servers wants to know for i.e. ff
+    // delay pause until queue is full
+    if (m_playSpeed != DVD_PLAYSPEED_PAUSE &&
+        m_demuxerSpeed != m_playSpeed)
     {
       if (m_pDemuxer)
-        m_pDemuxer->SetSpeed(DVD_PLAYSPEED_NORMAL);
-      m_demuxerSpeed = DVD_PLAYSPEED_NORMAL;
+        m_pDemuxer->SetSpeed(m_playSpeed);
+      m_demuxerSpeed = m_playSpeed;
     }
 
     // always yield to players if they have data levels > 50 percent

@@ -29,6 +29,7 @@
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecAndroidMediaCodec.h"
 #include "cores/VideoPlayer/DVDCodecs/Audio/DVDAudioCodecAndroidMediaCodec.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererMediaCodec.h"
+#include "cores/VideoPlayer/Process/android/ProcessInfoAndroid.h"
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererMediaCodecSurface.h"
 #include "platform/android/powermanagement/AndroidPowerSyscall.h"
 #include "addons/interfaces/platform/android/System.h"
@@ -61,10 +62,7 @@ CWinSystemAndroid::CWinSystemAndroid()
 
 CWinSystemAndroid::~CWinSystemAndroid()
 {
-  if(m_nativeWindow)
-  {
-    m_nativeWindow = nullptr;
-  }
+  m_nativeWindow = nullptr;
   delete m_dispResetTimer, m_dispResetTimer = nullptr;
 }
 
@@ -84,6 +82,7 @@ bool CWinSystemAndroid::InitWindowSystem()
   CRendererMediaCodecSurface::Register();
   ADDON::Interface_Android::Register();
   DRM::CMediaDrmCryptoSession::Register();
+  VIDEOPLAYER::CProcessInfoAndroid::Register();
   return CWinSystemBase::InitWindowSystem();
 }
 
@@ -132,6 +131,8 @@ bool CWinSystemAndroid::CreateNewWindow(const std::string& name,
 
 bool CWinSystemAndroid::DestroyWindow()
 {
+  m_nativeWindow = nullptr;
+  m_bWindowCreated = false;
   return true;
 }
 

@@ -493,30 +493,13 @@ void CWinRenderer::SelectPSVideoFilter()
 
   switch (m_scalingMethod)
   {
-  case VS_SCALINGMETHOD_NEAREST:
-  case VS_SCALINGMETHOD_LINEAR:
-    break;
-
   case VS_SCALINGMETHOD_CUBIC:
   case VS_SCALINGMETHOD_LANCZOS2:
   case VS_SCALINGMETHOD_SPLINE36_FAST:
   case VS_SCALINGMETHOD_LANCZOS3_FAST:
-    m_bUseHQScaler = true;
-    break;
-
   case VS_SCALINGMETHOD_SPLINE36:
   case VS_SCALINGMETHOD_LANCZOS3:
     m_bUseHQScaler = true;
-    break;
-
-  case VS_SCALINGMETHOD_SINC8:
-    CLog::Log(LOGERROR, "D3D: TODO: This scaler has not yet been implemented");
-    break;
-
-  case VS_SCALINGMETHOD_BICUBIC_SOFTWARE:
-  case VS_SCALINGMETHOD_LANCZOS_SOFTWARE:
-  case VS_SCALINGMETHOD_SINC_SOFTWARE:
-    CLog::Log(LOGERROR, "D3D: TODO: Software scaling has not yet been implemented");
     break;
 
   default:
@@ -525,10 +508,10 @@ void CWinRenderer::SelectPSVideoFilter()
 
   if (m_scalingMethod == VS_SCALINGMETHOD_AUTO)
   {
-    bool scaleSD = m_sourceHeight < 720 && m_sourceWidth < 1280;
-    bool scaleUp = static_cast<int>(m_sourceHeight) < CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight()
+    const bool scaleSD = m_sourceHeight < 720 && m_sourceWidth < 1280;
+    const bool scaleUp = static_cast<int>(m_sourceHeight) < CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight()
                 && static_cast<int>(m_sourceWidth) < CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth();
-    bool scaleFps = m_fps < (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoAutoScaleMaxFps + 0.01f);
+    const bool scaleFps = m_fps < CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoAutoScaleMaxFps + 0.01f;
 
     if (m_renderMethod == RENDER_DXVA)
     {
@@ -540,6 +523,8 @@ void CWinRenderer::SelectPSVideoFilter()
       m_scalingMethod = VS_SCALINGMETHOD_LANCZOS3_FAST;
       m_bUseHQScaler = true;
     }
+    else
+      m_scalingMethod = VS_SCALINGMETHOD_LINEAR;
   }
   if (m_renderOrientation)
     m_bUseHQScaler = false;
@@ -574,11 +559,8 @@ void CWinRenderer::UpdatePSVideoFilter()
     }
   }
 
-  if (m_bUseHQScaler && !CreateIntermediateRenderTarget(m_sourceWidth, m_sourceHeight, false))
-  {
-    m_scalerShader.reset();
-    m_bUseHQScaler = false;
-  }
+  if (m_renderMethod != RENDER_DXVA || m_bUseHQScaler)
+    CreateIntermediateRenderTarget(m_sourceWidth, m_sourceHeight, false);
 
   m_colorShader.reset();
 
@@ -592,7 +574,7 @@ void CWinRenderer::UpdatePSVideoFilter()
   }
 
   m_colorShader = std::make_unique<CYUV2RGBShader>();
-  if (!m_colorShader->Create(m_bufferFormat, AVColorPrimaries::AVCOL_PRI_BT709, m_srcPrimaries, m_bUseHQScaler ? nullptr : m_outputShader.get()))
+  if (!m_colorShader->Create(m_bufferFormat, AVCOL_PRI_BT709, m_srcPrimaries))
   {
     if (m_bUseHQScaler)
     {
@@ -796,44 +778,50 @@ void CWinRenderer::RenderSW(CD3DTexture* target)
 
 void CWinRenderer::RenderPS(CD3DTexture* target)
 {
-  if (m_bUseHQScaler)
-    target = &m_IntermediateTarget;
+  CD3D11_VIEWPORT viewPort(0.0f, 0.0f, static_cast<float>(m_sourceWidth), static_cast<float>(m_sourceHeight));
 
-  CD3D11_VIEWPORT viewPort(0.0f, 0.0f, static_cast<float>(target->GetWidth()), static_cast<float>(target->GetHeight()));
-
-  if (m_bUseHQScaler)
-    DX::Windowing()->ResetScissors();
-
+  // reset scissors
+  DX::Windowing()->ResetScissors();
   // reset view port
   DX::DeviceResources::Get()->GetD3DContext()->RSSetViewports(1, &viewPort);
 
-  // select destination rectangle
-  CPoint destPoints[4];
-  if (m_renderOrientation)
-  {
-    for (size_t i = 0; i < 4; i++)
-      destPoints[i] = m_rotatedDestCoords[i];
-  }
-  else
-  {
-    CRect destRect = m_bUseHQScaler ? m_sourceRect : CServiceBroker::GetWinSystem()->GetGfxContext().StereoCorrection(m_destRect);
-    destPoints[0] = { destRect.x1, destRect.y1 };
-    destPoints[1] = { destRect.x2, destRect.y1 };
-    destPoints[2] = { destRect.x2, destRect.y2 };
-    destPoints[3] = { destRect.x1, destRect.y2 };
-  }
-
   CRenderBuffer& buf = m_renderBuffers[m_iYV12RenderBuffer];
 
-  // set params
-  m_outputShader->SetDisplayMetadata(buf.hasDisplayMetadata, buf.displayMetadata, buf.hasLightMetadata, buf.lightMetadata);
-  m_outputShader->SetToneMapParam(m_videoSettings.m_ToneMapParam);
-
+  CPoint srcPoints[4];
+  m_sourceRect.GetQuad(srcPoints);
+  // set converter params
   m_colorShader->SetParams(m_videoSettings.m_Contrast, m_videoSettings.m_Brightness, DX::Windowing()->UseLimitedColor());
   m_colorShader->SetColParams(buf.color_space, buf.bits, !buf.full_range, buf.texBits);
+  // convert YUV -> RGB
+  m_colorShader->Render(m_sourceRect, srcPoints, &buf, &m_IntermediateTarget);
 
-  // render video frame
-  m_colorShader->Render(m_sourceRect, destPoints, &buf, target);
+  if (!m_bUseHQScaler)
+  {
+    // second pass (bilinear scaling)
+    // select destination rectangle
+    CPoint destPoints[4];
+    if (m_renderOrientation)
+    {
+      for (size_t i = 0; i < 4; i++)
+        destPoints[i] = m_rotatedDestCoords[i];
+    }
+    else
+    {
+      CServiceBroker::GetWinSystem()->GetGfxContext().StereoCorrection(m_destRect).GetQuad(destPoints);
+    }
+    // set params
+    m_outputShader->SetDisplayMetadata(buf.hasDisplayMetadata, buf.displayMetadata, buf.hasLightMetadata, buf.lightMetadata);
+    m_outputShader->SetToneMapParam(m_videoSettings.m_ToneMapParam);
+
+    viewPort.Width = static_cast<float>(target->GetWidth());
+    viewPort.Height = static_cast<float>(target->GetHeight());
+    // set viewport to the whole target
+    DX::DeviceResources::Get()->GetD3DContext()->RSSetViewports(1, &viewPort);
+    // restore scissors
+    DX::Windowing()->SetScissors(CServiceBroker::GetWinSystem()->GetGfxContext().StereoCorrection(CServiceBroker::GetWinSystem()->GetGfxContext().GetScissors()));
+    // render frame
+    m_outputShader->Render(m_IntermediateTarget, m_sourceWidth, m_sourceHeight, m_sourceRect, destPoints, target);
+  }
   // Restore our view port.
   DX::Windowing()->RestoreViewPort();
 }
@@ -1034,21 +1022,17 @@ bool CWinRenderer::Supports(ERENDERFEATURE feature)
 
 bool CWinRenderer::Supports(ESCALINGMETHOD method)
 {
+  if (method == VS_SCALINGMETHOD_AUTO)
+    return true;
+
+  if (method == VS_SCALINGMETHOD_LINEAR && m_renderMethod != RENDER_DXVA)
+    return true;
+
+  if (method == VS_SCALINGMETHOD_DXVA_HARDWARE && m_renderMethod == RENDER_DXVA)
+    return true;
+
   if (m_renderMethod == RENDER_PS || m_renderMethod == RENDER_DXVA)
   {
-    if (m_renderMethod == RENDER_DXVA)
-    {
-      if (method == VS_SCALINGMETHOD_DXVA_HARDWARE
-       || method == VS_SCALINGMETHOD_AUTO)
-        return true;
-      if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_DXVAAllowHqScaling || m_renderOrientation)
-        return false;
-    }
-
-    if ( method == VS_SCALINGMETHOD_AUTO
-     || (method == VS_SCALINGMETHOD_LINEAR && m_renderMethod == RENDER_PS))
-        return true;
-
     if (DX::DeviceResources::Get()->GetDeviceFeatureLevel() >= D3D_FEATURE_LEVEL_9_3 && !m_renderOrientation)
     {
       if (method == VS_SCALINGMETHOD_CUBIC
@@ -1068,12 +1052,7 @@ bool CWinRenderer::Supports(ESCALINGMETHOD method)
       }
     }
   }
-  else if(m_renderMethod == RENDER_SW)
-  {
-    if (method == VS_SCALINGMETHOD_AUTO
-     || method == VS_SCALINGMETHOD_LINEAR)
-      return true;
-  }
+  
   return false;
 }
 

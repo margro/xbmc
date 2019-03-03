@@ -566,22 +566,31 @@ bool CWinSystemWin32::DPIChanged(WORD dpi, RECT windowRect) const
   {
     MONITORINFOEX monitorInfo;
     monitorInfo.cbSize = sizeof(MONITORINFOEX);
-    GetMonitorInfo(hMon, &monitorInfo);
-    RECT wr = monitorInfo.rcWork;
-    long wrWidth = wr.right - wr.left;
-    long wrHeight = wr.bottom - wr.top;
-    long resizeWidth = resizeRect.right - resizeRect.left;
-    long resizeHeight = resizeRect.bottom - resizeRect.top;
+    GetMonitorInfoW(hMon, &monitorInfo);
 
-    if (resizeWidth > wrWidth)
+    if (m_state == WINDOW_STATE_FULLSCREEN_WINDOW ||
+        m_state == WINDOW_STATE_FULLSCREEN)
     {
-      resizeRect.right = resizeRect.left + wrWidth;
+      resizeRect = monitorInfo.rcMonitor; // the whole screen
     }
-
-    // make sure suggested windows size is not taller or wider than working area of new monitor (considers the toolbar)
-    if (resizeHeight > wrHeight)
+    else
     {
-      resizeRect.bottom = resizeRect.top + wrHeight;
+      RECT wr = monitorInfo.rcWork; // it excludes task bar
+      long wrWidth = wr.right - wr.left;
+      long wrHeight = wr.bottom - wr.top;
+      long resizeWidth = resizeRect.right - resizeRect.left;
+      long resizeHeight = resizeRect.bottom - resizeRect.top;
+
+      if (resizeWidth > wrWidth)
+      {
+        resizeRect.right = resizeRect.left + wrWidth;
+      }
+
+      // make sure suggested windows size is not taller or wider than working area of new monitor (considers the toolbar)
+      if (resizeHeight > wrHeight)
+      {
+        resizeRect.bottom = resizeRect.top + wrHeight;
+      }
     }
   }
 
@@ -877,19 +886,20 @@ void CWinSystemWin32::UpdateResolutions()
     refreshRate = static_cast<float>(details->RefreshRate + 1) / 1.001f;
   else
     refreshRate = static_cast<float>(details->RefreshRate);
-  std::string strOuput = FromW(details->DeviceNameW);
+
+  std::string strOutput = FromW(details->DeviceNameW);
+  std::string monitorName = FromW(details->MonitorNameW);
 
   uint32_t dwFlags = details->Interlaced ? D3DPRESENTFLAG_INTERLACED : 0;
 
   RESOLUTION_INFO& info = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP);
-  UpdateDesktopResolution(info, w, h, refreshRate, dwFlags);
-  info.strOutput = strOuput;
+  UpdateDesktopResolution(info, monitorName, w, h, refreshRate, dwFlags);
+  info.strOutput = strOutput;
 
   CLog::Log(LOGNOTICE, "Primary mode: %s", info.strMode.c_str());
 
   // erase previous stored modes
   CDisplaySettings::GetInstance().ClearCustomResolutions();
-  std::string monitorName = FromW(details->MonitorNameW);
 
   for(int mode = 0;; mode++)
   {
@@ -920,7 +930,7 @@ void CWinSystemWin32::UpdateResolutions()
     res.strMode = StringUtils::Format("%s: %dx%d @ %.2fHz", monitorName.c_str(), res.iWidth,
                                       res.iHeight, res.fRefreshRate);
     GetGfxContext().ResetOverscan(res);
-    res.strOutput = strOuput;
+    res.strOutput = strOutput;
 
     if (AddResolution(res))
       CLog::Log(LOGNOTICE, "Additional mode: %s", res.strMode.c_str());

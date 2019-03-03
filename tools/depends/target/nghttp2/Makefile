@@ -2,12 +2,14 @@ include ../../Makefile.include
 DEPS= ../../Makefile.include Makefile
 
 # lib name, version
-LIBNAME=platform
-VERSION=1.0.10
-SOURCE=$(LIBNAME)-$(VERSION)
-ARCHIVE=$(SOURCE).tar.gz
+LIBNAME=nghttp2
+VERSION=1.35.1
+ARCHIVE=$(LIBNAME)-$(VERSION).tar.xz
 
-LIBDYLIB=$(PLATFORM)/build/lib$(LIBNAME).a
+# configuration settings
+CONFIGURE=./configure --prefix=$(PREFIX) --enable-lib-only --disable-shared
+
+LIBDYLIB=$(PLATFORM)/lib/.libs/lib$(LIBNAME).a
 
 all: .installed-$(PLATFORM)
 
@@ -15,19 +17,21 @@ $(TARBALLS_LOCATION)/$(ARCHIVE):
 	cd $(TARBALLS_LOCATION); $(RETRIEVE_TOOL) $(RETRIEVE_TOOL_FLAGS) $(BASE_URL)/$(ARCHIVE)
 
 $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
-	rm -rf $(PLATFORM); mkdir -p $(PLATFORM)/build
+	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
-	cd $(PLATFORM)/build; $(CMAKE) -DBUILD_SHARED_LIBS=0 -DCMAKE_INSTALL_LIBDIR=$(PREFIX)/lib ..
+	cd $(PLATFORM); $(AUTORECONF) -vif
+	cd $(PLATFORM); $(CONFIGURE)
 
 $(LIBDYLIB): $(PLATFORM)
-	$(MAKE) -C $(PLATFORM)/build
+	$(MAKE) -C $(PLATFORM)
 
 .installed-$(PLATFORM): $(LIBDYLIB)
-	$(MAKE) -C $(PLATFORM)/build install
+	$(MAKE) -C $(PLATFORM) install
 	touch $@
 
 clean:
-	rm -rf $(PLATFORM) .installed-$(PLATFORM)
+	$(MAKE) -C $(PLATFORM) clean
+	rm -f .installed-$(PLATFORM)
 
 distclean::
 	rm -rf $(PLATFORM) .installed-$(PLATFORM)

@@ -33,6 +33,9 @@
 #include "SeekHandler.h"
 #include "utils/Variant.h"
 #include "Util.h"
+#include "settings/DisplaySettings.h"
+#include <tuple>
+#include <map>
 
 using namespace JSONRPC;
 using namespace PLAYLIST;
@@ -322,7 +325,7 @@ JSONRPC_STATUS CPlayerOperations::Stop(const std::string &method, ITransportLaye
   {
     case Video:
     case Audio:
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_STOP, static_cast<int>(parameterObject["playerid"].asInteger()));
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_STOP, static_cast<int>(parameterObject["playerid"].asInteger()));
       return ACK;
 
     case Picture:
@@ -489,6 +492,132 @@ JSONRPC_STATUS CPlayerOperations::Zoom(const std::string &method, ITransportLaye
   }
 }
 
+// Matching pairs of values from JSON type "Player.ViewMode" and C++ enum ViewMode
+// Additions to enum ViewMode need to be added here and in the JSON type
+std::map<std::string, ViewMode> viewModes =
+{
+  {"normal", ViewModeNormal},
+  {"zoom", ViewModeZoom},
+  {"stretch4x3", ViewModeStretch4x3},
+  {"widezoom", ViewModeWideZoom, },
+  {"stretch16x9", ViewModeStretch16x9},
+  {"original", ViewModeOriginal},
+  {"stretch16x9nonlin", ViewModeStretch16x9Nonlin},
+  {"zoom120width", ViewModeZoom120Width},
+  {"zoom110width", ViewModeZoom110Width}
+};
+
+std::string GetStringFromViewMode(ViewMode viewMode)
+{
+  std::string result = "custom";
+
+  auto it = find_if(viewModes.begin(), viewModes.end(), [viewMode](const std::pair<std::string, ViewMode> & p)
+  {
+    return p.second == viewMode;
+  });
+  
+  if (it != viewModes.end())
+  {
+    std::pair<std::string, ViewMode> value = *it;
+    result = value.first;
+  }
+  
+  return result;
+}
+
+void GetNewValueForViewModeParameter(const CVariant &parameter, float stepSize, float minValue, float maxValue, float &result)
+{
+  if (parameter.isDouble())
+  {
+    result = parameter.asDouble();
+  }
+  else if (parameter.isString())
+  {
+    std::string parameterStr = parameter.asString();
+    if (parameter == "decrease")
+    {
+      stepSize *= -1;
+    }
+    
+    result += stepSize;
+  }
+
+  result = std::max(minValue, std::min(result, maxValue));
+}
+
+JSONRPC_STATUS CPlayerOperations::SetViewMode(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+{
+  JSONRPC_STATUS jsonStatus = InvalidParams;
+  // init with current values from settings
+  CVideoSettings vs = g_application.GetAppPlayer().GetVideoSettings();
+  ViewMode mode = ViewModeNormal;
+
+  CVariant viewMode = parameterObject["viewmode"];
+  if (viewMode.isString())
+  {
+    std::string modestr = viewMode.asString();
+    if (viewModes.find(modestr) != viewModes.end())
+    {
+      mode = viewModes[modestr];
+      jsonStatus = ACK;
+    }
+  }
+  else if (viewMode.isObject())
+  {
+    mode = ViewModeCustom;
+    CVariant zoom = viewMode["zoom"];
+    CVariant pixelRatio = viewMode["pixelratio"];
+    CVariant verticalShift = viewMode["verticalshift"];
+    CVariant stretch = viewMode["nonlinearstretch"];
+
+    if (!zoom.isNull())
+    {
+      GetNewValueForViewModeParameter(zoom, 0.01f, 0.5f, 2.f, vs.m_CustomZoomAmount);
+      jsonStatus = ACK;
+    }
+
+    if (!pixelRatio.isNull())
+    {
+      GetNewValueForViewModeParameter(pixelRatio, 0.01f, 0.5f, 2.f, vs.m_CustomPixelRatio);
+      jsonStatus = ACK;
+    }
+    
+    if (!verticalShift.isNull())
+    {
+      GetNewValueForViewModeParameter(verticalShift, -0.01f, -2.f, 2.f, vs.m_CustomVerticalShift);
+      jsonStatus = ACK;
+    }
+
+    if (stretch.isBoolean())
+    {
+      vs.m_CustomNonLinStretch = stretch.asBoolean();
+      jsonStatus = ACK;
+    }
+  }
+
+  if (jsonStatus == ACK)
+  {
+    g_application.GetAppPlayer().SetRenderViewMode(static_cast<int>(mode),
+      vs.m_CustomZoomAmount, vs.m_CustomPixelRatio, vs.m_CustomVerticalShift,
+      vs.m_CustomNonLinStretch);
+  }
+
+  return jsonStatus;
+}
+
+JSONRPC_STATUS CPlayerOperations::GetViewMode(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+{
+  int mode = g_application.GetAppPlayer().GetVideoSettings().m_ViewMode;
+  
+  result["viewmode"] = GetStringFromViewMode(static_cast<ViewMode>(mode));
+
+  result["zoom"] = CDisplaySettings::GetInstance().GetZoomAmount();
+  result["pixelratio"] = CDisplaySettings::GetInstance().GetPixelRatio();
+  result["verticalshift"] = CDisplaySettings::GetInstance().GetVerticalShift();
+  result["nonlinearstretch"] = CDisplaySettings::GetInstance().IsNonLinearStretched();
+  return OK;
+}
+
 JSONRPC_STATUS CPlayerOperations::Rotate(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
 {
   switch (GetPlayer(parameterObject["playerid"]))
@@ -536,8 +665,7 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
     {
       case PLAYLIST_MUSIC:
       case PLAYLIST_VIDEO:
-        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_PLAY, playlistid, playlistStartPosition);
-        OnPlaylistChanged();
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, playlistid, playlistStartPosition);
         break;
 
       case PLAYLIST_PICTURE:
@@ -572,7 +700,7 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
   {
     if (g_partyModeManager.IsEnabled())
       g_partyModeManager.Disable();
-    CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "playercontrol(partymode(" + parameterObject["item"]["partymode"].asString() + "))");
+    CApplicationMessenger::GetInstance().PostMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "playercontrol(partymode(" + parameterObject["item"]["partymode"].asString() + "))");
     return ACK;
   }
   else if (parameterObject["item"].isMember("channelid"))
@@ -691,7 +819,7 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
 
         auto l = new CFileItemList(); //don't delete
         l->Copy(list);
-        CApplicationMessenger::GetInstance().SendMsg(TMSG_MEDIA_PLAY, -1, -1, static_cast<void*>(l), playername);
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_MEDIA_PLAY, -1, -1, static_cast<void*>(l), playername);
       }
 
       return ACK;
@@ -758,7 +886,6 @@ JSONRPC_STATUS CPlayerOperations::GoTo(const std::string &method, ITransportLaye
       return FailedToExecute;
   }
 
-  OnPlaylistChanged();
   return ACK;
 }
 
@@ -781,7 +908,6 @@ JSONRPC_STATUS CPlayerOperations::SetShuffle(const std::string &method, ITranspo
             (shuffle.isString() && shuffle.asString() == "toggle"))
         {
           CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_SHUFFLE, playlistid, 0);
-          OnPlaylistChanged();
         }
       }
       else
@@ -790,7 +916,6 @@ JSONRPC_STATUS CPlayerOperations::SetShuffle(const std::string &method, ITranspo
             (shuffle.isString() && shuffle.asString() == "toggle"))
         {
           CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_SHUFFLE, playlistid, 1);
-          OnPlaylistChanged();
         }
       }
       break;
@@ -846,7 +971,6 @@ JSONRPC_STATUS CPlayerOperations::SetRepeat(const std::string &method, ITranspor
         repeat = (REPEAT_STATE)ParseRepeatState(parameterObject["repeat"]);
 
       CApplicationMessenger::GetInstance().SendMsg(TMSG_PLAYLISTPLAYER_REPEAT, playlistid, repeat);
-      OnPlaylistChanged();
       break;
     }
 
@@ -899,7 +1023,7 @@ JSONRPC_STATUS CPlayerOperations::SetPartymode(const std::string &method, ITrans
       }
 
       if (change)
-        CApplicationMessenger::GetInstance().SendMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "playercontrol(partymode(" + strContext + "))");
+        CApplicationMessenger::GetInstance().PostMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr, "playercontrol(partymode(" + strContext + "))");
       break;
     }
 
@@ -1166,12 +1290,6 @@ JSONRPC_STATUS CPlayerOperations::StartSlideshow(const std::string& path, bool r
 void CPlayerOperations::SendSlideshowAction(int actionID)
 {
   CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_SLIDESHOW, -1, static_cast<void*>(new CAction(actionID)));
-}
-
-void CPlayerOperations::OnPlaylistChanged()
-{
-  CGUIMessage msg(GUI_MSG_PLAYLIST_CHANGED, 0, 0);
-  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 JSONRPC_STATUS CPlayerOperations::GetPropertyValue(PlayerType player, const std::string &property, CVariant &result)

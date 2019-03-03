@@ -278,6 +278,18 @@ void CApplication::HandlePortEvents()
             settings->SetInt(CSettings::SETTING_WINDOW_HEIGHT, newEvent.resize.h);
             settings->Save();
           }
+#ifdef TARGET_WINDOWS
+          else
+          {
+            // this may occurs when OS tries to resize application window 
+            //CDisplaySettings::GetInstance().SetCurrentResolution(RES_DESKTOP, true);
+            //auto& gfxContext = CServiceBroker::GetWinSystem()->GetGfxContext();
+            //gfxContext.SetVideoResolution(gfxContext.GetVideoResolution(), true);
+            // try to resize window back to it's full screen size
+            auto& res_info = CDisplaySettings::GetInstance().GetResolutionInfo(RES_DESKTOP);
+            CServiceBroker::GetWinSystem()->ResizeWindow(res_info.iScreenWidth, res_info.iScreenHeight, 0, 0);
+          }
+#endif
         }
         break;
       case XBMC_VIDEOMOVE:
@@ -2802,12 +2814,9 @@ bool CApplication::PlayFile(CFileItem item, const std::string& player, bool bRes
 
   CPlayerOptions options;
 
-  if( item.HasProperty("StartPercent") )
+  if (item.HasProperty("StartPercent"))
   {
-    double fallback = 0.0f;
-    if(item.GetProperty("StartPercent").isString())
-      fallback = atof(item.GetProperty("StartPercent").asString().c_str());
-    options.startpercent = item.GetProperty("StartPercent").asDouble(fallback);
+    options.startpercent = item.GetProperty("StartPercent").asDouble();
     item.m_lStartOffset = 0;
   }
 
@@ -3887,6 +3896,8 @@ bool CApplication::OnMessage(CGUIMessage& message)
   case GUI_MSG_PLAYLISTPLAYER_STOPPED:
     m_itemCurrentFile->Reset();
     CServiceBroker::GetGUI()->GetInfoManager().ResetCurrentItem();
+    if (m_appPlayer.IsPlaying())
+      StopPlaying();
     PlaybackCleanup();
     return true;
 

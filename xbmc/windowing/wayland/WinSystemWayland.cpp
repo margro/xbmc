@@ -299,6 +299,19 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
 
   m_windowDecorator.reset(new CWindowDecorator(*this, *m_connection, m_surface));
 
+  m_seatInputProcessing.reset(new CSeatInputProcessing(m_surface, *this));
+  m_seatRegistry.reset(new CRegistry{*m_connection});
+  // version 2 adds name event -> optional
+  // version 4 adds wl_keyboard repeat_info -> optional
+  // version 5 adds discrete axis events in wl_pointer -> unused
+  m_seatRegistry->Request<wayland::seat_t>(1, 5, std::bind(&CWinSystemWayland::OnSeatAdded, this, _1, _2), std::bind(&CWinSystemWayland::OnSeatRemoved, this, _1));
+  m_seatRegistry->Bind();
+
+  if (m_seats.empty())
+  {
+    CLog::Log(LOGWARNING, "Wayland compositor did not announce a wl_seat - you will not have any input devices for the time being");
+  }
+
   if (fullScreen)
   {
     m_shellSurfaceState.set(IShellSurface::STATE_FULLSCREEN);
@@ -347,21 +360,8 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
   ApplyWindowGeometry();
 
   // Update resolution with real size as it could have changed due to configure()
-  UpdateDesktopResolution(res, m_bufferSize.Width(), m_bufferSize.Height(), res.fRefreshRate, 0);
+  UpdateDesktopResolution(res, res.strOutput, m_bufferSize.Width(), m_bufferSize.Height(), res.fRefreshRate, 0);
   res.bFullScreen = fullScreen;
-
-  m_seatInputProcessing.reset(new CSeatInputProcessing(m_surface, *this));
-  m_seatRegistry.reset(new CRegistry{*m_connection});
-  // version 2 adds name event -> optional
-  // version 4 adds wl_keyboard repeat_info -> optional
-  // version 5 adds discrete axis events in wl_pointer -> unused
-  m_seatRegistry->Request<wayland::seat_t>(1, 5, std::bind(&CWinSystemWayland::OnSeatAdded, this, _1, _2), std::bind(&CWinSystemWayland::OnSeatRemoved, this, _1));
-  m_seatRegistry->Bind();
-
-  if (m_seats.empty())
-  {
-    CLog::Log(LOGWARNING, "Wayland compositor did not announce a wl_seat - you will not have any input devices for the time being");
-  }
 
   // Now start processing events
   //
@@ -475,8 +475,7 @@ void CWinSystemWayland::UpdateResolutions()
     CLog::LogF(LOGINFO, "- %dx%d @%.3f Hz pixel ratio %.3f%s", mode.size.Width(), mode.size.Height(), mode.refreshMilliHz / 1000.0f, pixelRatio, isCurrent ? " current" : "");
 
     RESOLUTION_INFO res;
-    UpdateDesktopResolution(res, mode.size.Width(), mode.size.Height(), mode.GetRefreshInHz(), 0);
-    res.strOutput = outputName;
+    UpdateDesktopResolution(res, outputName, mode.size.Width(), mode.size.Height(), mode.GetRefreshInHz(), 0);
     res.fPixelRatio = pixelRatio;
 
     if (isCurrent)
@@ -889,8 +888,8 @@ void CWinSystemWayland::SetResolutionInternal(CSizeInt size, std::int32_t scale,
       {
         // Add new resolution if none found
         RESOLUTION_INFO newResInfo;
-        UpdateDesktopResolution(newResInfo, sizes.bufferSize.Width(), sizes.bufferSize.Height(), refreshRate, 0);
-        newResInfo.strOutput = CDisplaySettings::GetInstance().GetCurrentResolutionInfo().strOutput; // we just assume the compositor put us on the right output
+        // we just assume the compositor put us on the right output
+        UpdateDesktopResolution(newResInfo, CDisplaySettings::GetInstance().GetCurrentResolutionInfo().strOutput, sizes.bufferSize.Width(), sizes.bufferSize.Height(), refreshRate, 0);
         CDisplaySettings::GetInstance().AddResolutionInfo(newResInfo);
         CDisplaySettings::GetInstance().ApplyCalibrations();
         res = static_cast<RESOLUTION> (CDisplaySettings::GetInstance().ResolutionInfoSize() - 1);

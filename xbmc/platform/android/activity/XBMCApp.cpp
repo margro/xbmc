@@ -1006,7 +1006,9 @@ void CXBMCApp::onReceive(CJNIIntent intent)
     if (newstate != m_headsetPlugged)
     {
       m_headsetPlugged = newstate;
-      CServiceBroker::GetActiveAE()->DeviceChange();
+      IAE *iae = CServiceBroker::GetActiveAE();
+      if (iae)
+        iae->DeviceChange();
     }
   }
   else if (action == "android.media.action.HDMI_AUDIO_PLUG")
@@ -1034,7 +1036,7 @@ void CXBMCApp::onReceive(CJNIIntent intent)
   else if (action == "android.intent.action.SCREEN_OFF")
   {
     if (m_playback_state & PLAYBACK_STATE_VIDEO)
-      CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
+      CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
   }
   else if (action == "android.intent.action.MEDIA_BUTTON")
   {
@@ -1083,6 +1085,12 @@ void CXBMCApp::onReceive(CJNIIntent intent)
 
 void CXBMCApp::onNewIntent(CJNIIntent intent)
 {
+  if (!intent)
+  {
+    CLog::Log(LOGNOTICE, "CXBMCApp::onNewIntent - Got invalid intent.");
+    return;
+  }
+
   std::string action = intent.getAction();
   CLog::Log(LOGDEBUG, "CXBMCApp::onNewIntent - Got intent. Action: %s", action.c_str());
   std::string targetFile = GetFilenameFromIntent(intent);

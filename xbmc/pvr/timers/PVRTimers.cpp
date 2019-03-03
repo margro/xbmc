@@ -683,6 +683,8 @@ TimerOperationResult CPVRTimers::DeleteTimer(const CPVRTimerInfoTagPtr &tag, boo
       CLog::LogF(LOGERROR, "Unable to obtain timer rule for given timer");
       return TimerOperationResult::FAILED;
     }
+
+    return ruleTag->DeleteFromClient(bForce);
   }
 
   return tag->DeleteFromClient(bForce);
@@ -794,11 +796,19 @@ CPVRTimerInfoTagPtr CPVRTimers::GetRecordingTimerForRecording(const CPVRRecordin
       if (timersEntry->IsRecording() &&
           !timersEntry->IsTimerRule() &&
           timersEntry->m_iClientId == recording.ClientID() &&
-          timersEntry->m_iClientChannelUid == recording.ChannelUid() &&
-          timersEntry->StartAsUTC() <= recording.RecordingTimeAsUTC() &&
-          timersEntry->EndAsUTC() >= recording.EndTimeAsUTC())
+          timersEntry->m_iClientChannelUid == recording.ChannelUid())
       {
-        return timersEntry;
+        // first, match epg event uids, if available
+        if (timersEntry->UniqueBroadcastID() == recording.BroadcastUid() &&
+            timersEntry->UniqueBroadcastID() != EPG_TAG_INVALID_UID)
+          return timersEntry;
+
+        // alternatively, match start and end times
+        const CDateTime timerStart = timersEntry->StartAsUTC() - CDateTimeSpan(0, 0, timersEntry->m_iMarginStart, 0);
+        const CDateTime timerEnd = timersEntry->EndAsUTC() + CDateTimeSpan(0, 0, timersEntry->m_iMarginEnd, 0);
+        if (timerStart <= recording.RecordingTimeAsUTC() &&
+            timerEnd >= recording.EndTimeAsUTC())
+          return timersEntry;
       }
     }
   }
