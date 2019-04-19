@@ -1754,7 +1754,7 @@ bool CAMLCodec::OpenDecoder(CDVDStreamInfo &hints)
 
   CLog::Log(LOGNOTICE, "CAMLCodec::OpenDecoder - using V4L2 pts format: %s", m_ptsIs64us ? "64Bit":"32Bit");
 
-  m_ptsOverflow = (sizeof(long) == 8) ? 0 : INT64_0;
+  m_ptsOverflow = 0;
 
   m_opened = true;
   // vcodec is open, update speed if it was
@@ -1884,7 +1884,7 @@ void CAMLCodec::Reset()
 
   // reset some interal vars
   m_cur_pts = INT64_0;
-  m_ptsOverflow = (sizeof(long) == 8) ? 0 : INT64_0;
+  m_ptsOverflow = 0;
   m_state = 0;
   m_frameSizes.clear();
   m_frameSizeSum = 0;
@@ -1932,17 +1932,19 @@ bool CAMLCodec::AddData(uint8_t *pData, size_t iSize, double dts, double pts)
       am_private->am_pkt.avpts = am_private->am_pkt.avdts;
   }
 
-  //Handle PTS overflow
+  //Handle PTS overflow for arm
   if (sizeof(long) < 8)
   {
     if (am_private->am_pkt.avpts != INT64_0)
     {
-      if (m_ptsOverflow == INT64_0)
-        m_ptsOverflow = am_private->am_pkt.avpts & 0xFFFF80000000ULL;
+      m_ptsOverflow = am_private->am_pkt.avpts & 0xFFFF80000000ULL;
       am_private->am_pkt.avpts &= 0x7FFFFFFF;
     }
     if (am_private->am_pkt.avdts != INT64_0)
+    {
+      m_ptsOverflow = am_private->am_pkt.avdts & 0xFFFF80000000ULL;
       am_private->am_pkt.avdts &= 0x7FFFFFFF;
+    }
   }
 
   // We use this to determine the fill state if no PTS is given
@@ -2117,21 +2119,12 @@ CDVDVideoCodec::VCReturn CAMLCodec::GetPicture(VideoPicture *pVideoPicture)
     pVideoPicture->iFlags = 0;
 
     if (m_last_pts <= 0)
-      pVideoPicture->iDuration = (double)(am_private->video_rate * DVD_TIME_BASE) / UNIT_FREQ;
+      pVideoPicture->iDuration = static_cast<double>(am_private->video_rate * DVD_TIME_BASE) / UNIT_FREQ;
     else
-    {
-      // Check for int overflow
-      if (m_cur_pts + 0xFFFFFFF < m_last_pts)
-      {
-        m_last_pts -= 0x7FFFFFFF;
-        m_ptsOverflow += 0x80000000;
-        CLog::Log(LOGDEBUG, "CAMLCodec::GetPicture, PTS overflow incremented(%llX)", m_ptsOverflow);
-      }
-      pVideoPicture->iDuration = (double)((m_cur_pts - m_last_pts) * DVD_TIME_BASE) / PTS_FREQ;
-    }
+      pVideoPicture->iDuration = static_cast<double>((0x7FFFFFFF & (m_cur_pts - m_last_pts)) * DVD_TIME_BASE) / PTS_FREQ;
 
     pVideoPicture->dts = DVD_NOPTS_VALUE;
-    pVideoPicture->pts = (double)(m_cur_pts + m_ptsOverflow) / PTS_FREQ * DVD_TIME_BASE;
+    pVideoPicture->pts = static_cast<double>(m_cur_pts + m_ptsOverflow) / PTS_FREQ * DVD_TIME_BASE;
 
     CLog::Log(LOGDEBUG, LOGVIDEO, "CAMLCodec::GetPicture: index: %u, pts: %0.4lf[%llX], overflow: %llX",m_bufferIndex, pVideoPicture->pts/DVD_TIME_BASE, m_cur_pts, m_ptsOverflow);
 
@@ -2250,6 +2243,13 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
     SetVideoBrightness(brightness);
     m_brightness = brightness;
   }
+  // video rate adjustment.
+  unsigned int video_rate = GetDecoderVideoRate();
+  if (video_rate > 0 && video_rate != am_private->video_rate)
+  {
+    CLog::Log(LOGDEBUG, "CAMLCodec::SetVideoRect: decoder fps has changed, video_rate adjusted from %d to %d", am_private->video_rate, video_rate);
+    am_private->video_rate = video_rate;
+  }
 
   // video view mode
   int view_mode = m_processInfo.GetVideoSettings().m_ViewMode;
@@ -2287,7 +2287,7 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
     case 1:
     case 3:
       {
-        double scale = (double)dst_rect.Height() / dst_rect.Width();
+        double scale = static_cast<double>(dst_rect.Height()) / dst_rect.Width();
         int diff = (int) ((dst_rect.Height()*scale - dst_rect.Width()) / 2);
         dst_rect = CRect(DestRect.x1 - diff, DestRect.y1, DestRect.x2 + diff, DestRect.y2);
       }
@@ -2394,4 +2394,17 @@ void CAMLCodec::SetVideoRate(int videoRate)
 {
   if (am_private)
     am_private->video_rate = videoRate;
+}
+
+unsigned int CAMLCodec::GetDecoderVideoRate()
+{
+  if (m_speed != DVD_PLAYSPEED_NORMAL || m_pollDevice < 0)
+    return 0;
+
+  struct vdec_status vs;
+  m_dll->codec_get_vdec_state(&am_private->vcodec, &vs);
+  if (vs.fps > 0)
+    return static_cast<unsigned int>(0.5 + (static_cast<float>(UNIT_FREQ) / static_cast<float>(vs.fps)));
+  else
+    return 0;
 }

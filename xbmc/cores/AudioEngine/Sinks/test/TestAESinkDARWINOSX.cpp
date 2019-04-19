@@ -8,9 +8,8 @@
 
 #include "gtest/gtest.h"
 
-#if defined(TARGET_DARWIN_OSX)
 #include "cores/AudioEngine/Sinks/osx/CoreAudioHardware.h"
-#include "cores/AudioEngine/Sinks/osx/CoreAudioHelpers.h"
+#include "cores/AudioEngine/Sinks/darwin/CoreAudioHelpers.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/AudioEngine/Sinks/osx/AEDeviceEnumerationOSX.h"
 #include <vector>
@@ -382,4 +381,3 @@ TEST(TestAESinkDARWINOSXScoreStream, MatchFloat5_1_96000InAllWithoutPassthroughF
   formatIdx = findMatchingFormat(allFormatsWithoutPassthrough, srcFormat);
   EXPECT_EQ(formatIdx, (unsigned int)15);
 }
-#endif //TARGET_DARWIN_OSX

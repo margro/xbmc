@@ -18,6 +18,7 @@
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "dialogs/GUIDialogSelect.h"
+#include "dialogs/GUIDialogYesNo.h"
 #include "events/EventLog.h"
 #include "events/MediaLibraryEvent.h"
 #include "FileItem.h"
@@ -35,6 +36,7 @@
 #include "interfaces/AnnouncementManager.h"
 #include "music/MusicLibraryQueue.h"
 #include "music/MusicThumbLoader.h"
+#include "music/MusicUtils.h"
 #include "music/tags/MusicInfoTag.h"
 #include "music/tags/MusicInfoTagLoaderFactory.h"
 #include "MusicAlbumInfo.h"
@@ -1439,6 +1441,7 @@ CMusicInfoScanner::DownloadAlbumInfo(const CAlbum& album,
   }
 
   // handle nfo files
+  bool existsNFO = false;
   std::string path = album.strPath;
   if (path.empty())
     m_musicDatabase.GetAlbumPath(album.idAlbum, path);
@@ -1446,7 +1449,14 @@ CMusicInfoScanner::DownloadAlbumInfo(const CAlbum& album,
   std::string strNfo = URIUtils::AddFileToFolder(path, "album.nfo");
   CInfoScanner::INFO_TYPE result = CInfoScanner::NO_NFO;
   CNfoFile nfoReader;
-  if (XFILE::CFile::Exists(strNfo))
+  existsNFO = XFILE::CFile::Exists(strNfo);
+  // When on GUI ask user if they want to ignore nfo and refresh from Internet  
+  if (existsNFO && pDialog && CGUIDialogYesNo::ShowAndGetInput(10523, 20446))
+  {
+    existsNFO = false;
+    CLog::Log(LOGDEBUG, "Ignoring nfo file: %s", CURL::GetRedacted(strNfo).c_str());
+  }
+  if (existsNFO)
   {
     CLog::Log(LOGDEBUG,"Found matching nfo file: %s", CURL::GetRedacted(strNfo).c_str());
     result = nfoReader.Create(strNfo, info);
@@ -1727,6 +1737,13 @@ CMusicInfoScanner::DownloadArtistInfo(const CArtist& artist,
       CLog::Log(LOGDEBUG, "%s not have path, nfo file not possible", artist.strArtist.c_str());
   }
 
+  // When on GUI ask user if they want to ignore nfo and refresh from Internet  
+  if (existsNFO && pDialog && CGUIDialogYesNo::ShowAndGetInput(21891, 20446))
+  {
+    existsNFO = false;
+    CLog::Log(LOGDEBUG, "Ignoring nfo file: %s", CURL::GetRedacted(strNfo).c_str());
+  }
+
   if (existsNFO)
   {
     CLog::Log(LOGDEBUG, "Found matching nfo file: %s", CURL::GetRedacted(strNfo).c_str());
@@ -1794,9 +1811,11 @@ CMusicInfoScanner::DownloadArtistInfo(const CArtist& artist,
           {
             // set the label to artist
             CFileItem item(scraper.GetArtist(i).GetArtist());
-            std::string strTemp=scraper.GetArtist(i).GetArtist().strArtist;
+            std::string strTemp = scraper.GetArtist(i).GetArtist().strArtist;
             if (!scraper.GetArtist(i).GetArtist().strBorn.empty())
               strTemp += " ("+scraper.GetArtist(i).GetArtist().strBorn+")";
+            if (!scraper.GetArtist(i).GetArtist().strDisambiguation.empty())
+              strTemp += " - " + scraper.GetArtist(i).GetArtist().strDisambiguation;
             if (!scraper.GetArtist(i).GetArtist().genre.empty())
             {
               std::string genres = StringUtils::Join(scraper.GetArtist(i).GetArtist().genre, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator);
@@ -1906,31 +1925,12 @@ void CMusicInfoScanner::ScannerWait(unsigned int milliseconds)
     XbmcThreads::ThreadSleep(milliseconds);
 }
 
-std::vector<std::string> CMusicInfoScanner::GetArtTypesToScan(const MediaType& mediaType)
-{
-  std::vector<std::string> arttypes;
-  // Get default types of art that are to be automatically fetched during scanning
-  if (mediaType == MediaTypeArtist)
-  {
-    arttypes = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicArtistExtraArt;
-    arttypes.emplace_back("thumb");
-    arttypes.emplace_back("fanart");
-  }
-  else if (mediaType == MediaTypeAlbum)
-  {
-    arttypes = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicAlbumExtraArt;
-    arttypes.emplace_back("thumb");
-  }
-
-  return arttypes;
-}
-
 std::vector<std::string> CMusicInfoScanner::GetMissingArtTypes(const MediaType& mediaType, const std::map<std::string, std::string>& art)
 {
   std::vector<std::string> missing;
   std::vector<std::string> arttypes;
   // Get default types of art that are automatically fetched during scanning
-  arttypes = GetArtTypesToScan(mediaType);
+  arttypes = MUSIC_UTILS::GetArtTypesToScan(mediaType);
 
   // Find the types which are missing from the given art
   if (art.empty())
@@ -2132,7 +2132,7 @@ void CMusicInfoScanner::SetDiscSetArtwork(CAlbum& album, const std::vector<std::
 
   // Get default types of art that are to be automatically fetched during scanning
   std::vector<std::string> arttypes;
-  arttypes = GetArtTypesToScan(MediaTypeAlbum);
+  arttypes = MUSIC_UTILS::GetArtTypesToScan(MediaTypeAlbum);
 
   // Check that there are art types other than thumb to process
   bool extratype = !CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicAlbumExtraArt.empty();

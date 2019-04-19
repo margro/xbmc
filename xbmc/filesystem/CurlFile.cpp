@@ -425,6 +425,7 @@ CCurlFile::CCurlFile()
   m_httpresponse = -1;
   m_acceptCharset = "UTF-8,*;q=0.8"; /* prefer UTF-8 if available */
   m_allowRetry = true;
+  m_acceptencoding = "all"; /* Accept all supported encoding by default */
 }
 
 //Has to be called before Open()
@@ -579,7 +580,7 @@ void CCurlFile::SetCommonOptions(CReadState* state, bool failOnError /* = true *
 
   // setup Accept-Encoding if requested
   if (m_acceptencoding.length() > 0)
-    g_curlInterface.easy_setopt(h, CURLOPT_ACCEPT_ENCODING, m_acceptencoding.c_str());
+    g_curlInterface.easy_setopt(h, CURLOPT_ACCEPT_ENCODING, m_acceptencoding == "all" ? "" : m_acceptencoding.c_str());
 
   if (!m_acceptCharset.empty())
     SetRequestHeader("Accept-Charset", m_acceptCharset);
@@ -1024,7 +1025,7 @@ bool CCurlFile::Open(const CURL& url)
   // since we can't know the stream size up front if we're gzipped/deflated
   // flag the stream with an unknown file size rather than the compressed
   // file size.
-  if (!m_acceptencoding.empty())
+  if (!m_state->m_httpheader.GetValue("Content-Encoding").empty() && !StringUtils::EqualsNoCase(m_state->m_httpheader.GetValue("Content-Encoding"), "identity"))
     m_state->m_fileSize = 0;
 
   // check if this stream is a shoutcast stream. sometimes checking the protocol line is not enough so examine other headers as well.
@@ -1818,7 +1819,7 @@ std::string CCurlFile::GetRedirectURL()
 std::string CCurlFile::GetInfoString(int infoType)
 {
   char* info{};
-  CURLcode result = g_curlInterface.easy_getinfo(m_state->m_easyHandle, static_cast<XCURL::CURLINFO> (infoType), &info);
+  CURLcode result = g_curlInterface.easy_getinfo(m_state->m_easyHandle, static_cast<CURLINFO> (infoType), &info);
   if (result != CURLE_OK)
   {
     CLog::Log(LOGERROR, "Info string request for type {} failed with result code {}", infoType, result);
@@ -1894,9 +1895,9 @@ bool CCurlFile::GetContentType(const CURL &url, std::string &content, const std:
 bool CCurlFile::GetCookies(const CURL &url, std::string &cookies)
 {
   std::string cookiesStr;
-  struct curl_slist*     curlCookies;
-  XCURL::CURL_HANDLE*    easyHandle;
-  XCURL::CURLM*          multiHandle;
+  curl_slist* curlCookies;
+  CURL_HANDLE* easyHandle;
+  CURLM* multiHandle;
 
   // get the cookies list
   g_curlInterface.easy_acquire(url.GetProtocol().c_str(),
@@ -1905,7 +1906,7 @@ bool CCurlFile::GetCookies(const CURL &url, std::string &cookies)
   if (CURLE_OK == g_curlInterface.easy_getinfo(easyHandle, CURLINFO_COOKIELIST, &curlCookies))
   {
     // iterate over each cookie and format it into an RFC 2109 formatted Set-Cookie string
-    struct curl_slist* curlCookieIter = curlCookies;
+    curl_slist* curlCookieIter = curlCookies;
     while(curlCookieIter)
     {
       // tokenize the CURL cookie string

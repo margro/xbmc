@@ -1117,7 +1117,8 @@
       "enum": [ "title", "plot", "plotoutline", "genre", "playcount",
                 "resume", "channel", "starttime","endtime", "runtime",
                 "lifetime", "icon", "art", "streamurl", "file",
-                "directory", "radio", "isdeleted", "epgeventid", "channeluid" ]
+                "directory", "radio", "isdeleted", "epgeventid", "channeluid",
+                "season", "episode", "showtitle" ]
     }
   },
   "PVR.Details.Recording": {
@@ -1143,7 +1144,10 @@
       "radio": { "type": "boolean" },
       "isdeleted": { "type": "boolean" },
       "epgeventid": { "type": "integer" },
-      "channeluid": { "type": "integer" }
+      "channeluid": { "type": "integer" },
+      "season": { "type": "integer" },
+      "episode": { "type": "integer" },
+      "showtitle": { "type": "string" }
     }
   },
   "Textures.Details.Size": {
@@ -1476,7 +1480,9 @@
       "displaycomposer": { "type": "string"},
       "displayconductor": { "type": "string"},
       "displayorchestra": { "type": "string"},
-      "displaylyricist": { "type": "string"}
+      "displaylyricist": { "type": "string"},
+      "mediapath": { "type": "string", "description": "Media source path that identifies the item"},
+      "dynpath": { "type": "string", "description": "An experimental property for debug purposes, often same as mediapath but when different gives the actual file playing that should also be in file property"}
     }
   },
   "List.Fields.All": {
@@ -1497,7 +1503,7 @@
                 "locked", "channelnumber", "starttime", "endtime", "specialsortseason",
                 "specialsortepisode", "compilation", "releasetype", "albumreleasetype",
                 "contributors", "displaycomposer", "displayconductor", "displayorchestra", "displaylyricist",
-                "userrating", "votes", "sortartist", "musicbrainzreleasegroupid"]
+                "userrating", "votes", "sortartist", "musicbrainzreleasegroupid", "mediapath", "dynpath"]
     }
   },
   "List.Item.All": {

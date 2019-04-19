@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include <wayland-client.hpp>
@@ -22,9 +23,9 @@ namespace WAYLAND
 
 struct WaylandCPtrCompare
 {
-  bool operator()(wayland::proxy_t const& p1, wayland::proxy_t const& p2)
+  bool operator()(wayland::proxy_t const& p1, wayland::proxy_t const& p2) const
   {
-    return p1.c_ptr() < p2.c_ptr();
+    return reinterpret_cast<std::uintptr_t>(p1.c_ptr()) < reinterpret_cast<std::uintptr_t>(p2.c_ptr());
   }
 };
 

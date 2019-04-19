@@ -39,6 +39,23 @@ CLinuxRendererGLES::CLinuxRendererGLES()
   m_fullRange = !CServiceBroker::GetWinSystem()->UseLimitedColor();
 
   m_renderSystem = dynamic_cast<CRenderSystemGLES*>(CServiceBroker::GetRenderSystem());
+
+#if HAS_GLES >= 3
+  unsigned int verMajor, verMinor;
+  m_renderSystem->GetRenderVersion(verMajor, verMinor);
+
+  if (verMajor >= 3)
+  {
+    m_pixelStoreKey = GL_UNPACK_ROW_LENGTH;
+  }
+#endif
+
+#if defined (GL_UNPACK_ROW_LENGTH_EXT)
+  if (m_renderSystem->IsExtSupported("GL_EXT_unpack_subimage"))
+  {
+    m_pixelStoreKey = GL_UNPACK_ROW_LENGTH_EXT;
+  }
+#endif
 }
 
 CLinuxRendererGLES::~CLinuxRendererGLES()
@@ -262,32 +279,15 @@ void CLinuxRendererGLES::LoadPlane(CYuvPlane& plane, int type,
 
   glBindTexture(m_textureTarget, plane.id);
 
-  // OpenGL ES does not support strided texture input.
-  GLint pixelStore = -1;
-  unsigned int pixelStoreKey = -1;
-
+  bool pixelStoreChanged = false;
   if (stride != static_cast<int>(width * bps))
   {
-#if HAS_GLES >= 3
-    unsigned int verMajor, verMinor;
-    m_renderSystem->GetRenderVersion(verMajor, verMinor);
-
-    if (verMajor >= 3)
+    if (m_pixelStoreKey > 0)
     {
-      glGetIntegerv(GL_UNPACK_ROW_LENGTH, &pixelStore);
-      glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
-      pixelStoreKey = GL_UNPACK_ROW_LENGTH;
+      pixelStoreChanged = true;
+      glPixelStorei(m_pixelStoreKey, stride);
     }
     else
-#elif defined (GL_UNPACK_ROW_LENGTH_EXT)
-    if (m_renderSystem->IsExtSupported("GL_EXT_unpack_subimage"))
-    {
-      glGetIntegerv(GL_UNPACK_ROW_LENGTH_EXT, &pixelStore);
-      glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride);
-      pixelStoreKey = GL_UNPACK_ROW_LENGTH_EXT;
-    }
-    else
-#endif
     {
       unsigned char *src(static_cast<unsigned char*>(data)),
                     *dst(m_planeBuffer);
@@ -300,8 +300,8 @@ void CLinuxRendererGLES::LoadPlane(CYuvPlane& plane, int type,
   }
   glTexSubImage2D(m_textureTarget, 0, 0, 0, width, height, type, GL_UNSIGNED_BYTE, pixelData);
 
-  if (pixelStore >= 0)
-    glPixelStorei(pixelStoreKey, pixelStore);
+  if (m_pixelStoreKey > 0 && pixelStoreChanged)
+    glPixelStorei(m_pixelStoreKey, 0);
 
   // check if we need to load any border pixels
   if (height < plane.texheight)

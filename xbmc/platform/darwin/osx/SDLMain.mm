@@ -7,8 +7,6 @@
  *  See LICENSES/README.md for more information.
  */
 
-#if !defined(__arm__) && !defined(__aarch64__)
-
 #import "SDL/SDL.h"
 #import "SDLMain.h"
 #import <sys/param.h> /* for MAXPATHLEN */
@@ -17,7 +15,7 @@
 #import "platform/darwin/osx/CocoaInterface.h"
 #import "PlatformDefs.h"
 #import "messaging/ApplicationMessenger.h"
-#import "platform/darwin/osx/storage/DarwinStorageProvider.h"
+#import "platform/darwin/storage/DarwinStorageProvider.h"
 
 #import "platform/darwin/osx/HotKeyController.h"
 
@@ -569,4 +567,3 @@ int main(int argc, char *argv[])
 
   return status;
 }
-#endif

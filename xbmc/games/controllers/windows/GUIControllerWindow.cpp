@@ -165,7 +165,8 @@ bool CGUIControllerWindow::OnMessage(CGUIMessage& message)
 
       if (controlId == CONTROL_CONTROLLER_LIST)
       {
-        if (m_controllerList && m_controllerList->Refresh())
+        const std::string controllerId = message.GetStringParam();
+        if (m_controllerList && m_controllerList->Refresh(controllerId))
         {
           CGUIDialog::OnMessage(message);
           bHandled = true;
@@ -190,6 +191,8 @@ void CGUIControllerWindow::OnEvent(const ADDON::CRepositoryUpdater::RepositoryUp
 
 void CGUIControllerWindow::OnInitWindow(void)
 {
+  // subscribe to events
+  CServiceBroker::GetRepositoryUpdater().Events().Subscribe(this, &CGUIControllerWindow::OnEvent);
   // Get active game add-on
   GameClientPtr gameClient;
   {
@@ -237,6 +240,8 @@ void CGUIControllerWindow::OnInitWindow(void)
 
 void CGUIControllerWindow::OnDeinitWindow(int nextWindowID)
 {
+  CServiceBroker::GetRepositoryUpdater().Events().Unsubscribe(this);
+
   if (m_controllerList)
   {
     m_controllerList->Deinitialize();

@@ -13,7 +13,6 @@
 #include "utils/URIUtils.h"
 #include "CompileInfo.h"
 
-#if defined(TARGET_DARWIN)
 #if defined(TARGET_DARWIN_IOS)
   #import <Foundation/Foundation.h>
   #import <UIKit/UIKit.h>
@@ -282,19 +281,6 @@ const char *CDarwinUtils::GetOSVersionString(void)
 {
   CCocoaAutoPool pool;
   return [[[NSProcessInfo processInfo] operatingSystemVersionString] UTF8String];
-}
-
-float CDarwinUtils::GetIOSVersion(void)
-{
-  CCocoaAutoPool pool;
-  float version;
-#if defined(TARGET_DARWIN_IOS)
-  version = [[[UIDevice currentDevice] systemVersion] floatValue];
-#else
-  version = 0.0f;
-#endif
-
-  return(version);
 }
 
 const char *CDarwinUtils::GetIOSVersionString(void)
@@ -705,5 +691,3 @@ bool CDarwinUtils::CreateAliasShortcut(const std::string& fromPath, const std::s
 #endif
   return ret;
 }
-
-#endif

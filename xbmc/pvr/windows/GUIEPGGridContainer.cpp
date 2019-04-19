@@ -23,7 +23,7 @@
 #include "utils/Variant.h"
 
 #include "pvr/channels/PVRChannel.h"
-#include "pvr/epg/Epg.h"
+#include "pvr/epg/EpgInfoTag.h"
 #include "pvr/windows/GUIEPGGridContainerModel.h"
 
 using namespace PVR;
@@ -692,17 +692,14 @@ void CGUIEPGGridContainer::UpdateItems()
         newBlockIndex = m_gridModel->GetFirstEventBlock(prevSelectedEpgTag) + eventOffset;
       }
 
-      const CPVRChannelPtr channel(prevSelectedEpgTag->Channel());
-      if (channel)
-        channelUid = channel->UniqueID();
-
+      channelUid = prevSelectedEpgTag->UniqueChannelID();
       broadcastUid = prevSelectedEpgTag->UniqueBroadcastID();
     }
     else // "gap" tag selected
     {
       const GridItem *currItem(GetItem(m_channelCursor));
       if (currItem)
-        channelUid = currItem->item->GetEPGInfoTag()->Channel()->UniqueID();
+        channelUid = currItem->item->GetEPGInfoTag()->UniqueChannelID();
 
       const GridItem *prevItem(GetPrevItem(m_channelCursor));
       if (prevItem)
@@ -768,7 +765,8 @@ void CGUIEPGGridContainer::UpdateItems()
         newChannelIndex = iChannelIndex;
       }
       else if (newChannelIndex >= m_gridModel->ChannelItemsSize() ||
-               m_gridModel->GetGridItem(newChannelIndex, newBlockIndex)->GetEPGInfoTag()->Channel() != prevSelectedEpgTag->Channel())
+               (m_gridModel->GetGridItem(newChannelIndex, newBlockIndex)->GetEPGInfoTag()->UniqueChannelID() != prevSelectedEpgTag->UniqueChannelID() &&
+                m_gridModel->GetGridItem(newChannelIndex, newBlockIndex)->GetEPGInfoTag()->ClientID() != prevSelectedEpgTag->ClientID()))
       {
         // default to first channel
         newChannelIndex = 0;
@@ -1314,13 +1312,13 @@ int CGUIEPGGridContainer::GetSelectedItem() const
   return m_gridModel->GetGridItemIndex(m_channelCursor + m_channelOffset, m_blockCursor + m_blockOffset);
 }
 
-CFileItemPtr CGUIEPGGridContainer::GetSelectedChannelItem() const
+CFileItemPtr CGUIEPGGridContainer::GetSelectedGridItem(int offset /*= 0*/) const
 {
   CFileItemPtr item;
 
   if (m_gridModel->HasGridItems() &&
       m_gridModel->ChannelItemsSize() > 0 &&
-      m_channelCursor + m_channelOffset < m_gridModel->ChannelItemsSize() &&
+      m_channelCursor + m_channelOffset + offset < m_gridModel->ChannelItemsSize() &&
       m_blockCursor + m_blockOffset < m_gridModel->GetBlockCount())
     item = m_gridModel->GetGridItem(m_channelCursor + m_channelOffset, m_blockCursor + m_blockOffset);
 

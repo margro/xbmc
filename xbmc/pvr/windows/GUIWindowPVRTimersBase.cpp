@@ -22,7 +22,8 @@
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
-#include "pvr/timers/PVRTimers.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
+#include "pvr/timers/PVRTimersPath.h"
 
 using namespace PVR;
 using namespace KODI::MESSAGING;
@@ -169,12 +170,6 @@ bool CGUIWindowPVRTimersBase::OnMessage(CGUIMessage &message)
 
 bool CGUIWindowPVRTimersBase::ActionShowTimer(const CFileItemPtr &item)
 {
-  if (!CServiceBroker::GetPVRManager().Clients()->SupportsTimers())
-  {
-    HELPERS::ShowOKDialogText(CVariant{19033}, CVariant{19215}); // "Information", "The PVR backend does not support timers."
-    return false;
-  }
-
   bool bReturn = false;
 
   /* Check if "Add timer..." entry is selected, if yes

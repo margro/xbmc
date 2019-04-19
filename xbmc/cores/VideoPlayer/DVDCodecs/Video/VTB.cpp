@@ -6,7 +6,6 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "platform/darwin/osx/CocoaInterface.h"
 #include "platform/darwin/DarwinUtils.h"
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
 #include "DVDVideoCodec.h"
@@ -20,7 +19,7 @@
 #include "ServiceBroker.h"
 
 extern "C" {
-#include "libavcodec/videotoolbox.h"
+#include <libavcodec/videotoolbox.h>
 }
 
 using namespace VTB;
