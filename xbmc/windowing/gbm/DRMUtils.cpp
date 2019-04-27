@@ -109,27 +109,43 @@ drm_fb * CDRMUtils::DrmFbGetFromBo(struct gbm_bo *bo)
   memset(offsets, 0, 16);
 #endif
 
-  if (modifiers[0] == DRM_FORMAT_MOD_INVALID)
-    modifiers[0] = DRM_FORMAT_MOD_LINEAR;
+  uint32_t flags = 0;
 
-  CLog::Log(LOGDEBUG, "CDRMUtils::%s - using modifier: %lli", __FUNCTION__, modifiers[0]);
-
-  auto ret = drmModeAddFB2WithModifiers(m_fd,
-                                        width,
-                                        height,
-                                        fb->format,
-                                        handles,
-                                        strides,
-                                        offsets,
-                                        modifiers,
-                                        &fb->fb_id,
-                                        (modifiers[0] > 0) ? DRM_MODE_FB_MODIFIERS : 0);
-
-  if(ret)
+  if (modifiers[0] && modifiers[0] != DRM_FORMAT_MOD_INVALID)
   {
-    delete (fb);
-    CLog::Log(LOGDEBUG, "CDRMUtils::%s - failed to add framebuffer", __FUNCTION__);
-    return nullptr;
+    flags |= DRM_MODE_FB_MODIFIERS;
+    CLog::Log(LOGDEBUG, "CDRMUtils::{} - using modifier: {:#x}", __FUNCTION__, modifiers[0]);
+  }
+
+  int ret = drmModeAddFB2WithModifiers(m_fd,
+                                       width,
+                                       height,
+                                       fb->format,
+                                       handles,
+                                       strides,
+                                       offsets,
+                                       modifiers,
+                                       &fb->fb_id,
+                                       flags);
+
+  if(ret < 0)
+  {
+    ret = drmModeAddFB2(m_fd,
+                        width,
+                        height,
+                        fb->format,
+                        handles,
+                        strides,
+                        offsets,
+                        &fb->fb_id,
+                        flags);
+
+    if (ret < 0)
+    {
+      delete (fb);
+      CLog::Log(LOGDEBUG, "CDRMUtils::{} - failed to add framebuffer: {} ({})", __FUNCTION__, strerror(errno), errno);
+      return nullptr;
+    }
   }
 
   gbm_bo_set_user_data(bo, fb, DrmFbDestroyCallback);
