@@ -46,7 +46,6 @@ using namespace XFILE;
 using namespace MUSIC_INFO;
 using namespace MUSICDATABASEDIRECTORY;
 using namespace KODI::MESSAGING;
-using KODI::MESSAGING::HELPERS::DialogResponse;
 
 #define CONTROL_BTN_REFRESH      6
 #define CONTROL_USERRATING       7
@@ -754,22 +753,6 @@ void CGUIDialogMusicInfo::OnGetArt()
     item->SetIconImage("DefaultPicture.png");
     item->SetLabel(g_localizeStrings.Get(13512));
     items.Add(item);
-  }
-  else if (m_item->HasArt("thumb"))
-  {
-    // For missing art of that type add the thumb (when it exists and not a fallback)
-    CGUIListItem::ArtMap::const_iterator i = primeArt.find("thumb");
-    if (i != primeArt.end())
-    {
-      CFileItemPtr item(new CFileItem("thumb://Thumb", false));
-      item->SetArt("thumb", m_item->GetArt("thumb"));
-      if (m_bArtistInfo)
-        item->SetIconImage("DefaultArtistCover.png");
-      else
-        item->SetIconImage("DefaultAlbumCover.png");
-      item->SetLabel(g_localizeStrings.Get(21371));
-      items.Add(item);
-    }
   }
 
  // Grab the thumbnails of this art type scraped from the web

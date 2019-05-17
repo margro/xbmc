@@ -212,12 +212,6 @@
           <default>true</default>
           <control type="toggle" />
         </setting>
-        <setting id="videoplayer.useomxplayer" type="boolean" label="13458" help="13459">
-          <requirement>HAS_OMXPLAYER</requirement>
-          <level>2</level>
-          <default>true</default>
-          <control type="toggle" />
-        </setting>
         <setting id="videoplayer.usevtb" type="boolean" label="13429" help="36160">
           <requirement>HasVTB</requirement>
           <level>2</level>
@@ -1391,7 +1385,7 @@
           <default>false</default>
           <control type="toggle" />
         </setting>
-        <setting id="epg.ignoredbforclient" type="boolean" label="19072" help="36223">
+        <setting id="epg.storeepgindatabase" type="boolean" label="19072" help="36223">
           <level>2</level>
           <default>false</default>
           <control type="toggle" />

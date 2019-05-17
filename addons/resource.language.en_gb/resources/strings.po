@@ -5136,6 +5136,7 @@ msgstr ""
 #empty string with id 10121
 
 #: xbmc/guilib/WindowIDs.h
+#: xbmc/music/dialogs/GUIDialogVisualisationPresetList.cpp
 msgctxt "#10122"
 msgid "Visualization preset list"
 msgstr ""
@@ -6914,8 +6915,9 @@ msgctxt "#13388"
 msgid "Preset"
 msgstr ""
 
+#: xbmc/music/dialogs/GUIDialogVisualisationPresetList.cpp
 msgctxt "#13389"
-msgid "There are no presets available\nfor this visualisation"
+msgid "There are no presets available for this visualisation"
 msgstr ""
 
 msgctxt "#13390"
@@ -7005,6 +7007,7 @@ msgctxt "#13406"
 msgid "Picture information"
 msgstr ""
 
+#: xbmc/music/dialogs/GUIDialogVisualisationPresetList.cpp
 msgctxt "#13407"
 msgid "{0:s} presets"
 msgstr ""
@@ -7252,16 +7255,7 @@ msgctxt "#13457"
 msgid "Prefer VAAPI render method"
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#13458"
-msgid "Allow hardware acceleration - OMXPlayer"
-msgstr ""
-
-#. Description of setting with label #13457 "Allow hardware acceleration (OMXPlayer)"
-#: system/settings/settings.xml
-msgctxt "#13459"
-msgid "Use OMXPlayer for decoding of video files."
-msgstr ""
+#empty strings from id 13458 to 13459
 
 #: system/settings/settings.xml
 msgctxt "#13460"
@@ -9587,10 +9581,10 @@ msgctxt "#19071"
 msgid "Update interval"
 msgstr ""
 
-#. pvr settings "do not store epg data in local database" setting label
+#. pvr settings "store epg data in database" setting label
 #: system/settings/settings.xml
 msgctxt "#19072"
-msgid "Don't cache in local database"
+msgid "Store data in database"
 msgstr ""
 
 #. pvr settings "delay channel switch" setting label
@@ -12819,6 +12813,7 @@ msgstr ""
 #: xbmc/dialogs/GUIDialogSmartPlaylistRule.cpp
 #: xbmc/media/MediaTypes.cpp
 #: addons/skin.estuary/xml/Variables.xml
+#: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 #: xbmc/view/GUIViewState.cpp
 #: system/settings/settings.xml
 msgctxt "#20342"
@@ -18681,7 +18676,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36223"
-msgid "By default, the guide data is cached in a local database to speed up importing on startup."
+msgid "Activate to store epg data in a database. This may speedup importing epg data on startup."
 msgstr ""
 
 #: system/settings/settings.xml

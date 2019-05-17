@@ -325,7 +325,7 @@ bool CScraperUrl::ParseEpisodeGuide(std::string strUrls)
   return true;
 }
 
-void CScraperUrl::AddElement(std::string url, std::string aspect, std::string referrer, std::string cache, bool post, bool isgz, int season)
+void CScraperUrl::AddElement(std::string url, std::string aspect, std::string preview, std::string referrer, std::string cache, bool post, bool isgz, int season)
 {
   TiXmlElement thumb("thumb");
   thumb.SetAttribute("spoof", referrer);
@@ -340,6 +340,7 @@ void CScraperUrl::AddElement(std::string url, std::string aspect, std::string re
     thumb.SetAttribute("type", "season");
   }
   thumb.SetAttribute("aspect", aspect);
+  thumb.SetAttribute("preview", preview);
   TiXmlText text(url);
   thumb.InsertEndChild(text);
   m_xml << thumb;
@@ -374,7 +375,7 @@ void CScraperUrl::GetThumbURLs(std::vector<std::string> &thumbs, const std::stri
 {
   for (std::vector<SUrlEntry>::const_iterator iter = m_url.begin(); iter != m_url.end(); ++iter)
   {
-    if (iter->m_aspect == type || type.empty() || type == "thumb" || iter->m_aspect.empty())
+    if (iter->m_aspect == type || type.empty() || iter->m_aspect.empty())
     {
       if ((iter->m_type == CScraperUrl::URL_TYPE_GENERAL && season == -1)
        || (iter->m_type == CScraperUrl::URL_TYPE_SEASON && iter->m_season == season))
