@@ -5,33 +5,34 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  *  See LICENSES/README.md for more information.
  */
-#include <Platinum/Source/Platinum/Platinum.h>
-
 #include "UPnPInternal.h"
+
+#include "FileItem.h"
+#include "ServiceBroker.h"
+#include "TextureDatabase.h"
+#include "ThumbLoader.h"
 #include "UPnP.h"
 #include "UPnPServer.h"
-#include "ServiceBroker.h"
 #include "URL.h"
 #include "Util.h"
+#include "filesystem/File.h"
+#include "filesystem/MusicDatabaseDirectory.h"
+#include "filesystem/StackDirectory.h"
+#include "filesystem/VideoDatabaseDirectory.h"
+#include "music/MusicDatabase.h"
+#include "music/tags/MusicInfoTag.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
-#include "utils/log.h"
+#include "utils/LangCodeExpander.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
-#include "FileItem.h"
-#include "filesystem/File.h"
-#include "filesystem/StackDirectory.h"
-#include "filesystem/MusicDatabaseDirectory.h"
-#include "filesystem/VideoDatabaseDirectory.h"
+#include "utils/log.h"
 #include "video/VideoInfoTag.h"
-#include "music/MusicDatabase.h"
-#include "music/tags/MusicInfoTag.h"
-#include "TextureDatabase.h"
-#include "ThumbLoader.h"
-#include "utils/LangCodeExpander.h"
 
 #include <algorithm>
+
+#include <Platinum/Source/Platinum/Platinum.h>
 
 using namespace MUSIC_INFO;
 using namespace XFILE;
@@ -266,8 +267,8 @@ PopulateObjectFromTag(CVideoInfoTag&         tag,
         if (tag.m_type == MediaTypeMusicVideo) {
           object.m_ObjectClass.type = "object.item.videoItem.musicVideoClip";
           object.m_Creator = StringUtils::Join(tag.m_artist, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoItemSeparator).c_str();
-          for (std::vector<std::string>::const_iterator itArtist = tag.m_artist.begin(); itArtist != tag.m_artist.end(); ++itArtist)
-              object.m_People.artists.Add(itArtist->c_str());
+          for (const auto& itArtist : tag.m_artist)
+            object.m_People.artists.Add(itArtist.c_str());
           object.m_Affiliation.album = tag.m_strAlbum.c_str();
           object.m_Title = tag.m_strTitle.c_str();
           object.m_Date = tag.GetPremiered().GetAsW3CDate().c_str();
@@ -594,13 +595,18 @@ BuildObject(CFileItem&                    item,
             object->m_ExtraInfo.album_arts.Add(art);
         }
 
-        for (CGUIListItem::ArtMap::const_iterator itArtwork = item.GetArt().begin(); itArtwork != item.GetArt().end(); ++itArtwork) {
-            if (!itArtwork->first.empty() && !itArtwork->second.empty()) {
-                std::string wrappedUrl = CTextureUtils::GetWrappedImageURL(itArtwork->second);
-                object->m_XbmcInfo.artwork.Add(itArtwork->first.c_str(),
-                  upnp_server->BuildSafeResourceUri(rooturi, (*ips.GetFirstItem()).ToString(), wrappedUrl.c_str()));
-                upnp_server->AddSafeResourceUri(object, rooturi, ips, wrappedUrl.c_str(), ("xbmc.org:*:" + itArtwork->first + ":*").c_str());
-            }
+        for (const auto& itArtwork : item.GetArt())
+        {
+          if (!itArtwork.first.empty() && !itArtwork.second.empty())
+          {
+            std::string wrappedUrl = CTextureUtils::GetWrappedImageURL(itArtwork.second);
+            object->m_XbmcInfo.artwork.Add(
+                itArtwork.first.c_str(),
+                upnp_server->BuildSafeResourceUri(rooturi, (*ips.GetFirstItem()).ToString(),
+                                                  wrappedUrl.c_str()));
+            upnp_server->AddSafeResourceUri(object, rooturi, ips, wrappedUrl.c_str(),
+                                            ("xbmc.org:*:" + itArtwork.first + ":*").c_str());
+          }
         }
     }
 

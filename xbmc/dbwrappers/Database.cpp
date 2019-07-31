@@ -24,7 +24,7 @@
 #endif
 
 #ifdef TARGET_POSIX
-#include "platform/linux/ConvUtils.h"
+#include "platform/posix/ConvUtils.h"
 #endif
 
 using namespace dbiplus;
@@ -312,9 +312,9 @@ bool CDatabase::CommitMultipleExecute()
 {
   m_multipleExecute = false;
   BeginTransaction();
-  for (std::vector<std::string>::const_iterator i = m_multipleQueries.begin(); i != m_multipleQueries.end(); ++i)
+  for (const auto& i : m_multipleQueries)
   {
-    if (!ExecuteQuery(*i))
+    if (!ExecuteQuery(i))
     {
       RollbackTransaction();
       return false;
@@ -684,12 +684,6 @@ void CDatabase::RollbackTransaction()
   {
     CLog::Log(LOGERROR, "database:rollbacktransaction failed");
   }
-}
-
-bool CDatabase::InTransaction()
-{
-  if (NULL != m_pDB.get()) return false;
-  return m_pDB->in_transaction();
 }
 
 bool CDatabase::CreateDatabase()

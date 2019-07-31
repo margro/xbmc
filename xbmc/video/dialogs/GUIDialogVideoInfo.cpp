@@ -7,49 +7,50 @@
  */
 
 #include "GUIDialogVideoInfo.h"
+
 #include "Application.h"
-#include "ServiceBroker.h"
-#include "GUIPassword.h"
-#include "guilib/GUIComponent.h"
-#include "guilib/GUIWindow.h"
-#include "Util.h"
-#include "guilib/GUIImage.h"
-#include "utils/SortUtils.h"
-#include "utils/StringUtils.h"
-#include "utils/URIUtils.h"
-#include "video/windows/GUIWindowVideoNav.h"
-#include "dialogs/GUIDialogFileBrowser.h"
-#include "video/VideoInfoScanner.h"
-#include "video/tags/VideoTagLoaderFFmpeg.h"
-#include "messaging/ApplicationMessenger.h"
-#include "video/VideoInfoTag.h"
-#include "guilib/GUIKeyboardFactory.h"
-#include "guilib/GUIWindowManager.h"
-#include "dialogs/GUIDialogYesNo.h"
-#include "dialogs/GUIDialogSelect.h"
-#include "dialogs/GUIDialogProgress.h"
-#include "filesystem/File.h"
+#include "ContextMenuManager.h"
 #include "FileItem.h"
-#include "storage/MediaManager.h"
+#include "GUIPassword.h"
+#include "GUIUserMessages.h"
+#include "ServiceBroker.h"
+#include "TextureCache.h"
+#include "Util.h"
+#include "dialogs/GUIDialogFileBrowser.h"
+#include "dialogs/GUIDialogProgress.h"
+#include "dialogs/GUIDialogSelect.h"
+#include "dialogs/GUIDialogYesNo.h"
+#include "filesystem/Directory.h"
+#include "filesystem/File.h"
+#include "filesystem/VideoDatabaseDirectory.h"
+#include "filesystem/VideoDatabaseDirectory/QueryParams.h"
+#include "guilib/GUIComponent.h"
+#include "guilib/GUIImage.h"
+#include "guilib/GUIKeyboardFactory.h"
+#include "guilib/GUIWindow.h"
+#include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
+#include "input/Key.h"
+#include "messaging/ApplicationMessenger.h"
+#include "messaging/helpers/DialogOKHelper.h"
+#include "music/MusicDatabase.h"
 #include "profiles/ProfileManager.h"
 #include "settings/AdvancedSettings.h"
-#include "settings/lib/Setting.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
-#include "input/Key.h"
-#include "guilib/LocalizeStrings.h"
-#include "ContextMenuManager.h"
-#include "GUIUserMessages.h"
-#include "TextureCache.h"
-#include "music/MusicDatabase.h"
-#include "video/VideoThumbLoader.h"
-#include "filesystem/Directory.h"
-#include "filesystem/VideoDatabaseDirectory.h"
-#include "filesystem/VideoDatabaseDirectory/QueryParams.h"
+#include "settings/lib/Setting.h"
+#include "storage/MediaManager.h"
 #include "utils/FileUtils.h"
+#include "utils/SortUtils.h"
+#include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 #include "utils/Variant.h"
-#include "messaging/helpers/DialogOKHelper.h"
+#include "video/VideoInfoScanner.h"
+#include "video/VideoInfoTag.h"
+#include "video/VideoThumbLoader.h"
+#include "video/tags/VideoTagLoaderFFmpeg.h"
+#include "video/windows/GUIWindowVideoNav.h"
 
 #include <iterator>
 #include <string>
@@ -627,27 +628,24 @@ void CGUIDialogVideoInfo::Play(bool resume)
   {
     std::string strPath = StringUtils::Format("videodb://movies/sets/%i/?setid=%i",m_movieItem->GetVideoInfoTag()->m_iDbId,m_movieItem->GetVideoInfoTag()->m_iDbId);
     Close();
-    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_VIDEO_NAV,strPath);
+    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_VIDEO_NAV, strPath);
     return;
   }
 
-  CFileItem movie(*m_movieItem->GetVideoInfoTag());
-  if (m_movieItem->GetVideoInfoTag()->m_strFileNameAndPath.empty())
-    movie.SetPath(m_movieItem->GetPath());
   CGUIWindowVideoNav* pWindow = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIWindowVideoNav>(WINDOW_VIDEO_NAV);
   if (pWindow)
   {
     // close our dialog
     Close(true);
     if (resume)
-      movie.m_lStartOffset = STARTOFFSET_RESUME;
-    else if (!CGUIWindowVideoBase::ShowResumeMenu(movie))
+      m_movieItem->m_lStartOffset = STARTOFFSET_RESUME;
+    else if (!CGUIWindowVideoBase::ShowResumeMenu(*m_movieItem))
     {
       // The Resume dialog was closed without any choice
       Open();
       return;
     }
-    pWindow->PlayMovie(&movie);
+    pWindow->PlayMovie(m_movieItem.get());
   }
 }
 

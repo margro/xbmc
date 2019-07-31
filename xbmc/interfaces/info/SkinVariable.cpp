@@ -7,6 +7,7 @@
  */
 
 #include "SkinVariable.h"
+
 #include "GUIInfoManager.h"
 #include "ServiceBroker.h"
 #include "guilib/GUIComponent.h"
@@ -60,14 +61,14 @@ const std::string& CSkinVariableString::GetName() const
 
 std::string CSkinVariableString::GetValue(bool preferImage /* = false */, const CGUIListItem *item /* = nullptr */) const
 {
-  for (VECCONDITIONLABELPAIR::const_iterator it = m_conditionLabelPairs.begin() ; it != m_conditionLabelPairs.end(); ++it)
+  for (const auto& it : m_conditionLabelPairs)
   {
-    if (!it->m_condition || it->m_condition->Get(item))
+    if (!it.m_condition || it.m_condition->Get(item))
     {
       if (item)
-        return it->m_label.GetItemLabel(item, preferImage);
+        return it.m_label.GetItemLabel(item, preferImage);
       else
-        return it->m_label.GetLabel(m_context, preferImage);
+        return it.m_label.GetLabel(m_context, preferImage);
     }
   }
   return "";

@@ -8,30 +8,27 @@
 
 #include "General.h"
 
-#include "addons/kodi-addon-dev-kit/include/kodi/General.h"
-
-#include "LangInfo.h"
 #include "Application.h"
 #include "CompileInfo.h"
+#include "LangInfo.h"
 #include "ServiceBroker.h"
 #include "addons/binary-addons/AddonDll.h"
 #include "addons/binary-addons/BinaryAddonManager.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/General.h"
 #include "addons/settings/GUIDialogAddonSettings.h"
 #include "dialogs/GUIDialogKaiToast.h"
 #include "filesystem/Directory.h"
 #include "filesystem/SpecialProtocol.h"
 #include "guilib/LocalizeStrings.h"
-#ifdef TARGET_POSIX
-#include "platform/linux/XMemUtils.h"
-#endif
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "utils/CharsetConverter.h"
 #include "utils/Digest.h"
-#include "utils/log.h"
 #include "utils/LangCodeExpander.h"
+#include "utils/MemUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
+#include "utils/log.h"
 
 #include <string.h>
 
@@ -385,11 +382,10 @@ void Interface_General::get_free_mem(void* kodiBase, long* free, long* total, bo
     return;
   }
 
-  MEMORYSTATUSEX stat;
-  stat.dwLength = sizeof(MEMORYSTATUSEX);
-  GlobalMemoryStatusEx(&stat);
-  *free = static_cast<long>(stat.ullAvailPhys);
-  *total = static_cast<long>(stat.ullTotalPhys);
+  KODI::MEMORY::MemoryStatus stat;
+  KODI::MEMORY::GetMemoryStatus(&stat);
+  *free = static_cast<long>(stat.availPhys);
+  *total = static_cast<long>(stat.totalPhys);
   if (!as_bytes)
   {
     *free = *free / ( 1024 * 1024 );

@@ -8,8 +8,6 @@
 
 #include "GUIDialogPVRChannelManager.h"
 
-#include <utility>
-
 #include "FileItem.h"
 #include "GUIPassword.h"
 #include "ServiceBroker.h"
@@ -19,24 +17,31 @@
 #include "dialogs/GUIDialogSelect.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIComponent.h"
-#include "guilib/GUIKeyboardFactory.h"
 #include "guilib/GUIEditControl.h"
+#include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "input/Key.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "messaging/helpers/DialogOKHelper.h"
 #include "profiles/ProfileManager.h"
+#include "pvr/PVRGUIActions.h"
+#include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
+#include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroup.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/dialogs/GUIDialogPVRGroupManager.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "storage/MediaManager.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 
-#include "pvr/PVRGUIActions.h"
-#include "pvr/PVRManager.h"
-#include "pvr/addons/PVRClients.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/dialogs/GUIDialogPVRGroupManager.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #define BUTTON_OK                 4
 #define BUTTON_APPLY              5
@@ -749,16 +754,15 @@ bool CGUIDialogPVRChannelManager::PersistChannel(const CFileItemPtr &pItem, cons
   if (!pItem || !pItem->HasPVRChannelInfoTag() || !group)
     return false;
 
-  /* get values from the form */
-  bool bHidden              = !pItem->GetProperty("ActiveChannel").asBoolean();
-  bool bEPGEnabled          = pItem->GetProperty("UseEPG").asBoolean();
-  bool bParentalLocked      = pItem->GetProperty("ParentalLocked").asBoolean();
-  int iEPGSource            = (int)pItem->GetProperty("EPGSource").asInteger();
-  std::string strChannelName= pItem->GetProperty("Name").asString();
-  std::string strIconPath   = pItem->GetProperty("Icon").asString();
-  bool bUserSetIcon         = pItem->GetProperty("UserSetIcon").asBoolean();
-
-  return group->UpdateChannel(*pItem, bHidden, bEPGEnabled, bParentalLocked, iEPGSource, ++(*iChannelNumber), strChannelName, strIconPath, bUserSetIcon);
+  return group->UpdateChannel(pItem->GetPVRChannelInfoTag()->StorageId(),
+                              pItem->GetProperty("Name").asString(),
+                              pItem->GetProperty("Icon").asString(),
+                              static_cast<int>(pItem->GetProperty("EPGSource").asInteger()),
+                              ++(*iChannelNumber),
+                              !pItem->GetProperty("ActiveChannel").asBoolean(), // hidden
+                              pItem->GetProperty("UseEPG").asBoolean(),
+                              pItem->GetProperty("ParentalLocked").asBoolean(),
+                              pItem->GetProperty("UserSetIcon").asBoolean());
 }
 
 void CGUIDialogPVRChannelManager::SaveList(void)

@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <string>
-
 #include "addons/Resource.h"
+
+#include <string>
 
 class CURL;
 
@@ -21,10 +21,7 @@ namespace ADDON
 class CImageResource : public CResource
 {
 public:
-  static std::unique_ptr<CImageResource> FromExtension(CAddonInfo addonInfo, const cp_extension_t* ext);
-
-  explicit CImageResource(CAddonInfo addonInfo) : CResource(std::move(addonInfo)) {};
-  CImageResource(CAddonInfo addonInfo, std::string type);
+  explicit CImageResource(const AddonInfoPtr& addonInfo);
 
   void OnPreUnInstall() override;
 

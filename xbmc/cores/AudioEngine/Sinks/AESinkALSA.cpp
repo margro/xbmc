@@ -25,12 +25,9 @@
 #include "threads/SingleLock.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"
-#if defined(HAS_LIBAMCODEC)
-#include "utils/AMLUtils.h"
-#endif
 
 #ifdef TARGET_POSIX
-#include "platform/linux/XTimeUtils.h"
+#include "platform/posix/XTimeUtils.h"
 #endif
 
 #define ALSA_OPTIONS (SND_PCM_NO_AUTO_FORMAT | SND_PCM_NO_AUTO_CHANNELS | SND_PCM_NO_AUTO_RESAMPLE)
@@ -502,12 +499,6 @@ bool CAESinkALSA::Initialize(AEAudioFormat &format, std::string &device)
   {
     m_passthrough   = false;
   }
-#if defined(HAS_LIBAMCODEC)
-  if (aml_present())
-  {
-    aml_set_audio_passthrough(m_passthrough);
-  }
-#endif
 
   if (inconfig.channels == 0)
   {

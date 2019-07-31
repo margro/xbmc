@@ -7,30 +7,29 @@
  */
 
 #include "Control.h"
-#include "LanguageHook.h"
-#include "AddonUtils.h"
-#include "ServiceBroker.h"
 
-#include "guilib/GUIComponent.h"
-#include "guilib/GUILabel.h"
-#include "guilib/GUIFontManager.h"
-#include "guilib/GUILabelControl.h"
-#include "guilib/GUIFadeLabelControl.h"
-#include "guilib/GUITextBox.h"
+#include "AddonUtils.h"
+#include "LanguageHook.h"
+#include "ServiceBroker.h"
+#include "WindowException.h"
 #include "guilib/GUIButtonControl.h"
+#include "guilib/GUIComponent.h"
+#include "guilib/GUIControlFactory.h"
+#include "guilib/GUIEditControl.h"
+#include "guilib/GUIFadeLabelControl.h"
+#include "guilib/GUIFontManager.h"
 #include "guilib/GUIImage.h"
+#include "guilib/GUILabel.h"
+#include "guilib/GUILabelControl.h"
 #include "guilib/GUIListContainer.h"
 #include "guilib/GUIProgressControl.h"
-#include "guilib/GUISliderControl.h"
 #include "guilib/GUIRadioButtonControl.h"
+#include "guilib/GUISliderControl.h"
+#include "guilib/GUITextBox.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/GUIEditControl.h"
-#include "guilib/GUIControlFactory.h"
 #include "listproviders/StaticProvider.h"
-
-#include "utils/XBMCTinyXML.h"
 #include "utils/StringUtils.h"
-#include "WindowException.h"
+#include "utils/XBMCTinyXML.h"
 
 using namespace KODI;
 
@@ -746,9 +745,9 @@ namespace XBMCAddon
 
         TiXmlElement pNode("animation");
         std::vector<std::string> attrs = StringUtils::Split(cAttr, " ");
-        for (std::vector<std::string>::const_iterator i = attrs.begin(); i != attrs.end(); ++i)
+        for (const auto& i : attrs)
         {
-          std::vector<std::string> attrs2 = StringUtils::Split(*i, "=");
+          std::vector<std::string> attrs2 = StringUtils::Split(i, "=");
           if (attrs2.size() == 2)
             pNode.SetAttribute(attrs2[0], attrs2[1]);
         }
@@ -1164,8 +1163,8 @@ namespace XBMCAddon
     {
       XBMC_TRACE;
 
-      for (std::vector<Alternative<String, const XBMCAddon::xbmcgui::ListItem* > >::const_iterator iter = items.begin(); iter != items.end(); ++iter)
-        addItem(*iter,false);
+      for (const auto& iter : items)
+        addItem(iter, false);
       sendLabelBind(vecItems.size());
     }
 

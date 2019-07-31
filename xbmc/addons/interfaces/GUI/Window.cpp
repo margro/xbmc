@@ -8,15 +8,14 @@
 
 #include "addons/kodi-addon-dev-kit/include/kodi/gui/Window.h"
 
-#include "Window.h"
-#include "General.h"
-#include "controls/Rendering.h"
-
 #include "Application.h"
 #include "FileItem.h"
+#include "General.h"
 #include "ServiceBroker.h"
-#include "addons/binary-addons/AddonDll.h"
+#include "Window.h"
 #include "addons/Skin.h"
+#include "addons/binary-addons/AddonDll.h"
+#include "controls/Rendering.h"
 #include "filesystem/File.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIRenderingControl.h"
@@ -24,10 +23,10 @@
 #include "guilib/TextureManager.h"
 #include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
+#include "utils/log.h"
 
 using namespace ADDON;
 using namespace KODI::MESSAGING;
@@ -132,7 +131,7 @@ void* Interface_GUIWindow::create(void* kodiBase, const char* xml_filename,
   if (!XFILE::CFile::Exists(strSkinPath))
   {
     std::string str("none");
-    ADDON::CAddonInfo addonInfo(str, ADDON::ADDON_SKIN);
+    ADDON::AddonInfoPtr addonInfo = std::make_shared<ADDON::CAddonInfo>(str, ADDON::ADDON_SKIN);
 
     // Check for the matching folder for the skin in the fallback skins folder
     std::string fallbackPath = URIUtils::AddFileToFolder(addon->Path(), "resources", "skins");
@@ -143,7 +142,7 @@ void* Interface_GUIWindow::create(void* kodiBase, const char* xml_filename,
     // Check for the matching folder for the skin in the fallback skins folder (if it exists)
     if (XFILE::CFile::Exists(basePath))
     {
-      addonInfo.SetPath(basePath);
+      addonInfo->SetPath(basePath);
       ADDON::CSkinInfo skinInfo(addonInfo, res);
       skinInfo.Start();
       strSkinPath = skinInfo.GetSkinPath(xml_filename, &res);
@@ -152,7 +151,7 @@ void* Interface_GUIWindow::create(void* kodiBase, const char* xml_filename,
     if (!XFILE::CFile::Exists(strSkinPath))
     {
       // Finally fallback to the DefaultSkin as it didn't exist in either the Kodi Skin folder or the fallback skin folder
-      addonInfo.SetPath(URIUtils::AddFileToFolder(fallbackPath, default_skin));
+      addonInfo->SetPath(URIUtils::AddFileToFolder(fallbackPath, default_skin));
       ADDON::CSkinInfo skinInfo(addonInfo, res);
 
       skinInfo.Start();

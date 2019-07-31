@@ -7,10 +7,11 @@
  */
 
 #include "InputHandling.h"
-#include "input/joysticks/dialogs/GUIDialogNewJoystick.h"
-#include "input/joysticks/interfaces/IButtonMap.h"
+
 #include "input/joysticks/DriverPrimitive.h"
 #include "input/joysticks/JoystickUtils.h"
+#include "input/joysticks/dialogs/GUIDialogNewJoystick.h"
+#include "input/joysticks/interfaces/IButtonMap.h"
 #include "utils/log.h"
 
 #include <array>
@@ -79,8 +80,8 @@ bool CInputHandling::OnAxisMotion(unsigned int axisIndex, float position, int ce
 
 void CInputHandling::ProcessAxisMotions(void)
 {
-  for (std::map<FeatureName, FeaturePtr>::iterator it = m_features.begin(); it != m_features.end(); ++it)
-    it->second->ProcessMotions();
+  for (auto& it : m_features)
+    it.second->ProcessMotions();
 }
 
 bool CInputHandling::OnDigitalMotion(const CDriverPrimitive& source, bool bPressed)

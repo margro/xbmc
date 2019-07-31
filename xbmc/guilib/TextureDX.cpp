@@ -7,6 +7,8 @@
  */
 
 #include "TextureDX.h"
+
+#include "utils/MemUtils.h"
 #include "utils/log.h"
 
 /************************************************************************/
@@ -171,7 +173,7 @@ void CDXTexture::LoadToGPU()
 
   if (!m_bCacheMemory)
   {
-    _aligned_free(m_pixels);
+    KODI::MEMORY::AlignedFree(m_pixels);
     m_pixels = nullptr;
   }
 

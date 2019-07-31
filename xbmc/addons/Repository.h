@@ -8,15 +8,13 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "Addon.h"
 #include "utils/Digest.h"
 #include "utils/ProgressJob.h"
 
-struct cp_cfg_element_t;
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace ADDON
 {
@@ -36,10 +34,7 @@ namespace ADDON
 
     typedef std::vector<DirInfo> DirList;
 
-    static std::unique_ptr<CRepository> FromExtension(CAddonInfo addonInfo, const cp_extension_t* ext);
-
-    explicit CRepository(CAddonInfo addonInfo) : CAddon(std::move(addonInfo)) {};
-    CRepository(CAddonInfo addonInfo, DirList dirs);
+    explicit CRepository(const AddonInfoPtr& addonInfo);
 
     enum FetchStatus
     {
@@ -61,7 +56,7 @@ namespace ADDON
     static bool FetchChecksum(const std::string& url, std::string& checksum) noexcept;
     static bool FetchIndex(const DirInfo& repo, std::string const& digest, VECADDONS& addons) noexcept;
 
-    static DirInfo ParseDirConfiguration(cp_cfg_element_t* configuration);
+    static DirInfo ParseDirConfiguration(const CAddonExtensions& configuration);
 
     DirList m_dirs;
   };

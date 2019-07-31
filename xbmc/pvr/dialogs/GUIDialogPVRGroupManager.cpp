@@ -13,16 +13,24 @@
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIKeyboardFactory.h"
+#include "guilib/GUIMessage.h"
 #include "guilib/GUIRadioButtonControl.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "input/Key.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "messaging/helpers//DialogOKHelper.h"
+#include "pvr/PVRGUIDirectory.h"
+#include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroups.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 
-#include "pvr/PVRManager.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include <memory>
+#include <string>
+#include <vector>
 
 using namespace KODI::MESSAGING;
 using namespace PVR;
@@ -39,13 +47,11 @@ using namespace PVR;
 #define BUTTON_DELGROUP               28
 #define BUTTON_OK                     29
 #define BUTTON_TOGGLE_RADIO_TV        34
+#define BUTTON_RECREATE_GROUP_THUMB   35
 
 CGUIDialogPVRGroupManager::CGUIDialogPVRGroupManager() :
     CGUIDialog(WINDOW_DIALOG_PVR_GROUP_MANAGER, "DialogPVRGroupManager.xml")
 {
-  m_iSelectedUngroupedChannel = 0;
-  m_iSelectedGroupMember = 0;
-  m_iSelectedChannelGroup = 0;
   m_ungroupedChannels = new CFileItemList;
   m_groupMembers      = new CFileItemList;
   m_channelGroups     = new CFileItemList;
@@ -69,12 +75,6 @@ void CGUIDialogPVRGroupManager::SetRadio(bool bIsRadio)
 bool CGUIDialogPVRGroupManager::PersistChanges(void)
 {
   return CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bIsRadio)->PersistAll();
-}
-
-bool CGUIDialogPVRGroupManager::CancelChanges(void)
-{
-  //! @todo
-  return false;
 }
 
 bool CGUIDialogPVRGroupManager::ActionButtonOk(CGUIMessage &message)
@@ -143,6 +143,7 @@ bool CGUIDialogPVRGroupManager::ActionButtonDeleteGroup(CGUIMessage &message)
 
     if (pDialog->IsConfirmed())
     {
+      ClearSelectedGroupsThumbnail();
       if (CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bIsRadio)->DeleteGroup(*m_selectedGroup))
         Update();
     }
@@ -166,9 +167,10 @@ bool CGUIDialogPVRGroupManager::ActionButtonRenameGroup(CGUIMessage &message)
     std::string strGroupName(m_selectedGroup->GroupName());
     if (CGUIKeyboardFactory::ShowAndGetInput(strGroupName, CVariant{g_localizeStrings.Get(19139)}, false))
     {
-      if (strGroupName != "")
+      if (!strGroupName.empty())
       {
-        m_selectedGroup->SetGroupName(strGroupName, true);
+        ClearSelectedGroupsThumbnail();
+        m_selectedGroup->SetGroupName(strGroupName);
         Update();
       }
     }
@@ -187,7 +189,7 @@ bool CGUIDialogPVRGroupManager::ActionButtonUngroupedChannels(CGUIMessage &messa
   if (m_viewUngroupedChannels.HasControl(iControl))   // list/thumb control
   {
     m_iSelectedUngroupedChannel = m_viewUngroupedChannels.GetSelectedItem();
-    int iAction     = message.GetParam1();
+    int iAction = message.GetParam1();
 
     if (iAction == ACTION_SELECT_ITEM || iAction == ACTION_MOUSE_LEFT_CLICK)
     {
@@ -199,7 +201,10 @@ bool CGUIDialogPVRGroupManager::ActionButtonUngroupedChannels(CGUIMessage &messa
       {
         CFileItemPtr pItemChannel = m_ungroupedChannels->Get(m_iSelectedUngroupedChannel);
         if (m_selectedGroup->AddToGroup(pItemChannel->GetPVRChannelInfoTag(), CPVRChannelNumber(), false))
+        {
+          ClearSelectedGroupsThumbnail();
           Update();
+        }
       }
     }
     bReturn = true;
@@ -224,6 +229,7 @@ bool CGUIDialogPVRGroupManager::ActionButtonGroupMembers(CGUIMessage &message)
       {
         CFileItemPtr pItemChannel = m_groupMembers->Get(m_iSelectedGroupMember);
         m_selectedGroup->RemoveFromGroup(pItemChannel->GetPVRChannelInfoTag());
+        ClearSelectedGroupsThumbnail();
         Update();
       }
     }
@@ -287,6 +293,20 @@ bool CGUIDialogPVRGroupManager::ActionButtonToggleRadioTV(CGUIMessage &message)
   return bReturn;
 }
 
+bool CGUIDialogPVRGroupManager::ActionButtonRecreateThumbnail(CGUIMessage& message)
+{
+  bool bReturn = false;
+
+  if (message.GetSenderId() == BUTTON_RECREATE_GROUP_THUMB)
+  {
+    m_thumbLoader.ClearCachedImages(*m_channelGroups);
+    Update();
+    bReturn = true;
+  }
+
+  return bReturn;
+}
+
 bool CGUIDialogPVRGroupManager::OnMessageClick(CGUIMessage &message)
 {
   return ActionButtonOk(message) ||
@@ -297,7 +317,8 @@ bool CGUIDialogPVRGroupManager::OnMessageClick(CGUIMessage &message)
       ActionButtonGroupMembers(message) ||
       ActionButtonChannelGroups(message) ||
       ActionButtonHideGroup(message) ||
-      ActionButtonToggleRadioTV(message);
+      ActionButtonToggleRadioTV(message) ||
+      ActionButtonRecreateThumbnail(message);
 }
 
 bool CGUIDialogPVRGroupManager::OnMessage(CGUIMessage& message)
@@ -316,10 +337,59 @@ bool CGUIDialogPVRGroupManager::OnMessage(CGUIMessage& message)
   return CGUIDialog::OnMessage(message);
 }
 
+bool CGUIDialogPVRGroupManager::OnActionMove(const CAction& action)
+{
+  bool bReturn = false;
+  int iActionId = action.GetID();
+
+  if (GetFocusedControlID() == CONTROL_LIST_CHANNEL_GROUPS)
+  {
+    if (iActionId == ACTION_MOUSE_MOVE)
+    {
+      int iSelected = m_viewChannelGroups.GetSelectedItem();
+      if (m_iSelectedChannelGroup < iSelected)
+      {
+        iActionId = ACTION_MOVE_DOWN;
+      }
+      else if (m_iSelectedChannelGroup > iSelected)
+      {
+        iActionId = ACTION_MOVE_UP;
+      }
+      else
+      {
+        return bReturn;
+      }
+    }
+
+    if (iActionId == ACTION_MOVE_DOWN || iActionId == ACTION_MOVE_UP ||
+        iActionId == ACTION_PAGE_DOWN || iActionId == ACTION_PAGE_UP ||
+        iActionId == ACTION_FIRST_PAGE || iActionId == ACTION_LAST_PAGE)
+    {
+      CGUIDialog::OnAction(action);
+      int iSelected = m_viewChannelGroups.GetSelectedItem();
+
+      bReturn = true;
+      if (iSelected != m_iSelectedChannelGroup)
+      {
+        m_iSelectedChannelGroup = iSelected;
+        Update();
+      }
+    }
+  }
+
+  return bReturn;
+}
+
+bool CGUIDialogPVRGroupManager::OnAction(const CAction& action)
+{
+  return OnActionMove(action) ||
+         CGUIDialog::OnAction(action);
+}
+
 void CGUIDialogPVRGroupManager::OnInitWindow()
 {
   CGUIDialog::OnInitWindow();
-  m_iSelectedUngroupedChannel  = 0;
+  m_iSelectedUngroupedChannel = 0;
   m_iSelectedGroupMember = 0;
   m_iSelectedChannelGroup = 0;
   Update();
@@ -364,8 +434,12 @@ void CGUIDialogPVRGroupManager::Update()
 
   Clear();
 
-  /* get the groups list */
-  CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bIsRadio)->GetGroupList(m_channelGroups);
+  // get the groups list
+  CPVRGUIDirectory::GetChannelGroupsDirectory(m_bIsRadio, false, *m_channelGroups);
+
+  // Load group thumbnails
+  m_thumbLoader.Load(*m_channelGroups);
+
   m_viewChannelGroups.SetItems(*m_channelGroups);
   m_viewChannelGroups.SetSelectedItem(m_iSelectedChannelGroup);
 
@@ -403,21 +477,30 @@ void CGUIDialogPVRGroupManager::Update()
     // Slightly different handling for "all" group...
     if (m_selectedGroup->IsInternalGroup())
     {
-      m_selectedGroup->GetMembers(*m_groupMembers, CPVRChannelGroup::Include::ONLY_VISIBLE);
-      m_selectedGroup->GetMembers(*m_ungroupedChannels, CPVRChannelGroup::Include::ONLY_HIDDEN);
+      const std::vector<PVRChannelGroupMember> groupMembers = m_selectedGroup->GetMembers(CPVRChannelGroup::Include::ALL);
+      for (const auto& groupMember : groupMembers)
+      {
+        if (groupMember.channel->IsHidden())
+          m_ungroupedChannels->Add(std::make_shared<CFileItem>(groupMember.channel));
+        else
+          m_groupMembers->Add(std::make_shared<CFileItem>(groupMember.channel));
+      }
     }
     else
     {
-      m_selectedGroup->GetMembers(*m_groupMembers, CPVRChannelGroup::Include::ALL);
+      const std::vector<PVRChannelGroupMember> groupMembers = m_selectedGroup->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE);
+      for (const auto& groupMember : groupMembers)
+      {
+        m_groupMembers->Add(std::make_shared<CFileItem>(groupMember.channel));
+      }
 
       /* for the center part, get all channels of the "all" channels group that are not in this group */
       const CPVRChannelGroupPtr allGroup = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_bIsRadio);
-      CFileItemList allChannels;
-      allGroup->GetMembers(allChannels, CPVRChannelGroup::Include::ALL);
-      for (const auto& channelItem : allChannels)
+      const std::vector<PVRChannelGroupMember> allGroupMembers = allGroup->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE);
+      for (const auto& groupMember : allGroupMembers)
       {
-        if (!m_selectedGroup->IsGroupMember(channelItem->GetPVRChannelInfoTag()))
-          m_ungroupedChannels->Add(channelItem);
+        if (!m_selectedGroup->IsGroupMember(groupMember.channel))
+          m_ungroupedChannels->Add(std::make_shared<CFileItem>(groupMember.channel));
       }
     }
     m_viewGroupMembers.SetItems(*m_groupMembers);
@@ -430,6 +513,9 @@ void CGUIDialogPVRGroupManager::Update()
 
 void CGUIDialogPVRGroupManager::Clear()
 {
+  if (m_thumbLoader.IsLoading())
+    m_thumbLoader.StopThread();
+
   m_viewUngroupedChannels.Clear();
   m_viewGroupMembers.Clear();
   m_viewChannelGroups.Clear();
@@ -437,4 +523,9 @@ void CGUIDialogPVRGroupManager::Clear()
   m_ungroupedChannels->Clear();
   m_groupMembers->Clear();
   m_channelGroups->Clear();
+}
+
+void CGUIDialogPVRGroupManager::ClearSelectedGroupsThumbnail()
+{
+  m_thumbLoader.ClearCachedImage(*m_channelGroups->Get(m_iSelectedChannelGroup));
 }

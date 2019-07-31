@@ -7,6 +7,7 @@
  */
 
 #include "Locale.h"
+
 #include "utils/StringUtils.h"
 
 const CLocale CLocale::Empty;
@@ -168,6 +169,28 @@ std::string CLocale::FindBestMatch(const std::set<std::string>& locales) const
     {
       bestMatchRank = matchRank;
       bestMatch = locale;
+    }
+  }
+
+  return bestMatch;
+}
+
+std::string CLocale::FindBestMatch(const std::unordered_map<std::string, std::string>& locales) const
+{
+  std::string bestMatch = "";
+  int bestMatchRank = -1;
+
+  for (auto const& locale : locales)
+  {
+    // check if there is an exact match
+    if (Equals(locale.first))
+      return locale.first;
+
+    int matchRank = GetMatchRank(locale.first);
+    if (matchRank > bestMatchRank)
+    {
+      bestMatchRank = matchRank;
+      bestMatch = locale.first;
     }
   }
 

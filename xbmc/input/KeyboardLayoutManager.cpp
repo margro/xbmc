@@ -8,15 +8,15 @@
 
 #include "KeyboardLayoutManager.h"
 
-#include <algorithm>
-
 #include "FileItem.h"
-#include "filesystem/Directory.h"
 #include "URL.h"
+#include "filesystem/Directory.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingDefinitions.h"
-#include "utils/log.h"
 #include "utils/XBMCTinyXML.h"
+#include "utils/log.h"
+
+#include <algorithm>
 
 #define KEYBOARD_LAYOUTS_PATH   "special://xbmc/system/keyboardlayouts"
 
@@ -127,9 +127,9 @@ namespace
 
 void CKeyboardLayoutManager::SettingOptionsKeyboardLayoutsFiller(SettingConstPtr setting, std::vector<StringSettingOption> &list, std::string &current, void* data)
 {
-  for (KeyboardLayouts::const_iterator it = CKeyboardLayoutManager::GetInstance().m_layouts.begin(); it != CKeyboardLayoutManager::GetInstance().m_layouts.end(); ++it)
+  for (const auto& it : CKeyboardLayoutManager::GetInstance().m_layouts)
   {
-    std::string name = it->second.GetName();
+    std::string name = it.second.GetName();
     list.push_back(StringSettingOption(name, name));
   }
 

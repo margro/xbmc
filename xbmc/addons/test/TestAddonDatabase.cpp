@@ -7,11 +7,13 @@
  */
 
 #include "addons/AddonDatabase.h"
+#include "addons/addoninfo/AddonInfoBuilder.h"
 #include "filesystem/SpecialProtocol.h"
 #include "settings/AdvancedSettings.h"
 
-#include "gtest/gtest.h"
 #include <set>
+
+#include <gtest/gtest.h>
 
 using namespace ADDON;
 
@@ -44,10 +46,11 @@ protected:
 
   void CreateAddon(VECADDONS& addons, std::string id, std::string version)
   {
-    CAddonBuilder builder;
+    CAddonInfoBuilder::CFromDB builder;
     builder.SetId(id);
     builder.SetVersion(AddonVersion(version));
-    addons.push_back(builder.Build());
+    AddonPtr addon = CAddonBuilder::Generate(builder.get(), ADDON_UNKNOWN);
+    addons.push_back(addon);
   }
 
   void TearDown() override

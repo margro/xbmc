@@ -8,21 +8,20 @@
 
 #pragma once
 
+#include "XBDateTime.h"
+#include "pvr/PVRTypes.h"
+#include "pvr/channels/PVRChannelNumber.h"
+#include "pvr/channels/PVRChannelsPath.h"
+#include "settings/lib/ISettingCallback.h"
+#include "utils/Observer.h"
+
 #include <map>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
-#include "XBDateTime.h"
-#include "settings/lib/ISettingCallback.h"
-
-#include "pvr/PVRTypes.h"
-#include "pvr/channels/PVRChannel.h"
-
-class CFileItem;
-typedef std::shared_ptr<CFileItem> CFileItemPtr;
-
-class CFileItemList;
+struct PVR_CHANNEL_GROUP;
 
 namespace PVR
 {
@@ -63,12 +62,13 @@ namespace PVR
 
     /*!
      * @brief Create a new channel group instance.
-     * @param bRadio True if this group holds radio channels.
+     * @param path The channel group path.
      * @param iGroupId The database ID of this group or INVALID_GROUP_ID if the group was not yet stored in the database.
-     * @param strGroupName The name of this group.
      * @param allChannelsGroup The channel group containing all TV or radio channels.
      */
-    CPVRChannelGroup(bool bRadio, int iGroupId, const std::string& strGroupName, const std::shared_ptr<CPVRChannelGroup>& allChannelsGroup);
+    CPVRChannelGroup(const CPVRChannelsPath& path,
+                     int iGroupId = INVALID_GROUP_ID,
+                     const std::shared_ptr<CPVRChannelGroup>& allChannelsGroup = {});
 
     /*!
      * @brief Create a new channel group instance from a channel group provided by an add-on.
@@ -76,12 +76,6 @@ namespace PVR
      * @param allChannelsGroup The channel group containing all TV or radio channels.
      */
     CPVRChannelGroup(const PVR_CHANNEL_GROUP& group, const std::shared_ptr<CPVRChannelGroup>& allChannelsGroup);
-
-    /*!
-     * @brief Copy constructor
-     * @param group Source group
-     */
-    CPVRChannelGroup(const CPVRChannelGroup &group);
 
     ~CPVRChannelGroup(void) override;
 
@@ -115,7 +109,13 @@ namespace PVR
      * @brief Get the path of this group.
      * @return the path.
      */
-    std::string GetPath() const;
+    const CPVRChannelsPath& GetPath() const;
+
+    /*!
+     * @brief Set the path of this group.
+     * @param the path.
+     */
+    void SetPath(const CPVRChannelsPath& path);
 
     /*!
      * @brief Change the channelnumber of a group. Used by CGUIDialogPVRChannelManager. Call SortByChannelNumber() and Renumber() after all changes are done.
@@ -123,12 +123,6 @@ namespace PVR
      * @param channelNumber The new channel number.
      */
     bool SetChannelNumber(const CPVRChannelPtr &channel, const CPVRChannelNumber &channelNumber);
-
-    /*!
-     * @brief Search missing channel icons for all known channels.
-     * @param bUpdateDb If true, update the changed values in the database.
-     */
-    void SearchAndSetChannelIcons(bool bUpdateDb = false);
 
     /*!
      * @brief Remove a channel from this container.
@@ -149,10 +143,8 @@ namespace PVR
     /*!
      * @brief Change the name of this group.
      * @param strGroupName The new group name.
-     * @param bSaveInDb Save in the database or not.
-     * @return True if the something changed, false otherwise.
      */
-    bool SetGroupName(const std::string &strGroupName, bool bSaveInDb = false);
+    void SetGroupName(const std::string& strGroupName);
 
     /*!
      * @brief Persist changed or new data.
@@ -184,13 +176,7 @@ namespace PVR
      * @brief True if this group holds radio channels, false if it holds TV channels.
      * @return True if this group holds radio channels, false if it holds TV channels.
      */
-    bool IsRadio(void) const { return m_bRadio; }
-
-    /*!
-     * @brief Set 'radio' property of this group.
-     * @param bIsRadio The new value for the 'radio' property.
-     */
-    void SetRadio(bool bIsRadio) { m_bRadio = bIsRadio; }
+    bool IsRadio() const;
 
     /*!
      * @brief True if sorting should be prevented when adding/updating channels to the group.
@@ -273,18 +259,18 @@ namespace PVR
     CPVRChannelPtr GetByChannelEpgID(int iEpgID) const;
 
     /*!
-     * @brief The channel that was played last that has a valid client or NULL if there was none.
+     * @brief Get the channel that was played last.
      * @param iCurrentChannel The channelid of the current channel that is playing, or -1 if none
-     * @return The requested channel.
+     * @return The requested channel or nullptr.
      */
-    CFileItemPtr GetLastPlayedChannel(int iCurrentChannel = -1) const;
+    std::shared_ptr<CPVRChannel> GetLastPlayedChannel(int iCurrentChannel = -1) const;
 
     /*!
      * @brief Get a channel given it's channel number.
      * @param channelNumber The channel number.
-     * @return The channel or NULL if it wasn't found.
+     * @return The channel or nullptr if it wasn't found.
      */
-    CFileItemPtr GetByChannelNumber(const CPVRChannelNumber &channelNumber) const;
+    std::shared_ptr<CPVRChannel> GetByChannelNumber(const CPVRChannelNumber& channelNumber) const;
 
     /*!
      * @brief Get the channel number in this group of the given channel.
@@ -296,16 +282,16 @@ namespace PVR
     /*!
      * @brief Get the next channel in this group.
      * @param channel The current channel.
-     * @return The channel or NULL if it wasn't found.
+     * @return The channel or nullptr if it wasn't found.
      */
-    CFileItemPtr GetNextChannel(const CPVRChannelPtr &channel) const;
+    std::shared_ptr<CPVRChannel> GetNextChannel(const std::shared_ptr<CPVRChannel>& channel) const;
 
     /*!
      * @brief Get the previous channel in this group.
      * @param channel The current channel.
-     * @return The channel or NULL if it wasn't found.
+     * @return The channel or nullptr if it wasn't found.
      */
-    CFileItemPtr GetPreviousChannel(const CPVRChannelPtr &channel) const;
+    std::shared_ptr<CPVRChannel> GetPreviousChannel(const std::shared_ptr<CPVRChannel>& channel) const;
 
     /*!
      * @brief Get a channel given it's channel ID.
@@ -313,12 +299,6 @@ namespace PVR
      * @return The channel or NULL if it wasn't found.
      */
     CPVRChannelPtr GetByChannelID(int iChannelID) const;
-
-    /*!
-     * Get the current members of this group
-     * @return The group members
-     */
-    PVR_CHANNEL_GROUP_SORTED_MEMBERS GetMembers(void) const;
 
     enum class Include
     {
@@ -328,12 +308,11 @@ namespace PVR
     };
 
     /*!
-     * @brief Get a filtered list of channels in this group.
-     * @param results The file list to store the results in.
-     * @param eFilter A filter to apply to the list.
-     * @return The amount of channels that were added to the list.
+     * @brief Get the current members of this group
+     * @param eFilter A filter to apply.
+     * @return The group members
      */
-    int GetMembers(CFileItemList &results, Include eFilter = Include::ONLY_VISIBLE) const;
+    std::vector<PVRChannelGroupMember> GetMembers(Include eFilter = Include::ALL) const;
 
     /*!
      * @brief Get the list of channel numbers in a group.
@@ -394,7 +373,28 @@ namespace PVR
      */
     CDateTime GetLastEPGDate(void) const;
 
-    bool UpdateChannel(const CFileItem &channel, bool bHidden, bool bEPGEnabled, bool bParentalLocked, int iEPGSource, int iChannelNumber, const std::string &strChannelName, const std::string &strIconPath, bool bUserSetIcon = false);
+    /*!
+     * @brief Update a channel group member with given data.
+     * @param storageId The storage id of the channel.
+     * @param strChannelName The channel name to set.
+     * @param strIconPath The icon path to set.
+     * @param iEPGSource The EPG id.
+     * @param iChannelNumber The channel number to set.
+     * @param bHidden Set/Remove hidden flag for the channel group member identified by storage id.
+     * @param bEPGEnabled Set/Remove EPG enabled flag for the channel group member identified by storage id.
+     * @param bParentalLocked Set/Remove parental locked flag for the channel group member identified by storage id.
+     * @param bUserSetIcon Set/Remove user set icon flag for the channel group member identified by storage id.
+     * @return True on success, false otherwise.
+     */
+    bool UpdateChannel(const std::pair<int, int>& storageId,
+                       const std::string& strChannelName,
+                       const std::string& strIconPath,
+                       int iEPGSource,
+                       int iChannelNumber,
+                       bool bHidden,
+                       bool bEPGEnabled,
+                       bool bParentalLocked,
+                       bool bUserSetIcon);
 
     /*!
      * @brief Get a channel given the channel number on the client.
@@ -433,8 +433,6 @@ namespace PVR
     bool IsMissingChannelsFromClient(int iClientId) const;
 
   protected:
-    CPVRChannelGroup();
-
     /*!
      * @brief Init class
      */
@@ -500,10 +498,8 @@ namespace PVR
      */
     bool UpdateClientPriorities();
 
-    bool             m_bRadio = false;                      /*!< true if this container holds radio channels, false if it holds TV channels */
     int              m_iGroupType = PVR_GROUP_TYPE_DEFAULT;                  /*!< The type of this group */
     int              m_iGroupId = INVALID_GROUP_ID; /*!< The ID of this group in the database */
-    std::string      m_strGroupName;                /*!< The name of this group */
     bool             m_bLoaded = false;                     /*!< True if this container is loaded, false otherwise */
     bool             m_bChanged = false;                    /*!< true if anything changed in this group that hasn't been persisted, false otherwise */
     bool             m_bUsingBackendChannelOrder = false;   /*!< true to use the channel order from backends, false otherwise */
@@ -522,5 +518,6 @@ namespace PVR
     CDateTime GetEPGDate(EpgDateType epgDateType) const;
 
     std::shared_ptr<CPVRChannelGroup> m_allChannelsGroup;
+    CPVRChannelsPath m_path;
   };
 }

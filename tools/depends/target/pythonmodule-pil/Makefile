@@ -17,7 +17,7 @@ CROSSFLAGS=PYTHONXCPREFIX="$(PREFIX)" CC="$(CC) $(CFLAGS)" LDSHARED="$(CC) -shar
 endif
 
 ifeq (darwin, $(findstring darwin, $(HOST)))
-ifeq ($(OS),ios)
+ifeq ($(OS),darwin_embedded)
 PYTHON_O=$(abs_top_srcdir)/target/python27/$(PLATFORM)/Modules/python.o
 endif
 #ensure that only our target ldflags are passed to the python build
@@ -40,7 +40,7 @@ $(TARBALLS_LOCATION)/$(ARCHIVE):
 $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
-	cd $(PLATFORM); patch -p0 < ../pillow-crosscompile.patch
+	cd $(PLATFORM); patch -p1 -i ../pillow-crosscompile.patch
 
 $(LIBDYLIB): $(PLATFORM)
 	mkdir -p $(PLATFORM)/output

@@ -24,8 +24,8 @@
 #include <va/va_drm.h>
 #include <va/va_drmcommon.h>
 #include <drm_fourcc.h>
-#include "platform/linux/XTimeUtils.h"
-#include "platform/linux/XMemUtils.h"
+#include "platform/posix/XTimeUtils.h"
+#include "utils/MemUtils.h"
 
 extern "C" {
 #include <libavutil/avutil.h>
@@ -558,7 +558,6 @@ bool CDecoder::Open(AVCodecContext* avctx, AVCodecContext* mainctx, const enum A
   m_vaapiConfig.surfaceWidth = avctx->coded_width;
   m_vaapiConfig.surfaceHeight = avctx->coded_height;
   m_vaapiConfig.aspect = avctx->sample_aspect_ratio;
-  m_decoderThread = CThread::GetCurrentThreadId();
   m_DisplayState = VAAPI_OPEN;
   m_vaapiConfigured = false;
   m_presentPicture = nullptr;
@@ -2817,7 +2816,7 @@ CFFmpegPostproc::CFFmpegPostproc()
 CFFmpegPostproc::~CFFmpegPostproc()
 {
   Close();
-  _aligned_free(m_cache);
+  KODI::MEMORY::AlignedFree(m_cache);
   m_dllSSE4.Unload();
   av_frame_free(&m_pFilterFrameIn);
   av_frame_free(&m_pFilterFrameOut);
@@ -2864,7 +2863,7 @@ bool CFFmpegPostproc::PreInit(CVaapiConfig &config, SDiMethods *methods)
 
   if (use_filter)
   {
-    m_cache = (uint8_t*)_aligned_malloc(CACHED_BUFFER_SIZE, 64);
+    m_cache = static_cast<uint8_t*>(KODI::MEMORY::AlignedMalloc(CACHED_BUFFER_SIZE, 64));
     if (methods)
     {
       methods->diMethods[methods->numDiMethods++] = VS_INTERLACEMETHOD_DEINTERLACE;

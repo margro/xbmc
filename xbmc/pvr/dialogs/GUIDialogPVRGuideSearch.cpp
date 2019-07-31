@@ -8,18 +8,21 @@
 
 #include "GUIDialogPVRGuideSearch.h"
 
-#include <utility>
-
 #include "ServiceBroker.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
-#include "guilib/GUIMessage.h"
 #include "guilib/GUIEditControl.h"
+#include "guilib/GUIMessage.h"
 #include "guilib/LocalizeStrings.h"
-#include "utils/StringUtils.h"
-
 #include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroup.h"
+#include "pvr/channels/PVRChannelGroups.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/epg/EpgSearchFilter.h"
+#include "utils/StringUtils.h"
+
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace PVR;
 
@@ -67,7 +70,7 @@ void CGUIDialogPVRGuideSearch::UpdateChannelSpin(void)
     group = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_searchFilter->IsRadio());
 
   m_channelNumbersMap.clear();
-  const std::vector<PVRChannelGroupMember> groupMembers(group->GetMembers());
+  const std::vector<PVRChannelGroupMember> groupMembers(group->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE));
   int iIndex = 0;
   int iSelectedChannel = EPG_SEARCH_UNSET;
   for (const auto& groupMember : groupMembers)

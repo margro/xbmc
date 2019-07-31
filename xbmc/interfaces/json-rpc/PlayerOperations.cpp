@@ -7,35 +7,37 @@
  */
 
 #include "PlayerOperations.h"
+
 #include "Application.h"
+#include "AudioLibrary.h"
+#include "FileItem.h"
+#include "GUIInfoManager.h"
+#include "GUIUserMessages.h"
+#include "PartyModeManager.h"
 #include "PlayListPlayer.h"
+#include "SeekHandler.h"
+#include "Util.h"
+#include "VideoLibrary.h"
+#include "cores/IPlayer.h"
+#include "cores/playercorefactory/PlayerCoreFactory.h"
 #include "guilib/GUIWindowManager.h"
 #include "input/Key.h"
-#include "GUIUserMessages.h"
-#include "pictures/GUIWindowSlideShow.h"
 #include "interfaces/builtins/Builtins.h"
-#include "PartyModeManager.h"
 #include "messaging/ApplicationMessenger.h"
-#include "FileItem.h"
-#include "VideoLibrary.h"
-#include "video/VideoDatabase.h"
-#include "AudioLibrary.h"
-#include "GUIInfoManager.h"
 #include "music/MusicDatabase.h"
-#include "pvr/PVRManager.h"
+#include "pictures/GUIWindowSlideShow.h"
 #include "pvr/PVRGUIActions.h"
+#include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/epg/EpgInfoTag.h"
 #include "pvr/recordings/PVRRecordings.h"
-#include "cores/IPlayer.h"
-#include "cores/playercorefactory/PlayerCoreFactory.h"
-#include "SeekHandler.h"
-#include "utils/Variant.h"
-#include "Util.h"
 #include "settings/DisplaySettings.h"
-#include <tuple>
+#include "utils/Variant.h"
+#include "video/VideoDatabase.h"
+
 #include <map>
+#include <tuple>
 
 using namespace JSONRPC;
 using namespace PLAYLIST;
@@ -724,11 +726,11 @@ JSONRPC_STATUS CPlayerOperations::Open(const std::string &method, ITransportLaye
     if (!recordingsContainer)
       return FailedToExecute;
 
-    const CFileItemPtr fileItem = recordingsContainer->GetById(static_cast<int>(parameterObject["item"]["recordingid"].asInteger()));
-    if (!fileItem)
+    const std::shared_ptr<CPVRRecording> recording = recordingsContainer->GetById(static_cast<int>(parameterObject["item"]["recordingid"].asInteger()));
+    if (!recording)
       return InvalidParams;
 
-    if (!CServiceBroker::GetPVRManager().GUIActions()->PlayMedia(fileItem))
+    if (!CServiceBroker::GetPVRManager().GUIActions()->PlayMedia(std::make_shared<CFileItem>(recording)))
       return FailedToExecute;
 
     return ACK;

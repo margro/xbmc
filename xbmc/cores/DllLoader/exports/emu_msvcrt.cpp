@@ -40,8 +40,8 @@
 #include <signal.h>
 #ifdef TARGET_POSIX
 #include "PlatformDefs.h" // for __stat64
-#include "XFileUtils.h"
-#include "XTimeUtils.h"
+#include "platform/posix/XFileUtils.h"
+#include "platform/posix/XTimeUtils.h"
 #endif
 #include "ServiceBroker.h"
 #include "Util.h"
@@ -1601,9 +1601,6 @@ extern "C"
   {
     if (!strnicmp(path, "shout://", 8)) // don't stat shoutcast
       return -1;
-    if (!strnicmp(path, "http://", 7)
-    ||  !strnicmp(path, "https://", 8)) // don't stat http
-      return -1;
     if (!strnicmp(path, "mms://", 6)) // don't stat mms
       return -1;
 
@@ -1646,9 +1643,6 @@ extern "C"
   int dll_stat64(const char *path, struct __stat64 *buffer)
   {
     if (!strnicmp(path, "shout://", 8)) // don't stat shoutcast
-      return -1;
-    if (!strnicmp(path, "http://", 7)
-    ||  !strnicmp(path, "https://", 8)) // don't stat http
       return -1;
     if (!strnicmp(path, "mms://", 6)) // don't stat mms
       return -1;

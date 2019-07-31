@@ -17,7 +17,7 @@
 #include "messaging/ApplicationMessenger.h"
 #include "aojsonrpc.h"
 #ifndef TARGET_WINDOWS
-#include "XTimeUtils.h"
+#include "platform/posix/XTimeUtils.h"
 #endif
 #include "guilib/LocalizeStrings.h"
 #include "GUIInfoManager.h"
@@ -38,6 +38,7 @@
 #include "storage/MediaManager.h"
 #include "utils/FileExtensionProvider.h"
 #include "utils/LangCodeExpander.h"
+#include "utils/MemUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/SystemInfo.h"
 #include "AddonUtils.h"
@@ -50,10 +51,6 @@
 
 using namespace KODI;
 using namespace KODI::MESSAGING;
-
-#ifdef TARGET_POSIX
-#include "platform/linux/XMemUtils.h"
-#endif
 
 namespace XBMCAddon
 {
@@ -251,10 +248,9 @@ namespace XBMCAddon
     long getFreeMem()
     {
       XBMC_TRACE;
-      MEMORYSTATUSEX stat;
-      stat.dwLength = sizeof(MEMORYSTATUSEX);
-      GlobalMemoryStatusEx(&stat);
-      return (long)(stat.ullAvailPhys  / ( 1024 * 1024 ));
+      KODI::MEMORY::MemoryStatus stat;
+      KODI::MEMORY::GetMemoryStatus(&stat);
+      return static_cast<long>(stat.availPhys  / ( 1024 * 1024 ));
     }
 
     // getCpuTemp() method

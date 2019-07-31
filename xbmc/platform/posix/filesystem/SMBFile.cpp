@@ -11,21 +11,23 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "SMBFile.h"
+
 #include "PasswordManager.h"
-#include "ServiceBroker.h"
 #include "SMBDirectory.h"
-#include <libsmbclient.h>
+#include "ServiceBroker.h"
+#include "Util.h"
+#include "commons/Exception.h"
 #include "filesystem/SpecialProtocol.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
-#include "utils/log.h"
-#include "Util.h"
 #include "utils/StringUtils.h"
-#include "utils/URIUtils.h"
 #include "utils/TimeUtils.h"
-#include "commons/Exception.h"
+#include "utils/URIUtils.h"
+#include "utils/log.h"
+
+#include <libsmbclient.h>
 
 using namespace XFILE;
 
@@ -256,12 +258,11 @@ std::string CSMB::URLEncode(const CURL &url)
 
   /* okey sadly since a slash is an invalid name we have to tokenize */
   std::vector<std::string> parts;
-  std::vector<std::string>::iterator it;
   StringUtils::Tokenize(url.GetFileName(), parts, "/");
-  for( it = parts.begin(); it != parts.end(); ++it )
+  for (const std::string& it : parts)
   {
     flat += "/";
-    flat += URLEncode((*it));
+    flat += URLEncode((it));
   }
 
   /* okey options should go here, thou current samba doesn't support any */

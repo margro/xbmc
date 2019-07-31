@@ -7,28 +7,26 @@
  */
 
 #include "GUIWindowDebugInfo.h"
-#include "settings/AdvancedSettings.h"
-#include "settings/SettingsComponent.h"
-#include "addons/Skin.h"
-#include "utils/CPUInfo.h"
-#include "utils/log.h"
+
 #include "CompileInfo.h"
+#include "GUIInfoManager.h"
+#include "ServiceBroker.h"
+#include "addons/Skin.h"
 #include "filesystem/SpecialProtocol.h"
-#include "input/WindowTranslator.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIControlFactory.h"
+#include "guilib/GUIControlProfiler.h"
 #include "guilib/GUIFontManager.h"
 #include "guilib/GUITextLayout.h"
 #include "guilib/GUIWindowManager.h"
-#include "guilib/GUIControlProfiler.h"
-#include "GUIInfoManager.h"
-#include "ServiceBroker.h"
-#include "utils/Variant.h"
+#include "input/WindowTranslator.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
+#include "utils/CPUInfo.h"
+#include "utils/MemUtils.h"
 #include "utils/StringUtils.h"
-
-#ifdef TARGET_POSIX
-#include "platform/linux/XMemUtils.h"
-#endif
+#include "utils/Variant.h"
+#include "utils/log.h"
 
 CGUIWindowDebugInfo::CGUIWindowDebugInfo(void)
   : CGUIDialog(WINDOW_DEBUG_INFO, "", DialogModalityType::MODELESS)
@@ -93,9 +91,8 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
   std::string info;
   if (LOG_LEVEL_DEBUG_FREEMEM <= CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_logLevel)
   {
-    MEMORYSTATUSEX stat;
-    stat.dwLength = sizeof(MEMORYSTATUSEX);
-    GlobalMemoryStatusEx(&stat);
+    KODI::MEMORY::MemoryStatus stat;
+    KODI::MEMORY::GetMemoryStatus(&stat);
     std::string profiling = CGUIControlProfiler::IsRunning() ? " (profiling)" : "";
     std::string strCores = g_cpuInfo.GetCoresUsageString();
     std::string lcAppName = CCompileInfo::GetAppName();
@@ -103,7 +100,7 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
 #if !defined(TARGET_POSIX)
     info = StringUtils::Format("LOG: %s%s.log\nMEM: %" PRIu64"/%" PRIu64" KB - FPS: %2.1f fps\nCPU: %s%s",
                                CSpecialProtocol::TranslatePath("special://logpath").c_str(), lcAppName.c_str(),
-                               stat.ullAvailPhys/1024, stat.ullTotalPhys/1024, CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetSystemInfoProvider().GetFPS(),
+                               stat.availPhys / 1024, stat.totalPhys / 1024, CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetSystemInfoProvider().GetFPS(),
                                strCores.c_str(), profiling.c_str());
 #else
     double dCPU = m_resourceCounter.GetCPUUsage();
@@ -113,7 +110,7 @@ void CGUIWindowDebugInfo::Process(unsigned int currentTime, CDirtyRegionList &di
                                 "MEM: %" PRIu64"/%" PRIu64" KB - FPS: %2.1f fps\n"
                                 "CPU: %s (CPU-%s %4.2f%%%s)",
                                 CSpecialProtocol::TranslatePath("special://logpath").c_str(), lcAppName.c_str(),
-                                stat.ullAvailPhys/1024, stat.ullTotalPhys/1024, CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetSystemInfoProvider().GetFPS(),
+                                stat.availPhys / 1024, stat.totalPhys / 1024, CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetSystemInfoProvider().GetFPS(),
                                 strCores.c_str(), ucAppName.c_str(), dCPU, profiling.c_str());
 #endif
   }

@@ -6,27 +6,58 @@
  *  See LICENSES/README.md for more information.
  */
 
+#include "test/MtTestUtils.h"
 #include "utils/JobManager.h"
 #include "utils/Job.h"
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include <atomic>
 
 #ifdef TARGET_POSIX
-#include "platform/linux/XTimeUtils.h"
+#include "platform/posix/XTimeUtils.h"
 #endif
 
-std::atomic<bool> cancelled(false);
+using namespace ConditionPoll;
+
+struct Flags
+{
+  std::atomic<bool> lingerAtWork{true};
+  std::atomic<bool> started{false};
+  std::atomic<bool> finished{false};
+  std::atomic<bool> wasCanceled{false};
+};
 
 class DummyJob : public CJob
 {
+  Flags* m_flags;
 public:
+  inline DummyJob(Flags* flags) : m_flags(flags)
+  {
+  }
+
   bool DoWork() override
   {
-    Sleep(100);
-    if (ShouldCancel(0,0))
-      cancelled = true;
+    m_flags->started = true;
+    while (m_flags->lingerAtWork)
+      std::this_thread::yield();
 
+    if (ShouldCancel(0,0))
+      m_flags->wasCanceled = true;
+
+    m_flags->finished = true;
+    return true;
+  }
+};
+
+class ReallyDumbJob : public CJob
+{
+  Flags* m_flags;
+public:
+  inline ReallyDumbJob(Flags* flags) : m_flags(flags) {}
+
+  bool DoWork() override
+  {
+    m_flags->finished = true;
     return true;
   }
 };
@@ -48,19 +79,35 @@ protected:
 
 TEST_F(TestJobManager, AddJob)
 {
-  CJob* job = new DummyJob();
+  Flags* flags = new Flags();
+  ReallyDumbJob* job = new ReallyDumbJob(flags);
   CJobManager::GetInstance().AddJob(job, NULL);
+  ASSERT_TRUE(poll([flags]() -> bool { return flags->finished; }));
+  delete flags;
 }
 
 TEST_F(TestJobManager, CancelJob)
 {
   unsigned int id;
-  CJob* job = new DummyJob();
+  Flags* flags = new Flags();
+  DummyJob* job = new DummyJob(flags);
   id = CJobManager::GetInstance().AddJob(job, NULL);
-  Sleep(50);
+
+  // wait for the worker thread to be entered
+  ASSERT_TRUE(poll([flags]() -> bool { return flags->started; }));
+
+  // cancel the job
   CJobManager::GetInstance().CancelJob(id);
-  Sleep(100);
-  EXPECT_TRUE(cancelled);
+
+  // let the worker thread continue
+  flags->lingerAtWork = false;
+
+  // make sure the job finished.
+  ASSERT_TRUE(poll([flags]() -> bool { return flags->finished; }));
+
+  // ... and that it was canceled.
+  EXPECT_TRUE(flags->wasCanceled);
+  delete flags;
 }
 
 namespace

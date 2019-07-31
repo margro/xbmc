@@ -6,19 +6,15 @@
  *  See LICENSES/README.md for more information.
  */
 #include "Service.h"
+
 #include "AddonManager.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/log.h"
 
 
 namespace ADDON
 {
-
-std::unique_ptr<CService> CService::FromExtension(CAddonInfo addonInfo, const cp_extension_t* ext)
-{
-  return std::unique_ptr<CService>(new CService(std::move(addonInfo)));
-}
 
 CServiceAddonManager::CServiceAddonManager(CAddonMgr& addonMgr) :
     m_addonMgr(addonMgr)

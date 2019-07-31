@@ -14,18 +14,22 @@
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/WindowIDs.h"
-#include "input/Key.h"
 #include "input/actions/Action.h"
 #include "input/actions/ActionIDs.h"
 #include "messaging/ApplicationMessenger.h"
-#include "settings/Settings.h"
-#include "settings/SettingsComponent.h"
-
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroup.h"
+#include "pvr/channels/PVRChannelGroups.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
+#include "settings/lib/Setting.h"
+
+#include <memory>
+#include <string>
 
 namespace PVR
 {
@@ -242,12 +246,12 @@ bool CPVRActionListener::OnAction(const CAction &action)
 
       const CPVRChannelPtr currentChannel = CServiceBroker::GetPVRManager().GetPlayingChannel();
       const CPVRChannelGroupPtr selectedGroup = CServiceBroker::GetPVRManager().ChannelGroups()->Get(currentChannel->IsRadio())->GetSelectedGroup();
-      const CFileItemPtr item(selectedGroup->GetByChannelNumber(CPVRChannelNumber(iChannelNumber, iSubChannelNumber)));
+      const std::shared_ptr<CPVRChannel> channel = selectedGroup->GetByChannelNumber(CPVRChannelNumber(iChannelNumber, iSubChannelNumber));
 
-      if (!item)
+      if (!channel)
         return false;
 
-      CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(item, false);
+      CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(std::make_shared<CFileItem>(channel), false);
       return true;
     }
 

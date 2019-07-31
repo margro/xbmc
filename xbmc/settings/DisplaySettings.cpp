@@ -88,7 +88,7 @@ static std::string ModeFlagsToString(unsigned int flags, bool identifier)
 
 CDisplaySettings::CDisplaySettings()
 {
-  m_resolutions.insert(m_resolutions.begin(), RES_CUSTOM, RESOLUTION_INFO());
+  m_resolutions.resize(RES_CUSTOM);
 
   m_zoomAmount = 1.0f;
   m_pixelRatio = 1.0f;
@@ -219,6 +219,7 @@ void CDisplaySettings::Clear()
   CSingleLock lock(m_critical);
   m_calibrations.clear();
   m_resolutions.clear();
+  m_resolutions.resize(RES_CUSTOM);
 
   m_zoomAmount = 1.0f;
   m_pixelRatio = 1.0f;
@@ -823,7 +824,7 @@ void CDisplaySettings::SettingOptionsPreferredStereoscopicViewModesFiller(Settin
 
 void CDisplaySettings::SettingOptionsMonitorsFiller(SettingConstPtr setting, std::vector<StringSettingOption> &list, std::string &current, void *data)
 {
-#if defined(HAVE_X11) || defined(TARGET_DARWIN_OSX) || defined(TARGET_DARWIN_IOS)
+#if defined(HAVE_X11) || defined(TARGET_DARWIN)
   std::vector<std::string> monitors;
 
 #if defined(HAVE_X11)

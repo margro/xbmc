@@ -6,13 +6,13 @@
  *  See LICENSES/README.md for more information.
  */
 
-#import <UIKit/UIKit.h>
+#include "input/XBMC_keysym.h"
+#import "windowing/XBMC_events.h"
+
+#import <AudioToolbox/AudioToolbox.h>
 #import <OpenGLES/EAGL.h>
 #import <OpenGLES/ES2/gl.h>
-#import <AudioToolbox/AudioToolbox.h>
-
-#import "windowing/XBMC_events.h"
-#include "input/XBMC_keysym.h"
+#import <UIKit/UIKit.h>
 
 @class IOSEAGLView;
 
@@ -69,7 +69,6 @@ typedef enum
 - (void) setFramebuffer;
 - (bool) presentFramebuffer;
 - (CGSize) getScreenSize;
-- (CGFloat) getScreenScale:(UIScreen *)screen;
 - (UIInterfaceOrientation) getOrientation;
 - (void) createGestureRecognizers;
 - (void) activateKeyboard:(UIView *)view;

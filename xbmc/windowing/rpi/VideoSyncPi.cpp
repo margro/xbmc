@@ -7,13 +7,15 @@
  */
 
 #include "VideoSyncPi.h"
+
 #include "ServiceBroker.h"
-#include "windowing/GraphicContext.h"
-#include "windowing/WinSystem.h"
+#include "threads/Thread.h"
 #include "utils/TimeUtils.h"
 #include "utils/log.h"
+#include "windowing/GraphicContext.h"
+#include "windowing/WinSystem.h"
+
 #include "platform/linux/RBP.h"
-#include "threads/Thread.h"
 
 bool CVideoSyncPi::Setup(PUPDATECLOCK func)
 {
@@ -26,8 +28,12 @@ bool CVideoSyncPi::Setup(PUPDATECLOCK func)
 
 void CVideoSyncPi::Run(CEvent& stopEvent)
 {
-  /* This shouldn't be very busy and timing is important so increase priority */
-  CThread::GetCurrentThread()->SetPriority(CThread::GetCurrentThread()->GetPriority()+1);
+  CThread* thread = CThread::GetCurrentThread();
+  if (thread != nullptr)
+  {
+    /* This shouldn't be very busy and timing is important so increase priority */
+    thread->SetPriority(thread->GetPriority() + 1);
+  }
 
   while (!stopEvent.Signaled() && !m_abort)
   {

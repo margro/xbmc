@@ -10,6 +10,7 @@
 
 #include "OverlayRenderer.h"
 #include "utils/Color.h"
+
 #include <string>
 
 enum SubtitleAlign
@@ -34,14 +35,15 @@ public:
   ~COverlayText() override;
   void Render(SRenderState& state) override;
   using COverlay::PrepareRender;
-  void PrepareRender(const std::string &font, int color, int height, int style, const std::string &fontcache,
+  void PrepareRender(const std::string &font, int color, int opacity, int height, int style, const std::string &fontcache,
                      const std::string &fontbordercache, const UTILS::Color bgcolor, const CRect &rectView);
-  virtual CGUITextLayout* GetFontLayout(const std::string &font, int color, int height, int style,
+  virtual CGUITextLayout* GetFontLayout(const std::string &font, int color, int opacity, int height, int style,
                                         const std::string &fontcache, const std::string &fontbordercache);
 
   CGUITextLayout* m_layout;
   std::string m_text;
   int m_subalign;
+  UTILS::Color m_bordercolor = UTILS::COLOR::BLACK;
   UTILS::Color m_bgcolor = UTILS::COLOR::NONE;
 protected:
   // target Rect for subtitles (updated on PrepareRender)

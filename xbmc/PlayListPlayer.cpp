@@ -6,29 +6,32 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "threads/SystemClock.h"
 #include "PlayListPlayer.h"
+
 #include "Application.h"
-#include "PartyModeManager.h"
-#include "settings/AdvancedSettings.h"
-#include "settings/SettingsComponent.h"
 #include "GUIUserMessages.h"
+#include "PartyModeManager.h"
+#include "ServiceBroker.h"
+#include "URL.h"
+#include "dialogs/GUIDialogKaiToast.h"
+#include "filesystem/PluginDirectory.h"
+#include "filesystem/VideoDatabaseFile.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
-#include "playlists/PlayList.h"
-#include "utils/log.h"
-#include "utils/StringUtils.h"
-#include "utils/Variant.h"
-#include "music/tags/MusicInfoTag.h"
-#include "dialogs/GUIDialogKaiToast.h"
 #include "guilib/LocalizeStrings.h"
-#include "interfaces/AnnouncementManager.h"
 #include "input/Key.h"
-#include "URL.h"
+#include "interfaces/AnnouncementManager.h"
 #include "messaging/ApplicationMessenger.h"
-#include "filesystem/VideoDatabaseFile.h"
 #include "messaging/helpers/DialogOKHelper.h"
-#include "ServiceBroker.h"
+#include "music/tags/MusicInfoTag.h"
+#include "playlists/PlayList.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
+#include "threads/SystemClock.h"
+#include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
+#include "utils/Variant.h"
+#include "utils/log.h"
 
 using namespace PLAYLIST;
 using namespace KODI::MESSAGING;
@@ -306,7 +309,7 @@ bool CPlayListPlayer::Play(int iSong, std::string player, bool bAutoPlay /* = fa
 
   unsigned int playAttempt = XbmcThreads::SystemClockMillis();
   bool ret = g_application.PlayFile(*item, player, bAutoPlay);
-  if (ret == false)
+  if (!ret)
   {
     CLog::Log(LOGERROR,"Playlist Player: skipping unplayable item: %i, path [%s]", m_iCurrentSong, CURL::GetRedacted(item->GetPath()).c_str());
     playlist.SetUnPlayable(m_iCurrentSong);
@@ -892,6 +895,13 @@ void PLAYLIST::CPlayListPlayer::OnApplicationMessage(KODI::MESSAGING::ThreadMess
         if (list->Size() == 1 && !(*list)[0]->IsPlayList())
         {
           CFileItemPtr item = (*list)[0];
+          // if the item is a plugin we need to resolve the URL to ensure the infotags are filled.
+          // resolve only for a maximum of 5 times to avoid deadlocks (plugin:// paths can resolve to plugin:// paths)
+          for (int i = 0; URIUtils::IsPlugin(item->GetDynPath()) && i < 5; ++i)
+          {
+            if (!XFILE::CPluginDirectory::GetPluginResult(item->GetDynPath(), *item, true))
+              return;
+          }
           if (item->IsAudio() || item->IsVideo())
             Play(item, pMsg->strParam);
           else

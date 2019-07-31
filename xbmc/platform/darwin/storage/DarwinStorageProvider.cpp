@@ -17,7 +17,6 @@
 #include <DiskArbitration/DiskArbitration.h>
 #include <IOKit/storage/IOCDMedia.h>
 #include <IOKit/storage/IODVDMedia.h>
-#include "platform/darwin/DarwinUtils.h"
 #include "platform/darwin/osx/CocoaInterface.h"
 #endif
 
@@ -39,7 +38,7 @@ void CDarwinStorageProvider::GetLocalDrives(VECSOURCES &localDrives)
   CMediaSource share;
 
   // User home folder
-  #ifdef TARGET_DARWIN_IOS
+  #ifdef TARGET_DARWIN_EMBEDDED
     share.strPath = "special://envhome/";
   #else
     share.strPath = getenv("HOME");
@@ -170,7 +169,7 @@ std::vector<std::string> CDarwinStorageProvider::GetDiskUsage()
   std::vector<std::string> result;
   char line[1024];
 
-#ifdef TARGET_DARWIN_IOS
+#ifdef TARGET_DARWIN_EMBEDDED
   FILE* pipe = popen("df -ht hfs,apfs", "r");
 #else
   FILE* pipe = popen("df -HT ufs,cd9660,hfs,apfs,udf", "r");

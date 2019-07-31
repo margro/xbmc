@@ -7,15 +7,16 @@
  */
 
 #include "GUIIncludes.h"
-#include "addons/Skin.h"
+
 #include "GUIInfoManager.h"
-#include "guilib/guiinfo/GUIInfoLabel.h"
+#include "addons/Skin.h"
 #include "guilib/GUIComponent.h"
-#include "utils/log.h"
+#include "guilib/guiinfo/GUIInfoLabel.h"
+#include "interfaces/info/SkinVariable.h"
+#include "utils/StringUtils.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
-#include "utils/StringUtils.h"
-#include "interfaces/info/SkinVariable.h"
+#include "utils/log.h"
 
 using namespace KODI::GUILIB;
 
@@ -658,11 +659,11 @@ CGUIIncludes::ResolveParamsResult CGUIIncludes::ResolveParameters(const std::str
 std::string CGUIIncludes::ResolveConstant(const std::string &constant) const
 {
   std::vector<std::string> values = StringUtils::Split(constant, ",");
-  for (std::vector<std::string>::iterator i = values.begin(); i != values.end(); ++i)
+  for (auto& i : values)
   {
-    std::map<std::string, std::string>::const_iterator it = m_constants.find(*i);
+    std::map<std::string, std::string>::const_iterator it = m_constants.find(i);
     if (it != m_constants.end())
-      *i = it->second;
+      i = it->second;
   }
   return StringUtils::Join(values, ",");
 }

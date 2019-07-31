@@ -6,23 +6,20 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <sstream>
-
 #include "ActiveAESink.h"
-#include "cores/AudioEngine/Utils/AEUtil.h"
-#include "cores/AudioEngine/Utils/AEStreamInfo.h"
-#include "cores/AudioEngine/Utils/AEBitstreamPacker.h"
-#include "utils/EndianSwap.h"
+
 #include "ActiveAE.h"
 #include "cores/AudioEngine/AEResampleFactory.h"
+#include "cores/AudioEngine/Utils/AEBitstreamPacker.h"
+#include "cores/AudioEngine/Utils/AEStreamInfo.h"
+#include "cores/AudioEngine/Utils/AEUtil.h"
+#include "utils/EndianSwap.h"
+#include "utils/MemUtils.h"
 #include "utils/log.h"
 
-#include <new> // for std::bad_alloc
 #include <algorithm>
-
-#ifdef TARGET_POSIX
-#include "platform/linux/XMemUtils.h"
-#endif
+#include <new> // for std::bad_alloc
+#include <sstream>
 
 using namespace AE;
 using namespace ActiveAE;
@@ -172,10 +169,7 @@ bool CActiveAESink::SupportsFormat(const std::string &device, AEAudioFormat &for
           {
             AESampleRateList::iterator itt4;
             itt4 = find(info.m_sampleRates.begin(), info.m_sampleRates.end(), samplerate);
-            if (itt4 != info.m_sampleRates.end())
-              return true;
-            else
-              return false;
+            return itt4 != info.m_sampleRates.end();
           }
           else // format is not existent
           {
@@ -1060,7 +1054,7 @@ void CActiveAESink::GenerateNoise()
   nb_floats *= m_sampleOfSilence.pkt->config.channels;
   size_t size = nb_floats*sizeof(float);
 
-  float *noise = (float*)_aligned_malloc(size, 32);
+  float *noise = static_cast<float*>(KODI::MEMORY::AlignedMalloc(size, 32));
   if (!noise)
     throw std::bad_alloc();
 
@@ -1106,7 +1100,7 @@ void CActiveAESink::GenerateNoise()
   resampler->Resample(m_sampleOfSilence.pkt->data, m_sampleOfSilence.pkt->max_nb_samples,
                      (uint8_t**)&noise, m_sampleOfSilence.pkt->max_nb_samples, 1.0);
 
-  _aligned_free(noise);
+  KODI::MEMORY::AlignedFree(noise);
   delete resampler;
 }
 

@@ -10,19 +10,22 @@
 
 #include "ServiceBroker.h"
 #include "guilib/LocalizeStrings.h"
+#include "pvr/PVRGUIProgressHandler.h"
+#include "pvr/PVRManager.h"
+#include "pvr/epg/Epg.h"
+#include "pvr/epg/EpgChannelData.h"
+#include "pvr/epg/EpgContainer.h"
+#include "pvr/epg/EpgDatabase.h"
+#include "pvr/epg/EpgInfoTag.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
-#include "settings/lib/Setting.h"
 #include "threads/SingleLock.h"
-#include "threads/SystemClock.h"
 #include "utils/log.h"
 
-#include "pvr/PVRManager.h"
-#include "pvr/PVRGUIProgressHandler.h"
-#include "pvr/epg/Epg.h"
-#include "pvr/epg/EpgChannelData.h"
-#include "pvr/epg/EpgSearchFilter.h"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace PVR
 {
@@ -862,13 +865,13 @@ int CPVREpgContainer::GetFutureDaysToDisplay() const
   return m_settings.GetIntValue(CSettings::SETTING_EPG_FUTURE_DAYSTODISPLAY);
 }
 
-void CPVREpgContainer::OnPlaybackStarted(const CFileItemPtr &item)
+void CPVREpgContainer::OnPlaybackStarted()
 {
   CSingleLock lock(m_critSection);
   m_bPlaying = true;
 }
 
-void CPVREpgContainer::OnPlaybackStopped(const CFileItemPtr &item)
+void CPVREpgContainer::OnPlaybackStopped()
 {
   CSingleLock lock(m_critSection);
   m_bPlaying = false;

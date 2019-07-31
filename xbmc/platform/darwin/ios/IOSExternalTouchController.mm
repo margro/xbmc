@@ -6,13 +6,13 @@
  *  See LICENSES/README.md for more information.
  */
 
+#import "IOSExternalTouchController.h"
+
+#include "Util.h"
+#import "XBMCController.h"
 #include "filesystem/SpecialProtocol.h"
 #include "guilib/LocalizeStrings.h"
 #include "input/mouse/MouseStat.h"
-#include "Util.h"
-
-#import "IOSExternalTouchController.h"
-#import "XBMCController.h"
 
 //dim the touchscreen after 15 secs without touch event
 const CGFloat touchScreenDimTimeoutSecs       = 15.0;
@@ -101,6 +101,11 @@ const CGFloat timeFadeSecs                    = 2.0;
     [self startSleepTimer];//will fade from black too
   }
   return self;
+}
+//--------------------------------------------------------------
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations
+{
+  return UIInterfaceOrientationMaskLandscape;
 }
 //--------------------------------------------------------------
 - (void)startSleepTimer

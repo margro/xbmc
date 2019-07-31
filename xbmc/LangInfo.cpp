@@ -8,31 +8,31 @@
 
 #include "LangInfo.h"
 
-#include <stdexcept>
-#include <algorithm>
-
+#include "Application.h"
+#include "ServiceBroker.h"
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
 #include "addons/LanguageResource.h"
 #include "addons/RepositoryUpdater.h"
-#include "Application.h"
-#include "ServiceBroker.h"
 #include "guilib/LocalizeStrings.h"
 #include "messaging/ApplicationMessenger.h"
 #include "pvr/PVRManager.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingDefinitions.h"
-#include "settings/Settings.h"
 #include "utils/CharsetConverter.h"
 #include "utils/LangCodeExpander.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
+#include "utils/log.h"
 #include "weather/WeatherManager.h"
+
+#include <algorithm>
+#include <stdexcept>
 
 using namespace PVR;
 using namespace KODI::MESSAGING;
@@ -1051,19 +1051,13 @@ std::set<std::string> CLangInfo::GetSortTokens() const
 bool CLangInfo::DetermineUse24HourClockFromTimeFormat(const std::string& timeFormat)
 {
   // if the time format contains a "h" it's 12-hour and otherwise 24-hour clock format
-  if (timeFormat.find("h") != std::string::npos)
-    return false;
-
-  return true;
+  return timeFormat.find("h") == std::string::npos;
 }
 
 bool CLangInfo::DetermineUseMeridiemFromTimeFormat(const std::string& timeFormat)
 {
   // if the time format contains "xx" it's using meridiem
-  if (timeFormat.find("xx") != std::string::npos)
-    return true;
-
-  return false;
+  return timeFormat.find("xx") != std::string::npos;
 }
 
 std::string CLangInfo::PrepareTimeFormat(const std::string& timeFormat, bool use24HourClock)

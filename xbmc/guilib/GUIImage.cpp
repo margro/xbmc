@@ -7,6 +7,7 @@
  */
 
 #include "GUIImage.h"
+
 #include "GUIMessage.h"
 #include "utils/log.h"
 
@@ -162,8 +163,8 @@ void CGUIImage::Render()
 {
   if (!IsVisible()) return;
 
-  for (std::vector<CFadingTexture *>::iterator itr = m_fadingTextures.begin(); itr != m_fadingTextures.end(); ++itr)
-    (*itr)->m_texture->Render();
+  for (auto& itr : m_fadingTextures)
+    itr->m_texture->Render();
 
   m_texture.Render();
 
@@ -285,8 +286,8 @@ CRect CGUIImage::CalcRenderRegion() const
 {
   CRect region = m_texture.GetRenderRect();
 
-  for (std::vector<CFadingTexture *>::const_iterator itr = m_fadingTextures.begin(); itr != m_fadingTextures.end(); ++itr)
-    region.Union( (*itr)->m_texture->GetRenderRect() );
+  for (const auto& itr : m_fadingTextures)
+    region.Union(itr->m_texture->GetRenderRect());
 
   return CGUIControl::CalcRenderRegion().Intersect(region);
 }

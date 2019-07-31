@@ -7,13 +7,14 @@
  */
 
 #include "Controller.h"
+
 #include "ControllerDefinitions.h"
 #include "ControllerLayout.h"
 #include "ControllerTopology.h"
-#include "utils/log.h"
+#include "URL.h"
 #include "utils/XBMCTinyXML.h"
 #include "utils/XMLUtils.h"
-#include "URL.h"
+#include "utils/log.h"
 
 #include <algorithm>
 
@@ -54,13 +55,8 @@ struct FeatureTypeEqual
 
 const ControllerPtr CController::EmptyPtr;
 
-std::unique_ptr<CController> CController::FromExtension(ADDON::CAddonInfo addonInfo, const cp_extension_t* ext)
-{
-  return std::unique_ptr<CController>(new CController(std::move(addonInfo)));
-}
-
-CController::CController(ADDON::CAddonInfo addonInfo) :
-  CAddon(std::move(addonInfo)),
+CController::CController(const ADDON::AddonInfoPtr& addonInfo) :
+  CAddon(addonInfo, ADDON::ADDON_GAME_CONTROLLER),
   m_layout(new CControllerLayout)
 {
 }

@@ -8,13 +8,14 @@
 
 #pragma once
 
-#include "system_gl.h"
 #include "GLShader.h"
 #include "rendering/RenderSystem.h"
 #include "utils/Color.h"
 
 #include <array>
 #include <memory>
+
+#include "system_gl.h"
 
 enum ESHADERMETHOD
 {
@@ -92,7 +93,6 @@ protected:
   bool m_bVsyncInit = false;
   int m_width;
   int m_height;
-  bool m_supportsNPOT = true;
 
   std::string m_RenderExtensions;
 

@@ -6,18 +6,22 @@
  *  See LICENSES/README.md for more information.
  */
 
+#include "WinSystemGbmGLContext.h"
+
+#include "OptionalsReg.h"
 #include "cores/RetroPlayer/process/gbm/RPProcessInfoGbm.h"
 #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererGBM.h"
 #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
-#include "EGL/egl.h"
-#include "EGL/eglext.h"
-#include "WinSystemGbmGLContext.h"
-#include "OptionalsReg.h"
-#include "platform/linux/XTimeUtils.h"
+#include "rendering/gl/ScreenshotSurfaceGL.h"
 #include "utils/log.h"
+
+#include "platform/posix/XTimeUtils.h"
+
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 using namespace KODI::WINDOWING::GBM;
 
@@ -53,6 +57,8 @@ bool CWinSystemGbmGLContext::InitWindowSystem()
   {
     VAAPIRegister(m_vaapiProxy.get(), deepColor);
   }
+
+  CScreenshotSurfaceGL::Register();
 
   return true;
 }

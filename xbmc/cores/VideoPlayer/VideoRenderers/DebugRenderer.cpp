@@ -8,6 +8,7 @@
 
 
 #include "DebugRenderer.h"
+
 #include "OverlayRendererGUI.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayText.h"
 #include "windowing/GraphicContext.h"
@@ -109,7 +110,7 @@ void CDebugRenderer::CRenderer::Render(int idx)
 
     COverlayText *text = dynamic_cast<COverlayText*>(o);
     if (text)
-      text->PrepareRender("arial.ttf", 1, 16, 0, m_font, m_fontBorder, UTILS::COLOR::NONE, m_rv);
+      text->PrepareRender("arial.ttf", 1, 100, 16, 0, m_font, m_fontBorder, UTILS::COLOR::NONE, m_rv);
 
     RESOLUTION_INFO res = CServiceBroker::GetWinSystem()->GetGfxContext().GetResInfo(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution());
 

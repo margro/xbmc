@@ -7,12 +7,12 @@
  */
 
 #include "BinaryAddonManager.h"
-#include "BinaryAddonBase.h"
 
+#include "BinaryAddonBase.h"
 #include "ServiceBroker.h"
 #include "addons/AddonManager.h"
-#include "filesystem/SpecialProtocol.h"
 #include "filesystem/Directory.h"
+#include "filesystem/SpecialProtocol.h"
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 
@@ -219,17 +219,17 @@ void CBinaryAddonManager::InstalledChangeEvent()
   BinaryAddonMgrBaseList deletedAddons = m_installedAddons;
   for (auto addon : binaryAddonList)
   {
-    auto knownAddon = m_installedAddons.find(addon.second.ID());
+    auto knownAddon = m_installedAddons.find(addon.second->ID());
     if (knownAddon == m_installedAddons.end())
     {
-      CLog::Log(LOGDEBUG, "CBinaryAddonManager::%s: Adding new binary addon '%s'", __FUNCTION__, addon.second.ID().c_str());
+      CLog::Log(LOGDEBUG, "CBinaryAddonManager::%s: Adding new binary addon '%s'", __FUNCTION__, addon.second->ID().c_str());
 
       if (!AddAddonBaseEntry(addon))
         continue;
     }
     else
     {
-      deletedAddons.erase(addon.second.ID());
+      deletedAddons.erase(addon.second->ID());
     }
   }
 

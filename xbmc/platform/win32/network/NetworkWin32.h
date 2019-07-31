@@ -8,14 +8,15 @@
 
 #pragma once
 
+#include "network/Network.h"
+#include "threads/CriticalSection.h"
+#include "utils/stopwatch.h"
+
 #include <string>
 #include <vector>
-#include "network/Network.h"
-#include "utils/stopwatch.h"
-#include "threads/CriticalSection.h"
 
-#include <ws2ipdef.h>
-#include <Iphlpapi.h>
+#include <ws2ipdef.h> /* Microsoft can't write standalone headers */
+#include <Iphlpapi.h> /* Microsoft can't write standalone headers */
 
 class CNetworkWin32;
 
@@ -25,11 +26,8 @@ public:
    CNetworkInterfaceWin32(const IP_ADAPTER_ADDRESSES& adapter);
    ~CNetworkInterfaceWin32(void) override;
 
-   const std::string& GetName(void) const override;
-
    bool IsEnabled(void) const override;
    bool IsConnected(void) const override;
-   bool IsWireless(void) const;
 
    std::string GetMacAddress(void) const override;
    void GetMacAddressRaw(char rawMac[6]) const override;
@@ -40,17 +38,9 @@ public:
    std::string GetCurrentIPAddress() const override;
    std::string GetCurrentNetmask() const override;
    std::string GetCurrentDefaultGateway(void) const override;
-   std::string GetCurrentWirelessEssId(void) const override;
-
-   void GetSettings(NetworkAssignment& assignment, std::string& ipAddress, std::string& networkMask, std::string& defaultGateway, std::string& essId, std::string& key, EncMode& encryptionMode) const override;
-   void SetSettings(const NetworkAssignment& assignment, const std::string& ipAddress, const std::string& networkMask, const std::string& defaultGateway, const std::string& essId, const std::string& key, const EncMode& encryptionMode) override;
-
-   // Returns the list of access points in the area
-   std::vector<NetworkAccessPoint> GetAccessPoints(void) const override;
 
 private:
    IP_ADAPTER_ADDRESSES m_adapter;
-   std::string m_adaptername;
 };
 
 class CNetworkWin32 : public CNetworkBase

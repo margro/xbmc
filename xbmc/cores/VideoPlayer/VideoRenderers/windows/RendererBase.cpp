@@ -7,13 +7,15 @@
  */
 
 #include "RendererBase.h"
+
 #include "DVDCodecs/Video/DVDVideoCodec.h"
 #include "DVDCodecs/Video/DXVA.h"
 #include "Process/VideoBuffer.h"
-#include "rendering/dx/RenderContext.h"
-#include "utils/log.h"
-#include "VideoRenderers/RenderFlags.h"
 #include "VideoRenderers/BaseRenderer.h"
+#include "VideoRenderers/RenderFlags.h"
+#include "rendering/dx/RenderContext.h"
+#include "utils/MemUtils.h"
+#include "utils/log.h"
 #include "windowing/GraphicContext.h"
 
 using namespace Microsoft::WRL;
@@ -123,6 +125,7 @@ void CRenderBuffer::QueueCopyFromGPU()
 CRendererBase::CRendererBase(CVideoSettings& videoSettings)
   : m_videoSettings(videoSettings)
 {
+  m_colorManager.reset(new CColorManager());
 }
 
 CRendererBase::~CRendererBase()
@@ -322,7 +325,7 @@ void CRendererBase::OnCMSConfigChanged(unsigned flags)
     if (!CColorManager::Get3dLutSize(CMS_DATA_FMT_RGBA, &lutSize, &dataSize))
       return 0;
 
-    const auto lutData = static_cast<uint16_t*>(_aligned_malloc(dataSize, 16));
+    const auto lutData = static_cast<uint16_t*>(KODI::MEMORY::AlignedMalloc(dataSize, 16));
     bool success = m_colorManager->GetVideo3dLut(flags, &m_cmsToken, CMS_DATA_FMT_RGBA, lutSize, lutData);
     if (success)
     {
@@ -331,7 +334,7 @@ void CRendererBase::OnCMSConfigChanged(unsigned flags)
     else
       CLog::LogFunction(LOGERROR, "CRendererBase::OnCMSConfigChanged", "unable to loading the 3dlut data.");
 
-    _aligned_free(lutData);
+    KODI::MEMORY::AlignedFree(lutData);
     if (!success)
       return 0;
 

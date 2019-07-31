@@ -23,7 +23,7 @@
 #include "utils/CharsetConverter.h"
 #endif
 #ifdef TARGET_POSIX
-#include "platform/linux/XTimeUtils.h"
+#include "platform/posix/XTimeUtils.h"
 #endif
 #include "utils/StringUtils.h"
 
@@ -84,45 +84,6 @@ bool in_ether (const char *bufp, unsigned char *addr)
     return false;
 
   return true;
-}
-
-int NetworkAccessPoint::getQuality() const
-{
-  // Cisco dBm lookup table (partially nonlinear)
-  // Source: "Converting Signal Strength Percentage to dBm Values, 2002"
-  int quality;
-  if (m_dBm >= -10) quality = 100;
-  else if (m_dBm >= -20) quality = 85 + (m_dBm + 20);
-  else if (m_dBm >= -30) quality = 77 + (m_dBm + 30);
-  else if (m_dBm >= -60) quality = 48 + (m_dBm + 60);
-  else if (m_dBm >= -98) quality = 13 + (m_dBm + 98);
-  else if (m_dBm >= -112) quality = 1 + (m_dBm + 112);
-  else quality = 0;
-  return quality;
-}
-
-int NetworkAccessPoint::FreqToChannel(float frequency)
-{
-  int IEEE80211Freq[] = {2412, 2417, 2422, 2427, 2432,
-                         2437, 2442, 2447, 2452, 2457,
-                         2462, 2467, 2472, 2484,
-                         5180, 5200, 5210, 5220, 5240, 5250,
-                         5260, 5280, 5290, 5300, 5320,
-                         5745, 5760, 5765, 5785, 5800, 5805, 5825};
-  int IEEE80211Ch[] =   {   1,    2,    3,    4,    5,
-                            6,    7,    8,    9,   10,
-                           11,   12,   13,   14,
-                           36,   40,   42,   44,   48,   50,
-                           52,   56,   58,   60,   64,
-                          149,  152,  153,  157,  160,  161,  165};
-  // Round frequency to the nearest MHz
-  int mod_chan = (int)(frequency / 1000000 + 0.5f);
-  for (unsigned int i = 0; i < sizeof(IEEE80211Freq) / sizeof(int); ++i)
-  {
-    if (IEEE80211Freq[i] == mod_chan)
-      return IEEE80211Ch[i];
-  }
-  return 0; // unknown
 }
 
 CNetworkBase::CNetworkBase() :
@@ -202,17 +163,19 @@ bool CNetworkBase::IsLocalHost(const std::string& hostname)
 
 CNetworkInterface* CNetworkBase::GetFirstConnectedInterface()
 {
-   std::vector<CNetworkInterface*>& ifaces = GetInterfaceList();
-   std::vector<CNetworkInterface*>::const_iterator iter = ifaces.begin();
-   while (iter != ifaces.end())
-   {
-      CNetworkInterface* iface = *iter;
-      if (iface && iface->IsConnected())
-         return iface;
-      ++iter;
-   }
+  CNetworkInterface* fallbackInterface = nullptr;
+  for (CNetworkInterface* iface : GetInterfaceList())
+  {
+    if (iface && iface->IsConnected())
+    {
+      if (!iface->GetCurrentDefaultGateway().empty())
+        return iface;
+      else if (fallbackInterface == nullptr)
+        fallbackInterface = iface;
+    }
+  }
 
-   return NULL;
+  return fallbackInterface;
 }
 
 bool CNetworkBase::HasInterfaceForIP(unsigned long address)
@@ -246,21 +209,6 @@ bool CNetworkBase::IsAvailable(void)
 bool CNetworkBase::IsConnected()
 {
    return GetFirstConnectedInterface() != NULL;
-}
-
-CNetworkInterface* CNetworkBase::GetInterfaceByName(const std::string& name)
-{
-   std::vector<CNetworkInterface*>& ifaces = GetInterfaceList();
-   std::vector<CNetworkInterface*>::const_iterator iter = ifaces.begin();
-   while (iter != ifaces.end())
-   {
-      CNetworkInterface* iface = *iter;
-      if (iface && iface->GetName() == name)
-         return iface;
-      ++iter;
-   }
-
-   return NULL;
 }
 
 void CNetworkBase::NetworkMessage(EMESSAGE message, int param)

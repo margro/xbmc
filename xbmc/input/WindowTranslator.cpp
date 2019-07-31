@@ -7,13 +7,14 @@
  */
 
 #include "WindowTranslator.h"
+
 #include "Application.h"
+#include "ServiceBroker.h"
 #include "guilib/WindowIDs.h"
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
-#include "ServiceBroker.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/log.h"
 
 #include <algorithm>
 #include <cstring>
@@ -103,7 +104,6 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "busydialog"               , WINDOW_DIALOG_BUSY },
     { "busydialognocancel"       , WINDOW_DIALOG_BUSY_NOCANCEL },
     { "pictureinfo"              , WINDOW_DIALOG_PICTURE_INFO },
-    { "accesspoints"             , WINDOW_DIALOG_ACCESS_POINTS },
     { "fullscreeninfo"           , WINDOW_DIALOG_FULLSCREEN_INFO },
     { "sliderdialog"             , WINDOW_DIALOG_SLIDER },
     { "addoninformation"         , WINDOW_DIALOG_ADDON_INFO },

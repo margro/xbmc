@@ -8,26 +8,22 @@
 
 #pragma once
 
+#include "XBDateTime.h"
+#include "pvr/PVRSettings.h"
+#include "pvr/PVRTypes.h"
+#include "threads/Thread.h"
+#include "utils/Observer.h"
+
 #include <map>
 #include <memory>
 #include <queue>
 #include <vector>
 
-#include "XBDateTime.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
-#include "threads/Thread.h"
-#include "utils/Observer.h"
-
-#include "pvr/PVRSettings.h"
-#include "pvr/PVRTypes.h"
-#include "pvr/timers/PVRTimerInfoTag.h"
-
-class CFileItem;
-class CFileItemList;
-typedef std::shared_ptr<CFileItem> CFileItemPtr;
-
 namespace PVR
 {
+  enum class TimerOperationResult;
+
+  class CPVRTimerInfoTag;
   class CPVRTimersPath;
 
   class CPVRTimersContainer
@@ -121,9 +117,9 @@ namespace PVR
 
     /*!
      * Get all timers
-     * @param items The list to add the timers to
+     * @return The list of all timers
      */
-    void GetAll(CFileItemList& items) const;
+    std::vector<std::shared_ptr<CPVRTimerInfoTag>> GetAll() const;
 
     /*!
      * @return The amount of tv and radio timers that are active (states scheduled or recording)
@@ -190,14 +186,6 @@ namespace PVR
     int AmountActiveRadioRecordings(void) const;
 
     /*!
-     * @brief Get all timers for the given path.
-     * @param strPath The vfs path to get the timers for.
-     * @param items The results.
-     * @return True when the path was valid, false otherwise.
-     */
-    bool GetDirectory(const std::string& strPath, CFileItemList &items) const;
-
-    /*!
      * @brief Delete all timers on a channel.
      * @param channel The channel to delete the timers for.
      * @param bDeleteTimerRules True to delete timer rules too, false otherwise.
@@ -250,18 +238,11 @@ namespace PVR
     CPVRTimerInfoTagPtr GetTimerForEpgTag(const CPVREpgInfoTagPtr &epgTag) const;
 
     /*!
-     * Get the timer rule for a given timer tag
+     * @brief Get the timer rule for a given timer tag
      * @param timer The timer to query the timer rule for
      * @return The timer rule, or nullptr if none was found.
      */
     CPVRTimerInfoTagPtr GetTimerRule(const CPVRTimerInfoTagPtr &timer) const;
-
-    /*!
-     * Get the timer rule for a given timer tag
-     * @param item The timer to query the timer rule for
-     * @return The timer rule, or an empty fileitemptr if none was found.
-     */
-    CFileItemPtr GetTimerRule(const CFileItemPtr &item) const;
 
     /*!
      * @brief Update the channel pointers.
@@ -271,7 +252,7 @@ namespace PVR
     void Notify(const Observable &obs, const ObservableMessage msg) override;
 
     /*!
-     * Get a timer tag given it's unique ID
+     * @brief Get a timer tag given it's unique ID
      * @param iTimerId The ID to find
      * @return The tag, or an empty one when not found
      */
@@ -284,8 +265,6 @@ namespace PVR
     bool UpdateEntries(const CPVRTimersContainer &timers, const std::vector<int> &failedClients);
     bool UpdateEntries(int iMaxNotificationDelay);
     std::shared_ptr<CPVRTimerInfoTag> UpdateEntry(const std::shared_ptr<CPVRTimerInfoTag>& timer);
-    bool GetRootDirectory(const CPVRTimersPath &path, CFileItemList &items) const;
-    bool GetSubDirectory(const CPVRTimersPath &path, CFileItemList &items) const;
 
     bool AddLocalTimer(const std::shared_ptr<CPVRTimerInfoTag>& tag, bool bNotify);
     bool DeleteLocalTimer(const std::shared_ptr<CPVRTimerInfoTag>& tag, bool bNotify);

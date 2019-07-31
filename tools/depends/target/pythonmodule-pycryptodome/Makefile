@@ -16,7 +16,7 @@ CROSSFLAGS=PYTHONXCPREFIX="$(PREFIX)" CC="$(CC) $(CFLAGS)" LDSHARED="$(CC) -shar
 endif
 
 ifeq (darwin, $(findstring darwin, $(HOST)))
-ifeq ($(OS),ios)
+ifeq ($(OS),darwin_embedded)
 PYTHON_O=$(abs_top_srcdir)/target/python27/$(PLATFORM)/Modules/python.o
 endif
 #ensure that only our target ldflags are passed to the python build
@@ -37,11 +37,11 @@ $(TARBALLS_LOCATION)/$(ARCHIVE):
 $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	rm -rf $(PLATFORM)/*; mkdir -p $(PLATFORM)
 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
-	cd $(PLATFORM); patch -p0 < ../01-nosetuptool.patch
+	cd $(PLATFORM); patch -p1 -i ../01-nosetuptool.patch
 ifeq ($(OS),android)
-	cd $(PLATFORM); patch -p0 < ../02-android-dlopen.patch
+	cd $(PLATFORM); patch -p1 -i ../02-android-dlopen.patch
 endif
-	cd $(PLATFORM); patch -p0 < ../03-obey-crosscompileflags.patch
+	cd $(PLATFORM); patch -p1 -i ../03-obey-crosscompileflags.patch
 
 $(LIBDYLIB): $(PLATFORM)
 	mkdir -p $(PLATFORM)/output

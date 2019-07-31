@@ -8,29 +8,31 @@
 
 #include "GUIDialogPVRTimerSettings.h"
 
-#include "FileItem.h"
 #include "ServiceBroker.h"
-#include "addons/PVRClient.h"
 #include "dialogs/GUIDialogNumeric.h"
-#include "guilib/GUIWindowManager.h"
+#include "guilib/GUIMessage.h"
 #include "guilib/LocalizeStrings.h"
+#include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
+#include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroup.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/epg/EpgInfoTag.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
+#include "pvr/timers/PVRTimerType.h"
 #include "settings/SettingUtils.h"
+#include "settings/dialogs/GUIDialogSettingsBase.h"
 #include "settings/lib/Setting.h"
-#include "settings/lib/SettingDefinitions.h"
 #include "settings/lib/SettingsManager.h"
 #include "settings/windows/GUIControlSettings.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include "utils/log.h"
 
-#include "pvr/PVRManager.h"
-#include "pvr/PVRSettings.h"
-#include "pvr/addons/PVRClients.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/epg/EpgInfoTag.h"
-#include "pvr/timers/PVRTimerInfoTag.h"
-#include "pvr/timers/PVRTimerType.h"
-#include "pvr/timers/PVRTimers.h"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace PVR;
 
@@ -779,11 +781,11 @@ void CGUIDialogPVRTimerSettings::InitializeChannelsList()
   }
 
   // Add regular channels
-  CFileItemList channelsList;
-  CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_bIsRadio)->GetMembers(channelsList);
-  for (const auto& channelsEntry : channelsList)
+  const std::shared_ptr<CPVRChannelGroup> allGroup = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_bIsRadio);
+  const std::vector<PVRChannelGroupMember> groupMembers = allGroup->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE);
+  for (const auto& groupMember : groupMembers)
   {
-    const std::shared_ptr<CPVRChannel> channel = channelsEntry->GetPVRChannelInfoTag();
+    const std::shared_ptr<CPVRChannel> channel = groupMember.channel;
     const std::string channelDescription
       = StringUtils::Format("%s %s", channel->ChannelNumber().FormattedChannelNumber().c_str(), channel->ChannelName().c_str());
     m_channelEntries.insert({index, ChannelDescriptor(channel->UniqueID(), channel->ClientID(), channelDescription)});

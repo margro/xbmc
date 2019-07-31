@@ -6,22 +6,24 @@
  *  See LICENSES/README.md for more information.
  */
 
+#include "DRMUtils.h"
+
+#include "utils/StringUtils.h"
+#include "utils/log.h"
+#include "windowing/GraphicContext.h"
+
+#include "platform/posix/XTimeUtils.h"
+
 #include <errno.h>
-#include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <drm_mode.h>
+
 #include <EGL/egl.h>
+#include <drm_mode.h>
+#include <fcntl.h>
 #include <unistd.h>
-
-#include "platform/linux/XTimeUtils.h"
-#include "utils/log.h"
-#include "utils/StringUtils.h"
-#include "windowing/GraphicContext.h"
-
-#include "DRMUtils.h"
 
 using namespace KODI::WINDOWING::GBM;
 
@@ -595,9 +597,24 @@ bool CDRMUtils::InitDrm()
     auto ret = drmSetClientCap(m_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
     if (ret)
     {
-      CLog::Log(LOGERROR, "CDRMUtils::%s - failed to set Universal planes capability: %s", __FUNCTION__, strerror(errno));
+      CLog::Log(LOGERROR, "CDRMUtils::{} - failed to set universal planes capability: {}", __FUNCTION__, strerror(errno));
       return false;
     }
+
+    ret = drmSetClientCap(m_fd, DRM_CLIENT_CAP_STEREO_3D, 1);
+    if (ret)
+    {
+      CLog::Log(LOGERROR, "CDRMUtils::{} - failed to set stereo 3d capability: {}", __FUNCTION__, strerror(errno));
+      return false;
+    }
+
+#if defined(DRM_CLIENT_CAP_ASPECT_RATIO)
+    ret = drmSetClientCap(m_fd, DRM_CLIENT_CAP_ASPECT_RATIO, 0);
+    if (ret != 0)
+    {
+      CLog::Log(LOGERROR, "CDRMUtils::{} - aspect ratio capability is not supported: {}", __FUNCTION__, strerror(errno));
+    }
+#endif
 
     if(!GetResources())
     {

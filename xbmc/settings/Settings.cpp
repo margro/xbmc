@@ -20,22 +20,19 @@
 #include "GUIPassword.h"
 #include "input/KeyboardLayoutManager.h"
 #if defined(TARGET_POSIX)
-#include "platform/linux/LinuxTimezone.h"
+#include "platform/posix/PosixTimezone.h"
 #endif // defined(TARGET_POSIX)
 #include "network/upnp/UPnPSettings.h"
 #include "network/WakeOnAccess.h"
 #if defined(TARGET_DARWIN_OSX)
 #include "platform/darwin/osx/XBMCHelper.h"
 #endif // defined(TARGET_DARWIN_OSX)
-#if defined(TARGET_DARWIN_IOS)
+#if defined(TARGET_DARWIN_EMBEDDED)
 #include "SettingAddon.h"
 #endif
 #if defined(TARGET_RASPBERRY_PI)
 #include "platform/linux/RBP.h"
 #endif
-#if defined(HAS_LIBAMCODEC)
-#include "utils/AMLUtils.h"
-#endif // defined(HAS_LIBAMCODEC)
 #include "powermanagement/PowerTypes.h"
 #include "profiles/ProfileManager.h"
 #include "ServiceBroker.h"
@@ -132,10 +129,6 @@ const std::string CSettings::SETTING_VIDEOPLAYER_STEREOSCOPICPLAYBACKMODE = "vid
 const std::string CSettings::SETTING_VIDEOPLAYER_QUITSTEREOMODEONSTOP = "videoplayer.quitstereomodeonstop";
 const std::string CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD = "videoplayer.rendermethod";
 const std::string CSettings::SETTING_VIDEOPLAYER_HQSCALERS = "videoplayer.hqscalers";
-const std::string CSettings::SETTING_VIDEOPLAYER_USEAMCODEC = "videoplayer.useamcodec";
-const std::string CSettings::SETTING_VIDEOPLAYER_USEAMCODECMPEG2 = "videoplayer.useamcodecmpeg2";
-const std::string CSettings::SETTING_VIDEOPLAYER_USEAMCODECMPEG4 = "videoplayer.useamcodecmpeg4";
-const std::string CSettings::SETTING_VIDEOPLAYER_USEAMCODECH264 = "videoplayer.useamcodech264";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEMEDIACODEC = "videoplayer.usemediacodec";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEMEDIACODECSURFACE = "videoplayer.usemediacodecsurface";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEVDPAU = "videoplayer.usevdpau";
@@ -220,6 +213,8 @@ const std::string CSettings::SETTING_PVRRECORD_MARGINSTART = "pvrrecord.marginst
 const std::string CSettings::SETTING_PVRRECORD_MARGINEND = "pvrrecord.marginend";
 const std::string CSettings::SETTING_PVRRECORD_TIMERNOTIFICATIONS = "pvrrecord.timernotifications";
 const std::string CSettings::SETTING_PVRRECORD_GROUPRECORDINGS = "pvrrecord.grouprecordings";
+const std::string CSettings::SETTING_PVRREMINDERS_AUTOCLOSEDELAY = "pvrreminders.autoclosedelay";
+const std::string CSettings::SETTING_PVRREMINDERS_AUTORECORD = "pvrreminders.autorecord";
 const std::string CSettings::SETTING_PVRPOWERMANAGEMENT_ENABLED = "pvrpowermanagement.enabled";
 const std::string CSettings::SETTING_PVRPOWERMANAGEMENT_BACKENDIDLETIME = "pvrpowermanagement.backendidletime";
 const std::string CSettings::SETTING_PVRPOWERMANAGEMENT_SETWAKEUPCMD = "pvrpowermanagement.setwakeupcmd";
@@ -534,10 +529,6 @@ bool CSettings::InitializeDefinitions()
 #elif defined(TARGET_ANDROID)
   if (CFile::Exists(SETTINGS_XML_FOLDER "android.xml") && !Initialize(SETTINGS_XML_FOLDER "android.xml"))
     CLog::Log(LOGFATAL, "Unable to load android-specific settings definitions");
-#if defined(HAS_LIBAMCODEC)
-  if (aml_present() && CFile::Exists(SETTINGS_XML_FOLDER "aml-android.xml") && !Initialize(SETTINGS_XML_FOLDER "aml-android.xml"))
-    CLog::Log(LOGFATAL, "Unable to load aml-android-specific settings definitions");
-#endif // defined(HAS_LIBAMCODEC)
 #elif defined(TARGET_RASPBERRY_PI)
   if (CFile::Exists(SETTINGS_XML_FOLDER "rbp.xml") && !Initialize(SETTINGS_XML_FOLDER "rbp.xml"))
     CLog::Log(LOGFATAL, "Unable to load rbp-specific settings definitions");
@@ -549,10 +540,6 @@ bool CSettings::InitializeDefinitions()
 #elif defined(TARGET_LINUX)
   if (CFile::Exists(SETTINGS_XML_FOLDER "linux.xml") && !Initialize(SETTINGS_XML_FOLDER "linux.xml"))
     CLog::Log(LOGFATAL, "Unable to load linux-specific settings definitions");
-#if defined(HAS_LIBAMCODEC)
-  if (aml_present() && CFile::Exists(SETTINGS_XML_FOLDER "aml-linux.xml") && !Initialize(SETTINGS_XML_FOLDER "aml-linux.xml"))
-    CLog::Log(LOGFATAL, "Unable to load aml-linux-specific settings definitions");
-#endif // defined(HAS_LIBAMCODEC)
 #elif defined(TARGET_DARWIN)
   if (CFile::Exists(SETTINGS_XML_FOLDER "darwin.xml") && !Initialize(SETTINGS_XML_FOLDER "darwin.xml"))
     CLog::Log(LOGFATAL, "Unable to load darwin-specific settings definitions");
@@ -604,7 +591,7 @@ void CSettings::InitializeControls()
 void CSettings::InitializeVisibility()
 {
   // hide some settings if necessary
-#if defined(TARGET_DARWIN_IOS)
+#if defined(TARGET_DARWIN_EMBEDDED)
   std::shared_ptr<CSettingString> timezonecountry = std::static_pointer_cast<CSettingString>(GetSettingsManager()->GetSetting(CSettings::SETTING_LOCALE_TIMEZONECOUNTRY));
   std::shared_ptr<CSettingString> timezone = std::static_pointer_cast<CSettingString>(GetSettingsManager()->GetSetting(CSettings::SETTING_LOCALE_TIMEZONE));
 
@@ -686,8 +673,8 @@ void CSettings::InitializeOptionFillers()
   GetSettingsManager()->RegisterSettingOptionsFiller("skinfonts", ADDON::CSkinInfo::SettingOptionsSkinFontsFiller);
   GetSettingsManager()->RegisterSettingOptionsFiller("skinthemes", ADDON::CSkinInfo::SettingOptionsSkinThemesFiller);
 #ifdef TARGET_LINUX
-  GetSettingsManager()->RegisterSettingOptionsFiller("timezonecountries", CLinuxTimezone::SettingOptionsTimezoneCountriesFiller);
-  GetSettingsManager()->RegisterSettingOptionsFiller("timezones", CLinuxTimezone::SettingOptionsTimezonesFiller);
+  GetSettingsManager()->RegisterSettingOptionsFiller("timezonecountries", CPosixTimezone::SettingOptionsTimezoneCountriesFiller);
+  GetSettingsManager()->RegisterSettingOptionsFiller("timezones", CPosixTimezone::SettingOptionsTimezonesFiller);
 #endif
   GetSettingsManager()->RegisterSettingOptionsFiller("keyboardlayouts", CKeyboardLayoutManager::SettingOptionsKeyboardLayoutsFiller);
 }
@@ -867,7 +854,6 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert(CSettings::SETTING_AUDIOCDS_SETTINGS);
   settingSet.insert(CSettings::SETTING_VIDEOSCREEN_GUICALIBRATION);
   settingSet.insert(CSettings::SETTING_VIDEOSCREEN_TESTPATTERN);
-  settingSet.insert(CSettings::SETTING_VIDEOPLAYER_USEAMCODEC);
   settingSet.insert(CSettings::SETTING_VIDEOPLAYER_USEMEDIACODEC);
   settingSet.insert(CSettings::SETTING_VIDEOPLAYER_USEMEDIACODECSURFACE);
   settingSet.insert(CSettings::SETTING_AUDIOOUTPUT_VOLUMESTEPS);

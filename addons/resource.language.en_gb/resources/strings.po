@@ -3398,7 +3398,11 @@ msgctxt "#751"
 msgid "Removing source"
 msgstr ""
 
-#empty strings from id 752 to 753
+msgctxt "#752"
+msgid "Opacity"
+msgstr ""
+
+#empty string with id 753
 
 msgctxt "#754"
 msgid "Add program link"
@@ -3454,8 +3458,12 @@ msgctxt "#767"
 msgid "Grey"
 msgstr ""
 
-#empty strings from id 768 to 769
-#strings 768 and 769 reserved for more subtitle colours
+msgctxt "#768"
+msgid "Dark Grey"
+msgstr ""
+
+#empty string id 769
+#string 769 reserved for more subtitle colours
 
 msgctxt "#770"
 msgid "Error {0:d}: share not available"
@@ -3477,76 +3485,7 @@ msgctxt "#774"
 msgid "Slideshow folder"
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#775"
-msgid "Network interface"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#776"
-msgid "Wireless network name (ESSID)"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#777"
-msgid "Wireless password"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#778"
-msgid "Wireless security"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#779"
-msgid "Save and apply network interface settings"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#780"
-msgid "No encryption"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#781"
-msgid "WEP"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#782"
-msgid "WPA"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#783"
-msgid "WPA2"
-msgstr ""
-
-msgctxt "#784"
-msgid "Applying network interface settings. Please wait."
-msgstr ""
-
-msgctxt "#785"
-msgid "Network interface restarted successfully."
-msgstr ""
-
-msgctxt "#786"
-msgid "Network interface did not start successfully."
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#787"
-msgid "Interface disabled"
-msgstr ""
-
-msgctxt "#788"
-msgid "Network interface disabled successfully."
-msgstr ""
-
-#: xbmc/network/GUIDialogAccessPoints.cpp
-msgctxt "#789"
-msgid "Wireless network name (ESSID)"
-msgstr ""
+#empty strings from id 775 to 789
 
 #: system/settings/settings.xml
 msgctxt "#790"
@@ -4114,10 +4053,7 @@ msgctxt "#1046"
 msgid "Access points"
 msgstr ""
 
-#: xbmc/network/GUIDialogAccessPoints.cpp
-msgctxt "#1047"
-msgid "Other..."
-msgstr ""
+#empty string with id 1047
 
 #: system/settings/settings.xml
 msgctxt "#1048"
@@ -7146,10 +7082,7 @@ msgctxt "#13437"
 msgid "Prefer VDPAU video mixer"
 msgstr ""
 
-#: system/settings/settings.xml
-msgctxt "#13438"
-msgid "Allow hardware acceleration - amcodec"
-msgstr ""
+#empty string with id 13438
 
 #: system/settings/settings.xml
 msgctxt "#13439"
@@ -9204,7 +9137,7 @@ msgstr ""
 #: addons/skin.estuary/xml/Home.xml
 #: addons/skin.estuary/xml/Variables.xml
 #: xbmc/dialogs/GUIDialogMediaSource.cpp
-#: xbmc/filesystem/PVRDirectory.cpp
+#: xbmc/pvr/PVRGUIDirectory.cpp
 msgctxt "#19017"
 msgid "Recordings"
 msgstr ""
@@ -9221,6 +9154,7 @@ msgstr ""
 #: addons/skin.estuary/xml/DialogPVRChannelsOSD.xml
 #: addons/skin.estuary/xml/Variables.xml
 #: addons/skin.estuary/xml/Home.xml
+#: xbmc/pvr/PVRGUIDirectory.cpp
 #: xbmc/windows/GUIWindowSystemInfo.cpp
 msgctxt "#19019"
 msgid "Channels"
@@ -9230,8 +9164,8 @@ msgstr ""
 #: addons/skin.estuary/xml/Home.xml
 #: addons/skin.estuary/xml/SkinSettings.xml:
 #: addons/skin.estuary/xml/Variables.xml
-#: xbmc/pvr/channels/PVRChannelGroupsContainer.cpp
 #: xbmc/pvr/PVRGUIActions.cpp
+#: xbmc/pvr/PVRGUIDirectory.cpp
 msgctxt "#19020"
 msgid "TV"
 msgstr ""
@@ -9240,8 +9174,8 @@ msgstr ""
 #: addons/skin.estuary/xml/Home.xml
 #: addons/skin.estuary/xml/SkinSettings.xml
 #: addons/skin.estuary/xml/Variables.xml
-#: xbmc/pvr/channels/PVRChannelGroupsContainer.cpp
 #: xbmc/pvr/PVRGUIActions.cpp
+#: xbmc/pvr/PVRGUIDirectory.cpp
 msgctxt "#19021"
 msgid "Radio"
 msgstr ""
@@ -9277,7 +9211,7 @@ msgstr ""
 
 #. label for "add timer..." list item used in pvr timers / timer rules window
 #: xbmc/pvr/timers/PVRTimerInfoTag.cpp
-#: xbmc/pvr/timers/PVRTimers.cpp
+#: xbmc/pvr/PVRGUIDirectory.cpp
 msgctxt "#19026"
 msgid "Add timer..."
 msgstr ""
@@ -10251,6 +10185,7 @@ msgstr ""
 #. label for "deleted recordings" data source in media source window
 #: addons/skin.estuary/xml/Includes_MediaMenu.xml
 #: xbmc/dialogs/GUIDialogMediaSource.cpp
+#: xbmc/pvr/PVRGUIDirectory.cpp
 msgctxt "#19184"
 msgid "Deleted recordings"
 msgstr ""
@@ -10429,7 +10364,11 @@ msgctxt "#19214"
 msgid "Enter a valid URL for the new channel"
 msgstr ""
 
-#empty string with id 19215
+#. pvr settings "reminders" category label
+#: system/settings/settings.xml
+msgctxt "#19215"
+msgid "Reminders"
+msgstr ""
 
 #. used by several skins
 msgctxt "#19216"
@@ -11006,7 +10945,19 @@ msgctxt "#19312"
 msgid "PVR reminder"
 msgstr ""
 
-#empty strings from id 19313 to 19498
+#. pvr settings "reminder auto close delay" setting label
+#: system/settings/settings.xml
+msgctxt "#19313"
+msgid "Automatically close reminder popup after"
+msgstr ""
+
+#. pvr settings "schedule recording on reminder auto-close" setting label
+#: system/settings/settings.xml
+msgctxt "#19314"
+msgid "Schedule recording when auto-closing the reminder popup"
+msgstr ""
+
+#empty strings from id 19315 to 19498
 
 #. label for epg genre value
 #: xbmc/pvr/epg/Epg.cpp
@@ -18728,7 +18679,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36233"
-msgid "This category contains the default recording duration settings."
+msgid "This category contains settings for recordings."
 msgstr ""
 
 #: system/settings/settings.xml
@@ -19076,7 +19027,28 @@ msgctxt "#36294"
 msgid "When sorting music items by artist use sortname e.g. Parton, Dolly rather than name."
 msgstr ""
 
-#empty strings from id 36295 to 36301
+#. Description of setting with label #752 "Opacity"
+#: system/settings/settings.xml
+msgctxt "#36295"
+msgid "Set the the subtitle opacity."
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36296"
+msgid "This category contains settings for reminders."
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36297"
+msgid "Choose a time in seconds after which PVR reminder popups will be automatically closed."
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#36298"
+msgid "If enabled, a recording for the programme to remind will be scheduled when auto-closing the reminder popup, if supported by the PVR add-on and backend."
+msgstr ""
+
+#empty strings from id 36299 to 36301
 
 #: system/settings/settings.xml
 msgctxt "#36302"
@@ -19776,13 +19748,7 @@ msgctxt "#36421"
 msgid "Bypassing VDPAU mixer saves resources on low power systems but slightly reduces picture quality."
 msgstr ""
 
-#. Description of setting with label #13438 "Allow hardware acceleration (amcodec)"
-#: system/settings/settings.xml
-msgctxt "#36422"
-msgid "Enable hardware video decode using Amlogic decoder."
-msgstr ""
-
-#empty string with id 36423
+#empty strings from id 36422 to 36423
 
 #: system/settings/settings.xml
 msgctxt "#36424"
@@ -21332,7 +21298,7 @@ msgctxt "#38309"
 msgid "Output information to NFO files"
 msgstr ""
 
-#. See #38309 when NFO and art export disabled so only artist folders 
+#. See #38309 when NFO and art export disabled so only artist folders
 #: xbmc/settings/dialogs/GUIDialogLibExportSettings.cpp
 msgctxt "#38310"
 msgid "Output information to NFO files (currently exporting artist folders only)"
@@ -21505,27 +21471,7 @@ msgctxt "#38354"
 msgid "Unable to read xml file"
 msgstr ""
 
-#empty strings from id 38355 to 38999
-
-#: system/settings/settings.xml
-msgctxt "#39000"
-msgid "HD and up"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#39001"
-msgid "Accelerate MPEG2"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#39002"
-msgid "Accelerate MPEG4"
-msgstr ""
-
-#: system/settings/settings.xml
-msgctxt "#39003"
-msgid "Accelerate h264"
-msgstr ""
+#empty strings from id 38355 to 39003
 
 #. Description of category "Library" with label #14202
 #: system/settings/settings.xml

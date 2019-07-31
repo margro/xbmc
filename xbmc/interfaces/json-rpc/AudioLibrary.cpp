@@ -7,25 +7,26 @@
  */
 
 #include "AudioLibrary.h"
-#include "music/MusicDatabase.h"
+
 #include "FileItem.h"
 #include "ServiceBroker.h"
+#include "TextureDatabase.h"
 #include "Util.h"
+#include "filesystem/Directory.h"
+#include "messaging/ApplicationMessenger.h"
+#include "music/Album.h"
+#include "music/Artist.h"
+#include "music/MusicDatabase.h"
+#include "music/MusicThumbLoader.h"
+#include "music/Song.h"
+#include "music/tags/MusicInfoTag.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "utils/SortUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
-#include "music/tags/MusicInfoTag.h"
-#include "music/Artist.h"
-#include "music/Album.h"
-#include "music/MusicThumbLoader.h"
-#include "music/Song.h"
-#include "messaging/ApplicationMessenger.h"
-#include "filesystem/Directory.h"
-#include "settings/AdvancedSettings.h"
-#include "settings/Settings.h"
-#include "settings/SettingsComponent.h"
-#include "TextureDatabase.h"
 
 using namespace MUSIC_INFO;
 using namespace JSONRPC;
@@ -264,10 +265,10 @@ JSONRPC_STATUS CAudioLibrary::GetAlbums(const std::string &method, ITransportLay
         {
           CGUIListItem::ArtMap artMap = item.GetArt();
           CVariant artObj(CVariant::VariantTypeObject);
-          for (CGUIListItem::ArtMap::const_iterator artIt = artMap.begin(); artIt != artMap.end(); ++artIt)
+          for (const auto& artIt : artMap)
           {
-            if (!artIt->second.empty())
-              artObj[artIt->first] = CTextureUtils::GetWrappedImageURL(artIt->second);
+            if (!artIt.second.empty())
+              artObj[artIt.first] = CTextureUtils::GetWrappedImageURL(artIt.second);
           }
           result["albums"][index]["art"] = artObj;
         }
@@ -432,10 +433,10 @@ JSONRPC_STATUS CAudioLibrary::GetSongs(const std::string &method, ITransportLaye
         {
           CGUIListItem::ArtMap artMap = item.GetArt();
           CVariant artObj(CVariant::VariantTypeObject);
-          for (CGUIListItem::ArtMap::const_iterator artIt = artMap.begin(); artIt != artMap.end(); ++artIt)
+          for (const auto& artIt : artMap)
           {
-            if (!artIt->second.empty())
-              artObj[artIt->first] = CTextureUtils::GetWrappedImageURL(artIt->second);
+            if (!artIt.second.empty())
+              artObj[artIt.first] = CTextureUtils::GetWrappedImageURL(artIt.second);
           }
           result["songs"][index]["art"] = artObj;
         }
@@ -1046,8 +1047,8 @@ void CAudioLibrary::FillItemArtistIDs(const std::vector<int> artistids, CFileIte
 {
   // Add artistIds as separate property as not part of CMusicInfoTag
   CVariant artistidObj(CVariant::VariantTypeArray);
-  for (std::vector<int>::const_iterator artistid = artistids.begin(); artistid != artistids.end(); ++artistid)
-    artistidObj.push_back(*artistid);
+  for (const auto& artistid : artistids)
+    artistidObj.push_back(artistid);
 
   item->SetProperty("artistid", artistidObj);
 }
@@ -1185,8 +1186,8 @@ JSONRPC_STATUS CAudioLibrary::GetAdditionalSongDetails(const CVariant &parameter
       if (musicdatabase.GetGenresBySong(item->GetMusicInfoTag()->GetDatabaseId(), genreids))
       {
         CVariant genreidObj(CVariant::VariantTypeArray);
-        for (std::vector<int>::const_iterator genreid = genreids.begin(); genreid != genreids.end(); ++genreid)
-          genreidObj.push_back(*genreid);
+        for (const auto& genreid : genreids)
+          genreidObj.push_back(genreid);
 
         item->SetProperty("genreid", genreidObj);
       }

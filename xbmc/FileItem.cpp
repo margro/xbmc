@@ -6,58 +6,58 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <cstdlib>
-
 #include "FileItem.h"
+
+#include "CueDocument.h"
 #include "ServiceBroker.h"
-#include "guilib/LocalizeStrings.h"
-#include "utils/StringUtils.h"
-#include "utils/URIUtils.h"
-#include "utils/Archive.h"
+#include "URL.h"
 #include "Util.h"
-#include "playlists/PlayListFactory.h"
-#include "utils/Crc32.h"
+#include "events/IEvent.h"
+#include "filesystem/CurlFile.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
-#include "filesystem/StackDirectory.h"
-#include "filesystem/CurlFile.h"
 #include "filesystem/MultiPathDirectory.h"
 #include "filesystem/MusicDatabaseDirectory.h"
+#include "filesystem/StackDirectory.h"
 #include "filesystem/VideoDatabaseDirectory.h"
 #include "filesystem/VideoDatabaseDirectory/QueryParams.h"
-#include "games/addons/GameClient.h"
 #include "games/GameUtils.h"
+#include "games/addons/GameClient.h"
 #include "games/tags/GameInfoTag.h"
-#include "music/tags/MusicInfoTagLoaderFactory.h"
-#include "CueDocument.h"
-#include "video/VideoDatabase.h"
+#include "guilib/LocalizeStrings.h"
+#include "music/Album.h"
+#include "music/Artist.h"
 #include "music/MusicDatabase.h"
+#include "music/tags/MusicInfoTag.h"
+#include "music/tags/MusicInfoTagLoaderFactory.h"
+#include "pictures/PictureInfoTag.h"
+#include "playlists/PlayListFactory.h"
 #include "pvr/PVRManager.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/channels/PVRChannel.h"
-#include "pvr/epg/Epg.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/epg/EpgInfoTag.h"
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
-#include "video/Bookmark.h"
-#include "video/VideoInfoTag.h"
-#include "threads/SingleLock.h"
-#include "music/tags/MusicInfoTag.h"
-#include "pictures/PictureInfoTag.h"
-#include "music/Artist.h"
-#include "music/Album.h"
-#include "URL.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
+#include "threads/SingleLock.h"
+#include "utils/Archive.h"
+#include "utils/Crc32.h"
 #include "utils/FileExtensionProvider.h"
-#include "utils/RegExp.h"
-#include "utils/log.h"
-#include "utils/Variant.h"
 #include "utils/Mime.h"
 #include "utils/Random.h"
-#include "events/IEvent.h"
+#include "utils/RegExp.h"
+#include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
+#include "utils/Variant.h"
+#include "utils/log.h"
+#include "video/Bookmark.h"
+#include "video/VideoDatabase.h"
+#include "video/VideoInfoTag.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 using namespace KODI;
 using namespace XFILE;
@@ -849,6 +849,11 @@ bool CFileItem::IsPVRChannel() const
   return HasPVRChannelInfoTag();
 }
 
+bool CFileItem::IsPVRChannelGroup() const
+{
+  return URIUtils::IsPVRChannelGroup(m_strPath);
+}
+
 bool CFileItem::IsPVRRecording() const
 {
   return HasPVRRecordingInfoTag();
@@ -1118,7 +1123,8 @@ bool CFileItem::IsDVDFile(bool bVobs /*= true*/, bool bIfos /*= true*/) const
 bool CFileItem::IsBDFile() const
 {
   std::string strFileName = URIUtils::GetFileName(m_strPath);
-  return (StringUtils::EqualsNoCase(strFileName, "index.bdmv") || StringUtils::EqualsNoCase(strFileName, "MovieObject.bdmv"));
+  return (StringUtils::EqualsNoCase(strFileName, "index.bdmv") || StringUtils::EqualsNoCase(strFileName, "MovieObject.bdmv")
+          || StringUtils::EqualsNoCase(strFileName, "INDEX.BDM") || StringUtils::EqualsNoCase(strFileName, "MOVIEOBJ.BDM"));
 }
 
 bool CFileItem::IsRAR() const
@@ -1245,7 +1251,7 @@ bool CFileItem::IsURL() const
 
 bool CFileItem::IsPVR() const
 {
-  return CUtil::IsPVR(m_strPath);
+  return URIUtils::IsPVR(m_strPath);
 }
 
 bool CFileItem::IsLiveTV() const
@@ -1726,6 +1732,14 @@ std::string CFileItem::GetOpticalMediaPath() const
     return path;
 
   path = URIUtils::AddFileToFolder(GetPath(), "BDMV", "index.bdmv");
+  if (CFile::Exists(path))
+    return path;
+
+  path = URIUtils::AddFileToFolder(GetPath(), "INDEX.BDM");
+  if (CFile::Exists(path))
+    return path;
+
+  path = URIUtils::AddFileToFolder(GetPath(), "BDMV", "INDEX.BDM");
   if (CFile::Exists(path))
     return path;
 #endif
@@ -3186,7 +3200,7 @@ std::string CFileItem::GetMovieName(bool bUseFolderNames /* = false */) const
 
   if (m_pvrRecordingInfoTag)
     return m_pvrRecordingInfoTag->m_strTitle;
-  else if (CUtil::IsTVRecording(m_strPath))
+  else if (URIUtils::IsPVRRecording(m_strPath))
   {
     std::string title = CPVRRecording::GetTitleFromURL(m_strPath);
     if (!title.empty())
@@ -3353,7 +3367,7 @@ bool CFileItem::LoadMusicTag()
   CLog::Log(LOGDEBUG, "%s: loading tag information for file: %s", __FUNCTION__, m_strPath.c_str());
   CMusicInfoTagLoaderFactory factory;
   std::unique_ptr<IMusicInfoTagLoader> pLoader (factory.CreateLoader(*this));
-  if (pLoader.get() != NULL)
+  if (pLoader)
   {
     if (pLoader->Load(m_strPath, *GetMusicInfoTag()))
       return true;

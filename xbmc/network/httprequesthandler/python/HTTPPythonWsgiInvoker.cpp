@@ -8,15 +8,15 @@
 
 #include "HTTPPythonWsgiInvoker.h"
 
-#include <utility>
-
+#include "URL.h"
 #include "addons/Webinterface.h"
 #include "interfaces/legacy/wsgi/WsgiErrorStream.h"
 #include "interfaces/legacy/wsgi/WsgiInputStream.h"
 #include "interfaces/legacy/wsgi/WsgiResponse.h"
 #include "interfaces/python/swig.h"
-#include "URL.h"
 #include "utils/URIUtils.h"
+
+#include <utility>
 
 #define MODULE      "xbmc"
 
@@ -185,10 +185,11 @@ void CHTTPPythonWsgiInvoker::executeScript(void *fp, const std::string &script, 
     cgiEnvironment = createCgiEnvironment(m_request, m_addon);
     // and turn it into a python dictionary
     pyEnviron = PyDict_New();
-    for (std::map<std::string, std::string>::const_iterator cgiEnv = cgiEnvironment.begin(); cgiEnv != cgiEnvironment.end(); ++cgiEnv)
+    for (const auto& cgiEnv : cgiEnvironment)
     {
-      PyObject* pyEnvEntry = PyString_FromStringAndSize(cgiEnv->second.c_str(), cgiEnv->second.size());
-      PyDict_SetItemString(pyEnviron, cgiEnv->first.c_str(), pyEnvEntry);
+      PyObject* pyEnvEntry =
+          PyString_FromStringAndSize(cgiEnv.second.c_str(), cgiEnv.second.size());
+      PyDict_SetItemString(pyEnviron, cgiEnv.first.c_str(), pyEnvEntry);
       Py_DECREF(pyEnvEntry);
     }
 

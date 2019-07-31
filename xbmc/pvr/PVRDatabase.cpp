@@ -8,21 +8,27 @@
 
 #include "PVRDatabase.h"
 
-#include <utility>
-
 #include "ServiceBroker.h"
 #include "addons/PVRClient.h"
 #include "dbwrappers/dataset.h"
-#include "settings/AdvancedSettings.h"
-#include "settings/Settings.h"
-#include "settings/SettingsComponent.h"
-#include "utils/StringUtils.h"
-#include "utils/log.h"
-
+#include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroup.h"
 #include "pvr/channels/PVRChannelGroups.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "pvr/timers/PVRTimerType.h"
-#include "pvr/timers/PVRTimers.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
+#include "threads/SingleLock.h"
+#include "utils/StringUtils.h"
+#include "utils/log.h"
+
+#include <cstdlib>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace dbiplus;
 using namespace PVR;
@@ -567,7 +573,9 @@ bool CPVRDatabase::Get(CPVRChannelGroups &results)
     {
       while (!m_pDS->eof())
       {
-        CPVRChannelGroup data(m_pDS->fv("bIsRadio").get_asBool(), m_pDS->fv("idGroup").get_asInt(), m_pDS->fv("sName").get_asString(), results.GetGroupAll());
+        CPVRChannelGroup data(CPVRChannelsPath(m_pDS->fv("bIsRadio").get_asBool(), m_pDS->fv("sName").get_asString()),
+                              m_pDS->fv("idGroup").get_asInt(),
+                              results.GetGroupAll());
         data.SetGroupType(m_pDS->fv("iGroupType").get_asInt());
         data.SetLastWatched(static_cast<time_t>(m_pDS->fv("iLastWatched").get_asInt()));
         data.SetHidden(m_pDS->fv("bIsHidden").get_asBool());

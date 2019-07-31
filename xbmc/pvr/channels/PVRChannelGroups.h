@@ -8,19 +8,19 @@
 
 #pragma once
 
-#include <vector>
-
+#include "pvr/PVRTypes.h"
+#include "pvr/channels/PVRChannelGroup.h"
 #include "threads/CriticalSection.h"
 #include "threads/SingleLock.h"
 
-#include "pvr/channels/PVRChannelGroup.h"
-
-class CFileItem;
-typedef std::shared_ptr<CFileItem> CFileItemPtr;
-class CFileItemList;
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace PVR
 {
+  class CPVRChannel;
+
   /** A container class for channel groups */
 
   class CPVRChannelGroups
@@ -65,14 +65,14 @@ namespace PVR
     bool UpdateFromClient(const CPVRChannelGroup &group) { return Update(group, true); }
 
     /*!
-     * @brief Get a channel given it's path
+     * @brief Get a channel given its path
      * @param strPath The path to the channel
-     * @return The channel, or an empty fileitem when not found
+     * @return The channel, or nullptr if not found
      */
-    CFileItemPtr GetByPath(const std::string &strPath) const;
+    std::shared_ptr<CPVRChannel> GetByPath(const CPVRChannelsPath& path) const;
 
     /*!
-     * @brief Get a pointer to a channel group given it's ID.
+     * @brief Get a pointer to a channel group given its ID.
      * @param iGroupId The ID of the group.
      * @return The group or NULL if it wasn't found.
      */
@@ -87,7 +87,14 @@ namespace PVR
     std::vector<CPVRChannelGroupPtr> GetGroupsByChannel(const CPVRChannelPtr &channel, bool bExcludeHidden = false) const;
 
     /*!
-     * @brief Get a group given it's name.
+     * @brief Get a channel group given its path
+     * @param strPath The path to the channel group
+     * @return The channel group, or nullptr if not found
+     */
+    std::shared_ptr<CPVRChannelGroup> GetGroupByPath(const std::string& strPath) const;
+
+    /*!
+     * @brief Get a group given its name.
      * @param strName The name.
      * @return The group or NULL if it wasn't found.
      */
@@ -123,14 +130,6 @@ namespace PVR
      * @return The amount of items that were added.
      */
     std::vector<CPVRChannelGroupPtr> GetMembers(bool bExcludeHidden = false) const;
-
-    /*!
-     * @brief Get the list of groups.
-     * @param results The file list to store the results in.
-     * @param bExcludeHidden Decides whether to filter hidden groups
-     * @return The amount of items that were added.
-     */
-    int GetGroupList(CFileItemList* results, bool bExcludeHidden = false) const;
 
     /*!
      * @brief Get the previous group in this container.

@@ -12,9 +12,7 @@
 #include "ServiceBroker.h"
 #include "addons/PVRClient.h"
 #include "addons/PVRClientMenuHooks.h"
-#include "guilib/GUIWindowManager.h"
-#include "utils/URIUtils.h"
-
+#include "guilib/LocalizeStrings.h"
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannel.h"
@@ -22,8 +20,13 @@
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/recordings/PVRRecordingsPath.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/timers/PVRTimersPath.h"
+#include "utils/URIUtils.h"
+
+#include <memory>
+#include <string>
 
 namespace PVR
 {
@@ -473,7 +476,7 @@ namespace PVR
 
     bool DeleteTimerRule::Execute(const CFileItemPtr &item) const
     {
-      const CFileItemPtr parentTimer(CServiceBroker::GetPVRManager().Timers()->GetTimerRule(item));
+      const std::shared_ptr<CFileItem> parentTimer = CServiceBroker::GetPVRManager().GUIActions()->GetTimerRule(item);
       if (parentTimer)
         return CServiceBroker::GetPVRManager().GUIActions()->DeleteTimerRule(parentTimer);
 
@@ -608,7 +611,18 @@ namespace PVR
       if (!client)
         return false;
 
-      return client->CallMenuHook(m_hook, item) == PVR_ERROR_NO_ERROR;
+      if (item->IsEPG())
+        return client->CallEpgTagMenuHook(m_hook, item->GetEPGInfoTag()) == PVR_ERROR_NO_ERROR;
+      else if (item->IsPVRChannel())
+        return client->CallChannelMenuHook(m_hook, item->GetPVRChannelInfoTag()) == PVR_ERROR_NO_ERROR;
+      else if (item->IsDeletedPVRRecording())
+        return client->CallRecordingMenuHook(m_hook, item->GetPVRRecordingInfoTag(), true) == PVR_ERROR_NO_ERROR;
+      else if (item->IsUsablePVRRecording())
+        return client->CallRecordingMenuHook(m_hook, item->GetPVRRecordingInfoTag(), false) == PVR_ERROR_NO_ERROR;
+      else if (item->IsPVRTimer())
+        return client->CallTimerMenuHook(m_hook, item->GetPVRTimerInfoTag()) == PVR_ERROR_NO_ERROR;
+      else
+        return false;
     }
 
   } // namespace CONEXTMENUITEM

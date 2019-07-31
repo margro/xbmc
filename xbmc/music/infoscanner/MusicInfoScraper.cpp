@@ -7,8 +7,9 @@
  */
 
 #include "MusicInfoScraper.h"
-#include "utils/log.h"
+
 #include "filesystem/CurlFile.h"
+#include "utils/log.h"
 
 using namespace MUSIC_GRABBER;
 using namespace ADDON;
@@ -120,7 +121,7 @@ void CMusicInfoScraper::LoadArtistInfo()
 
 bool CMusicInfoScraper::Completed()
 {
-  return WaitForThreadExit(10);
+  return Join(10);
 }
 
 bool CMusicInfoScraper::Succeeded()

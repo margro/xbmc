@@ -8,11 +8,18 @@
 
 #pragma once
 
+#include "pvr/PVRTypes.h"
 #include "pvr/channels/PVRChannelGroup.h"
+
+#include <memory>
+#include <vector>
 
 namespace PVR
 {
   enum class PVREvent;
+
+  class CPVRChannel;
+  class CPVRChannelNumber;
 
   class CPVRChannelGroupInternal : public CPVRChannelGroup
   {
@@ -22,8 +29,6 @@ namespace PVR
      * @param bRadio True if this group holds radio channels.
      */
     explicit CPVRChannelGroupInternal(bool bRadio);
-
-    explicit CPVRChannelGroupInternal(const CPVRChannelGroup &group);
 
     ~CPVRChannelGroupInternal(void) override;
 

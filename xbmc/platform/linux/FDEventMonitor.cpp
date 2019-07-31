@@ -6,13 +6,14 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <poll.h>
-#include <sys/eventfd.h>
-#include <errno.h>
+#include "FDEventMonitor.h"
 
 #include "utils/log.h"
 
-#include "FDEventMonitor.h"
+#include <errno.h>
+
+#include <poll.h>
+#include <sys/eventfd.h>
 
 CFDEventMonitor::CFDEventMonitor() :
   CThread("FDEventMonitor")
@@ -191,10 +192,9 @@ void CFDEventMonitor::UpdatePollDescs()
   m_monitoredFDbyPollDescs.clear();
   m_pollDescs.clear();
 
-  for (std::map<int, MonitoredFD>::iterator it = m_monitoredFDs.begin();
-       it != m_monitoredFDs.end(); ++it)
+  for (const auto& it : m_monitoredFDs)
   {
-    AddPollDesc(it->first, it->second.fd, it->second.events);
+    AddPollDesc(it.first, it.second.fd, it.second.events);
   }
 }
 

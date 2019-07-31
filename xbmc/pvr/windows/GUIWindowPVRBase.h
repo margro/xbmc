@@ -8,12 +8,15 @@
 
 #pragma once
 
-#include <memory>
-
+#include "pvr/PVRTypes.h"
+#include "threads/CriticalSection.h"
+#include "threads/SystemClock.h"
 #include "utils/Observer.h"
 #include "windows/GUIMediaWindow.h"
 
-#include "pvr/PVRTypes.h"
+#include <atomic>
+#include <memory>
+#include <string>
 
 #define CONTROL_BTNVIEWASICONS            2
 #define CONTROL_BTNSORTBY                 3
@@ -101,6 +104,7 @@ namespace PVR
     void UnregisterObservers(void);
 
     CCriticalSection m_critSection;
+    std::string m_channelGroupPath;
     bool m_bRadio;
     std::atomic_bool m_bUpdating = {false};
 

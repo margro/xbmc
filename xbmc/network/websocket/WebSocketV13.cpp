@@ -6,16 +6,17 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <algorithm>
-#include <string>
-#include <sstream>
-
 #include "WebSocketV13.h"
+
 #include "WebSocket.h"
 #include "utils/HttpParser.h"
 #include "utils/HttpResponse.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/log.h"
+
+#include <algorithm>
+#include <sstream>
+#include <string>
 
 #define WS_HTTP_METHOD          "GET"
 #define WS_HTTP_TAG             "HTTP/"
@@ -112,10 +113,10 @@ bool CWebSocketV13::Handshake(const char* data, size_t length, std::string &resp
   if (value && strlen(value) > 0)
   {
     std::vector<std::string> protocols = StringUtils::Split(value, ",");
-    for (std::vector<std::string>::iterator protocol = protocols.begin(); protocol != protocols.end(); ++protocol)
+    for (auto& protocol : protocols)
     {
-      StringUtils::Trim(*protocol);
-      if (*protocol == WS_PROTOCOL_JSONRPC)
+      StringUtils::Trim(protocol);
+      if (protocol == WS_PROTOCOL_JSONRPC)
       {
         websocketProtocol = WS_PROTOCOL_JSONRPC;
         break;

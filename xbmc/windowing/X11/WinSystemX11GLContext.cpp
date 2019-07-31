@@ -6,29 +6,32 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-
 #include "WinSystemX11GLContext.h"
-#include "GLContextEGL.h"
-#include "utils/log.h"
-#include "utils/StringUtils.h"
-#include "windowing/GraphicContext.h"
-#include "guilib/DispResource.h"
-#include "threads/SingleLock.h"
-#include <vector>
-#include "Application.h"
-#include "VideoSyncOML.h"
 
+#include "Application.h"
+#include "GLContextEGL.h"
+#include "OptionalsReg.h"
+#include "VideoSyncOML.h"
+#include "X11DPMSSupport.h"
 #include "cores/RetroPlayer/process/X11/RPProcessInfoX11.h"
 #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGL.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "cores/VideoPlayer/Process/X11/ProcessInfoX11.h"
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGL.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
+#include "guilib/DispResource.h"
+#include "rendering/gl/ScreenshotSurfaceGL.h"
+#include "threads/SingleLock.h"
+#include "utils/StringUtils.h"
+#include "utils/log.h"
+#include "windowing/GraphicContext.h"
 
-#include "OptionalsReg.h"
 #include "platform/linux/OptionalsReg.h"
+
+#include <vector>
+
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 using namespace KODI;
 
@@ -260,12 +263,15 @@ bool CWinSystemX11GLContext::RefreshGLContext(bool force)
     return success;
   }
 
+  m_dpms = std::make_shared<CX11DPMSSupport>();
   VIDEOPLAYER::CProcessInfoX11::Register();
   RETRO::CRPProcessInfoX11::Register();
   RETRO::CRPProcessInfoX11::RegisterRendererFactory(new RETRO::CRendererFactoryOpenGL);
   CDVDFactoryCodec::ClearHWAccels();
   VIDEOPLAYER::CRendererFactory::ClearRenderer();
   CLinuxRendererGL::Register();
+
+  CScreenshotSurfaceGL::Register();
 
   std::string gpuvendor;
   const char* vend = (const char*) glGetString(GL_VENDOR);

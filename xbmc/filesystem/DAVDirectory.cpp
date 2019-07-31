@@ -8,14 +8,14 @@
 
 #include "DAVDirectory.h"
 
+#include "CurlFile.h"
 #include "DAVCommon.h"
 #include "DAVFile.h"
-#include "URL.h"
-#include "CurlFile.h"
 #include "FileItem.h"
+#include "URL.h"
 #include "utils/StringUtils.h"
-#include "utils/log.h"
 #include "utils/URIUtils.h"
+#include "utils/log.h"
 
 using namespace XFILE;
 
@@ -47,7 +47,7 @@ void CDAVDirectory::ParseResponse(const TiXmlElement *pElement, CFileItem &item)
     else
     if (CDAVCommon::ValueWithoutNamespace(pResponseChild, "propstat"))
     {
-      if (CDAVCommon::GetStatusTag(pResponseChild->ToElement()) == "HTTP/1.1 200 OK")
+      if (CDAVCommon::GetStatusTag(pResponseChild->ToElement()).find("200 OK") != std::string::npos)
       {
         /* Iterate propstat children elements */
         for (pPropstatChild = pResponseChild->FirstChild(); pPropstatChild != 0; pPropstatChild = pPropstatChild->NextSibling())

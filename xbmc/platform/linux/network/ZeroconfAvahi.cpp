@@ -6,22 +6,23 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "PlatformDefs.h"
 #include "ZeroconfAvahi.h"
 
-#include <string>
+#include "utils/log.h"
+
+#include <cassert>
 #include <iostream>
 #include <sstream>
-#include <cassert>
+#include <string>
+
 #include <avahi-client/client.h>
-#include <avahi-common/thread-watch.h>
 #include <avahi-common/alternative.h>
 #include <avahi-common/error.h>
 #include <avahi-common/malloc.h>
-
+#include <avahi-common/thread-watch.h>
 #include <unistd.h> //gethostname
 
-#include <utils/log.h>
+#include "PlatformDefs.h"
 
 ///helper RAII-struct to block event loop for modifications
 struct ScopedEventLoopBlock
@@ -131,9 +132,9 @@ bool CZeroconfAvahi::doPublishService(const std::string& fcr_identifier,
 
   //txt records to AvahiStringList
   AvahiStringList *txtList = NULL;
-  for(std::vector<std::pair<std::string, std::string> >::const_iterator it=txt.begin(); it!=txt.end(); ++it)
+  for (const auto it : txt)
   {
-    txtList = avahi_string_list_add_pair(txtList, it->first.c_str(), it->second.c_str());
+    txtList = avahi_string_list_add_pair(txtList, it.first.c_str(), it.second.c_str());
   }
 
   //create service info and add it to service map
@@ -202,18 +203,18 @@ bool CZeroconfAvahi::doRemoveService(const std::string& fcr_ident)
 void CZeroconfAvahi::doStop()
 {
   ScopedEventLoopBlock l_block(mp_poll);
-  for(tServiceMap::const_iterator it = m_services.begin(); it != m_services.end(); ++it)
+  for (auto& it : m_services)
   {
-    if (it->second->mp_group)
+    if (it.second->mp_group)
     {
-      avahi_entry_group_free(it->second->mp_group);
-      it->second->mp_group = 0;
+      avahi_entry_group_free(it.second->mp_group);
+      it.second->mp_group = 0;
     }
 
-    if(it->second->mp_txt)
+    if (it.second->mp_txt)
     {
-      avahi_string_list_free(it->second->mp_txt);
-      it->second->mp_txt = NULL;
+      avahi_string_list_free(it.second->mp_txt);
+      it.second->mp_txt = nullptr;
     }
   }
   m_services.clear();
@@ -244,9 +245,9 @@ void CZeroconfAvahi::clientCallback(AvahiClient* fp_client, AvahiClientState f_s
     avahi_client_free(fp_client);
     p_instance->mp_client = 0;
     //freeing the client also frees all groups and browsers, pointers are undefined afterwards, so fix that now
-    for(tServiceMap::const_iterator it = p_instance->m_services.begin(); it != p_instance->m_services.end(); ++it)
+    for (auto& it : p_instance->m_services)
     {
-      it->second->mp_group = 0;
+      it.second->mp_group = 0;
     }
     p_instance->createClient();
     break;
@@ -255,10 +256,10 @@ void CZeroconfAvahi::clientCallback(AvahiClient* fp_client, AvahiClientState f_s
   case AVAHI_CLIENT_S_REGISTERING:
     //HERE WE SHOULD REMOVE ALL OF OUR SERVICES AND "RESCHEDULE" them for later addition
     CLog::Log(LOGDEBUG, "CZeroconfAvahi::clientCallback: uiuui; coll or reg, anyways, resetting groups");
-    for(tServiceMap::const_iterator it = p_instance->m_services.begin(); it != p_instance->m_services.end(); ++it)
+    for (const auto& it : p_instance->m_services)
     {
-      if (it->second->mp_group)
-        avahi_entry_group_reset(it->second->mp_group);
+      if (it.second->mp_group)
+        avahi_entry_group_reset(it.second->mp_group);
     }
     break;
 
@@ -314,17 +315,16 @@ void CZeroconfAvahi::groupCallback(AvahiEntryGroup *fp_group, AvahiEntryGroupSta
     if (fp_group)
     {
       //need to find the ServiceInfo struct for this group
-      tServiceMap::iterator it = p_instance->m_services.begin();
-      for (; it != p_instance->m_services.end(); ++it)
+      for (auto& it : p_instance->m_services)
       {
-        if (it->second->mp_group == fp_group)
+        if (it.second->mp_group == fp_group)
         {
-          avahi_entry_group_free(it->second->mp_group);
-          it->second->mp_group = 0;
-          if (it->second->mp_txt)
+          avahi_entry_group_free(it.second->mp_group);
+          it.second->mp_group = 0;
+          if (it.second->mp_txt)
           {
-            avahi_string_list_free(it->second->mp_txt);
-            it->second->mp_txt = NULL;
+            avahi_string_list_free(it.second->mp_txt);
+            it.second->mp_txt = nullptr;
           }
           break;
         }
@@ -369,10 +369,10 @@ bool CZeroconfAvahi::createClient()
 
 void CZeroconfAvahi::updateServices(AvahiClient* fp_client)
 {
-  for(tServiceMap::const_iterator it = m_services.begin(); it != m_services.end(); ++it)
+  for (const auto& it : m_services)
   {
-    if (!it->second->mp_group)
-      addService(it->second, fp_client);
+    if (!it.second->mp_group)
+      addService(it.second, fp_client);
   }
 }
 

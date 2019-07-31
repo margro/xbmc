@@ -8,13 +8,13 @@
 
 #pragma once
 
+#include "ServiceBroker.h"
 #include "cores/IPlayerCallback.h"
+#include "interfaces/IAnnouncer.h"
+#include "interfaces/generic/ILanguageInvocationHandler.h"
 #include "threads/CriticalSection.h"
 #include "threads/Event.h"
 #include "threads/Thread.h"
-#include "interfaces/IAnnouncer.h"
-#include "interfaces/generic/ILanguageInvocationHandler.h"
-#include "ServiceBroker.h"
 
 #include <memory>
 #include <vector>
@@ -108,7 +108,6 @@ private:
   bool              FileExist(const char* strFile);
 
   void*             m_mainThreadState;
-  ThreadIdentifier  m_ThreadId;
   bool              m_bInitialized;
   int               m_iDllScriptCounter; // to keep track of the total scripts running that need the dll
   unsigned int      m_endtime;

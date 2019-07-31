@@ -7,9 +7,11 @@
  */
 
 #include "GUISpinControl.h"
+
 #include "GUIMessage.h"
 #include "input/Key.h"
 #include "utils/StringUtils.h"
+
 #include <stdio.h>
 
 #define SPIN_BUTTON_DOWN 1
@@ -246,10 +248,11 @@ bool CGUISpinControl::OnMessage(CGUIMessage& message)
     case GUI_MSG_SET_LABELS:
       if (message.GetPointer())
       {
-        const std::vector< std::pair<std::string, int> > *labels = (const std::vector< std::pair<std::string, int> > *)message.GetPointer();
+        auto labels =
+            static_cast<const std::vector<std::pair<std::string, int>>*>(message.GetPointer());
         Clear();
-        for (std::vector< std::pair<std::string, int> >::const_iterator i = labels->begin(); i != labels->end(); ++i)
-          AddLabel(i->first, i->second);
+        for (const auto& i : *labels)
+          AddLabel(i.first, i.second);
         SetValue( message.GetParam1());
       }
       break;

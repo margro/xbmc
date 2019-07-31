@@ -8,34 +8,38 @@
 
 #include "PVRGUIInfo.h"
 
-#include <cmath>
-#include <ctime>
-
 #include "Application.h"
 #include "GUIInfoManager.h"
 #include "ServiceBroker.h"
 #include "guilib/GUIComponent.h"
-#include "guilib/LocalizeStrings.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "guilib/guiinfo/GUIInfo.h"
-#include "guilib/guiinfo/GUIInfoHelper.h"
 #include "guilib/guiinfo/GUIInfoLabels.h"
+#include "pvr/PVRGUIActions.h"
+#include "pvr/PVRItem.h"
+#include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
+#include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroup.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/channels/PVRRadioRDSInfoTag.h"
+#include "pvr/epg/EpgInfoTag.h"
+#include "pvr/recordings/PVRRecording.h"
+#include "pvr/recordings/PVRRecordings.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
+#include "pvr/timers/PVRTimers.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "utils/StringUtils.h"
 
-#include "pvr/PVRGUIActions.h"
-#include "pvr/PVRItem.h"
-#include "pvr/PVRManager.h"
-#include "pvr/addons/PVRClients.h"
-#include "pvr/channels/PVRChannel.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/channels/PVRRadioRDSInfoTag.h"
-#include "pvr/epg/EpgInfoTag.h"
-#include "pvr/recordings/PVRRecordings.h"
-#include "pvr/timers/PVRTimers.h"
+#include <cmath>
+#include <ctime>
+#include <memory>
+#include <string>
+#include <vector>
 
 using namespace PVR;
 using namespace KODI::GUILIB::GUIINFO;
@@ -78,6 +82,7 @@ void CPVRGUIInfo::ResetProperties(void)
   m_bIsPlayingEncryptedStream   = false;
   m_bIsRecordingPlayingChannel  = false;
   m_bCanRecordPlayingChannel    = false;
+  m_bIsPlayingActiveRecording   = false;
   m_bHasTVChannels              = false;
   m_bHasRadioChannels           = false;
 
@@ -239,6 +244,7 @@ void CPVRGUIInfo::UpdateMisc(void)
   bool       bHasRadioChannels         = bStarted && CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAllRadio()->HasChannels();
   bool bCanRecordPlayingChannel        = bStarted && CServiceBroker::GetPVRManager().CanRecordOnPlayingChannel();
   bool bIsRecordingPlayingChannel      = bStarted && CServiceBroker::GetPVRManager().IsRecordingOnPlayingChannel();
+  bool bIsPlayingActiveRecording       = bStarted && CServiceBroker::GetPVRManager().IsPlayingActiveRecording();
   std::string strPlayingTVGroup        = (bStarted && bIsPlayingTV) ? CServiceBroker::GetPVRManager().GetPlayingGroup(false)->GroupName() : "";
   std::string strPlayingRadioGroup     = (bStarted && bIsPlayingRadio) ? CServiceBroker::GetPVRManager().GetPlayingGroup(true)->GroupName() : "";
 
@@ -257,6 +263,7 @@ void CPVRGUIInfo::UpdateMisc(void)
   m_strPlayingRadioGroup      = strPlayingRadioGroup;
   m_bCanRecordPlayingChannel  = bCanRecordPlayingChannel;
   m_bIsRecordingPlayingChannel = bIsRecordingPlayingChannel;
+  m_bIsPlayingActiveRecording = bIsPlayingActiveRecording;
 }
 
 void CPVRGUIInfo::UpdateTimeshiftData(void)
@@ -1352,6 +1359,9 @@ bool CPVRGUIInfo::GetPVRBool(const CFileItem *item, const CGUIInfo &info, bool& 
       return true;
     case PVR_IS_RECORDING_PLAYING_CHANNEL:
       bValue = m_bIsRecordingPlayingChannel;
+      return true;
+    case PVR_IS_PLAYING_ACTIVE_RECORDING:
+      bValue = m_bIsPlayingActiveRecording;
       return true;
   }
   return false;

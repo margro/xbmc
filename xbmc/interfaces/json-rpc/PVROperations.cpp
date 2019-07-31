@@ -9,14 +9,15 @@
 #include "PVROperations.h"
 
 #include "ServiceBroker.h"
-
 #include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroups.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/epg/Epg.h"
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/recordings/PVRRecordings.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
 #include "pvr/timers/PVRTimers.h"
 #include "utils/Variant.h"
 
@@ -113,8 +114,11 @@ JSONRPC_STATUS CPVROperations::GetChannels(const std::string &method, ITransport
     return InvalidParams;
 
   CFileItemList channels;
-  if (channelGroup->GetMembers(channels) < 0)
-    return InvalidParams;
+  const std::vector<PVRChannelGroupMember> groupMembers = channelGroup->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE);
+  for (const auto& groupMember : groupMembers)
+  {
+    channels.Add(std::make_shared<CFileItem>(groupMember.channel));
+  }
 
   HandleFileItemList("channelid", false, "channels", channels, parameterObject, result, true);
 
@@ -280,7 +284,12 @@ void CPVROperations::FillChannelGroupDetails(const CPVRChannelGroupPtr &channelG
   else
   {
     CFileItemList channels;
-    channelGroup->GetMembers(channels);
+    const std::vector<PVRChannelGroupMember> groupMembers = channelGroup->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE);
+    for (const auto& groupMember : groupMembers)
+    {
+      channels.Add(std::make_shared<CFileItem>(groupMember.channel));
+    }
+
     object["channels"] = CVariant(CVariant::VariantTypeArray);
     HandleFileItemList("channelid", false, "channels", channels, parameterObject["channels"], object, false);
 
@@ -298,7 +307,11 @@ JSONRPC_STATUS CPVROperations::GetTimers(const std::string &method, ITransportLa
     return FailedToExecute;
 
   CFileItemList timerList;
-  timers->GetAll(timerList);
+  const std::vector<std::shared_ptr<CPVRTimerInfoTag>> tags = timers->GetAll();
+  for (const auto& timer : tags)
+  {
+    timerList.Add(std::make_shared<CFileItem>(timer));
+  }
 
   HandleFileItemList("timerid", false, "timers", timerList, parameterObject, result, true);
 
@@ -413,7 +426,11 @@ JSONRPC_STATUS CPVROperations::GetRecordings(const std::string &method, ITranspo
     return FailedToExecute;
 
   CFileItemList recordingsList;
-  recordings->GetAll(recordingsList);
+  const std::vector<std::shared_ptr<CPVRRecording>> recs = recordings->GetAll();
+  for (const auto& recording : recs)
+  {
+    recordingsList.Add(std::make_shared<CFileItem>(recording));
+  }
 
   HandleFileItemList("recordingid", true, "recordings", recordingsList, parameterObject, result, true);
 
@@ -429,11 +446,11 @@ JSONRPC_STATUS CPVROperations::GetRecordingDetails(const std::string &method, IT
   if (!recordings)
     return FailedToExecute;
 
-  CFileItemPtr recording = recordings->GetById((int)parameterObject["recordingid"].asInteger());
+  const std::shared_ptr<CPVRRecording> recording = recordings->GetById(static_cast<int>(parameterObject["recordingid"].asInteger()));
   if (!recording)
     return InvalidParams;
 
-  HandleFileItem("recordingid", true, "recordingdetails", recording, parameterObject, parameterObject["properties"], result, false);
+  HandleFileItem("recordingid", true, "recordingdetails", std::make_shared<CFileItem>(recording), parameterObject, parameterObject["properties"], result, false);
 
   return OK;
 }

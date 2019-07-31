@@ -8,15 +8,12 @@
 
 #include "ServiceBroker.h"
 #include "Texture.h"
-#include "rendering/RenderSystem.h"
-#include "utils/log.h"
-#include "utils/GLUtils.h"
 #include "guilib/TextureManager.h"
+#include "rendering/RenderSystem.h"
 #include "settings/AdvancedSettings.h"
-#ifdef TARGET_POSIX
-#include "platform/linux/XMemUtils.h"
-#endif
-
+#include "utils/GLUtils.h"
+#include "utils/MemUtils.h"
+#include "utils/log.h"
 
 /************************************************************************/
 /*    CGLTexture                                                       */
@@ -203,7 +200,7 @@ void CGLTexture::LoadToGPU()
 
   if (!m_bCacheMemory)
   {
-    _aligned_free(m_pixels);
+    KODI::MEMORY::AlignedFree(m_pixels);
     m_pixels = NULL;
   }
 

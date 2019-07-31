@@ -6,32 +6,33 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <sys/resource.h>
+#import "IOSEAGLView.h"
+
+#include "AppInboundProtocol.h"
+#include "AppParamParser.h"
+#include "Application.h"
+#import "IOSScreenManager.h"
+#include "ServiceBroker.h"
+#include "Util.h"
+#import "XBMCController.h"
+#include "messaging/ApplicationMessenger.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
+#include "utils/TimeUtils.h"
+#include "utils/log.h"
+
+#import "platform/darwin/AutoPool.h"
+#import "platform/darwin/DarwinUtils.h"
+#import "platform/darwin/NSLogDebugHelpers.h"
+#import "platform/darwin/ios-common/AnnounceReceiver.h"
+
 #include <signal.h>
 #include <stdio.h>
 
-#include "settings/AdvancedSettings.h"
-#include "settings/SettingsComponent.h"
-#include "Application.h"
-#include "AppInboundProtocol.h"
-#include "ServiceBroker.h"
-#include "messaging/ApplicationMessenger.h"
-#include "utils/log.h"
-#include "utils/TimeUtils.h"
-#include "Util.h"
-#include "AppParamParser.h"
-
-#import <QuartzCore/QuartzCore.h>
-
 #import <OpenGLES/ES2/gl.h>
 #import <OpenGLES/ES2/glext.h>
-#import "IOSEAGLView.h"
-#import "XBMCController.h"
-#import "IOSScreenManager.h"
-#import "platform/darwin/AutoPool.h"
-#import "platform/darwin/DarwinUtils.h"
-#import "platform/darwin/ios-common/AnnounceReceiver.h"
-#import "platform/darwin/NSLogDebugHelpers.h"
+#import <QuartzCore/QuartzCore.h>
+#include <sys/resource.h>
 
 using namespace KODI::MESSAGING;
 
@@ -88,33 +89,32 @@ using namespace KODI::MESSAGING;
   }
 }
 
-- (CGFloat) getScreenScale:(UIScreen *)screen
+- (CGFloat)getScreenScale:(UIScreen *)screen
 {
   CGFloat ret = 1.0;
-  if ([screen respondsToSelector:@selector(scale)])
+
+  // normal other iDevices report 1.0 here
+  // retina devices report 2.0 here
+  // this info is true as of 19.3.2012.
+  if ([screen scale] > 1.0)
   {
-    // normal other iDevices report 1.0 here
-    // retina devices report 2.0 here
-    // this info is true as of 19.3.2012.
-    if([screen scale] > 1.0)
-    {
-      ret = [screen scale];
-    }
+    ret = [screen scale];
+  }
 
-    //if no retina display scale detected yet -
-    //ensure retina resolution on supported devices mainScreen
-    //even on older iOS SDKs
-    double screenScale = 1.0;
-    if (ret == 1.0 && screen == [UIScreen mainScreen] && CDarwinUtils::DeviceHasRetina(screenScale))
-    {
-      ret = screenScale;//set scale factor from our static list in case older SDKs report 1.0
-    }
+  //if no retina display scale detected yet -
+  //ensure retina resolution on supported devices mainScreen
+  //even on older iOS SDKs
+  double screenScale = 1.0;
+  bool hasRetina = CDarwinUtils::DeviceHasRetina(screenScale);
+  if (ret == 1.0 && screen == [UIScreen mainScreen] && hasRetina)
+  {
+    ret = screenScale;//set scale factor from our static list in case older SDKs report 1.0
+  }
 
-    // fix for ip6 plus which seems to report 2.0 when not compiled with ios8 sdk
-    if (CDarwinUtils::DeviceHasRetina(screenScale) && screenScale == 3.0)
-    {
-      ret = screenScale;
-    }
+  // fix for ip6 plus which seems to report 2.0 when not compiled with ios8 sdk
+  if (hasRetina && screenScale == 3.0)
+  {
+    ret = screenScale;
   }
   return ret;
 }

@@ -8,11 +8,11 @@
 
 
 #include "LanguageHook.h"
-#include "CallbackHandler.h"
-#include "XBPython.h"
 
-#include "interfaces/legacy/AddonUtils.h"
+#include "CallbackHandler.h"
 #include "PyContext.h"
+#include "XBPython.h"
+#include "interfaces/legacy/AddonUtils.h"
 
 namespace XBMCAddon
 {
@@ -86,10 +86,9 @@ namespace XBMCAddon
 
     bool PythonLanguageHook::IsAddonClassInstanceRegistered(AddonClass* obj)
     {
-      for (std::map<PyInterpreterState*,AddonClass::Ref<PythonLanguageHook> >::iterator iter = hooks.begin();
-           iter != hooks.end(); ++iter)
+      for (const auto& iter : hooks)
       {
-        if ((iter->second)->HasRegisteredAddonClassInstance(obj))
+        if (iter.second->HasRegisteredAddonClassInstance(obj))
           return true;
       }
       return false;

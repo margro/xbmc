@@ -7,42 +7,43 @@
  */
 
 #include "GUIWindowVideoNav.h"
-#include "ServiceBroker.h"
-#include "utils/FileUtils.h"
-#include "Util.h"
+
+#include "Application.h"
+#include "FileItem.h"
 #include "GUIPassword.h"
-#include "filesystem/MultiPathDirectory.h"
-#include "filesystem/VideoDatabaseDirectory.h"
-#include "filesystem/VideoDatabaseFile.h"
-#include "view/GUIViewState.h"
 #include "PartyModeManager.h"
-#include "music/MusicDatabase.h"
-#include "guilib/GUIComponent.h"
-#include "guilib/GUIWindowManager.h"
+#include "ServiceBroker.h"
+#include "Util.h"
 #include "dialogs/GUIDialogMediaSource.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "filesystem/Directory.h"
-#include "FileItem.h"
-#include "Application.h"
+#include "filesystem/MultiPathDirectory.h"
+#include "filesystem/VideoDatabaseDirectory.h"
+#include "filesystem/VideoDatabaseFile.h"
+#include "guilib/GUIComponent.h"
+#include "guilib/GUIKeyboardFactory.h"
+#include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
+#include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogOKHelper.h"
+#include "music/MusicDatabase.h"
 #include "profiles/ProfileManager.h"
+#include "pvr/recordings/PVRRecording.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
-#include "input/Key.h"
-#include "guilib/LocalizeStrings.h"
-#include "utils/log.h"
-#include "utils/URIUtils.h"
+#include "utils/FileUtils.h"
 #include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 #include "utils/Variant.h"
-#include "guilib/GUIKeyboardFactory.h"
+#include "utils/log.h"
 #include "video/VideoInfoScanner.h"
 #include "video/VideoLibraryQueue.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
-#include "pvr/recordings/PVRRecording.h"
+#include "view/GUIViewState.h"
 
 #include <utility>
 
@@ -271,8 +272,10 @@ int CGUIWindowVideoNav::GetFirstUnwatchedItemIndex(bool includeAllSeasons, bool 
 {
   int iIndex = 0;
   int iUnwatchedSeason = INT_MAX;
+  int iUnwatchedEpisode = INT_MAX;
+  NODE_TYPE nodeType = CVideoDatabaseDirectory::GetDirectoryChildType(m_vecItems->GetPath());
 
-  // Run through the list of items and find the season number of the first season with unwatched episodes
+  // Run through the list of items and find the first unwatched season/episode
   for (int i = 0; i < m_vecItems->Size(); ++i)
   {
     CFileItemPtr pItem = m_vecItems->Get(i);
@@ -284,36 +287,29 @@ int CGUIWindowVideoNav::GetFirstUnwatchedItemIndex(bool includeAllSeasons, bool 
     if ((!includeAllSeasons && pTag->m_iSeason < 0) || (!includeSpecials && pTag->m_iSeason == 0))
       continue;
 
-    // Is the season unwatched, and is its season number lower than the currently identified
-    // first unwatched season
-    if (pTag->GetPlayCount() == 0 && pTag->m_iSeason < iUnwatchedSeason)
+    // Use the special sort values if they're available
+    int iSeason = pTag->m_iSpecialSortSeason >= 0 ? pTag->m_iSpecialSortSeason : pTag->m_iSeason;
+    int iEpisode = pTag->m_iSpecialSortEpisode >= 0 ? pTag->m_iSpecialSortEpisode : pTag->m_iEpisode;
+
+    if (nodeType == NODE_TYPE::NODE_TYPE_SEASONS)
     {
-      iUnwatchedSeason = pTag->m_iSeason;
-      iIndex = i;
-    }
-  }
-
-  NODE_TYPE nodeType = CVideoDatabaseDirectory::GetDirectoryChildType(m_vecItems->GetPath());
-  if (nodeType == NODE_TYPE::NODE_TYPE_EPISODES)
-  {
-    iIndex = 0;
-    int iUnwatchedEpisode = INT_MAX;
-
-    // Now run through the list of items and check episodes from the season identified above
-    // to find the first (lowest episode number) unwatched episode.
-    for (int i = 0; i < m_vecItems->Size(); ++i)
-    {
-      CFileItemPtr pItem = m_vecItems->Get(i);
-      if (pItem->IsParentFolder() || !pItem->HasVideoInfoTag())
-        continue;
-
-      CVideoInfoTag *pTag = pItem->GetVideoInfoTag();
-
-      // Does the episode belong to the unwatched season and Is the episode unwatched, and is its episode number
-      // lower than the currently identified first unwatched episode
-      if (pTag->m_iSeason == iUnwatchedSeason && pTag->GetPlayCount() == 0 && pTag->m_iEpisode < iUnwatchedEpisode)
+      // Is the season unwatched, and is its season number lower than the currently identified
+      // first unwatched season
+      if (pTag->GetPlayCount() == 0 && iSeason < iUnwatchedSeason)
       {
-        iUnwatchedEpisode = pTag->m_iEpisode;
+        iUnwatchedSeason = iSeason;
+        iIndex = i;
+      }
+    }
+
+    if (nodeType == NODE_TYPE::NODE_TYPE_EPISODES)
+    {
+      // Is the episode unwatched, and is its season number lower
+      // or is its episode number lower within the current season
+      if (pTag->GetPlayCount() == 0 && (iSeason < iUnwatchedSeason || (iSeason == iUnwatchedSeason && iEpisode < iUnwatchedEpisode)))
+      {
+        iUnwatchedSeason = iSeason;
+        iUnwatchedEpisode = iEpisode;
         iIndex = i;
       }
     }

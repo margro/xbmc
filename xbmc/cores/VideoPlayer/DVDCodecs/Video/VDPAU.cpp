@@ -7,26 +7,28 @@
  */
 
 #include "VDPAU.h"
+
+#include "Application.h"
+#include "DVDCodecs/DVDCodecUtils.h"
 #include "ServiceBroker.h"
-#include <dlfcn.h>
-#include "windowing/X11/WinSystemX11.h"
-#include "windowing/GraphicContext.h"
-#include "guilib/TextureManager.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
-#include "cores/VideoPlayer/Process/ProcessInfo.h"
-#include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
+#include "cores/VideoPlayer/Process/ProcessInfo.h"
+#include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
+#include "cores/VideoPlayer/VideoRenderers/RenderManager.h"
+#include "guilib/TextureManager.h"
 #include "rendering/RenderSystem.h"
-#include "settings/lib/Setting.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
-#include "Application.h"
+#include "settings/lib/Setting.h"
 #include "utils/MathUtils.h"
 #include "utils/TimeUtils.h"
-#include "DVDCodecs/DVDCodecUtils.h"
-#include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "utils/log.h"
+#include "windowing/GraphicContext.h"
+#include "windowing/X11/WinSystemX11.h"
+
+#include <dlfcn.h>
 
 using namespace Actor;
 using namespace VDPAU;
@@ -531,7 +533,6 @@ bool CDecoder::Open(AVCodecContext* avctx, AVCodecContext* mainctx, const enum A
   }
   m_vdpauConfig.numRenderBuffers = 5;
   m_vdpauConfig.timeOpened = CurrentHostCounter();
-  m_decoderThread = CThread::GetCurrentThreadId();
 
   if (!CVDPAUContext::EnsureContext(&m_vdpauConfig.context))
     return false;

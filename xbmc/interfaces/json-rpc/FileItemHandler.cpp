@@ -6,31 +6,32 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <map>
-#include <string.h>
-
 #include "FileItemHandler.h"
+
 #include "AudioLibrary.h"
-#include "VideoLibrary.h"
 #include "FileOperations.h"
-#include "utils/SortUtils.h"
-#include "utils/URIUtils.h"
-#include "utils/ISerializable.h"
-#include "utils/Variant.h"
-#include "video/VideoInfoTag.h"
-#include "music/tags/MusicInfoTag.h"
-#include "pictures/PictureInfoTag.h"
-#include "video/VideoDatabase.h"
+#include "TextureDatabase.h"
+#include "Util.h"
+#include "VideoLibrary.h"
 #include "filesystem/Directory.h"
 #include "filesystem/File.h"
-#include "TextureDatabase.h"
-#include "video/VideoThumbLoader.h"
 #include "music/MusicThumbLoader.h"
-#include "Util.h"
+#include "music/tags/MusicInfoTag.h"
+#include "pictures/PictureInfoTag.h"
 #include "pvr/channels/PVRChannel.h"
-#include "pvr/epg/Epg.h"
+#include "pvr/epg/EpgInfoTag.h"
 #include "pvr/recordings/PVRRecording.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
+#include "utils/ISerializable.h"
+#include "utils/SortUtils.h"
+#include "utils/URIUtils.h"
+#include "utils/Variant.h"
+#include "video/VideoDatabase.h"
+#include "video/VideoInfoTag.h"
+#include "video/VideoThumbLoader.h"
+
+#include <map>
+#include <string.h>
 
 using namespace MUSIC_INFO;
 using namespace JSONRPC;
@@ -103,10 +104,10 @@ bool CFileItemHandler::GetField(const std::string &field, const CVariant &info, 
 
       CGUIListItem::ArtMap artMap = item->GetArt();
       CVariant artObj(CVariant::VariantTypeObject);
-      for (CGUIListItem::ArtMap::const_iterator artIt = artMap.begin(); artIt != artMap.end(); ++artIt)
+      for (const auto& artIt : artMap)
       {
-        if (!artIt->second.empty())
-          artObj[artIt->first] = CTextureUtils::GetWrappedImageURL(artIt->second);
+        if (!artIt.second.empty())
+          artObj[artIt.first] = CTextureUtils::GetWrappedImageURL(artIt.second);
       }
 
       result["art"] = artObj;
@@ -185,10 +186,11 @@ void CFileItemHandler::FillDetails(const ISerializable *info, const CFileItemPtr
 
   std::set<std::string> originalFields = fields;
 
-  for (std::set<std::string>::const_iterator fieldIt = originalFields.begin(); fieldIt != originalFields.end(); ++fieldIt)
+  for (const auto& fieldIt : originalFields)
   {
-    if (GetField(*fieldIt, serialization, item, result, fetchedArt, thumbLoader) && result.isMember(*fieldIt) && !result[*fieldIt].empty())
-      fields.erase(*fieldIt);
+    if (GetField(fieldIt, serialization, item, result, fetchedArt, thumbLoader) &&
+        result.isMember(fieldIt) && !result[fieldIt].empty())
+      fields.erase(fieldIt);
   }
 }
 

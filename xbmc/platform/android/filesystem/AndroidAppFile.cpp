@@ -6,25 +6,26 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <jni.h>
-#include <sys/stat.h>
+#include "AndroidAppFile.h"
+
+#include "URL.h"
+#include "Util.h"
+#include "utils/URIUtils.h"
+#include "utils/log.h"
+
+#include "platform/android/activity/XBMCApp.h"
 
 #include <android/bitmap.h>
 #include <androidjni/Bitmap.h>
-#include <androidjni/Drawable.h>
 #include <androidjni/BitmapDrawable.h>
 #include <androidjni/Build.h>
 #include <androidjni/Context.h>
 #include <androidjni/DisplayMetrics.h>
+#include <androidjni/Drawable.h>
 #include <androidjni/PackageManager.h>
 #include <androidjni/Resources.h>
-
-#include "AndroidAppFile.h"
-#include "platform/android/activity/XBMCApp.h"
-#include "Util.h"
-#include "URL.h"
-#include "utils/log.h"
-#include "utils/URIUtils.h"
+#include <jni.h>
+#include <sys/stat.h>
 using namespace XFILE;
 
 CFileAndroidApp::CFileAndroidApp(void)
@@ -45,12 +46,12 @@ bool CFileAndroidApp::Open(const CURL& url)
   m_packageName = m_packageName.substr(0, m_packageName.size() - 4);
 
   std::vector<androidPackage> applications = CXBMCApp::GetApplications();
-  for(std::vector<androidPackage>::iterator i = applications.begin(); i != applications.end(); ++i)
+  for (const auto& i : applications)
   {
-    if ((*i).packageName == m_packageName)
+    if (i.packageName == m_packageName)
     {
-      m_packageLabel = i->packageLabel;
-      m_icon         = i->icon;
+      m_packageLabel = i.packageLabel;
+      m_icon = i.icon;
       return true;
     }
   }
@@ -64,9 +65,9 @@ bool CFileAndroidApp::Exists(const CURL& url)
   appname = appname.substr(0, appname.size() - 4);
 
   std::vector<androidPackage> applications = CXBMCApp::GetApplications();
-  for(std::vector<androidPackage>::iterator i = applications.begin(); i != applications.end(); ++i)
+  for (const auto& i : applications)
   {
-    if ((*i).packageName == appname)
+    if (i.packageName == appname)
       return true;
   }
 

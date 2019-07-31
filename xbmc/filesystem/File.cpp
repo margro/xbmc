@@ -9,21 +9,22 @@
  */
 
 #include "File.h"
-#include "IFile.h"
-#include "FileFactory.h"
-#include "Application.h"
-#include "DirectoryCache.h"
-#include "Directory.h"
-#include "FileCache.h"
-#include "PasswordManager.h"
-#include "system.h"
-#include "utils/log.h"
-#include "utils/URIUtils.h"
-#include "utils/BitstreamStats.h"
-#include "Util.h"
-#include "utils/StringUtils.h"
 
+#include "Application.h"
+#include "Directory.h"
+#include "DirectoryCache.h"
+#include "FileCache.h"
+#include "FileFactory.h"
+#include "IFile.h"
+#include "PasswordManager.h"
+#include "Util.h"
 #include "commons/Exception.h"
+#include "utils/BitstreamStats.h"
+#include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
+#include "utils/log.h"
+
+#include "system.h"
 
 using namespace XFILE;
 
@@ -110,9 +111,9 @@ bool CFile::Copy(const CURL& url2, const CURL& dest, XFILE::IFileCallback* pCall
           else if (strDirectory[0] == pathsep[0])
             strCurrPath += pathsep;
 
-          for (std::vector<std::string>::iterator iter = tokens.begin(); iter != tokens.end(); ++iter)
+          for (const std::string& iter : tokens)
           {
-            strCurrPath += *iter + pathsep;
+            strCurrPath += iter + pathsep;
             CDirectory::Create(strCurrPath);
           }
         }

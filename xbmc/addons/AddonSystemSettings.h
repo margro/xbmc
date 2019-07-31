@@ -10,6 +10,7 @@
 
 #include "addons/IAddon.h"
 #include "settings/lib/ISettingCallback.h"
+
 #include <functional>
 #include <string>
 
@@ -48,7 +49,7 @@ public:
 private:
   CAddonSystemSettings();
   CAddonSystemSettings(const CAddonSystemSettings&) = default;
-  CAddonSystemSettings& operator=(const CAddonSystemSettings&) = default;
+  CAddonSystemSettings& operator=(const CAddonSystemSettings&) = delete;
   CAddonSystemSettings(CAddonSystemSettings&&);
   CAddonSystemSettings& operator=(CAddonSystemSettings&&);
   ~CAddonSystemSettings() override = default;

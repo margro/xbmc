@@ -11,15 +11,17 @@
 
 #pragma once
 
+#include "interfaces/IAnnouncer.h"
+#include "network/Network.h"
+#include "threads/CriticalSection.h"
+#include "threads/Thread.h"
+#include "utils/HttpParser.h"
+
 #include <map>
 #include <vector>
-#include <sys/socket.h>
-#include "threads/Thread.h"
-#include "threads/CriticalSection.h"
-#include "utils/HttpParser.h"
-#include "interfaces/IAnnouncer.h"
 
-class DllLibPlist;
+#include <sys/socket.h>
+
 class CVariant;
 
 #define AIRPLAY_SERVER_VERSION_STR "101.28"
@@ -83,7 +85,6 @@ private:
     void Copy(const CTCPClient& client);
 
     HttpParser* m_httpParser;
-    DllLibPlist *m_pLibPlist;//the lib
     bool m_bAuthenticated;
     int  m_lastEvent;
     std::string m_authNonce;

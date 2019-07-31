@@ -8,25 +8,23 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "pvr/PVRTypes.h"
+#include "pvr/channels/PVRChannelNumber.h"
 #include "threads/CriticalSection.h"
 #include "utils/ISerializable.h"
 #include "utils/ISortable.h"
 #include "utils/Observer.h"
 
-#include "pvr/channels/PVRChannelNumber.h"
-#include "pvr/PVRTypes.h"
-
-class CVariant;
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace PVR
 {
   class CPVREpg;
+  class CPVREpgInfoTag;
   class CPVRRadioRDSInfoTag;
 
   /** PVR Channel class */
@@ -166,11 +164,6 @@ namespace PVR
     bool IsUserSetIcon(void) const;
 
     /*!
-     * @return True if the channel icon path exists
-     */
-    bool IsIconExists(void) const;
-
-    /*!
      * @return whether the user has changed the channel name through the GUI
      */
     bool IsUserSetName(void) const;
@@ -282,9 +275,9 @@ namespace PVR
 
     /*!
      * @brief Update the channel path
-     * @param groupPath The new path of the group this channel belongs to
+     * @param channelGroup The (new) name of the group this channel belongs to
      */
-    void UpdatePath(const std::string& groupPath);
+    void UpdatePath(const std::string& channelGroup);
 
     /*!
      * @return Storage id for this channel in CPVRChannelGroup

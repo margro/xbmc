@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <memory>
-
 #include "addons/Addon.h"
 #include "utils/URIUtils.h"
+
+#include <memory>
 
 namespace ADDON
 {
@@ -29,7 +29,7 @@ public:
   }
 
 protected:
-  explicit CResource(CAddonInfo addonInfo) : CAddon(std::move(addonInfo)) {}
+  explicit CResource(const AddonInfoPtr& addonInfo, TYPE addonType) : CAddon(addonInfo, addonType) {}
 
   std::string GetResourcePath() const
   {

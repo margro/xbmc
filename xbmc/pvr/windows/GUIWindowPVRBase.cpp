@@ -8,6 +8,7 @@
 
 #include "GUIWindowPVRBase.h"
 
+#include "FileItem.h"
 #include "GUIUserMessages.h"
 #include "ServiceBroker.h"
 #include "addons/AddonManager.h"
@@ -17,17 +18,24 @@
 #include "guilib/GUIMessage.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
-#include "input/Key.h"
+#include "input/actions/Action.h"
+#include "input/actions/ActionIDs.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogOKHelper.h"
+#include "pvr/PVRGUIActions.h"
+#include "pvr/PVRGUIDirectory.h"
+#include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannelGroup.h"
+#include "pvr/channels/PVRChannelGroups.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "utils/Variant.h"
 #include "utils/log.h"
 
-#include "pvr/PVRGUIActions.h"
-#include "pvr/PVRManager.h"
-#include "pvr/addons/PVRClients.h"
-#include "pvr/channels/PVRChannelGroup.h"
-#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include <iterator>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #define MAX_INVALIDATION_FREQUENCY 2000 // limit to one invalidation per X milliseconds
 
@@ -62,14 +70,9 @@ bool CGUIPVRChannelGroupsSelector::Initialize(CGUIWindow* parent, bool bRadio)
   {
     m_control = control;
     m_channelGroups = CServiceBroker::GetPVRManager().ChannelGroups()->Get(bRadio)->GetMembers(true);
+
     CFileItemList channelGroupItems;
-    for (const auto& group : m_channelGroups)
-    {
-      CFileItemPtr item(new CFileItem(group->GetPath(), true));
-      item->m_strTitle = group->GroupName();
-      item->SetLabel(group->GroupName());
-      channelGroupItems.Add(item);
-    }
+    CPVRGUIDirectory::GetChannelGroupsDirectory(bRadio, true, channelGroupItems);
 
     CGUIMessage msg(GUI_MSG_LABEL_BIND, m_control->GetID(), CONTROL_LSTCHANNELGROUPS, 0, 0, &channelGroupItems);
     m_control->OnMessage(msg);
@@ -360,7 +363,7 @@ bool CGUIWindowPVRBase::OpenChannelGroupSelectionDialog(void)
     return false;
 
   CFileItemList options;
-  CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bRadio)->GetGroupList(&options, true);
+  CPVRGUIDirectory::GetChannelGroupsDirectory(m_bRadio, true, options);
 
   dialog->Reset();
   dialog->SetHeading(CVariant{g_localizeStrings.Get(19146)});
@@ -386,7 +389,20 @@ bool CGUIWindowPVRBase::OpenChannelGroupSelectionDialog(void)
 
 bool CGUIWindowPVRBase::InitChannelGroup()
 {
-  CPVRChannelGroupPtr group(CServiceBroker::GetPVRManager().GetPlayingGroup(m_bRadio));
+  std::shared_ptr<CPVRChannelGroup> group;
+  if (m_channelGroupPath.empty())
+  {
+    group = CServiceBroker::GetPVRManager().GetPlayingGroup(m_bRadio);
+  }
+  else
+  {
+    group = CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_bRadio)->GetGroupByPath(m_channelGroupPath);
+    if (group)
+      CServiceBroker::GetPVRManager().SetPlayingGroup(group);
+    else
+      CLog::LogF(LOGERROR, "Found no %s channel group with path '%s'!", m_bRadio ? "radio" : "TV", m_vecItems->GetPath().c_str());
+  }
+
   if (group)
   {
     CSingleLock lock(m_critSection);

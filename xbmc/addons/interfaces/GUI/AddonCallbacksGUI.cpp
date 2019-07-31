@@ -8,34 +8,34 @@
  */
 
 #include "AddonCallbacksGUI.h"
+
 #include "AddonGUIRenderingControl.h"
 #include "AddonGUIWindow.h"
-
 #include "Application.h"
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "addons/Addon.h"
 #include "addons/Skin.h"
-#include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogFileBrowser.h"
-#include "dialogs/GUIDialogTextViewer.h"
+#include "dialogs/GUIDialogNumeric.h"
 #include "dialogs/GUIDialogSelect.h"
+#include "dialogs/GUIDialogTextViewer.h"
 #include "filesystem/File.h"
 #include "guilib/GUIComponent.h"
-#include "guilib/GUIWindowManager.h"
-#include "guilib/GUISpinControlEx.h"
-#include "guilib/GUIRadioButtonControl.h"
-#include "guilib/GUISettingsSliderControl.h"
-#include "guilib/GUIProgressControl.h"
-#include "guilib/GUIRenderingControl.h"
 #include "guilib/GUIKeyboardFactory.h"
+#include "guilib/GUIProgressControl.h"
+#include "guilib/GUIRadioButtonControl.h"
+#include "guilib/GUIRenderingControl.h"
+#include "guilib/GUISettingsSliderControl.h"
+#include "guilib/GUISpinControlEx.h"
+#include "guilib/GUIWindowManager.h"
 #include "messaging/ApplicationMessenger.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "messaging/helpers/DialogOKHelper.h"
-#include "utils/log.h"
-#include "utils/URIUtils.h"
 #include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
 #include "utils/Variant.h"
+#include "utils/log.h"
 
 using namespace KODI::MESSAGING;
 using KODI::MESSAGING::HELPERS::DialogResponse;
@@ -267,8 +267,8 @@ GUIHANDLE CAddonCallbacksGUI::Window_New(void *addonData, const char *xmlFilenam
   {
     //FIXME make this static method of current skin?
     std::string str("none");
-    CAddonInfo addonInfo(str, ADDON_SKIN);
-    addonInfo.SetPath(URIUtils::AddFileToFolder(
+    AddonInfoPtr addonInfo = std::make_shared<CAddonInfo>(str, ADDON_SKIN);
+    addonInfo->SetPath(URIUtils::AddFileToFolder(
       guiHelper->m_addon->Path(),
       "resources",
       "skins",
@@ -276,7 +276,7 @@ GUIHANDLE CAddonCallbacksGUI::Window_New(void *addonData, const char *xmlFilenam
 
     std::shared_ptr<CSkinInfo> skinInfo = std::make_shared<ADDON::CSkinInfo>(addonInfo);
     skinInfo->Start();
-    strSkinPath = skinInfo->GetSkinPath(xmlFilename, &res, addonInfo.Path());
+    strSkinPath = skinInfo->GetSkinPath(xmlFilename, &res, addonInfo->Path());
 
     if (!XFILE::CFile::Exists(strSkinPath))
     {

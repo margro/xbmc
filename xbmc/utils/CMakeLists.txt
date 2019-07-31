@@ -113,6 +113,7 @@ set(HEADERS ActorProtocol.h
             ILocalizer.h
             InfoLoader.h
             IRssObserver.h
+            IScreenshotSurface.h
             ISerializable.h
             ISortable.h
             IXmlDeserializable.h
@@ -126,6 +127,7 @@ set(HEADERS ActorProtocol.h
             Locale.h
             log.h
             MathUtils.h
+            MemUtils.h
             Mime.h
             Observer.h
             params_check_macros.h
@@ -183,16 +185,6 @@ endif()
 if(NOT CORE_SYSTEM_NAME STREQUAL windows AND NOT CORE_SYSTEM_NAME STREQUAL windowsstore)
   list(APPEND SOURCES GLUtils.cpp)
   list(APPEND HEADERS GLUtils.h)
-endif()
-
-if(CORE_SYSTEM_NAME STREQUAL android OR AML_FOUND)
-  list(APPEND SOURCES AMLUtils.cpp)
-  list(APPEND HEADERS AMLUtils.h)
-endif()
-
-if(AML_FOUND)
-  list(APPEND HEADERS ScreenshotAML.cpp)
-  list(APPEND HEADERS ScreenshotAML.h)
 endif()
 
 if(CORE_PLATFORM_NAME_LC STREQUAL gbm)

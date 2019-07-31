@@ -9,18 +9,23 @@
 #include "PVRChannel.h"
 
 #include "ServiceBroker.h"
+#include "XBDateTime.h"
 #include "addons/PVRClient.h"
-#include "filesystem/File.h"
 #include "guilib/LocalizeStrings.h"
+#include "pvr/PVRDatabase.h"
+#include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannelsPath.h"
+#include "pvr/epg/Epg.h"
+#include "pvr/epg/EpgChannelData.h"
+#include "pvr/epg/EpgContainer.h"
+#include "pvr/epg/EpgInfoTag.h"
 #include "threads/SingleLock.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 #include "utils/log.h"
 
-#include "pvr/PVRDatabase.h"
-#include "pvr/PVRManager.h"
-#include "pvr/epg/EpgChannelData.h"
-#include "pvr/epg/EpgContainer.h"
+#include <memory>
+#include <string>
 
 using namespace PVR;
 
@@ -410,16 +415,13 @@ bool CPVRChannel::SetClientID(int iClientId)
   return false;
 }
 
-void CPVRChannel::UpdatePath(const std::string& groupPath)
+void CPVRChannel::UpdatePath(const std::string& channelGroup)
 {
   const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(m_iClientId);
   if (client)
   {
     CSingleLock lock(m_critSection);
-    const std::string strFileNameAndPath = StringUtils::Format("%s%s_%d.pvr",
-                                                               groupPath,
-                                                               client->ID().c_str(),
-                                                               m_iUniqueId);
+    const std::string strFileNameAndPath = CPVRChannelsPath(m_bIsRadio, channelGroup, client->ID(), m_iUniqueId);
     if (m_strFileNameAndPath != strFileNameAndPath)
     {
       m_strFileNameAndPath = strFileNameAndPath;
@@ -699,11 +701,6 @@ bool CPVRChannel::IsUserSetIcon(void) const
 {
   CSingleLock lock(m_critSection);
   return m_bIsUserSetIcon;
-}
-
-bool CPVRChannel::IsIconExists() const
-{
-  return XFILE::CFile::Exists(IconPath());
 }
 
 bool CPVRChannel::IsUserSetName() const

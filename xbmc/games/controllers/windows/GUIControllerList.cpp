@@ -8,32 +8,32 @@
 
 #include "GUIControllerList.h"
 
-#include <algorithm>
-#include <assert.h>
-#include <iterator>
-
 #include "GUIControllerDefines.h"
 #include "GUIControllerWindow.h"
 #include "GUIFeatureList.h"
+#include "ServiceBroker.h"
 #include "addons/AddonManager.h"
 #include "dialogs/GUIDialogYesNo.h"
-#include "games/addons/input/GameClientInput.h"
+#include "games/GameServices.h"
 #include "games/addons/GameClient.h"
-#include "games/controllers/types/ControllerTree.h"
+#include "games/addons/input/GameClientInput.h"
 #include "games/controllers/Controller.h"
 #include "games/controllers/ControllerIDs.h"
 #include "games/controllers/ControllerLayout.h"
 #include "games/controllers/guicontrols/GUIControllerButton.h"
 #include "games/controllers/guicontrols/GUIGameController.h"
-#include "games/GameServices.h"
-#include "guilib/GUIMessage.h"
+#include "games/controllers/types/ControllerTree.h"
 #include "guilib/GUIButtonControl.h"
 #include "guilib/GUIControlGroupList.h"
+#include "guilib/GUIMessage.h"
 #include "guilib/GUIWindow.h"
 #include "messaging/ApplicationMessenger.h"
 #include "peripherals/Peripherals.h"
 #include "utils/StringUtils.h"
-#include "ServiceBroker.h"
+
+#include <algorithm>
+#include <assert.h>
+#include <iterator>
 
 using namespace KODI;
 using namespace ADDON;
@@ -94,10 +94,8 @@ bool CGUIControllerList::Refresh(const std::string& controllerId)
   if (m_controllerList)
   {
     unsigned int buttonId = 0;
-    for (ControllerVector::const_iterator it = m_controllers.begin(); it != m_controllers.end(); ++it)
+    for (const auto& controller : m_controllers)
     {
-      const ControllerPtr& controller = *it;
-
       CGUIButtonControl* pButton = new CGUIControllerButton(*m_controllerButton, controller->Layout().Label(), buttonId++);
       m_controllerList->AddControl(pButton);
 

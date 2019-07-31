@@ -7,6 +7,7 @@
  */
 
 #include "ServiceBroker.h"
+
 #include "Application.h"
 #include "profiles/ProfileManager.h"
 #include "settings/SettingsComponent.h"
@@ -251,7 +252,6 @@ void CServiceBroker::UnregisterAppPort()
 {
   m_pAppPort.reset();
 }
-
 
 CDecoderFilterManager* CServiceBroker::m_decoderFilterManager = nullptr;
 void CServiceBroker::RegisterDecoderFilterManager(CDecoderFilterManager* manager)

@@ -43,9 +43,10 @@ ifeq ($(OS), android)
   endif
   ffmpg_config += --target-os=linux --extra-libs=-liconv --disable-linux-perf
 endif
-ifeq ($(OS), ios)
+ifeq ($(OS), darwin_embedded)
   ifneq ($(CPU), arm64)
     ffmpg_config += --cpu=cortex-a8
+    ffmpg_config += --as="$(NATIVEPREFIX)/bin/gas-preprocessor.pl -- $(CC)"
   else
     ffmpg_config += --as="$(NATIVEPREFIX)/bin/gas-preprocessor.pl -arch aarch64 -- $(CC)"
   endif
@@ -80,7 +81,7 @@ $(PLATFORM): $(TARBALLS_LOCATION)/$(ARCHIVE) $(DEPS)
 	cd $(PLATFORM);\
 	CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" CPPFLAGS="$(CPPFLAGS)" LDFLAGS="$(LDFLAGS)" \
 	./configure $(ffmpg_config)
-ifeq ($(OS), ios)
+ifeq ($(OS), darwin_embedded)
 	cd $(PLATFORM); sed -i -- 's/HAVE_CLOCK_GETTIME 1/HAVE_CLOCK_GETTIME 0/g' config.h
 endif
 

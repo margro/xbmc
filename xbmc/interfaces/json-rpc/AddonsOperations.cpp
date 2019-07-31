@@ -7,14 +7,15 @@
  */
 
 #include "AddonsOperations.h"
+
 #include "JSONUtils.h"
 #include "ServiceBroker.h"
-#include "addons/AddonManager.h"
-#include "addons/AddonDatabase.h"
-#include "addons/PluginSource.h"
-#include "messaging/ApplicationMessenger.h"
 #include "TextureCache.h"
+#include "addons/AddonDatabase.h"
+#include "addons/AddonManager.h"
+#include "addons/PluginSource.h"
 #include "filesystem/File.h"
+#include "messaging/ApplicationMessenger.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
 
@@ -66,10 +67,10 @@ JSONRPC_STATUS CAddonsOperations::GetAddons(const std::string &method, ITranspor
     addonTypes.push_back(addonType);
 
   VECADDONS addons;
-  for (std::vector<TYPE>::const_iterator typeIt = addonTypes.begin(); typeIt != addonTypes.end(); ++typeIt)
+  for (const auto& typeIt : addonTypes)
   {
     VECADDONS typeAddons;
-    if (*typeIt == ADDON_UNKNOWN)
+    if (typeIt == ADDON_UNKNOWN)
     {
       if (!enabled.isBoolean()) //All
       {
@@ -88,14 +89,14 @@ JSONRPC_STATUS CAddonsOperations::GetAddons(const std::string &method, ITranspor
       if (!enabled.isBoolean()) //All
       {
         if (!installed.isBoolean() || installed.asBoolean())
-          CServiceBroker::GetAddonMgr().GetInstalledAddons(typeAddons, *typeIt);
+          CServiceBroker::GetAddonMgr().GetInstalledAddons(typeAddons, typeIt);
         if (!installed.isBoolean() || (installed.isBoolean() && !installed.asBoolean()))
-          CServiceBroker::GetAddonMgr().GetInstallableAddons(typeAddons, *typeIt);
+          CServiceBroker::GetAddonMgr().GetInstallableAddons(typeAddons, typeIt);
       }
       else if (enabled.asBoolean() && (!installed.isBoolean() || installed.asBoolean())) //Enabled
-        CServiceBroker::GetAddonMgr().GetAddons(typeAddons, *typeIt);
+        CServiceBroker::GetAddonMgr().GetAddons(typeAddons, typeIt);
       else if (!installed.isBoolean() || installed.asBoolean())
-        CServiceBroker::GetAddonMgr().GetDisabledAddons(typeAddons, *typeIt);
+        CServiceBroker::GetAddonMgr().GetDisabledAddons(typeAddons, typeIt);
     }
 
     addons.insert(addons.end(), typeAddons.begin(), typeAddons.end());

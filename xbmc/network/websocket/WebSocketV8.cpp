@@ -6,18 +6,19 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include <string>
-#include <sstream>
-
 #include "WebSocketV8.h"
+
 #include "WebSocket.h"
 #include "utils/Base64.h"
 #include "utils/Digest.h"
 #include "utils/EndianSwap.h"
 #include "utils/HttpParser.h"
 #include "utils/HttpResponse.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/log.h"
+
+#include <sstream>
+#include <string>
 
 using KODI::UTILITY::CDigest;
 
@@ -96,10 +97,10 @@ bool CWebSocketV8::Handshake(const char* data, size_t length, std::string &respo
   if (value && strlen(value) > 0)
   {
     std::vector<std::string> protocols = StringUtils::Split(value, ",");
-    for (std::vector<std::string>::iterator protocol = protocols.begin(); protocol != protocols.end(); ++protocol)
+    for (auto& protocol : protocols)
     {
-      StringUtils::Trim(*protocol);
-      if (*protocol == WS_PROTOCOL_JSONRPC)
+      StringUtils::Trim(protocol);
+      if (protocol == WS_PROTOCOL_JSONRPC)
       {
         websocketProtocol = WS_PROTOCOL_JSONRPC;
         break;

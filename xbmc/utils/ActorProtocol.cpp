@@ -7,6 +7,7 @@
  */
 
 #include "ActorProtocol.h"
+
 #include "threads/Event.h"
 
 #include <cstring>
@@ -28,7 +29,7 @@ void Message::Release()
   if (data != buffer)
     delete [] data;
 
-  payloadObj.release();
+  payloadObj.reset();
 
   // delete event in case of sync message
   delete event;

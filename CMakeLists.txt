@@ -13,6 +13,7 @@ endif()
 
 # Set CORE_BUILD_DIR
 set(CORE_BUILD_DIR build)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 message(STATUS "Source directory: ${CMAKE_SOURCE_DIR}")
 message(STATUS "Build directory: ${CMAKE_BINARY_DIR}")
@@ -87,6 +88,10 @@ set(INCLUDES ${CMAKE_SOURCE_DIR}
              ${CMAKE_SOURCE_DIR}/xbmc/cores/VideoPlayer
              ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR})
 
+if (NOT PLATFORMDEFS_DIR STREQUAL "")
+  list(APPEND INCLUDES ${CMAKE_SOURCE_DIR}/xbmc/${PLATFORMDEFS_DIR})
+endif()
+
 find_package(PkgConfig)
 if(KODI_DEPENDSBUILD)
   if(PKG_CONFIG_EXECUTABLE)
@@ -112,7 +117,6 @@ endforeach()
 # Required dependencies. Keep in alphabetical order please
 set(required_deps ASS
                   Cdio
-                  Cpluff
                   CrossGUID
                   Curl
                   FFMPEG
@@ -124,7 +128,7 @@ set(required_deps ASS
                   Iconv
                   LibDvd
                   Lzo2
-                  OpenSSL
+                  OpenSSL>=1.0.2
                   PCRE
                   RapidJSON
                   Sqlite3
@@ -141,12 +145,14 @@ set(optional_deps Alsa
                   CAP
                   CCache
                   CEC
+                  ClangFormat
                   DBus
                   LCMS2
                   LircClient
                   MDNS
                   MicroHttpd
                   NFS
+                  Plist
                   PulseAudio
                   Python
                   SmbClient
@@ -155,16 +161,12 @@ set(optional_deps Alsa
                   XSLT
                   ${PLATFORM_OPTIONAL_DEPS})
 
-# Optional, dyloaded deps. Keep in alphabetical order please
-set(dyload_optional Plist)
-
 # Required tools
 find_package(TexturePacker REQUIRED)
 find_package(JsonSchemaBuilder REQUIRED)
 
 # Check optional deps first, since their availability can influence required ones, e.g. ffmpeg
 core_optional_dep(${optional_deps})
-core_optional_dyload_dep(${dyload_optional})
 core_require_dep(${required_deps})
 
 if(ENABLE_MARIADBCLIENT AND NOT ENABLE_MARIADBCLIENT STREQUAL AUTO AND ENABLE_MYSQLCLIENT AND NOT ENABLE_MYSQLCLIENT STREQUAL AUTO)
@@ -193,7 +195,7 @@ endif()
 if(ENABLE_AIRTUNES)
   find_package(Shairplay)
   if(SHAIRPLAY_FOUND)
-    core_require_dyload_dep(Shairplay)
+    core_require_dep(Shairplay)
   endif()
 endif()
 
@@ -284,7 +286,7 @@ elseif(CORE_SYSTEM_NAME STREQUAL android)
                  ${CORE_BUILD_DIR}/DllPaths_generated_android.h @ONLY)
 endif()
 
-set(GLOBAL_TARGET_DEPS libcpluff ffmpeg dvdnav crossguid fmt fstrcmp flatbuffers ${PLATFORM_GLOBAL_TARGET_DEPS})
+set(GLOBAL_TARGET_DEPS ffmpeg dvdnav crossguid fmt fstrcmp flatbuffers ${PLATFORM_GLOBAL_TARGET_DEPS})
 
 # main library (used for main binary and tests)
 add_library(lib${APP_NAME_LC} STATIC $<TARGET_OBJECTS:compileinfo>)
@@ -297,6 +299,7 @@ set(OTHER_FILES cmake/README.md)
 # Subdirs
 core_add_subdirs_from_filelist(${CMAKE_SOURCE_DIR}/cmake/treedata/common/*.txt
                                ${CMAKE_SOURCE_DIR}/cmake/treedata/common/${CORE_PLATFORM_NAME_LC}/*.txt
+                               ${CMAKE_SOURCE_DIR}/cmake/treedata/${CORE_SYSTEM_NAME}/${CORE_PLATFORM_NAME_LC}/*.txt
                                ${CMAKE_SOURCE_DIR}/cmake/treedata/${CORE_SYSTEM_NAME}/*.txt)
 core_add_optional_subdirs_from_filelist(${CMAKE_SOURCE_DIR}/cmake/treedata/optional/common/*.txt
                                         ${CMAKE_SOURCE_DIR}/cmake/treedata/optional/${CORE_SYSTEM_NAME}/*.txt)
@@ -336,9 +339,9 @@ if(WIN32)
   endif()
 elseif(CORE_SYSTEM_NAME STREQUAL android)
   # Nothing
-elseif(CORE_SYSTEM_NAME STREQUAL ios)
+elseif(CORE_SYSTEM_NAME STREQUAL darwin_embedded)
   set_target_properties(${APP_NAME_LC} PROPERTIES OUTPUT_NAME ${APP_NAME}
-                                                  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/ios/Info.plist.in)
+                                                  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/xbmc/platform/darwin/${CORE_PLATFORM_NAME}/Info.plist.in)
 else()
   set_target_properties(${APP_NAME_LC} PROPERTIES SUFFIX ${APP_BINARY_SUFFIX})
 endif()

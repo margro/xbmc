@@ -6,28 +6,29 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "ServiceDescription.h"
 #include "JSONServiceDescription.h"
-#include "utils/log.h"
-#include "utils/JSONVariantParser.h"
-#include "utils/StringUtils.h"
+
+#include "AddonsOperations.h"
+#include "ApplicationOperations.h"
+#include "AudioLibrary.h"
+#include "FavouritesOperations.h"
+#include "FileOperations.h"
+#include "GUIOperations.h"
+#include "InputOperations.h"
 #include "JSONRPC.h"
+#include "PVROperations.h"
 #include "PlayerOperations.h"
 #include "PlaylistOperations.h"
-#include "FileOperations.h"
-#include "AudioLibrary.h"
-#include "VideoLibrary.h"
-#include "GUIOperations.h"
-#include "AddonsOperations.h"
-#include "SystemOperations.h"
-#include "InputOperations.h"
-#include "XBMCOperations.h"
-#include "ApplicationOperations.h"
-#include "PVROperations.h"
 #include "ProfilesOperations.h"
-#include "FavouritesOperations.h"
-#include "TextureOperations.h"
+#include "ServiceDescription.h"
 #include "SettingsOperations.h"
+#include "SystemOperations.h"
+#include "TextureOperations.h"
+#include "VideoLibrary.h"
+#include "XBMCOperations.h"
+#include "utils/JSONVariantParser.h"
+#include "utils/StringUtils.h"
+#include "utils/log.h"
 
 using namespace JSONRPC;
 
@@ -303,9 +304,9 @@ bool JSONSchemaTypeDefinition::Parse(const CVariant &value, bool isParameter /* 
       // sure that the default value is a valid enum value
       else
       {
-        for (std::vector<CVariant>::const_iterator itr = enums.begin(); itr != enums.end(); ++itr)
+        for (const auto& itr : enums)
         {
-          if (value["default"] == *itr)
+          if (value["default"] == itr)
           {
             ok = true;
             break;
@@ -899,9 +900,9 @@ JSONRPC_STATUS JSONSchemaTypeDefinition::Check(const CVariant &value, CVariant &
   if (enums.size() > 0)
   {
     bool valid = false;
-    for (std::vector<CVariant>::const_iterator enumItr = enums.begin(); enumItr != enums.end(); ++enumItr)
+    for (const auto& enumItr : enums)
     {
-      if (*enumItr == value)
+      if (enumItr == value)
       {
         valid = true;
         break;
@@ -1677,8 +1678,8 @@ bool CJSONServiceDescription::AddEnum(const std::string &name, const std::vector
 bool CJSONServiceDescription::AddEnum(const std::string &name, const std::vector<std::string> &values)
 {
   std::vector<CVariant> enums;
-  for (std::vector<std::string>::const_iterator it = values.begin(); it != values.end(); ++it)
-    enums.push_back(CVariant(*it));
+  for (const auto& it : values)
+    enums.push_back(CVariant(it));
 
   return AddEnum(name, enums, CVariant::VariantTypeString);
 }
@@ -1686,8 +1687,8 @@ bool CJSONServiceDescription::AddEnum(const std::string &name, const std::vector
 bool CJSONServiceDescription::AddEnum(const std::string &name, const std::vector<int> &values)
 {
   std::vector<CVariant> enums;
-  for (std::vector<int>::const_iterator it = values.begin(); it != values.end(); ++it)
-    enums.push_back(CVariant(*it));
+  for (const auto& it : values)
+    enums.push_back(CVariant(it));
 
   return AddEnum(name, enums, CVariant::VariantTypeInteger);
 }
