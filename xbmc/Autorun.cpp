@@ -71,7 +71,7 @@ void CAutorun::ExecuteAutorun(const std::string& path, bool bypassSettings, bool
   if (CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_LOGIN_SCREEN)
     return;
 
-  CCdInfo* pInfo = g_mediaManager.GetCdInfo(path);
+  CCdInfo* pInfo = CServiceBroker::GetMediaManager().GetCdInfo(path);
 
   if ( pInfo == NULL )
     return ;
@@ -101,7 +101,7 @@ bool CAutorun::PlayDisc(const std::string& path, bool bypassSettings, bool start
 
   std::string mediaPath;
 
-  CCdInfo* pInfo = g_mediaManager.GetCdInfo(path);
+  CCdInfo* pInfo = CServiceBroker::GetMediaManager().GetCdInfo(path);
   if (pInfo == NULL)
     return false;
 
@@ -115,7 +115,7 @@ bool CAutorun::PlayDisc(const std::string& path, bool bypassSettings, bool start
     mediaPath = path;
 
   if (mediaPath.empty() || mediaPath == "iso9660://")
-    mediaPath = g_mediaManager.GetDiscPath();
+    mediaPath = CServiceBroker::GetMediaManager().GetDiscPath();
 
   const CURL pathToUrl(mediaPath);
   std::unique_ptr<IDirectory> pDir ( CDirectoryFactory::Create( pathToUrl ));
@@ -187,8 +187,9 @@ bool CAutorun::RunDisc(IDirectory* pDir, const std::string& strDrive, int& nAdde
           if(!CFile::Exists(path))
             path = URIUtils::AddFileToFolder(pItem->GetPath(), "video_ts.ifo");
           CFileItemPtr item(new CFileItem(path, false));
-          item->SetLabel(g_mediaManager.GetDiskLabel(strDrive));
-          item->GetVideoInfoTag()->m_strFileNameAndPath = g_mediaManager.GetDiskUniqueId(strDrive);
+          item->SetLabel(CServiceBroker::GetMediaManager().GetDiskLabel(strDrive));
+          item->GetVideoInfoTag()->m_strFileNameAndPath =
+              CServiceBroker::GetMediaManager().GetDiskUniqueId(strDrive);
 
           if (!startFromBeginning && !item->GetVideoInfoTag()->m_strFileNameAndPath.empty())
             item->m_lStartOffset = STARTOFFSET_RESUME;
@@ -208,8 +209,9 @@ bool CAutorun::RunDisc(IDirectory* pDir, const std::string& strDrive, int& nAdde
         && (bypassSettings || bAutorunDVDs))
         {
           CFileItemPtr item(new CFileItem(URIUtils::AddFileToFolder(pItem->GetPath(), "index.bdmv"), false));
-          item->SetLabel(g_mediaManager.GetDiskLabel(strDrive));
-          item->GetVideoInfoTag()->m_strFileNameAndPath = g_mediaManager.GetDiskUniqueId(strDrive);
+          item->SetLabel(CServiceBroker::GetMediaManager().GetDiskLabel(strDrive));
+          item->GetVideoInfoTag()->m_strFileNameAndPath =
+              CServiceBroker::GetMediaManager().GetDiskUniqueId(strDrive);
 
           if (!startFromBeginning && !item->GetVideoInfoTag()->m_strFileNameAndPath.empty())
             item->m_lStartOffset = STARTOFFSET_RESUME;
@@ -300,8 +302,9 @@ bool CAutorun::RunDisc(IDirectory* pDir, const std::string& strDrive, int& nAdde
           if (hddvdname != "")
           {
             CFileItem item(URIUtils::AddFileToFolder(phddvdItem->GetPath(), hddvdname), false);
-            item.SetLabel(g_mediaManager.GetDiskLabel(strDrive));
-            item.GetVideoInfoTag()->m_strFileNameAndPath = g_mediaManager.GetDiskUniqueId(strDrive);
+            item.SetLabel(CServiceBroker::GetMediaManager().GetDiskLabel(strDrive));
+            item.GetVideoInfoTag()->m_strFileNameAndPath =
+                CServiceBroker::GetMediaManager().GetDiskUniqueId(strDrive);
 
             if (!startFromBeginning && !item.GetVideoInfoTag()->m_strFileNameAndPath.empty())
             item.m_lStartOffset = STARTOFFSET_RESUME;
@@ -506,7 +509,7 @@ bool CAutorun::PlayDiscAskResume(const std::string& path)
 
 bool CAutorun::CanResumePlayDVD(const std::string& path)
 {
-  std::string strUniqueId = g_mediaManager.GetDiskUniqueId(path);
+  std::string strUniqueId = CServiceBroker::GetMediaManager().GetDiskUniqueId(path);
   if (!strUniqueId.empty())
   {
     CVideoDatabase dbs;
@@ -520,9 +523,9 @@ bool CAutorun::CanResumePlayDVD(const std::string& path)
 
 void CAutorun::SettingOptionAudioCdActionsFiller(SettingConstPtr setting, std::vector<IntegerSettingOption> &list, int &current, void *data)
 {
-  list.push_back(IntegerSettingOption(g_localizeStrings.Get(16018), AUTOCD_NONE));
-  list.push_back(IntegerSettingOption(g_localizeStrings.Get(14098), AUTOCD_PLAY));
+  list.emplace_back(g_localizeStrings.Get(16018), AUTOCD_NONE);
+  list.emplace_back(g_localizeStrings.Get(14098), AUTOCD_PLAY);
 #ifdef HAS_CDDA_RIPPER
-  list.push_back(IntegerSettingOption(g_localizeStrings.Get(14096), AUTOCD_RIP));
+  list.emplace_back(g_localizeStrings.Get(14096), AUTOCD_RIP);
 #endif
 }

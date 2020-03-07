@@ -300,7 +300,7 @@ void CMusicInfoScanner::Start(const std::string& strDirectory, int flags)
   }
   else
   {
-    m_pathsToScan.insert(strDirectory);    
+    m_pathsToScan.insert(strDirectory);
     m_idSourcePath = m_musicDatabase.GetSourceFromPath(strDirectory);
   }
   m_musicDatabase.Close();
@@ -574,7 +574,7 @@ CInfoScanner::INFO_RET CMusicInfoScanner::ScanTags(const CFileItemList& items,
     if (!tag.Loaded())
     {
       std::unique_ptr<IMusicInfoTagLoader> pLoader (CMusicInfoTagLoaderFactory::CreateLoader(*pItem));
-      if (NULL != pLoader.get())
+      if (nullptr != pLoader)
         pLoader->Load(pItem->GetPath(), tag);
     }
 
@@ -667,6 +667,7 @@ void CMusicInfoScanner::FileItemsToAlbums(CFileItemList& items, VECALBUMS& album
     bool tracksOverlap = false;
     bool hasAlbumArtist = false;
     bool isCompilation = true;
+    std::string old_DiscSubtitle;
 
     std::map<std::string, std::vector<CSong *> > artists;
     for (VECSONGS::iterator song = songs.begin(); song != songs.end(); ++song)
@@ -677,6 +678,9 @@ void CMusicInfoScanner::FileItemsToAlbums(CFileItemList& items, VECALBUMS& album
 
       if (!song->bCompilation)
         isCompilation = false;
+
+      if (song->strDiscSubtitle != old_DiscSubtitle)
+        old_DiscSubtitle = song->strDiscSubtitle;
 
       // get primary artist
       std::string primary;
@@ -711,24 +715,25 @@ void CMusicInfoScanner::FileItemsToAlbums(CFileItemList& items, VECALBUMS& album
         !StringUtils::EqualsNoCase(artist, "various artists") &&
         !StringUtils::EqualsNoCase(artist, various)) // 3a
         compilation = false;
+      else
+        // Grab name for use in "various artist" artist
+        various = artists.begin()->first;
     }
     else if (hasAlbumArtist) // 3b
       compilation = false;
 
-    //Such a compilation album is stored with the localized value for "various artists" as the album artist
+    // Such a compilation album is stored under a unique artist that matches on Musicbrainz ID
+    // the "various artists" artist for music tagged with mbids.
     if (compilation)
     {
       CLog::Log(LOGDEBUG, "Album '%s' is a compilation as there's no overlapping tracks and %s",
                 songsByAlbumName.first.c_str(),
                 hasAlbumArtist ? "the album artist is 'Various'"
                                : "there is more than one unique artist");
+      // Clear song artists from artists map, put songs under "various artists" mbid entry
       artists.clear();
-      std::vector<std::string> va; va.push_back(various);
       for (auto& song : songs)
-      {
-        song.SetAlbumArtist(va);
-        artists[various].push_back(&song);
-      }
+        artists[VARIOUSARTISTS_MBID].push_back(&song);
     }
 
     /*
@@ -754,9 +759,10 @@ void CMusicInfoScanner::FileItemsToAlbums(CFileItemList& items, VECALBUMS& album
      */
     for (auto& j : artists)
     {
-      /*
-       Find the common artist(s) for these songs. Take from albumartist tag when present, or use artist tag.
-       When from albumartist tag also check albumartistsort tag and take first non-empty value
+      /* Find the common artist(s) for these songs (grouped under primary artist).
+      Various artist compilations already under the unique "various artists" mbid.
+      Take from albumartist tag when present, or use artist tag.
+      When from albumartist tag also check albumartistsort tag and take first non-empty value
       */
       std::vector<CSong*>& artistSongs = j.second;
       std::vector<std::string> common;
@@ -787,6 +793,11 @@ void CMusicInfoScanner::FileItemsToAlbums(CFileItemList& items, VECALBUMS& album
         }
         common.erase(common.begin() + match, common.end());
       }
+      if (j.first == VARIOUSARTISTS_MBID)
+      {
+        common.clear();
+        common.emplace_back(VARIOUSARTISTS_MBID);
+      }
 
       /*
        Step 4: Assign the album artist for each song that doesn't have it set
@@ -803,11 +814,22 @@ void CMusicInfoScanner::FileItemsToAlbums(CFileItemList& items, VECALBUMS& album
 
       for (size_t i = 0; i < common.size(); i++)
       {
-        album.artistCredits.emplace_back(StringUtils::Trim(common[i]));
-        // Set artist sort name providing we have as many as we have artists,
-        // otherwise something is wrong with them so ignore rather than guess.
-        if (sortnames.size() == common.size())
-          album.artistCredits.back().SetSortName(StringUtils::Trim(sortnames[i]));
+        if (common[i] == VARIOUSARTISTS_MBID)
+          /* Treat "various", "various artists" and the localized equivalent name as the same
+          album artist as the artist with Musicbrainz ID 89ad4ac3-39f7-470e-963a-56509c546377.
+          If adding this artist for the first time then the name will be set to either the primary
+          artist read from tags when 3a, or the localized value for "various artists" when not 3a.
+          This means that tag values are no longer translated into the current langauge.
+          */
+          album.artistCredits.emplace_back(various, VARIOUSARTISTS_MBID);
+        else
+        {
+          album.artistCredits.emplace_back(StringUtils::Trim(common[i]));
+          // Set artist sort name providing we have as many as we have artists,
+          // otherwise something is wrong with them so ignore rather than guess.
+          if (sortnames.size() == common.size())
+            album.artistCredits.back().SetSortName(StringUtils::Trim(sortnames[i]));
+        }
       }
       album.bCompilation = compilation;
       for (auto& k : artistSongs)
@@ -1238,8 +1260,8 @@ int CMusicInfoScanner::GetPathHash(const CFileItemList &items, std::string &hash
     const CFileItemPtr pItem = items[i];
     digest.Update(pItem->GetPath());
     digest.Update((unsigned char *)&pItem->m_dwSize, sizeof(pItem->m_dwSize));
-    FILETIME time = pItem->m_dateTime;
-    digest.Update((unsigned char *)&time, sizeof(FILETIME));
+    KODI::TIME::FileTime time = pItem->m_dateTime;
+    digest.Update((unsigned char*)&time, sizeof(KODI::TIME::FileTime));
     if (pItem->IsAudio() && !pItem->IsPlayList() && !pItem->IsNFO())
       count++;
   }
@@ -1454,7 +1476,7 @@ CMusicInfoScanner::DownloadAlbumInfo(const CAlbum& album,
   CInfoScanner::INFO_TYPE result = CInfoScanner::NO_NFO;
   CNfoFile nfoReader;
   existsNFO = XFILE::CFile::Exists(strNfo);
-  // When on GUI ask user if they want to ignore nfo and refresh from Internet  
+  // When on GUI ask user if they want to ignore nfo and refresh from Internet
   if (existsNFO && pDialog && CGUIDialogYesNo::ShowAndGetInput(10523, 20446))
   {
     existsNFO = false;
@@ -1741,7 +1763,7 @@ CMusicInfoScanner::DownloadArtistInfo(const CArtist& artist,
       CLog::Log(LOGDEBUG, "%s not have path, nfo file not possible", artist.strArtist.c_str());
   }
 
-  // When on GUI ask user if they want to ignore nfo and refresh from Internet  
+  // When on GUI ask user if they want to ignore nfo and refresh from Internet
   if (existsNFO && pDialog && CGUIDialogYesNo::ShowAndGetInput(21891, 20446))
   {
     existsNFO = false;

@@ -154,14 +154,16 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       case LISTITEM_RATING_AND_VOTES:
       {
         CRating rating = tag->GetRating(info.GetData3());
-        if (rating.rating > 0.f)
+        if (rating.rating >= 0.f)
         {
-          if (rating.votes == 0)
+          if (rating.rating > 0.f && rating.votes == 0)
             value = StringUtils::FormatNumber(rating.rating);
-          else
+          else if (rating.votes > 0)
             value = StringUtils::Format(g_localizeStrings.Get(20350).c_str(),
                                         StringUtils::FormatNumber(rating.rating).c_str(),
                                         StringUtils::FormatNumber(rating.votes).c_str());
+          else
+            break;
           return true;
         }
         break;
@@ -216,26 +218,22 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
       case VIDEOPLAYER_EPISODE:
       case LISTITEM_EPISODE:
       {
-        int iSeason = -1, iEpisode = -1;
+        int iEpisode = -1;
         if (tag->m_iEpisode > 0)
         {
-          iSeason = tag->m_iSeason;
           iEpisode = tag->m_iEpisode;
         }
 
         if (iEpisode >= 0)
         {
-          if (iSeason == 0) // prefix episode with 'S'
-            value = StringUtils::Format("S%d", iEpisode);
-          else
-            value = StringUtils::Format("%d", iEpisode);
+          value = StringUtils::Format("%d", iEpisode);
           return true;
         }
         break;
       }
       case VIDEOPLAYER_SEASON:
       case LISTITEM_SEASON:
-        if (tag->m_iSeason > 0)
+        if (tag->m_iSeason >= 0)
         {
           value = StringUtils::Format("%d", tag->m_iSeason);
           return true;

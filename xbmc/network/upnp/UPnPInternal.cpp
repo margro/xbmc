@@ -476,9 +476,7 @@ BuildObject(CFileItem&                    item,
                   }
                   break;
                 case MUSICDATABASEDIRECTORY::NODE_TYPE_ALBUM:
-                case MUSICDATABASEDIRECTORY::NODE_TYPE_ALBUM_COMPILATIONS:
-                case MUSICDATABASEDIRECTORY::NODE_TYPE_ALBUM_RECENTLY_ADDED:
-                case MUSICDATABASEDIRECTORY::NODE_TYPE_YEAR_ALBUM: {
+                case MUSICDATABASEDIRECTORY::NODE_TYPE_ALBUM_RECENTLY_ADDED: {
                       container->m_ObjectClass.type += ".album.musicAlbum";
                       // for Sonos to be happy
                       CMusicInfoTag *tag = item.GetMusicInfoTag();
@@ -800,7 +798,7 @@ PopulateTagFromObject(CVideoInfoTag&         tag,
     else if(object.m_ObjectClass.type == "object.item.videoItem.musicVideoClip") {
         tag.m_type = MediaTypeMusicVideo;
         for (unsigned int index = 0; index < object.m_People.artists.GetItemCount(); index++)
-            tag.m_artist.push_back(object.m_People.artists.GetItem(index)->name.GetChars());
+          tag.m_artist.emplace_back(object.m_People.artists.GetItem(index)->name.GetChars());
         tag.m_strAlbum = object.m_Affiliation.album;
     }
     else
@@ -811,13 +809,13 @@ PopulateTagFromObject(CVideoInfoTag&         tag,
     }
 
     for (unsigned int index = 0; index < object.m_People.publisher.GetItemCount(); index++)
-        tag.m_studio.push_back(object.m_People.publisher.GetItem(index)->GetChars());
+      tag.m_studio.emplace_back(object.m_People.publisher.GetItem(index)->GetChars());
 
     tag.m_dateAdded.SetFromW3CDate((const char*)object.m_XbmcInfo.date_added);
     tag.SetRating(object.m_XbmcInfo.rating, object.m_XbmcInfo.votes);
     tag.SetUniqueID(object.m_XbmcInfo.unique_identifier.GetChars());
     for (unsigned int index = 0; index < object.m_XbmcInfo.countries.GetItemCount(); index++)
-      tag.m_country.push_back(object.m_XbmcInfo.countries.GetItem(index)->GetChars());
+      tag.m_country.emplace_back(object.m_XbmcInfo.countries.GetItem(index)->GetChars());
     tag.m_iUserRating = object.m_XbmcInfo.user_rating;
 
     for (unsigned int index = 0; index < object.m_Affiliation.genres.GetItemCount(); index++)
@@ -827,12 +825,12 @@ PopulateTagFromObject(CVideoInfoTag&         tag,
           *object.m_Affiliation.genres.GetItem(index) == "Unknown")
           break;
 
-      tag.m_genre.push_back(object.m_Affiliation.genres.GetItem(index)->GetChars());
+      tag.m_genre.emplace_back(object.m_Affiliation.genres.GetItem(index)->GetChars());
     }
     for (unsigned int index = 0; index < object.m_People.directors.GetItemCount(); index++)
-      tag.m_director.push_back(object.m_People.directors.GetItem(index)->name.GetChars());
+      tag.m_director.emplace_back(object.m_People.directors.GetItem(index)->name.GetChars());
     for (unsigned int index = 0; index < object.m_People.authors.GetItemCount(); index++)
-      tag.m_writingCredits.push_back(object.m_People.authors.GetItem(index)->name.GetChars());
+      tag.m_writingCredits.emplace_back(object.m_People.authors.GetItem(index)->name.GetChars());
     for (unsigned int index = 0; index < object.m_People.actors.GetItemCount(); index++)
     {
       SActorInfo info;
@@ -955,9 +953,9 @@ CFileItemPtr BuildObject(PLT_MediaObject* entry,
 
   // look for date?
   if(entry->m_Description.date.GetLength()) {
-    SYSTEMTIME time = {};
-    sscanf(entry->m_Description.date, "%hu-%hu-%huT%hu:%hu:%hu",
-           &time.wYear, &time.wMonth, &time.wDay, &time.wHour, &time.wMinute, &time.wSecond);
+    KODI::TIME::SystemTime time = {};
+    sscanf(entry->m_Description.date, "%hu-%hu-%huT%hu:%hu:%hu", &time.year, &time.month, &time.day,
+           &time.hour, &time.minute, &time.second);
     pItem->m_dateTime = time;
   }
 

@@ -11,6 +11,7 @@
 #include "FileItem.h"
 #include "ServiceBroker.h"
 #include "pvr/PVRManager.h"
+#include "pvr/PVRPlaybackState.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/epg/EpgInfoTag.h"
 
@@ -24,7 +25,7 @@ CGUIDialogPVRChannelGuide::CGUIDialogPVRChannelGuide()
 {
 }
 
-void CGUIDialogPVRChannelGuide::Open(const CPVRChannelPtr &channel)
+void CGUIDialogPVRChannelGuide::Open(const std::shared_ptr<CPVRChannel>& channel)
 {
   m_channel = channel;
   CGUIDialogPVRItemsViewBase::Open();
@@ -34,7 +35,7 @@ void CGUIDialogPVRChannelGuide::OnInitWindow()
 {
   // no user-specific channel is set; use current playing channel
   if (!m_channel)
-    m_channel = CServiceBroker::GetPVRManager().GetPlayingChannel();
+    m_channel = CServiceBroker::GetPVRManager().PlaybackState()->GetPlayingChannel();
 
   if (!m_channel)
   {

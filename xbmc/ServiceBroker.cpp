@@ -206,6 +206,11 @@ CEventLog& CServiceBroker::GetEventLog()
   return m_pSettingsComponent->GetProfileManager()->GetEventLog();
 }
 
+CMediaManager& CServiceBroker::GetMediaManager()
+{
+  return g_application.m_ServiceManager->GetMediaManager();
+}
+
 CGUIComponent* CServiceBroker::m_pGUI = nullptr;
 
 CGUIComponent* CServiceBroker::GetGUI()
@@ -262,4 +267,20 @@ void CServiceBroker::RegisterDecoderFilterManager(CDecoderFilterManager* manager
 CDecoderFilterManager* CServiceBroker::GetDecoderFilterManager()
 {
   return m_decoderFilterManager;
+}
+
+std::shared_ptr<CCPUInfo> CServiceBroker::m_cpuInfo;
+std::shared_ptr<CCPUInfo> CServiceBroker::GetCPUInfo()
+{
+  return m_cpuInfo;
+}
+
+void CServiceBroker::RegisterCPUInfo(std::shared_ptr<CCPUInfo> cpuInfo)
+{
+  m_cpuInfo = cpuInfo;
+}
+
+void CServiceBroker::UnregisterCPUInfo()
+{
+  m_cpuInfo.reset();
 }

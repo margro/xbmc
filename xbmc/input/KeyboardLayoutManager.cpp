@@ -121,7 +121,7 @@ namespace
 {
   inline bool LayoutSort(const StringSettingOption& i, const StringSettingOption& j)
   {
-    return (i.value > j.value);
+    return (i.value < j.value);
   }
 }
 
@@ -130,7 +130,7 @@ void CKeyboardLayoutManager::SettingOptionsKeyboardLayoutsFiller(SettingConstPtr
   for (const auto& it : CKeyboardLayoutManager::GetInstance().m_layouts)
   {
     std::string name = it.second.GetName();
-    list.push_back(StringSettingOption(name, name));
+    list.emplace_back(name, name);
   }
 
   std::sort(list.begin(), list.end(), LayoutSort);

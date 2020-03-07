@@ -47,6 +47,8 @@ Several different strategies are used to draw your attention to certain pieces o
 **[back to top](#table-of-contents)** | **[back to section top](#1-document-conventions)**
 
 ## 2. Install the required packages
+**NOTE:** Kodi requires a compiler with C++14 support, i.e. gcc >= 4.9 or clang >= 3.4
+
 Install build dependencies needed to cross-compile Kodi for the Raspberry Pi:
 ```
 sudo apt install autoconf bison build-essential curl default-jdk gawk git gperf libcurl4-openssl-dev zlib1g-dev
@@ -116,6 +118,12 @@ Configure CMake build:
 ```
 cd $HOME/kodi
 make -C tools/depends/target/cmakebuildsys
+```
+
+**TIP:** BUILD_DIR can be provided as an argument to cmakebuildsys. This allows you to provide an alternate build location. Change all paths onwards as required if BUILD_DIR option used.
+```
+mkdir $HOME/kodi-build
+make -C tools/depends/target/cmakebuildsys BUILD_DIR=$HOME/kodi-build
 ```
 
 Build Kodi:

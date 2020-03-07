@@ -10,13 +10,13 @@
 
 #include "ServiceBroker.h"
 #include "guilib/LocalizeStrings.h"
-#include "pvr/PVRGUIProgressHandler.h"
 #include "pvr/PVRManager.h"
 #include "pvr/epg/Epg.h"
 #include "pvr/epg/EpgChannelData.h"
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/epg/EpgDatabase.h"
 #include "pvr/epg/EpgInfoTag.h"
+#include "pvr/guilib/PVRGUIProgressHandler.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
@@ -60,12 +60,12 @@ class CEpgTagStateChange
 {
 public:
   CEpgTagStateChange() = default;
-  CEpgTagStateChange(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE eNewState) : m_epgtag(tag), m_state(eNewState) {}
+  CEpgTagStateChange(const std::shared_ptr<CPVREpgInfoTag>& tag, EPG_EVENT_STATE eNewState) : m_epgtag(tag), m_state(eNewState) {}
 
   void Deliver();
 
 private:
-  CPVREpgInfoTagPtr m_epgtag;
+  std::shared_ptr<CPVREpgInfoTag> m_epgtag;
   EPG_EVENT_STATE m_state = EPG_EVENT_CREATED;
 };
 
@@ -88,14 +88,13 @@ void CEpgTagStateChange::Deliver()
     m_epgtag->SetChannelData(epg->GetChannelData());
   }
 
-  epg->UpdateEntry(m_epgtag, m_state, epgContainer.UseDatabase());
+  epg->UpdateEntry(m_epgtag, m_state);
 }
 
-CPVREpgContainer::CPVREpgContainer(void) :
+CPVREpgContainer::CPVREpgContainer() :
   CThread("EPGUpdater"),
   m_database(new CPVREpgDatabase),
   m_settings({
-    CSettings::SETTING_EPG_STOREEPGINDATABASE,
     CSettings::SETTING_EPG_EPGUPDATE,
     CSettings::SETTING_EPG_FUTURE_DAYSTODISPLAY,
     CSettings::SETTING_EPG_PAST_DAYSTODISPLAY,
@@ -106,28 +105,29 @@ CPVREpgContainer::CPVREpgContainer(void) :
   m_updateEvent.Reset();
 }
 
-CPVREpgContainer::~CPVREpgContainer(void)
+CPVREpgContainer::~CPVREpgContainer()
 {
   Stop();
   Clear();
 }
 
-CPVREpgDatabasePtr CPVREpgContainer::GetEpgDatabase() const
+std::shared_ptr<CPVREpgDatabase> CPVREpgContainer::GetEpgDatabase() const
 {
   CSingleLock lock(m_critSection);
-  if (!m_database || !m_database->IsOpen())
-    CLog::LogF(LOGERROR, "Failed to open the EPG database");
+
+  if (!m_database->IsOpen())
+    m_database->Open();
 
   return m_database;
 }
 
-bool CPVREpgContainer::IsStarted(void) const
+bool CPVREpgContainer::IsStarted() const
 {
   CSingleLock lock(m_critSection);
   return m_bStarted;
 }
 
-int CPVREpgContainer::NextEpgId(void)
+int CPVREpgContainer::NextEpgId()
 {
   CSingleLock lock(m_critSection);
   return ++m_iNextEpgId;
@@ -143,24 +143,19 @@ void CPVREpgContainer::Clear()
   {
     CSingleLock lock(m_critSection);
     /* clear all epg tables and remove pointers to epg tables on channels */
-    for (const auto &epgEntry : m_epgIdToEpgMap)
-      epgEntry.second->UnregisterObserver(this);
+    for (const auto& epgEntry : m_epgIdToEpgMap)
+      epgEntry.second->Events().Unsubscribe(this);
 
     m_epgIdToEpgMap.clear();
     m_channelUidToEpgMap.clear();
-    m_iNextEpgUpdate  = 0;
+    m_iNextEpgUpdate = 0;
     m_bStarted = false;
     m_bIsInitialising = true;
     m_iNextEpgId = 0;
     m_bUpdateNotificationPending = false;
   }
 
-  SetChanged();
-
-  {
-    CSingleExit ex(m_critSection);
-    NotifyObservers(ObservableMessageEpgContainer);
-  }
+  m_events.Publish(PVREvent::EpgContainer);
 
   if (bThreadRunning)
     Start(true);
@@ -170,7 +165,7 @@ class CPVREpgContainerStartJob : public CJob
 {
 public:
   CPVREpgContainerStartJob() = default;
-  ~CPVREpgContainerStartJob(void) override = default;
+  ~CPVREpgContainerStartJob() override = default;
 
   bool DoWork() override
   {
@@ -183,7 +178,7 @@ void CPVREpgContainer::Start(bool bAsync)
 {
   if (bAsync)
   {
-    CPVREpgContainerStartJob *job = new CPVREpgContainerStartJob();
+    CPVREpgContainerStartJob* job = new CPVREpgContainerStartJob();
     CJobManager::GetInstance().AddJob(job, NULL);
     return;
   }
@@ -193,12 +188,10 @@ void CPVREpgContainer::Start(bool bAsync)
   {
     CSingleLock lock(m_critSection);
 
-    m_database->Open();
-
     m_bIsInitialising = true;
     m_bStop = false;
 
-    m_iNextEpgUpdate  = 0;
+    m_iNextEpgUpdate = 0;
     m_iNextEpgActiveTagCheck = 0;
     m_bUpdateNotificationPending = false;
   }
@@ -227,7 +220,7 @@ void CPVREpgContainer::Start(bool bAsync)
   }
 }
 
-void CPVREpgContainer::Stop(void)
+void CPVREpgContainer::Stop()
 {
   StopThread();
 
@@ -237,93 +230,79 @@ void CPVREpgContainer::Stop(void)
   m_bStarted = false;
 }
 
-void CPVREpgContainer::Notify(const Observable &obs, const ObservableMessage msg)
+void CPVREpgContainer::Notify(const PVREvent& event)
 {
-  if (msg == ObservableMessageEpgItemUpdate)
+  if (event == PVREvent::EpgItemUpdate)
   {
     // there can be many of these notifications during short time period. Thus, announce async and not every event.
     CSingleLock lock(m_critSection);
     m_bUpdateNotificationPending = true;
     return;
   }
-  else if (msg == ObservableMessageEpgUpdatePending)
+  else if (event == PVREvent::EpgUpdatePending)
   {
     SetHasPendingUpdates(true);
     return;
   }
 
-  SetChanged();
-  CSingleExit ex(m_critSection);
-  NotifyObservers(msg);
+  m_events.Publish(event);
 }
 
-void CPVREpgContainer::LoadFromDB(void)
+void CPVREpgContainer::LoadFromDB()
 {
   CSingleLock lock(m_critSection);
 
-  if (m_bLoaded || !UseDatabase())
+  if (m_bLoaded)
     return;
 
-  bool bLoaded = true;
-  unsigned int iCounter = 0;
-
-  CPVRGUIProgressHandler* progressHandler = new CPVRGUIProgressHandler(g_localizeStrings.Get(19250)); // Loading guide from database
-  const CDateTime cleanupTime(CDateTime::GetUTCDateTime() - CDateTimeSpan(GetPastDaysToDisplay(), 0, 0, 0));
-
-  m_database->Lock();
-  m_iNextEpgId = m_database->GetLastEPGId();
-  m_database->DeleteEpgEntries(cleanupTime);
-  const std::vector<std::shared_ptr<CPVREpg>> result = m_database->GetAll();
-  m_database->Unlock();
+  const std::shared_ptr<CPVREpgDatabase> database = GetEpgDatabase();
+  database->Lock();
+  m_iNextEpgId = database->GetLastEPGId();
+  const std::vector<std::shared_ptr<CPVREpg>> result = database->GetAll();
+  database->Unlock();
 
   for (const auto& entry : result)
     InsertFromDB(entry);
 
-  for (const auto &epgEntry : m_epgIdToEpgMap)
-  {
-    if (m_bStop)
-      break;
-
-    progressHandler->UpdateProgress(epgEntry.second->Name(), ++iCounter, m_epgIdToEpgMap.size());
-
-    lock.Leave();
-    epgEntry.second->Load(GetEpgDatabase());
-    lock.Enter();
-  }
-
-  progressHandler->DestroyProgress();
-
-  m_bLoaded = bLoaded;
+  m_bLoaded = true;
 }
 
-bool CPVREpgContainer::PersistAll(void)
+bool CPVREpgContainer::PersistAll(unsigned int iMaxTimeslice) const
 {
-  bool bReturn = !UseDatabase();
+  bool bReturn = true;
 
-  if (!bReturn)
+  m_critSection.lock();
+  const auto epgs = m_epgIdToEpgMap;
+  m_critSection.unlock();
+
+  const std::shared_ptr<CPVREpgDatabase> database = GetEpgDatabase();
+  XbmcThreads::EndTime processTimeslice(iMaxTimeslice);
+
+  for (const auto& epg : epgs)
   {
-    m_critSection.lock();
-    const auto epgs = m_epgIdToEpgMap;
-    m_critSection.unlock();
-
-    const std::shared_ptr<CPVREpgDatabase> database = GetEpgDatabase();
-
-    for (const auto& epg : epgs)
+    if (epg.second && epg.second->NeedsSave())
     {
-      if (epg.second && epg.second->NeedsSave())
-        bReturn &= epg.second->Persist(database);
+      CLog::Log(LOGNOTICE, "EPG Container: Persisting events for channel '%s'...",
+                epg.second->GetChannelData()->ChannelName().c_str());
+
+      bReturn &= epg.second->Persist(database);
     }
+
+    if (processTimeslice.IsTimePast())
+      break;
   }
 
   return bReturn;
 }
 
-void CPVREpgContainer::Process(void)
+void CPVREpgContainer::Process()
 {
   time_t iNow = 0;
   time_t iLastSave = 0;
   bool bUpdateEpg = true;
   bool bHasPendingUpdates = false;
+
+  SetPriority(GetMinPriority());
 
   while (!m_bStop)
   {
@@ -367,7 +346,7 @@ void CPVREpgContainer::Process(void)
       unsigned int iProcessed = 0;
       XbmcThreads::EndTime processTimeslice(1000); // max 1 sec per cycle, regardless of how many events are in the queue
 
-      while (!m_bStop)
+      while (!InterruptUpdate())
       {
         CEpgTagStateChange change;
         {
@@ -413,25 +392,24 @@ void CPVREpgContainer::Process(void)
       if (m_bUpdateNotificationPending)
       {
         m_bUpdateNotificationPending = false;
-        SetChanged();
-
-        CSingleExit ex(m_critSection);
-        NotifyObservers(ObservableMessageEpg);
+        m_events.Publish(PVREvent::Epg);
       }
     }
 
     /* check for changes that need to be saved every 60 seconds */
-    if (iNow - iLastSave > 60)
+    if ((iNow - iLastSave > 60) && !InterruptUpdate())
     {
-      PersistAll();
+      PersistAll(1000);
       iLastSave = iNow;
     }
 
-    Sleep(1000);
+    CThread::Sleep(1000);
   }
 
   // store data on exit
-  PersistAll();
+  CLog::Log(LOGNOTICE, "EPG Container: Persisting unsaved events...");
+  PersistAll(XbmcThreads::EndTime::InfiniteValue);
+  CLog::Log(LOGNOTICE, "EPG Container: Persisting events done");
 }
 
 std::vector<std::shared_ptr<CPVREpg>> CPVREpgContainer::GetAllEpgs() const
@@ -447,15 +425,15 @@ std::vector<std::shared_ptr<CPVREpg>> CPVREpgContainer::GetAllEpgs() const
   return epgs;
 }
 
-CPVREpgPtr CPVREpgContainer::GetById(int iEpgId) const
+std::shared_ptr<CPVREpg> CPVREpgContainer::GetById(int iEpgId) const
 {
-  CPVREpgPtr retval;
+  std::shared_ptr<CPVREpg> retval;
 
   if (iEpgId < 0)
     return retval;
 
   CSingleLock lock(m_critSection);
-  const auto &epgEntry = m_epgIdToEpgMap.find(iEpgId);
+  const auto& epgEntry = m_epgIdToEpgMap.find(iEpgId);
   if (epgEntry != m_epgIdToEpgMap.end())
     retval = epgEntry->second;
 
@@ -479,7 +457,7 @@ std::shared_ptr<CPVREpg> CPVREpgContainer::GetByChannelUid(int iClientId, int iC
 
 std::shared_ptr<CPVREpgInfoTag> CPVREpgContainer::GetTagById(const std::shared_ptr<CPVREpg>& epg, unsigned int iBroadcastId) const
 {
-  CPVREpgInfoTagPtr retval;
+  std::shared_ptr<CPVREpgInfoTag> retval;
 
   if (iBroadcastId == EPG_TAG_INVALID_UID)
     return retval;
@@ -501,46 +479,41 @@ std::shared_ptr<CPVREpgInfoTag> CPVREpgContainer::GetTagById(const std::shared_p
   return retval;
 }
 
-std::vector<std::shared_ptr<CPVREpgInfoTag>> CPVREpgContainer::GetAllTags() const
+std::vector<std::shared_ptr<CPVREpgInfoTag>> CPVREpgContainer::GetTags(
+    const PVREpgSearchData& searchData) const
 {
-  std::vector<std::shared_ptr<CPVREpgInfoTag>> allTags;
+  // make sure we have up-to-date data in the database.
+  PersistAll(XbmcThreads::EndTime::InfiniteValue);
 
-  CSingleLock lock(m_critSection);
-  for (const auto& epgEntry : m_epgIdToEpgMap)
+  const std::shared_ptr<CPVREpgDatabase> database = GetEpgDatabase();
+  const std::vector<std::shared_ptr<CPVREpgInfoTag>> results = database->GetEpgTags(searchData);
+
+  for (const auto& tag : results)
   {
-    const std::vector<std::shared_ptr<CPVREpgInfoTag>> epgTags = epgEntry.second->GetTags();
-    allTags.insert(allTags.end(), epgTags.begin(), epgTags.end());
+    const auto& it = m_epgIdToEpgMap.find(tag->EpgID());
+    if (it != m_epgIdToEpgMap.cend())
+      tag->SetChannelData((*it).second->GetChannelData());
   }
 
-  return allTags;
+  return results;
 }
 
-void CPVREpgContainer::InsertFromDB(const CPVREpgPtr &newEpg)
+void CPVREpgContainer::InsertFromDB(const std::shared_ptr<CPVREpg>& newEpg)
 {
   // table might already have been created when pvr channels were loaded
-  CPVREpgPtr epg = GetById(newEpg->EpgID());
-  if (epg)
-  {
-    if (epg->Name() != newEpg->Name() || epg->ScraperName() != newEpg->ScraperName())
-    {
-      // current table data differs from the info in the db
-      epg->SetChanged();
-      SetChanged();
-    }
-  }
-  else
+  std::shared_ptr<CPVREpg> epg = GetById(newEpg->EpgID());
+  if (!epg)
   {
     // create a new epg table
     epg = newEpg;
     m_epgIdToEpgMap.insert({epg->EpgID(), epg});
-    SetChanged();
-    epg->RegisterObserver(this);
+    epg->Events().Subscribe(this, &CPVREpgContainer::Notify);
   }
 }
 
-CPVREpgPtr CPVREpgContainer::CreateChannelEpg(int iEpgId, const std::string& strScraperName, const std::shared_ptr<CPVREpgChannelData>& channelData)
+std::shared_ptr<CPVREpg> CPVREpgContainer::CreateChannelEpg(int iEpgId, const std::string& strScraperName, const std::shared_ptr<CPVREpgChannelData>& channelData)
 {
-  CPVREpgPtr epg;
+  std::shared_ptr<CPVREpg> epg;
 
   WaitForUpdateFinish();
   LoadFromDB();
@@ -553,13 +526,13 @@ CPVREpgPtr CPVREpgContainer::CreateChannelEpg(int iEpgId, const std::string& str
     if (iEpgId <= 0)
       iEpgId = NextEpgId();
 
-    epg.reset(new CPVREpg(iEpgId, channelData->ChannelName(), strScraperName, channelData));
+    epg.reset(new CPVREpg(iEpgId, channelData->ChannelName(), strScraperName, channelData,
+                          GetEpgDatabase()));
 
     CSingleLock lock(m_critSection);
     m_epgIdToEpgMap.insert({iEpgId, epg});
     m_channelUidToEpgMap.insert({{channelData->ClientId(), channelData->UniqueClientChannelId()}, epg});
-    SetChanged();
-    epg->RegisterObserver(this);
+    epg->Events().Subscribe(this, &CPVREpgContainer::Notify);
   }
   else if (epg->ChannelID() == -1)
   {
@@ -574,13 +547,12 @@ CPVREpgPtr CPVREpgContainer::CreateChannelEpg(int iEpgId, const std::string& str
     CDateTime::GetCurrentDateTime().GetAsUTCDateTime().GetAsTime(m_iNextEpgUpdate);
   }
 
-  CSingleExit ex(m_critSection);
-  NotifyObservers(ObservableMessageEpgContainer);
+  m_events.Publish(PVREvent::EpgContainer);
 
   return epg;
 }
 
-bool CPVREpgContainer::RemoveOldEntries(void)
+bool CPVREpgContainer::RemoveOldEntries()
 {
   const CDateTime cleanupTime(CDateTime::GetUTCDateTime() - CDateTimeSpan(GetPastDaysToDisplay(), 0, 0, 0));
 
@@ -588,17 +560,13 @@ bool CPVREpgContainer::RemoveOldEntries(void)
   for (const auto& epgEntry : m_epgIdToEpgMap)
     epgEntry.second->Cleanup(cleanupTime);
 
-  /* remove the old entries from the database */
-  if (UseDatabase())
-    m_database->DeleteEpgEntries(cleanupTime);
-
   CSingleLock lock(m_critSection);
   CDateTime::GetCurrentDateTime().GetAsUTCDateTime().GetAsTime(m_iLastEpgCleanup);
 
   return true;
 }
 
-bool CPVREpgContainer::DeleteEpg(const CPVREpgPtr &epg, bool bDeleteFromDatabase /* = false */)
+bool CPVREpgContainer::DeleteEpg(const std::shared_ptr<CPVREpg>& epg)
 {
   if (!epg || epg->EpgID() < 0)
     return false;
@@ -615,21 +583,16 @@ bool CPVREpgContainer::DeleteEpg(const CPVREpgPtr &epg, bool bDeleteFromDatabase
     m_channelUidToEpgMap.erase(epgEntry1);
 
   CLog::LogFC(LOGDEBUG, LOGEPG, "Deleting EPG table %s (%d)", epg->Name().c_str(), epg->EpgID());
-  if (bDeleteFromDatabase && UseDatabase())
-    m_database->Delete(*epgEntry->second);
 
-  epgEntry->second->UnregisterObserver(this);
+  epgEntry->second->Delete(GetEpgDatabase());
+
+  epgEntry->second->Events().Unsubscribe(this);
   m_epgIdToEpgMap.erase(epgEntry);
 
   return true;
 }
 
-bool CPVREpgContainer::UseDatabase() const
-{
-  return m_settings.GetBoolValue(CSettings::SETTING_EPG_STOREEPGINDATABASE);
-}
-
-bool CPVREpgContainer::InterruptUpdate(void) const
+bool CPVREpgContainer::InterruptUpdate() const
 {
   CSingleLock lock(m_critSection);
   return m_bStop ||
@@ -678,7 +641,7 @@ bool CPVREpgContainer::UpdateEPG(bool bOnlyPending /* = false */)
     pendingUpdates = m_pendingUpdates;
   }
 
-  std::vector<CPVREpgPtr> invalidTables;
+  std::vector<std::shared_ptr<CPVREpg>> invalidTables;
 
   CPVRGUIProgressHandler* progressHandler = nullptr;
   if (bShowProgress && !bOnlyPending)
@@ -686,7 +649,7 @@ bool CPVREpgContainer::UpdateEPG(bool bOnlyPending /* = false */)
 
   /* load or update all EPG tables */
   unsigned int iCounter = 0;
-  const std::shared_ptr<CPVREpgDatabase> database = UseDatabase() ? GetEpgDatabase() : nullptr;
+  const std::shared_ptr<CPVREpgDatabase> database = GetEpgDatabase();
   for (const auto& epgEntry : m_epgIdToEpgMap)
   {
     if (InterruptUpdate())
@@ -695,7 +658,7 @@ bool CPVREpgContainer::UpdateEPG(bool bOnlyPending /* = false */)
       break;
     }
 
-    const CPVREpgPtr epg = epgEntry.second;
+    const std::shared_ptr<CPVREpg> epg = epgEntry.second;
     if (!epg)
       continue;
 
@@ -722,7 +685,7 @@ bool CPVREpgContainer::UpdateEPG(bool bOnlyPending /* = false */)
     progressHandler->DestroyProgress();
 
   for (const auto& epg : invalidTables)
-    DeleteEpg(epg, true);
+    DeleteEpg(epg);
 
   if (bInterrupted)
   {
@@ -742,11 +705,7 @@ bool CPVREpgContainer::UpdateEPG(bool bOnlyPending /* = false */)
 
   /* notify observers */
   if (iUpdatedTables > 0)
-  {
-    SetChanged();
-    CSingleExit ex(m_critSection);
-    NotifyObservers(ObservableMessageEpgContainer);
-  }
+    m_events.Publish(PVREvent::EpgContainer);
 
   CSingleLock lock(m_critSection);
   m_bIsUpdating = false;
@@ -755,7 +714,7 @@ bool CPVREpgContainer::UpdateEPG(bool bOnlyPending /* = false */)
   return !bInterrupted;
 }
 
-const CDateTime CPVREpgContainer::GetFirstEPGDate(void)
+const CDateTime CPVREpgContainer::GetFirstEPGDate()
 {
   CDateTime returnValue;
 
@@ -763,7 +722,7 @@ const CDateTime CPVREpgContainer::GetFirstEPGDate(void)
   const auto epgs = m_epgIdToEpgMap;
   m_critSection.unlock();
 
-  for (const auto &epgEntry : epgs)
+  for (const auto& epgEntry : epgs)
   {
     CDateTime entry = epgEntry.second->GetFirstDate();
     if (entry.IsValid() && (!returnValue.IsValid() || entry < returnValue))
@@ -773,7 +732,7 @@ const CDateTime CPVREpgContainer::GetFirstEPGDate(void)
   return returnValue;
 }
 
-const CDateTime CPVREpgContainer::GetLastEPGDate(void)
+const CDateTime CPVREpgContainer::GetLastEPGDate()
 {
   CDateTime returnValue;
 
@@ -781,7 +740,7 @@ const CDateTime CPVREpgContainer::GetLastEPGDate(void)
   const auto epgs = m_epgIdToEpgMap;
   m_critSection.unlock();
 
-  for (const auto &epgEntry : epgs)
+  for (const auto& epgEntry : epgs)
   {
     CDateTime entry = epgEntry.second->GetLastDate();
     if (entry.IsValid() && (!returnValue.IsValid() || entry > returnValue))
@@ -791,7 +750,7 @@ const CDateTime CPVREpgContainer::GetLastEPGDate(void)
   return returnValue;
 }
 
-bool CPVREpgContainer::CheckPlayingEvents(void)
+bool CPVREpgContainer::CheckPlayingEvents()
 {
   bool bReturn = false;
   bool bFoundChanges = false;
@@ -826,11 +785,8 @@ bool CPVREpgContainer::CheckPlayingEvents(void)
   }
 
   if (bFoundChanges)
-  {
-    SetChanged();
-    CSingleExit ex(m_critSection);
-    NotifyObservers(ObservableMessageEpgActiveItem);
-  }
+    m_events.Publish(PVREvent::EpgActiveItem);
+
   return bReturn;
 }
 
@@ -849,7 +805,7 @@ void CPVREpgContainer::UpdateRequest(int iClientID, int iUniqueChannelID)
   m_updateRequests.emplace_back(CEpgUpdateRequest(iClientID, iUniqueChannelID));
 }
 
-void CPVREpgContainer::UpdateFromClient(const CPVREpgInfoTagPtr &tag, EPG_EVENT_STATE eNewState)
+void CPVREpgContainer::UpdateFromClient(const std::shared_ptr<CPVREpgInfoTag>& tag, EPG_EVENT_STATE eNewState)
 {
   CSingleLock lock(m_epgTagChangesLock);
   m_epgTagChanges.emplace_back(CEpgTagStateChange(tag, eNewState));

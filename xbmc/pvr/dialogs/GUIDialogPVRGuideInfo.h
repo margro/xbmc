@@ -9,23 +9,26 @@
 #pragma once
 
 #include "guilib/GUIDialog.h"
-#include "pvr/PVRTypes.h"
+
+#include <memory>
 
 class CGUIMessage;
 
 namespace PVR
 {
+  class CPVREpgInfoTag;
+
   class CGUIDialogPVRGuideInfo : public CGUIDialog
   {
   public:
-    CGUIDialogPVRGuideInfo(void);
-    ~CGUIDialogPVRGuideInfo(void) override;
+    CGUIDialogPVRGuideInfo();
+    ~CGUIDialogPVRGuideInfo() override;
     bool OnMessage(CGUIMessage& message) override;
     bool OnInfo(int actionID) override;
     bool HasListItems() const override { return true; }
     CFileItemPtr GetCurrentListItem(int offset = 0) override;
 
-    void SetProgInfo(const CPVREpgInfoTagPtr &tag);
+    void SetProgInfo(const std::shared_ptr<CPVREpgInfoTag>& tag);
 
     static void ShowFor(const CFileItemPtr& item);
 
@@ -33,13 +36,13 @@ namespace PVR
     void OnInitWindow() override;
 
   private:
-    bool OnClickButtonOK(CGUIMessage &message);
-    bool OnClickButtonRecord(CGUIMessage &message);
-    bool OnClickButtonPlay(CGUIMessage &message);
-    bool OnClickButtonFind(CGUIMessage &message);
-    bool OnClickButtonAddTimer(CGUIMessage &message);
+    bool OnClickButtonOK(CGUIMessage& message);
+    bool OnClickButtonRecord(CGUIMessage& message);
+    bool OnClickButtonPlay(CGUIMessage& message);
+    bool OnClickButtonFind(CGUIMessage& message);
+    bool OnClickButtonAddTimer(CGUIMessage& message);
     bool OnClickButtonSetReminder(CGUIMessage& message);
 
-    CPVREpgInfoTagPtr m_progItem;
+    std::shared_ptr<CPVREpgInfoTag> m_progItem;
   };
 }

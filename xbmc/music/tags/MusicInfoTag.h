@@ -12,9 +12,6 @@ class CSong;
 class CArtist;
 class CVariant;
 
-#include <string>
-#include <vector>
-
 #include "ReplayGain.h"
 #include "XBDateTime.h"
 #include "music/Album.h"
@@ -22,6 +19,8 @@ class CVariant;
 #include "utils/ISerializable.h"
 #include "utils/ISortable.h"
 
+#include <string>
+#include <vector>
 
 namespace MUSIC_INFO
 {
@@ -46,12 +45,14 @@ public:
   int GetTrackNumber() const;
   int GetDiscNumber() const;
   int GetTrackAndDiscNumber() const;
+  int GetTotalDiscs() const;
   int GetDuration() const;  // may be set even if Loaded() returns false
   int GetYear() const;
   int GetDatabaseId() const;
   const std::string &GetType() const;
+  const std::string& GetDiscSubtitle() const;
 
-  void GetReleaseDate(SYSTEMTIME& dateTime) const;
+  void GetReleaseDate(KODI::TIME::SystemTime& dateTime) const;
   std::string GetYearString() const;
   const std::string& GetMusicBrainzTrackID() const;
   const std::vector<std::string>& GetMusicBrainzArtistID() const;
@@ -69,6 +70,7 @@ public:
   const CDateTime& GetLastPlayed() const;
   const CDateTime& GetDateAdded() const;
   bool  GetCompilation() const;
+  bool GetBoxset() const;
   float GetRating() const;
   int GetUserrating() const;
   int GetVotes() const;
@@ -95,7 +97,7 @@ public:
   void SetGenre(const std::vector<std::string>& genres, bool bTrim = false);
   void SetYear(int year);
   void SetDatabaseId(long id, const std::string &type);
-  void SetReleaseDate(SYSTEMTIME& dateTime);
+  void SetReleaseDate(KODI::TIME::SystemTime& dateTime);
   void SetTrackNumber(int iTrack);
   void SetDiscNumber(int iDiscNumber);
   void SetTrackAndDiscNumber(int iTrackAndDisc);
@@ -127,10 +129,13 @@ public:
   void SetDateAdded(const std::string& strDateAdded);
   void SetDateAdded(const CDateTime& strDateAdded);
   void SetCompilation(bool compilation);
+  void SetBoxset(bool boxset);
   void SetCoverArtInfo(size_t size, const std::string &mimeType);
   void SetReplayGain(const ReplayGain& aGain);
   void SetAlbumReleaseType(CAlbum::ReleaseType releaseType);
   void SetType(const MediaType mediaType);
+  void SetDiscSubtitle(const std::string& strDiscSubtitle);
+  void SetTotalDiscs(int iDiscTotal);
 
   /*! \brief Append a unique artist to the artist list
    Checks if we have this artist already added, and if not adds it to the songs artist list.
@@ -198,6 +203,7 @@ protected:
   std::string m_strRecordLabel;
   std::string m_strLyrics;
   std::string m_cuesheet;
+  std::string m_strDiscSubtitle;
   CDateTime m_lastPlayed;
   CDateTime m_dateAdded;
   bool m_bCompilation;
@@ -212,7 +218,9 @@ protected:
   int m_listeners;
   int m_iTimesPlayed;
   int m_iAlbumId;
-  SYSTEMTIME m_dwReleaseDate;
+  int m_iDiscTotal;
+  bool m_bBoxset;
+  KODI::TIME::SystemTime m_dwReleaseDate;
   CAlbum::ReleaseType m_albumReleaseType;
 
   EmbeddedArtInfo m_coverArt; ///< art information

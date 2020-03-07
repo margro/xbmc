@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2020 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -26,6 +26,7 @@
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
 #include "input/Key.h"
+#include "media/MediaLockState.h"
 #include "profiles/ProfileManager.h"
 #include "profiles/dialogs/GUIDialogLockSettings.h"
 #include "settings/MediaSourceSettings.h"
@@ -98,7 +99,7 @@ void CGUIDialogContextMenu::OnInitWindow()
 {
   m_clickedButton = -1;
   // set initial control focus
-  m_lastControlID = BUTTON_START;
+  m_lastControlID = m_initiallyFocusedButtonIdx + BUTTON_START;
   CGUIDialog::OnInitWindow();
 }
 
@@ -249,11 +250,15 @@ void CGUIDialogContextMenu::GetContextButtons(const std::string &type, const CFi
   }
   if (share && LOCK_MODE_EVERYONE != CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetMasterProfile().getLockMode())
   {
-    if (share->m_iHasLock == 0 && (CServiceBroker::GetSettingsComponent()->GetProfileManager()->GetCurrentProfile().canWriteSources() || g_passwordManager.bMasterUser))
+    if (share->m_iHasLock == LOCK_STATE_NO_LOCK && (CServiceBroker::GetSettingsComponent()
+                                                        ->GetProfileManager()
+                                                        ->GetCurrentProfile()
+                                                        .canWriteSources() ||
+                                                    g_passwordManager.bMasterUser))
       buttons.Add(CONTEXT_BUTTON_ADD_LOCK, 12332);
-    else if (share->m_iHasLock == 1)
+    else if (share->m_iHasLock == LOCK_STATE_LOCK_BUT_UNLOCKED)
       buttons.Add(CONTEXT_BUTTON_REMOVE_LOCK, 12335);
-    else if (share->m_iHasLock == 2)
+    else if (share->m_iHasLock == LOCK_STATE_LOCKED)
     {
       buttons.Add(CONTEXT_BUTTON_REMOVE_LOCK, 12335);
 
@@ -267,7 +272,7 @@ void CGUIDialogContextMenu::GetContextButtons(const std::string &type, const CFi
         buttons.Add(CONTEXT_BUTTON_CHANGE_LOCK, 12356);
     }
   }
-  if (share && !g_passwordManager.bMasterUser && item->m_iHasLock == 1)
+  if (share && !g_passwordManager.bMasterUser && item->m_iHasLock == LOCK_STATE_LOCK_BUT_UNLOCKED)
     buttons.Add(CONTEXT_BUTTON_REACTIVATE_LOCK, 12353);
 }
 
@@ -280,10 +285,11 @@ bool CGUIDialogContextMenu::OnContextButton(const std::string &type, const CFile
   switch (button)
   {
     case CONTEXT_BUTTON_EJECT_DRIVE:
-      return g_mediaManager.Eject(item->GetPath());
+      return CServiceBroker::GetMediaManager().Eject(item->GetPath());
 #ifdef HAS_DVD_DRIVE
     case CONTEXT_BUTTON_EJECT_DISC:
-      g_mediaManager.ToggleTray(g_mediaManager.TranslateDevicePath(item->GetPath())[0]);
+      CServiceBroker::GetMediaManager().ToggleTray(
+          CServiceBroker::GetMediaManager().TranslateDevicePath(item->GetPath())[0]);
 #endif
       return true;
     default:
@@ -391,13 +397,13 @@ bool CGUIDialogContextMenu::OnContextButton(const std::string &type, const CFile
       }
       // and add a "no thumb" entry as well
       CFileItemPtr nothumb(new CFileItem("thumb://None", false));
-      nothumb->SetIconImage(item->GetIconImage());
+      nothumb->SetArt("icon", item->GetArt("icon"));
       nothumb->SetLabel(g_localizeStrings.Get(20018));
       items.Add(nothumb);
 
       std::string strThumb;
       VECSOURCES shares;
-      g_mediaManager.GetLocalDrives(shares);
+      CServiceBroker::GetMediaManager().GetLocalDrives(shares);
       if (!CGUIDialogFileBrowser::ShowAndGetImage(items, shares, g_localizeStrings.Get(1030), strThumb))
         return false;
 
@@ -437,7 +443,7 @@ bool CGUIDialogContextMenu::OnContextButton(const std::string &type, const CFile
       if (!CGUIDialogLockSettings::ShowAndGetLock(share->m_iLockMode,strNewPassword))
         return false;
       // password entry and re-entry succeeded, write out the lock data
-      share->m_iHasLock = 2;
+      share->m_iHasLock = LOCK_STATE_LOCKED;
       CMediaSourceSettings::GetInstance().UpdateSource(type, share->strName, "lockcode", strNewPassword);
       strNewPassword = StringUtils::Format("%i", share->m_iLockMode);
       CMediaSourceSettings::GetInstance().UpdateSource(type, share->strName, "lockmode", strNewPassword);
@@ -465,10 +471,11 @@ bool CGUIDialogContextMenu::OnContextButton(const std::string &type, const CFile
       if (!g_passwordManager.IsMasterLockUnlocked(true))
         return false;
 
+      // prompt user if they want to really remove the lock
       if (!CGUIDialogYesNo::ShowAndGetInput(CVariant{12335}, CVariant{750}))
         return false;
 
-      share->m_iHasLock = 0;
+      share->m_iHasLock = LOCK_STATE_NO_LOCK;
       CMediaSourceSettings::GetInstance().UpdateSource(type, share->strName, "lockmode", "0");
       CMediaSourceSettings::GetInstance().UpdateSource(type, share->strName, "lockcode", "0");
       CMediaSourceSettings::GetInstance().UpdateSource(type, share->strName, "badpwdcount", "0");
@@ -574,6 +581,7 @@ void CGUIDialogContextMenu::OnDeinitWindow(int nextWindowID)
   }
 
   m_buttons.clear();
+  m_initiallyFocusedButtonIdx = 0;
   CGUIDialog::OnDeinitWindow(nextWindowID);
 }
 
@@ -624,7 +632,7 @@ void CGUIDialogContextMenu::SwitchMedia(const std::string& strType, const std::s
   }
 }
 
-int CGUIDialogContextMenu::Show(const CContextButtons& choices)
+int CGUIDialogContextMenu::Show(const CContextButtons& choices, int focusedButtonIdx /* = 0 */)
 {
   auto dialog = CServiceBroker::GetGUI()->GetWindowManager().GetWindow<CGUIDialogContextMenu>(WINDOW_DIALOG_CONTEXT_MENU);
   if (!dialog)
@@ -635,6 +643,7 @@ int CGUIDialogContextMenu::Show(const CContextButtons& choices)
   dialog->SetInitialVisibility();
   dialog->SetupButtons();
   dialog->PositionAtCurrentFocus();
+  dialog->m_initiallyFocusedButtonIdx = focusedButtonIdx;
   dialog->Open();
   return dialog->m_clickedButton;
 }

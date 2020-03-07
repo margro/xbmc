@@ -17,7 +17,6 @@
 #include "XBDateTime.h"
 #include "addons/IAddon.h"
 #include "guilib/GUIListItem.h"
-#include "pvr/PVRTypes.h"
 #include "threads/CriticalSection.h"
 #include "utils/IArchivable.h"
 #include "utils/ISerializable.h"
@@ -43,6 +42,14 @@ namespace GAME
 {
   class CGameInfoTag;
 }
+}
+
+namespace PVR
+{
+class CPVRChannel;
+class CPVREpgInfoTag;
+class CPVRRecording;
+class CPVRTimerInfoTag;
 }
 
 class CAlbum;
@@ -103,10 +110,10 @@ public:
   explicit CFileItem(const CGenre& genre);
   explicit CFileItem(const MUSIC_INFO::CMusicInfoTag& music);
   explicit CFileItem(const CVideoInfoTag& movie);
-  explicit CFileItem(const PVR::CPVREpgInfoTagPtr& tag);
-  explicit CFileItem(const PVR::CPVRChannelPtr& channel);
-  explicit CFileItem(const PVR::CPVRRecordingPtr& record);
-  explicit CFileItem(const PVR::CPVRTimerInfoTagPtr& timer);
+  explicit CFileItem(const std::shared_ptr<PVR::CPVREpgInfoTag>& tag);
+  explicit CFileItem(const std::shared_ptr<PVR::CPVRChannel>& channel);
+  explicit CFileItem(const std::shared_ptr<PVR::CPVRRecording>& record);
+  explicit CFileItem(const std::shared_ptr<PVR::CPVRTimerInfoTag>& timer);
   explicit CFileItem(const CMediaSource& share);
   explicit CFileItem(std::shared_ptr<const ADDON::IAddon> addonInfo);
   explicit CFileItem(const EventPtr& eventLogEntry);
@@ -202,6 +209,7 @@ public:
   bool IsDVDFile(bool bVobs = true, bool bIfos = true) const;
   bool IsBDFile() const;
   bool IsBluray() const;
+  bool IsProtectedBlurayDisc() const;
   bool IsRAR() const;
   bool IsAPK() const;
   bool IsZIP() const;
@@ -277,12 +285,12 @@ public:
     return m_epgInfoTag.get() != NULL;
   }
 
-  inline const PVR::CPVREpgInfoTagPtr GetEPGInfoTag() const
+  inline const std::shared_ptr<PVR::CPVREpgInfoTag> GetEPGInfoTag() const
   {
     return m_epgInfoTag;
   }
 
-  inline void SetEPGInfoTag(const PVR::CPVREpgInfoTagPtr& tag)
+  inline void SetEPGInfoTag(const std::shared_ptr<PVR::CPVREpgInfoTag>& tag)
   {
     m_epgInfoTag = tag;
   }
@@ -292,7 +300,7 @@ public:
     return m_pvrChannelInfoTag.get() != NULL;
   }
 
-  inline const PVR::CPVRChannelPtr GetPVRChannelInfoTag() const
+  inline const std::shared_ptr<PVR::CPVRChannel> GetPVRChannelInfoTag() const
   {
     return m_pvrChannelInfoTag;
   }
@@ -302,7 +310,7 @@ public:
     return m_pvrRecordingInfoTag.get() != NULL;
   }
 
-  inline const PVR::CPVRRecordingPtr GetPVRRecordingInfoTag() const
+  inline const std::shared_ptr<PVR::CPVRRecording> GetPVRRecordingInfoTag() const
   {
     return m_pvrRecordingInfoTag;
   }
@@ -312,7 +320,7 @@ public:
     return m_pvrTimerInfoTag != NULL;
   }
 
-  inline const PVR::CPVRTimerInfoTagPtr GetPVRTimerInfoTag() const
+  inline const std::shared_ptr<PVR::CPVRTimerInfoTag> GetPVRTimerInfoTag() const
   {
     return m_pvrTimerInfoTag;
   }
@@ -550,7 +558,7 @@ private:
   /*!
    \brief If given channel is radio, fill item's music tag from given epg tag and channel info.
    */
-  void FillMusicInfoTag(const PVR::CPVRChannelPtr& channel, const PVR::CPVREpgInfoTagPtr& tag);
+  void FillMusicInfoTag(const std::shared_ptr<PVR::CPVRChannel>& channel, const std::shared_ptr<PVR::CPVREpgInfoTag>& tag);
 
   std::string m_strPath;            ///< complete path to item
   std::string m_strDynPath;
@@ -564,10 +572,10 @@ private:
   bool m_doContentLookup;
   MUSIC_INFO::CMusicInfoTag* m_musicInfoTag;
   CVideoInfoTag* m_videoInfoTag;
-  PVR::CPVREpgInfoTagPtr m_epgInfoTag;
-  PVR::CPVRChannelPtr m_pvrChannelInfoTag;
-  PVR::CPVRRecordingPtr m_pvrRecordingInfoTag;
-  PVR::CPVRTimerInfoTagPtr m_pvrTimerInfoTag;
+  std::shared_ptr<PVR::CPVREpgInfoTag> m_epgInfoTag;
+  std::shared_ptr<PVR::CPVRChannel> m_pvrChannelInfoTag;
+  std::shared_ptr<PVR::CPVRRecording> m_pvrRecordingInfoTag;
+  std::shared_ptr<PVR::CPVRTimerInfoTag> m_pvrTimerInfoTag;
   CPictureInfoTag* m_pictureInfoTag;
   std::shared_ptr<const ADDON::IAddon> m_addonInfo;
   KODI::GAME::CGameInfoTag* m_gameInfoTag;
@@ -718,6 +726,8 @@ public:
    \sa Save,Load
    */
   void RemoveDiscCache(int windowID = 0) const;
+  void RemoveDiscCache(const std::string& cachefile) const;
+  void RemoveDiscCacheCRC(const std::string& crc) const;
   bool AlwaysCache() const;
 
   void Swap(unsigned int item1, unsigned int item2);
@@ -748,12 +758,12 @@ public:
 
   void ClearSortState();
 
-  VECFILEITEMS::const_iterator begin() { return m_items.cbegin(); }
-  VECFILEITEMS::const_iterator end() { return m_items.cend(); }
+  VECFILEITEMS::iterator begin() { return m_items.begin(); }
+  VECFILEITEMS::iterator end() { return m_items.end(); }
   VECFILEITEMS::const_iterator begin() const { return m_items.begin(); }
   VECFILEITEMS::const_iterator end() const { return m_items.end(); }
-  VECFILEITEMS::const_iterator cbegin() const { return m_items.begin(); }
-  VECFILEITEMS::const_iterator cend() const { return m_items.end(); }
+  VECFILEITEMS::const_iterator cbegin() const { return m_items.cbegin(); }
+  VECFILEITEMS::const_iterator cend() const { return m_items.cend(); }
 private:
   void Sort(FILEITEMLISTCOMPARISONFUNC func);
   void FillSortFields(FILEITEMFILLFUNC func);

@@ -31,14 +31,6 @@
 
 using namespace KODI;
 
-CButtonTranslator::CButtonTranslator()
-{
-}
-
-CButtonTranslator::~CButtonTranslator()
-{
-}
-
 // Add the supplied device name to the list of connected devices
 bool CButtonTranslator::AddDevice(const std::string& strDevice)
 {
@@ -413,5 +405,29 @@ void CButtonTranslator::UnregisterMapper(IButtonMapper *mapper)
       m_buttonMappers.erase(it);
       break;
     }
+  }
+}
+
+uint32_t CButtonTranslator::TranslateString(std::string strMap, std::string strButton)
+{
+  if (strMap == "KB") // standard keyboard map
+  {
+    return CKeyboardTranslator::TranslateString(strButton);
+  }
+  else if (strMap == "XG") // xbox gamepad map
+  {
+    return CGamepadTranslator::TranslateString(strButton);
+  }
+  else if (strMap == "R1") // xbox remote map
+  {
+    return CIRTranslator::TranslateString(strButton);
+  }
+  else if (strMap == "R2") // xbox universal remote map
+  {
+    return CIRTranslator::TranslateUniversalRemoteString(strButton);
+  }
+  else
+  {
+    return 0;
   }
 }

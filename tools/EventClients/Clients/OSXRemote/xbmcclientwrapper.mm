@@ -30,7 +30,7 @@
 //helper class for easy EventSequence handling
 class XBMCClientEventSequence{
 public:
-  XBMCClientEventSequence(){}
+  XBMCClientEventSequence() = default;
 
   //implicit conversion
   XBMCClientEventSequence(eATVClientEvent f_event){
@@ -424,7 +424,6 @@ void XBMCClientWrapperImpl::populateMultiRemoteModeMap(){
 
 - (void)dealloc{
   delete mp_impl;
-	[super dealloc];
 }
 
 -(void) handleEvent:(eATVClientEvent) f_event{

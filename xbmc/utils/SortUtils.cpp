@@ -16,6 +16,7 @@
 #include "utils/Variant.h"
 
 #include <algorithm>
+#include <inttypes.h>
 
 std::string ArrayToString(SortAttribute attributes, const CVariant &variant, const std::string &separator = " / ")
 {
@@ -179,6 +180,11 @@ std::string ByTrackNumber(SortAttribute attributes, const SortItem &values)
   return StringUtils::Format("%i", (int)values.at(FieldTrackNumber).asInteger());
 }
 
+std::string ByTotalDiscs(SortAttribute attributes, const SortItem& values)
+{
+  return StringUtils::Format("%d %s", static_cast<int>(values.at(FieldTotalDiscs).asInteger()),
+                             ByLabel(attributes, values));
+}
 std::string ByTime(SortAttribute attributes, const SortItem &values)
 {
   std::string label;
@@ -398,6 +404,11 @@ std::string ByChannelNumber(SortAttribute attributes, const SortItem &values)
   return values.at(FieldChannelNumber).asString();
 }
 
+std::string ByClientChannelOrder(SortAttribute attributes, const SortItem& values)
+{
+  return values.at(FieldClientChannelOrder).asString();
+}
+
 std::string ByDateTaken(SortAttribute attributes, const SortItem &values)
 {
   return values.at(FieldDateTaken).asString();
@@ -601,11 +612,13 @@ std::map<SortBy, SortUtils::SortPreparator> fillPreparators()
   preparators[SortByRandom]                   = ByRandom;
   preparators[SortByChannel]                  = ByChannel;
   preparators[SortByChannelNumber]            = ByChannelNumber;
+  preparators[SortByClientChannelOrder]       = ByClientChannelOrder;
   preparators[SortByDateTaken]                = ByDateTaken;
   preparators[SortByRelevance]                = ByRelevance;
   preparators[SortByInstallDate]              = ByInstallDate;
   preparators[SortByLastUpdated]              = ByLastUpdated;
   preparators[SortByLastUsed]                 = ByLastUsed;
+  preparators[SortByTotalDiscs] = ByTotalDiscs;
 
   return preparators;
 }
@@ -686,11 +699,13 @@ std::map<SortBy, Fields> fillSortingFields()
   sortingFields[SortByBitrate].insert(FieldBitrate);
   sortingFields[SortByChannel].insert(FieldChannelName);
   sortingFields[SortByChannelNumber].insert(FieldChannelNumber);
+  sortingFields[SortByClientChannelOrder].insert(FieldClientChannelOrder);
   sortingFields[SortByDateTaken].insert(FieldDateTaken);
   sortingFields[SortByRelevance].insert(FieldRelevance);
   sortingFields[SortByInstallDate].insert(FieldInstallDate);
   sortingFields[SortByLastUpdated].insert(FieldLastUpdated);
   sortingFields[SortByLastUsed].insert(FieldLastUsed);
+  sortingFields[SortByTotalDiscs].insert(FieldTotalDiscs);
   sortingFields.insert(std::pair<SortBy, Fields>(SortByRandom, Fields()));
 
   return sortingFields;
@@ -905,8 +920,11 @@ const sort_map table[] = {
   { SortByListeners,                SORT_METHOD_LISTENERS,                    SortAttributeNone,          20455 },
   { SortByChannel,                  SORT_METHOD_CHANNEL,                      SortAttributeNone,          19029 },
   { SortByChannel,                  SORT_METHOD_CHANNEL_NUMBER,               SortAttributeNone,          549 },
+  { SortByChannel,                  SORT_METHOD_CLIENT_CHANNEL_ORDER,         SortAttributeNone,          19315 },
   { SortByDateTaken,                SORT_METHOD_DATE_TAKEN,                   SortAttributeIgnoreFolders, 577 },
   { SortByNone,                     SORT_METHOD_NONE,                         SortAttributeNone,          16018 },
+  { SortByTotalDiscs, SORT_METHOD_TOTAL_DISCS, SortAttributeNone, 38077 },
+
   // the following have no corresponding SORT_METHOD_*
   { SortByAlbumType,                SORT_METHOD_NONE,                         SortAttributeNone,          564 },
   { SortByVotes,                    SORT_METHOD_NONE,                         SortAttributeNone,          205 },
@@ -1049,11 +1067,13 @@ const std::map<std::string, SortBy> sortMethods = {
   { "random",           SortByRandom },
   { "channel",          SortByChannel },
   { "channelnumber",    SortByChannelNumber },
+  { "clientchannelorder", SortByClientChannelOrder },
   { "datetaken",        SortByDateTaken },
   { "userrating",       SortByUserRating },
   { "installdate",      SortByInstallDate },
   { "lastupdated",      SortByLastUpdated },
   { "lastused",         SortByLastUsed },
+  { "totaldiscs",       SortByTotalDiscs },
 };
 
 SortBy SortUtils::SortMethodFromString(const std::string& sortMethod)

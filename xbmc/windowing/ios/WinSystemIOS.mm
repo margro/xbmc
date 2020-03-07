@@ -103,7 +103,6 @@ CWinSystemIOS::CWinSystemIOS() : CWinSystemBase()
 
 CWinSystemIOS::~CWinSystemIOS()
 {
-  [m_pDisplayLink->callbackClass release];
   delete m_pDisplayLink;
 }
 
@@ -191,21 +190,21 @@ bool CWinSystemIOS::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
 
 UIScreenMode *getModeForResolution(int width, int height, unsigned int screenIdx)
 {
-  UIScreen *aScreen = [[UIScreen screens]objectAtIndex:screenIdx];
-  for ( UIScreenMode *mode in [aScreen availableModes] )
+  auto screen = UIScreen.screens[screenIdx];
+  for (UIScreenMode* mode in screen.availableModes)
   {
     //for main screen also find modes where width and height are
     //exchanged (because of the 90°degree rotated buildinscreens)
-    if((mode.size.width == width && mode.size.height == height) ||
-        (screenIdx == 0 && mode.size.width == height && mode.size.height == width)
-       || screenIdx == 0) // for screenIdx == 0 - which is the mainscreen - we only have one resolution - match it every time
+    auto modeSize = mode.size;
+    if ((modeSize.width == width && modeSize.height == height) ||
+        (screenIdx == 0 && modeSize.width == height && modeSize.height == width))
     {
-      CLog::Log(LOGDEBUG,"Found matching mode");
+      CLog::Log(LOGDEBUG, "Found matching mode: {} x {}", modeSize.width, modeSize.height);
       return mode;
     }
   }
   CLog::Log(LOGERROR,"No matching mode found!");
-  return NULL;
+  return nil;
 }
 
 bool CWinSystemIOS::SwitchToVideoMode(int width, int height, double refreshrate)
@@ -373,12 +372,13 @@ void CWinSystemIOS::OnAppFocusChange(bool focus)
 //--------------------------------------------------------------
 - (void) runDisplayLink
 {
-  NSAutoreleasePool* pool = [[NSAutoreleasePool alloc] init];
-  if (_videoSyncImpl != nil)
+  @autoreleasepool
   {
-    _videoSyncImpl->IosVblankHandler();
+    if (_videoSyncImpl != nil)
+    {
+      _videoSyncImpl->IosVblankHandler();
+    }
   }
-  [pool release];
 }
 @end
 
@@ -400,7 +400,7 @@ bool CWinSystemIOS::InitDisplayLink(CVideoSyncIos *syncImpl)
   [m_pDisplayLink->callbackClass SetVideoSyncImpl:syncImpl];
   m_pDisplayLink->impl = [currentScreen displayLinkWithTarget:m_pDisplayLink->callbackClass selector:@selector(runDisplayLink)];
 
-  [m_pDisplayLink->impl setFrameInterval:1];
+  [m_pDisplayLink->impl setPreferredFramesPerSecond:0];
   [m_pDisplayLink->impl addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
   return m_pDisplayLink->impl != nil;
 }
@@ -460,7 +460,7 @@ bool CWinSystemIOS::Show(bool raise)
   return true;
 }
 
-void* CWinSystemIOS::GetEAGLContextObj()
+CVEAGLContext CWinSystemIOS::GetEAGLContextObj()
 {
   return [g_xbmcController getEAGLContextObj];
 }

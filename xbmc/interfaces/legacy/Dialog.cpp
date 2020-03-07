@@ -5,36 +5,34 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  *  See LICENSES/README.md for more information.
  */
-#include "LanguageHook.h"
+#include "Dialog.h"
 
+#include "LanguageHook.h"
+#include "ListItem.h"
+#include "ModuleXbmcgui.h"
 #include "ServiceBroker.h"
-#include "dialogs/GUIDialogYesNo.h"
-#include "dialogs/GUIDialogSelect.h"
+#include "WindowException.h"
 #include "dialogs/GUIDialogContextMenu.h"
-#include "dialogs/GUIDialogTextViewer.h"
-#include "guilib/GUIComponent.h"
-#include "guilib/GUIWindowManager.h"
 #include "dialogs/GUIDialogFileBrowser.h"
+#include "dialogs/GUIDialogKaiToast.h"
 #include "dialogs/GUIDialogNumeric.h"
-#include "video/dialogs/GUIDialogVideoInfo.h"
+#include "dialogs/GUIDialogSelect.h"
+#include "dialogs/GUIDialogTextViewer.h"
+#include "dialogs/GUIDialogYesNo.h"
+#include "guilib/GUIComponent.h"
+#include "guilib/GUIKeyboardFactory.h"
+#include "guilib/GUIWindowManager.h"
+#include "messaging/helpers/DialogOKHelper.h"
 #include "music/dialogs/GUIDialogMusicInfo.h"
 #include "settings/MediaSourceSettings.h"
 #include "storage/MediaManager.h"
-#include "dialogs/GUIDialogKaiToast.h"
-#include "ModuleXbmcgui.h"
-#include "guilib/GUIKeyboardFactory.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
-#include "WindowException.h"
-#include "messaging/helpers/DialogOKHelper.h"
-#include "Dialog.h"
-#include "ListItem.h"
-#ifdef TARGET_POSIX
-#include "platform/posix/XTimeUtils.h"
-#endif
+#include "utils/XTimeUtils.h"
+#include "utils/log.h"
+#include "video/dialogs/GUIDialogVideoInfo.h"
 
-using namespace KODI::MESSAGING;
+ using namespace KODI::MESSAGING;
 
 #define ACTIVE_WINDOW CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow()
 
@@ -221,14 +219,14 @@ namespace XBMCAddon
       VECSOURCES localShares;
       if (!shares)
       {
-        g_mediaManager.GetLocalDrives(localShares);
+        CServiceBroker::GetMediaManager().GetLocalDrives(localShares);
         if (strcmpi(s_shares.c_str(), "local") != 0)
-          g_mediaManager.GetNetworkLocations(localShares);
+          CServiceBroker::GetMediaManager().GetNetworkLocations(localShares);
       }
       else // always append local drives
       {
         localShares = *shares;
-        g_mediaManager.GetLocalDrives(localShares);
+        CServiceBroker::GetMediaManager().GetLocalDrives(localShares);
       }
 
       if (useFileDirectories && !maskparam.empty())
@@ -256,14 +254,14 @@ namespace XBMCAddon
       VECSOURCES localShares;
       if (!shares)
       {
-        g_mediaManager.GetLocalDrives(localShares);
+        CServiceBroker::GetMediaManager().GetLocalDrives(localShares);
         if (strcmpi(s_shares.c_str(), "local") != 0)
-          g_mediaManager.GetNetworkLocations(localShares);
+          CServiceBroker::GetMediaManager().GetNetworkLocations(localShares);
       }
       else // always append local drives
       {
         localShares = *shares;
-        g_mediaManager.GetLocalDrives(localShares);
+        CServiceBroker::GetMediaManager().GetLocalDrives(localShares);
       }
 
       if (useFileDirectories && !lmask.empty())
@@ -283,8 +281,8 @@ namespace XBMCAddon
     {
       DelayedCallGuard dcguard(languageHook);
       std::string value;
-      SYSTEMTIME timedate;
-      GetLocalTime(&timedate);
+      KODI::TIME::SystemTime timedate;
+      KODI::TIME::GetLocalTime(&timedate);
 
       if (!heading.empty())
       {
@@ -293,12 +291,12 @@ namespace XBMCAddon
           if (!defaultt.empty() && defaultt.size() == 10)
           {
             std::string sDefault = defaultt;
-            timedate.wDay = atoi(sDefault.substr(0, 2).c_str());
-            timedate.wMonth = atoi(sDefault.substr(3, 4).c_str());
-            timedate.wYear = atoi(sDefault.substr(sDefault.size() - 4).c_str());
+            timedate.day = atoi(sDefault.substr(0, 2).c_str());
+            timedate.month = atoi(sDefault.substr(3, 4).c_str());
+            timedate.year = atoi(sDefault.substr(sDefault.size() - 4).c_str());
           }
           if (CGUIDialogNumeric::ShowAndGetDate(timedate, heading))
-            value = StringUtils::Format("%2d/%2d/%4d", timedate.wDay, timedate.wMonth, timedate.wYear);
+            value = StringUtils::Format("%2d/%2d/%4d", timedate.day, timedate.month, timedate.year);
           else
             return emptyString;
         }
@@ -307,11 +305,11 @@ namespace XBMCAddon
           if (!defaultt.empty() && defaultt.size() == 5)
           {
             std::string sDefault = defaultt;
-            timedate.wHour = atoi(sDefault.substr(0, 2).c_str());
-            timedate.wMinute = atoi(sDefault.substr(3, 2).c_str());
+            timedate.hour = atoi(sDefault.substr(0, 2).c_str());
+            timedate.minute = atoi(sDefault.substr(3, 2).c_str());
           }
           if (CGUIDialogNumeric::ShowAndGetTime(timedate, heading))
-            value = StringUtils::Format("%2d:%02d", timedate.wHour, timedate.wMinute);
+            value = StringUtils::Format("%2d:%02d", timedate.hour, timedate.minute);
           else
             return emptyString;
         }
@@ -357,8 +355,8 @@ namespace XBMCAddon
     {
       DelayedCallGuard dcguard(languageHook);
       std::string value(defaultt);
-      SYSTEMTIME timedate;
-      GetLocalTime(&timedate);
+      KODI::TIME::SystemTime timedate;
+      KODI::TIME::GetLocalTime(&timedate);
 
       switch (type)
       {
@@ -380,12 +378,13 @@ namespace XBMCAddon
             if (!defaultt.empty() && defaultt.size() == 10)
             {
               std::string sDefault = defaultt;
-              timedate.wDay = atoi(sDefault.substr(0, 2).c_str());
-              timedate.wMonth = atoi(sDefault.substr(3, 4).c_str());
-              timedate.wYear = atoi(sDefault.substr(sDefault.size() - 4).c_str());
+              timedate.day = atoi(sDefault.substr(0, 2).c_str());
+              timedate.month = atoi(sDefault.substr(3, 4).c_str());
+              timedate.year = atoi(sDefault.substr(sDefault.size() - 4).c_str());
             }
             if (CGUIDialogNumeric::ShowAndGetDate(timedate, heading))
-              value = StringUtils::Format("%2d/%2d/%4d", timedate.wDay, timedate.wMonth, timedate.wYear);
+              value =
+                  StringUtils::Format("%2d/%2d/%4d", timedate.day, timedate.month, timedate.year);
             else
               value = emptyString;
           }
@@ -395,11 +394,11 @@ namespace XBMCAddon
             if (!defaultt.empty() && defaultt.size() == 5)
             {
               std::string sDefault = defaultt;
-              timedate.wHour = atoi(sDefault.substr(0, 2).c_str());
-              timedate.wMinute = atoi(sDefault.substr(3, 2).c_str());
+              timedate.hour = atoi(sDefault.substr(0, 2).c_str());
+              timedate.minute = atoi(sDefault.substr(3, 2).c_str());
             }
             if (CGUIDialogNumeric::ShowAndGetTime(timedate, heading))
-              value = StringUtils::Format("%2d:%02d", timedate.wHour, timedate.wMinute);
+              value = StringUtils::Format("%2d:%02d", timedate.hour, timedate.minute);
             else
               value = emptyString;
           }

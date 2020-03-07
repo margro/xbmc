@@ -26,24 +26,27 @@ namespace GAME
   {
   public:
     CGUIControllerWindow(void);
-    virtual ~CGUIControllerWindow(void);
+    ~CGUIControllerWindow() override;
 
     // implementation of CGUIControl via CGUIDialog
-    virtual void DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions) override;
-    virtual bool OnMessage(CGUIMessage& message) override;
+    void DoProcess(unsigned int currentTime, CDirtyRegionList& dirtyregions) override;
+    bool OnMessage(CGUIMessage& message) override;
 
   protected:
     // implementation of CGUIWindow via CGUIDialog
-    virtual void OnInitWindow(void) override;
-    virtual void OnDeinitWindow(int nextWindowID) override;
+    void OnInitWindow() override;
+    void OnDeinitWindow(int nextWindowID) override;
 
   private:
     void OnControllerFocused(unsigned int controllerIndex);
     void OnControllerSelected(unsigned int controllerIndex);
     void OnFeatureFocused(unsigned int featureIndex);
     void OnFeatureSelected(unsigned int featureIndex);
-    void OnEvent(const ADDON::CRepositoryUpdater::RepositoryUpdated& event);
     void UpdateButtons(void);
+
+    // Callbacks for events
+    void OnEvent(const ADDON::CRepositoryUpdater::RepositoryUpdated& event);
+    void OnEvent(const ADDON::AddonEvent& event);
 
     // Action for the available button
     void GetMoreControllers(void);

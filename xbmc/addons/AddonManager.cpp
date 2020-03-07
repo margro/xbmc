@@ -131,6 +131,10 @@ bool CAddonMgr::Init()
 void CAddonMgr::DeInit()
 {
   m_database.Close();
+
+  /* If temporary directory was used from add-on, delete it */
+  if (XFILE::CDirectory::Exists(m_tempAddonBasePath))
+    XFILE::CDirectory::RemoveRecursive(CSpecialProtocol::TranslatePath(m_tempAddonBasePath));
 }
 
 bool CAddonMgr::HasAddons(const TYPE &type)
@@ -279,7 +283,7 @@ bool CAddonMgr::GetInstallableAddons(VECADDONS& addons, const TYPE &type)
       bool bErase = false;
 
       // check if the addon matches the provided addon type
-      if (type != ADDON::ADDON_UNKNOWN && addon->Type() != type && !addon->IsType(type))
+      if (type != ADDON::ADDON_UNKNOWN && addon->Type() != type && !addon->HasType(type))
         bErase = true;
 
       if (!this->CanAddonBeInstalled(addon))
@@ -341,7 +345,7 @@ bool CAddonMgr::GetAddonsInternal(const TYPE &type, VECADDONS &addons, bool enab
 
   for (const auto& addonInfo : m_installedAddons)
   {
-    if (type != ADDON_UNKNOWN && !addonInfo.second->IsType(type))
+    if (type != ADDON_UNKNOWN && !addonInfo.second->HasType(type))
       continue;
 
     if (enabledOnly && IsAddonDisabled(addonInfo.second->ID()))
@@ -723,7 +727,7 @@ bool CAddonMgr::IsCompatible(const IAddon& addon)
       {
         AddonPtr addon;
         bool haveAddon = GetAddon(dependency.id, addon);
-        if (!haveAddon || !addon->MeetsVersion(dependency.requiredVersion))
+        if (!haveAddon || !addon->MeetsVersion(dependency.versionMin, dependency.version))
           return false;
       }
     }
@@ -753,7 +757,7 @@ std::vector<DependencyInfo> CAddonMgr::GetDepsRecursive(const std::string& id)
     auto added_it = std::find_if(added.begin(), added.end(), [&](const DependencyInfo& d){ return d.id == current_dep.id;});
     if (added_it != added.end())
     {
-      if (current_dep.requiredVersion < added_it->requiredVersion)
+      if (current_dep.version < added_it->version)
         continue;
 
       bool aopt = added_it->optional;
@@ -783,7 +787,7 @@ bool CAddonMgr::GetAddonInfos(AddonInfos& addonInfos, TYPE type)
   bool forUnknown = type == ADDON_UNKNOWN;
   for (auto& info : m_installedAddons)
   {
-    if (info.second->MainType() != ADDON_UNKNOWN && (forUnknown || info.second->IsType(type)))
+    if (info.second->MainType() != ADDON_UNKNOWN && (forUnknown || info.second->HasType(type)))
       addonInfos.push_back(info.second);
   }
 
@@ -796,7 +800,7 @@ const AddonInfoPtr CAddonMgr::GetAddonInfo(const std::string& id, TYPE type /*= 
 
   auto addon = m_installedAddons.find(id);
   if (addon != m_installedAddons.end())
-    if ((type == ADDON_UNKNOWN || addon->second->IsType(type)))
+    if ((type == ADDON_UNKNOWN || addon->second->HasType(type)))
       return addon->second;
 
   return nullptr;

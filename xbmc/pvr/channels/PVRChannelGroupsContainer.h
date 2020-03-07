@@ -8,12 +8,14 @@
 
 #pragma once
 
-#include "pvr/PVRTypes.h"
 #include "threads/CriticalSection.h"
+
+#include <memory>
 
 namespace PVR
 {
   class CPVRChannel;
+  class CPVRChannelGroup;
   class CPVRChannelGroups;
   class CPVREpgInfoTag;
 
@@ -23,29 +25,29 @@ namespace PVR
     /*!
      * @brief Create a new container for all channel groups
      */
-    CPVRChannelGroupsContainer(void);
+    CPVRChannelGroupsContainer();
 
     /*!
      * @brief Destroy this container.
      */
-    virtual ~CPVRChannelGroupsContainer(void);
+    virtual ~CPVRChannelGroupsContainer();
 
     /*!
      * @brief Load all channel groups and all channels in those channel groups.
      * @return True if all groups were loaded, false otherwise.
      */
-    bool Load(void);
+    bool Load();
 
     /*!
      * @brief Checks whether groups were already loaded.
      * @return True if groups were successfully loaded, false otherwise.
      */
-    bool Loaded(void) const;
+    bool Loaded() const;
 
     /*!
      * @brief Unload and destruct all channel groups and all channels in them.
      */
-    void Unload(void);
+    void Unload();
 
     /*!
      * @brief Update the contents of all the groups in this container.
@@ -58,60 +60,60 @@ namespace PVR
      * @brief Get the TV channel groups.
      * @return The TV channel groups.
      */
-    CPVRChannelGroups *GetTV(void) const { return Get(false); }
+    CPVRChannelGroups* GetTV() const { return Get(false); }
 
     /*!
      * @brief Get the radio channel groups.
      * @return The radio channel groups.
      */
-    CPVRChannelGroups *GetRadio(void) const { return Get(true); }
+    CPVRChannelGroups* GetRadio() const { return Get(true); }
 
     /*!
      * @brief Get the radio or TV channel groups.
      * @param bRadio If true, get the radio channel groups. Get the TV channel groups otherwise.
      * @return The requested groups.
      */
-    CPVRChannelGroups *Get(bool bRadio) const;
+    CPVRChannelGroups* Get(bool bRadio) const;
 
     /*!
      * @brief Get the group containing all TV channels.
      * @return The group containing all TV channels.
      */
-    CPVRChannelGroupPtr GetGroupAllTV(void)  const{ return GetGroupAll(false); }
+    std::shared_ptr<CPVRChannelGroup> GetGroupAllTV() const { return GetGroupAll(false); }
 
     /*!
      * @brief Get the group containing all radio channels.
      * @return The group containing all radio channels.
      */
-    CPVRChannelGroupPtr GetGroupAllRadio(void)  const{ return GetGroupAll(true); }
+    std::shared_ptr<CPVRChannelGroup> GetGroupAllRadio() const { return GetGroupAll(true); }
 
     /*!
      * @brief Get the group containing all TV or radio channels.
      * @param bRadio If true, get the group containing all radio channels. Get the group containing all TV channels otherwise.
      * @return The requested group.
      */
-    CPVRChannelGroupPtr GetGroupAll(bool bRadio) const;
+    std::shared_ptr<CPVRChannelGroup> GetGroupAll(bool bRadio) const;
 
     /*!
      * @brief Get a group given it's ID.
      * @param iGroupId The ID of the group.
      * @return The requested group or NULL if it wasn't found.
      */
-    CPVRChannelGroupPtr GetByIdFromAll(int iGroupId) const;
+    std::shared_ptr<CPVRChannelGroup> GetByIdFromAll(int iGroupId) const;
 
     /*!
      * @brief Get a channel given it's database ID.
      * @param iChannelId The ID of the channel.
      * @return The channel or NULL if it wasn't found.
      */
-    CPVRChannelPtr GetChannelById(int iChannelId) const;
+    std::shared_ptr<CPVRChannel> GetChannelById(int iChannelId) const;
 
     /*!
      * @brief Get a channel given it's EPG ID.
      * @param iEpgId The EPG ID of the channel.
      * @return The channel or NULL if it wasn't found.
      */
-    CPVRChannelPtr GetChannelByEpgId(int iEpgId) const;
+    std::shared_ptr<CPVRChannel> GetChannelByEpgId(int iEpgId) const;
 
     /*!
      * @brief Get the channel for the given epg tag.
@@ -132,7 +134,7 @@ namespace PVR
      * @param bRadio True to get the selected radio group, false to get the selected TV group.
      * @return The selected group.
      */
-    CPVRChannelGroupPtr GetSelectedGroup(bool bRadio) const;
+    std::shared_ptr<CPVRChannelGroup> GetSelectedGroup(bool bRadio) const;
 
     /*!
      * @brief Get a channel given it's channel ID from all containers.
@@ -140,7 +142,7 @@ namespace PVR
      * @param iClientID The ID of the client.
      * @return The channel or NULL if it wasn't found.
      */
-    CPVRChannelPtr GetByUniqueID(int iUniqueChannelId, int iClientID) const;
+    std::shared_ptr<CPVRChannel> GetByUniqueID(int iUniqueChannelId, int iClientID) const;
 
     /*!
      * @brief Get the channel that was played last.
@@ -153,33 +155,33 @@ namespace PVR
      * @param iChannelID The channel ID
      * @return The last watched group.
      */
-    CPVRChannelGroupPtr GetLastPlayedGroup(int iChannelID = -1) const;
+    std::shared_ptr<CPVRChannelGroup> GetLastPlayedGroup(int iChannelID = -1) const;
 
     /*!
      * @brief Create EPG tags for channels in all internal channel groups.
      * @return True if EPG tags were created successfully.
      */
-    bool CreateChannelEpgs(void);
+    bool CreateChannelEpgs();
 
     /*!
      * @brief Return the group which was previous played.
      * @return The group which was previous played.
      */
-    CPVRChannelGroupPtr GetPreviousPlayedGroup(void);
+    std::shared_ptr<CPVRChannelGroup> GetPreviousPlayedGroup();
 
     /*!
      * @brief Set the last played group.
      * @param The last played group
      */
-    void SetLastPlayedGroup(const CPVRChannelGroupPtr &group);
+    void SetLastPlayedGroup(const std::shared_ptr<CPVRChannelGroup>& group);
 
   protected:
-    CPVRChannelGroups *m_groupsRadio; /*!< all radio channel groups */
-    CPVRChannelGroups *m_groupsTV;    /*!< all TV channel groups */
-    CCriticalSection   m_critSection;
-    bool               m_bUpdateChannelsOnly = false;
-    bool               m_bIsUpdating = false;
-    CPVRChannelGroupPtr m_lastPlayedGroups[2]; /*!< used to store the last played groups */
+    CPVRChannelGroups* m_groupsRadio; /*!< all radio channel groups */
+    CPVRChannelGroups* m_groupsTV; /*!< all TV channel groups */
+    CCriticalSection m_critSection;
+    bool m_bUpdateChannelsOnly = false;
+    bool m_bIsUpdating = false;
+    std::shared_ptr<CPVRChannelGroup> m_lastPlayedGroups[2]; /*!< used to store the last played groups */
 
   private :
     CPVRChannelGroupsContainer& operator=(const CPVRChannelGroupsContainer&) = delete;

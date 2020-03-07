@@ -35,14 +35,11 @@ namespace XFILE
       NODE_TYPE_ALBUM_RECENTLY_PLAYED_SONGS,
       NODE_TYPE_ALBUM_TOP100,
       NODE_TYPE_ALBUM_TOP100_SONGS,
-      NODE_TYPE_ALBUM_COMPILATIONS,
-      NODE_TYPE_ALBUM_COMPILATIONS_SONGS,
       NODE_TYPE_SONG,
       NODE_TYPE_SONG_TOP100,
       NODE_TYPE_YEAR,
-      NODE_TYPE_YEAR_ALBUM,
-      NODE_TYPE_YEAR_SONG,
-      NODE_TYPE_SINGLES
+      NODE_TYPE_SINGLES,
+      NODE_TYPE_DISC,
     } NODE_TYPE;
 
     typedef struct {
@@ -56,6 +53,7 @@ namespace XFILE
     public:
       static CDirectoryNode* ParseURL(const std::string& strPath);
       static void GetDatabaseInfo(const std::string& strPath, CQueryParams& params);
+      static bool GetNodeInfo(const std::string& strPath, NODE_TYPE& type, NODE_TYPE& childtype, CQueryParams& params);
       virtual ~CDirectoryNode();
 
       NODE_TYPE GetType() const;

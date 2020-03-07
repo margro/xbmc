@@ -98,10 +98,10 @@ TEST(TestVariant, VariantTypeDouble)
 TEST(TestVariant, VariantTypeArray)
 {
   std::vector<std::string> strarray;
-  strarray.push_back("string1");
-  strarray.push_back("string2");
-  strarray.push_back("string3");
-  strarray.push_back("string4");
+  strarray.emplace_back("string1");
+  strarray.emplace_back("string2");
+  strarray.emplace_back("string3");
+  strarray.emplace_back("string4");
   CVariant a(strarray);
 
   EXPECT_TRUE(a.isArray());
@@ -153,7 +153,7 @@ TEST(TestVariant, VariantFromMap)
 TEST(TestVariant, operatorTest)
 {
   std::vector<std::string> strarray;
-  strarray.push_back("string1");
+  strarray.emplace_back("string1");
   CVariant a, b, c(strarray), d;
   a["key"] = "value";
   b = a;
@@ -227,10 +227,10 @@ TEST(TestVariant, swap)
 TEST(TestVariant, iterator_array)
 {
   std::vector<std::string> strarray;
-  strarray.push_back("string");
-  strarray.push_back("string");
-  strarray.push_back("string");
-  strarray.push_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
   CVariant a(strarray);
 
   EXPECT_TRUE(a.isArray());
@@ -241,7 +241,6 @@ TEST(TestVariant, iterator_array)
     EXPECT_STREQ("string", it->c_str());
   }
 
-  CVariant::const_iterator_array const_it;
   for (auto const_it = a.begin_array(); const_it != a.end_array(); const_it++)
   {
     EXPECT_STREQ("string", const_it->c_str());
@@ -273,10 +272,10 @@ TEST(TestVariant, iterator_map)
 TEST(TestVariant, size)
 {
   std::vector<std::string> strarray;
-  strarray.push_back("string");
-  strarray.push_back("string");
-  strarray.push_back("string");
-  strarray.push_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
   CVariant a(strarray);
 
   EXPECT_EQ((unsigned int)4, a.size());
@@ -293,10 +292,10 @@ TEST(TestVariant, empty)
 TEST(TestVariant, clear)
 {
   std::vector<std::string> strarray;
-  strarray.push_back("string");
-  strarray.push_back("string");
-  strarray.push_back("string");
-  strarray.push_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
+  strarray.emplace_back("string");
   CVariant a(strarray);
 
   EXPECT_FALSE(a.empty());
@@ -307,10 +306,10 @@ TEST(TestVariant, clear)
 TEST(TestVariant, erase)
 {
   std::vector<std::string> strarray;
-  strarray.push_back("string1");
-  strarray.push_back("string2");
-  strarray.push_back("string3");
-  strarray.push_back("string4");
+  strarray.emplace_back("string1");
+  strarray.emplace_back("string2");
+  strarray.emplace_back("string3");
+  strarray.emplace_back("string4");
   CVariant a, b(strarray);
   a["key1"] = "string1";
   a["key2"] = "string2";

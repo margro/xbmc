@@ -1349,7 +1349,7 @@ namespace VIDEO
           multipath.push_back(pItem->GetPath());
         std::vector<std::pair<std::string, std::string> > paths;
         for (std::vector<std::string>::const_iterator i = multipath.begin(); i != multipath.end(); ++i)
-          paths.push_back(std::make_pair(*i, URIUtils::GetParentPath(*i)));
+          paths.emplace_back(*i, URIUtils::GetParentPath(*i));
 
         std::map<int, std::map<std::string, std::string> > seasonArt;
 
@@ -1432,6 +1432,52 @@ namespace VIDEO
     return type;
   }
 
+  std::string CVideoInfoScanner::GetMovieSetInfoFolder(const std::string& setTitle)
+  {
+    if (setTitle.empty())
+      return "";
+    std::string path = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(
+        CSettings::SETTING_VIDEOLIBRARY_MOVIESETSFOLDER);
+    if (path.empty())
+      return "";
+    path = URIUtils::AddFileToFolder(path, CUtil::MakeLegalFileName(setTitle, LEGAL_WIN32_COMPAT));
+    CLog::Log(LOGDEBUG,
+        "VideoInfoScanner: Looking for local artwork for movie set '{}' in folder '{}'",
+        setTitle,
+        CURL::GetRedacted(path));
+    return CDirectory::Exists(path) ? path : "";
+  }
+
+  void CVideoInfoScanner::GetLocalMovieSetArtwork(CGUIListItem::ArtMap& art,
+      const std::vector<std::string>& artTypes, const std::string& setTitle)
+  {
+    std::string path = GetMovieSetInfoFolder(setTitle);
+    if (path.empty())
+      return;
+
+    CFileItemList availableArtFiles;
+    CDirectory::GetDirectory(path, availableArtFiles,
+        CServiceBroker::GetFileExtensionProvider().GetPictureExtensions(),
+        DIR_FLAG_NO_FILE_DIRS | DIR_FLAG_READ_CACHE | DIR_FLAG_NO_FILE_INFO);
+
+    for (const auto& artFile : availableArtFiles)
+    {
+      std::string candidate = URIUtils::GetFileName(artFile->GetPath());
+      URIUtils::RemoveExtension(candidate);
+      for (const auto& artType : artTypes)
+      {
+        if (!StringUtils::StartsWith(artType, "set."))
+          continue;
+        std::string realType = artType.substr(4);
+        if (StringUtils::EqualsNoCase(candidate, realType))
+        {
+          art[artType] = artFile->GetPath();
+          break;
+        }
+      }
+    }
+  }
+
   void CVideoInfoScanner::GetArtwork(CFileItem *pItem, const CONTENT_TYPE &content, bool bApplyToDir, bool useLocal, const std::string &actorArtPath)
   {
     CVideoInfoTag &movieDetails = *pItem->GetVideoInfoTag();
@@ -1444,7 +1490,8 @@ namespace VIDEO
     std::vector<std::string> artTypes = CVideoThumbLoader::GetArtTypes(ContentToMediaType(content, pItem->m_bIsFolder));
     bool lookForThumb = find(artTypes.begin(), artTypes.end(), "thumb") == artTypes.end() &&
                         art.find("thumb") == art.end();
-    if (content == CONTENT_MOVIES)
+    bool moviePartOfSet = content == CONTENT_MOVIES && !movieDetails.m_set.title.empty();
+    if (moviePartOfSet)
     {
       for (std::string artType : CVideoThumbLoader::GetArtTypes(MediaTypeVideoCollection))
         artTypes.push_back("set." + artType);
@@ -1461,6 +1508,8 @@ namespace VIDEO
             art.insert(std::make_pair(*i, image));
         }
       }
+      if (moviePartOfSet)
+        GetLocalMovieSetArtwork(art, artTypes, movieDetails.m_set.title);
       // find and classify the local thumb (backcompat) if available
       if (lookForThumb)
       {
@@ -1823,8 +1872,8 @@ namespace VIDEO
       else
       {
         digest.Update(&pItem->m_dwSize, sizeof(pItem->m_dwSize));
-        FILETIME time = pItem->m_dateTime;
-        digest.Update(&time, sizeof(FILETIME));
+        KODI::TIME::FileTime time = pItem->m_dateTime;
+        digest.Update(&time, sizeof(KODI::TIME::FileTime));
       }
       if (pItem->IsVideo() && !pItem->IsPlayList() && !pItem->IsNFO())
         count++;

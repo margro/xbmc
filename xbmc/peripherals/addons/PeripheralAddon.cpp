@@ -313,7 +313,7 @@ void CPeripheralAddon::GetDirectory(const std::string &strPath, CFileItemList &i
     peripheralFile->SetProperty("location", peripheral->Location());
     peripheralFile->SetProperty("class", PeripheralTypeTranslator::TypeToString(peripheral->Type()));
     peripheralFile->SetProperty("version", peripheral->GetVersionInfo());
-    peripheralFile->SetIconImage(peripheral->GetIcon());
+    peripheralFile->SetArt("icon", peripheral->GetIcon());
     items.Add(peripheralFile);
   }
 }
@@ -721,7 +721,7 @@ void CPeripheralAddon::RegisterButtonMap(CPeripheral* device, IButtonMap* button
   CSingleLock lock(m_buttonMapMutex);
 
   UnregisterButtonMap(buttonMap);
-  m_buttonMaps.push_back(std::make_pair(device, buttonMap));
+  m_buttonMaps.emplace_back(device, buttonMap);
 }
 
 void CPeripheralAddon::UnregisterButtonMap(IButtonMap* buttonMap)

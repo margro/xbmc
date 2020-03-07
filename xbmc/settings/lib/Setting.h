@@ -50,6 +50,8 @@ public:
   ~CSetting() override = default;
 
   virtual std::shared_ptr<CSetting> Clone(const std::string &id) const = 0;
+  void MergeBasics(const CSetting& other);
+  virtual void MergeDetails(const CSetting& other) = 0;
 
   bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
@@ -61,6 +63,7 @@ public:
   virtual void Reset() = 0;
 
   bool IsEnabled() const;
+  bool GetEnabled() const { return m_enabled; }
   void SetEnabled(bool enabled);
   bool IsDefault() const { return !m_changed; }
   const std::string& GetParent() const { return m_parentSetting; }
@@ -76,6 +79,12 @@ public:
 
   void SetCallback(ISettingCallback *callback) { m_callback = callback; }
 
+  bool IsReference() const { return !m_referencedId.empty(); }
+  const std::string& GetReferencedId() const { return m_referencedId; }
+  void SetReferencedId(const std::string& referencedId) { m_referencedId = referencedId; }
+  void MakeReference(const std::string& referencedId = "");
+
+  bool GetVisible() const { return ISetting::IsVisible(); }
   // overrides of ISetting
   bool IsVisible() const override;
 
@@ -106,6 +115,8 @@ protected:
   std::set<CSettingUpdate> m_updates;
   bool m_changed = false;
   mutable CSharedSection m_critical;
+
+  std::string m_referencedId;
 };
 
 template<typename TValue, SettingType TSettingType>
@@ -129,29 +140,6 @@ protected:
   ~CTraitedSetting() override = default;
 };
 
-class CSettingReference : public CSetting
-{
-public:
-  CSettingReference(const std::string &id, CSettingsManager *settingsManager = nullptr);
-  CSettingReference(const std::string &id, const CSettingReference &setting);
-  ~CSettingReference() override = default;
-
-  std::shared_ptr<CSetting> Clone(const std::string &id) const override;
-
-  SettingType GetType() const override { return SettingType::Reference; }
-  bool FromString(const std::string &value) override { return false; }
-  std::string ToString() const override { return ""; }
-  bool Equals(const std::string &value) const override { return false; }
-  bool CheckValidity(const std::string &value) const override { return false; }
-  void Reset() override { }
-
-  const std::string& GetReferencedId() const { return m_referencedId; }
-  void SetReferencedId(const std::string& referencedId) { m_referencedId = referencedId; }
-
-private:
-  std::string m_referencedId;
-};
-
 /*!
  \ingroup settings
  \brief List setting implementation
@@ -166,6 +154,7 @@ public:
   ~CSettingList() override = default;
 
   std::shared_ptr<CSetting> Clone(const std::string &id) const override;
+  void MergeDetails(const CSetting& other) override;
 
   bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
@@ -225,6 +214,7 @@ public:
   ~CSettingBool() override = default;
 
   std::shared_ptr<CSetting> Clone(const std::string &id) const override;
+  void MergeDetails(const CSetting& other) override;
 
   bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
@@ -263,6 +253,7 @@ public:
   ~CSettingInt() override = default;
 
   std::shared_ptr<CSetting> Clone(const std::string &id) const override;
+  void MergeDetails(const CSetting& other) override;
 
   bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
@@ -302,6 +293,8 @@ public:
     m_optionsFillerData = data;
   }
   IntegerSettingOptions UpdateDynamicOptions();
+  SettingOptionsSort GetOptionsSort() const { return m_optionsSort; }
+  void SetOptionsSort(SettingOptionsSort optionsSort) { m_optionsSort = optionsSort; }
 
 private:
   void copy(const CSettingInt &setting);
@@ -318,6 +311,7 @@ private:
   IntegerSettingOptionsFiller m_optionsFiller = nullptr;
   void *m_optionsFillerData = nullptr;
   IntegerSettingOptions m_dynamicOptions;
+  SettingOptionsSort m_optionsSort = SettingOptionsSort::NoSorting;
 };
 
 /*!
@@ -335,6 +329,7 @@ public:
   ~CSettingNumber() override = default;
 
   std::shared_ptr<CSetting> Clone(const std::string &id) const override;
+  void MergeDetails(const CSetting& other) override;
 
   bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
@@ -382,6 +377,7 @@ public:
   ~CSettingString() override = default;
 
   std::shared_ptr<CSetting> Clone(const std::string &id) const override;
+  void MergeDetails(const CSetting& other) override;
 
   bool Deserialize(const TiXmlNode *node, bool update = false) override;
 
@@ -416,6 +412,8 @@ public:
     m_optionsFillerData = data;
   }
   StringSettingOptions UpdateDynamicOptions();
+  SettingOptionsSort GetOptionsSort() const { return m_optionsSort; }
+  void SetOptionsSort(SettingOptionsSort optionsSort) { m_optionsSort = optionsSort; }
 
 protected:
   virtual void copy(const CSettingString &setting);
@@ -429,6 +427,7 @@ protected:
   StringSettingOptionsFiller m_optionsFiller = nullptr;
   void *m_optionsFillerData = nullptr;
   StringSettingOptions m_dynamicOptions;
+  SettingOptionsSort m_optionsSort = SettingOptionsSort::NoSorting;
 };
 
 /*!
@@ -449,6 +448,7 @@ public:
   ~CSettingAction() override = default;
 
   std::shared_ptr<CSetting> Clone(const std::string &id) const override;
+  void MergeDetails(const CSetting& other) override;
 
   bool Deserialize(const TiXmlNode *node, bool update = false) override;
 

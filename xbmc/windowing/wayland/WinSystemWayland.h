@@ -20,6 +20,7 @@
 #include "utils/ActorProtocol.h"
 #include "windowing/WinSystem.h"
 
+#include "platform/freebsd/OptionalsReg.h"
 #include "platform/linux/OptionalsReg.h"
 
 #include <atomic>
@@ -49,7 +50,7 @@ class CWinSystemWayland : public CWinSystemBase, IInputHandler, IWindowDecoratio
 {
 public:
   CWinSystemWayland();
-  virtual ~CWinSystemWayland() noexcept;
+  ~CWinSystemWayland() noexcept override;
 
   bool InitWindowSystem() override;
   bool DestroyWindowSystem() override;

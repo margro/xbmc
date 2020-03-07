@@ -25,7 +25,9 @@
 #include "FTPDirectory.h"
 #include "HTTPDirectory.h"
 #include "DAVDirectory.h"
+#if defined(HAS_UDF)
 #include "UDFDirectory.h"
+#endif
 #include "utils/log.h"
 #include "network/WakeOnAccess.h"
 
@@ -46,13 +48,17 @@
 #endif
 #include "CDDADirectory.h"
 #include "PluginDirectory.h"
+#if defined(HAS_ISO9660PP)
 #include "ISO9660Directory.h"
+#endif
 #ifdef HAS_UPNP
 #include "UPnPDirectory.h"
 #endif
 #include "PVRDirectory.h"
 #if defined(TARGET_ANDROID)
 #include "platform/android/filesystem/APKDirectory.h"
+#elif defined(TARGET_DARWIN_TVOS)
+#include "platform/darwin/tvos/filesystem/TVOSDirectory.h"
 #endif
 #include "XbtDirectory.h"
 #include "ZipDirectory.h"
@@ -91,12 +97,30 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
     return NULL;
 
   CFileItem item(url.Get(), true);
-  IFileDirectory* pDir=CFileDirectoryFactory::Create(url, &item);
+  IFileDirectory* pDir = CFileDirectoryFactory::Create(url, &item);
   if (pDir)
     return pDir;
 
+  if (!url.GetProtocol().empty() && CServiceBroker::IsBinaryAddonCacheUp())
+  {
+    for (const auto& vfsAddon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
+    {
+      auto prots = StringUtils::Split(vfsAddon->GetProtocols(), "|");
+
+      if (vfsAddon->HasDirectories() && std::find(prots.begin(), prots.end(), url.GetProtocol()) != prots.end())
+        return new CVFSEntryIDirectoryWrapper(vfsAddon);
+    }
+  }
+
 #ifdef TARGET_POSIX
-  if (url.GetProtocol().empty() || url.IsProtocol("file")) return new CPosixDirectory();
+  if (url.GetProtocol().empty() || url.IsProtocol("file"))
+  {
+#if defined(TARGET_DARWIN_TVOS)
+    if (CTVOSDirectory::WantsDirectory(url))
+      return new CTVOSDirectory();
+#endif
+    return new CPosixDirectory();
+  }
 #elif defined(TARGET_WINDOWS)
   if (url.GetProtocol().empty() || url.IsProtocol("file")) return new CWin32Directory();
 #else
@@ -108,8 +132,12 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
 #if defined(HAS_DVD_DRIVE)
   if (url.IsProtocol("cdda")) return new CCDDADirectory();
 #endif
+#if defined(HAS_ISO9660PP)
   if (url.IsProtocol("iso9660")) return new CISO9660Directory();
+#endif
+#if defined(HAS_UDF)
   if (url.IsProtocol("udf")) return new CUDFDirectory();
+#endif
   if (url.IsProtocol("plugin")) return new CPluginDirectory();
 #if defined(TARGET_ANDROID)
   if (url.IsProtocol("apk")) return new CAPKDirectory();
@@ -160,15 +188,6 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
 
   if (url.IsProtocol("pvr"))
     return new CPVRDirectory();
-
-  if (!url.GetProtocol().empty() && CServiceBroker::IsBinaryAddonCacheUp())
-  {
-    for (const auto& vfsAddon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
-    {
-      if (vfsAddon->HasDirectories() && vfsAddon->GetProtocols().find(url.GetProtocol()) != std::string::npos)
-        return new CVFSEntryIDirectoryWrapper(vfsAddon);
-    }
-  }
 
   CLog::Log(LOGWARNING, "%s - unsupported protocol(%s) in %s", __FUNCTION__, url.GetProtocol().c_str(), url.GetRedacted().c_str() );
   return NULL;

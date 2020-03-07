@@ -16,13 +16,14 @@
 #include "input/actions/Action.h"
 #include "input/actions/ActionIDs.h"
 #include "messaging/ApplicationMessenger.h"
-#include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
+#include "pvr/PVRPlaybackState.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/channels/PVRChannelGroup.h"
 #include "pvr/channels/PVRChannelGroups.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/epg/EpgContainer.h"
+#include "pvr/guilib/PVRGUIActions.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 
@@ -42,25 +43,27 @@ CGUIDialogPVRChannelsOSD::CGUIDialogPVRChannelsOSD()
 
 CGUIDialogPVRChannelsOSD::~CGUIDialogPVRChannelsOSD()
 {
-  CServiceBroker::GetGUI()->GetInfoManager().UnregisterObserver(this);
-  CServiceBroker::GetPVRManager().EpgContainer().UnregisterObserver(this);
+  CServiceBroker::GetPVRManager().Events().Unsubscribe(this);
+  CServiceBroker::GetPVRManager().EpgContainer().Events().Unsubscribe(this);
 }
 
 bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
 {
   if (message.GetMessage() == GUI_MSG_REFRESH_LIST)
   {
-    switch (message.GetParam1())
+    switch (static_cast<PVREvent>(message.GetParam1()))
     {
-      case ObservableMessageCurrentItem:
+      case PVREvent::CurrentItem:
         m_viewControl.SetItems(*m_vecItems);
         return true;
-      case ObservableMessageEpg:
-      case ObservableMessageEpgContainer:
-      case ObservableMessageEpgActiveItem:
+
+      case PVREvent::Epg:
+      case PVREvent::EpgContainer:
+      case PVREvent::EpgActiveItem:
         if (IsActive())
           SetInvalid();
         return true;
+
       default:
         break;
     }
@@ -70,7 +73,7 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
 
 void CGUIDialogPVRChannelsOSD::OnInitWindow()
 {
-  if (!CServiceBroker::GetPVRManager().IsPlayingTV() && !CServiceBroker::GetPVRManager().IsPlayingRadio())
+  if (!CServiceBroker::GetPVRManager().PlaybackState()->IsPlayingTV() && !CServiceBroker::GetPVRManager().PlaybackState()->IsPlayingRadio())
   {
     Close();
     return;
@@ -94,7 +97,7 @@ void CGUIDialogPVRChannelsOSD::OnDeinitWindow(int nextWindowID)
   CGUIDialogPVRItemsViewBase::OnDeinitWindow(nextWindowID);
 }
 
-bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
+bool CGUIDialogPVRChannelsOSD::OnAction(const CAction& action)
 {
   switch (action.GetID())
   {
@@ -124,7 +127,7 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
       const std::shared_ptr<CPVRChannelGroup> nextGroup = action.GetID() == ACTION_NEXT_CHANNELGROUP
                                                         ? groups->GetNextGroup(*m_group)
                                                         : groups->GetPreviousGroup(*m_group);
-      CServiceBroker::GetPVRManager().SetPlayingGroup(nextGroup);
+      CServiceBroker::GetPVRManager().PlaybackState()->SetPlayingGroup(nextGroup);
       m_group = nextGroup;
       Init();
       Update();
@@ -161,21 +164,20 @@ bool CGUIDialogPVRChannelsOSD::OnAction(const CAction &action)
 
 void CGUIDialogPVRChannelsOSD::Update()
 {
-  CServiceBroker::GetGUI()->GetInfoManager().RegisterObserver(this);
-
   CPVRManager& pvrMgr = CServiceBroker::GetPVRManager();
-  pvrMgr.EpgContainer().RegisterObserver(this);
+  pvrMgr.Events().Subscribe(this, &CGUIDialogPVRChannelsOSD::Notify);
+  pvrMgr.EpgContainer().Events().Subscribe(this, &CGUIDialogPVRChannelsOSD::Notify);
 
-  const CPVRChannelPtr channel = pvrMgr.GetPlayingChannel();
+  const std::shared_ptr<CPVRChannel> channel = pvrMgr.PlaybackState()->GetPlayingChannel();
   if (channel)
   {
-    const CPVRChannelGroupPtr group = pvrMgr.GetPlayingGroup(channel->IsRadio());
+    const std::shared_ptr<CPVRChannelGroup> group = pvrMgr.PlaybackState()->GetPlayingGroup(channel->IsRadio());
     if (group)
     {
-      const std::vector<PVRChannelGroupMember> groupMembers = group->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE);
+      const std::vector<std::shared_ptr<PVRChannelGroupMember>> groupMembers = group->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE);
       for (const auto& groupMember : groupMembers)
       {
-        m_vecItems->Add(std::make_shared<CFileItem>(groupMember.channel));
+        m_vecItems->Add(std::make_shared<CFileItem>(groupMember->channel));
       }
 
       m_viewControl.SetItems(*m_vecItems);
@@ -237,9 +239,9 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
   CServiceBroker::GetPVRManager().GUIActions()->SwitchToChannel(itemptr, true /* bCheckResume */);
 }
 
-void CGUIDialogPVRChannelsOSD::Notify(const Observable &obs, const ObservableMessage msg)
+void CGUIDialogPVRChannelsOSD::Notify(const PVREvent& event)
 {
-  const CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, msg);
+  const CGUIMessage m(GUI_MSG_REFRESH_LIST, GetID(), 0, static_cast<int>(event));
   CApplicationMessenger::GetInstance().SendGUIMessage(m);
 }
 

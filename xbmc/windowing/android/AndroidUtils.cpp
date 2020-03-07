@@ -13,7 +13,6 @@
 #include "settings/SettingsComponent.h"
 #include "settings/lib/SettingsManager.h"
 #include "utils/StringUtils.h"
-#include "utils/SysfsUtils.h"
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
 
@@ -190,11 +189,7 @@ CAndroidUtils::CAndroidUtils()
   });
 }
 
-CAndroidUtils::~CAndroidUtils()
-{
-}
-
-bool CAndroidUtils::GetNativeResolution(RESOLUTION_INFO *res) const
+bool CAndroidUtils::GetNativeResolution(RESOLUTION_INFO* res) const
 {
   EGLNativeWindowType nativeWindow = (EGLNativeWindowType)CXBMCApp::GetNativeWindow(30000);
   if (!nativeWindow)
@@ -234,7 +229,7 @@ bool CAndroidUtils::GetNativeResolution(RESOLUTION_INFO *res) const
   return true;
 }
 
-bool CAndroidUtils::SetNativeResolution(const RESOLUTION_INFO &res)
+bool CAndroidUtils::SetNativeResolution(const RESOLUTION_INFO& res)
 {
   CLog::Log(LOGNOTICE, "CAndroidUtils: SetNativeResolution: %s: %dx%d %dx%d@%f", res.strId.c_str(), res.iWidth, res.iHeight, res.iScreenWidth, res.iScreenHeight, res.fRefreshRate);
 
@@ -250,7 +245,7 @@ bool CAndroidUtils::SetNativeResolution(const RESOLUTION_INFO &res)
   return true;
 }
 
-bool CAndroidUtils::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
+bool CAndroidUtils::ProbeResolutions(std::vector<RESOLUTION_INFO>& resolutions)
 {
   RESOLUTION_INFO cur_res;
   bool ret = GetNativeResolution(&cur_res);
@@ -313,8 +308,28 @@ bool CAndroidUtils::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
 
 bool CAndroidUtils::UpdateDisplayModes()
 {
-  fetchDisplayModes();
+  if (CJNIBase::GetSDKVersion() >= 24)
+    fetchDisplayModes();
   return true;
+}
+
+bool CAndroidUtils::IsHDRDisplay()
+{
+  CJNIWindow window = CXBMCApp::getWindow();
+  bool ret = false;
+
+  if (window)
+  {
+    CJNIView view = window.getDecorView();
+    if (view)
+    {
+      CJNIDisplay display = view.getDisplay();
+      if (display)
+        ret = display.isHdr();
+    }
+  }
+  CLog::Log(LOGDEBUG, "CAndroidUtils: IsHDRDisplay: %s", ret ? "true" : "false");
+  return ret;
 }
 
 void  CAndroidUtils::OnSettingChanged(std::shared_ptr<const CSetting> setting)

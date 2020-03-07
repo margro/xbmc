@@ -8,6 +8,8 @@
 
 #include "AndroidPowerSyscall.h"
 
+#include "utils/log.h"
+
 #include "platform/android/activity/XBMCApp.h"
 
 IPowerSyscall* CAndroidPowerSyscall::CreateInstance()
@@ -20,12 +22,6 @@ void CAndroidPowerSyscall::Register()
   IPowerSyscall::RegisterPowerSyscall(CAndroidPowerSyscall::CreateInstance);
 }
 
-CAndroidPowerSyscall::CAndroidPowerSyscall()
-{ }
-
-CAndroidPowerSyscall::~CAndroidPowerSyscall()
-{ }
-
 int CAndroidPowerSyscall::BatteryLevel(void)
 {
   return CXBMCApp::GetBatteryLevel();
@@ -33,5 +29,19 @@ int CAndroidPowerSyscall::BatteryLevel(void)
 
 bool CAndroidPowerSyscall::PumpPowerEvents(IPowerEventsCallback *callback)
 {
+  switch (m_state)
+  {
+    case SUSPENDED:
+      callback->OnSleep();
+      CLog::Log(LOGINFO, "%s: OnSleep called", __FUNCTION__);
+      break;
+    case RESUMED:
+      callback->OnWake();
+      CLog::Log(LOGINFO, "%s: OnWake called", __FUNCTION__);
+      break;
+    default:
+      return false;
+  }
+  m_state = REPORTED;
   return true;
 }

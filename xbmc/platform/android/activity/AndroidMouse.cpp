@@ -18,15 +18,6 @@
 
 //#define DEBUG_VERBOSE
 
-CAndroidMouse::CAndroidMouse()
-  : m_lastButtonState(0)
-{
-}
-
-CAndroidMouse::~CAndroidMouse()
-{
-}
-
 bool CAndroidMouse::onMouseEvent(AInputEvent* event)
 {
   if (event == NULL)

@@ -68,8 +68,8 @@ function(add_addon_depends addon searchpath)
                        -DCORE_SYSTEM_NAME=${CORE_SYSTEM_NAME}
                        -DENABLE_STATIC=1
                        -DBUILD_SHARED_LIBS=0)
-        # windows store args
-        if (CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
+        # windows args
+        if (CMAKE_SYSTEM_NAME STREQUAL WindowsStore OR CMAKE_SYSTEM_NAME STREQUAL Windows)
           list(APPEND BUILD_ARGS -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}
                                  -DCMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION})
         endif()
@@ -78,8 +78,10 @@ function(add_addon_depends addon searchpath)
           # make sure we create strings, not lists
           set(TMP_C_FLAGS "${CMAKE_C_FLAGS} ${ARCH_DEFINES}")
           set(TMP_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARCH_DEFINES}")
+          set(TMP_EXE_LINKER_FLAGS "-L${OUTPUT_DIR}/lib ${CMAKE_EXE_LINKER_FLAGS}")
           list(APPEND BUILD_ARGS -DCMAKE_C_FLAGS=${TMP_C_FLAGS}
-                                 -DCMAKE_CXX_FLAGS=${TMP_CXX_FLAGS})
+                                 -DCMAKE_CXX_FLAGS=${TMP_CXX_FLAGS}
+                                 -DCMAKE_EXE_LINKER_FLAGS=${TMP_EXE_LINKER_FLAGS})
         endif()
 
         if(CMAKE_TOOLCHAIN_FILE)
@@ -226,7 +228,6 @@ function(add_addon_depends addon searchpath)
                                     -DOUTPUT_DIR=${OUTPUT_DIR}
                                     -DCMAKE_PREFIX_PATH=${OUTPUT_DIR}
                                     -DCMAKE_INSTALL_PREFIX=${OUTPUT_DIR}
-                                    -DCMAKE_EXE_LINKER_FLAGS=-L${OUTPUT_DIR}/lib
                                     -DCMAKE_INCLUDE_PATH=${OUTPUT_DIR}/include)
             endif()
 

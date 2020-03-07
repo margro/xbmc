@@ -11,6 +11,8 @@
 #include "LangInfo.h"
 #include "guilib/LocalizeStrings.h"
 
+#include <algorithm>
+
 namespace ADDON
 {
 
@@ -148,7 +150,7 @@ const CAddonType* CAddonInfo::Type(TYPE type) const
   return &dummy;
 }
 
-bool CAddonInfo::IsType(TYPE type, bool mainOnly /*= false*/) const
+bool CAddonInfo::HasType(TYPE type, bool mainOnly /*= false*/) const
 {
   return (m_mainType == type || ProvidesSubContent(type, mainOnly ? m_mainType : ADDON_UNKNOWN));
 }
@@ -175,9 +177,32 @@ bool CAddonInfo::ProvidesSeveralSubContents() const
   return contents > 0 ? true : false;
 }
 
-bool CAddonInfo::MeetsVersion(const AddonVersion &version) const
+bool CAddonInfo::MeetsVersion(const AddonVersion& versionMin, const AddonVersion& version) const
 {
-  return m_minversion <= version && version <= m_version;
+  return !(versionMin > m_version || version < m_minversion);
+}
+
+const AddonVersion& CAddonInfo::DependencyMinVersion(const std::string& dependencyID) const
+{
+  auto it = std::find_if(m_dependencies.begin(), m_dependencies.end(),
+                         [&](const DependencyInfo& other) { return other.id == dependencyID; });
+
+  if (it != m_dependencies.end())
+    return it->versionMin;
+
+  static AddonVersion emptyVersion;
+  return emptyVersion;
+}
+
+const AddonVersion& CAddonInfo::DependencyVersion(const std::string& dependencyID) const
+{
+  auto it = std::find_if(m_dependencies.begin(), m_dependencies.end(), [&](const DependencyInfo& other) { return other.id == dependencyID; });
+
+  if (it != m_dependencies.end())
+    return it->version;
+
+  static AddonVersion emptyVersion;
+  return emptyVersion;
 }
 
 const std::string& CAddonInfo::GetTranslatedText(const std::unordered_map<std::string, std::string>& locales) const

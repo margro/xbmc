@@ -153,6 +153,10 @@ typedef enum {
   SortByLastUpdated,
   /// __52__ : Sort by last used                  <em>(String: <b><c>lastused</c></b>)</em>
   SortByLastUsed,
+  /// __53__ : Sort by client channel order       <em>(String: <b><c>ClientChannelOrder</c></b>)</em>
+  SortByClientChannelOrder,
+  /// __54__ : Sort by total number of discs      <em>(String: <b><c>totaldiscs</c></b>)</em>
+  SortByTotalDiscs,
 } SortBy;
 ///@}
 

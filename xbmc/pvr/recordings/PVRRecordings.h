@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "pvr/PVRTypes.h"
 #include "threads/CriticalSection.h"
 
 #include <map>
@@ -20,6 +19,7 @@ class CVideoDatabase;
 
 namespace PVR
 {
+  class CPVREpgInfoTag;
   class CPVRRecording;
   class CPVRRecordingUid;
   class CPVRRecordingsPath;
@@ -28,7 +28,7 @@ namespace PVR
   {
   public:
     CPVRRecordings();
-    virtual ~CPVRRecordings(void);
+    virtual ~CPVRRecordings();
 
     /*!
      * @brief (re)load the recordings from the clients.
@@ -41,12 +41,12 @@ namespace PVR
      */
     void Unload();
 
-    void UpdateFromClient(const CPVRRecordingPtr &tag);
+    void UpdateFromClient(const std::shared_ptr<CPVRRecording>& tag);
 
     /*!
      * @brief refresh the recordings list from the clients.
      */
-    void Update(void);
+    void Update();
 
     int GetNumTVRecordings() const;
     bool HasDeletedTVRecordings() const;
@@ -75,7 +75,7 @@ namespace PVR
     std::vector<std::shared_ptr<CPVRRecording>> GetAll() const;
 
     std::shared_ptr<CPVRRecording> GetByPath(const std::string& path) const;
-    CPVRRecordingPtr GetById(int iClientId, const std::string &strRecordingId) const;
+    std::shared_ptr<CPVRRecording> GetById(int iClientId, const std::string& strRecordingId) const;
     std::shared_ptr<CPVRRecording> GetById(unsigned int iId) const;
 
     /*!
@@ -83,12 +83,12 @@ namespace PVR
      * @param epgTag The epg tag.
      * @return The requested recording, or an empty recordingptr if none was found.
      */
-    CPVRRecordingPtr GetRecordingForEpgTag(const CPVREpgInfoTagPtr &epgTag) const;
+    std::shared_ptr<CPVRRecording> GetRecordingForEpgTag(const std::shared_ptr<CPVREpgInfoTag>& epgTag) const;
 
   private:
     mutable CCriticalSection m_critSection;
     bool m_bIsUpdating = false;
-    std::map<CPVRRecordingUid, CPVRRecordingPtr> m_recordings;
+    std::map<CPVRRecordingUid, std::shared_ptr<CPVRRecording>> m_recordings;
     unsigned int m_iLastId = 0;
     std::unique_ptr<CVideoDatabase> m_database;
     bool m_bDeletedTVRecordings = false;
@@ -96,7 +96,7 @@ namespace PVR
     unsigned int m_iTVRecordings = 0;
     unsigned int m_iRadioRecordings = 0;
 
-    void UpdateFromClients(void);
+    void UpdateFromClients();
 
     /*!
      * @brief Get/Open the video database.

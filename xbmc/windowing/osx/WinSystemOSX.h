@@ -19,40 +19,43 @@ typedef struct SDL_Surface SDL_Surface;
 
 class IDispResource;
 class CWinEventsOSX;
+class CWinSystemOSXImpl;
+#ifdef __OBJC__
+@class NSOpenGLContext;
+#endif
 
 class CWinSystemOSX : public CWinSystemBase, public ITimerCallback
 {
 public:
 
   CWinSystemOSX();
-  virtual ~CWinSystemOSX();
+  ~CWinSystemOSX() override;
 
   // ITimerCallback interface
-  virtual void OnTimeout() override;
+  void OnTimeout() override;
 
   // CWinSystemBase
-  virtual bool InitWindowSystem() override;
-  virtual bool DestroyWindowSystem() override;
-  virtual bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
-  virtual bool DestroyWindow() override;
-  virtual bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
-  bool         ResizeWindowInternal(int newWidth, int newHeight, int newLeft, int newTop, void *additional);
-  virtual bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
-  virtual void UpdateResolutions() override;
-  virtual void NotifyAppFocusChange(bool bGaining) override;
-  virtual void ShowOSMouse(bool show) override;
-  virtual bool Minimize() override;
-  virtual bool Restore() override;
-  virtual bool Hide() override;
-  virtual bool Show(bool raise = true) override;
-  virtual void OnMove(int x, int y) override;
+  bool InitWindowSystem() override;
+  bool DestroyWindowSystem() override;
+  bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
+  bool DestroyWindow() override;
+  bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
+  bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
+  void UpdateResolutions() override;
+  void NotifyAppFocusChange(bool bGaining) override;
+  void ShowOSMouse(bool show) override;
+  bool Minimize() override;
+  bool Restore() override;
+  bool Hide() override;
+  bool Show(bool raise = true) override;
+  void OnMove(int x, int y) override;
 
-  virtual std::string GetClipboardText(void) override;
+  std::string GetClipboardText() override;
 
   void Register(IDispResource *resource) override;
   void Unregister(IDispResource *resource) override;
 
-  virtual std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
+  std::unique_ptr<CVideoSync> GetVideoSync(void* clock) override;
 
   void        WindowChangedScreen();
 
@@ -63,18 +66,20 @@ public:
   void        StopLostDeviceTimer();
 
   void* GetCGLContextObj();
+#ifdef __OBJC__
+  NSOpenGLContext* GetNSOpenGLContext();
+#else
   void* GetNSOpenGLContext();
+#endif
   void GetConnectedOutputs(std::vector<std::string> *outputs);
 
   // winevents override
   bool MessagePump() override;
 
 protected:
-  virtual std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> GetOSScreenSaverImpl() override;
+  std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> GetOSScreenSaverImpl() override;
 
   void  HandlePossibleRefreshrateChange();
-  void* CreateWindowedContext(void* shareCtx);
-  void* CreateFullScreenContext(int screen_index, void* shareCtx);
   void  GetScreenResolution(int* w, int* h, double* fps, int screenIdx);
   void  EnableVSync(bool enable);
   bool  SwitchToVideoMode(int width, int height, double refreshrate);
@@ -84,8 +89,7 @@ protected:
   void  StartTextInput();
   void  StopTextInput();
 
-  void* m_glContext;
-  static void* m_lastOwnedContext;
+  std::unique_ptr<CWinSystemOSXImpl> m_impl;
   SDL_Surface* m_SDLSurface;
   CWinEventsOSX *m_osx_events;
   bool                         m_obscured;
@@ -93,9 +97,6 @@ protected:
 
   bool                         m_movedToOtherScreen;
   int                          m_lastDisplayNr;
-  void                        *m_windowDidMove;
-  void                        *m_windowDidReSize;
-  void                        *m_windowChangedScreen;
   double                       m_refreshRate;
 
   CCriticalSection             m_resourceSection;

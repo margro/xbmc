@@ -29,8 +29,13 @@ bool CMusicDbUrl::parse()
     return false;
 
   std::string path = m_url.Get();
-  NODE_TYPE dirType = CMusicDatabaseDirectory::GetDirectoryType(path);
-  NODE_TYPE childType = CMusicDatabaseDirectory::GetDirectoryChildType(path);
+
+  // Parse path for directory node types and query params
+  NODE_TYPE dirType;
+  NODE_TYPE childType;
+  CQueryParams queryParams;
+  if (!CMusicDatabaseDirectory::GetDirectoryNodeInfo(path, dirType, childType, queryParams))
+    return false;
 
   switch (dirType)
   {
@@ -42,18 +47,18 @@ bool CMusicDbUrl::parse()
     case NODE_TYPE_ALBUM_RECENTLY_ADDED:
     case NODE_TYPE_ALBUM_RECENTLY_PLAYED:
     case NODE_TYPE_ALBUM_TOP100:
-    case NODE_TYPE_ALBUM_COMPILATIONS:
-    case NODE_TYPE_YEAR_ALBUM:
       m_type = "albums";
+      break;
+
+    case NODE_TYPE_DISC:
+      m_type = "discs";
       break;
 
     case NODE_TYPE_ALBUM_RECENTLY_ADDED_SONGS:
     case NODE_TYPE_ALBUM_RECENTLY_PLAYED_SONGS:
     case NODE_TYPE_ALBUM_TOP100_SONGS:
-    case NODE_TYPE_ALBUM_COMPILATIONS_SONGS:
     case NODE_TYPE_SONG:
     case NODE_TYPE_SONG_TOP100:
-    case NODE_TYPE_YEAR_SONG:
     case NODE_TYPE_SINGLES:
       m_type = "songs";
       break;
@@ -72,17 +77,18 @@ bool CMusicDbUrl::parse()
     case NODE_TYPE_ALBUM_RECENTLY_ADDED:
     case NODE_TYPE_ALBUM_RECENTLY_PLAYED:
     case NODE_TYPE_ALBUM_TOP100:
-    case NODE_TYPE_YEAR_ALBUM:
       m_type = "albums";
+      break;
+
+    case NODE_TYPE_DISC:
+      m_type = "discs";
       break;
 
     case NODE_TYPE_SONG:
     case NODE_TYPE_ALBUM_RECENTLY_ADDED_SONGS:
     case NODE_TYPE_ALBUM_RECENTLY_PLAYED_SONGS:
     case NODE_TYPE_ALBUM_TOP100_SONGS:
-    case NODE_TYPE_ALBUM_COMPILATIONS_SONGS:
     case NODE_TYPE_SONG_TOP100:
-    case NODE_TYPE_YEAR_SONG:
     case NODE_TYPE_SINGLES:
       m_type = "songs";
       break;
@@ -103,10 +109,6 @@ bool CMusicDbUrl::parse()
       m_type = "years";
       break;
 
-    case NODE_TYPE_ALBUM_COMPILATIONS:
-      m_type = "albums";
-      break;
-
     case NODE_TYPE_TOP100:
       m_type = "top100";
       break;
@@ -119,10 +121,6 @@ bool CMusicDbUrl::parse()
 
   if (m_type.empty())
     return false;
-
-  // parse query params
-  CQueryParams queryParams;
-  CDirectoryNode::GetDatabaseInfo(path, queryParams);
 
   // retrieve and parse all options
   AddOptions(m_url.GetOptions());
@@ -142,6 +140,10 @@ bool CMusicDbUrl::parse()
     AddOption("songid", (int)queryParams.GetSongId());
   if (queryParams.GetYear() != -1)
     AddOption("year", (int)queryParams.GetYear());
+
+  // Decode legacy use of "musicdb://compilations/" path for filtered albums
+  if (m_url.GetFileName() == "compilations/")
+    AddOption("compilation", true);
 
   return true;
 }

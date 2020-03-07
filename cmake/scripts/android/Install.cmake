@@ -107,7 +107,7 @@ add_custom_target(bundle
                                                ${CMAKE_BINARY_DIR}/tools/android/packaging/media
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/tools/android/packaging/xbmc/res
                                                ${CMAKE_BINARY_DIR}/tools/android/packaging/xbmc/res
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DEPENDS_PATH}/lib/python2.7 ${libdir}/python2.7
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${DEPENDS_PATH}/lib/python${PYTHON_VERSION} ${libdir}/python${PYTHON_VERSION}
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${DEPENDS_PATH}/share/${APP_NAME_LC} ${datadir}/${APP_NAME_LC}
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${APP_NAME_LC}>
                                      ${libdir}/${APP_NAME_LC}/$<TARGET_FILE_NAME:${APP_NAME_LC}>)
@@ -153,8 +153,6 @@ foreach(lib IN LISTS required_dyload dyload_optional ITEMS Shairplay)
   endif()
 endforeach()
 add_bundle_file(${ASS_LIBRARY} ${libdir} "")
-add_bundle_file(${BLURAY_LIBRARY} ${libdir} "")
-add_bundle_file(${PLIST_LIBRARY} ${libdir} "")
 add_bundle_file(${SHAIRPLAY_LIBRARY} ${libdir} "")
 add_bundle_file(${SMBCLIENT_LIBRARY} ${libdir} "")
 

@@ -27,7 +27,7 @@ class CWinSystemGbmGLESContext : public CWinSystemGbmEGLContext, public CRenderS
 {
 public:
   CWinSystemGbmGLESContext();
-  virtual ~CWinSystemGbmGLESContext() = default;
+  ~CWinSystemGbmGLESContext() override = default;
 
   // Implementation of CWinSystemBase via CWinSystemGbm
   CRenderSystemBase *GetRenderSystem() override { return this; }
@@ -35,7 +35,7 @@ public:
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
   void PresentRender(bool rendered, bool videoLayer) override;
 protected:
-  void SetVSyncImpl(bool enable) override { return; };
+  void SetVSyncImpl(bool enable) override {}
   void PresentRenderImpl(bool rendered) override {};
   bool CreateContext() override;
 };

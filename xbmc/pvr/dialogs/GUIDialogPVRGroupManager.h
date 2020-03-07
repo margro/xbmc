@@ -10,19 +10,22 @@
 
 #include "guilib/GUIDialog.h"
 #include "pvr/PVRThumbLoader.h"
-#include "pvr/PVRTypes.h"
 #include "view/GUIViewControl.h"
+
+#include <memory>
 
 class CFileItemList;
 class CGUIMessage;
 
 namespace PVR
 {
+  class CPVRChannelGroup;
+
   class CGUIDialogPVRGroupManager : public CGUIDialog
   {
   public:
-    CGUIDialogPVRGroupManager(void);
-    ~CGUIDialogPVRGroupManager(void) override;
+    CGUIDialogPVRGroupManager();
+    ~CGUIDialogPVRGroupManager() override;
     bool OnMessage(CGUIMessage& message) override;
     bool OnAction(const CAction& action) override;
     void OnWindowLoaded() override;
@@ -38,22 +41,22 @@ namespace PVR
     void Clear();
     void ClearSelectedGroupsThumbnail();
     void Update();
-    bool PersistChanges(void);
-    bool ActionButtonOk(CGUIMessage &message);
-    bool ActionButtonNewGroup(CGUIMessage &message);
-    bool ActionButtonDeleteGroup(CGUIMessage &message);
-    bool ActionButtonRenameGroup(CGUIMessage &message);
-    bool ActionButtonUngroupedChannels(CGUIMessage &message);
-    bool ActionButtonGroupMembers(CGUIMessage &message);
-    bool ActionButtonChannelGroups(CGUIMessage &message);
-    bool ActionButtonHideGroup(CGUIMessage &message);
-    bool ActionButtonToggleRadioTV(CGUIMessage &message);
+    bool PersistChanges();
+    bool ActionButtonOk(CGUIMessage& message);
+    bool ActionButtonNewGroup(CGUIMessage& message);
+    bool ActionButtonDeleteGroup(CGUIMessage& message);
+    bool ActionButtonRenameGroup(CGUIMessage& message);
+    bool ActionButtonUngroupedChannels(CGUIMessage& message);
+    bool ActionButtonGroupMembers(CGUIMessage& message);
+    bool ActionButtonChannelGroups(CGUIMessage& message);
+    bool ActionButtonHideGroup(CGUIMessage& message);
+    bool ActionButtonToggleRadioTV(CGUIMessage& message);
     bool ActionButtonRecreateThumbnail(CGUIMessage& message);
-    bool OnMessageClick(CGUIMessage &message);
+    bool OnMessageClick(CGUIMessage& message);
     bool OnActionMove(const CAction& action);
 
-    CPVRChannelGroupPtr m_selectedGroup;
-    bool              m_bIsRadio;
+    std::shared_ptr<CPVRChannelGroup> m_selectedGroup;
+    bool m_bIsRadio;
 
     int m_iSelectedUngroupedChannel = 0;
     int m_iSelectedGroupMember = 0;
@@ -63,9 +66,9 @@ namespace PVR
     CFileItemList *   m_groupMembers;
     CFileItemList *   m_channelGroups;
 
-    CGUIViewControl   m_viewUngroupedChannels;
-    CGUIViewControl   m_viewGroupMembers;
-    CGUIViewControl   m_viewChannelGroups;
+    CGUIViewControl m_viewUngroupedChannels;
+    CGUIViewControl m_viewGroupMembers;
+    CGUIViewControl m_viewChannelGroups;
 
     CPVRThumbLoader m_thumbLoader;
   };

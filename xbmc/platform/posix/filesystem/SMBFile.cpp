@@ -27,6 +27,8 @@
 #include "utils/URIUtils.h"
 #include "utils/log.h"
 
+#include <inttypes.h>
+
 #include <libsmbclient.h>
 
 using namespace XFILE;
@@ -39,7 +41,6 @@ void xb_smbc_log(const char* msg)
 void xb_smbc_auth(const char *srv, const char *shr, char *wg, int wglen,
                   char *un, int unlen, char *pw, int pwlen)
 {
-  return ;
 }
 
 // WTF is this ?, we get the original server cache only
@@ -532,12 +533,14 @@ ssize_t CSMBFile::Read(void *lpBuf, size_t uiBufSize)
 
   if (m_allowRetry && bytesRead < 0 && errno == EINVAL )
   {
-    CLog::Log(LOGERROR, "%s - Error( %" PRIdS ", %d, %s ) - Retrying", __FUNCTION__, bytesRead, errno, strerror(errno));
+    CLog::Log(LOGERROR, "{} - Error( {}, {}, {} ) - Retrying", __FUNCTION__, bytesRead, errno,
+              strerror(errno));
     bytesRead = smbc_read(m_fd, lpBuf, (int)uiBufSize);
   }
 
   if ( bytesRead < 0 )
-    CLog::Log(LOGERROR, "%s - Error( %" PRIdS ", %d, %s )", __FUNCTION__, bytesRead, errno, strerror(errno));
+    CLog::Log(LOGERROR, "{} - Error( {}, {}, {} )", __FUNCTION__, bytesRead, errno,
+              strerror(errno));
 
   return bytesRead;
 }

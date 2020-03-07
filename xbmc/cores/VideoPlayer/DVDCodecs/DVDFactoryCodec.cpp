@@ -50,7 +50,7 @@ CDVDVideoCodec* CDVDFactoryCodec::CreateVideoCodec(CDVDStreamInfo &hint, CProces
   if (hint.externalInterfaces)
   {
     ADDON::BinaryAddonBasePtr addonInfo;
-    kodi::addon::IAddonInstance* parentInstance;
+    KODI_HANDLE parentInstance;
     hint.externalInterfaces->getAddonInstance(ADDON::IAddonProvider::INSTANCE_VIDEOCODEC, addonInfo, parentInstance);
     if (addonInfo && parentInstance)
     {
@@ -166,10 +166,10 @@ CDVDAudioCodec* CDVDFactoryCodec::CreateAudioCodec(CDVDStreamInfo &hint, CProces
   CDVDCodecOptions options;
 
   if (allowpassthrough && ptStreamType != CAEStreamInfo::STREAM_TYPE_NULL)
-    options.m_keys.push_back(CDVDCodecOption("ptstreamtype", StringUtils::SizeToString(ptStreamType)));
+    options.m_keys.emplace_back("ptstreamtype", StringUtils::SizeToString(ptStreamType));
 
   if (!allowdtshddecode)
-    options.m_keys.push_back(CDVDCodecOption("allowdtshddecode", "0"));
+    options.m_keys.emplace_back("allowdtshddecode", "0");
 
   // platform specifig audio decoders
   for (auto &codec : m_hwAudioCodecs)

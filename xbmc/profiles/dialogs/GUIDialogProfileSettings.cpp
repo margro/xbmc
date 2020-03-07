@@ -31,6 +31,7 @@
 #include "utils/Variant.h"
 #include "utils/log.h"
 
+#include <cassert>
 #include <utility>
 
 #define SETTING_PROFILE_NAME          "profile.name"
@@ -224,7 +225,7 @@ void CGUIDialogProfileSettings::OnSettingAction(std::shared_ptr<const CSetting> 
   if (settingId == SETTING_PROFILE_IMAGE)
   {
     VECSOURCES shares;
-    g_mediaManager.GetLocalDrives(shares);
+    CServiceBroker::GetMediaManager().GetLocalDrives(shares);
 
     CFileItemList items;
     if (!m_thumb.empty())

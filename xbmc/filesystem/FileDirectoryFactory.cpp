@@ -6,10 +6,17 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "utils/URIUtils.h"
 #include "FileDirectoryFactory.h"
+
+#if defined(HAS_ISO9660PP)
+#include "ISO9660Directory.h"
+#endif
+#if defined(HAS_UDF)
 #include "UDFDirectory.h"
+#endif
 #include "RSSDirectory.h"
+#include "UDFDirectory.h"
+#include "utils/URIUtils.h"
 #if defined(TARGET_ANDROID)
 #include "platform/android/filesystem/APKDirectory.h"
 #endif
@@ -43,7 +50,7 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
   if (url.IsProtocol("stack")) // disqualify stack as we need to work with each of the parts instead
     return NULL;
 
-  std::string strExtension=URIUtils::GetExtension(url);
+  std::string strExtension = URIUtils::GetExtension(url);
   StringUtils::ToLower(strExtension);
   if (!strExtension.empty() && CServiceBroker::IsBinaryAddonCacheUp())
   {
@@ -51,16 +58,19 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
     CServiceBroker::GetBinaryAddonManager().GetAddonInfos(addonInfos, true, ADDON_AUDIODECODER);
     for (const auto& addonInfo : addonInfos)
     {
-      if (CAudioDecoder::HasTracks(addonInfo) &&
-          CAudioDecoder::GetExtensions(addonInfo).find(strExtension) != std::string::npos)
+      if (CAudioDecoder::HasTracks(addonInfo))
       {
-        CAudioDecoder* result = new CAudioDecoder(addonInfo);
-        if (!result->CreateDecoder() || !result->ContainsFiles(url))
+        auto exts = StringUtils::Split(CAudioDecoder::GetExtensions(addonInfo), "|");
+        if (std::find(exts.begin(), exts.end(), strExtension) != exts.end())
         {
-          delete result;
-          return nullptr;
+          CAudioDecoder* result = new CAudioDecoder(addonInfo);
+          if (!result->CreateDecoder() || !result->ContainsFiles(url))
+          {
+            delete result;
+            return nullptr;
+          }
+          return result;
         }
-        return result;
       }
     }
   }
@@ -69,28 +79,39 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
   {
     for (const auto& vfsAddon : CServiceBroker::GetVFSAddonCache().GetAddonInstances())
     {
-      if (vfsAddon->HasFileDirectories() &&
-          vfsAddon->GetExtensions().find(strExtension) != std::string::npos)
+      if (vfsAddon->HasFileDirectories())
       {
-        CVFSEntryIFileDirectoryWrapper* wrap = new CVFSEntryIFileDirectoryWrapper(vfsAddon);
-        if (wrap->ContainsFiles(url))
+        auto exts = StringUtils::Split(vfsAddon->GetExtensions(), "|");
+        if (std::find(exts.begin(), exts.end(), strExtension) != exts.end())
         {
-          if (wrap->m_items.Size() == 1)
+          CVFSEntryIFileDirectoryWrapper* wrap = new CVFSEntryIFileDirectoryWrapper(vfsAddon);
+          if (wrap->ContainsFiles(url))
           {
-            // one STORED file - collapse it down
-            *pItem = *wrap->m_items[0];
+            if (wrap->m_items.Size() == 1)
+            {
+              // one STORED file - collapse it down
+              *pItem = *wrap->m_items[0];
+            }
+            else
+            {
+              // compressed or more than one file -> create a dir
+              *pItem = wrap->m_items;
+            }
+
+            // Check for folder, if yes return also wrap.
+            // Needed to fix for e.g. RAR files with only one file inside
+            pItem->m_bIsFolder = URIUtils::HasSlashAtEnd(pItem->GetPath());
+            if (pItem->m_bIsFolder)
+              return wrap;
           }
           else
-          { // compressed or more than one file -> create a dir
-            pItem->SetPath(wrap->m_items.GetPath());
-            return wrap;
+          {
+            pItem->m_bIsFolder = true;
           }
-        }
-        else
-          pItem->m_bIsFolder = true;
 
-        delete wrap;
-        return nullptr;
+          delete wrap;
+          return nullptr;
+        }
       }
     }
   }
@@ -98,8 +119,23 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
   if (pItem->IsRSS())
     return new CRSSDirectory();
 
+
   if (pItem->IsDiscImage())
+  {
+#if defined(HAS_ISO9660PP)
+    CISO9660Directory* iso = new CISO9660Directory();
+    if (iso->Exists(pItem->GetURL()))
+      return iso;
+
+    delete iso;
+#endif
+
+#if defined(HAS_UDF)
     return new CUDFDirectory();
+#endif
+
+    return nullptr;
+  }
 
 #if defined(TARGET_ANDROID)
   if (url.IsFileType("apk"))

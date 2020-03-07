@@ -9,9 +9,9 @@
 #include "PVRTimerType.h"
 
 #include "ServiceBroker.h"
-#include "addons/PVRClient.h"
 #include "guilib/LocalizeStrings.h"
 #include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClient.h"
 #include "pvr/addons/PVRClients.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
@@ -23,9 +23,9 @@
 
 using namespace PVR;
 
-const std::vector<CPVRTimerTypePtr> CPVRTimerType::GetAllTypes()
+const std::vector<std::shared_ptr<CPVRTimerType>> CPVRTimerType::GetAllTypes()
 {
-  std::vector<CPVRTimerTypePtr> allTypes;
+  std::vector<std::shared_ptr<CPVRTimerType>> allTypes;
   CServiceBroker::GetPVRManager().Clients()->GetTimerTypes(allTypes);
 
   // Add local reminder timer types. Local reminders are always available.
@@ -101,11 +101,11 @@ const std::vector<CPVRTimerTypePtr> CPVRTimerType::GetAllTypes()
   return allTypes;
 }
 
-const CPVRTimerTypePtr CPVRTimerType::GetFirstAvailableType(const std::shared_ptr<CPVRClient>& client)
+const std::shared_ptr<CPVRTimerType> CPVRTimerType::GetFirstAvailableType(const std::shared_ptr<CPVRClient>& client)
 {
   if (client)
   {
-    std::vector<CPVRTimerTypePtr> types;
+    std::vector<std::shared_ptr<CPVRTimerType>> types;
     if (client->GetTimerTypes(types) == PVR_ERROR_NO_ERROR && !types.empty())
     {
       return *(types.begin());
@@ -114,7 +114,7 @@ const CPVRTimerTypePtr CPVRTimerType::GetFirstAvailableType(const std::shared_pt
   return {};
 }
 
-CPVRTimerTypePtr CPVRTimerType::CreateFromIds(unsigned int iTypeId, int iClientId)
+std::shared_ptr<CPVRTimerType> CPVRTimerType::CreateFromIds(unsigned int iTypeId, int iClientId)
 {
   const std::vector<std::shared_ptr<CPVRTimerType>> types = GetAllTypes();
   for (const auto& type : types)
@@ -135,7 +135,7 @@ CPVRTimerTypePtr CPVRTimerType::CreateFromIds(unsigned int iTypeId, int iClientI
   return {};
 }
 
-CPVRTimerTypePtr CPVRTimerType::CreateFromAttributes(
+std::shared_ptr<CPVRTimerType> CPVRTimerType::CreateFromAttributes(
   unsigned int iMustHaveAttr, unsigned int iMustNotHaveAttr, int iClientId)
 {
   const std::vector<std::shared_ptr<CPVRTimerType>> types = GetAllTypes();
@@ -165,7 +165,7 @@ CPVRTimerType::CPVRTimerType() :
 {
 }
 
-CPVRTimerType::CPVRTimerType(const PVR_TIMER_TYPE &type, int iClientId) :
+CPVRTimerType::CPVRTimerType(const PVR_TIMER_TYPE& type, int iClientId) :
   m_iClientId(iClientId),
   m_iTypeId(type.iId),
   m_iAttributes(type.iAttributes),
@@ -187,20 +187,20 @@ CPVRTimerType::~CPVRTimerType() = default;
 
 bool CPVRTimerType::operator ==(const CPVRTimerType& right) const
 {
-  return (m_iClientId                  == right.m_iClientId   &&
-          m_iTypeId                    == right.m_iTypeId  &&
-          m_iAttributes                == right.m_iAttributes &&
-          m_strDescription             == right.m_strDescription &&
-          m_priorityValues             == right.m_priorityValues &&
-          m_iPriorityDefault           == right.m_iPriorityDefault &&
-          m_lifetimeValues             == right.m_lifetimeValues &&
-          m_iLifetimeDefault           == right.m_iLifetimeDefault &&
-          m_maxRecordingsValues        == right.m_maxRecordingsValues &&
-          m_iMaxRecordingsDefault      == right.m_iMaxRecordingsDefault &&
-          m_preventDupEpisodesValues   == right.m_preventDupEpisodesValues &&
+  return (m_iClientId == right.m_iClientId &&
+          m_iTypeId == right.m_iTypeId &&
+          m_iAttributes == right.m_iAttributes &&
+          m_strDescription == right.m_strDescription &&
+          m_priorityValues == right.m_priorityValues &&
+          m_iPriorityDefault == right.m_iPriorityDefault &&
+          m_lifetimeValues == right.m_lifetimeValues &&
+          m_iLifetimeDefault == right.m_iLifetimeDefault &&
+          m_maxRecordingsValues == right.m_maxRecordingsValues &&
+          m_iMaxRecordingsDefault == right.m_iMaxRecordingsDefault &&
+          m_preventDupEpisodesValues == right.m_preventDupEpisodesValues &&
           m_iPreventDupEpisodesDefault == right.m_iPreventDupEpisodesDefault &&
-          m_recordingGroupValues       == right.m_recordingGroupValues &&
-          m_iRecordingGroupDefault     == right.m_iRecordingGroupDefault);
+          m_recordingGroupValues == right.m_recordingGroupValues &&
+          m_iRecordingGroupDefault == right.m_iRecordingGroupDefault);
 }
 
 bool CPVRTimerType::operator !=(const CPVRTimerType& right) const
@@ -237,7 +237,7 @@ void CPVRTimerType::InitDescription()
   m_strDescription = StringUtils::Format(g_localizeStrings.Get(prefixId).c_str(), m_strDescription.c_str());
 }
 
-void CPVRTimerType::InitAttributeValues(const PVR_TIMER_TYPE &type)
+void CPVRTimerType::InitAttributeValues(const PVR_TIMER_TYPE& type)
 {
   InitPriorityValues(type);
   InitLifetimeValues(type);
@@ -246,7 +246,7 @@ void CPVRTimerType::InitAttributeValues(const PVR_TIMER_TYPE &type)
   InitRecordingGroupValues(type);
 }
 
-void CPVRTimerType::InitPriorityValues(const PVR_TIMER_TYPE &type)
+void CPVRTimerType::InitPriorityValues(const PVR_TIMER_TYPE& type)
 {
   if (type.iPrioritiesSize > 0)
   {
@@ -258,7 +258,7 @@ void CPVRTimerType::InitPriorityValues(const PVR_TIMER_TYPE &type)
         // No description given by addon. Create one from value.
         strDescr = StringUtils::Format("%d", type.priorities[i].iValue);
       }
-      m_priorityValues.push_back(std::make_pair(strDescr, type.priorities[i].iValue));
+      m_priorityValues.emplace_back(strDescr, type.priorities[i].iValue);
     }
 
     m_iPriorityDefault = type.iPrioritiesDefault;
@@ -267,7 +267,7 @@ void CPVRTimerType::InitPriorityValues(const PVR_TIMER_TYPE &type)
   {
     // No values given by addon, but priority supported. Use default values 1..100
     for (int i = 1; i < 101; ++i)
-      m_priorityValues.push_back(std::make_pair(StringUtils::Format("%d", i), i));
+      m_priorityValues.emplace_back(StringUtils::Format("%d", i), i);
 
     m_iPriorityDefault = DEFAULT_RECORDING_PRIORITY;
   }
@@ -278,13 +278,13 @@ void CPVRTimerType::InitPriorityValues(const PVR_TIMER_TYPE &type)
   }
 }
 
-void CPVRTimerType::GetPriorityValues(std::vector< std::pair<std::string, int> > &list) const
+void CPVRTimerType::GetPriorityValues(std::vector<std::pair<std::string, int>>& list) const
 {
-  for (const auto &prio : m_priorityValues)
+  for (const auto& prio : m_priorityValues)
     list.push_back(prio);
 }
 
-void CPVRTimerType::InitLifetimeValues(const PVR_TIMER_TYPE &type)
+void CPVRTimerType::InitLifetimeValues(const PVR_TIMER_TYPE& type)
 {
   if (type.iLifetimesSize > 0)
   {
@@ -297,7 +297,7 @@ void CPVRTimerType::InitLifetimeValues(const PVR_TIMER_TYPE &type)
         // No description given by addon. Create one from value.
         strDescr = StringUtils::Format("%d", iValue);
       }
-      m_lifetimeValues.push_back(std::make_pair(strDescr, iValue));
+      m_lifetimeValues.emplace_back(strDescr, iValue);
     }
 
     m_iLifetimeDefault = type.iLifetimesDefault;
@@ -307,7 +307,7 @@ void CPVRTimerType::InitLifetimeValues(const PVR_TIMER_TYPE &type)
     // No values given by addon, but lifetime supported. Use default values 1..365
     for (int i = 1; i < 366; ++i)
     {
-      m_lifetimeValues.push_back(std::make_pair(StringUtils::Format(g_localizeStrings.Get(17999).c_str(), i), i)); // "%s days"
+      m_lifetimeValues.emplace_back(StringUtils::Format(g_localizeStrings.Get(17999).c_str(), i), i); // "%s days"
     }
     m_iLifetimeDefault = DEFAULT_RECORDING_LIFETIME;
   }
@@ -318,13 +318,13 @@ void CPVRTimerType::InitLifetimeValues(const PVR_TIMER_TYPE &type)
   }
 }
 
-void CPVRTimerType::GetLifetimeValues(std::vector< std::pair<std::string, int> > &list) const
+void CPVRTimerType::GetLifetimeValues(std::vector<std::pair<std::string, int>>& list) const
 {
-  for (const auto &lifetime : m_lifetimeValues)
+  for (const auto& lifetime : m_lifetimeValues)
     list.push_back(lifetime);
 }
 
-void CPVRTimerType::InitMaxRecordingsValues(const PVR_TIMER_TYPE &type)
+void CPVRTimerType::InitMaxRecordingsValues(const PVR_TIMER_TYPE& type)
 {
   if (type.iMaxRecordingsSize > 0)
   {
@@ -336,20 +336,20 @@ void CPVRTimerType::InitMaxRecordingsValues(const PVR_TIMER_TYPE &type)
         // No description given by addon. Create one from value.
         strDescr = StringUtils::Format("%d", type.maxRecordings[i].iValue);
       }
-      m_maxRecordingsValues.push_back(std::make_pair(strDescr, type.maxRecordings[i].iValue));
+      m_maxRecordingsValues.emplace_back(strDescr, type.maxRecordings[i].iValue);
     }
 
     m_iMaxRecordingsDefault = type.iMaxRecordingsDefault;
   }
 }
 
-void CPVRTimerType::GetMaxRecordingsValues(std::vector< std::pair<std::string, int> > &list) const
+void CPVRTimerType::GetMaxRecordingsValues(std::vector<std::pair<std::string, int>>& list) const
 {
-  for (const auto &maxRecordings : m_maxRecordingsValues)
+  for (const auto& maxRecordings : m_maxRecordingsValues)
     list.push_back(maxRecordings);
 }
 
-void CPVRTimerType::InitPreventDuplicateEpisodesValues(const PVR_TIMER_TYPE &type)
+void CPVRTimerType::InitPreventDuplicateEpisodesValues(const PVR_TIMER_TYPE& type)
 {
   if (type.iPreventDuplicateEpisodesSize > 0)
   {
@@ -361,7 +361,7 @@ void CPVRTimerType::InitPreventDuplicateEpisodesValues(const PVR_TIMER_TYPE &typ
         // No description given by addon. Create one from value.
         strDescr = StringUtils::Format("%d", type.preventDuplicateEpisodes[i].iValue);
       }
-      m_preventDupEpisodesValues.push_back(std::make_pair(strDescr, type.preventDuplicateEpisodes[i].iValue));
+      m_preventDupEpisodesValues.emplace_back(strDescr, type.preventDuplicateEpisodes[i].iValue);
     }
 
     m_iPreventDupEpisodesDefault = type.iPreventDuplicateEpisodesDefault;
@@ -369,8 +369,8 @@ void CPVRTimerType::InitPreventDuplicateEpisodesValues(const PVR_TIMER_TYPE &typ
   else if (SupportsRecordOnlyNewEpisodes())
   {
     // No values given by addon, but prevent duplicate episodes supported. Use default values 0..1
-    m_preventDupEpisodesValues.push_back(std::make_pair(g_localizeStrings.Get(815), 0)); // "Record all episodes"
-    m_preventDupEpisodesValues.push_back(std::make_pair(g_localizeStrings.Get(816), 1)); // "Record only new episodes"
+    m_preventDupEpisodesValues.emplace_back(g_localizeStrings.Get(815), 0); // "Record all episodes"
+    m_preventDupEpisodesValues.emplace_back(g_localizeStrings.Get(816), 1); // "Record only new episodes"
     m_iPreventDupEpisodesDefault = DEFAULT_RECORDING_DUPLICATEHANDLING;
   }
   else
@@ -380,13 +380,13 @@ void CPVRTimerType::InitPreventDuplicateEpisodesValues(const PVR_TIMER_TYPE &typ
   }
 }
 
-void CPVRTimerType::GetPreventDuplicateEpisodesValues(std::vector< std::pair<std::string, int> > &list) const
+void CPVRTimerType::GetPreventDuplicateEpisodesValues(std::vector<std::pair<std::string, int>>& list) const
 {
-  for (const auto &preventDupEpisodes : m_preventDupEpisodesValues)
+  for (const auto& preventDupEpisodes : m_preventDupEpisodesValues)
     list.push_back(preventDupEpisodes);
 }
 
-void CPVRTimerType::InitRecordingGroupValues(const PVR_TIMER_TYPE &type)
+void CPVRTimerType::InitRecordingGroupValues(const PVR_TIMER_TYPE& type)
 {
   if (type.iRecordingGroupSize > 0)
   {
@@ -400,15 +400,15 @@ void CPVRTimerType::InitRecordingGroupValues(const PVR_TIMER_TYPE &type)
                                        g_localizeStrings.Get(811).c_str(), // Recording group
                                        type.recordingGroup[i].iValue);
       }
-      m_recordingGroupValues.push_back(std::make_pair(strDescr, type.recordingGroup[i].iValue));
+      m_recordingGroupValues.emplace_back(strDescr, type.recordingGroup[i].iValue);
     }
 
     m_iRecordingGroupDefault = type.iRecordingGroupDefault;
   }
 }
 
-void CPVRTimerType::GetRecordingGroupValues(std::vector< std::pair<std::string, int> > &list) const
+void CPVRTimerType::GetRecordingGroupValues(std::vector< std::pair<std::string, int>>& list) const
 {
-  for (const auto &recordingGroup : m_recordingGroupValues)
+  for (const auto& recordingGroup : m_recordingGroupValues)
     list.push_back(recordingGroup);
 }

@@ -276,12 +276,9 @@ void URIUtils::GetCommonPath(std::string& strParent, const std::string& strPath)
 
 bool URIUtils::HasParentInHostname(const CURL& url)
 {
-  return url.IsProtocol("zip")
-      || url.IsProtocol("apk")
-      || url.IsProtocol("bluray")
-      || url.IsProtocol("udf")
-      || url.IsProtocol("xbt")
-      || (CServiceBroker::IsBinaryAddonCacheUp() &&
+  return url.IsProtocol("zip") || url.IsProtocol("apk") || url.IsProtocol("bluray") ||
+         url.IsProtocol("udf") || url.IsProtocol("iso9660") || url.IsProtocol("xbt") ||
+         (CServiceBroker::IsBinaryAddonCacheUp() &&
           CServiceBroker::GetFileExtensionProvider().EncodedHostName(url.GetProtocol()));
 }
 
@@ -600,16 +597,16 @@ bool URIUtils::IsRemote(const std::string& strFile)
 
   if (IsSourcesPath(strFile))
     return false;
-  
+
   if (IsVideoDb(strFile) || IsMusicDb(strFile))
     return false;
-  
+
   if (IsLibraryFolder(strFile))
     return false;
-  
+
   if (IsPlugin(strFile))
     return false;
-  
+
   if (IsAndroidApp(strFile))
     return false;
 
@@ -1061,6 +1058,11 @@ bool URIUtils::IsPVRRecording(const std::string& strFile)
 
   return StringUtils::EndsWithNoCase(strFileWithoutSlash, ".pvr") &&
          StringUtils::StartsWith(strFile, "pvr://recordings");
+}
+
+bool URIUtils::IsPVRRecordingFileOrFolder(const std::string& strFile)
+{
+  return StringUtils::StartsWith(strFile, "pvr://recordings");
 }
 
 bool URIUtils::IsMusicDb(const std::string& strFile)

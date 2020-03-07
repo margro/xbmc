@@ -41,7 +41,6 @@ CShoutcastFile::CShoutcastFile() :
 
 CShoutcastFile::~CShoutcastFile()
 {
-  StopThread();
   Close();
 }
 
@@ -59,7 +58,10 @@ bool CShoutcastFile::Open(const CURL& url)
 {
   CURL url2(url);
   url2.SetProtocolOptions(url2.GetProtocolOptions()+"&noshout=true&Icy-MetaData=1");
-  url2.SetProtocol("http");
+  if (url.GetProtocol() == "shouts")
+    url2.SetProtocol("https");
+  else if (url.GetProtocol() == "shout")
+    url2.SetProtocol("http");
 
   bool result = m_file.Open(url2);
   if (result)
@@ -79,7 +81,6 @@ bool CShoutcastFile::Open(const CURL& url)
   m_buffer = new char[16*255];
   m_tagPos = 1;
   m_tagChange.Set();
-  Create();
 
   return result;
 }
@@ -177,23 +178,23 @@ void CShoutcastFile::ReadTruncated(char* buf2, int size)
 
 int CShoutcastFile::IoControl(EIoControl control, void* payload)
 {
-  if (control == IOCTRL_SET_CACHE)
+  if (control == IOCTRL_SET_CACHE && m_cacheReader == nullptr)
+  {
     m_cacheReader = (CFileCache*)payload;
+    Create();
+  }
 
   return IFile::IoControl(control, payload);
 }
 
 void CShoutcastFile::Process()
 {
-  if (!m_cacheReader)
-    return;
-
   while (!m_bStop)
   {
     if (m_tagChange.WaitMSec(500))
     {
       while (!m_bStop && m_cacheReader->GetPosition() < m_tagPos)
-        Sleep(20);
+        CThread::Sleep(20);
       CSingleLock lock(m_tagSection);
       CApplicationMessenger::GetInstance().PostMsg(TMSG_UPDATE_CURRENT_ITEM, 1,-1, static_cast<void*>(new CFileItem(m_tag)));
       m_tagPos = 0;

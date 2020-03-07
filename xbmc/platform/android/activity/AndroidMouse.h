@@ -14,8 +14,8 @@ class CAndroidMouse
 {
 
 public:
-  CAndroidMouse();
-  virtual ~CAndroidMouse();
+  CAndroidMouse() = default;
+  virtual ~CAndroidMouse() = default;
   bool onMouseEvent(AInputEvent* event);
 
 protected:
@@ -26,5 +26,5 @@ private:
   void MouseWheel(float x, float y, float value);
 
 private:
-  int32_t m_lastButtonState;
+  int32_t m_lastButtonState = 0;
 };

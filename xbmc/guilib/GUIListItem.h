@@ -61,9 +61,6 @@ public:
   void SetLabel2(const std::string& strLabel);
   const std::string& GetLabel2() const;
 
-  void SetIconImage(const std::string& strIcon);
-  const std::string& GetIconImage() const;
-
   void SetOverlayImage(GUIIconOverlay icon, bool bOnOff=false);
   std::string GetOverlayImage() const;
 
@@ -125,7 +122,6 @@ public:
   void Select(bool bOnOff);
   bool IsSelected() const;
 
-  bool HasIcon() const;
   bool HasOverlay() const;
   virtual bool IsFileItem() const { return false; };
 
@@ -164,14 +160,28 @@ public:
 
   const CVariant &GetProperty(const std::string &strKey) const;
 
+  /*! \brief Set the current item number within it's container
+   Our container classes will set this member with the items position
+   in the container starting at 1.
+   \param position Position of the item in the container starting at 1.
+   */
+  void SetCurrentItem(unsigned int position);
+
+  /*! \brief Get the current item number within it's container
+   Retrieve the items position in a container, this is useful to show
+   for example numbering in front of entities in an arbitrary list of entities,
+   like songs of a playlist.
+   */
+  unsigned int GetCurrentItem() const;
+
 protected:
   std::string m_strLabel2;     // text of column2
-  std::string m_strIcon;      // filename of icon
   GUIIconOverlay m_overlayIcon; // type of overlay icon
 
   CGUIListItemLayoutPtr m_layout;
   CGUIListItemLayoutPtr m_focusedLayout;
   bool m_bSelected;     // item is selected or not
+  unsigned int m_currentItem; // current item number within container (starting at 1)
 
   struct icompare
   {

@@ -228,13 +228,13 @@ int CGUIDialogAddonInfo::AskForVersion(std::vector<std::pair<AddonVersion, std::
     if (versionInfo.second == LOCAL_CACHE)
     {
       item.SetLabel2(g_localizeStrings.Get(24095));
-      item.SetIconImage("DefaultAddonRepository.png");
+      item.SetArt("icon", "DefaultAddonRepository.png");
       dialog->Add(item);
     }
     else if (CServiceBroker::GetAddonMgr().GetAddon(versionInfo.second, repo, ADDON_REPOSITORY))
     {
       item.SetLabel2(repo->Name());
-      item.SetIconImage(repo->Icon());
+      item.SetArt("icon", repo->Icon());
       dialog->Add(item);
     }
   }
@@ -271,7 +271,7 @@ void CGUIDialogAddonInfo::OnUpdate()
           {
             std::string md5 = CUtil::GetFileDigest(path, KODI::UTILITY::CDigest::Type::MD5);
             if (StringUtils::EqualsNoCase(md5, hash))
-              versions.push_back(std::make_pair(AddonVersion(versionString), LOCAL_CACHE));
+              versions.emplace_back(AddonVersion(versionString), LOCAL_CACHE);
           }
         }
       }
@@ -486,7 +486,7 @@ bool CGUIDialogAddonInfo::ShowDependencyList(const std::vector<ADDON::Dependency
     {
       CFileItemPtr item(new CFileItem(info_addon->Name()));
       std::stringstream str;
-      str << it.id << " " << it.requiredVersion.asString();
+      str << it.id << " " << it.versionMin.asString() << " -> " << it.version.asString();
       if ((it.optional && !local_addon) || (!it.optional && local_addon))
         str << " " << StringUtils::Format(g_localizeStrings.Get(39022).c_str(),
                                           local_addon ? g_localizeStrings.Get(39019).c_str()
@@ -497,7 +497,7 @@ bool CGUIDialogAddonInfo::ShowDependencyList(const std::vector<ADDON::Dependency
                                           g_localizeStrings.Get(39018).c_str());
 
       item->SetLabel2(str.str());
-      item->SetIconImage(info_addon->Icon());
+      item->SetArt("icon", info_addon->Icon());
       item->SetProperty("addon_id", it.id);
       items.Add(item);
     }
@@ -518,6 +518,7 @@ bool CGUIDialogAddonInfo::ShowDependencyList(const std::vector<ADDON::Dependency
     for (auto& it : items)
       pDialog->Add(*it);
     pDialog->EnableButton(!reactivate, 186);
+    pDialog->SetButtonFocus(true);
     pDialog->Open();
 
     if (pDialog->IsButtonPressed())

@@ -1,4 +1,5 @@
 set(SOURCES ConvUtils.cpp
+            CPUInfoPosix.cpp
             Filesystem.cpp
             MessagePrinter.cpp
             PlatformPosix.cpp
@@ -10,13 +11,13 @@ set(SOURCES ConvUtils.cpp
             XTimeUtils.cpp)
 
 set(HEADERS ConvUtils.h
+            CPUInfoPosix.h
             PlatformDefs.h
             PlatformPosix.h
             PosixMountProvider.h
             PosixResourceCounter.h
             PosixTimezone.h
             XFileUtils.h
-            XHandle.h
-            XTimeUtils.h)
+            XHandle.h)
 
 core_add_library(platform_posix)

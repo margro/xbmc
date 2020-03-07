@@ -215,12 +215,17 @@ public:
    * Instruct AE to keep configuration for a specified time
    * @param millis time for which old configuration should be kept
    */
-  virtual void KeepConfiguration(unsigned int millis) {return; }
+  virtual void KeepConfiguration(unsigned int millis) {}
 
   /**
    * Instruct AE to re-initialize, e.g. after ELD change event
    */
-  virtual void DeviceChange() {return; }
+  virtual void DeviceChange() {}
+
+  /**
+   * Instruct AE to re-initialize, e.g. after ELD change event
+   */
+  virtual void DeviceCountChange(std::string driver) {}
 
   /**
    * Get the current sink data format

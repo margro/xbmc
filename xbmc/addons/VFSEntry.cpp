@@ -116,6 +116,7 @@ class CVFSURLWrapper
       m_strings.push_back(url2.GetPassWord());
       m_strings.push_back(url2.GetRedacted());
       m_strings.push_back(url2.GetShareName());
+      m_strings.push_back(url2.GetProtocol());
 
       url.url = m_strings[0].c_str();
       url.domain = m_strings[1].c_str();
@@ -127,6 +128,7 @@ class CVFSURLWrapper
       url.password = m_strings[6].c_str();
       url.redacted = m_strings[7].c_str();
       url.sharename = m_strings[8].c_str();
+      url.protocol = m_strings[9].c_str();
     }
 
     VFSURL url;
@@ -345,7 +347,7 @@ static void VFSDirEntriesToCFileItemList(int num_entries,
     item->SetLabel(entries[i].label);
     item->SetPath(entries[i].path);
     item->m_dwSize = entries[i].size;
-    //item->m_dateTime = entries[i].mtime;
+    item->m_dateTime = entries[i].date_time;
     item->m_bIsFolder = entries[i].folder;
     if (entries[i].title)
       item->m_strTitle = entries[i].title;

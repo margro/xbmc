@@ -10,15 +10,12 @@ DEPENDS = \
 	openssl gmp nettle gnutls curl nghttp2 \
 	libjpeg-turbo libpng fribidi libass \
 	libxml2 rapidjson libmicrohttpd mariadb libffi \
-	python27 libshairplay libfmt \
+	python3 libshairplay libfmt \
 	libplist libcec libbluray tinyxml \
-	taglib libusb libnfs \
+	taglib libusb libnfs meson-cross-file \
 	pythonmodule-pil pythonmodule-pycryptodome pythonmodule-setuptools \
 	libxslt ffmpeg crossguid \
-	libdvdread libdvdnav libdvdcss p8-platform flatbuffers
-
-
-FFMPEG_DEPENDS = gnutls
+	libdvdread libdvdnav libdvdcss p8-platform flatbuffers dav1d
 
 ifeq ($(ENABLE_GPLV3),yes)
   DEPENDS+=samba-gplv3 libcdio-gplv3
@@ -30,6 +27,7 @@ ifeq ($(OS),darwin_embedded)
   EXCLUDED_DEPENDS = libcec libusb
   ifeq ($(TARGET_PLATFORM),appletvos)
     DEPENDS += boblight
+    EXCLUDED_DEPENDS += libshairplay libplist
   endif
   DEPENDS += iosentitlements
 endif
@@ -43,7 +41,7 @@ ifeq ($(OS),android)
   EXCLUDED_DEPENDS = libcec libusb
   DEPENDS += dummy-libxbmc libuuid libandroidjni
   PYMODULE_DEPS = dummy-libxbmc
-  CROSSGUID_DEPS = libuuid
+  LIBUUID = libuuid
 endif
 
 DEPENDS := $(filter-out $(EXCLUDED_DEPENDS),$(DEPENDS))
@@ -71,7 +69,7 @@ ifeq ($(OS),linux)
   endif
   DEPENDS += alsa-lib
   ALSA_LIB = alsa-lib
-  CROSSGUID_DEPS = libuuid
+  LIBUUID = libuuid
   ifeq ($(TARGET_PLATFORM),$(filter $(TARGET_PLATFORM),raspberry-pi gbm))
     DEPENDS += libxkbcommon libinput libudev libevdev mtdev
   endif
@@ -87,36 +85,38 @@ all: .installed-$(PLATFORM)
 
 gettext: $(ICONV)
 libgcrypt: libgpg-error
-fontconfig: freetype2 expat $(ICONV)
+fontconfig: freetype2 expat $(ICONV) $(LIBUUID)
 curl: openssl nghttp2
 libass: fontconfig fribidi libpng freetype2 expat $(ICONV)
 libmicrohttpd: gnutls libgcrypt libgpg-error
-python27: expat gettext libxml2 sqlite3 openssl libffi
+python3: expat gettext libxml2 sqlite3 openssl libffi
 libcdio: $(ICONV)
 libcdio-gplv3: $(ICONV)
 libplist: $(ZLIB)
-libbluray: $(ICONV) libxml2
+libbluray: fontconfig freetype2 $(ICONV) libxml2
 mariadb: openssl $(ICONV) $(ZLIB)
 libzip: $(ZLIB)
 libpng: $(ZLIB)
 openssl: $(ZLIB)
 gnutls: nettle $(ZLIB)
 nettle: gmp
-pythonmodule-pycryptodome: $(PYMODULE_DEPS) python27 pythonmodule-setuptools
-pythonmodule-pil: bzip2 $(PYMODULE_DEPS) $(ZLIB) libjpeg-turbo libpng freetype2 python27 pythonmodule-setuptools
-pythonmodule-setuptools: $(PYMODULE_DEPS) python27
+pythonmodule-pycryptodome: $(PYMODULE_DEPS) python3 pythonmodule-setuptools
+pythonmodule-pil: bzip2 $(PYMODULE_DEPS) $(ZLIB) libjpeg-turbo libpng freetype2 python3 pythonmodule-setuptools
+pythonmodule-setuptools: $(PYMODULE_DEPS) python3
 libxslt: libgcrypt libxml2
-ffmpeg: $(ICONV) $(ZLIB) bzip2 $(FFMPEG_DEPENDS)
+ffmpeg: $(ICONV) $(ZLIB) bzip2 gnutls dav1d
 libcec: p8-platform
-crossguid: $(CROSSGUID_DEPS)
+crossguid: $(LIBUUID)
 libdvdnav: libdvdread
 libdvdread: libdvdcss
 wayland: expat libffi
 waylandpp: wayland $(WAYLANDPP_DEPS)
 dbus: expat
-libinput: mtdev libevdev
+libinput: mtdev libevdev meson-cross-file
 libevdev: libudev
+samba-gplv3: gnutls
 taglib: $(ZLIB)
+dav1d: meson-cross-file
 
 .installed-$(PLATFORM): $(DEPENDS)
 	touch $@
@@ -182,3 +182,20 @@ linux-system-libs: linux-system-libs-egl
 	[ -f $(PREFIX)/lib/pkgconfig/xmu.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/xmu.pc $(PREFIX)/lib/pkgconfig/xmu.pc
 	[ -f $(PREFIX)/lib/pkgconfig/libdrm.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/libdrm.pc $(PREFIX)/lib/pkgconfig/libdrm.pc
 	[ -f $(PREFIX)/lib/pkgconfig/xkbcommon.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/xkbcommon.pc $(PREFIX)/lib/pkgconfig/xkbcommon.pc
+	[ -f $(PREFIX)/lib/pkgconfig/libva.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/libva.pc $(PREFIX)/lib/pkgconfig/libva.pc
+
+meson-cross-file:
+	PREFIX="$(PREFIX)" \
+	NATIVEPREFIX="$(NATIVEPREFIX)" \
+	CC="$(CC)" \
+	CXX="$(CXX)" \
+	AR="$(AR)" \
+	STRIP="$(STRIP)" \
+	MESON_SYSTEM="$(MESON_SYSTEM)" \
+	MESON_CPU="$(MESON_CPU)" \
+	CPU="$(CPU)" \
+	CFLAGS="$(CFLAGS)" \
+	CXXFLAGS="$(CXXFLAGS)" \
+	LDFLAGS="$(LDFLAGS)" \
+	./meson-cross-setup.sh
+

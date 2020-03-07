@@ -274,6 +274,26 @@ const infomap string_bools[] =   {{ "isempty",          STRING_IS_EMPTY },
 ///     @skinning_v17 **[New Boolean Condition]** \link Integer_IsLessOrEqual `Integer.IsLessOrEqual(info\,number)`\endlink
 ///     <p>
 ///   }
+///   \table_row3{   <b>`Integer.IsEven(info)`</b>,
+///                  \anchor Integer_IsEven
+///                  _boolean_,
+///     @return **True** if the value of the infolabel is odd
+///     @param info - infolabel
+///     @note **Example:** `Integer.IsEven(ListItem.CurrentItem)`
+///     <p><hr>
+///     @skinning_v19 **[New Boolean Condition]** \link Integer_IsEven `Integer.IsEven(info)`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`Integer.IsOdd(info)`</b>,
+///                  \anchor Integer_IsOdd
+///                  _boolean_,
+///     @return **True** if the value of the infolabel is odd
+///     @param info - infolabel
+///     @note **Example:** `Integer.IsOdd(ListItem.CurrentItem)`
+///     <p><hr>
+///     @skinning_v19 **[New Boolean Condition]** \link Integer_IsOdd `Integer.IsOdd(info)`\endlink
+///     <p>
+///   }
 /// \table_end
 ///
 /// -----------------------------------------------------------------------------
@@ -283,7 +303,9 @@ const infomap integer_bools[] =  {{ "isequal",          INTEGER_IS_EQUAL },
                                   { "isgreater",        INTEGER_GREATER_THAN },
                                   { "isgreaterorequal", INTEGER_GREATER_OR_EQUAL },
                                   { "isless",           INTEGER_LESS_THAN },
-                                  { "islessorequal",    INTEGER_LESS_OR_EQUAL }};
+                                  { "islessorequal",    INTEGER_LESS_OR_EQUAL },
+                                  { "iseven",           INTEGER_EVEN },
+                                  { "isodd",            INTEGER_ODD }};
 
 
 /// \page modules__infolabels_boolean_conditions
@@ -1169,6 +1191,14 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///     @return **True** if Kodi is running on an IOS device.
 ///     <p>
 ///   }
+///   \table_row3{   <b>`System.Platform.TVOS`</b>,
+///                  \anchor System_PlatformTVOS
+///                  _boolean_,
+///     @return **True** if Kodi is running on a tvOS device.
+///     <p><hr>
+///     @skinning_v19 **[New Boolean Condition]** \link System_PlatformTVOS `System.Platform.TVOS`\endlink
+///     <p>
+///   }
 ///   \table_row3{   <b>`System.Platform.Darwin`</b>,
 ///                  \anchor System_PlatformDarwin
 ///                  _boolean_,
@@ -1607,6 +1637,14 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///     @skinning_v17 **[New Infolabel]** \link System_PrivacyPolicy `System.PrivacyPolicy`\endlink
 ///     <p>
 ///   }
+///   \table_row3{   <b>`System.SupportsCPUUsage`</b>,
+///                  \anchor System_SupportsCPUUsage
+///                  _boolean_,
+///     @return **True** if the system can provide CPU usage information.
+///     <p><hr>
+///     @skinning_v19 **[New Boolean Condition]** \link  System_SupportsCPUUsage ` System.SupportsCPUUsage`\endlink
+///     <p>
+///   }
 const infomap system_labels[] =  {{ "hasnetwork",       SYSTEM_ETHERNET_LINK_ACTIVE },
                                   { "hasmediadvd",      SYSTEM_MEDIA_DVD },
                                   { "hasmediaaudiocd",  SYSTEM_MEDIA_AUDIO_CD },
@@ -1674,7 +1712,8 @@ const infomap system_labels[] =  {{ "hasnetwork",       SYSTEM_ETHERNET_LINK_ACT
                                   { "stereoscopicmode", SYSTEM_STEREOSCOPIC_MODE },
                                   { "hascms",           SYSTEM_HAS_CMS },
                                   { "privacypolicy",    SYSTEM_PRIVACY_POLICY },
-                                  { "haspvraddon",      SYSTEM_HAS_PVR_ADDON }};
+                                  { "haspvraddon",      SYSTEM_HAS_PVR_ADDON },
+                                  { "supportscpuusage", SYSTEM_SUPPORTS_CPU_USAGE }};
 
 /// \page modules__infolabels_boolean_conditions
 ///   \table_row3{   <b>`System.HasAddon(id)`</b>,
@@ -1682,6 +1721,16 @@ const infomap system_labels[] =  {{ "hasnetwork",       SYSTEM_ETHERNET_LINK_ACT
 ///                  _boolean_,
 ///     @return **True** if the specified addon is installed on the system.
 ///     @param id - the addon id
+///     @skinning_v19 **[Boolean Condition Updated]** \link System_HasAddon `System.HasAddon(id)`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`System.AddonIsEnabled(id)`</b>,
+///                  \anchor System_AddonIsEnabled
+///                  _boolean_,
+///     @return **True** if the specified addon is enabled on the system.
+///     @param id - The addon Id
+///     <p><hr>
+///     @skinning_v19 **[New Boolean Condition]** \link System_AddonIsEnabled `System.AddonIsEnabled(id)`\endlink
 ///     <p>
 ///   }
 ///   \table_row3{   <b>`System.HasCoreId(id)`</b>,
@@ -1718,6 +1767,7 @@ const infomap system_param[] =   {{ "hasalarm",         SYSTEM_HAS_ALARM },
                                   { "hascoreid",        SYSTEM_HAS_CORE_ID },
                                   { "setting",          SYSTEM_SETTING },
                                   { "hasaddon",         SYSTEM_HAS_ADDON },
+                                  { "addonisenabled",   SYSTEM_ADDON_IS_ENABLED },
                                   { "coreusage",        SYSTEM_GET_CORE_USAGE }};
 
 /// \page modules__infolabels_boolean_conditions
@@ -2498,6 +2548,14 @@ const infomap musicpartymode[] = {{ "enabled",           MUSICPM_ENABLED },
 ///     @skinning_v17 **[New Infolabel]** \link MusicPlayer_DBID `MusicPlayer.DBID`\endlink
 ///     <p>
 ///   }
+///   \table_row3{   <b>`MusicPlayer.DiscTitle`</b>,
+///                  \anchor MusicPlayer_DiscTitle
+///                  _string_,
+///     @return The title of the disc currently playing.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link MusicPlayer_DiscTitle `MusicPlayer.DiscTitle`\endlink
+///     <p>
+///   }
 /// \table_end
 ///
 /// -----------------------------------------------------------------------------
@@ -2518,6 +2576,7 @@ const infomap musicplayer[] =    {{ "title",            MUSICPLAYER_TITLE },
                                   { "samplerate",       MUSICPLAYER_SAMPLERATE },
                                   { "codec",            MUSICPLAYER_CODEC },
                                   { "discnumber",       MUSICPLAYER_DISC_NUMBER },
+                                  { "disctitle",        MUSICPLAYER_DISC_TITLE },
                                   { "rating",           MUSICPLAYER_RATING },
                                   { "ratingandvotes",   MUSICPLAYER_RATING_AND_VOTES },
                                   { "userrating",       MUSICPLAYER_USER_RATING },
@@ -3942,6 +4001,22 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///                  \anchor ListItem_Property_Album_Description
 ///                  _string_,
 ///     @return A review of the currently selected Album.
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.Property(Album_Totaldiscs)`</b>,
+///                  \anchor ListItem_Property_Album_Totaldiscs
+///                  _string_,
+///     @return The total number of discs belonging to an album.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem.Property(Album_Totaldiscs) `ListItem.Property(Album_Totaldiscs)`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.Property(Album_Isboxset)`</b>,
+///                  \anchor ListItem_Property_Album_Isboxset
+///                  _string_,
+///     @return **True** if the album is a boxset.
+///     <p><hr>
+///     @skinning_v19 **[New Infobool]** \link ListItem.Property(Album_Isboxset) `ListItem.Property(Album_Isboxset)`\endlink
 ///     <p>
 ///   }
 ///   \table_row3{   <b>`ListItem.DiscNumber`</b>,
@@ -5687,6 +5762,46 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     @return The parental rating of the list item (PVR).
 ///     <p>
 ///   }
+///   \table_row3{   <b>`ListItem.CurrentItem`</b>,
+///                  \anchor ListItem_CurrentItem
+///                  _string_,
+///     @return The current index of the item in a container starting at 1.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_CurrentItem `ListItem.CurrentItem`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.IsNew`</b>,
+///                  \anchor ListItem_IsNew
+///                  _boolean_,
+///     @return **True** if the item is new (for example, a Live TV show that will be first aired).
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_IsNew `ListItem.IsNew`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.DiscTitle`</b>,
+///                  \anchor ListItem_DiscTitle
+///                  _string_,
+///     @return The disc title of the currently selected album or song.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_DiscTitle `ListItem.DiscTitle`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.IsBoxset`</b>,
+///                  \anchor ListItem_IsBoxset
+///                  _boolean_,
+///     @return **True** if the item is part of a boxset album.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_IsBoxset `ListItem.IsBoxset`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.TotalDiscs`</b>,
+///                  \anchor ListItem_TotalDiscs
+///                  _boolean_,
+///     @return The total number of discs belonging to an album.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_TotalDiscs `ListItem.TotalDiscs`\endlink
+///     <p>
+///   }
 /// \table_end
 ///
 /// -----------------------------------------------------------------------------
@@ -5706,6 +5821,7 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "contributors",     LISTITEM_CONTRIBUTORS },
                                   { "contributorandrole", LISTITEM_CONTRIBUTOR_AND_ROLE },
                                   { "director",         LISTITEM_DIRECTOR },
+                                  { "disctitle",        LISTITEM_DISC_TITLE },
                                   { "filename",         LISTITEM_FILENAME },
                                   { "filenameandpath",  LISTITEM_FILENAME_AND_PATH },
                                   { "fileextension",    LISTITEM_FILE_EXTENSION },
@@ -5877,7 +5993,11 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "expirationtime",   LISTITEM_EXPIRATION_TIME },
                                   { "art",              LISTITEM_ART },
                                   { "property",         LISTITEM_PROPERTY },
-                                  { "parentalrating",   LISTITEM_PARENTAL_RATING }
+                                  { "parentalrating",   LISTITEM_PARENTAL_RATING },
+                                  { "currentitem",      LISTITEM_CURRENTITEM },
+                                  { "isnew",            LISTITEM_IS_NEW },
+                                  { "isboxset",         LISTITEM_IS_BOXSET },
+                                  { "totaldiscs",       LISTITEM_TOTALDISCS },
 };
 
 /// \page modules__infolabels_boolean_conditions
@@ -8424,6 +8544,22 @@ const infomap slideshow[] =      {{ "ispaused",               SLIDESHOW_ISPAUSED
 ///     @skinning_v17 **[New Boolean Condition]** \link Library_HasContent_Role_Mixer `Library.HasContent(Role.Mixer)`\endlink
 ///     <p>
 ///   }
+///   \table_row3{   <b>`Library.HasContent(boxsets)`</b>,
+///                  \anchor Library_HasContent_Boxsets
+///                  _boolean_,
+///     @return **True** if there are albums in the library which are boxsets.
+///     <p><hr>
+///     @skinning_v19 **[New Boolean Condition]** \link Library_HasContent_Boxsets `Library.HasContent(boxsets)`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`Library.HasNode(path)`</b>,
+///                  \anchor Library_HasNode
+///                  _boolean_,
+///     @return **True** if there the node is present in the library.
+///     <p><hr>
+///     @skinning_v19 **[New Boolean Condition]** \link Library_HasNode `Library.HasNode(path)`\endlink
+///     <p>
+///   }
 /// \table_end
 ///
 /// -----------------------------------------------------------------------------
@@ -8838,8 +8974,16 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
           return LIBRARY_HAS_SINGLES;
         else if (cat == "compilations")
           return LIBRARY_HAS_COMPILATIONS;
+        else if (cat == "boxsets")
+          return LIBRARY_HAS_BOXSETS;
         else if (cat == "role" && prop.num_params() > 1)
           return AddMultiInfo(CGUIInfo(LIBRARY_HAS_ROLE, prop.param(1), 0));
+      }
+      else if (prop.name == "hasnode" && prop.num_params())
+      {
+        std::string node = prop.param(0);
+        StringUtils::ToLower(node);
+        return AddMultiInfo(CGUIInfo(LIBRARY_HAS_NODE, prop.param(), 0));
       }
     }
     else if (cat.name == "musicplayer")
@@ -9093,6 +9237,8 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         return SYSTEM_PLATFORM_DARWIN_OSX;
       else if (platform == "ios")
         return SYSTEM_PLATFORM_DARWIN_IOS;
+      else if (platform == "tvos")
+        return SYSTEM_PLATFORM_DARWIN_TVOS;
       else if (platform == "android")
         return SYSTEM_PLATFORM_ANDROID;
     }
@@ -9102,13 +9248,13 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
       {
         int position = atoi(info[1].param().c_str());
         int value = TranslateMusicPlayerString(info[2].name); // musicplayer.position(foo).bar
-        return AddMultiInfo(CGUIInfo(value, 0, position));
+        return AddMultiInfo(CGUIInfo(value, 2, position)); // 2 => absolute (0 used for not set)
       }
       else if (info[1].name == "offset")
       {
         int position = atoi(info[1].param().c_str());
         int value = TranslateMusicPlayerString(info[2].name); // musicplayer.offset(foo).bar
-        return AddMultiInfo(CGUIInfo(value, 1, position));
+        return AddMultiInfo(CGUIInfo(value, 1, position)); // 1 => relative
       }
     }
     else if (info[0].name == "container")
@@ -9435,6 +9581,8 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
       case INTEGER_GREATER_OR_EQUAL:
       case INTEGER_LESS_THAN:
       case INTEGER_LESS_OR_EQUAL:
+      case INTEGER_EVEN:
+      case INTEGER_ODD:
         {
           int integer = 0;
           if (!GetInt(integer, info.GetData1(), contextWindow, item))
@@ -9464,6 +9612,10 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
             bReturn = integer < info.GetData2();
           else if (condition == INTEGER_LESS_OR_EQUAL)
             bReturn = integer <= info.GetData2();
+          else if (condition == INTEGER_EVEN)
+            bReturn = integer % 2 == 0;
+          else if (condition == INTEGER_ODD)
+            bReturn = integer % 2 != 0;
         }
         break;
       case STRING_STARTS_WITH:
@@ -9602,9 +9754,6 @@ void CGUIInfoManager::SetCurrentItem(const CFileItem &item)
 
   m_infoProviders.InitCurrentItem(m_currentFile);
 
-  SetChanged();
-  NotifyObservers(ObservableMessageCurrentItem);
-  // @todo this should be handled by one of the observers above and forwarded
   CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::Info, "xbmc", "OnChanged");
 }
 
@@ -9768,14 +9917,14 @@ std::string CGUIInfoManager::GetMultiInfoItemLabel(const CFileItem *item, int co
       case LISTITEM_PROGRAM_COUNT:
         return StringUtils::Format("%i", item->m_iprogramCount);
       case LISTITEM_ACTUAL_ICON:
-        return item->GetIconImage();
+        return item->GetArt("icon");
       case LISTITEM_ICON:
       {
         std::string strThumb = item->GetArt("thumb");
         if (strThumb.empty())
-          strThumb = item->GetIconImage();
+          strThumb = item->GetArt("icon");
         if (fallback)
-          *fallback = item->GetIconImage();
+          *fallback = item->GetArt("icon");
         return strThumb;
       }
       case LISTITEM_ART:
@@ -9825,6 +9974,8 @@ std::string CGUIInfoManager::GetMultiInfoItemLabel(const CFileItem *item, int co
           return item->m_dateTime.GetAsLocalizedDate(true);
         break;
       }
+      case LISTITEM_CURRENTITEM:
+        return std::to_string(item->GetCurrentItem());
     }
   }
 

@@ -59,6 +59,8 @@ static pid_t GetCurrentThreadPid_()
   return pthread_getthreadid_np();
 #elif defined(TARGET_ANDROID)
   return gettid();
+#elif TARGET_DARWIN
+  return pthread_mach_thread_np(pthread_self());
 #else
   return syscall(SYS_gettid);
 #endif
@@ -137,6 +139,11 @@ std::uintptr_t CThread::GetCurrentThreadNativeHandle()
 #else
   return pthread_self();
 #endif
+}
+
+uint64_t CThread::GetCurrentThreadNativeId()
+{
+  return static_cast<uint64_t>(GetCurrentThreadPid_());
 }
 
 int CThread::GetMinPriority(void)

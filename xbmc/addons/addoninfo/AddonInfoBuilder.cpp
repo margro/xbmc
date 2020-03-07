@@ -166,7 +166,7 @@ bool CAddonInfoBuilder::ParseXML(const AddonInfoPtr& addon, const TiXmlElement* 
   /*
    * Parse addon.xml:
    * <requires>
-   *   <import addon="???" version="???" optional="???"/>
+   *   <import addon="???" minversion="???" version="???" optional="???"/>
    * </requires>
    */
   const TiXmlElement* requires = element->FirstChildElement("requires");
@@ -177,11 +177,13 @@ bool CAddonInfoBuilder::ParseXML(const AddonInfoPtr& addon, const TiXmlElement* 
       cstring = child->Attribute("addon");
       if (cstring)
       {
+        const char* versionMin = child->Attribute("minversion");
         const char* version = child->Attribute("version");
         bool optional = false;
         child->QueryBoolAttribute("optional", &optional);
 
-        addon->m_dependencies.emplace_back(cstring, AddonVersion(version ? version : "0.0.0"), optional);
+        addon->m_dependencies.emplace_back(cstring, AddonVersion(versionMin), AddonVersion(version),
+                                           optional);
       }
     }
   }
@@ -212,6 +214,18 @@ bool CAddonInfoBuilder::ParseXML(const AddonInfoPtr& addon, const TiXmlElement* 
 
     if (point == "kodi.addon.metadata" || point == "xbmc.addon.metadata")
     {
+      /*
+       * Parse addon.xml "<path">...</path>" (special related to repository path),
+       * do first and if present override the default. Also set assetBasePath to
+       * find screenshots and icons.
+       */
+      element = child->FirstChildElement("path");
+      if (element && element->GetText() != nullptr && !repo.datadir.empty())
+      {
+        addon->m_path = URIUtils::AddFileToFolder(repo.datadir, element->GetText());
+        assetBasePath = URIUtils::GetDirectory(URIUtils::AddFileToFolder(repo.artdir, element->GetText()));
+      }
+
       /*
        * Parse addon.xml "<summary lang="..">...</summary>"
        */
@@ -566,6 +580,8 @@ bool CAddonInfoBuilder::PlatformSupportsAddon(const AddonInfoPtr& addon)
     "android-aarch64",
 #elif defined(__i686__)
     "android-i686",
+#elif defined(__x86_64__)
+    "android-x86_64",
 #else
     #warning no architecture dependant platform tag
 #endif
@@ -586,23 +602,24 @@ bool CAddonInfoBuilder::PlatformSupportsAddon(const AddonInfoPtr& addon)
 #endif
 #elif defined(TARGET_WINDOWS_STORE)
     "windowsstore",
-#elif defined(TARGET_DARWIN_IOS)
+#elif defined(TARGET_DARWIN_EMBEDDED)
+    "darwin_embedded",
+#if defined(TARGET_DARWIN_IOS)
     "ios",
-#if defined(__ARM_ARCH_7A__)
-    "ios-armv7",
-#elif defined(__aarch64__)
+#if defined(__aarch64__)
     "ios-aarch64",
 #else
 #warning no architecture dependant platform tag
+#endif
+#elif defined(TARGET_DARWIN_TVOS)
+    "tvos",
+    "tvos-aarch64",
 #endif
 #elif defined(TARGET_DARWIN_OSX)
     "osx",
 #if defined(__x86_64__)
     "osx64",
     "osx-x86_64",
-#elif defined(__i686__)
-    "osx-i686",
-    "osx32",
 #else
 #warning no architecture dependant platform tag
 #endif

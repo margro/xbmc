@@ -23,6 +23,7 @@
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
 
+#include "platform/freebsd/OptionalsReg.h"
 #include "platform/linux/OptionalsReg.h"
 #include "platform/linux/powermanagement/LinuxPowerSyscall.h"
 
@@ -53,6 +54,11 @@ CWinSystemGbm::CWinSystemGbm() :
   else if (StringUtils::EqualsNoCase(envSink, "SNDIO"))
   {
     OPTIONALS::SndioRegister();
+  }
+  else if (StringUtils::EqualsNoCase(envSink, "ALSA+PULSE"))
+  {
+    OPTIONALS::ALSARegister();
+    OPTIONALS::PulseAudioRegister();
   }
   else
   {
@@ -194,10 +200,7 @@ bool CWinSystemGbm::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool bl
 
   int delay = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt("videoscreen.delayrefreshchange");
   if (delay > 0)
-  {
-    m_delayDispReset = true;
     m_dispResetTimer.Set(delay * 100);
-  }
 
   return result;
 }
@@ -269,6 +272,7 @@ void CWinSystemGbm::Unregister(IDispResource *resource)
 void CWinSystemGbm::OnLostDevice()
 {
   CLog::Log(LOGDEBUG, "%s - notify display change event", __FUNCTION__);
+  m_dispReset = true;
 
   CSingleLock lock(m_resourceSection);
   for (auto resource : m_resources)

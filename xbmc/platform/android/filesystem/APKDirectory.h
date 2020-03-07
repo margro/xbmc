@@ -14,12 +14,12 @@ namespace XFILE
 {
   class CAPKDirectory : public IFileDirectory
   {
-    public:
-    CAPKDirectory() {};
-    virtual ~CAPKDirectory() {};
-    virtual bool GetDirectory(const CURL& url, CFileItemList &items);
-    virtual bool ContainsFiles(const CURL& url);
-    virtual DIR_CACHE_TYPE GetCacheType(const CURL& url) const;
-    virtual bool Exists(const CURL& url);
+  public:
+    CAPKDirectory() = default;
+    ~CAPKDirectory() override = default;
+    bool GetDirectory(const CURL& url, CFileItemList& items) override;
+    bool ContainsFiles(const CURL& url) override;
+    DIR_CACHE_TYPE GetCacheType(const CURL& url) const override;
+    bool Exists(const CURL& url) override;
   };
 }

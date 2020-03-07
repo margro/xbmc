@@ -23,7 +23,7 @@ class CWinSystemAndroid : public CWinSystemBase, public ITimerCallback
 {
 public:
   CWinSystemAndroid();
-  virtual ~CWinSystemAndroid();
+  ~CWinSystemAndroid() override;
 
   bool InitWindowSystem() override;
   bool DestroyWindowSystem() override;
@@ -35,7 +35,9 @@ public:
   bool DestroyWindow() override;
   void UpdateResolutions() override;
 
-  void SetHDMIState(bool connected);
+  void InitiateModeChange();
+  bool IsHdmiModeTriggered() const { return m_HdmiModeTriggered; };
+  void SetHdmiState(bool connected);
 
   void UpdateDisplayModes();
 
@@ -50,6 +52,7 @@ public:
 
   // winevents override
   bool MessagePump() override;
+  bool IsHDRDisplay() override;
 
 protected:
   std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> GetOSScreenSaverImpl() override;
@@ -65,14 +68,6 @@ protected:
 
   RENDER_STEREO_MODE m_stereo_mode;
 
-  enum RESETSTATE
-  {
-    RESET_NOTWAITING,
-    RESET_WAITTIMER,
-    RESET_WAITEVENT
-  };
-
-  RESETSTATE m_dispResetState;
   CTimer *m_dispResetTimer;
 
   CCriticalSection m_resourceSection;
@@ -80,5 +75,6 @@ protected:
   CDecoderFilterManager *m_decoderFilterManager;
 
 private:
+  bool m_HdmiModeTriggered = false;
   void UpdateResolutions(bool bUpdateDesktopRes);
 };

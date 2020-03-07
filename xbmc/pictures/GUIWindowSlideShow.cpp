@@ -6,40 +6,40 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "threads/SystemClock.h"
 #include "GUIWindowSlideShow.h"
+
 #include "Application.h"
-#include "ServiceBroker.h"
-#include "messaging/ApplicationMessenger.h"
-#include "utils/URIUtils.h"
-#include "URL.h"
-#include "guilib/GUIComponent.h"
-#include "guilib/TextureManager.h"
-#include "guilib/GUILabelControl.h"
-#include "input/Key.h"
-#include "GUIInfoManager.h"
-#include "filesystem/Directory.h"
+#include "FileItem.h"
 #include "GUIDialogPictureInfo.h"
+#include "GUIInfoManager.h"
 #include "GUIUserMessages.h"
+#include "PlayListPlayer.h"
+#include "ServiceBroker.h"
+#include "TextureDatabase.h"
+#include "URL.h"
+#include "filesystem/Directory.h"
+#include "guilib/GUIComponent.h"
+#include "guilib/GUILabelControl.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
+#include "guilib/Texture.h"
+#include "guilib/TextureManager.h"
+#include "input/Key.h"
+#include "interfaces/AnnouncementManager.h"
+#include "messaging/ApplicationMessenger.h"
+#include "pictures/GUIViewStatePictures.h"
+#include "pictures/PictureThumbLoader.h"
+#include "rendering/RenderSystem.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
-#include "FileItem.h"
-#include "guilib/Texture.h"
-#include "rendering/RenderSystem.h"
-#include "guilib/LocalizeStrings.h"
-#include "TextureDatabase.h"
-#include "utils/log.h"
+#include "threads/SystemClock.h"
 #include "utils/Random.h"
+#include "utils/URIUtils.h"
 #include "utils/Variant.h"
-#include "interfaces/AnnouncementManager.h"
-#include "pictures/GUIViewStatePictures.h"
-#include "pictures/PictureThumbLoader.h"
-#include "PlayListPlayer.h"
-#ifdef TARGET_POSIX
-#include "platform/posix/XTimeUtils.h"
-#endif
+#include "utils/XTimeUtils.h"
+#include "utils/log.h"
+
 #include <random>
 
 using namespace XFILE;
@@ -245,7 +245,7 @@ void CGUIWindowSlideShow::OnDeinitWindow(int nextWindowID)
       // sleep until the loader finishes loading the current pic
       CLog::Log(LOGDEBUG,"Waiting for BackgroundLoader thread to close");
       while (m_pBackgroundLoader->IsLoading())
-        Sleep(10);
+        KODI::TIME::Sleep(10);
       // stop the thread
       CLog::Log(LOGDEBUG,"Stopping BackgroundLoader thread");
       m_pBackgroundLoader->StopThread();
@@ -509,13 +509,9 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
     }
   }
 
-  if (m_slides.at(m_iCurrentSlide)->IsVideo() &&
-      m_iVideoSlide != m_iCurrentSlide)
-  {
-    if (!PlayVideo())
-      return;
+  bool bPlayVideo = m_slides.at(m_iCurrentSlide)->IsVideo() && m_iVideoSlide != m_iCurrentSlide;
+  if (bPlayVideo)
     bSlideShow = false;
-  }
 
   // render the current image
   if (m_Image[m_iCurrentPic].IsLoaded())
@@ -603,6 +599,8 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
       }
       m_iCurrentSlide = m_iNextSlide;
       m_iNextSlide    = GetNextSlide();
+
+      bPlayVideo = m_slides.at(m_iCurrentSlide)->IsVideo() && m_iVideoSlide != m_iCurrentSlide;
     }
     AnnouncePlayerPlay(m_slides.at(m_iCurrentSlide));
 
@@ -610,6 +608,9 @@ void CGUIWindowSlideShow::Process(unsigned int currentTime, CDirtyRegionList &re
     m_fZoom = 1.0f;
     m_fRotate = 0.0f;
   }
+
+  if (bPlayVideo && !PlayVideo())
+      return;
 
   if (m_Image[m_iCurrentPic].IsLoaded())
     CServiceBroker::GetGUI()->GetInfoManager().GetInfoProviders().GetPicturesInfoProvider().SetCurrentSlide(m_slides.at(m_iCurrentSlide).get());
@@ -629,14 +630,30 @@ void CGUIWindowSlideShow::Render()
   if (m_slides.empty())
     return;
 
-  CServiceBroker::GetWinSystem()->GetGfxContext().Clear(0xff000000);
+  CGraphicContext& gfxCtx = CServiceBroker::GetWinSystem()->GetGfxContext();
+  gfxCtx.Clear(0xff000000);
 
   if (m_slides.at(m_iCurrentSlide)->IsVideo())
   {
-    CServiceBroker::GetWinSystem()->GetGfxContext().SetViewWindow(0, 0, m_coordsRes.iWidth, m_coordsRes.iHeight);
-    CServiceBroker::GetWinSystem()->GetGfxContext().SetRenderingResolution(CServiceBroker::GetWinSystem()->GetGfxContext().GetVideoResolution(), false);
-    g_application.GetAppPlayer().Render(true, 255);
-    CServiceBroker::GetWinSystem()->GetGfxContext().SetRenderingResolution(m_coordsRes, m_needsScaling);
+    gfxCtx.SetViewWindow(0, 0, m_coordsRes.iWidth, m_coordsRes.iHeight);
+    gfxCtx.SetRenderingResolution(gfxCtx.GetVideoResolution(), false);
+
+    if (g_application.GetAppPlayer().IsRenderingVideoLayer())
+    {
+      const CRect old = gfxCtx.GetScissors();
+      CRect region = GetRenderRegion();
+      region.Intersect(old);
+      gfxCtx.SetScissors(region);
+      gfxCtx.Clear(0);
+      gfxCtx.SetScissors(old);
+    }
+    else
+    {
+      const UTILS::Color alpha = gfxCtx.MergeAlpha(0xff000000) >> 24;
+      g_application.GetAppPlayer().Render(false, alpha);
+    }
+
+    gfxCtx.SetRenderingResolution(m_coordsRes, m_needsScaling);
   }
   else
   {
@@ -649,6 +666,14 @@ void CGUIWindowSlideShow::Render()
 
   RenderErrorMessage();
   CGUIWindow::Render();
+}
+
+void CGUIWindowSlideShow::RenderEx()
+{
+  if (m_slides.at(m_iCurrentSlide)->IsVideo())
+    g_application.GetAppPlayer().Render(false, 255, false);
+
+  CGUIWindow::RenderEx();
 }
 
 int CGUIWindowSlideShow::GetNextSlide()

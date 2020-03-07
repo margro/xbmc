@@ -69,10 +69,15 @@ AEStreamHandle* Interface_AudioEngine::audioengine_make_stream(void* kodiBase, A
 {
   if (!kodiBase || !streamFormat)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamFormat='%p')",
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamFormat='{}')",
               __FUNCTION__, kodiBase, static_cast<void*>(streamFormat));
     return nullptr;
   }
+
+  IAE* engine = CServiceBroker::GetActiveAE();
+  if (!engine)
+    return nullptr;
 
   AEAudioFormat format;
   format.m_dataFormat = streamFormat->m_dataFormat;
@@ -88,30 +93,40 @@ AEStreamHandle* Interface_AudioEngine::audioengine_make_stream(void* kodiBase, A
   if (options & AUDIO_STREAM_AUTOSTART)
     kodiOption |= AESTREAM_AUTOSTART;
 
-  return CServiceBroker::GetActiveAE()->MakeStream(format, kodiOption);
+  return engine->MakeStream(format, kodiOption);
 }
 
 void Interface_AudioEngine::audioengine_free_stream(void* kodiBase, AEStreamHandle* streamHandle)
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return;
   }
 
-  CServiceBroker::GetActiveAE()->FreeStream(static_cast<IAEStream*>(streamHandle), true);
+  IAE* engine = CServiceBroker::GetActiveAE();
+  if (engine)
+    engine->FreeStream(static_cast<IAEStream*>(streamHandle), true);
 }
 
 bool Interface_AudioEngine::audioengine_get_current_sink_format(void* kodiBase, AudioEngineFormat *format)
 {
   if (!kodiBase || !format)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', format='%p')", __FUNCTION__, kodiBase, static_cast<void*>(format));
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', format='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(format));
     return false;
   }
 
+  IAE* engine = CServiceBroker::GetActiveAE();
+  if (!engine)
+    return false;
+
   AEAudioFormat sinkFormat;
-  if (!CServiceBroker::GetActiveAE()->GetCurrentSinkFormat(sinkFormat))
+  if (!engine->GetCurrentSinkFormat(sinkFormat))
   {
     CLog::Log(LOGERROR, "Interface_AudioEngine::{} - failed to get current sink format from AE!", __FUNCTION__);
     return false;
@@ -135,7 +150,9 @@ unsigned int Interface_AudioEngine::aestream_get_space(void* kodiBase, AEStreamH
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return 0;
   }
 
@@ -148,9 +165,14 @@ unsigned int Interface_AudioEngine::aestream_add_data(void* kodiBase, AEStreamHa
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return 0;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return 0;
 
   IAEStream::ExtData extData;
   extData.pts = pts;
@@ -163,9 +185,14 @@ double Interface_AudioEngine::aestream_get_delay(void* kodiBase, AEStreamHandle*
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return -1.0;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return -1.0;
 
   return static_cast<IAEStream*>(streamHandle)->GetDelay();
 }
@@ -174,9 +201,14 @@ bool Interface_AudioEngine::aestream_is_buffering(void* kodiBase, AEStreamHandle
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return false;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return false;
 
   return static_cast<IAEStream*>(streamHandle)->IsBuffering();
 }
@@ -185,9 +217,14 @@ double Interface_AudioEngine::aestream_get_cache_time(void* kodiBase, AEStreamHa
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return -1.0;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return -1.0;
 
   return static_cast<IAEStream*>(streamHandle)->GetCacheTime();
 }
@@ -196,9 +233,14 @@ double Interface_AudioEngine::aestream_get_cache_total(void* kodiBase, AEStreamH
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return -1.0;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return -1.0;
 
   return static_cast<IAEStream*>(streamHandle)->GetCacheTotal();
 }
@@ -207,9 +249,14 @@ void Interface_AudioEngine::aestream_pause(void* kodiBase, AEStreamHandle* strea
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return;
 
   static_cast<IAEStream*>(streamHandle)->Pause();
 }
@@ -218,7 +265,9 @@ void Interface_AudioEngine::aestream_resume(void* kodiBase, AEStreamHandle* stre
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return;
   }
 
@@ -229,9 +278,14 @@ void Interface_AudioEngine::aestream_drain(void* kodiBase, AEStreamHandle* strea
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return;
 
   static_cast<IAEStream*>(streamHandle)->Drain(wait);
 }
@@ -240,9 +294,14 @@ bool Interface_AudioEngine::aestream_is_draining(void* kodiBase, AEStreamHandle*
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return false;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return false;
 
   return static_cast<IAEStream*>(streamHandle)->IsDraining();
 }
@@ -251,9 +310,14 @@ bool Interface_AudioEngine::aestream_is_drained(void* kodiBase, AEStreamHandle* 
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return false;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return false;
 
   return static_cast<IAEStream*>(streamHandle)->IsDrained();
 }
@@ -262,9 +326,14 @@ void Interface_AudioEngine::aestream_flush(void* kodiBase, AEStreamHandle* strea
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return;
 
   static_cast<IAEStream*>(streamHandle)->Flush();
 }
@@ -273,9 +342,14 @@ float Interface_AudioEngine::aestream_get_volume(void* kodiBase, AEStreamHandle*
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return -1.0f;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return -1.0f;
 
   return static_cast<IAEStream*>(streamHandle)->GetVolume();
 }
@@ -284,9 +358,14 @@ void  Interface_AudioEngine::aestream_set_volume(void* kodiBase, AEStreamHandle*
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return;
 
   static_cast<IAEStream*>(streamHandle)->SetVolume(volume);
 }
@@ -295,9 +374,14 @@ float Interface_AudioEngine::aestream_get_amplification(void* kodiBase, AEStream
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return -1.0f;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return -1.0f;
 
   return static_cast<IAEStream*>(streamHandle)->GetAmplification();
 }
@@ -306,9 +390,14 @@ void Interface_AudioEngine::aestream_set_amplification(void* kodiBase, AEStreamH
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return;
 
   static_cast<IAEStream*>(streamHandle)->SetAmplification(amplify);
 }
@@ -317,9 +406,14 @@ unsigned int Interface_AudioEngine::aestream_get_frame_size(void* kodiBase, AESt
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return 0;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return 0;
 
   return static_cast<IAEStream*>(streamHandle)->GetFrameSize();
 }
@@ -328,9 +422,14 @@ unsigned int Interface_AudioEngine::aestream_get_channel_count(void* kodiBase, A
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return 0;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return 0;
 
   return static_cast<IAEStream*>(streamHandle)->GetChannelCount();
 }
@@ -339,9 +438,14 @@ unsigned int Interface_AudioEngine::aestream_get_sample_rate(void* kodiBase, AES
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return 0;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return 0;
 
   return static_cast<IAEStream*>(streamHandle)->GetSampleRate();
 }
@@ -350,9 +454,14 @@ AEDataFormat Interface_AudioEngine::aestream_get_data_format(void* kodiBase, AES
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return AE_FMT_INVALID;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return AE_FMT_INVALID;
 
   return static_cast<IAEStream*>(streamHandle)->GetDataFormat();
 }
@@ -361,9 +470,14 @@ double Interface_AudioEngine::aestream_get_resample_ratio(void* kodiBase, AEStre
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return -1.0f;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return -1.0f;
 
   return static_cast<IAEStream*>(streamHandle)->GetResampleRatio();
 }
@@ -372,9 +486,14 @@ void Interface_AudioEngine::aestream_set_resample_ratio(void* kodiBase, AEStream
 {
   if (!kodiBase || !streamHandle)
   {
-    CLog::Log(LOGERROR, "Interface_AudioEngine::{} - invalid stream data (kodiBase='%p', streamHandle='%p')", __FUNCTION__, kodiBase, streamHandle);
+    CLog::Log(LOGERROR,
+              "Interface_AudioEngine::{} - invalid stream data (kodiBase='{}', streamHandle='{}')",
+              __FUNCTION__, kodiBase, static_cast<void*>(streamHandle));
     return;
   }
+
+  if (!CServiceBroker::GetActiveAE())
+    return;
 
   static_cast<IAEStream*>(streamHandle)->SetResampleRatio(ratio);
 }

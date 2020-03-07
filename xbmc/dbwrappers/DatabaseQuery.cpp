@@ -139,7 +139,7 @@ bool CDatabaseQueryRule::Load(const CVariant &obj)
         m_parameter.push_back(val->asString());
     }
     if (m_parameter.empty())
-      m_parameter.push_back("");
+      m_parameter.emplace_back("");
   }
   else
     return false;
@@ -205,7 +205,7 @@ std::string CDatabaseQueryRule::GetLocalizedOperator(SEARCH_OPERATOR oper)
 void CDatabaseQueryRule::GetAvailableOperators(std::vector<std::string> &operatorList)
 {
   for (const operatorField& o : operators)
-    operatorList.push_back(o.string);
+    operatorList.emplace_back(o.string);
 }
 
 std::string CDatabaseQueryRule::GetParameter() const
@@ -333,6 +333,22 @@ std::string CDatabaseQueryRule::GetWhereClause(const CDatabase &db, const std::s
   // boolean operators don't have any values in m_parameter, they work on the operator
   if (m_operator == OPERATOR_FALSE || m_operator == OPERATOR_TRUE)
     return GetBooleanQuery(negate, strType);
+
+  // Process boolean field with (not) EQUAL/CONTAINS "true"/"false" parameter too
+  if (GetFieldType(m_field) == BOOLEAN_FIELD &&
+      (m_parameter[0] == "true" || m_parameter[0] == "false") &&
+      (op == OPERATOR_CONTAINS || op == OPERATOR_EQUALS || op == OPERATOR_DOES_NOT_CONTAIN ||
+       op == OPERATOR_DOES_NOT_EQUAL))
+  {
+    if (m_parameter[0] == "false")
+    {
+      if (!negate.empty())
+        negate.clear();
+      else
+        negate = " NOT ";
+    }
+    return GetBooleanQuery(negate, strType);
+  }
 
   // The BETWEEN operator is handled special
   if (op == OPERATOR_BETWEEN)

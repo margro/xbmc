@@ -25,6 +25,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <inttypes.h>
 
 using namespace MUSIC_INFO;
 
@@ -91,6 +92,7 @@ using namespace MUSIC_INFO;
  *  %Y - Year
  *  %Z - tvshow title
  *  %a - Date Added
+ *  %b - Total number of discs
  *  %c - Relevance - Used for actors' appearances
  *  %d - Date and Time
  *  %p - Last Played
@@ -98,7 +100,7 @@ using namespace MUSIC_INFO;
  *  *t - Date Taken (suitable for Pictures)
  */
 
-#define MASK_CHARS "NSATBGYFLDIJRCKMEPHZOQUVXWacdiprstuv"
+#define MASK_CHARS "NSATBGYFLDIJRCKMEPHZOQUVXWabcdiprstuv"
 
 CLabelFormatter::CLabelFormatter(const std::string &mask, const std::string &mask2)
 {
@@ -316,6 +318,10 @@ std::string CLabelFormatter::GetMaskContent(const CMaskString &mask, const CFile
     if (music && music->GetDateAdded().IsValid())
       value = music->GetDateAdded().GetAsLocalizedDate();
     break;
+  case 'b': // Total number of discs
+    if (music)
+      value = StringUtils::Format("%i", music->GetTotalDiscs());
+    break;
   case 'd': // date and time
     if (item->m_dateTime.IsValid())
       value = item->m_dateTime.GetAsLocalizedDateTime();
@@ -368,8 +374,7 @@ void CLabelFormatter::SplitMask(unsigned int label, const std::string &mask)
   while ((findStart = reg.RegFind(work.c_str())) >= 0)
   { // we've found a match
     m_staticContent[label].push_back(work.substr(0, findStart));
-    m_dynamicContent[label].push_back(CMaskString("",
-          reg.GetMatch(1)[0], ""));
+    m_dynamicContent[label].emplace_back("", reg.GetMatch(1)[0], "");
     work = work.substr(findStart + reg.GetFindLen());
   }
   m_staticContent[label].push_back(work);
@@ -392,10 +397,7 @@ void CLabelFormatter::AssembleMask(unsigned int label, const std::string& mask)
   { // we've found a match for a pre/postfixed string
     // send anything
     SplitMask(label, work.substr(0, findStart) + reg.GetMatch(1));
-    m_dynamicContent[label].push_back(CMaskString(
-            reg.GetMatch(2),
-            reg.GetMatch(4)[0],
-            reg.GetMatch(5)));
+    m_dynamicContent[label].emplace_back(reg.GetMatch(2), reg.GetMatch(4)[0], reg.GetMatch(5));
     work = work.substr(findStart + reg.GetFindLen());
   }
   SplitMask(label, work);
@@ -454,6 +456,9 @@ void CLabelFormatter::FillMusicMaskContent(const char mask, const std::string &v
     break;
   case 'r': // userrating
     tag->SetUserrating(value[0]);
+    break;
+  case 'b': // total discs
+    tag->SetTotalDiscs(atol(value.c_str()));
     break;
   }
 }

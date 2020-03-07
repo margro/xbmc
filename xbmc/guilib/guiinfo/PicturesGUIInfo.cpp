@@ -82,25 +82,26 @@ static const std::map<int, int> listitem2slideshow_map =
   { LISTITEM_PICTURE_GPS_ALT          , SLIDESHOW_EXIF_GPS_ALTITUDE }
 };
 
-CPicturesGUIInfo::CPicturesGUIInfo()
-{
-}
+CPicturesGUIInfo::CPicturesGUIInfo() = default;
 
-CPicturesGUIInfo::~CPicturesGUIInfo()
-{
-}
+CPicturesGUIInfo::~CPicturesGUIInfo() = default;
 
 void CPicturesGUIInfo::SetCurrentSlide(CFileItem *item)
 {
+  if (m_currentSlide && item && m_currentSlide->GetPath() == item->GetPath())
+    return;
+
   if (item)
   {
-    CPictureInfoTag* tag = item->GetPictureInfoTag();  // creates item if not yet set, so no nullptr checks needed
-    if (!tag->Loaded()) // If picture metadata has not been loaded yet, load it now
-      tag->Load(item->GetPath());
-
+    if (item->HasPictureInfoTag()) // Note: item may also be a video
+    {
+      CPictureInfoTag* tag = item->GetPictureInfoTag();
+      if (!tag->Loaded()) // If picture metadata has not been loaded yet, load it now
+        tag->Load(item->GetPath());
+    }
     m_currentSlide.reset(new CFileItem(*item));
   }
-  else
+  else if (m_currentSlide)
   {
     m_currentSlide.reset();
   }
@@ -201,7 +202,7 @@ bool CPicturesGUIInfo::GetLabel(std::string& value, const CFileItem *item, int c
     {
       case LISTITEM_PICTURE_PATH:
       {
-        if (!item->IsZIP() || item->IsRAR() || item->IsCBZ() || item->IsCBR())
+        if (!(item->IsZIP() || item->IsRAR() || item->IsCBZ() || item->IsCBR()))
         {
           value = item->GetPath();
           return true;

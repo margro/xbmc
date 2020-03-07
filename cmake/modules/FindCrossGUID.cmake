@@ -34,9 +34,6 @@ if(ENABLE_INTERNAL_CROSSGUID)
                                     <SOURCE_DIR> &&
                                     ${CMAKE_COMMAND} -E copy
                                     ${CMAKE_SOURCE_DIR}/tools/depends/target/crossguid/FindUUID.cmake
-                                    <SOURCE_DIR> &&
-                                    ${CMAKE_COMMAND} -E copy
-                                    ${CMAKE_SOURCE_DIR}/tools/depends/target/crossguid/FindCXX11.cmake
                                     <SOURCE_DIR>
                       BUILD_BYPRODUCTS ${CROSSGUID_LIBRARY})
   set_target_properties(crossguid PROPERTIES FOLDER "External Projects")
@@ -49,7 +46,7 @@ if(ENABLE_INTERNAL_CROSSGUID)
   set(CROSSGUID_LIBRARIES ${CROSSGUID_LIBRARY})
   set(CROSSGUID_INCLUDE_DIRS ${CROSSGUID_INCLUDE_DIR})
 else()
-  find_path(CROSSGUID_INCLUDE_DIR NAMES guid.h)
+  find_path(CROSSGUID_INCLUDE_DIR NAMES guid.hpp guid.h)
 
   find_library(CROSSGUID_LIBRARY_RELEASE NAMES crossguid)
   find_library(CROSSGUID_LIBRARY_DEBUG NAMES crossguidd)
@@ -64,6 +61,10 @@ else()
   if(CROSSGUID_FOUND)
     set(CROSSGUID_LIBRARIES ${CROSSGUID_LIBRARY})
     set(CROSSGUID_INCLUDE_DIRS ${CROSSGUID_INCLUDE_DIR})
+
+    if(EXISTS "${CROSSGUID_INCLUDE_DIR}/guid.hpp")
+      set(CROSSGUID_DEFINITIONS -DHAVE_NEW_CROSSGUID)
+    endif()
 
     add_custom_target(crossguid)
     set_target_properties(crossguid PROPERTIES FOLDER "External Projects")

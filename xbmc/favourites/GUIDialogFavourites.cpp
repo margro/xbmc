@@ -241,13 +241,13 @@ bool CGUIDialogFavourites::ChooseAndSetNewThumbnail(const CFileItemPtr &item)
   }
 
   const CFileItemPtr none(std::make_shared<CFileItem>("thumb://None", false));
-  none->SetIconImage(item->GetIconImage());
+  none->SetArt("icon", item->GetArt("icon"));
   none->SetLabel(g_localizeStrings.Get(20018)); // No thumb
   prefilledItems.Add(none);
 
   std::string thumb;
   VECSOURCES sources;
-  g_mediaManager.GetLocalDrives(sources);
+  CServiceBroker::GetMediaManager().GetLocalDrives(sources);
   if (CGUIDialogFileBrowser::ShowAndGetImage(prefilledItems, sources, g_localizeStrings.Get(1030), thumb)) // Browse for image
   {
     item->SetArt("thumb", thumb);

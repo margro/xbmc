@@ -49,7 +49,7 @@ namespace XFILE
 
     const std::string GetProperty(XFILE::FileProperty type, const std::string &name = "") const override;
 
-    virtual const std::vector<std::string> GetPropertyValues(XFILE::FileProperty type, const std::string &name = "") const override
+    const std::vector<std::string> GetPropertyValues(XFILE::FileProperty type, const std::string& name = "") const override
     {
       return std::vector<std::string>();
     }
@@ -69,7 +69,6 @@ namespace XFILE
     unsigned m_writeRate;
     unsigned m_writeRateActual;
     int64_t m_forwardCacheSize;
-    int64_t m_forward;
     bool m_bFilling;
     bool m_bLowSpeedDetected;
     std::atomic<int64_t> m_fileSize;

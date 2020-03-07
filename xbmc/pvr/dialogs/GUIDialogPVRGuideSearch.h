@@ -22,12 +22,12 @@ namespace PVR
   class CGUIDialogPVRGuideSearch : public CGUIDialog
   {
   public:
-    CGUIDialogPVRGuideSearch(void);
-    ~CGUIDialogPVRGuideSearch(void) override = default;
+    CGUIDialogPVRGuideSearch();
+    ~CGUIDialogPVRGuideSearch() override = default;
     bool OnMessage(CGUIMessage& message) override;
     void OnWindowLoaded() override;
 
-    void SetFilterData(CPVREpgSearchFilter *searchFilter) { m_searchFilter = searchFilter; }
+    void SetFilterData(CPVREpgSearchFilter* searchFilter) { m_searchFilter = searchFilter; }
     bool IsConfirmed() const { return m_bConfirmed; }
     bool IsCanceled() const { return m_bCanceled; }
 
@@ -36,20 +36,20 @@ namespace PVR
 
   private:
     void OnSearch();
-    void UpdateChannelSpin(void);
-    void UpdateGroupsSpin(void);
-    void UpdateGenreSpin(void);
-    void UpdateDurationSpin(void);
-    CDateTime ReadDateTime(const std::string &strDate, const std::string &strTime) const;
+    void UpdateChannelSpin();
+    void UpdateGroupsSpin();
+    void UpdateGenreSpin();
+    void UpdateDurationSpin();
+    CDateTime ReadDateTime(const std::string& strDate, const std::string& strTime) const;
     void Update();
 
     bool IsRadioSelected(int controlID);
-    int  GetSpinValue(int controlID);
+    int GetSpinValue(int controlID);
     std::string GetEditValue(int controlID);
 
     bool m_bConfirmed = false;
     bool m_bCanceled = false;
-    CPVREpgSearchFilter *m_searchFilter;
+    CPVREpgSearchFilter* m_searchFilter;
     std::map<int, CPVRChannelNumber> m_channelNumbersMap;
   };
 }

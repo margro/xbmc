@@ -14,24 +14,24 @@
 class CRendererVTB : public CLinuxRendererGL
 {
 public:
-  CRendererVTB();
-  virtual ~CRendererVTB();
+  CRendererVTB() = default;
+  ~CRendererVTB() override;
 
   static CBaseRenderer* Create(CVideoBuffer *buffer);
   static bool Register();
 
   // Player functions
-  virtual void ReleaseBuffer(int idx) override;
-  virtual bool NeedBuffer(int idx) override;
+  void ReleaseBuffer(int idx) override;
+  bool NeedBuffer(int idx) override;
 
 protected:
-  virtual bool LoadShadersHook() override;
-  virtual void AfterRenderHook(int idx) override;
-  virtual EShaderFormat GetShaderFormat() override;
+  bool LoadShadersHook() override;
+  void AfterRenderHook(int idx) override;
+  EShaderFormat GetShaderFormat() override;
 
   // textures
-  virtual bool UploadTexture(int index) override;
-  virtual void DeleteTexture(int index) override;
-  virtual bool CreateTexture(int index) override;
+  bool UploadTexture(int index) override;
+  void DeleteTexture(int index) override;
+  bool CreateTexture(int index) override;
 };
 

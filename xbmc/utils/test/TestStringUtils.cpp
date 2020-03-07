@@ -11,16 +11,70 @@
 #include <algorithm>
 
 #include <gtest/gtest.h>
+enum class ECG
+{
+  A,
+  B
+};
 
+enum EG
+{
+  C,
+  D
+};
+
+namespace test_enum
+{
+enum class ECN
+{
+  A = 1,
+  B
+};
+enum EN
+{
+  C = 1,
+  D
+};
+}
 TEST(TestStringUtils, Format)
 {
   std::string refstr = "test 25 2.7 ff FF";
 
-  std::string varstr = StringUtils::Format("%s %d %.1f %x %02X", "test", 25, 2.743f, 0x00ff, 0x00ff);
+  std::string varstr =
+      StringUtils::Format("%s %d %.1f %x %02X", "test", 25, 2.743f, 0x00ff, 0x00ff);
   EXPECT_STREQ(refstr.c_str(), varstr.c_str());
 
   varstr = StringUtils::Format("", "test", 25, 2.743f, 0x00ff, 0x00ff);
   EXPECT_STREQ("", varstr.c_str());
+}
+
+TEST(TestStringUtils, FormatEnum)
+{
+  const char* zero = "0";
+  const char* one = "1";
+
+  std::string varstr = StringUtils::Format("{}", ECG::A);
+  EXPECT_STREQ(zero, varstr.c_str());
+
+  varstr = StringUtils::Format("{}", EG::C);
+  EXPECT_STREQ(zero, varstr.c_str());
+
+  varstr = StringUtils::Format("{}", test_enum::ECN::A);
+  EXPECT_STREQ(one, varstr.c_str());
+
+  varstr = StringUtils::Format("{}", test_enum::EN::C);
+  EXPECT_STREQ(one, varstr.c_str());
+}
+
+TEST(TestStringUtils, FormatEnumWidth)
+{
+  const char* one = "01";
+
+  std::string varstr = StringUtils::Format("{:02d}", ECG::B);
+  EXPECT_STREQ(one, varstr.c_str());
+
+  varstr = StringUtils::Format("%02d", EG::D);
+  EXPECT_STREQ(one, varstr.c_str());
 }
 
 TEST(TestStringUtils, ToUpper)
@@ -227,13 +281,13 @@ TEST(TestStringUtils, Join)
   std::string refstr, varstr;
   std::vector<std::string> strarray;
 
-  strarray.push_back("a");
-  strarray.push_back("b");
-  strarray.push_back("c");
-  strarray.push_back("de");
-  strarray.push_back(",");
-  strarray.push_back("fg");
-  strarray.push_back(",");
+  strarray.emplace_back("a");
+  strarray.emplace_back("b");
+  strarray.emplace_back("c");
+  strarray.emplace_back("de");
+  strarray.emplace_back(",");
+  strarray.emplace_back("fg");
+  strarray.emplace_back(",");
   refstr = "a,b,c,de,,,fg,,";
   varstr = StringUtils::Join(strarray, ",");
   EXPECT_STREQ(refstr.c_str(), varstr.c_str());
@@ -483,11 +537,11 @@ TEST(TestStringUtils, FindBestMatch)
 
   refint = 3;
   refdouble = 0.5625f;
-  strarray.push_back("");
-  strarray.push_back("a");
-  strarray.push_back("e");
-  strarray.push_back("es");
-  strarray.push_back("t");
+  strarray.emplace_back("");
+  strarray.emplace_back("a");
+  strarray.emplace_back("e");
+  strarray.emplace_back("es");
+  strarray.emplace_back("t");
   varint = StringUtils::FindBestMatch("test", strarray, vardouble);
   EXPECT_EQ(refint, varint);
   EXPECT_EQ(refdouble, vardouble);
@@ -505,9 +559,9 @@ TEST(TestStringUtils, Paramify)
 TEST(TestStringUtils, sortstringbyname)
 {
   std::vector<std::string> strarray;
-  strarray.push_back("B");
-  strarray.push_back("c");
-  strarray.push_back("a");
+  strarray.emplace_back("B");
+  strarray.emplace_back("c");
+  strarray.emplace_back("a");
   std::sort(strarray.begin(), strarray.end(), sortstringbyname());
 
   EXPECT_STREQ("a", strarray[0].c_str());

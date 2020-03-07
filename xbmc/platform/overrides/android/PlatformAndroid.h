@@ -14,10 +14,10 @@ class CPlatformAndroid : public CPlatformPosix
 {
   public:
     /**\brief C'tor */
-    CPlatformAndroid();
+    CPlatformAndroid() = default;
 
     /**\brief D'tor */
-    virtual ~CPlatformAndroid();
+    ~CPlatformAndroid() override = default;
 
     void Init() override;
 };

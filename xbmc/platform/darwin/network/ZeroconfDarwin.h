@@ -25,27 +25,28 @@ class CZeroconfDarwin : public CZeroconf
 {
 public:
   CZeroconfDarwin();
-  ~CZeroconfDarwin();
+  ~CZeroconfDarwin() override;
+
 protected:
   //implement base CZeroConf interface
   bool doPublishService(const std::string& fcr_identifier,
                         const std::string& fcr_type,
                         const std::string& fcr_name,
                         unsigned int f_port,
-                        const std::vector<std::pair<std::string, std::string> >& txt);
+                        const std::vector<std::pair<std::string, std::string>>& txt) override;
 
-  bool doForceReAnnounceService(const std::string& fcr_identifier);
+  bool doForceReAnnounceService(const std::string& fcr_identifier) override;
 
-  bool doRemoveService(const std::string& fcr_ident);
+  bool doRemoveService(const std::string& fcr_ident) override;
 
-  virtual void doStop();
+  void doStop() override;
 
 private:
   static void registerCallback(CFNetServiceRef theService, CFStreamError* error, void* info);
   void cancelRegistration(CFNetServiceRef theService);
 
   //CF runloop ref; we're using main-threads runloop
-  CFRunLoopRef m_runloop;
+  CFRunLoopRef m_runloop = nullptr;
 
   //lock + data (accessed from runloop(main thread) + the rest)
   CCriticalSection m_data_guard;

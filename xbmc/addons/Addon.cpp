@@ -53,7 +53,7 @@ CAddon::CAddon(const AddonInfoPtr& addonInfo, TYPE addonType)
  */
 bool CAddon::HasSettings()
 {
-  return LoadSettings(false);
+  return LoadSettings(false) && m_settings->HasSettings();
 }
 
 bool CAddon::SettingsInitialized() const
@@ -370,12 +370,7 @@ std::string CAddon::LibPath() const
 
 AddonVersion CAddon::GetDependencyVersion(const std::string &dependencyID) const
 {
-  const auto& deps = GetDependencies();
-  auto it = std::find_if(deps.begin(), deps.end(), [&](const DependencyInfo& other) { return other.id == dependencyID; });
-
-  if (it != deps.end())
-    return it->requiredVersion;
-  return AddonVersion("0.0.0");
+  return m_addonInfo->DependencyVersion(dependencyID);
 }
 
 void OnPreInstall(const AddonPtr& addon)

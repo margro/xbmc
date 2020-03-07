@@ -13,22 +13,34 @@
 class CAndroidPowerSyscall : public CPowerSyscallWithoutEvents
 {
 public:
-  CAndroidPowerSyscall();
-  ~CAndroidPowerSyscall();
+  CAndroidPowerSyscall() = default;
+  ~CAndroidPowerSyscall() override = default;
 
   static IPowerSyscall* CreateInstance();
   static void Register();
 
-  virtual bool Powerdown(void) { return false; }
-  virtual bool Suspend(void) { return false; }
-  virtual bool Hibernate(void) { return false; }
-  virtual bool Reboot(void) { return false; }
+  bool Powerdown() override { return false; }
+  bool Suspend() override { return false; }
+  bool Hibernate() override { return false; }
+  bool Reboot() override { return false; }
 
-  virtual bool CanPowerdown(void) { return false; }
-  virtual bool CanSuspend(void) { return false; }
-  virtual bool CanHibernate(void) { return false; }
-  virtual bool CanReboot(void) { return false; }
-  virtual int  BatteryLevel(void);
+  bool CanPowerdown() override { return false; }
+  bool CanSuspend() override { return false; }
+  bool CanHibernate() override { return false; }
+  bool CanReboot() override { return false; }
+  int BatteryLevel() override;
 
-  virtual bool PumpPowerEvents(IPowerEventsCallback *callback);
+  bool PumpPowerEvents(IPowerEventsCallback* callback) override;
+
+  void SetOnPause() { m_state = SUSPENDED; }
+  void SetOnResume() { m_state = RESUMED; }
+
+private:
+  enum STATE : unsigned int
+  {
+    REPORTED = 0,
+    SUSPENDED = 1,
+    RESUMED = 2,
+  };
+  STATE m_state = REPORTED;
 };

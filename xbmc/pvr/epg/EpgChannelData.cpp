@@ -20,18 +20,15 @@ CPVREpgChannelData::CPVREpgChannelData(int iClientId, int iUniqueClientChannelId
 }
 
 CPVREpgChannelData::CPVREpgChannelData(const CPVRChannel& channel)
-: m_bIsRadio(channel.IsRadio()),
-  m_iClientId(channel.ClientID()),
-  m_iUniqueClientChannelId(channel.UniqueID()),
-  m_bIsHidden(channel.IsHidden()),
-  m_bIsLocked(channel.IsLocked()),
-  m_bIsEPGEnabled(channel.EPGEnabled()),
-  m_iChannelId(channel.ChannelID()),
-  m_strIconPath(channel.IconPath()),
-  m_strChannelName(channel.ChannelName()),
-  m_strSortableChannelNumber(channel.ChannelNumber().SortableChannelNumber())
+  : m_bIsRadio(channel.IsRadio()),
+    m_iClientId(channel.ClientID()),
+    m_iUniqueClientChannelId(channel.UniqueID()),
+    m_bIsHidden(channel.IsHidden()),
+    m_bIsLocked(channel.IsLocked()),
+    m_bIsEPGEnabled(channel.EPGEnabled()),
+    m_iChannelId(channel.ChannelID()),
+    m_strChannelName(channel.ChannelName())
 {
-  SetLastWatched(channel.LastWatched());
 }
 
 bool CPVREpgChannelData::IsRadio() const
@@ -89,16 +86,6 @@ void CPVREpgChannelData::SetChannelId(int iChannelId)
   m_iChannelId = iChannelId;
 }
 
-const std::string& CPVREpgChannelData::IconPath() const
-{
-  return m_strIconPath;
-}
-
-void CPVREpgChannelData::SetIconPath(const std::string& strIconPath)
-{
-  m_strIconPath = strIconPath;
-}
-
 const std::string& CPVREpgChannelData::ChannelName() const
 {
   return m_strChannelName;
@@ -107,28 +94,4 @@ const std::string& CPVREpgChannelData::ChannelName() const
 void CPVREpgChannelData::SetChannelName(const std::string& strChannelName)
 {
   m_strChannelName = strChannelName;
-}
-
-const std::string& CPVREpgChannelData::SortableChannelNumber() const
-{
-  return m_strSortableChannelNumber;
-}
-
-void CPVREpgChannelData::SetSortableChannelNumber(const std::string& strSortableChannelNumber)
-{
-  m_strSortableChannelNumber = strSortableChannelNumber;
-}
-
-const std::string& CPVREpgChannelData::LastWatched() const
-{
-  return m_strLastWatched;
-}
-
-void CPVREpgChannelData::SetLastWatched(time_t iLastWatched)
-{
-  const CDateTime lastWatched(iLastWatched);
-  if (lastWatched.IsValid())
-    m_strLastWatched = lastWatched.GetAsDBDateTime();
-  else
-    m_strLastWatched.clear();
 }

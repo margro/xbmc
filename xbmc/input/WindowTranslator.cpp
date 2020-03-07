@@ -11,8 +11,8 @@
 #include "Application.h"
 #include "ServiceBroker.h"
 #include "guilib/WindowIDs.h"
-#include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
+#include "pvr/guilib/PVRGUIActions.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
 
@@ -41,6 +41,7 @@ const CWindowTranslator::WindowMapByName CWindowTranslator::WindowMappingByName 
     { "radiosearch"              , WINDOW_RADIO_SEARCH },
     { "gamecontrollers"          , WINDOW_DIALOG_GAME_CONTROLLERS },
     { "games"                    , WINDOW_GAMES },
+    { "pvrguidecontrols"         , WINDOW_DIALOG_PVR_GUIDE_CONTROLS },
     { "pvrguideinfo"             , WINDOW_DIALOG_PVR_GUIDE_INFO },
     { "pvrrecordinginfo"         , WINDOW_DIALOG_PVR_RECORDING_INFO },
     { "pvrradiordsinfo"          , WINDOW_DIALOG_PVR_RADIO_RDS_INFO },
@@ -185,7 +186,7 @@ void CWindowTranslator::GetWindows(std::vector<std::string> &windowList)
   windowList.clear();
   windowList.reserve(WindowMappingByName.size());
   for (auto itMapping : WindowMappingByName)
-    windowList.push_back(itMapping.windowName);
+    windowList.emplace_back(itMapping.windowName);
 }
 
 int CWindowTranslator::TranslateWindow(const std::string &window)

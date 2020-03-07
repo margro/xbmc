@@ -13,6 +13,7 @@
 #include "messaging/helpers/DialogOKHelper.h"
 #include "pvr/PVRDatabase.h"
 #include "pvr/PVRManager.h"
+#include "pvr/PVRPlaybackState.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/epg/EpgContainer.h"
@@ -33,7 +34,7 @@ CPVRChannelGroupInternal::CPVRChannelGroupInternal(bool bRadio)
   m_iGroupType = PVR_GROUP_TYPE_INTERNAL;
 }
 
-CPVRChannelGroupInternal::~CPVRChannelGroupInternal(void)
+CPVRChannelGroupInternal::~CPVRChannelGroupInternal()
 {
   Unload();
   CServiceBroker::GetPVRManager().Events().Unsubscribe(this);
@@ -52,7 +53,7 @@ bool CPVRChannelGroupInternal::Load(std::vector<std::shared_ptr<CPVRChannel>>& c
   return false;
 }
 
-void CPVRChannelGroupInternal::CheckGroupName(void)
+void CPVRChannelGroupInternal::CheckGroupName()
 {
   CSingleLock lock(m_critSection);
 
@@ -65,27 +66,27 @@ void CPVRChannelGroupInternal::CheckGroupName(void)
   }
 }
 
-void CPVRChannelGroupInternal::UpdateChannelPaths(void)
+void CPVRChannelGroupInternal::UpdateChannelPaths()
 {
   CSingleLock lock(m_critSection);
   m_iHiddenChannels = 0;
-  for (PVR_CHANNEL_GROUP_MEMBERS::iterator it = m_members.begin(); it != m_members.end(); ++it)
+  for (auto& groupMemberPair : m_members)
   {
-    if (it->second.channel->IsHidden())
+    if (groupMemberPair.second->channel->IsHidden())
       ++m_iHiddenChannels;
     else
-      it->second.channel->UpdatePath(GroupName());
+      groupMemberPair.second->channel->UpdatePath(GroupName());
   }
 }
 
-CPVRChannelPtr CPVRChannelGroupInternal::UpdateFromClient(const CPVRChannelPtr &channel, const CPVRChannelNumber &channelNumber)
+std::shared_ptr<CPVRChannel> CPVRChannelGroupInternal::UpdateFromClient(const std::shared_ptr<CPVRChannel>& channel, const CPVRChannelNumber& channelNumber, int iOrder, const CPVRChannelNumber& clientChannelNumber /* = {} */)
 {
   CSingleLock lock(m_critSection);
-  const PVRChannelGroupMember& realChannel(GetByUniqueID(channel->StorageId()));
-  if (realChannel.channel)
+  const std::shared_ptr<PVRChannelGroupMember>& realMember = GetByUniqueID(channel->StorageId());
+  if (realMember->channel)
   {
-    realChannel.channel->UpdateFromClient(channel);
-    return realChannel.channel;
+    realMember->channel->UpdateFromClient(channel);
+    return realMember->channel;
   }
   else
   {
@@ -93,9 +94,9 @@ CPVRChannelPtr CPVRChannelGroupInternal::UpdateFromClient(const CPVRChannelPtr &
     if (iChannelNumber == 0)
       iChannelNumber = static_cast<int>(m_sortedMembers.size()) + 1;
 
-    PVRChannelGroupMember newMember(channel, CPVRChannelNumber(iChannelNumber, channelNumber.GetSubChannelNumber()), 0);
     channel->UpdatePath(GroupName());
-    m_sortedMembers.push_back(newMember);
+    auto newMember = std::make_shared<PVRChannelGroupMember>(channel, CPVRChannelNumber(iChannelNumber, channelNumber.GetSubChannelNumber()), 0, iOrder, clientChannelNumber);
+    m_sortedMembers.emplace_back(newMember);
     m_members.insert(std::make_pair(channel->StorageId(), newMember));
     m_bChanged = true;
 
@@ -113,22 +114,22 @@ bool CPVRChannelGroupInternal::Update(std::vector<std::shared_ptr<CPVRChannel>>&
   return UpdateGroupEntries(PVRChannels_tmp, channelsToRemove);
 }
 
-bool CPVRChannelGroupInternal::AddToGroup(const CPVRChannelPtr &channel, const CPVRChannelNumber &channelNumber, bool bUseBackendChannelNumbers)
+bool CPVRChannelGroupInternal::AddToGroup(const std::shared_ptr<CPVRChannel>& channel, const CPVRChannelNumber& channelNumber, int iOrder, bool bUseBackendChannelNumbers, const CPVRChannelNumber& clientChannelNumber)
 {
   bool bReturn(false);
   CSingleLock lock(m_critSection);
 
   /* get the group member, because we need the channel ID in this group, and the channel from this group */
-  PVRChannelGroupMember& groupMember = GetByUniqueID(channel->StorageId());
-  if (!groupMember.channel)
+  std::shared_ptr<PVRChannelGroupMember>& groupMember = GetByUniqueID(channel->StorageId());
+  if (!groupMember->channel)
     return bReturn;
 
   bool bSort = false;
 
   /* switch the hidden flag */
-  if (groupMember.channel->IsHidden())
+  if (groupMember->channel->IsHidden())
   {
-    groupMember.channel->SetHidden(false);
+    groupMember->channel->SetHidden(false);
     if (m_iHiddenChannels > 0)
       m_iHiddenChannels--;
 
@@ -136,13 +137,12 @@ bool CPVRChannelGroupInternal::AddToGroup(const CPVRChannelPtr &channel, const C
   }
 
   unsigned int iChannelNumber = channelNumber.GetChannelNumber();
-  if (!channelNumber.IsValid() ||
-      (!bUseBackendChannelNumbers && (iChannelNumber > m_members.size() - m_iHiddenChannels)))
+  if (!channelNumber.IsValid() || iChannelNumber > (m_members.size() - m_iHiddenChannels))
     iChannelNumber = m_members.size() - m_iHiddenChannels;
 
-  if (groupMember.channelNumber.GetChannelNumber() != iChannelNumber)
+  if (groupMember->channelNumber.GetChannelNumber() != iChannelNumber)
   {
-    groupMember.channelNumber = CPVRChannelNumber(iChannelNumber, channelNumber.GetSubChannelNumber());
+    groupMember->channelNumber = CPVRChannelNumber(iChannelNumber, channelNumber.GetSubChannelNumber());
     bSort = true;
   }
 
@@ -152,18 +152,25 @@ bool CPVRChannelGroupInternal::AddToGroup(const CPVRChannelPtr &channel, const C
   if (m_bLoaded)
   {
     bReturn = Persist();
-    groupMember.channel->Persist();
+    groupMember->channel->Persist();
   }
   return bReturn;
 }
 
-bool CPVRChannelGroupInternal::RemoveFromGroup(const CPVRChannelPtr &channel)
+bool CPVRChannelGroupInternal::AppendToGroup(const std::shared_ptr<CPVRChannel>& channel)
+{
+  CSingleLock lock(m_critSection);
+
+  return AddToGroup(channel, CPVRChannelNumber(), 0, false);
+}
+
+bool CPVRChannelGroupInternal::RemoveFromGroup(const std::shared_ptr<CPVRChannel>& channel)
 {
   if (!IsGroupMember(channel))
     return false;
 
   /* check if this channel is currently playing if we are hiding it */
-  CPVRChannelPtr currentChannel(CServiceBroker::GetPVRManager().GetPlayingChannel());
+  const std::shared_ptr<CPVRChannel> currentChannel = CServiceBroker::GetPVRManager().PlaybackState()->GetPlayingChannel();
   if (currentChannel && currentChannel == channel)
   {
     HELPERS::ShowOKDialogText(CVariant{19098}, CVariant{19102});
@@ -195,7 +202,7 @@ bool CPVRChannelGroupInternal::RemoveFromGroup(const CPVRChannelPtr &channel)
 
 int CPVRChannelGroupInternal::LoadFromDb(bool bCompress /* = false */)
 {
-  const CPVRDatabasePtr database(CServiceBroker::GetPVRManager().GetTVDatabase());
+  const std::shared_ptr<CPVRDatabase> database(CServiceBroker::GetPVRManager().GetTVDatabase());
   if (!database)
     return -1;
 
@@ -209,46 +216,58 @@ int CPVRChannelGroupInternal::LoadFromDb(bool bCompress /* = false */)
   return Size() - iChannelCount;
 }
 
-bool CPVRChannelGroupInternal::LoadFromClients(void)
+bool CPVRChannelGroupInternal::LoadFromClients()
 {
   /* get the channels from the backends */
   return CServiceBroker::GetPVRManager().Clients()->GetChannels(this, m_failedClientsForChannels) == PVR_ERROR_NO_ERROR;
 }
 
-bool CPVRChannelGroupInternal::IsGroupMember(const CPVRChannelPtr &channel) const
+bool CPVRChannelGroupInternal::IsGroupMember(const std::shared_ptr<CPVRChannel>& channel) const
 {
   return !channel->IsHidden();
 }
 
-bool CPVRChannelGroupInternal::AddAndUpdateChannels(const CPVRChannelGroup &channels, bool bUseBackendChannelNumbers)
+bool CPVRChannelGroupInternal::AddAndUpdateChannels(const CPVRChannelGroup& channels, bool bUseBackendChannelNumbers)
 {
   bool bReturn(false);
   CSingleLock lock(m_critSection);
 
   /* go through the channel list and check for updated or new channels */
-  for (PVR_CHANNEL_GROUP_MEMBERS::const_iterator it = channels.m_members.begin(); it != channels.m_members.end(); ++it)
+  for (auto& newMemberPair : channels.m_members)
   {
     /* check whether this channel is present in this container */
-    const PVRChannelGroupMember& existingChannel(GetByUniqueID(it->first));
-    if (existingChannel.channel)
+    std::shared_ptr<PVRChannelGroupMember>& existingMember = GetByUniqueID(newMemberPair.first);
+    const std::shared_ptr<PVRChannelGroupMember>& newMember = newMemberPair.second;
+    if (existingMember->channel)
     {
       /* if it's present, update the current tag */
-      if (existingChannel.channel->UpdateFromClient(it->second.channel))
+      if (existingMember->channel->UpdateFromClient(newMember->channel))
       {
         bReturn = true;
-        CLog::LogFC(LOGDEBUG, LOGPVR, "Updated {} channel '{}' from PVR client", IsRadio() ? "radio" : "TV", it->second.channel->ChannelName());
+        CLog::LogFC(LOGDEBUG, LOGPVR, "Updated {} channel '{}' from PVR client", IsRadio() ? "radio" : "TV", newMember->channel->ChannelName());
+      }
+
+      if ((existingMember->channelNumber != newMember->channelNumber && m_bSyncChannelGroups) ||
+          existingMember->clientChannelNumber != newMember->clientChannelNumber ||
+          existingMember->iOrder != newMember->iOrder)
+      {
+        if (m_bSyncChannelGroups)
+          existingMember->channelNumber = newMember->channelNumber;
+        existingMember->clientChannelNumber = newMember->clientChannelNumber;
+        existingMember->iOrder = newMember->iOrder;
+        bReturn = true;
       }
     }
     else
     {
       /* new channel */
-      UpdateFromClient(it->second.channel, bUseBackendChannelNumbers ? it->second.channel->ClientChannelNumber() : CPVRChannelNumber());
-      if (it->second.channel->CreateEPG())
+      UpdateFromClient(newMember->channel, newMember->channelNumber, newMember->iOrder, newMember->clientChannelNumber);
+      if (newMember->channel->CreateEPG())
       {
-         CLog::LogFC(LOGDEBUG, LOGPVR, "Created EPG for {} channel '{}' from PVR client", IsRadio() ? "radio" : "TV", it->second.channel->ChannelName());
+        CLog::LogFC(LOGDEBUG, LOGPVR, "Created EPG for {} channel '{}' from PVR client", IsRadio() ? "radio" : "TV", newMember->channel->ChannelName());
       }
       bReturn = true;
-      CLog::LogFC(LOGDEBUG, LOGPVR, "Added {} channel '{}' from PVR client", IsRadio() ? "radio" : "TV", it->second.channel->ChannelName());
+      CLog::LogFC(LOGDEBUG, LOGPVR, "Added {} channel '{}' from PVR client", IsRadio() ? "radio" : "TV", newMember->channel->ChannelName());
     }
   }
 
@@ -258,9 +277,9 @@ bool CPVRChannelGroupInternal::AddAndUpdateChannels(const CPVRChannelGroup &chan
   return bReturn;
 }
 
-std::vector<CPVRChannelPtr> CPVRChannelGroupInternal::RemoveDeletedChannels(const CPVRChannelGroup &channels)
+std::vector<std::shared_ptr<CPVRChannel>> CPVRChannelGroupInternal::RemoveDeletedChannels(const CPVRChannelGroup& channels)
 {
-  std::vector<CPVRChannelPtr> removedChannels = CPVRChannelGroup::RemoveDeletedChannels(channels);
+  std::vector<std::shared_ptr<CPVRChannel>> removedChannels = CPVRChannelGroup::RemoveDeletedChannels(channels);
 
   if (!removedChannels.empty())
   {
@@ -302,8 +321,8 @@ bool CPVRChannelGroupInternal::CreateChannelEpgs(bool bForce /* = false */)
 
   {
     CSingleLock lock(m_critSection);
-    for (PVR_CHANNEL_GROUP_MEMBERS::iterator it = m_members.begin(); it != m_members.end(); ++it)
-      CreateChannelEpg(it->second.channel);
+    for (auto& groupMemberPair : m_members)
+      CreateChannelEpg(groupMemberPair.second->channel);
   }
 
   if (HasChangedChannels())

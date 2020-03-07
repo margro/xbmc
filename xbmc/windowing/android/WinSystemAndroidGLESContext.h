@@ -13,11 +13,14 @@
 #include "utils/EGLUtils.h"
 #include "utils/GlobalsHandling.h"
 
+struct AVMasteringDisplayMetadata;
+struct AVContentLightMetadata;
+
 class CWinSystemAndroidGLESContext : public CWinSystemAndroid, public CRenderSystemGLES
 {
 public:
   CWinSystemAndroidGLESContext() = default;
-  virtual ~CWinSystemAndroidGLESContext() = default;
+  ~CWinSystemAndroidGLESContext() override = default;
 
   // Implementation of CWinSystemBase via CWinSystemAndroid
   CRenderSystemBase *GetRenderSystem() override { return this; }
@@ -29,9 +32,11 @@ public:
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
 
-  virtual std::unique_ptr<CVideoSync> GetVideoSync(void *clock) override;
+  std::unique_ptr<CVideoSync> GetVideoSync(void* clock) override;
 
   float GetFrameLatencyAdjustment() override;
+  bool IsHDRDisplay() override;
+  bool SetHDR(const VideoPicture* videoPicture) override;
 
   EGLDisplay GetEGLDisplay() const;
   EGLSurface GetEGLSurface() const;
@@ -42,6 +47,13 @@ protected:
   void PresentRenderImpl(bool rendered) override;
 
 private:
-  CEGLContextUtils m_pGLContext;
+  bool CreateSurface();
 
+  CEGLContextUtils m_pGLContext;
+  bool m_hasHDRConfig = false;
+
+  std::unique_ptr<AVMasteringDisplayMetadata> m_displayMetadata;
+  std::unique_ptr<AVContentLightMetadata> m_lightMetadata;
+  EGLint m_HDRColorSpace = EGL_NONE;
+  bool m_hasEGLHDRExtensions = false;
 };

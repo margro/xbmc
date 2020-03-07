@@ -126,6 +126,8 @@ void CGUIBaseContainer::Process(unsigned int currentTime, CDirtyRegionList &dirt
     if (itemNo >= 0)
     {
       CGUIListItemPtr item = m_items[itemNo];
+      item->SetCurrentItem(itemNo + 1);
+
       // render our item
       if (m_orientation == VERTICAL)
         ProcessItem(origin.x, pos, item, focused, currentTime, dirtyregions);
@@ -828,7 +830,7 @@ void CGUIBaseContainer::SetFocus(bool bOnOff)
 void CGUIBaseContainer::SaveStates(std::vector<CControlState> &states)
 {
   if (!m_listProvider || !m_listProvider->AlwaysFocusDefaultItem())
-    states.push_back(CControlState(GetID(), GetSelectedItem()));
+    states.emplace_back(GetID(), GetSelectedItem());
 }
 
 void CGUIBaseContainer::SetPageControl(int id)
@@ -1024,7 +1026,7 @@ void CGUIBaseContainer::UpdateScrollByLetter()
     if (currentMatch != nextLetter)
     {
       currentMatch = nextLetter;
-      m_letterOffsets.push_back(make_pair((int)i, currentMatch));
+      m_letterOffsets.emplace_back(static_cast<int>(i), currentMatch);
     }
   }
 }

@@ -9,26 +9,32 @@
 #pragma once
 
 #include "pvr/PVRChannelNumberInputHandler.h"
-#include "pvr/PVRTypes.h"
 #include "pvr/dialogs/GUIDialogPVRItemsViewBase.h"
 #include "threads/SystemClock.h"
-#include "utils/Observer.h"
 
 #include <map>
+#include <memory>
 #include <string>
 
 namespace PVR
 {
-  class CGUIDialogPVRChannelsOSD : public CGUIDialogPVRItemsViewBase, public Observer, public CPVRChannelNumberInputHandler
+  enum class PVREvent;
+
+  class CPVRChannelGroup;
+
+  class CGUIDialogPVRChannelsOSD : public CGUIDialogPVRItemsViewBase, public CPVRChannelNumberInputHandler
   {
   public:
-    CGUIDialogPVRChannelsOSD(void);
-    ~CGUIDialogPVRChannelsOSD(void) override;
+    CGUIDialogPVRChannelsOSD();
+    ~CGUIDialogPVRChannelsOSD() override;
     bool OnMessage(CGUIMessage& message) override;
-    bool OnAction(const CAction &action) override;
+    bool OnAction(const CAction& action) override;
 
-    // Observer implementation
-    void Notify(const Observable &obs, const ObservableMessage msg) override;
+    /*!
+     * @brief CEventStream callback for PVR events.
+     * @param event The event.
+     */
+    void Notify(const PVREvent& event);
 
     // CPVRChannelNumberInputHandler implementation
     void GetChannelNumbers(std::vector<std::string>& channelNumbers) override;
@@ -47,7 +53,7 @@ namespace PVR
     void SaveSelectedItemPath(int iGroupID);
     std::string GetLastSelectedItemPath(int iGroupID) const;
 
-    CPVRChannelGroupPtr m_group;
+    std::shared_ptr<CPVRChannelGroup> m_group;
     std::map<int, std::string> m_groupSelectedItemPaths;
     XbmcThreads::EndTime m_refreshTimeout;
   };

@@ -16,29 +16,40 @@
 //
 //------------------------------------------------------------------------
 
+#ifdef HAVE_NEW_CROSSGUID
+#include <guid.hpp>
+#else
 #include <guid.h>
+#endif
 
 #if defined(TARGET_ANDROID)
 #include <androidjni/JNIThreading.h>
 #endif
 
-#include "StringUtils.h"
 #include "CharsetConverter.h"
 #include "LangInfo.h"
+#include "StringUtils.h"
 #include "Util.h"
-#include <fstrcmp.h>
-#include <functional>
+
+#include <algorithm>
 #include <array>
-#include <iomanip>
 #include <assert.h>
+#include <functional>
+#include <inttypes.h>
+#include <iomanip>
 #include <math.h>
-#include <time.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
+#include <time.h>
+
+#include <fstrcmp.h>
 #include <memory.h>
-#include <algorithm>
-#include "utils/RegExp.h" // don't move or std functions end up in PCRE namespace
+
+// don't move or std functions end up in PCRE namespace
+// clang-format off
+#include "utils/RegExp.h"
+// clang-format on
 
 #define FORMAT_BLOCK_SIZE 512 // # of bytes for initial allocation for printf
 
@@ -1126,11 +1137,15 @@ void StringUtils::WordToDigits(std::string &word)
 
 std::string StringUtils::CreateUUID()
 {
+#ifdef HAVE_NEW_CROSSGUID
+  return xg::newGuid().str();
+#else
   static GuidGenerator guidGenerator;
   auto guid = guidGenerator.newGuid();
 
   std::stringstream strGuid; strGuid << guid;
   return strGuid.str();
+#endif
 }
 
 bool StringUtils::ValidateUUID(const std::string &uuid)

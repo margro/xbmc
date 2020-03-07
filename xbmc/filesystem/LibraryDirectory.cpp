@@ -65,6 +65,10 @@ bool CLibraryDirectory::GetDirectory(const CURL& url, CFileItemList &items)
       }
       else if (type == "folder")
       {
+        std::string label;
+        if (XMLUtils::GetString(node, "label", label))
+          label = CGUIControlFactory::FilterLabel(label);
+        items.SetLabel(label);
         std::string path;
         XMLUtils::GetPath(node, "path", path);
         if (!path.empty())
@@ -118,7 +122,7 @@ bool CLibraryDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 
       item->SetLabel(label);
       if (!icon.empty() && CServiceBroker::GetGUI()->GetTextureManager().HasTexture(icon))
-        item->SetIconImage(icon);
+        item->SetArt("icon", icon);
       item->m_iprogramCount = order;
       items.Add(item);
     }

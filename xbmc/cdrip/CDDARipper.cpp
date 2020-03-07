@@ -81,7 +81,7 @@ bool CCDDARipper::RipTrack(CFileItem* pItem)
 bool CCDDARipper::RipCD()
 {
   // return here if cd is not a CDDA disc
-  MEDIA_DETECT::CCdInfo* pInfo = g_mediaManager.GetCdInfo();
+  MEDIA_DETECT::CCdInfo* pInfo = CServiceBroker::GetMediaManager().GetCdInfo();
   if (pInfo == NULL || !pInfo->IsAudio(1))
   {
     CLog::Log(LOGDEBUG, "cddaripper: CD is not an audio cd");
@@ -99,7 +99,7 @@ bool CCDDARipper::RipCD()
     CFileItemPtr pItem = vecItems[i];
     CMusicInfoTagLoaderFactory factory;
     std::unique_ptr<IMusicInfoTagLoader> pLoader (factory.CreateLoader(*pItem));
-    if (NULL != pLoader.get())
+    if (nullptr != pLoader)
     {
       pLoader->Load(pItem->GetPath(), *pItem->GetMusicInfoTag()); // get tag from file
       if (!pItem->GetMusicInfoTag()->Loaded())

@@ -12,7 +12,7 @@
 #include "ISettingControlCreator.h"
 #include "ISettingCreator.h"
 #include "ISettingsHandler.h"
-#include "ISubSettings.h"
+#include "ISettingsValueSerializer.h"
 #include "Setting.h"
 #include "SettingConditions.h"
 #include "SettingDefinitions.h"
@@ -21,6 +21,7 @@
 
 #include <map>
 #include <set>
+#include <unordered_set>
 #include <vector>
 
 class CSettingCategory;
@@ -37,8 +38,7 @@ class TiXmlNode;
  all settings.
  */
 class CSettingsManager : public ISettingCreator, public ISettingControlCreator,
-                         private ISettingCallback, private ISettingsHandler,
-                         private ISubSettings
+                         private ISettingCallback, private ISettingsHandler
 {
 public:
   /*!
@@ -55,6 +55,9 @@ public:
 
   // implementation of ISettingControlCreator
   std::shared_ptr<ISettingControl> CreateControl(const std::string &controlType) const override;
+
+  uint32_t GetVersion() const { return Version; }
+  uint32_t GetMinimumSupportedVersion() const { return MinimumSupportedVersion; }
 
   /*!
    \brief Try to get the version of the setting definitions/values represented by the given XML element.
@@ -83,12 +86,12 @@ public:
    */
   bool Load(const TiXmlElement *root, bool &updated, bool triggerEvents = true, std::map<std::string, std::shared_ptr<CSetting>> *loadedSettings = nullptr);
   /*!
-   \brief Saves the setting values to the given XML node.
+   \brief Saves the setting values using the given serializer.
 
-   \param root XML node
-   \return True if the setting values were successfully saved, false otherwise
+   \param serializer Settings value serializer to use
+   \return True if the setting values were successfully serialized, false otherwise
    */
-  bool Save(TiXmlNode *root) const override;
+  bool Save(const ISettingsValueSerializer* serializer, std::string& serializedValues) const;
   /*!
    \brief Unloads the previously loaded setting values.
 
@@ -102,7 +105,7 @@ public:
    returns to the uninitialized state. Any registered callbacks or
    implementations stay registered.
    */
-  void Clear() override;
+  void Clear();
 
   /*!
   \brief Loads the setting being represented by the given XML node with the
@@ -234,19 +237,6 @@ public:
   void UnregisterSettingsHandler(ISettingsHandler *settingsHandler);
 
   /*!
-   \brief Registers the given ISubSettings implementation.
-
-   \param subSettings ISubSettings implementation
-   */
-  void RegisterSubSettings(ISubSettings *subSettings);
-  /*!
-   \brief Unregisters the given ISubSettings implementation.
-
-   \param subSettings ISubSettings implementation
-   */
-  void UnregisterSubSettings(ISubSettings *subSettings);
-
-  /*!
    \brief Registers the given integer setting options filler under the given identifier.
 
    \param identifier Setting options filler identifier
@@ -274,6 +264,12 @@ public:
    \return Implementation of the setting options filler (either IntegerSettingOptionsFiller or StringSettingOptionsFiller)
    */
   void* GetSettingOptionsFiller(std::shared_ptr<const CSetting> setting);
+
+  /*!
+   \brief Checks whether any settings have been initialized.
+   
+   \return True if at least one setting has been initialized, false otherwise*/
+  bool HasSettings() const;
 
   /*!
    \brief Gets the setting with the given identifier.
@@ -476,9 +472,6 @@ private:
   void OnSettingsSaved() const override;
   void OnSettingsCleared() override;
 
-  // implementation of ISubSettings
-  bool Load(const TiXmlNode *settings) override;
-
   bool Serialize(TiXmlNode *parent) const;
   bool Deserialize(const TiXmlNode *node, bool &updated, std::map<std::string, std::shared_ptr<CSetting>> *loadedSettings = nullptr);
 
@@ -506,6 +499,7 @@ private:
     SettingDependencyMap dependencies;
     std::set<std::string> children;
     CallbackSet callbacks;
+    std::unordered_set<std::string> references;
   };
 
   using SettingMap = std::map<std::string, Setting>;
@@ -530,7 +524,6 @@ private:
   using SettingControlCreatorMap = std::map<std::string, ISettingControlCreator*>;
   SettingControlCreatorMap m_settingControlCreators;
 
-  std::set<ISubSettings*> m_subSettings;
   using SettingsHandlers = std::vector<ISettingsHandler*>;
   SettingsHandlers m_settingsHandlers;
 

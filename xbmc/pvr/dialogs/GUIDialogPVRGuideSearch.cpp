@@ -47,20 +47,20 @@ using namespace PVR;
 #define CONTROL_BTN_IGNORE_REC    27
 #define CONTROL_BTN_DEFAULTS      28
 
-CGUIDialogPVRGuideSearch::CGUIDialogPVRGuideSearch(void) :
+CGUIDialogPVRGuideSearch::CGUIDialogPVRGuideSearch() :
     CGUIDialog(WINDOW_DIALOG_PVR_GUIDE_SEARCH, "DialogPVRGuideSearch.xml"),
     m_searchFilter(NULL)
 {
 }
 
-void CGUIDialogPVRGuideSearch::UpdateChannelSpin(void)
+void CGUIDialogPVRGuideSearch::UpdateChannelSpin()
 {
   int iChannelGroup = GetSpinValue(CONTROL_SPIN_GROUPS);
 
   std::vector< std::pair<std::string, int> > labels;
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19217), EPG_SEARCH_UNSET));
+  labels.emplace_back(g_localizeStrings.Get(19217), EPG_SEARCH_UNSET);
 
-  CPVRChannelGroupPtr group;
+  std::shared_ptr<CPVRChannelGroup> group;
   if (iChannelGroup == EPG_SEARCH_UNSET)
     group = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_searchFilter->IsRadio());
   else
@@ -70,17 +70,17 @@ void CGUIDialogPVRGuideSearch::UpdateChannelSpin(void)
     group = CServiceBroker::GetPVRManager().ChannelGroups()->GetGroupAll(m_searchFilter->IsRadio());
 
   m_channelNumbersMap.clear();
-  const std::vector<PVRChannelGroupMember> groupMembers(group->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE));
+  const std::vector<std::shared_ptr<PVRChannelGroupMember>> groupMembers = group->GetMembers(CPVRChannelGroup::Include::ONLY_VISIBLE);
   int iIndex = 0;
   int iSelectedChannel = EPG_SEARCH_UNSET;
   for (const auto& groupMember : groupMembers)
   {
-    if (groupMember.channel)
+    if (groupMember->channel)
     {
-      labels.emplace_back(std::make_pair(groupMember.channel->ChannelName(), iIndex));
-      m_channelNumbersMap.insert(std::make_pair(iIndex, groupMember.channelNumber));
+      labels.emplace_back(std::make_pair(groupMember->channel->ChannelName(), iIndex));
+      m_channelNumbersMap.insert(std::make_pair(iIndex, groupMember->channelNumber));
 
-      if (iSelectedChannel == EPG_SEARCH_UNSET && groupMember.channelNumber == m_searchFilter->GetChannelNumber())
+      if (iSelectedChannel == EPG_SEARCH_UNSET && groupMember->channelNumber == m_searchFilter->GetChannelNumber())
         iSelectedChannel = iIndex;
 
       ++iIndex;
@@ -90,55 +90,55 @@ void CGUIDialogPVRGuideSearch::UpdateChannelSpin(void)
   SET_CONTROL_LABELS(CONTROL_SPIN_CHANNELS, iSelectedChannel, &labels);
 }
 
-void CGUIDialogPVRGuideSearch::UpdateGroupsSpin(void)
+void CGUIDialogPVRGuideSearch::UpdateGroupsSpin()
 {
   std::vector< std::pair<std::string, int> > labels;
 
   /* groups */
-  std::vector<CPVRChannelGroupPtr> groups = CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_searchFilter->IsRadio())->GetMembers();
-  for (std::vector<CPVRChannelGroupPtr>::const_iterator it = groups.begin(); it != groups.end(); ++it)
-    labels.push_back(std::make_pair((*it)->GroupName(), (*it)->GroupID()));
+  std::vector<std::shared_ptr<CPVRChannelGroup>> groups = CServiceBroker::GetPVRManager().ChannelGroups()->Get(m_searchFilter->IsRadio())->GetMembers();
+  for (std::vector<std::shared_ptr<CPVRChannelGroup>>::const_iterator it = groups.begin(); it != groups.end(); ++it)
+    labels.emplace_back((*it)->GroupName(), (*it)->GroupID());
 
   SET_CONTROL_LABELS(CONTROL_SPIN_GROUPS, m_searchFilter->GetChannelGroup(), &labels);
 }
 
-void CGUIDialogPVRGuideSearch::UpdateGenreSpin(void)
+void CGUIDialogPVRGuideSearch::UpdateGenreSpin()
 {
   std::vector< std::pair<std::string, int> > labels;
-  labels.push_back(std::make_pair(g_localizeStrings.Get(593),   EPG_SEARCH_UNSET));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19500), EPG_EVENT_CONTENTMASK_MOVIEDRAMA));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19516), EPG_EVENT_CONTENTMASK_NEWSCURRENTAFFAIRS));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19532), EPG_EVENT_CONTENTMASK_SHOW));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19548), EPG_EVENT_CONTENTMASK_SPORTS));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19564), EPG_EVENT_CONTENTMASK_CHILDRENYOUTH));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19580), EPG_EVENT_CONTENTMASK_MUSICBALLETDANCE));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19596), EPG_EVENT_CONTENTMASK_ARTSCULTURE));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19612), EPG_EVENT_CONTENTMASK_SOCIALPOLITICALECONOMICS));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19628), EPG_EVENT_CONTENTMASK_EDUCATIONALSCIENCE));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19644), EPG_EVENT_CONTENTMASK_LEISUREHOBBIES));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19660), EPG_EVENT_CONTENTMASK_SPECIAL));
-  labels.push_back(std::make_pair(g_localizeStrings.Get(19499), EPG_EVENT_CONTENTMASK_USERDEFINED));
+  labels.emplace_back(g_localizeStrings.Get(593), EPG_SEARCH_UNSET);
+  labels.emplace_back(g_localizeStrings.Get(19500), EPG_EVENT_CONTENTMASK_MOVIEDRAMA);
+  labels.emplace_back(g_localizeStrings.Get(19516), EPG_EVENT_CONTENTMASK_NEWSCURRENTAFFAIRS);
+  labels.emplace_back(g_localizeStrings.Get(19532), EPG_EVENT_CONTENTMASK_SHOW);
+  labels.emplace_back(g_localizeStrings.Get(19548), EPG_EVENT_CONTENTMASK_SPORTS);
+  labels.emplace_back(g_localizeStrings.Get(19564), EPG_EVENT_CONTENTMASK_CHILDRENYOUTH);
+  labels.emplace_back(g_localizeStrings.Get(19580), EPG_EVENT_CONTENTMASK_MUSICBALLETDANCE);
+  labels.emplace_back(g_localizeStrings.Get(19596), EPG_EVENT_CONTENTMASK_ARTSCULTURE);
+  labels.emplace_back(g_localizeStrings.Get(19612), EPG_EVENT_CONTENTMASK_SOCIALPOLITICALECONOMICS);
+  labels.emplace_back(g_localizeStrings.Get(19628), EPG_EVENT_CONTENTMASK_EDUCATIONALSCIENCE);
+  labels.emplace_back(g_localizeStrings.Get(19644), EPG_EVENT_CONTENTMASK_LEISUREHOBBIES);
+  labels.emplace_back(g_localizeStrings.Get(19660), EPG_EVENT_CONTENTMASK_SPECIAL);
+  labels.emplace_back(g_localizeStrings.Get(19499), EPG_EVENT_CONTENTMASK_USERDEFINED);
 
   SET_CONTROL_LABELS(CONTROL_SPIN_GENRE, m_searchFilter->GetGenreType(), &labels);
 }
 
-void CGUIDialogPVRGuideSearch::UpdateDurationSpin(void)
+void CGUIDialogPVRGuideSearch::UpdateDurationSpin()
 {
   /* minimum duration */
   std::vector< std::pair<std::string, int> > labels;
 
-  labels.push_back(std::make_pair("-", EPG_SEARCH_UNSET));
+  labels.emplace_back("-", EPG_SEARCH_UNSET);
   for (int i = 1; i < 12*60/5; ++i)
-    labels.push_back(std::make_pair(StringUtils::Format(g_localizeStrings.Get(14044).c_str(), i*5), i*5));
+    labels.emplace_back(StringUtils::Format(g_localizeStrings.Get(14044).c_str(), i * 5), i * 5);
 
   SET_CONTROL_LABELS(CONTROL_SPIN_MIN_DURATION, m_searchFilter->GetMinimumDuration(), &labels);
 
   /* maximum duration */
   labels.clear();
 
-  labels.push_back(std::make_pair("-", EPG_SEARCH_UNSET));
+  labels.emplace_back("-", EPG_SEARCH_UNSET);
   for (int i = 1; i < 12*60/5; ++i)
-    labels.push_back(std::make_pair(StringUtils::Format(g_localizeStrings.Get(14044).c_str(), i*5), i*5));
+    labels.emplace_back(StringUtils::Format(g_localizeStrings.Get(14044).c_str(), i * 5), i * 5);
 
   SET_CONTROL_LABELS(CONTROL_SPIN_MAX_DURATION, m_searchFilter->GetMaximumDuration(), &labels);
 }
@@ -202,7 +202,7 @@ void CGUIDialogPVRGuideSearch::OnWindowLoaded()
   return CGUIDialog::OnWindowLoaded();
 }
 
-CDateTime CGUIDialogPVRGuideSearch::ReadDateTime(const std::string &strDate, const std::string &strTime) const
+CDateTime CGUIDialogPVRGuideSearch::ReadDateTime(const std::string& strDate, const std::string& strTime) const
 {
   CDateTime dateTime;
   int iHours, iMinutes;

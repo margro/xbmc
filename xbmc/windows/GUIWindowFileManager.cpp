@@ -362,7 +362,7 @@ void CGUIWindowFileManager::OnSort(int iList)
           pItem->SetFileSizeLabel();
         }
       }
-      else if (pItem->IsDVD() && g_mediaManager.IsDiscInDrive())
+      else if (pItem->IsDVD() && CServiceBroker::GetMediaManager().IsDiscInDrive())
       {
         std::error_code ec;
         auto freeSpace = space(pItem->GetPath(), ec);
@@ -493,7 +493,7 @@ bool CGUIWindowFileManager::Update(int iList, const std::string &strDirectory)
     std::string strLabel = g_localizeStrings.Get(1026);
     CFileItemPtr pItem(new CFileItem(strLabel));
     pItem->SetPath("add");
-    pItem->SetIconImage("DefaultAddSource.png");
+    pItem->SetArt("icon", "DefaultAddSource.png");
     pItem->SetLabel(strLabel);
     pItem->SetLabelPreformatted(true);
     pItem->m_bIsFolder = true;
@@ -635,7 +635,7 @@ void CGUIWindowFileManager::OnStart(CFileItem *pItem, const std::string &player)
   {
     std::string strPlayList = pItem->GetPath();
     std::unique_ptr<CPlayList> pPlayList (CPlayListFactory::Create(strPlayList));
-    if (NULL != pPlayList.get())
+    if (nullptr != pPlayList)
     {
       if (!pPlayList->Load(strPlayList))
       {
@@ -686,7 +686,7 @@ bool CGUIWindowFileManager::HaveDiscOrConnection( std::string& strPath, int iDri
 {
   if ( iDriveType == CMediaSource::SOURCE_TYPE_DVD )
   {
-    if ( !g_mediaManager.IsDiscInDrive(strPath) )
+    if (!CServiceBroker::GetMediaManager().IsDiscInDrive(strPath))
     {
       HELPERS::ShowOKDialogText(CVariant{218}, CVariant{219});
       int iList = GetFocusedList();

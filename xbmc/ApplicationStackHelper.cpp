@@ -24,10 +24,6 @@ CApplicationStackHelper::CApplicationStackHelper(void)
 {
 }
 
-CApplicationStackHelper::~CApplicationStackHelper(void)
-{
-}
-
 void CApplicationStackHelper::Clear()
 {
   m_currentStackPosition = 0;
@@ -57,7 +53,6 @@ void CApplicationStackHelper::OnPlayBackStarted(const CFileItem& item)
       }
     }
   }
-  return;
 }
 
 bool CApplicationStackHelper::InitializeStack(const CFileItem & item)

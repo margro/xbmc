@@ -13,8 +13,8 @@
 #include "TextureCache.h"
 #include "TextureCacheJob.h"
 #include "pictures/Picture.h"
-#include "pvr/PVRGUIDirectory.h"
 #include "pvr/PVRManager.h"
+#include "pvr/filesystem/PVRGUIDirectory.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
@@ -108,7 +108,7 @@ std::string CPVRThumbLoader::CreateChannelGroupThumb(const CFileItem& channelGro
     std::vector<std::string> channelIcons;
     for (const auto& channel : channels)
     {
-      const std::string& icon = channel->GetIconImage();
+      const std::string& icon = channel->GetArt("icon");
       if (!icon.empty())
         channelIcons.emplace_back(icon);
 

@@ -7,6 +7,7 @@
  */
 
 #include "log.h"
+
 #include "CompileInfo.h"
 #include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
@@ -15,6 +16,8 @@
 #include "threads/SingleLock.h"
 #include "threads/Thread.h"
 #include "utils/StringUtils.h"
+
+#include <inttypes.h>
 
 #if defined(TARGET_POSIX)
 #include "platform/posix/utils/PosixInterfaceForCLog.h"
@@ -206,7 +209,7 @@ bool CLog::WriteLogString(int logLevel, const std::string& logString)
                                   minute,
                                   second,
                                   static_cast<int>(millisecond),
-                                  static_cast<uint64_t>(CThread::GetCurrentThreadNativeHandle()),
+                                  static_cast<uint64_t>(CThread::GetCurrentThreadNativeId()),
                                   levelNames[logLevel]) + strData;
 
   return g_logState.m_platform.WriteStringToLog(strData);

@@ -20,9 +20,8 @@
 #include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
 #include "rendering/gles/ScreenshotSurfaceGLES.h"
+#include "utils/XTimeUtils.h"
 #include "utils/log.h"
-
-#include "platform/posix/XTimeUtils.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -85,20 +84,12 @@ bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen, RESOLUTION_INFO& r
 
   if (!m_eglContext.TrySwapBuffers())
   {
-    CEGLUtils::LogError("eglSwapBuffers failed");
+    CEGLUtils::Log(LOGERROR, "eglSwapBuffers failed");
     throw std::runtime_error("eglSwapBuffers failed");
   }
 
   CWinSystemGbm::SetFullScreen(fullScreen, res, blankOtherDisplays);
   CRenderSystemGLES::ResetRenderSystem(res.iWidth, res.iHeight);
-
-  if (!m_delayDispReset)
-  {
-    CSingleLock lock(m_resourceSection);
-
-    for (auto resource : m_resources)
-      resource->OnResetDisplay();
-  }
 
   return true;
 }
@@ -114,24 +105,26 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
     {
       if (!m_eglContext.TrySwapBuffers())
       {
-        CEGLUtils::LogError("eglSwapBuffers failed");
+        CEGLUtils::Log(LOGERROR, "eglSwapBuffers failed");
         throw std::runtime_error("eglSwapBuffers failed");
       }
     }
     CWinSystemGbm::FlipPage(rendered, videoLayer);
+
+    if (m_dispReset && m_dispResetTimer.IsTimePast())
+    {
+      CLog::Log(LOGDEBUG, "CWinSystemGbmGLESContext::%s - Sending display reset to all clients",
+                __FUNCTION__);
+      m_dispReset = false;
+      CSingleLock lock(m_resourceSection);
+
+      for (auto resource : m_resources)
+        resource->OnResetDisplay();
+    }
   }
   else
   {
-    Sleep(10);
-  }
-
-  if (m_delayDispReset && m_dispResetTimer.IsTimePast())
-  {
-    m_delayDispReset = false;
-    CSingleLock lock(m_resourceSection);
-
-    for (auto resource : m_resources)
-      resource->OnResetDisplay();
+    KODI::TIME::Sleep(10);
   }
 }
 

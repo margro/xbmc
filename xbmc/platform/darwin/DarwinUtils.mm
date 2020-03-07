@@ -24,91 +24,10 @@
   #import <IOKit/IOKitLib.h>
 #endif
 
-#import "AutoPool.h"
 #import "DarwinUtils.h"
 
 #include <mutex>
 
-
-enum iosPlatform
-{
-  iDeviceUnknown = -1,
-  iPhone2G,
-  iPhone3G,
-  iPhone3GS,
-  iPodTouch1G,
-  iPodTouch2G,
-  iPodTouch3G,
-  iPad,
-  iPad3G,
-  iPad2WIFI,
-  iPad2CDMA,
-  iPad2,
-  iPadMini,
-  iPadMiniGSMCDMA,
-  iPadMiniWIFI,
-  AppleTV2,
-  AppleTV4,
-  AppleTV4K,
-  iPhone4,            //from here on list devices with retina support (e.x. mainscreen scale == 2.0)
-  iPhone4CDMA,
-  iPhone4S,
-  iPhone5,
-  iPhone5GSMCDMA,
-  iPhone5CGSM,
-  iPhone5CGlobal,
-  iPhone5SGSM,
-  iPhone5SGlobal,
-  iPodTouch4G,
-  iPodTouch5G,
-  iPodTouch6G,
-  iPad3WIFI,
-  iPad3GSMCDMA,
-  iPad3,
-  iPad4WIFI,
-  iPad4,
-  iPad4GSMCDMA,
-  iPad5Wifi,
-  iPad5Cellular,
-  iPadAirWifi,
-  iPadAirCellular,
-  iPadAirTDLTE,
-  iPadMini2Wifi,
-  iPadMini2Cellular,
-  iPhone6,
-  iPhone6s,
-  iPhoneSE,
-  iPhone7,
-  iPhone8,
-  iPhoneXR,
-  iPadAir2Wifi,
-  iPadAir2Cellular,
-  iPadPro9_7InchWifi,
-  iPadPro9_7InchCellular,
-  iPad6thGeneration9_7InchWifi,
-  iPad6thGeneration9_7InchCellular,
-  iPadPro12_9InchWifi,
-  iPadPro12_9InchCellular,
-  iPadPro2_12_9InchWifi,
-  iPadPro2_12_9InchCellular,
-  iPadPro3_12_9InchWifi,
-  iPadPro3_12_9InchCellular,
-  iPadPro_10_5InchWifi,
-  iPadPro_10_5InchCellular,
-  iPadPro11InchWifi,
-  iPadPro11InchCellular,
-  iPadMini3Wifi,
-  iPadMini3Cellular,
-  iPadMini4Wifi,
-  iPadMini4Cellular,
-  iPhone6Plus,        //from here on list devices with retina support which have scale == 3.0
-  iPhone6sPlus,
-  iPhone7Plus,
-  iPhone8Plus,
-  iPhoneX,
-  iPhoneXS,
-  iPhoneXSMax,
-};
 
 // platform strings are based on http://theiphonewiki.com/wiki/Models
 const char* CDarwinUtils::getIosPlatformString(void)
@@ -120,144 +39,15 @@ const char* CDarwinUtils::getIosPlatformString(void)
 #if defined(TARGET_DARWIN_EMBEDDED)
     // Gets a string with the device model
     size_t size;
-    sysctlbyname("hw.machine", NULL, &size, NULL, 0);
+    sysctlbyname("hw.machine", nullptr, &size, nullptr, 0);
     char machine[size];
-    if (sysctlbyname("hw.machine", machine, &size, NULL, 0) == 0 && machine[0])
+    if (sysctlbyname("hw.machine", machine, &size, nullptr, 0) == 0 && machine[0])
       iOSPlatformString.assign(machine, size-1);
     else
 #endif
       iOSPlatformString = "unknown0,0";
   });
   return iOSPlatformString.c_str();
-}
-
-enum iosPlatform getIosPlatform()
-{
-  static enum iosPlatform eDev = iDeviceUnknown;
-#if defined(TARGET_DARWIN_EMBEDDED)
-  static std::once_flag flag;
-  std::call_once(flag, []
-  {
-    std::string devStr(CDarwinUtils::getIosPlatformString());
-
-    if (devStr == "iPhone1,1") eDev = iPhone2G;
-    else if (devStr == "iPhone1,2") eDev = iPhone3G;
-    else if (devStr == "iPhone2,1") eDev = iPhone3GS;
-    else if (devStr == "iPhone3,1") eDev = iPhone4;
-    else if (devStr == "iPhone3,2") eDev = iPhone4;
-    else if (devStr == "iPhone3,3") eDev = iPhone4CDMA;
-    else if (devStr == "iPhone4,1") eDev = iPhone4S;
-    else if (devStr == "iPhone5,1") eDev = iPhone5;
-    else if (devStr == "iPhone5,2") eDev = iPhone5GSMCDMA;
-    else if (devStr == "iPhone5,3") eDev = iPhone5CGSM;
-    else if (devStr == "iPhone5,4") eDev = iPhone5CGlobal;
-    else if (devStr == "iPhone6,1") eDev = iPhone5SGSM;
-    else if (devStr == "iPhone6,2") eDev = iPhone5SGlobal;
-    else if (devStr == "iPhone7,1") eDev = iPhone6Plus;
-    else if (devStr == "iPhone7,2") eDev = iPhone6;
-    else if (devStr == "iPhone8,1") eDev = iPhone6s;
-    else if (devStr == "iPhone8,2") eDev = iPhone6sPlus;
-    else if (devStr == "iPhone8,4") eDev = iPhoneSE;
-    else if (devStr == "iPhone9,1") eDev = iPhone7;
-    else if (devStr == "iPhone9,2") eDev = iPhone7Plus;
-    else if (devStr == "iPhone9,3") eDev = iPhone7;
-    else if (devStr == "iPhone9,4") eDev = iPhone7Plus;
-    else if (devStr == "iPhone10,1") eDev = iPhone8;
-    else if (devStr == "iPhone10,2") eDev = iPhone8Plus;
-    else if (devStr == "iPhone10,3") eDev = iPhoneX;
-    else if (devStr == "iPhone10,4") eDev = iPhone8;
-    else if (devStr == "iPhone10,5") eDev = iPhone8Plus;
-    else if (devStr == "iPhone10,6") eDev = iPhoneX;
-    else if (devStr == "iPhone11,2") eDev = iPhoneXS;
-    else if (devStr == "iPhone11,6") eDev = iPhoneXSMax;
-    else if (devStr == "iPhone11,8") eDev = iPhoneXR;
-    else if (devStr == "iPod1,1") eDev = iPodTouch1G;
-    else if (devStr == "iPod2,1") eDev = iPodTouch2G;
-    else if (devStr == "iPod3,1") eDev = iPodTouch3G;
-    else if (devStr == "iPod4,1") eDev = iPodTouch4G;
-    else if (devStr == "iPod5,1") eDev = iPodTouch5G;
-    else if (devStr == "iPod7,1") eDev = iPodTouch6G;
-    else if (devStr == "iPad1,1") eDev = iPad;
-    else if (devStr == "iPad1,2") eDev = iPad;
-    else if (devStr == "iPad2,1") eDev = iPad2WIFI;
-    else if (devStr == "iPad2,2") eDev = iPad2;
-    else if (devStr == "iPad2,3") eDev = iPad2CDMA;
-    else if (devStr == "iPad2,4") eDev = iPad2;
-    else if (devStr == "iPad2,5") eDev = iPadMiniWIFI;
-    else if (devStr == "iPad2,6") eDev = iPadMini;
-    else if (devStr == "iPad2,7") eDev = iPadMiniGSMCDMA;
-    else if (devStr == "iPad3,1") eDev = iPad3WIFI;
-    else if (devStr == "iPad3,2") eDev = iPad3GSMCDMA;
-    else if (devStr == "iPad3,3") eDev = iPad3;
-    else if (devStr == "iPad3,4") eDev = iPad4WIFI;
-    else if (devStr == "iPad3,5") eDev = iPad4;
-    else if (devStr == "iPad3,6") eDev = iPad4GSMCDMA;
-    else if (devStr == "iPad4,1") eDev = iPadAirWifi;
-    else if (devStr == "iPad4,2") eDev = iPadAirCellular;
-    else if (devStr == "iPad4,3") eDev = iPadAirTDLTE;
-    else if (devStr == "iPad4,4") eDev = iPadMini2Wifi;
-    else if (devStr == "iPad4,5") eDev = iPadMini2Cellular;
-    else if (devStr == "iPad4,6") eDev = iPadMini2Cellular;
-    else if (devStr == "iPad4,7") eDev = iPadMini3Wifi;
-    else if (devStr == "iPad4,8") eDev = iPadMini3Cellular;
-    else if (devStr == "iPad4,9") eDev = iPadMini3Cellular;
-    else if (devStr == "iPad5,1") eDev = iPadMini4Wifi;
-    else if (devStr == "iPad5,2") eDev = iPadMini4Cellular;
-    else if (devStr == "iPad5,3") eDev = iPadAir2Wifi;
-    else if (devStr == "iPad5,4") eDev = iPadAir2Cellular;
-    else if (devStr == "iPad6,3") eDev = iPadPro9_7InchWifi;
-    else if (devStr == "iPad6,4") eDev = iPadPro9_7InchCellular;
-    else if (devStr == "iPad6,7") eDev = iPadPro12_9InchWifi;
-    else if (devStr == "iPad6,8") eDev = iPadPro12_9InchCellular;
-    else if (devStr == "iPad6,11") eDev = iPad5Wifi;
-    else if (devStr == "iPad6,12") eDev = iPad5Cellular;
-    else if (devStr == "iPad7,1") eDev = iPadPro2_12_9InchWifi;
-    else if (devStr == "iPad7,2") eDev = iPadPro2_12_9InchCellular;
-    else if (devStr == "iPad7,3") eDev = iPadPro_10_5InchWifi;
-    else if (devStr == "iPad7,4") eDev = iPadPro_10_5InchCellular;
-    else if (devStr == "iPad7,5") eDev = iPad6thGeneration9_7InchWifi;
-    else if (devStr == "iPad7,6") eDev = iPad6thGeneration9_7InchCellular;
-    else if (devStr == "iPad8,1") eDev = iPadPro11InchWifi;
-    else if (devStr == "iPad8,2") eDev = iPadPro11InchWifi;
-    else if (devStr == "iPad8,3") eDev = iPadPro11InchCellular;
-    else if (devStr == "iPad8,4") eDev = iPadPro11InchCellular;
-    else if (devStr == "iPad8,5") eDev = iPadPro3_12_9InchWifi;
-    else if (devStr == "iPad8,6") eDev = iPadPro3_12_9InchWifi;
-    else if (devStr == "iPad8,7") eDev = iPadPro3_12_9InchCellular;
-    else if (devStr == "iPad8,8") eDev = iPadPro3_12_9InchCellular;
-    else if (devStr == "AppleTV2,1") eDev = AppleTV2;
-    else if (devStr == "AppleTV5,3") eDev = AppleTV4;
-    else if (devStr == "AppleTV6,2") eDev = AppleTV4K;
-  });
-#endif
-  return eDev;
-}
-
-bool CDarwinUtils::DeviceHasRetina(double &scale)
-{
-  scale = 1.0; // no retina
-#if defined(TARGET_DARWIN_IOS)
-  static bool hasRetina;
-  static double _scale;
-  static std::once_flag flag;
-  std::call_once(flag, []
-  {
-    iosPlatform platform = getIosPlatform();
-    hasRetina = platform >= iPhone4;
-
-    // see http://www.paintcodeapp.com/news/iphone-6-screens-demystified
-    if (hasRetina && platform < iPhone6Plus)
-      _scale = 2.0; // 2x render retina
-
-    if (platform >= iPhone6Plus)
-      _scale = 3.0; //3x render retina + downscale
-  });
-
-  scale = _scale;
-  return hasRetina;
-#else
-  return false;
-#endif
 }
 
 const char *CDarwinUtils::GetOSReleaseString(void)
@@ -267,9 +57,9 @@ const char *CDarwinUtils::GetOSReleaseString(void)
   std::call_once(flag, []
   {
     size_t size;
-    sysctlbyname("kern.osrelease", NULL, &size, NULL, 0);
+    sysctlbyname("kern.osrelease", nullptr, &size, nullptr, 0);
     char osrelease[size];
-    sysctlbyname("kern.osrelease", osrelease, &size, NULL, 0);
+    sysctlbyname("kern.osrelease", osrelease, &size, nullptr, 0);
     osreleaseStr.assign(osrelease);
   });
   return osreleaseStr.c_str();
@@ -277,8 +67,10 @@ const char *CDarwinUtils::GetOSReleaseString(void)
 
 const char *CDarwinUtils::GetOSVersionString(void)
 {
-  CCocoaAutoPool pool;
-  return [[[NSProcessInfo processInfo] operatingSystemVersionString] UTF8String];
+  @autoreleasepool
+  {
+    return NSProcessInfo.processInfo.operatingSystemVersionString.UTF8String;
+  }
 }
 
 const char* CDarwinUtils::GetVersionString()
@@ -288,7 +80,7 @@ const char* CDarwinUtils::GetVersionString()
 #if defined(TARGET_DARWIN_EMBEDDED)
   std::call_once(flag, []
   {
-    versionString.assign([[[UIDevice currentDevice] systemVersion] UTF8String]);
+    versionString.assign(UIDevice.currentDevice.systemVersion.UTF8String);
   });
 #else
   std::call_once(flag, []
@@ -302,38 +94,48 @@ const char* CDarwinUtils::GetVersionString()
 
 std::string CDarwinUtils::GetFrameworkPath(bool forPython)
 {
-  CCocoaAutoPool pool;
-#if defined(TARGET_DARWIN_EMBEDDED)
-  return std::string{NSBundle.mainBundle.privateFrameworksPath.UTF8String};
-#elif defined(TARGET_DARWIN_OSX)
-  if ([NSBundle.mainBundle.executablePath containsString:@"Contents"])
+  @autoreleasepool
   {
-    // ExecutablePath is <product>.app/Contents/MacOS/<executable>
-    // we should have <product>.app/Contents/Libraries
-    return std::string{[[NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"Contents"] stringByAppendingPathComponent:@"Libraries"].UTF8String};
+    auto mainBundle = NSBundle.mainBundle;
+#if defined(TARGET_DARWIN_EMBEDDED)
+    return std::string{mainBundle.privateFrameworksPath.UTF8String};
+#else
+    if ([mainBundle.executablePath containsString:@"Contents"])
+    {
+      // ExecutablePath is <product>.app/Contents/MacOS/<executable>
+      // we should have <product>.app/Contents/Libraries
+      return std::string{[[mainBundle.bundlePath stringByAppendingPathComponent:@"Contents"]
+                             stringByAppendingPathComponent:@"Libraries"]
+                             .UTF8String};
+    }
+#endif
   }
 
   // Kodi OSX binary running under xcode or command-line
   // but only if it's not for python. In this case, let python
   // use it's internal compiled paths.
+#if defined(TARGET_DARWIN_OSX)
   if (!forPython)
     return std::string{PREFIX_USR_PATH"/lib"};
-#endif
   return std::string{};
+#endif
+}
+
+namespace
+{
+NSString* getExecutablePath()
+{
+  return NSBundle.mainBundle.executablePath;
+}
 }
 
 int  CDarwinUtils::GetExecutablePath(char* path, size_t *pathsize)
 {
-  CCocoaAutoPool pool;
-  // see if we can figure out who we are
-  NSString *pathname;
-
-  // 1) Kodi application running under IOS
-  // 2) Kodi application running under OSX
-  pathname = [[NSBundle mainBundle] executablePath];
-  strcpy(path, [pathname UTF8String]);
+  @autoreleasepool
+  {
+    strcpy(path, getExecutablePath().UTF8String);
+  }
   *pathsize = strlen(path);
-  //CLog::Log(LOGDEBUG, "DarwinExecutablePath(b/c) -> %s", path);
 
   return 0;
 }
@@ -346,10 +148,17 @@ const char* CDarwinUtils::GetAppRootFolder(void)
   {
     if (IsIosSandboxed())
     {
+#ifdef TARGET_DARWIN_TVOS
+      // writing to Documents is prohibited, more info:
+      // https://developer.apple.com/library/archive/documentation/General/Conceptual/AppleTV_PG/index.html#//apple_ref/doc/uid/TP40015241-CH12-SW5
+      // https://forums.developer.apple.com/thread/89008
+      rootFolder = "Library/Caches";
+#else
       // when we are sandbox make documents our root
       // so that user can access everything he needs
       // via itunes sharing
       rootFolder = "Documents";
+#endif
     }
     else
     {
@@ -363,35 +172,20 @@ bool CDarwinUtils::IsIosSandboxed(void)
 {
   static bool ret = false;
   static std::once_flag flag;
-  std::call_once(flag, []
-  {
-    size_t path_size = 2*MAXPATHLEN;
-    char given_path[path_size];
-    memset(given_path, 0x0, path_size);
-    /* Get Application directory */
-    int result = GetExecutablePath(given_path, &path_size);
-    if (result == 0)
+  std::call_once(flag, [] {
+    auto executablePath = getExecutablePath();
+    auto sandboxPrefixPaths = {
+        // since iOS later than 9.0.2 but before 9.3.5
+        @"/var/containers/Bundle/",
+        // since iOS 13
+        @"/private/var/containers/Bundle/",
+    };
+    for (auto prefixPath : sandboxPrefixPaths)
     {
-      // we're sandboxed if we are installed in /var/mobile/Applications
-      if (strlen("/var/mobile/Applications/") < path_size &&
-        strncmp(given_path, "/var/mobile/Applications/", strlen("/var/mobile/Applications/")) == 0)
+      if ([executablePath hasPrefix:prefixPath])
       {
         ret = true;
-      }
-
-      // since ios8 the sandbox filesystem has moved to container approach
-      // we are also sandboxed if this is our bundle path
-      if (strlen("/var/mobile/Containers/Bundle/") < path_size &&
-        strncmp(given_path, "/var/mobile/Containers/Bundle/", strlen("/var/mobile/Containers/Bundle/")) == 0)
-      {
-        ret = true;
-      }
-
-      // Some time after ios8, Apple decided to change this yet again
-      if (strlen("/var/containers/Bundle/") < path_size &&
-        strncmp(given_path, "/var/containers/Bundle/", strlen("/var/containers/Bundle/")) == 0)
-      {
-        ret = true;
+        break;
       }
     }
   });
@@ -430,19 +224,19 @@ bool CFStringRefToStringWithEncoding(CFStringRef source, std::string &destinatio
   {
     CFIndex strLen = CFStringGetMaximumSizeForEncoding(CFStringGetLength(source) + 1,
                                                        encoding);
-    char *allocStr = (char*)malloc(strLen);
+    char* allocStr = static_cast<char*>(malloc(strLen));
 
     if(!allocStr)
       return false;
 
     if(!CFStringGetCString(source, allocStr, strLen, encoding))
     {
-      free((void*)allocStr);
+      free(static_cast<void*>(allocStr));
       return false;
     }
 
     destination = allocStr;
-    free((void*)allocStr);
+    free(static_cast<void*>(allocStr));
 
     return true;
   }
@@ -486,11 +280,12 @@ const std::string& CDarwinUtils::GetManufacturer(void)
         CFTypeRef manufacturer = IORegistryEntryCreateCFProperty(servExpDev, CFSTR("manufacturer"), kCFAllocatorDefault, 0);
         if (manufacturer)
         {
-          if (CFGetTypeID(manufacturer) == CFStringGetTypeID())
-            manufName = (const char*)[[NSString stringWithString:(NSString *)manufacturer] UTF8String];
-          else if (CFGetTypeID(manufacturer) == CFDataGetTypeID())
+          auto typeId = CFGetTypeID(manufacturer);
+          if (typeId == CFStringGetTypeID())
+            manufName = static_cast<const char*>([NSString stringWithString:(__bridge NSString*)manufacturer].UTF8String);
+          else if (typeId == CFDataGetTypeID())
           {
-            manufName.assign((const char*)CFDataGetBytePtr((CFDataRef)manufacturer), CFDataGetLength((CFDataRef)manufacturer));
+            manufName.assign(reinterpret_cast<const char*>(CFDataGetBytePtr((CFDataRef)manufacturer)), CFDataGetLength((CFDataRef)manufacturer));
             if (!manufName.empty() && manufName[manufName.length() - 1] == 0)
               manufName.erase(manufName.length() - 1); // remove extra null at the end if any
           }
@@ -509,31 +304,27 @@ bool CDarwinUtils::IsAliasShortcut(const std::string& path, bool isdirectory)
   bool ret = false;
 
 #if defined(TARGET_DARWIN_OSX)
-  CCocoaAutoPool pool;
-
-  NSURL *nsUrl;
-  if (isdirectory)
+  @autoreleasepool
   {
-    std::string cleanpath = path;
-    URIUtils::RemoveSlashAtEnd(cleanpath);
-    NSString *nsPath = [NSString stringWithUTF8String:cleanpath.c_str()];
-    nsUrl = [NSURL fileURLWithPath:nsPath isDirectory:TRUE];
-  }
-  else
-  {
-    NSString *nsPath = [NSString stringWithUTF8String:path.c_str()];
-    nsUrl = [NSURL fileURLWithPath:nsPath isDirectory:FALSE];
-  }
-
-  NSNumber* wasAliased = nil;
-
-  if (nsUrl != nil)
-  {
-    NSError *error = nil;
-
-    if ([nsUrl getResourceValue:&wasAliased forKey:NSURLIsAliasFileKey error:&error])
+    NSURL* nsUrl;
+    if (isdirectory)
     {
-      ret = [wasAliased boolValue];
+      std::string cleanpath = path;
+      URIUtils::RemoveSlashAtEnd(cleanpath);
+      NSString* nsPath = [NSString stringWithUTF8String:cleanpath.c_str()];
+      nsUrl = [NSURL fileURLWithPath:nsPath isDirectory:YES];
+    }
+    else
+    {
+      NSString* nsPath = [NSString stringWithUTF8String:path.c_str()];
+      nsUrl = [NSURL fileURLWithPath:nsPath isDirectory:NO];
+    }
+
+    if (nsUrl != nil)
+    {
+      NSNumber* wasAliased;
+      if ([nsUrl getResourceValue:&wasAliased forKey:NSURLIsAliasFileKey error:nil])
+        ret = [wasAliased boolValue];
     }
   }
 #endif

@@ -74,14 +74,14 @@ void CRumbleGenerator::Process(void)
     std::vector<std::string> motors;
 
     if (std::find(m_motors.begin(), m_motors.end(), WEAK_MOTOR_NAME) != m_motors.end())
-      motors.push_back(WEAK_MOTOR_NAME);
+      motors.emplace_back(WEAK_MOTOR_NAME);
     else
       motors = m_motors; // Not using default profile? Just rumble all motors
 
     for (const std::string& motor : motors)
       m_receiver->SetRumbleState(motor, 1.0f);
 
-    Sleep(RUMBLE_NOTIFICATION_DURATION_MS);
+    CThread::Sleep(RUMBLE_NOTIFICATION_DURATION_MS);
 
     if (m_bStop)
       break;
@@ -97,7 +97,7 @@ void CRumbleGenerator::Process(void)
     {
       m_receiver->SetRumbleState(motor, 1.0f);
 
-      Sleep(RUMBLE_TEST_DURATION_MS);
+      CThread::Sleep(RUMBLE_TEST_DURATION_MS);
 
       if (m_bStop)
         break;

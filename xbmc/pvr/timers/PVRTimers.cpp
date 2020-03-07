@@ -9,10 +9,10 @@
 #include "PVRTimers.h"
 
 #include "ServiceBroker.h"
-#include "addons/PVRClient.h"
 #include "pvr/PVRDatabase.h"
-#include "pvr/PVRJobs.h"
+#include "pvr/PVREventLogJob.h"
 #include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClient.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/epg/Epg.h"
@@ -33,18 +33,21 @@
 
 using namespace PVR;
 
-bool CPVRTimersContainer::UpdateFromClient(const CPVRTimerInfoTagPtr &timer)
+bool CPVRTimersContainer::UpdateFromClient(const std::shared_ptr<CPVRTimerInfoTag>& timer)
 {
   CSingleLock lock(m_critSection);
-  CPVRTimerInfoTagPtr tag = GetByClient(timer->m_iClientId, timer->m_iClientIndex);
-  if (!tag)
+  std::shared_ptr<CPVRTimerInfoTag> tag = GetByClient(timer->m_iClientId, timer->m_iClientIndex);
+  if (tag)
   {
-    tag.reset(new CPVRTimerInfoTag());
-    tag->m_iTimerId = ++m_iLastId;
-    InsertEntry(tag);
+    return tag->UpdateEntry(timer);
+  }
+  else
+  {
+    timer->m_iTimerId = ++m_iLastId;
+    InsertEntry(timer);
   }
 
-  return tag->UpdateEntry(timer);
+  return true;
 }
 
 std::shared_ptr<CPVRTimerInfoTag> CPVRTimersContainer::GetByClient(int iClientId, int iClientIndex) const
@@ -61,7 +64,7 @@ std::shared_ptr<CPVRTimerInfoTag> CPVRTimersContainer::GetByClient(int iClientId
     }
   }
 
-  return CPVRTimerInfoTagPtr();
+  return std::shared_ptr<CPVRTimerInfoTag>();
 }
 
 void CPVRTimersContainer::InsertEntry(const std::shared_ptr<CPVRTimerInfoTag>& newTimer)
@@ -78,7 +81,7 @@ void CPVRTimersContainer::InsertEntry(const std::shared_ptr<CPVRTimerInfoTag>& n
   }
 }
 
-CPVRTimers::CPVRTimers(void)
+CPVRTimers::CPVRTimers()
 : CThread("PVRTimers"),
   m_settings({
     CSettings::SETTING_PVRPOWERMANAGEMENT_DAILYWAKEUP,
@@ -90,11 +93,7 @@ CPVRTimers::CPVRTimers(void)
 {
 }
 
-CPVRTimers::~CPVRTimers(void)
-{
-}
-
-bool CPVRTimers::Load(void)
+bool CPVRTimers::Load()
 {
   // unload previous timers
   Unload();
@@ -104,7 +103,7 @@ bool CPVRTimers::Load(void)
 
   Update(); // update from clients
 
-  CServiceBroker::GetPVRManager().EpgContainer().RegisterObserver(this);
+  CServiceBroker::GetPVRManager().EpgContainer().Events().Subscribe(this, &CPVRTimers::Notify);
   Create();
 
   return bReturn;
@@ -113,14 +112,14 @@ bool CPVRTimers::Load(void)
 void CPVRTimers::Unload()
 {
   StopThread();
-  CServiceBroker::GetPVRManager().EpgContainer().UnregisterObserver(this);
+  CServiceBroker::GetPVRManager().EpgContainer().Events().Unsubscribe(this);
 
   // remove all tags
   CSingleLock lock(m_critSection);
   m_tags.clear();
 }
 
-bool CPVRTimers::Update(void)
+bool CPVRTimers::Update()
 {
   {
     CSingleLock lock(m_critSection);
@@ -164,11 +163,11 @@ void CPVRTimers::Process()
     // update all timers not owned by a client (e.g. reminders)
     UpdateEntries(MAX_NOTIFICATION_DELAY);
 
-    Sleep(MAX_NOTIFICATION_DELAY * 1000);
+    CThread::Sleep(MAX_NOTIFICATION_DELAY * 1000);
   }
 }
 
-bool CPVRTimers::IsRecording(void) const
+bool CPVRTimers::IsRecording() const
 {
   CSingleLock lock(m_critSection);
 
@@ -201,7 +200,7 @@ void CPVRTimers::RemoveEntry(const std::shared_ptr<CPVRTimerInfoTag>& tag)
   }
 }
 
-bool CPVRTimers::UpdateEntries(const CPVRTimersContainer &timers, const std::vector<int> &failedClients)
+bool CPVRTimers::UpdateEntries(const CPVRTimersContainer& timers, const std::vector<int>& failedClients)
 {
   bool bChanged(false);
   bool bAddedOrDeleted(false);
@@ -215,7 +214,7 @@ bool CPVRTimers::UpdateEntries(const CPVRTimersContainer &timers, const std::vec
     for (VecTimerInfoTag::const_iterator timerIt = it->second.begin(); timerIt != it->second.end(); ++timerIt)
     {
       /* check if this timer is present in this container */
-      CPVRTimerInfoTagPtr existingTimer = GetByClient((*timerIt)->m_iClientId, (*timerIt)->m_iClientIndex);
+      std::shared_ptr<CPVRTimerInfoTag> existingTimer = GetByClient((*timerIt)->m_iClientId, (*timerIt)->m_iClientIndex);
       if (existingTimer)
       {
         /* if it's present, update the current tag */
@@ -239,7 +238,7 @@ bool CPVRTimers::UpdateEntries(const CPVRTimersContainer &timers, const std::vec
       else
       {
         /* new timer */
-        CPVRTimerInfoTagPtr newTimer = CPVRTimerInfoTagPtr(new CPVRTimerInfoTag);
+        std::shared_ptr<CPVRTimerInfoTag> newTimer = std::shared_ptr<CPVRTimerInfoTag>(new CPVRTimerInfoTag);
         newTimer->UpdateEntry(*timerIt);
         newTimer->m_iTimerId = ++m_iLastId;
         InsertEntry(newTimer);
@@ -249,7 +248,7 @@ bool CPVRTimers::UpdateEntries(const CPVRTimersContainer &timers, const std::vec
 
         std::string strMessage;
         newTimer->GetNotificationText(strMessage);
-        timerNotifications.push_back(std::make_pair(newTimer->m_iClientId, strMessage));
+        timerNotifications.emplace_back(newTimer->m_iClientId, strMessage);
 
         CLog::LogFC(LOGDEBUG, LOGPVR, "Added timer %d on client %d",
                     (*timerIt)->m_iClientIndex, (*timerIt)->m_iClientId);
@@ -263,7 +262,7 @@ bool CPVRTimers::UpdateEntries(const CPVRTimersContainer &timers, const std::vec
   /* check for deleted timers */
   for (MapTags::iterator it = m_tags.begin(); it != m_tags.end();)
   {
-    for (std::vector<CPVRTimerInfoTagPtr>::iterator it2 = it->second.begin(); it2 != it->second.end();)
+    for (std::vector<std::shared_ptr<CPVRTimerInfoTag>>::iterator it2 = it->second.begin(); it2 != it->second.end();)
     {
       const std::shared_ptr<CPVRTimerInfoTag> timer = *it2;
       if (!timers.GetByClient(timer->m_iClientId, timer->m_iClientIndex))
@@ -291,7 +290,7 @@ bool CPVRTimers::UpdateEntries(const CPVRTimersContainer &timers, const std::vec
         CLog::LogFC(LOGDEBUG, LOGPVR, "Deleted timer %d on client %d",
                     timer->m_iClientIndex, timer->m_iClientId);
 
-        timerNotifications.push_back(std::make_pair(timer->m_iClientId, timer->GetDeletedNotificationText()));
+        timerNotifications.emplace_back(timer->m_iClientId, timer->GetDeletedNotificationText());
 
         it2 = it->second.erase(it2);
 
@@ -332,9 +331,9 @@ bool CPVRTimers::UpdateEntries(const CPVRTimersContainer &timers, const std::vec
   }
 
   /* update child information for all parent timers */
-  for (const auto &tagsEntry : m_tags)
+  for (const auto& tagsEntry : m_tags)
   {
-    for (const auto &timersEntry : tagsEntry.second)
+    for (const auto& timersEntry : tagsEntry.second)
     {
       if (timersEntry->IsTimerRule())
         timersEntry->ResetChildState();
@@ -358,12 +357,12 @@ bool CPVRTimers::UpdateEntries(const CPVRTimersContainer &timers, const std::vec
 
     if (!timerNotifications.empty() && CServiceBroker::GetPVRManager().IsStarted())
     {
-      CPVREventlogJob *job = new CPVREventlogJob;
+      CPVREventLogJob* job = new CPVREventLogJob;
 
       /* queue notifications / fill eventlog */
-      for (const auto &entry : timerNotifications)
+      for (const auto& entry : timerNotifications)
       {
-        const CPVRClientPtr client = CServiceBroker::GetPVRManager().GetClient(entry.first);
+        const std::shared_ptr<CPVRClient> client = CServiceBroker::GetPVRManager().GetClient(entry.first);
         if (client)
         {
           job->AddEvent(m_settings.GetBoolValue(CSettings::SETTING_PVRRECORD_TIMERNOTIFICATIONS),
@@ -670,20 +669,20 @@ std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetNextReminderToAnnnounce()
   return ret;
 }
 
-bool CPVRTimers::KindMatchesTag(const TimerKind &eKind, const CPVRTimerInfoTagPtr &tag) const
+bool CPVRTimers::KindMatchesTag(const TimerKind& eKind, const std::shared_ptr<CPVRTimerInfoTag>& tag) const
 {
   return (eKind == TimerKindAny) ||
          (eKind == TimerKindTV && !tag->m_bIsRadio) ||
          (eKind == TimerKindRadio && tag->m_bIsRadio);
 }
 
-std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetNextActiveTimer(const TimerKind &eKind, bool bIgnoreReminders) const
+std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetNextActiveTimer(const TimerKind& eKind, bool bIgnoreReminders) const
 {
   CSingleLock lock(m_critSection);
 
-  for (const auto &tagsEntry : m_tags)
+  for (const auto& tagsEntry : m_tags)
   {
-    for (const auto &timersEntry : tagsEntry.second)
+    for (const auto& timersEntry : tagsEntry.second)
     {
       if (bIgnoreReminders && timersEntry->IsReminder())
         continue;
@@ -705,17 +704,17 @@ std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetNextActiveTimer(bool bIgnoreRem
   return GetNextActiveTimer(TimerKindAny, bIgnoreReminders);
 }
 
-std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetNextActiveTVTimer(void) const
+std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetNextActiveTVTimer() const
 {
   return GetNextActiveTimer(TimerKindTV, true);
 }
 
-std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetNextActiveRadioTimer(void) const
+std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetNextActiveRadioTimer() const
 {
   return GetNextActiveTimer(TimerKindRadio, true);
 }
 
-std::vector<std::shared_ptr<CPVRTimerInfoTag>> CPVRTimers::GetActiveTimers(void) const
+std::vector<std::shared_ptr<CPVRTimerInfoTag>> CPVRTimers::GetActiveTimers() const
 {
   std::vector<std::shared_ptr<CPVRTimerInfoTag>> tags;
   CSingleLock lock(m_critSection);
@@ -724,7 +723,7 @@ std::vector<std::shared_ptr<CPVRTimerInfoTag>> CPVRTimers::GetActiveTimers(void)
   {
     for (VecTimerInfoTag::const_iterator timerIt = it->second.begin(); timerIt != it->second.end(); ++timerIt)
     {
-      CPVRTimerInfoTagPtr current = *timerIt;
+      std::shared_ptr<CPVRTimerInfoTag> current = *timerIt;
       if (current->IsActive() &&
           !current->IsBroken() &&
           !current->IsReminder() &&
@@ -738,14 +737,14 @@ std::vector<std::shared_ptr<CPVRTimerInfoTag>> CPVRTimers::GetActiveTimers(void)
   return tags;
 }
 
-int CPVRTimers::AmountActiveTimers(const TimerKind &eKind) const
+int CPVRTimers::AmountActiveTimers(const TimerKind& eKind) const
 {
   int iReturn = 0;
   CSingleLock lock(m_critSection);
 
-  for (const auto &tagsEntry : m_tags)
+  for (const auto& tagsEntry : m_tags)
   {
-    for (const auto &timersEntry : tagsEntry.second)
+    for (const auto& timersEntry : tagsEntry.second)
     {
       if (KindMatchesTag(eKind, timersEntry) &&
           timersEntry->IsActive() &&
@@ -759,17 +758,17 @@ int CPVRTimers::AmountActiveTimers(const TimerKind &eKind) const
   return iReturn;
 }
 
-int CPVRTimers::AmountActiveTimers(void) const
+int CPVRTimers::AmountActiveTimers() const
 {
   return AmountActiveTimers(TimerKindAny);
 }
 
-int CPVRTimers::AmountActiveTVTimers(void) const
+int CPVRTimers::AmountActiveTVTimers() const
 {
   return AmountActiveTimers(TimerKindTV);
 }
 
-int CPVRTimers::AmountActiveRadioTimers(void) const
+int CPVRTimers::AmountActiveRadioTimers() const
 {
   return AmountActiveTimers(TimerKindRadio);
 }
@@ -779,9 +778,9 @@ std::vector<std::shared_ptr<CPVRTimerInfoTag>> CPVRTimers::GetActiveRecordings(c
   std::vector<std::shared_ptr<CPVRTimerInfoTag>> tags;
   CSingleLock lock(m_critSection);
 
-  for (const auto &tagsEntry : m_tags)
+  for (const auto& tagsEntry : m_tags)
   {
-    for (const auto &timersEntry : tagsEntry.second)
+    for (const auto& timersEntry : tagsEntry.second)
     {
       if (KindMatchesTag(eKind, timersEntry) &&
           timersEntry->IsRecording() &&
@@ -812,14 +811,14 @@ std::vector<std::shared_ptr<CPVRTimerInfoTag>> CPVRTimers::GetActiveRadioRecordi
   return GetActiveRecordings(TimerKindRadio);
 }
 
-int CPVRTimers::AmountActiveRecordings(const TimerKind &eKind) const
+int CPVRTimers::AmountActiveRecordings(const TimerKind& eKind) const
 {
   int iReturn = 0;
   CSingleLock lock(m_critSection);
 
-  for (const auto &tagsEntry : m_tags)
+  for (const auto& tagsEntry : m_tags)
   {
-    for (const auto &timersEntry : tagsEntry.second)
+    for (const auto& timersEntry : tagsEntry.second)
     {
       if (KindMatchesTag(eKind, timersEntry) &&
           timersEntry->IsRecording() &&
@@ -833,24 +832,24 @@ int CPVRTimers::AmountActiveRecordings(const TimerKind &eKind) const
   return iReturn;
 }
 
-int CPVRTimers::AmountActiveRecordings(void) const
+int CPVRTimers::AmountActiveRecordings() const
 {
   return AmountActiveRecordings(TimerKindAny);
 }
 
-int CPVRTimers::AmountActiveTVRecordings(void) const
+int CPVRTimers::AmountActiveTVRecordings() const
 {
   return AmountActiveRecordings(TimerKindTV);
 }
 
-int CPVRTimers::AmountActiveRadioRecordings(void) const
+int CPVRTimers::AmountActiveRadioRecordings() const
 {
   return AmountActiveRecordings(TimerKindRadio);
 }
 
 /********** channel methods **********/
 
-bool CPVRTimers::DeleteTimersOnChannel(const CPVRChannelPtr &channel, bool bDeleteTimerRules /* = true */, bool bCurrentlyActiveOnly /* = false */)
+bool CPVRTimers::DeleteTimersOnChannel(const std::shared_ptr<CPVRChannel>& channel, bool bDeleteTimerRules /* = true */, bool bCurrentlyActiveOnly /* = false */)
 {
   bool bReturn = false;
   bool bChanged = false;
@@ -917,7 +916,7 @@ std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::UpdateEntry(const std::shared_ptr<
   return bChanged ? tag : std::shared_ptr<CPVRTimerInfoTag>();
 }
 
-bool CPVRTimers::AddTimer(const CPVRTimerInfoTagPtr &tag)
+bool CPVRTimers::AddTimer(const std::shared_ptr<CPVRTimerInfoTag>& tag)
 {
   bool bReturn = false;
   if (tag->IsOwnedByClient())
@@ -931,7 +930,7 @@ bool CPVRTimers::AddTimer(const CPVRTimerInfoTagPtr &tag)
   return bReturn;
 }
 
-TimerOperationResult CPVRTimers::DeleteTimer(const CPVRTimerInfoTagPtr &tag, bool bForce /* = false */, bool bDeleteRule /* = false */)
+TimerOperationResult CPVRTimers::DeleteTimer(const std::shared_ptr<CPVRTimerInfoTag>& tag, bool bForce /* = false */, bool bDeleteRule /* = false */)
 {
   TimerOperationResult ret = TimerOperationResult::FAILED;
   if (!tag)
@@ -965,7 +964,7 @@ TimerOperationResult CPVRTimers::DeleteTimer(const CPVRTimerInfoTagPtr &tag, boo
   return ret;
 }
 
-bool CPVRTimers::RenameTimer(const CPVRTimerInfoTagPtr &tag, const std::string &strNewName)
+bool CPVRTimers::RenameTimer(const std::shared_ptr<CPVRTimerInfoTag>& tag, const std::string& strNewName)
 {
   bool bReturn = false;
   if (tag->IsOwnedByClient())
@@ -979,7 +978,7 @@ bool CPVRTimers::RenameTimer(const CPVRTimerInfoTagPtr &tag, const std::string &
   return bReturn;
 }
 
-bool CPVRTimers::UpdateTimer(const CPVRTimerInfoTagPtr &tag)
+bool CPVRTimers::UpdateTimer(const std::shared_ptr<CPVRTimerInfoTag>& tag)
 {
   bool bReturn = false;
   if (tag->IsOwnedByClient())
@@ -1005,7 +1004,7 @@ bool CPVRTimers::AddLocalTimer(const std::shared_ptr<CPVRTimerInfoTag>& tag, boo
     if (persistedTimer->IsEpgBased())
     {
       // create and persist children of local epg-based timer rule
-      const std::vector<CPVREpgInfoTagPtr> epgTags = GetEpgTagsForTimerRule(CPVRTimerRuleMatcher(persistedTimer,
+      const std::vector<std::shared_ptr<CPVREpgInfoTag>> epgTags = GetEpgTagsForTimerRule(CPVRTimerRuleMatcher(persistedTimer,
                                                                                                  CDateTime::GetUTCDateTime()));
       for (const auto& epgTag : epgTags)
       {
@@ -1129,7 +1128,7 @@ std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::PersistAndUpdateLocalTimer(
   return bReturn ? tag : std::shared_ptr<CPVRTimerInfoTag>();
 }
 
-bool CPVRTimers::IsRecordingOnChannel(const CPVRChannel &channel) const
+bool CPVRTimers::IsRecordingOnChannel(const CPVRChannel& channel) const
 {
   CSingleLock lock(m_critSection);
 
@@ -1147,12 +1146,12 @@ bool CPVRTimers::IsRecordingOnChannel(const CPVRChannel &channel) const
   return false;
 }
 
-CPVRTimerInfoTagPtr CPVRTimers::GetActiveTimerForChannel(const CPVRChannelPtr &channel) const
+std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetActiveTimerForChannel(const std::shared_ptr<CPVRChannel>& channel) const
 {
   CSingleLock lock(m_critSection);
-  for (const auto &tagsEntry : m_tags)
+  for (const auto& tagsEntry : m_tags)
   {
-    for (const auto &timersEntry : tagsEntry.second)
+    for (const auto& timersEntry : tagsEntry.second)
     {
       if (timersEntry->IsRecording() &&
           timersEntry->m_iClientChannelUid == channel->UniqueID() &&
@@ -1161,18 +1160,18 @@ CPVRTimerInfoTagPtr CPVRTimers::GetActiveTimerForChannel(const CPVRChannelPtr &c
     }
   }
 
-  return CPVRTimerInfoTagPtr();
+  return std::shared_ptr<CPVRTimerInfoTag>();
 }
 
-CPVRTimerInfoTagPtr CPVRTimers::GetTimerForEpgTag(const CPVREpgInfoTagPtr &epgTag) const
+std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetTimerForEpgTag(const std::shared_ptr<CPVREpgInfoTag>& epgTag) const
 {
   if (epgTag)
   {
     CSingleLock lock(m_critSection);
 
-    for (const auto &tagsEntry : m_tags)
+    for (const auto& tagsEntry : m_tags)
     {
-      for (const auto &timersEntry : tagsEntry.second)
+      for (const auto& timersEntry : tagsEntry.second)
       {
         if (timersEntry->IsTimerRule())
           continue;
@@ -1196,10 +1195,10 @@ CPVRTimerInfoTagPtr CPVRTimers::GetTimerForEpgTag(const CPVREpgInfoTagPtr &epgTa
     }
   }
 
-  return CPVRTimerInfoTagPtr();
+  return std::shared_ptr<CPVRTimerInfoTag>();
 }
 
-CPVRTimerInfoTagPtr CPVRTimers::GetTimerRule(const CPVRTimerInfoTagPtr &timer) const
+std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetTimerRule(const std::shared_ptr<CPVRTimerInfoTag>& timer) const
 {
   if (timer)
   {
@@ -1209,9 +1208,9 @@ CPVRTimerInfoTagPtr CPVRTimers::GetTimerRule(const CPVRTimerInfoTagPtr &timer) c
       int iClientId = timer->m_iClientId;
 
       CSingleLock lock(m_critSection);
-      for (const auto &tagsEntry : m_tags)
+      for (const auto& tagsEntry : m_tags)
       {
-        for (const auto &timersEntry : tagsEntry.second)
+        for (const auto& timersEntry : tagsEntry.second)
         {
           if (timersEntry->m_iClientId == iClientId && timersEntry->m_iClientIndex == iRuleId)
             return timersEntry;
@@ -1219,18 +1218,18 @@ CPVRTimerInfoTagPtr CPVRTimers::GetTimerRule(const CPVRTimerInfoTagPtr &timer) c
       }
     }
   }
-  return CPVRTimerInfoTagPtr();
+  return std::shared_ptr<CPVRTimerInfoTag>();
 }
 
-void CPVRTimers::Notify(const Observable &obs, const ObservableMessage msg)
+void CPVRTimers::Notify(const PVREvent& event)
 {
-  switch (msg)
+  switch (static_cast<PVREvent>(event))
   {
-    case ObservableMessageEpgContainer:
+    case PVREvent::EpgContainer:
       CServiceBroker::GetPVRManager().TriggerTimersUpdate();
       break;
-    case ObservableMessageEpg:
-    case ObservableMessageEpgItemUpdate:
+    case PVREvent::Epg:
+    case PVREvent::EpgItemUpdate:
     {
       CSingleLock lock(m_critSection);
       m_bReminderRulesUpdatePending = true;
@@ -1241,7 +1240,7 @@ void CPVRTimers::Notify(const Observable &obs, const ObservableMessage msg)
   }
 }
 
-CDateTime CPVRTimers::GetNextEventTime(void) const
+CDateTime CPVRTimers::GetNextEventTime() const
 {
   const bool dailywakup = m_settings.GetBoolValue(CSettings::SETTING_PVRPOWERMANAGEMENT_DAILYWAKEUP);
   const CDateTime now = CDateTime::GetUTCDateTime();
@@ -1286,7 +1285,7 @@ CDateTime CPVRTimers::GetNextEventTime(void) const
   return retVal;
 }
 
-void CPVRTimers::UpdateChannels(void)
+void CPVRTimers::UpdateChannels()
 {
   CSingleLock lock(m_critSection);
   for (MapTags::iterator it = m_tags.begin(); it != m_tags.end(); ++it)
@@ -1312,9 +1311,9 @@ std::vector<std::shared_ptr<CPVRTimerInfoTag>> CPVRTimers::GetAll() const
   return timers;
 }
 
-CPVRTimerInfoTagPtr CPVRTimers::GetById(unsigned int iTimerId) const
+std::shared_ptr<CPVRTimerInfoTag> CPVRTimers::GetById(unsigned int iTimerId) const
 {
-  CPVRTimerInfoTagPtr item;
+  std::shared_ptr<CPVRTimerInfoTag> item;
   CSingleLock lock(m_critSection);
   for (MapTags::const_iterator it = m_tags.begin(); !item && it != m_tags.end(); ++it)
   {
@@ -1329,11 +1328,5 @@ CPVRTimerInfoTagPtr CPVRTimers::GetById(unsigned int iTimerId) const
 
 void CPVRTimers::NotifyTimersEvent(bool bAddedOrDeleted /* = true */)
 {
-  CServiceBroker::GetPVRManager().SetChanged();
-  CServiceBroker::GetPVRManager().NotifyObservers(bAddedOrDeleted
-                                                  ? ObservableMessageTimersReset
-                                                  : ObservableMessageTimers);
-
-  if (bAddedOrDeleted)
-    CServiceBroker::GetPVRManager().PublishEvent(PVREvent::TimersInvalidated);
+  CServiceBroker::GetPVRManager().PublishEvent(bAddedOrDeleted ? PVREvent::TimersInvalidated : PVREvent::Timers);
 }

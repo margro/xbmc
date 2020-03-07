@@ -27,7 +27,7 @@
 #include "cores/IPlayerCallback.h"
 #include "settings/lib/ISettingsHandler.h"
 #include "settings/lib/ISettingCallback.h"
-#include "settings/lib/ISubSettings.h"
+#include "settings/ISubSettings.h"
 #if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
 #include "storage/DetectDVDType.h"
 #endif
@@ -199,6 +199,8 @@ public:
   void CheckShutdown();
   void InhibitIdleShutdown(bool inhibit);
   bool IsIdleShutdownInhibited() const;
+  void InhibitScreenSaver(bool inhibit);
+  bool IsScreenSaverInhibited() const;
   // Checks whether the screensaver and / or DPMS should become active.
   void CheckScreenSaverAndDPMS();
   void ActivateScreenSaver(bool forceType = false);
@@ -208,7 +210,8 @@ public:
   void Process() override;
   void ProcessSlow();
   void ResetScreenSaver();
-  float GetVolume(bool percentage = true) const;
+  float GetVolumePercent() const;
+  float GetVolumeRatio() const;
   void SetVolume(float iValue, bool isPercentage = true);
   bool IsMuted() const;
   bool IsMutedInternal() const { return m_muted; }
@@ -392,6 +395,9 @@ protected:
 #if defined(TARGET_DARWIN_IOS)
   friend class CWinEventsIOS;
 #endif
+#if defined(TARGET_DARWIN_TVOS)
+  friend class CWinEventsTVOS;
+#endif
 #if defined(TARGET_ANDROID)
   friend class CWinEventsAndroid;
 #endif
@@ -420,6 +426,7 @@ protected:
   XbmcThreads::EndTime m_guiRefreshTimer;
 
   bool m_bInhibitIdleShutdown = false;
+  bool m_bInhibitScreenSaver = false;
 
   bool m_dpmsIsActive = false;
   bool m_dpmsIsManual = false;

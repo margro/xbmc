@@ -15,8 +15,8 @@
 #include "guilib/GUIMessage.h"
 #include "input/actions/Action.h"
 #include "input/actions/ActionIDs.h"
-#include "pvr/PVRGUIActions.h"
 #include "pvr/PVRManager.h"
+#include "pvr/guilib/PVRGUIActions.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "pvr/timers/PVRTimersPath.h"
 #include "settings/Settings.h"
@@ -28,18 +28,14 @@
 
 using namespace PVR;
 
-CGUIWindowPVRTimersBase::CGUIWindowPVRTimersBase(bool bRadio, int id, const std::string &xmlFile) :
+CGUIWindowPVRTimersBase::CGUIWindowPVRTimersBase(bool bRadio, int id, const std::string& xmlFile) :
   CGUIWindowPVRBase(bRadio, id, xmlFile)
 {
-  CServiceBroker::GetGUI()->GetInfoManager().RegisterObserver(this);
 }
 
-CGUIWindowPVRTimersBase::~CGUIWindowPVRTimersBase()
-{
-  CServiceBroker::GetGUI()->GetInfoManager().UnregisterObserver(this);
-}
+CGUIWindowPVRTimersBase::~CGUIWindowPVRTimersBase() = default;
 
-bool CGUIWindowPVRTimersBase::OnAction(const CAction &action)
+bool CGUIWindowPVRTimersBase::OnAction(const CAction& action)
 {
   if (action.GetID() == ACTION_PARENT_DIR ||
       action.GetID() == ACTION_NAV_BACK)
@@ -55,7 +51,7 @@ bool CGUIWindowPVRTimersBase::OnAction(const CAction &action)
   return CGUIWindowPVRBase::OnAction(action);
 }
 
-bool CGUIWindowPVRTimersBase::Update(const std::string &strDirectory, bool updateFilterPath /* = true */)
+bool CGUIWindowPVRTimersBase::Update(const std::string& strDirectory, bool updateFilterPath /* = true */)
 {
   int iOldCount = m_vecItems->GetObjectCount();
   const std::string oldPath = m_vecItems->GetPath();
@@ -76,7 +72,7 @@ bool CGUIWindowPVRTimersBase::Update(const std::string &strDirectory, bool updat
   return bReturn;
 }
 
-void CGUIWindowPVRTimersBase::UpdateButtons(void)
+void CGUIWindowPVRTimersBase::UpdateButtons()
 {
   SET_CONTROL_SELECTED(GetID(), CONTROL_BTNHIDEDISABLEDTIMERS, CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_PVRTIMERS_HIDEDISABLEDTIMERS));
 
@@ -85,14 +81,14 @@ void CGUIWindowPVRTimersBase::UpdateButtons(void)
   std::string strHeaderTitle;
   if (m_currentFileItem && m_currentFileItem->HasPVRTimerInfoTag())
   {
-    CPVRTimerInfoTagPtr timer = m_currentFileItem->GetPVRTimerInfoTag();
+    std::shared_ptr<CPVRTimerInfoTag> timer = m_currentFileItem->GetPVRTimerInfoTag();
     strHeaderTitle = timer->Title();
   }
 
   SET_CONTROL_LABEL(CONTROL_LABEL_HEADER1, strHeaderTitle);
 }
 
-bool CGUIWindowPVRTimersBase::OnMessage(CGUIMessage &message)
+bool CGUIWindowPVRTimersBase::OnMessage(CGUIMessage& message)
 {
   bool bReturn = false;
   switch (message.GetMessage())
@@ -146,29 +142,32 @@ bool CGUIWindowPVRTimersBase::OnMessage(CGUIMessage &message)
       }
       break;
     case GUI_MSG_REFRESH_LIST:
-      switch(message.GetParam1())
+    {
+      switch (static_cast<PVREvent>(message.GetParam1()))
       {
-        case ObservableMessageTimers:
-        case ObservableMessageEpg:
-        case ObservableMessageEpgContainer:
-        case ObservableMessageEpgActiveItem:
-        case ObservableMessageCurrentItem:
-        {
+        case PVREvent::CurrentItem:
+        case PVREvent::Epg:
+        case PVREvent::EpgActiveItem:
+        case PVREvent::EpgContainer:
+        case PVREvent::Timers:
           SetInvalid();
           break;
-        }
-        case ObservableMessageTimersReset:
-        {
+
+        case PVREvent::TimersInvalidated:
           Refresh(true);
           break;
-        }
+
+        default:
+          break;
       }
+      break;
+    }
   }
 
   return bReturn || CGUIWindowPVRBase::OnMessage(message);
 }
 
-bool CGUIWindowPVRTimersBase::ActionShowTimer(const CFileItemPtr &item)
+bool CGUIWindowPVRTimersBase::ActionShowTimer(const CFileItemPtr& item)
 {
   bool bReturn = false;
 

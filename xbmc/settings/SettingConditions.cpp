@@ -83,6 +83,11 @@ bool IsFullscreen(const std::string &condition, const std::string &value, Settin
   return CServiceBroker::GetWinSystem()->IsFullScreen();
 }
 
+bool IsHDRDisplay(const std::string& condition, const std::string& value, SettingConstPtr setting, void* data)
+{
+  return CServiceBroker::GetWinSystem()->IsHDRDisplay();
+}
+
 bool IsMasterUser(const std::string &condition, const std::string &value, SettingConstPtr setting, void *data)
 {
   return g_passwordManager.bMasterUser;
@@ -302,6 +307,9 @@ void CSettingConditions::Initialize()
 #ifdef TARGET_DARWIN_IOS
   m_simpleConditions.insert("have_ios");
 #endif
+#ifdef TARGET_DARWIN_TVOS
+  m_simpleConditions.insert("have_tvos");
+#endif
 #if defined(TARGET_WINDOWS)
   m_simpleConditions.insert("has_dx");
   m_simpleConditions.insert("hasdxva2");
@@ -333,6 +341,7 @@ void CSettingConditions::Initialize()
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("hasrumblecontroller",           HasRumbleController));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("haspowerofffeature",            HasPowerOffFeature));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("isfullscreen",                  IsFullscreen));
+  m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("ishdrdisplay",                  IsHDRDisplay));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("ismasteruser",                  IsMasterUser));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("isusingttfsubtitles",           IsUsingTTFSubtitles));
   m_complexConditions.insert(std::pair<std::string, SettingConditionCheck>("profilecanwritedatabase",       ProfileCanWriteDatabase));

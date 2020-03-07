@@ -22,7 +22,7 @@ using namespace MUSIC_INFO;
 CSong::CSong(CFileItem& item)
 {
   CMusicInfoTag& tag = *item.GetMusicInfoTag();
-  SYSTEMTIME stTime;
+  KODI::TIME::SystemTime stTime;
   tag.GetReleaseDate(stTime);
   strTitle = tag.GetTitle();
   genre = tag.GetGenre();
@@ -56,7 +56,8 @@ CSong::CSong(CFileItem& item)
   rating = tag.GetRating();
   userrating = tag.GetUserrating();
   votes = tag.GetVotes();
-  iYear = stTime.wYear;
+  iYear = stTime.year;
+  strDiscSubtitle = tag.GetDiscSubtitle();
   iTrack = tag.GetTrackAndDiscNumber();
   iDuration = tag.GetDuration();
   strRecordLabel = tag.GetRecordLabel();
@@ -254,6 +255,7 @@ void CSong::Clear()
   iTrack = 0;
   iDuration = 0;
   iYear = 0;
+  strDiscSubtitle.clear();
   iStartOffset = 0;
   iEndOffset = 0;
   idSong = -1;
@@ -348,4 +350,9 @@ bool CSong::ArtMatches(const CSong &right) const
 {
   return (right.strThumb == strThumb &&
           embeddedArt.Matches(right.embeddedArt));
+}
+
+const std::string CSong::GetDiscSubtitle() const
+{
+  return strDiscSubtitle;
 }

@@ -12,9 +12,7 @@
 #include "ServiceBroker.h"
 #include "cores/Cut.h"
 #include "filesystem/File.h"
-#include "pvr/PVRManager.h"
-#include "pvr/epg/EpgInfoTag.h"
-#include "pvr/recordings/PVRRecording.h"
+#include "pvr/PVREdl.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"
 #include "utils/StringUtils.h"
@@ -45,48 +43,8 @@ void CEdl::Clear()
   m_lastCutTime = 0;
 }
 
-bool CEdl::ReadEditDecisionLists(const CFileItem& fileItem, const float fFrameRate, const int iHeight)
+bool CEdl::ReadEditDecisionLists(const CFileItem& fileItem, const float fFramesPerSecond)
 {
-  /*
-   * The frame rate hints returned from ffmpeg for the video stream do not appear to take into
-   * account whether the content is interlaced. This affects the calculation to time offsets based
-   * on frames per second as most commercial detection programs use full frames, which need two
-   * interlaced fields to calculate a single frame so the actual frame rate is half.
-   *
-   * Adjust the frame rate using the detected frame rate or height to determine typical interlaced
-   * content (obtained from http://en.wikipedia.org/wiki/Frame_rate)
-   *
-   * Note that this is a HACK and we should be able to get the frame rate from the source sending
-   * back frame markers. However, this doesn't seem possible for MythTV.
-   */
-  float fFramesPerSecond;
-  if (iHeight <= 480 && int(fFrameRate * 100) == 5994) // 59.940 fps = NTSC or 60i content except for 1280x720/60
-  {
-    fFramesPerSecond = fFrameRate / 2; // ~29.97f - division used to retain accuracy of original.
-    CLog::Log(LOGDEBUG, "%s - Assuming NTSC or 60i interlaced content. Adjusted frames per second from %.3f (~59.940 fps) to %.3f",
-              __FUNCTION__, fFrameRate, fFramesPerSecond);
-  }
-  else if (int(fFrameRate * 100) == 4795) // 47.952 fps = 24p -> NTSC conversion
-  {
-    fFramesPerSecond = fFrameRate / 2; // ~23.976f - division used to retain accuracy of original.
-    CLog::Log(LOGDEBUG, "%s - Assuming 24p -> NTSC conversion interlaced content. Adjusted frames per second from %.3f (~47.952 fps) to %.3f",
-              __FUNCTION__, fFrameRate, fFramesPerSecond);
-  }
-  else if (iHeight == 576 && fFrameRate > 30.0) // PAL @ 50.0fps rather than PAL @ 25.0 fps. Can't use direct fps check of 50.0 as this is valid for 720p
-  {
-    fFramesPerSecond = fFrameRate / 2; // ~25.0f - division used to retain accuracy of original.
-    CLog::Log(LOGDEBUG, "%s - Assuming PAL interlaced content. Adjusted frames per second from %.3f (~50.00 fps) to %.3f",
-              __FUNCTION__, fFrameRate, fFramesPerSecond);
-  }
-  else if (iHeight == 1080 && fFrameRate > 30.0) // Don't know of any 1080p content being broadcast at higher than 30.0 fps so assume 1080i
-  {
-    fFramesPerSecond = fFrameRate / 2;
-    CLog::Log(LOGDEBUG, "%s - Assuming 1080i interlaced content. Adjusted frames per second from %.3f to %.3f",
-              __FUNCTION__, fFrameRate, fFramesPerSecond);
-  }
-  else // Assume everything else is not interlaced, e.g. 720p.
-    fFramesPerSecond = fFrameRate;
-
   bool bFound = false;
 
   /*
@@ -115,22 +73,8 @@ bool CEdl::ReadEditDecisionLists(const CFileItem& fileItem, const float fFrameRa
     if (!bFound)
       bFound = ReadBeyondTV(strMovie);
   }
-
-  /*
-   * PVR Recordings
-   */
-  else if (fileItem.IsPVRRecording())
+  else
   {
-    CLog::Log(LOGDEBUG, "%s - Checking for edit decision list (EDL) for PVR recording: %s",
-      __FUNCTION__, CURL::GetRedacted(strMovie).c_str());
-
-    bFound = ReadPvr(fileItem);
-  }
-  else if (fileItem.IsEPG())
-  {
-    CLog::Log(LOGDEBUG, "%s - Checking for edit decision list (EDL) for EPG entry: %s",
-      __FUNCTION__, CURL::GetRedacted(strMovie).c_str());
-
     bFound = ReadPvr(fileItem);
   }
 
@@ -190,6 +134,12 @@ bool CEdl::ReadEdl(const std::string& strMovie, const float fFramesPerSecond)
       strFields[1] = strFields[0];
     }
 
+    if (StringUtils::StartsWith(strFields[0], "##"))
+    {
+      CLog::Log(LOGDEBUG, "Skipping comment line %i in EDL file: %s", iLine,
+                CURL::GetRedacted(edlFilename).c_str());
+      continue;
+    }
     /*
      * For each of the first two fields read, parse based on whether it is a time string
      * (HH:MM:SS.sss), frame marker (#12345), or normal seconds string (123.45).
@@ -231,7 +181,16 @@ bool CEdl::ReadEdl(const std::string& strMovie, const float fFramesPerSecond)
       }
       else if (strFields[i][0] == '#') // #12345 format for frame number
       {
-        iCutStartEnd[i] = (int64_t)(atol(strFields[i].substr(1).c_str()) / fFramesPerSecond * 1000); // frame number to ms
+        if (fFramesPerSecond > 0.0f)
+        {
+          iCutStartEnd[i] = static_cast<int64_t>(std::atol(strFields[i].substr(1).c_str()) / fFramesPerSecond * 1000); // frame number to ms
+        }
+        else
+        {
+          CLog::Log(LOGERROR, "Edl::ReadEdl - Frame number not supported in EDL files when frame rate is unavailable (ts) - supplied frame number: %s",
+                    strFields[i].substr(1).c_str());
+          return false;
+        }
       }
       else // Plain old seconds in float format, e.g. 123.45
       {
@@ -341,9 +300,17 @@ bool CEdl::ReadComskip(const std::string& strMovie, const float fFramesPerSecond
     /*
      * Not all generated Comskip files have the frame rate information.
      */
-    fFrameRate = fFramesPerSecond;
-    CLog::Log(LOGWARNING, "%s - Frame rate not in Comskip file. Using detected frames per second: %.3f",
-              __FUNCTION__, fFrameRate);
+    if (fFramesPerSecond > 0.0f)
+    {
+      fFrameRate = fFramesPerSecond;
+      CLog::Log(LOGWARNING, "Edl::ReadComskip - Frame rate not in Comskip file. Using detected frames per second: %.3f",
+                fFrameRate);
+    }
+    else
+    {
+      CLog::Log(LOGERROR, "Edl::ReadComskip - Frame rate is unavailable and also not in Comskip file (ts).");
+      return false;
+    }
   }
   else
     fFrameRate /= 100; // Reduce by factor of 100 to get fps.
@@ -565,79 +532,48 @@ bool CEdl::ReadBeyondTV(const std::string& strMovie)
 
 bool CEdl::ReadPvr(const CFileItem &fileItem)
 {
-  const std::string strMovie = fileItem.GetDynPath();
-  if (!CServiceBroker::GetPVRManager().IsStarted())
+  const std::vector<Cut> cutlist = PVR::CPVREdl::GetCuts(fileItem);
+  for (const auto& cut : cutlist)
   {
-    CLog::Log(LOGERROR, "%s - PVR Manager not started, cannot read Edl for %s", __FUNCTION__, CURL::GetRedacted(strMovie).c_str());
-    return false;
-  }
-
-  std::vector<PVR_EDL_ENTRY> edl;
-
-  if (fileItem.HasPVRRecordingInfoTag())
-  {
-    CLog::Log(LOGDEBUG, "%s - Reading Edl for recording: %s", __FUNCTION__, fileItem.GetPVRRecordingInfoTag()->m_strTitle.c_str());
-    edl = fileItem.GetPVRRecordingInfoTag()->GetEdl();
-  }
-  else if (fileItem.HasEPGInfoTag())
-  {
-    CLog::Log(LOGDEBUG, "%s - Reading Edl for EPG: %s", __FUNCTION__, fileItem.GetEPGInfoTag()->Title().c_str());
-    edl = fileItem.GetEPGInfoTag()->GetEdl();
-  }
-  else
-  {
-    CLog::Log(LOGERROR, "%s - Unknown file item type : %s", __FUNCTION__, CURL::GetRedacted(strMovie).c_str());
-    return false;
-  }
-
-  std::vector<PVR_EDL_ENTRY>::const_iterator it;
-  for (it = edl.begin(); it != edl.end(); ++it)
-  {
-    Cut cut;
-    cut.start = it->start;
-    cut.end = it->end;
-
-    switch (it->type)
+    switch (cut.action)
     {
-    case PVR_EDL_TYPE_CUT:
-      cut.action = Action::CUT;
-      break;
-    case PVR_EDL_TYPE_MUTE:
-      cut.action = Action::MUTE;
-      break;
-    case PVR_EDL_TYPE_SCENE:
-      if (!AddSceneMarker(cut.end))
-      {
-        CLog::Log(LOGWARNING, "%s - Error adding scene marker for pvr recording", __FUNCTION__);
-      }
-      continue;
-    case PVR_EDL_TYPE_COMBREAK:
-      cut.action = Action::COMM_BREAK;
-      break;
-    default:
-      CLog::Log(LOGINFO, "%s - Ignoring entry of unknown type: %d", __FUNCTION__, it->type);
-      continue;
-    }
+      case Action::CUT:
+      case Action::MUTE:
+      case Action::COMM_BREAK:
+        if (AddCut(cut))
+        {
+          CLog::Log(LOGDEBUG, "%s - Added break [%s - %s] found in PVR item for: %s.",
+            __FUNCTION__, MillisecondsToTimeString(cut.start).c_str(),
+            MillisecondsToTimeString(cut.end).c_str(), CURL::GetRedacted(fileItem.GetDynPath()).c_str());
+        }
+        else
+        {
+          CLog::Log(LOGERROR, "%s - Invalid break [%s - %s] found in PVR item for: %s. Continuing anyway.",
+            __FUNCTION__, MillisecondsToTimeString(cut.start).c_str(),
+            MillisecondsToTimeString(cut.end).c_str(), CURL::GetRedacted(fileItem.GetDynPath()).c_str());
+        }
+        break;
 
-    if (AddCut(cut))
-    {
-      CLog::Log(LOGDEBUG, "%s - Added break [%s - %s] found in PVRRecording for: %s.",
-        __FUNCTION__, MillisecondsToTimeString(cut.start).c_str(),
-        MillisecondsToTimeString(cut.end).c_str(), CURL::GetRedacted(strMovie).c_str());
-    }
-    else
-    {
-      CLog::Log(LOGERROR, "%s - Invalid break [%s - %s] found in PVRRecording for: %s. Continuing anyway.",
-        __FUNCTION__, MillisecondsToTimeString(cut.start).c_str(),
-        MillisecondsToTimeString(cut.end).c_str(), CURL::GetRedacted(strMovie).c_str());
+      case Action::SCENE:
+        if (!AddSceneMarker(cut.end))
+        {
+          CLog::Log(LOGWARNING, "%s - Error adding scene marker for PVR item", __FUNCTION__);
+        }
+        break;
+
+      default:
+        CLog::Log(LOGINFO, "%s - Ignoring entry of unknown cut action: %d", __FUNCTION__, static_cast<int>(cut.action));
+        break;
     }
   }
 
- return !edl.empty();
+  return !cutlist.empty();
 }
 
-bool CEdl::AddCut(Cut& cut)
+bool CEdl::AddCut(const Cut& newCut)
 {
+  Cut cut = newCut;
+
   if (cut.action != Action::CUT && cut.action != Action::MUTE && cut.action != Action::COMM_BREAK)
   {
     CLog::Log(LOGERROR, "%s - Not an Action::CUT, Action::MUTE, or Action::COMM_BREAK! [%s - %s], %d", __FUNCTION__,
@@ -815,6 +751,8 @@ std::string CEdl::GetInfo() const
         break;
       case Action::COMM_BREAK:
         commBreakCount++;
+        break;
+      default:
         break;
       }
     }
@@ -1049,5 +987,4 @@ void CEdl::MergeShortCommBreaks()
       AddSceneMarker(m_vecCuts[i].end);
     }
   }
-  return;
 }

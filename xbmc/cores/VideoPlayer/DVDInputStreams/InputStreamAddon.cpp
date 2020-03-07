@@ -14,18 +14,21 @@
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemux.h"
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.h"
 #include "cores/VideoPlayer/Interface/Addon/DemuxCrypto.h"
+#include "cores/VideoPlayer/Interface/Addon/InputStreamConstants.h"
 #include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
 #include "filesystem/SpecialProtocol.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
 
-CInputStreamProvider::CInputStreamProvider(ADDON::BinaryAddonBasePtr addonBase, kodi::addon::IAddonInstance* parentInstance)
-  : m_addonBase(addonBase)
-  , m_parentInstance(parentInstance)
+CInputStreamProvider::CInputStreamProvider(ADDON::BinaryAddonBasePtr addonBase,
+                                           KODI_HANDLE parentInstance)
+  : m_addonBase(addonBase), m_parentInstance(parentInstance)
 {
 }
 
-void CInputStreamProvider::getAddonInstance(INSTANCE_TYPE instance_type, ADDON::BinaryAddonBasePtr& addonBase, kodi::addon::IAddonInstance*& parentInstance)
+void CInputStreamProvider::getAddonInstance(INSTANCE_TYPE instance_type,
+                                            ADDON::BinaryAddonBasePtr& addonBase,
+                                            KODI_HANDLE& parentInstance)
 {
   if (instance_type == ADDON::IAddonProvider::INSTANCE_VIDEOCODEC)
   {
@@ -54,7 +57,7 @@ CInputStreamAddon::CInputStreamAddon(BinaryAddonBasePtr& addonBase, IVideoPlayer
     key = name + "." + key;
   }
   m_struct = {{ 0 }};
-  m_caps.m_mask = 0;
+  m_caps = { 0 };
 }
 
 CInputStreamAddon::~CInputStreamAddon()
@@ -65,7 +68,12 @@ CInputStreamAddon::~CInputStreamAddon()
 bool CInputStreamAddon::Supports(BinaryAddonBasePtr& addonBase, const CFileItem &fileitem)
 {
   // check if a specific inputstream addon is requested
-  CVariant addon = fileitem.GetProperty("inputstreamaddon");
+  CVariant addon = fileitem.GetProperty(STREAM_PROPERTY_INPUTSTREAMCLASS);
+  if (!addon.isNull())
+    return (addon.asString() == addonBase->ID());
+
+  // TODO: to be deprecated for the above - all addons must change
+  addon = fileitem.GetProperty("inputstreamaddon");
   if (!addon.isNull())
     return (addon.asString() == addonBase->ID());
 
@@ -114,7 +122,7 @@ bool CInputStreamAddon::Open()
   if (CreateInstance(&m_struct) != ADDON_STATUS_OK || !m_struct.toAddon.open)
     return false;
 
-  INPUTSTREAM props;
+  INPUTSTREAM props = { 0 };
   std::map<std::string, std::string> propsMap;
   for (auto &key : m_fileItemProps)
   {
@@ -147,7 +155,7 @@ bool CInputStreamAddon::Open()
   bool ret = m_struct.toAddon.open(&m_struct, &props);
   if (ret)
   {
-    memset(&m_caps, 0, sizeof(m_caps));
+    m_caps = { 0 };
     m_struct.toAddon.get_capabilities(&m_struct, &m_caps);
 
     m_subAddonProvider = std::shared_ptr<CInputStreamProvider>(new CInputStreamProvider(GetAddonBase(), m_struct.toAddon.addonInstance));
@@ -327,10 +335,16 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
     return nullptr;
 
   std::string codecName(stream.m_codecName);
-  StringUtils::ToLower(codecName);
-  AVCodec *codec = avcodec_find_decoder_by_name(codecName.c_str());
-  if (!codec)
-    return nullptr;
+  AVCodec* codec = nullptr;
+
+  if (stream.m_streamType != INPUTSTREAM_INFO::TYPE_TELETEXT &&
+      stream.m_streamType != INPUTSTREAM_INFO::TYPE_RDS)
+  {
+    StringUtils::ToLower(codecName);
+    codec = avcodec_find_decoder_by_name(codecName.c_str());
+    if (!codec)
+      return nullptr;
+  }
 
   CDemuxStream *demuxStream;
 
@@ -356,6 +370,40 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
     videoStream->fAspect = stream.m_Aspect;
     videoStream->iBitRate = stream.m_BitRate;
     videoStream->profile = ConvertVideoCodecProfile(stream.m_codecProfile);
+
+    if (Addon()->GetTypeVersionDll(ADDON_TYPE::ADDON_INSTANCE_INPUTSTREAM) >= AddonVersion("2.0.8"))
+    {
+      videoStream->colorSpace = static_cast<AVColorSpace>(stream.m_colorSpace);
+      videoStream->colorRange = static_cast<AVColorRange>(stream.m_colorRange);
+    }
+    if (Addon()->GetTypeVersionDll(ADDON_TYPE::ADDON_INSTANCE_INPUTSTREAM) >= AddonVersion("2.0.9"))
+    {
+      videoStream->colorPrimaries = static_cast<AVColorPrimaries>(stream.m_colorPrimaries);
+      videoStream->colorTransferCharacteristic = static_cast<AVColorTransferCharacteristic>(stream.m_colorTransferCharacteristic);
+
+      if (stream.m_masteringMetadata)
+      {
+        videoStream->masteringMetaData = std::shared_ptr<AVMasteringDisplayMetadata>(new AVMasteringDisplayMetadata);
+        videoStream->masteringMetaData->display_primaries[0][0] = av_d2q(stream.m_masteringMetadata->primary_r_chromaticity_x, INT_MAX);
+        videoStream->masteringMetaData->display_primaries[0][1] = av_d2q(stream.m_masteringMetadata->primary_r_chromaticity_y, INT_MAX);
+        videoStream->masteringMetaData->display_primaries[1][0] = av_d2q(stream.m_masteringMetadata->primary_g_chromaticity_x, INT_MAX);
+        videoStream->masteringMetaData->display_primaries[1][1] = av_d2q(stream.m_masteringMetadata->primary_g_chromaticity_y, INT_MAX);
+        videoStream->masteringMetaData->display_primaries[2][0] = av_d2q(stream.m_masteringMetadata->primary_b_chromaticity_x, INT_MAX);
+        videoStream->masteringMetaData->display_primaries[2][1] = av_d2q(stream.m_masteringMetadata->primary_b_chromaticity_y, INT_MAX);
+        videoStream->masteringMetaData->white_point[0] = av_d2q(stream.m_masteringMetadata->white_point_chromaticity_x, INT_MAX);
+        videoStream->masteringMetaData->white_point[1] = av_d2q(stream.m_masteringMetadata->white_point_chromaticity_y, INT_MAX);
+        videoStream->masteringMetaData->min_luminance = av_d2q(stream.m_masteringMetadata->luminance_min, INT_MAX);
+        videoStream->masteringMetaData->max_luminance = av_d2q(stream.m_masteringMetadata->luminance_max, INT_MAX);
+        videoStream->masteringMetaData->has_luminance = videoStream->masteringMetaData->has_primaries = 1;
+      }
+
+      if (stream.m_contentLightMetadata)
+      {
+        videoStream->contentLightMetaData = std::shared_ptr<AVContentLightMetadata>(new AVContentLightMetadata);
+        videoStream->contentLightMetaData->MaxCLL = static_cast<unsigned>(stream.m_contentLightMetadata->max_cll);
+        videoStream->contentLightMetaData->MaxFALL = static_cast<unsigned>(stream.m_contentLightMetadata->max_fall);
+      }
+    }
     demuxStream = videoStream;
   }
   else if (stream.m_streamType == INPUTSTREAM_INFO::TYPE_SUBTITLE)
@@ -363,17 +411,30 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
     CDemuxStreamSubtitle *subtitleStream = new CDemuxStreamSubtitle();
     demuxStream = subtitleStream;
   }
+  else if (stream.m_streamType == INPUTSTREAM_INFO::TYPE_TELETEXT)
+  {
+    CDemuxStreamTeletext* teletextStream = new CDemuxStreamTeletext();
+    demuxStream = teletextStream;
+  }
+  else if (stream.m_streamType == INPUTSTREAM_INFO::TYPE_RDS)
+  {
+    CDemuxStreamRadioRDS* rdsStream = new CDemuxStreamRadioRDS();
+    demuxStream = rdsStream;
+  }
   else
     return nullptr;
 
   demuxStream->name = stream.m_name;
-  demuxStream->codec = codec->id;
+  if (codec)
+    demuxStream->codec = codec->id;
+  else
+    demuxStream->codec = AV_CODEC_ID_DVB_TELETEXT;
   demuxStream->codecName = stream.m_codecInternalName;
   demuxStream->uniqueId = streamId;
   demuxStream->flags = static_cast<StreamFlags>(stream.m_flags);
   demuxStream->language = stream.m_language;
 
-  if (GetAddonBase()->Version() >= AddonVersion("2.0.8"))
+  if (GetAddonBase()->DependencyVersion(ADDON_INSTANCE_VERSION_INPUTSTREAM_XML_ID) >= AddonVersion("2.0.8"))
   {
     demuxStream->codec_fourcc = stream.m_codecFourCC;
   }
@@ -478,6 +539,59 @@ bool CInputStreamAddon::IsRealtime()
   return false;
 }
 
+
+// IChapter
+CDVDInputStream::IChapter* CInputStreamAddon::GetIChapter()
+{
+  if ((m_caps.m_mask & INPUTSTREAM_CAPABILITIES::SUPPORTS_ICHAPTER) == 0)
+    return nullptr;
+
+  return this;
+}
+
+int CInputStreamAddon::GetChapter()
+{
+  if (m_struct.toAddon.get_chapter)
+    return m_struct.toAddon.get_chapter(&m_struct);
+
+  return -1;
+}
+
+int CInputStreamAddon::GetChapterCount()
+{
+  if (m_struct.toAddon.get_chapter_count)
+    return m_struct.toAddon.get_chapter_count(&m_struct);
+
+  return 0;
+}
+
+void CInputStreamAddon::GetChapterName(std::string& name, int ch)
+{
+  name.clear();
+  if (m_struct.toAddon.get_chapter_name)
+  {
+    const char* res = m_struct.toAddon.get_chapter_name(&m_struct, ch);
+    if (res)
+      name = res;
+  }
+}
+
+int64_t CInputStreamAddon::GetChapterPos(int ch)
+{
+  if (m_struct.toAddon.get_chapter_pos)
+    return m_struct.toAddon.get_chapter_pos(&m_struct, ch);
+
+  return 0;
+}
+
+bool CInputStreamAddon::SeekChapter(int ch)
+{
+  if (m_struct.toAddon.seek_chapter)
+    return m_struct.toAddon.seek_chapter(&m_struct, ch);
+
+  return false;
+}
+
 int CInputStreamAddon::ConvertVideoCodecProfile(STREAMCODEC_PROFILE profile)
 {
   switch (profile)
@@ -496,6 +610,14 @@ int CInputStreamAddon::ConvertVideoCodecProfile(STREAMCODEC_PROFILE profile)
     return FF_PROFILE_H264_HIGH_422;
   case H264CodecProfileHigh444Predictive:
     return FF_PROFILE_H264_HIGH_444_PREDICTIVE;
+  case VP9CodecProfile0:
+    return FF_PROFILE_VP9_0;
+  case VP9CodecProfile1:
+    return FF_PROFILE_VP9_1;
+  case VP9CodecProfile2:
+    return FF_PROFILE_VP9_2;
+  case VP9CodecProfile3:
+    return FF_PROFILE_VP9_3;
   default:
     return FF_PROFILE_UNKNOWN;
   }

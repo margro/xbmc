@@ -34,6 +34,7 @@ extern "C"
     const char* password;
     const char* redacted;
     const char* sharename;
+    const char* protocol;
   };
 
   typedef struct VFSGetDirectoryCallbacks /* internal */
@@ -519,6 +520,7 @@ namespace addon
           entries[i].path = strdup(addonEntries[i].Path().c_str());
           entries[i].folder = addonEntries[i].IsFolder();
           entries[i].size = addonEntries[i].Size();
+          entries[i].date_time = addonEntries[i].DateTime();
 
           entries[i].num_props = 0;
           const std::map<std::string, std::string>& props = addonEntries[i].GetProperties();
@@ -582,6 +584,7 @@ namespace addon
           entries[i].path = strdup(addonEntries[i].Path().c_str());
           entries[i].folder = addonEntries[i].IsFolder();
           entries[i].size = addonEntries[i].Size();
+          entries[i].date_time = addonEntries[i].DateTime();
 
           entries[i].num_props = 0;
           const std::map<std::string, std::string>& props = addonEntries[i].GetProperties();

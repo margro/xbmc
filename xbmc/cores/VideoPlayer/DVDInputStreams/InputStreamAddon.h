@@ -21,23 +21,26 @@ class CInputStreamProvider
   : public ADDON::IAddonProvider
 {
 public:
-  CInputStreamProvider(ADDON::BinaryAddonBasePtr addonBase, kodi::addon::IAddonInstance* parentInstance);
+  CInputStreamProvider(ADDON::BinaryAddonBasePtr addonBase, KODI_HANDLE parentInstance);
 
-  void getAddonInstance(INSTANCE_TYPE instance_type, ADDON::BinaryAddonBasePtr& addonBase, kodi::addon::IAddonInstance*& parentInstance) override;
+  void getAddonInstance(INSTANCE_TYPE instance_type,
+                        ADDON::BinaryAddonBasePtr& addonBase,
+                        KODI_HANDLE& parentInstance) override;
 
 private:
   ADDON::BinaryAddonBasePtr m_addonBase;
-  kodi::addon::IAddonInstance* m_parentInstance;
+  KODI_HANDLE m_parentInstance;
 };
 
 //! \brief Input stream class
 class CInputStreamAddon
-  : public ADDON::IAddonInstanceHandler,
-    public CDVDInputStream,
-    public CDVDInputStream::IDisplayTime,
-    public CDVDInputStream::ITimes,
-    public CDVDInputStream::IPosTime,
-    public CDVDInputStream::IDemux
+  : public ADDON::IAddonInstanceHandler
+  , public CDVDInputStream
+  , public CDVDInputStream::IDisplayTime
+  , public CDVDInputStream::ITimes
+  , public CDVDInputStream::IPosTime
+  , public CDVDInputStream::IDemux
+  , public CDVDInputStream::IChapter
 {
 public:
   CInputStreamAddon(ADDON::BinaryAddonBasePtr& addonBase, IVideoPlayer* player, const CFileItem& fileitem);
@@ -85,6 +88,14 @@ public:
   void FlushDemux() override;
   void SetVideoResolution(int width, int height) override;
   bool IsRealtime() override;
+
+  // IChapter
+  CDVDInputStream::IChapter* GetIChapter() override;
+  int GetChapter() override;
+  int GetChapterCount() override;
+  void GetChapterName(std::string& name, int ch = -1) override;
+  int64_t GetChapterPos(int ch = -1) override;
+  bool SeekChapter(int ch) override;
 
 protected:
   static int ConvertVideoCodecProfile(STREAMCODEC_PROFILE profile);

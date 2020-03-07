@@ -1,13 +1,9 @@
-set(SOURCES AutoPool.mm
-            DarwinUtils.mm
-            DarwinNSUserDefaults.mm
+set(SOURCES DarwinUtils.mm
             DictionaryUtils.mm
             MemUtils.cpp
             PlatformDarwin.cpp)
 
-set(HEADERS AutoPool.h
-            DarwinNSUserDefaults.h
-            DarwinUtils.h
+set(HEADERS DarwinUtils.h
             DictionaryUtils.h
             NSLogDebugHelpers.h
             PlatformDarwin.h)
