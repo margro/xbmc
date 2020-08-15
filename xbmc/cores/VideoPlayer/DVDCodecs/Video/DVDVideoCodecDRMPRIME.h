@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "cores/VideoPlayer/Buffers/VideoBuffer.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 #include "cores/VideoPlayer/DVDStreamInfo.h"
-#include "cores/VideoPlayer/Process/VideoBuffer.h"
 
 #include <memory>
 
@@ -36,6 +36,7 @@ protected:
   void SetPictureParams(VideoPicture* pVideoPicture);
   void UpdateProcessInfo(struct AVCodecContext* avctx, const enum AVPixelFormat fmt);
   static enum AVPixelFormat GetFormat(struct AVCodecContext* avctx, const enum AVPixelFormat* fmt);
+  static int GetBuffer(struct AVCodecContext* avctx, AVFrame* frame, int flags);
 
   std::string m_name;
   int m_codecControlFlags = 0;

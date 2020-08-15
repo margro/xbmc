@@ -137,6 +137,12 @@ public:
   std::shared_ptr<CPVREpgInfoTag> GetPlayingEpgTag() const;
 
   /*!
+   * @brief Return playing channel unique identifier
+   * @return The channel id or -1 if not present
+   */
+  int GetPlayingChannelUniqueID() const;
+
+  /*!
    * @brief Get the name of the playing client, if there is one.
    * @return The name of the client or an empty string if nothing is playing.
    */
@@ -186,10 +192,12 @@ public:
   std::shared_ptr<CPVRChannelGroup> GetPlayingGroup(bool bRadio) const;
 
   /*!
-   * @brief Get current playback time, taking timeshifting into account.
-   * @return The playback time.
+   * @brief Get current playback time for the given channel, taking timeshifting into account.
+   * @param iClientID The client id.
+   * @param iUniqueChannelID The channel uid.
+   * @return The playback time or 'now' if not playing.
    */
-  CDateTime GetPlaybackTime() const;
+  CDateTime GetChannelPlaybackTime(int iClientID, int iUniqueChannelID) const;
 
 private:
   /*!

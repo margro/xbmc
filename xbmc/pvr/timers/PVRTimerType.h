@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_timers.h"
 
 #include <memory>
 #include <string>
@@ -56,11 +56,15 @@ namespace PVR
      * @param iClientId the PVR client id.
      * @return A timer type instance.
      */
-    static std::shared_ptr<CPVRTimerType> CreateFromAttributes(unsigned int iMustHaveAttr, unsigned int iMustNotHaveAttr, int iClientId);
+    static std::shared_ptr<CPVRTimerType> CreateFromAttributes(uint64_t iMustHaveAttr,
+                                                               uint64_t iMustNotHaveAttr,
+                                                               int iClientId);
 
     CPVRTimerType();
     CPVRTimerType(const PVR_TIMER_TYPE& type, int iClientId);
-    CPVRTimerType(unsigned int iTypeId, unsigned int iAttributes, const std::string& strDescription = "");
+    CPVRTimerType(unsigned int iTypeId,
+                  uint64_t iAttributes,
+                  const std::string& strDescription = "");
 
     virtual ~CPVRTimerType();
 
@@ -92,7 +96,7 @@ namespace PVR
      * @brief Get the attributes of this type.
      * @return The attributes.
      */
-    unsigned int GetAttributes() const { return m_iAttributes; }
+    uint64_t GetAttributes() const { return m_iAttributes; }
 
     /*!
      * @brief Check whether this type is for timer rules or one time timers.
@@ -259,10 +263,24 @@ namespace PVR
     bool SupportsRecordOnlyNewEpisodes() const { return (m_iAttributes & PVR_TIMER_TYPE_SUPPORTS_RECORD_ONLY_NEW_EPISODES) > 0; }
 
     /*!
-     * @brief Check whether this type supports pre and post record time.
-     * @return True if pre and post record time is supported, false otherwise.
+     * @brief Check whether this type supports pre record time.
+     * @return True if pre record time is supported, false otherwise.
      */
-    bool SupportsStartEndMargin() const { return (m_iAttributes & PVR_TIMER_TYPE_SUPPORTS_START_END_MARGIN) > 0; }
+    bool SupportsStartMargin() const
+    {
+      return (m_iAttributes & PVR_TIMER_TYPE_SUPPORTS_START_MARGIN) > 0 ||
+             (m_iAttributes & PVR_TIMER_TYPE_SUPPORTS_START_END_MARGIN) > 0;
+    }
+
+    /*!
+     * @brief Check whether this type supports post record time.
+     * @return True if post record time is supported, false otherwise.
+     */
+    bool SupportsEndMargin() const
+    {
+      return (m_iAttributes & PVR_TIMER_TYPE_SUPPORTS_END_MARGIN) > 0 ||
+             (m_iAttributes & PVR_TIMER_TYPE_SUPPORTS_START_END_MARGIN) > 0;
+    }
 
     /*!
      * @brief Check whether this type supports recording priorities.
@@ -377,7 +395,7 @@ namespace PVR
 
     int m_iClientId = -1;
     unsigned int m_iTypeId;
-    unsigned int m_iAttributes;
+    uint64_t m_iAttributes;
     std::string m_strDescription;
     std::vector< std::pair<std::string, int> > m_priorityValues;
     int m_iPriorityDefault = DEFAULT_RECORDING_PRIORITY;

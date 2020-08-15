@@ -48,11 +48,14 @@ public:
   int GetTotalDiscs() const;
   int GetDuration() const;  // may be set even if Loaded() returns false
   int GetYear() const;
+  const std::string& GetReleaseDate() const;
+  const std::string GetReleaseYear() const;
+  const std::string& GetOriginalDate() const;
+  const std::string GetOriginalYear() const;
   int GetDatabaseId() const;
   const std::string &GetType() const;
   const std::string& GetDiscSubtitle() const;
-
-  void GetReleaseDate(KODI::TIME::SystemTime& dateTime) const;
+  int GetBPM() const;
   std::string GetYearString() const;
   const std::string& GetMusicBrainzTrackID() const;
   const std::vector<std::string>& GetMusicBrainzArtistID() const;
@@ -76,6 +79,10 @@ public:
   int GetVotes() const;
   int GetListeners() const;
   int GetPlayCount() const;
+  int GetBitRate() const;
+  int GetNoOfChannels() const;
+  int GetSampleRate() const;
+  const std::string& GetAlbumReleaseStatus() const;
   const EmbeddedArtInfo &GetCoverArtInfo() const;
   const ReplayGain& GetReplayGain() const;
   CAlbum::ReleaseType GetAlbumReleaseType() const;
@@ -96,8 +103,9 @@ public:
   void SetGenre(const std::string& strGenre, bool bTrim = false);
   void SetGenre(const std::vector<std::string>& genres, bool bTrim = false);
   void SetYear(int year);
+  void SetOriginalDate(const std::string& strOriginalDate);
+  void SetReleaseDate(const std::string& strReleaseDate);
   void SetDatabaseId(long id, const std::string &type);
-  void SetReleaseDate(KODI::TIME::SystemTime& dateTime);
   void SetTrackNumber(int iTrack);
   void SetDiscNumber(int iDiscNumber);
   void SetTrackAndDiscNumber(int iTrackAndDisc);
@@ -127,7 +135,11 @@ public:
   void SetLastPlayed(const std::string& strLastPlayed);
   void SetLastPlayed(const CDateTime& strLastPlayed);
   void SetDateAdded(const std::string& strDateAdded);
-  void SetDateAdded(const CDateTime& strDateAdded);
+  void SetDateAdded(const CDateTime& dateAdded);
+  void SetDateUpdated(const std::string& strDateUpdated);
+  void SetDateUpdated(const CDateTime& dateUpdated);
+  void SetDateNew(const std::string& strDateNew);
+  void SetDateNew(const CDateTime& dateNew);
   void SetCompilation(bool compilation);
   void SetBoxset(bool boxset);
   void SetCoverArtInfo(size_t size, const std::string &mimeType);
@@ -136,6 +148,11 @@ public:
   void SetType(const MediaType mediaType);
   void SetDiscSubtitle(const std::string& strDiscSubtitle);
   void SetTotalDiscs(int iDiscTotal);
+  void SetBPM(int iBPM);
+  void SetBitRate(int bitrate);
+  void SetNoOfChannels(int channels);
+  void SetSampleRate(int samplerate);
+  void SetAlbumReleaseStatus(const std::string& strReleaseStatus);
 
   /*! \brief Append a unique artist to the artist list
    Checks if we have this artist already added, and if not adds it to the songs artist list.
@@ -154,6 +171,8 @@ public:
    \param genre genre to add.
    */
   void AppendGenre(const std::string &genre);
+  void AddOriginalDate(const std::string& strDateYear);
+  void AddReleaseDate(const std::string& strDateYear, bool isMonth = false);
 
   void AddArtistRole(const std::string& Role, const std::string& strArtist);
   void AddArtistRole(const std::string& Role, const std::vector<std::string>& artists);
@@ -204,8 +223,12 @@ protected:
   std::string m_strLyrics;
   std::string m_cuesheet;
   std::string m_strDiscSubtitle;
+  std::string m_strReleaseDate; //ISO8601 date YYYY, YYYY-MM or YYYY-MM-DD
+  std::string m_strOriginalDate; //ISO8601 date YYYY, YYYY-MM or YYYY-MM-DD
   CDateTime m_lastPlayed;
+  CDateTime m_dateNew;
   CDateTime m_dateAdded;
+  CDateTime m_dateUpdated;
   bool m_bCompilation;
   int m_iDuration;
   int m_iTrack;     // consists of the disk number in the high 16 bits, the track number in the low 16bits
@@ -220,8 +243,12 @@ protected:
   int m_iAlbumId;
   int m_iDiscTotal;
   bool m_bBoxset;
-  KODI::TIME::SystemTime m_dwReleaseDate;
+  int m_iBPM;
   CAlbum::ReleaseType m_albumReleaseType;
+  std::string m_strReleaseStatus;
+  int m_samplerate;
+  int m_channels;
+  int m_bitrate;
 
   EmbeddedArtInfo m_coverArt; ///< art information
 

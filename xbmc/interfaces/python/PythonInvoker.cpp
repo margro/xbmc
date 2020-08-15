@@ -327,7 +327,7 @@ bool CPythonInvoker::execute(const std::string& script, const std::vector<std::w
         return false;
       }
 #endif
-      FILE* fp = _Py_fopen(nativeFilename.c_str(), "r");
+      FILE* fp = _Py_fopen(nativeFilename.c_str(), "rb");
 
       if (fp != NULL)
       {
@@ -403,11 +403,6 @@ bool CPythonInvoker::execute(const std::string& script, const std::vector<std::w
 
   if (m_threadState)
   {
-    PyObject* m = PyImport_AddModule("xbmc");
-    if (m == NULL || PyObject_SetAttrString(m, "abortRequested", PyBool_FromLong(1)))
-      CLog::Log(LOGERROR, "CPythonInvoker(%d, %s): failed to set abortRequested", GetId(),
-                m_sourceFile.c_str());
-
     // make sure all sub threads have finished
     for (PyThreadState* old = nullptr; m_threadState != nullptr;)
     {
@@ -496,14 +491,8 @@ bool CPythonInvoker::stop(bool abort)
       {
         CLog::Log(LOGDEBUG, "CPythonInvoker(%d, %s): trigger Monitor abort request", GetId(),
                   m_sourceFile.c_str());
-        onAbortRequested();
+        AbortNotification();
       }
-
-      PyObject* m;
-      m = PyImport_AddModule("xbmc");
-      if (m == NULL || PyObject_SetAttrString(m, "abortRequested", PyBool_FromLong(1)))
-        CLog::Log(LOGERROR, "CPythonInvoker(%d, %s): failed to set abortRequested", GetId(),
-                  m_sourceFile.c_str());
 
       PyEval_ReleaseThread(m_threadState);
     }

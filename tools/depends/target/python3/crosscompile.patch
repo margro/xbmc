@@ -17,7 +17,7 @@
  POBJS=		\
  		Parser/acceler.o \
  		Parser/grammar1.o \
-@@ -622,7 +621,7 @@
+@@ -623,7 +623,7 @@
  		$(PYTHON_FOR_BUILD) $(srcdir)/setup.py $$quiet build"; \
  	$(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)' \
  		_TCLTK_INCLUDES='$(TCLTK_INCLUDES)' _TCLTK_LIBS='$(TCLTK_LIBS)' \
@@ -26,7 +26,7 @@
  
  
  # Build static library
-@@ -1526,11 +1525,13 @@
+@@ -1535,11 +1535,13 @@
  # Install the dynamically loadable modules
  # This goes into $(exec_prefix)
  sharedinstall: sharedmods
@@ -45,34 +45,7 @@
  
 --- a/configure.ac
 +++ b/configure.ac
-@@ -379,10 +379,12 @@
- 	*-*-cygwin*)
- 		ac_sys_system=Cygwin
- 		;;
-+	*-*-darwin*)
-+		ac_sys_system=darwin
-+		;;
- 	*)
- 		# for now, limit cross builds to known configurations
- 		MACHDEP="unknown"
--		AC_MSG_ERROR([cross build not supported for $host])
- 	esac
- 	ac_sys_release=
-     else
-@@ -423,10 +425,11 @@
- 	*-*-cygwin*)
- 		_host_cpu=
- 		;;
-+	*-*-darwin*)
-+		;;
- 	*)
- 		# for now, limit cross builds to known configurations
- 		MACHDEP="unknown"
--		AC_MSG_ERROR([cross build not supported for $host])
- 	esac
- 	_PYTHON_HOST_PLATFORM="$MACHDEP${_host_cpu:+-$_host_cpu}"
- fi
-@@ -1200,16 +1203,6 @@
+@@ -1200,15 +1200,6 @@
          ARFLAGS="rcs"
  fi
  
@@ -85,10 +58,9 @@
 -    esac
 -fi
 -AC_SUBST(READELF)
--
+ 
  
  case $MACHDEP in
- hp*|HP*)
 --- a/setup.py
 +++ b/setup.py
 @@ -16,7 +16,7 @@

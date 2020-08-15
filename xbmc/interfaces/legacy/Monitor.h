@@ -57,14 +57,16 @@ namespace XBMCAddon
       inline const String& GetId() { return Id; }
       inline long GetInvokerId() { return invokerId; }
 
-      void OnAbortRequested();
+      /**
+       * Called from XBPython to notify registered monitors that a script is aborting/ending.
+       */
+      void AbortNotify();
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onSettingsChanged() }
-      ///-----------------------------------------------------------------------
       /// onSettingsChanged method.
       ///
       /// Will be called when addon settings are changed
@@ -78,7 +80,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onScreensaverActivated() }
-      ///-----------------------------------------------------------------------
       /// onScreensaverActivated method.
       ///
       /// Will be called when screensaver kicks in
@@ -92,7 +93,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onScreensaverDeactivated() }
-      ///-----------------------------------------------------------------------
       /// onScreensaverDeactivated method.
       ///
       /// Will be called when screensaver goes off
@@ -106,7 +106,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onDPMSActivated() }
-      ///-----------------------------------------------------------------------
       /// onDPMSActivated method.
       ///
       /// Will be called when energysaving/DPMS gets active
@@ -120,7 +119,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onDPMSDeactivated() }
-      ///-----------------------------------------------------------------------
       /// onDPMSDeactivated method.
       ///
       /// Will be called when energysaving/DPMS is turned off
@@ -134,7 +132,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onScanStarted(library) }
-      ///-----------------------------------------------------------------------
       /// onScanStarted method.
       ///
       /// @param library             Video / music as string
@@ -156,7 +153,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onScanFinished(library)  }
-      ///-----------------------------------------------------------------------
       /// onScanFinished method.
       ///
       /// @param library             Video / music as string
@@ -178,8 +174,7 @@ namespace XBMCAddon
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onCleanStarted(library) }
-      ///-----------------------------------------------------------------------
-      /// @brief onCleanStarted method.
+      /// onCleanStarted method.
       ///
       /// @param library             Video / music as string
       ///
@@ -200,7 +195,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_monitor
       /// @brief \python_func{ onCleanFinished(library) }
-      ///-----------------------------------------------------------------------
       /// onCleanFinished method.
       ///
       /// @param library             Video / music as string
@@ -221,20 +215,7 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
       /// \ingroup python_monitor
-      /// @brief \python_func{ onAbortRequested() }
-      ///-----------------------------------------------------------------------
-      /// @python_v14 Deprecated. Use **waitForAbort()** to be notified about this event.
-      ///
-      onAbortRequested();
-#else
-      virtual void    onAbortRequested() { XBMC_TRACE; }
-#endif
-
-#ifdef DOXYGEN_SHOULD_USE_THIS
-      ///
-      /// \ingroup python_monitor
       /// @brief \python_func{ onNotification(sender, method, data) }
-      ///-----------------------------------------------------------------------
       /// onNotification method.
       ///
       /// @param sender              Sender of the notification
@@ -255,8 +236,8 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
       /// \ingroup python_monitor
       /// @brief \python_func{ waitForAbort([timeout]) }
-      ///-----------------------------------------------------------------------
       /// Wait for Abort
+      /// \anchor xbmc_Monitor_waitForAbort
       ///
       /// Block until abort is requested, or until timeout occurs. If an
       /// abort requested have already been made, return immediately.
@@ -272,6 +253,17 @@ namespace XBMCAddon
       ///-----------------------------------------------------------------------
       /// @python_v14 New function added.
       ///
+      /// **Example:**
+      /// ~~~~~~~~~~~~~{.py}
+      /// ..
+      /// monitor = xbmc.Monitor()
+      /// # do something
+      /// monitor.waitForAbort(10) # sleeps for 10 secs or returns early if kodi aborts
+      /// if monitor.abortRequested():
+      ///     # abort was requested to Kodi (e.g. shutdown), do your cleanup logic
+      /// ..
+      /// ~~~~~~~~~~~~~
+      ///
       waitForAbort(...);
 #else
       bool waitForAbort(double timeout = -1);
@@ -280,7 +272,6 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
       /// \ingroup python_monitor
       /// @brief \python_func{ abortRequested() }
-      ///-----------------------------------------------------------------------
       /// Returns True if abort has been requested.
       ///
       /// @return                        True if requested

@@ -162,9 +162,7 @@ void CAddon::SaveSettings(void)
 
   // break down the path into directories
   std::string strAddon = URIUtils::GetDirectory(m_userSettingsPath);
-  URIUtils::RemoveSlashAtEnd(strAddon);
   std::string strRoot = URIUtils::GetDirectory(strAddon);
-  URIUtils::RemoveSlashAtEnd(strRoot);
 
   // create the individual folders
   if (!CDirectory::Exists(strRoot))
@@ -182,7 +180,7 @@ void CAddon::SaveSettings(void)
   //push the settings changes to the running addon instance
   CServiceBroker::GetAddonMgr().ReloadSettings(ID());
 #ifdef HAS_PYTHON
-  g_pythonParser.OnSettingsChanged(ID());
+  CServiceBroker::GetXBPython().OnSettingsChanged(ID());
 #endif
 }
 

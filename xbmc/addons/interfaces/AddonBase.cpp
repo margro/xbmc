@@ -37,6 +37,7 @@ bool Interface_Base::InitInterface(CAddonDll* addon,
 
   addonInterface.libBasePath =
       strdup(CSpecialProtocol::TranslatePath("special://xbmcbinaddons").c_str());
+  addonInterface.kodi_base_api_version = strdup(kodi::addon::GetTypeVersion(ADDON_GLOBAL_MAIN));
   addonInterface.addonBase = nullptr;
   addonInterface.globalSingleInstance = nullptr;
   addonInterface.firstKodiInstance = firstKodiInstance;
@@ -45,9 +46,11 @@ bool Interface_Base::InitInterface(CAddonDll* addon,
   // compatible with other versions
   addonInterface.toKodi = new AddonToKodiFuncTable_Addon();
   addonInterface.toKodi->kodiBase = addon;
+  addonInterface.toKodi->get_type_version = get_type_version;
   addonInterface.toKodi->get_addon_path = get_addon_path;
   addonInterface.toKodi->get_base_user_path = get_base_user_path;
   addonInterface.toKodi->addon_log_msg = addon_log_msg;
+  addonInterface.toKodi->is_setting_using_default = is_setting_using_default;
   addonInterface.toKodi->get_setting_bool = get_setting_bool;
   addonInterface.toKodi->get_setting_int = get_setting_int;
   addonInterface.toKodi->get_setting_float = get_setting_float;
@@ -58,6 +61,7 @@ bool Interface_Base::InitInterface(CAddonDll* addon,
   addonInterface.toKodi->set_setting_string = set_setting_string;
   addonInterface.toKodi->free_string = free_string;
   addonInterface.toKodi->free_string_array = free_string_array;
+  addonInterface.toKodi->get_interface = get_interface;
 
   // Related parts becomes set from addon headers, make here to nullptr to allow
   // checks for right set of them
@@ -69,8 +73,6 @@ bool Interface_Base::InitInterface(CAddonDll* addon,
   Interface_Filesystem::Init(&addonInterface);
   Interface_Network::Init(&addonInterface);
   Interface_GUIGeneral::Init(&addonInterface);
-
-  addonInterface.toKodi->get_interface = get_interface;
 
   return true;
 }
@@ -85,6 +87,8 @@ void Interface_Base::DeInitInterface(AddonGlobalInterface& addonInterface)
 
   if (addonInterface.libBasePath)
     free(const_cast<char*>(addonInterface.libBasePath));
+  if (addonInterface.kodi_base_api_version)
+    free(const_cast<char*>(addonInterface.kodi_base_api_version));
 
   delete addonInterface.toKodi;
   delete addonInterface.toAddon;
@@ -131,6 +135,11 @@ bool Interface_Base::UpdateSettingInActiveDialog(CAddonDll* addon,
  */
 //@{
 
+char* Interface_Base::get_type_version(void* kodiBase, int type)
+{
+  return strdup(kodi::addon::GetTypeVersion(type));
+}
+
 char* Interface_Base::get_addon_path(void* kodiBase)
 {
   CAddonDll* addon = static_cast<CAddonDll*>(kodiBase);
@@ -167,32 +176,56 @@ void Interface_Base::addon_log_msg(void* kodiBase, const int addonLogLevel, cons
   int logLevel = LOGNONE;
   switch (addonLogLevel)
   {
-    case ADDON_LOG_FATAL:
-      logLevel = LOGFATAL;
-      break;
-    case ADDON_LOG_SEVERE:
-      logLevel = LOGSEVERE;
-      break;
-    case ADDON_LOG_ERROR:
-      logLevel = LOGERROR;
-      break;
-    case ADDON_LOG_WARNING:
-      logLevel = LOGWARNING;
-      break;
-    case ADDON_LOG_NOTICE:
-      logLevel = LOGNOTICE;
+    case ADDON_LOG_DEBUG:
+      logLevel = LOGDEBUG;
       break;
     case ADDON_LOG_INFO:
       logLevel = LOGINFO;
       break;
-    case ADDON_LOG_DEBUG:
-      logLevel = LOGDEBUG;
+    case ADDON_LOG_WARNING:
+      logLevel = LOGWARNING;
+      break;
+    case ADDON_LOG_ERROR:
+      logLevel = LOGERROR;
+      break;
+    case ADDON_LOG_FATAL:
+      logLevel = LOGFATAL;
       break;
     default:
+      logLevel = LOGDEBUG;
       break;
   }
 
-  CLog::Log(logLevel, "AddOnLog: {}: {}", addon->Name(), strMessage);
+  CLog::Log(logLevel, "AddOnLog: {}: {}", addon->ID(), strMessage);
+}
+
+bool Interface_Base::is_setting_using_default(void* kodiBase, const char* id)
+{
+  CAddonDll* addon = static_cast<CAddonDll*>(kodiBase);
+  if (addon == nullptr || id == nullptr)
+  {
+    CLog::Log(LOGERROR, "Interface_Base::{} - invalid data (addon='{}', id='{}')", __func__,
+              kodiBase, static_cast<const void*>(id));
+
+    return false;
+  }
+
+  if (!addon->HasSettings())
+  {
+    CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
+              addon->Name());
+    return false;
+  }
+
+  auto setting = addon->GetSettings()->GetSetting(id);
+  if (setting == nullptr)
+  {
+    CLog::Log(LOGERROR, "Interface_Base::{} - can't find setting '{}' in '{}'", __func__, id,
+              addon->Name());
+    return false;
+  }
+
+  return setting->IsDefault();
 }
 
 bool Interface_Base::get_setting_bool(void* kodiBase, const char* id, bool* value)
@@ -206,9 +239,9 @@ bool Interface_Base::get_setting_bool(void* kodiBase, const char* id, bool* valu
     return false;
   }
 
-  if (!addon->ReloadSettings())
+  if (!addon->HasSettings())
   {
-    CLog::Log(LOGERROR, "Interface_Base::{} - could't get settings for add-on '{}'", __func__,
+    CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }
@@ -243,9 +276,9 @@ bool Interface_Base::get_setting_int(void* kodiBase, const char* id, int* value)
     return false;
   }
 
-  if (!addon->ReloadSettings())
+  if (!addon->HasSettings())
   {
-    CLog::Log(LOGERROR, "Interface_Base::{} - could't get settings for add-on '{}'", __func__,
+    CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }
@@ -283,9 +316,9 @@ bool Interface_Base::get_setting_float(void* kodiBase, const char* id, float* va
     return false;
   }
 
-  if (!addon->ReloadSettings())
+  if (!addon->HasSettings())
   {
-    CLog::Log(LOGERROR, "Interface_Base::{} - could't get settings for add-on '{}'", __func__,
+    CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }
@@ -320,9 +353,9 @@ bool Interface_Base::get_setting_string(void* kodiBase, const char* id, char** v
     return false;
   }
 
-  if (!addon->ReloadSettings())
+  if (!addon->HasSettings())
   {
-    CLog::Log(LOGERROR, "Interface_Base::{} - could't get settings for add-on '{}'", __func__,
+    CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }

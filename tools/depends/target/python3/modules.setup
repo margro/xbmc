@@ -339,6 +339,8 @@ binascii binascii.c
 # Fred Drake's interface to the Python parser
 parser parsermodule.c
 
+# profiling
+_lsprof _lsprof.c rotatingtree.c
 
 # Andrew Kuchling's zlib module.
 # This require zlib 1.1.3 (or later).
@@ -379,6 +381,8 @@ _ctypes _ctypes/callbacks.c  _ctypes/callproc.c  _ctypes/cfield.c  _ctypes/_ctyp
         -I$(prefix)/include/ffi -L$(prefix)/lib -lffi
 
 _queue _queuemodule.c
+
+_bz2 _bz2module.c -I$(prefix)/include -L$(prefix)/lib -lbz2
 
 # Uncommenting the following line tells makesetup that all following modules
 # are not built (see above for more detail).

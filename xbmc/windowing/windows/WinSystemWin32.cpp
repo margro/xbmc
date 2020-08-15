@@ -363,7 +363,7 @@ void CWinSystemWin32::AdjustWindow(bool forceResize)
 
     if (!m_ValidWindowedPosition || hMon == nullptr || hMon != hMon2)
     {
-      RECT newScreenRect = ScreenRect(m_hMonitor);
+      RECT newScreenRect = ScreenRect(hMon2);
       rc.left = m_nLeft = newScreenRect.left + ((newScreenRect.right - newScreenRect.left) / 2) - (m_nWidth / 2);
       rc.top = m_nTop = newScreenRect.top + ((newScreenRect.bottom - newScreenRect.top) / 2) - (m_nHeight / 2);
       rc.right = m_nLeft + m_nWidth;
@@ -904,7 +904,7 @@ void CWinSystemWin32::UpdateResolutions()
   UpdateDesktopResolution(info, monitorName, w, h, refreshRate, dwFlags);
   info.strOutput = strOutput;
 
-  CLog::Log(LOGNOTICE, "Primary mode: %s", info.strMode.c_str());
+  CLog::Log(LOGINFO, "Primary mode: %s", info.strMode.c_str());
 
   // erase previous stored modes
   CDisplaySettings::GetInstance().ClearCustomResolutions();
@@ -941,7 +941,7 @@ void CWinSystemWin32::UpdateResolutions()
     res.strOutput = strOutput;
 
     if (AddResolution(res))
-      CLog::Log(LOGNOTICE, "Additional mode: %s", res.strMode.c_str());
+      CLog::Log(LOGINFO, "Additional mode: %s", res.strMode.c_str());
   }
 
   CDisplaySettings::GetInstance().ApplyCalibrations();

@@ -80,13 +80,13 @@ extern "C"
 
     int64_t pts;
 
-    void *buffer; //< will be passed in release_frame_buffer
+    KODI_HANDLE buffer; //< will be passed in release_frame_buffer
   };
 
   enum VIDEOCODEC_RETVAL
   {
     VC_NONE = 0,        //< noop
-    VC_ERROR,           //< an error occured, no other messages will be returned
+    VC_ERROR,           //< an error occurred, no other messages will be returned
     VC_BUFFER,          //< the decoder needs more data
     VC_PICTURE,         //< the decoder got a picture
     VC_EOF,             //< the decoder signals EOF
@@ -143,11 +143,13 @@ namespace kodi
   namespace addon
   {
 
-    class CInstanceVideoCodec : public IAddonInstance
+    class ATTRIBUTE_HIDDEN CInstanceVideoCodec : public IAddonInstance
     {
     public:
-      explicit CInstanceVideoCodec(KODI_HANDLE instance)
-        : IAddonInstance(ADDON_INSTANCE_VIDEOCODEC)
+      explicit CInstanceVideoCodec(KODI_HANDLE instance, const std::string& kodiVersion = "")
+        : IAddonInstance(ADDON_INSTANCE_VIDEOCODEC,
+                         !kodiVersion.empty() ? kodiVersion
+                                              : GetKodiTypeVersion(ADDON_INSTANCE_VIDEOCODEC))
       {
         if (CAddonBase::m_interface->globalSingleInstance != nullptr)
           throw std::logic_error("kodi::addon::CInstanceVideoCodec: Creation of multiple together with single instance way is not allowed!");

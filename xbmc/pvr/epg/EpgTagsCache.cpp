@@ -11,6 +11,7 @@
 #include "ServiceBroker.h"
 #include "pvr/PVRManager.h"
 #include "pvr/PVRPlaybackState.h"
+#include "pvr/epg/EpgChannelData.h"
 #include "pvr/epg/EpgDatabase.h"
 #include "pvr/epg/EpgInfoTag.h"
 #include "utils/log.h"
@@ -65,7 +66,9 @@ void CPVREpgTagsCache::Reset()
 
 void CPVREpgTagsCache::Refresh(bool bUpdateIfNeeded)
 {
-  const CDateTime activeTime = CServiceBroker::GetPVRManager().PlaybackState()->GetPlaybackTime();
+  const CDateTime activeTime =
+      CServiceBroker::GetPVRManager().PlaybackState()->GetChannelPlaybackTime(
+          m_channelData->ClientId(), m_channelData->UniqueClientChannelId());
 
   if (m_nowActiveStart.IsValid() && m_nowActiveEnd.IsValid() && m_nowActiveStart <= activeTime &&
       m_nowActiveEnd > activeTime)
@@ -91,7 +94,7 @@ void CPVREpgTagsCache::Refresh(bool bUpdateIfNeeded)
     if (!m_nowActiveTag && m_database)
     {
       const std::vector<std::shared_ptr<CPVREpgInfoTag>> tags =
-          m_database->GetEpgTagsByMinEndMaxStartTime(m_iEpgID, activeTime, activeTime);
+          m_database->GetEpgTagsByMinEndMaxStartTime(m_iEpgID, activeTime + ONE_SECOND, activeTime);
       if (!tags.empty())
       {
         if (tags.size() > 1)
@@ -111,12 +114,12 @@ void CPVREpgTagsCache::Refresh(bool bUpdateIfNeeded)
     {
       // we're in a gap. remember start and end time of that gap to avoid unneeded db load.
       if (m_lastEndedTag)
-        m_nowActiveStart = m_lastEndedTag->EndAsUTC() + ONE_SECOND;
+        m_nowActiveStart = m_lastEndedTag->EndAsUTC();
       else
         m_nowActiveStart = activeTime - CDateTimeSpan(1000, 0, 0, 0); // fake start far in the past
 
       if (m_nextStartingTag)
-        m_nowActiveEnd = m_nextStartingTag->StartAsUTC() - ONE_SECOND;
+        m_nowActiveEnd = m_nextStartingTag->StartAsUTC();
       else
         m_nowActiveEnd = activeTime + CDateTimeSpan(1000, 0, 0, 0); // fake end far in the future
     }
@@ -127,7 +130,7 @@ void CPVREpgTagsCache::RefreshLastEndedTag(const CDateTime& activeTime)
 {
   if (m_database)
   {
-    m_lastEndedTag = m_database->GetEpgTagByMaxEndTime(m_iEpgID, activeTime - ONE_SECOND);
+    m_lastEndedTag = m_database->GetEpgTagByMaxEndTime(m_iEpgID, activeTime);
     if (m_lastEndedTag)
       m_lastEndedTag->SetChannelData(m_channelData);
   }

@@ -173,7 +173,7 @@ void CSMB::Init()
     setenv("HOME", truehome.c_str(), 1);
 
 #ifdef DEPRECATED_SMBC_INTERFACE
-    smbc_setDebug(m_context, CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGSAMBA) ? 10 : 0);
+    smbc_setDebug(m_context, CServiceBroker::GetLogging().CanLogComponent(LOGSAMBA) ? 10 : 0);
     smbc_setFunctionAuthData(m_context, xb_smbc_auth);
     orig_cache = smbc_getFunctionGetCachedServer(m_context);
     smbc_setFunctionGetCachedServer(m_context, xb_smbc_cache);
@@ -188,7 +188,7 @@ void CSMB::Init()
     //! @bug libsmbclient < 4.8 isn't const correct
     smbc_setUser(m_context, const_cast<char*>(guest.c_str()));
 #else
-    m_context->debug = (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGSAMBA) ? 10 : 0);
+    m_context->debug = (CServiceBroker::GetLogging().CanLogComponent(LOGSAMBA) ? 10 : 0);
     m_context->callbacks.auth_fn = xb_smbc_auth;
     orig_cache = m_context->callbacks.get_cached_srv_fn;
     m_context->callbacks.get_cached_srv_fn = xb_smbc_cache;
@@ -292,8 +292,8 @@ void CSMB::CheckIfIdle()
       }
 	  else
 	  {
-        CLog::Log(LOGNOTICE, "Samba is idle. Closing the remaining connections");
-        smb.Deinit();
+            CLog::Log(LOGINFO, "Samba is idle. Closing the remaining connections");
+            smb.Deinit();
       }
     }
   }
@@ -361,8 +361,8 @@ bool CSMBFile::Open(const CURL& url)
   // if a file matches the if below return false, it can't exist on a samba share.
   if (!IsValidFile(url.GetFileName()))
   {
-      CLog::Log(LOGNOTICE,"SMBFile->Open: Bad URL : '%s'",url.GetRedacted().c_str());
-      return false;
+    CLog::Log(LOGINFO, "SMBFile->Open: Bad URL : '%s'", url.GetRedacted().c_str());
+    return false;
   }
   m_url = url;
 

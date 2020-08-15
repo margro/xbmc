@@ -9,7 +9,7 @@
 #pragma once
 
 #include "XBDateTime.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_epg.h"
 #include "pvr/epg/EpgTagsContainer.h"
 #include "threads/CriticalSection.h"
 #include "utils/EventStream.h"
@@ -134,7 +134,7 @@ namespace PVR
     std::shared_ptr<CPVREpgInfoTag> GetTagNext() const;
 
     /*!
-     * @brief Get the event that occured previously
+     * @brief Get the event that occurred previously
      * @return The previous event or NULL if it wasn't found.
      */
     std::shared_ptr<CPVREpgInfoTag> GetTagPrevious() const;
@@ -205,9 +205,10 @@ namespace PVR
     /*!
      * @brief Persist this table in the given database
      * @param database The database.
+     * @param bQueueWrite Don't execute the query immediately but queue it if true.
      * @return True if the table was persisted, false otherwise.
      */
-    bool Persist(const std::shared_ptr<CPVREpgDatabase>& database);
+    bool Persist(const std::shared_ptr<CPVREpgDatabase>& database, bool bQueueWrite);
 
     /*!
      * @brief Delete this table from the given database
@@ -258,6 +259,16 @@ namespace PVR
      * @brief Query the events available for CEventStream
      */
     CEventStream<PVREvent>& Events() { return m_events; }
+
+    /*!
+     * @brief Lock the instance. No other thread gets access to this EPG until Unlock was called.
+     */
+    void Lock() { m_critSection.lock(); }
+
+    /*!
+     * @brief Unlock the instance. Other threads may get access to this EPG again.
+     */
+    void Unlock() { m_critSection.unlock(); }
 
   private:
     CPVREpg() = delete;

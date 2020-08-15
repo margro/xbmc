@@ -132,9 +132,16 @@ bool CGUIWindowPVRChannelsBase::OnMessage(CGUIMessage& message)
   switch (message.GetMessage())
   {
     case GUI_MSG_WINDOW_INIT:
-      // if a path to a channel group is given we must init that group instead of last played/selected group
-      m_channelGroupPath = message.GetStringParam(0);
+    {
+      const CPVRChannelsPath path(message.GetStringParam(0));
+      if (path.IsValid() && path.IsChannelGroup())
+      {
+        // if a path to a channel group is given we must init
+        // that group instead of last played/selected group
+        m_channelGroupPath = message.GetStringParam(0);
+      }
       break;
+    }
 
     case GUI_MSG_CLICKED:
       if (message.GetSenderId() == m_viewControl.GetCurrentControl())
@@ -328,7 +335,7 @@ void CGUIWindowPVRChannelsBase::OnInputDone()
   if (channelNumber.IsValid())
   {
     int itemIndex = 0;
-    for (const CFileItemPtr channel : *m_vecItems)
+    for (const CFileItemPtr& channel : *m_vecItems)
     {
       if (channel->GetPVRChannelInfoTag()->ChannelNumber() == channelNumber)
       {

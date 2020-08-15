@@ -1193,6 +1193,7 @@ msgstr ""
 
 #: xbmc/dialogs/GUIDialogFileBrowser.cpp
 #: xbmc/games/dialogs/GUIDialogSelectGameClient.cpp
+#: xbmc/network/NetworkServices.cpp
 #: xbmc/pvr/PVRGUIActions.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
 #: xbmc/music/windows/GUIWindowMusicBase.cpp
@@ -3765,7 +3766,17 @@ msgctxt "#837"
 msgid "Sundays"
 msgstr ""
 
-#empty strings from id 838 to 839
+#. Label for a TV show Premiere
+#: addons/skin.estuary/xml/DialogPVRInfo.xml
+msgctxt "#838"
+msgid "Première"
+msgstr ""
+
+#. Label for a Live TV show
+#: addons/skin.estuary/xml/DialogPVRInfo.xml
+msgctxt "#839"
+msgid "Live"
+msgstr ""
 
 #. Message in a dialog when a user wants to delete a timer that was scheduled by a timer rule
 #: xbmc/pvr/PVRGUIActions.cpp
@@ -3782,7 +3793,7 @@ msgstr ""
 #. Label for a first aired TV show
 #: addons/skin.estuary/xml/DialogPVRInfo.xml
 msgctxt "#842"
-msgid "New!"
+msgid "New"
 msgstr ""
 
 #. Label for a context menu entry to activate a currently inactive timer
@@ -3821,7 +3832,11 @@ msgctxt "#848"
 msgid "Are you sure you want to stop this recording?"
 msgstr ""
 
-#empty string with id 849
+#. Label for a finale of a TV show
+#: addons/skin.estuary/xml/DialogPVRInfo.xml
+msgctxt "#849"
+msgid "Finale"
+msgstr ""
 
 msgctxt "#850"
 msgid "Invalid port number entered"
@@ -4082,7 +4097,17 @@ msgctxt "#1051"
 msgid "Enter web address"
 msgstr ""
 
-#empty strings from id 1052 to 1179
+#: system/settings/settings.xml
+msgctxt "#1052"
+msgid "Require authentication"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#1053"
+msgid "Choose whether requests to the web server require a username and a password, which must be set below if enabled. It is recommended to always leave this setting enabled."
+msgstr ""
+
+#empty strings from id 1054 to 1179
 
 #: system/settings/settings.xml
 msgctxt "#1180"
@@ -4804,6 +4829,7 @@ msgid "System information"
 msgstr ""
 
 #: xbmc/music/windows/GUIWindowMusicBase.cpp
+#: xbmc/video/ContextMenus.cpp
 #: xbmc/video/windows/GUIWindowVideoBase.cpp
 msgctxt "#10008"
 msgid "Play next"
@@ -6073,14 +6099,6 @@ msgctxt "#13023"
 msgid "Successfully removed storage device"
 msgstr ""
 
-msgctxt "#13024"
-msgid "Joystick plugged"
-msgstr ""
-
-msgctxt "#13025"
-msgid "Joystick unplugged"
-msgstr ""
-
 #: system/settings/settings.xml
 msgctxt "#13026"
 msgid "Try to wakeup remote servers on access"
@@ -6738,6 +6756,8 @@ msgid "Movie information"
 msgstr ""
 
 #: system/settings/settings.xml
+#: xbmc/video/ContextMenus.cpp
+#: xbmc/video/windows/GUIWindowVideoBase.cpp
 msgctxt "#13347"
 msgid "Queue item"
 msgstr ""
@@ -7059,7 +7079,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#13430"
-msgid "Allow hardware acceleration - PRIME"
+msgid "Allow using DRM PRIME decoder"
 msgstr ""
 
 #: system/settings/settings.xml
@@ -7099,7 +7119,10 @@ msgctxt "#13437"
 msgid "Prefer VDPAU video mixer"
 msgstr ""
 
-#empty string with id 13438
+#: system/settings/settings.xml
+msgctxt "#13438"
+msgid "Allow hardware acceleration with DRM PRIME"
+msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#13439"
@@ -7242,7 +7265,17 @@ msgctxt "#13465"
 msgid "EGL"
 msgstr ""
 
-#empty strings from id 13466 to 13504
+#: system/settings/gbm.xml
+msgctxt "#13466"
+msgid "1080 / 720 (>30Hz)"
+msgstr ""
+
+#: system/settings/gbm.xml
+msgctxt "#13467"
+msgid "Unlimited / 1080 (>30Hz)"
+msgstr ""
+
+#empty strings from id 13468 to 13504
 
 #: system/settings/settings.xml
 msgctxt "#13505"
@@ -7347,7 +7380,19 @@ msgctxt "#13523"
 msgid "When enabled, opening a multi-disc album shows the discs as individual items instead of all the songs. Opening a disc then shows the songs on that disc."
 msgstr ""
 
-#empty strings from id 13524 to 13549
+#. Label of a setting that allows original release dates to be used instead of album release date
+#: system/settings/settings.xml
+msgctxt "#13524"
+msgid "Use original release date of albums for year"
+msgstr ""
+
+#. Description of setting with label #13524
+#: system/settings/settings.xml
+msgctxt "#13525"
+msgid "When enabled, use the original year of release rather than the album release year (if available)."
+msgstr ""
+
+#empty strings from id 13526 to 13549
 
 #: system/settings/settings.xml
 msgctxt "#13550"
@@ -9700,6 +9745,7 @@ msgstr ""
 
 #. generic warning label used at several places
 #: xbmc/addons/AddonSystemSettings.cpp
+#: xbmc/network/NetworkServices.cpp
 #: xbmc/pvr/channels/PVRChannelGroupInternal.cpp
 #: xbmc/pvr/PVRManager.cpp
 msgctxt "#19098"
@@ -9779,7 +9825,7 @@ msgctxt "#19110"
 msgid "Could not delete the timer. Check the log for more information about this message."
 msgstr ""
 
-#. message box text stating that a PVR backend error occured
+#. message box text stating that a PVR backend error occurred
 #: xbmc/pvr/PVRGUIActions.cpp
 msgctxt "#19111"
 msgid "PVR backend error. Check the log for more information about this message."
@@ -10188,6 +10234,7 @@ msgid "Deleted"
 msgstr ""
 
 #. Settings -> Interface -> Other -> Startup window value
+#. Settings -> PVR -> Playback -> Switch to fullscreen value
 #: system/settings/settings.xml
 msgctxt "#19180"
 msgid "TV channels"
@@ -10206,6 +10253,7 @@ msgid "Future days to display"
 msgstr ""
 
 #. Settings -> Interface -> Other -> Startup window value
+#. Settings -> PVR -> Playback -> Switch to fullscreen value
 #: system/settings/settings.xml
 msgctxt "#19183"
 msgid "Radio channels"
@@ -10601,7 +10649,11 @@ msgctxt "#19249"
 msgid "Filter channels"
 msgstr ""
 
-#empty string with id 19250
+#. Settings -> PVR -> Playback -> Switch to fullscreen value
+#: system/settings/settings.xml
+msgctxt "#19250"
+msgid "TV and radio channels"
+msgstr ""
 
 #. label for 'update epg' context menu item and 'update epg' confirmation dialog header
 #: xbmc/pvr/windows/GUIWindowPVRChannels.cpp
@@ -11064,7 +11116,25 @@ msgctxt "#19326"
 msgid "Navigate..."
 msgstr ""
 
-#empty strings from id 19327 to 19498
+#. Label for a context menu entry to delete alle watched recordings contained in a folder
+#: xbmc/pvr/PVRContextMenus.cpp
+msgctxt "#19327"
+msgid "Delete watched"
+msgstr ""
+
+#. delete multiple recordings confirmation message box text
+#: xbmc/pvr/PVRGUIActions.cpp
+msgctxt "#19328"
+msgid "Delete all watched recordings in this folder?"
+msgstr ""
+
+#. label for PVR settings use backend channel numbers always
+#: system/settings/settings.xml
+msgctxt "#19329"
+msgid "Allow backend channel numbers with more than one PVR add-on"
+msgstr ""
+
+#empty strings from id 19330 to 19498
 
 #. label for epg genre value
 #: xbmc/pvr/epg/Epg.cpp
@@ -13272,6 +13342,7 @@ msgctxt "#20419"
 msgid "Replace file names with library titles"
 msgstr ""
 
+#. Settings -> PVR -> Playback -> Switch to fullscreen value
 #: system/settings/settings.xml
 msgctxt "#20420"
 msgid "Never"
@@ -14472,6 +14543,7 @@ msgctxt "#21876"
 msgid "Original TX reference"
 msgstr ""
 
+#: xbmc/playlist/SmartPlayList.cpp
 msgctxt "#21877"
 msgid "Date created"
 msgstr ""
@@ -15781,7 +15853,29 @@ msgctxt "#25013"
 msgid "Auto-skip on"
 msgstr ""
 
-#empty strings from id 25014 to 29800
+#. Used for skins to tell addon origin type
+#. xbmc/filesystem/AddonsDirectory.cpp
+#: addons/skin.estuary/xml/DialogAddonInfo.xml
+msgctxt "#25014"
+msgid "system"
+msgstr ""
+
+#. Used for skins to tell addon origin type
+#. xbmc/filesystem/AddonsDirectory.cpp
+#: addons/skin.estuary/xml/AddonBrowser.xml
+msgctxt "#25015"
+msgid "repository"
+msgstr ""
+
+#. Used for skins to tell addon origin type
+#. xbmc/filesystem/AddonsDirectory.cpp
+#: addons/skin.estuary/xml/AddonBrowser.xml
+#: addons/skin.estuary/xml/DialogAddonInfo.xml
+msgctxt "#25016"
+msgid "manual"
+msgstr ""
+
+#empty strings from id 25017 to 29800
 
 #: unused
 msgctxt "#29801"
@@ -16697,7 +16791,12 @@ msgctxt "#33103"
 msgid "Remote communication server"
 msgstr ""
 
-#empty strings from id 33104 to 33199
+#: xbmc/network/NetworkServices.cpp
+msgctxt "#33104"
+msgid "You have previously enabled the web interface without setting up a password. The web server has been disabled until you either explicitly allow this or set up authentication. Please review your settings."
+msgstr ""
+
+#empty strings from id 33105 to 33199
 
 #: xbmc/network/eventclient.cpp
 msgctxt "#33200"
@@ -17343,14 +17442,14 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#35100"
-msgid "Enable joystick and gamepad support"
+msgid "Enable controller support"
 msgstr ""
 
 #empty string with id 35101
 
 #: system/peripherals.xml
 msgctxt "#35102"
-msgid "Disable joystick when this device is present"
+msgid "Disable controllers when this device is present"
 msgstr ""
 
 #. Label for mouse buttons. Used in the controller mapping dialog.
@@ -18525,7 +18624,7 @@ msgstr ""
 #. Description of setting with label #13430 "Allow hardware acceleration - PRIME"
 #: system/settings/settings.xml
 msgctxt "#36172"
-msgid "Enable PRIME hardware decoding of video files, used if ffmpeg PRIME hwaccel is available."
+msgid "Enable PRIME decoding of video files"
 msgstr ""
 
 #. Description of setting with label #14109 "Short date format"
@@ -18718,7 +18817,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36206"
-msgid "Use the channel numbering from the backend. Only works with one enabled PVR add-on!"
+msgid "Use the channel numbering from the backend."
 msgstr ""
 
 #: system/settings/settings.xml
@@ -18802,7 +18901,11 @@ msgctxt "#36222"
 msgid "Don't import the guide data while playing TV to minimise CPU usage."
 msgstr ""
 
-#empty string with id 36223
+#. Description of setting with label #13438 "Allow Hardware Accelleration with DRM PRIME"
+#: system/settings/settings.xml
+msgctxt "#36223"
+msgid "Enable PRIME hardware decoding of video files, used if ffmpeg PRIME hwaccel is available."
+msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36224"
@@ -18821,7 +18924,7 @@ msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36227"
-msgid "Switch to full screen display when starting playback of channels and recordings."
+msgid "Switch to full screen display when starting playback of channels."
 msgstr ""
 
 #. Description of setting with label #745 "Background Colour"
@@ -19391,7 +19494,7 @@ msgstr ""
 #. Description of setting with label #263 "Allow remote control via HTTP"
 #: system/settings/settings.xml
 msgctxt "#36328"
-msgid "Enable remote users to control this application through the built-in web server."
+msgid "Enable remote users to control this application through the built-in web server. Never expose the web server port to the Internet."
 msgstr ""
 
 #. Description of setting with label #730 "Port"
@@ -19403,13 +19506,13 @@ msgstr ""
 #. Description of setting with label #1048 "Username"
 #: system/settings/settings.xml
 msgctxt "#36330"
-msgid "Define the web server username. This only takes effect when both the username and the password are set."
+msgid "Define the web server username. Must be set when authentication is enabled."
 msgstr ""
 
 #. Description of setting with label #1048 "Password"
 #: system/settings/settings.xml
 msgctxt "#36331"
-msgid "Define the web server password. This only takes effect when both the username and the password are set."
+msgid "Define the web server password. Must be set when authentication is enabled."
 msgstr ""
 
 #. Description of setting with label #199 "Web interface"
@@ -19427,7 +19530,7 @@ msgstr ""
 #. Description of setting with label #791 "Allow remote control from programs on this system"
 #: system/settings/settings.xml
 msgctxt "#36334"
-msgid "Allow programs on this device to control this application via the web interface or the JSON-RPC interface protocol."
+msgid "Allow programs on this device to control this application via the JSON-RPC over WebSocket, JSON-RPC over TCP, or EventServer protocol, without authentication."
 msgstr ""
 
 #. Description of setting with label #792 "Port"
@@ -19451,7 +19554,7 @@ msgstr ""
 #. Description of setting with label #794 "Allow remote control from programs on other systems"
 #: system/settings/settings.xml
 msgctxt "#36338"
-msgid "Allow programs on the network to control this application."
+msgid "Allow programs on the network to control this application via the JSON-RPC over WebSocket, JSON-RPC over TCP, or EventServer protocol, without authentication. It allows anyone with access to the network to completely control this application and, therefore, this device. Never expose these interfaces to the Internet."
 msgstr ""
 
 #. Description of setting with label #795 "Initial repeat delay (ms)"
@@ -19568,7 +19671,10 @@ msgctxt "#36357"
 msgid "Calibrate the user interface by adjusting the overscan. Use this tool if the image being displayed is too large or small for your display."
 msgstr ""
 
-#empty string with id 36358
+#: system/settings/settings.xml
+msgctxt "#36358"
+msgid "Allow using channel numbering from multiple backends. Note that the All channels group can contain multiple of the same channel number if using this option. This means that jump to channel number may not work correctly for the All channels group."
+msgstr ""
 
 #. Description of setting with label #36042 "Use limited colour range (16-235)"
 #: system/settings/settings.xml
@@ -19682,10 +19788,10 @@ msgctxt "#36377"
 msgid "Use a mouse or touch screen device to control the interface. Note: Disabling will cause you to lose control over this application when no keyboard or remote is present."
 msgstr ""
 
-#. Description of setting with label #35100 "Enable joystick and gamepad support"
+#. Description of setting with label #35100 "Enable controller support"
 #: system/settings/settings.xml
 msgctxt "#36378"
-msgid "Use a joystick to control the interface."
+msgid "Use a game controller to control the interface."
 msgstr ""
 
 #. Description of settings category with label #798 Internet access
@@ -19940,7 +20046,16 @@ msgctxt "#36421"
 msgid "Bypassing VDPAU mixer saves resources on low power systems but slightly reduces picture quality."
 msgstr ""
 
-#empty strings from id 36422 to 36423
+#: system/settings/settings.xml
+msgctxt "#36422"
+msgid "Update official add-ons from"
+msgstr ""
+
+#. Description of setting with label #36422 "Update official add-ons from"
+#: system/settings/settings.xml
+msgctxt "#36423"
+msgid "By default, add-ons from official repositories will be prevented from being auto-updated from private repositories. For cases such as updating from an add-ons beta repository this option can be switched to [Any repositories] (bear in mind this is a less secure option and enabling it could cause incompatibility and crashes)."
+msgstr ""
 
 #: system/settings/settings.xml
 msgctxt "#36424"
@@ -20015,7 +20130,19 @@ msgctxt "#36436"
 msgid "Select OS keyboard layout."
 msgstr ""
 
-#empty strings from id 36437 to 36441
+#. Option for setting "System -> Add-ons -> Update official add-ons from"
+#: system/settings/settings.xml
+msgctxt "#36437"
+msgid "Official repositories only (default)"
+msgstr ""
+
+#. Option for setting "System -> Add-ons -> Update official add-ons from"
+#: system/settings/settings.xml
+msgctxt "#36438"
+msgid "Any repositories"
+msgstr ""
+
+#empty strings from id 36439 to 36441
 
 #. Description of setting "System -> Audio output -> Volume control steps" with label #1302
 #: system/settings/settings.xml
@@ -20273,6 +20400,7 @@ msgid "Use higher quality textures for covers and fanart (uses more memory)"
 msgstr ""
 
 #: system/settings/rbp.xml
+#: system/settings/gbm.xml
 msgctxt "#36548"
 msgid "Limits resolution of GUI to save memory. Does not affect video playback. Requires restart."
 msgstr ""
@@ -20718,7 +20846,37 @@ msgctxt "#36631"
 msgid "Force weak SMBv1 security for compatibility with the USB sharing features on some WiFi routers and NAS devices."
 msgstr ""
 
-#empty strings from id 36632 to 36898
+#. Text in confirm dialog when enabling setting "Services -> Control -> Allow remote control via HTTP"
+#: xbmc/network/NetworkServices.cpp
+msgctxt "#36632"
+msgid "Anyone who has access to the web interface will be able to completely control this application and, therefore, this device, so it should never be exposed on the Internet. A password should be set below. Proceed?"
+msgstr ""
+
+#. Text in confirm dialog when enabling setting "Services -> Control -> Allow remote control from applications on other systems"
+#: xbmc/network/NetworkServices.cpp
+msgctxt "#36633"
+msgid "These services offer neither authentication nor encryption. Anyone who can connect to them will be able to completely control this application and, therefore, this device, so they should never be exposed to the Internet. Proceed?"
+msgstr ""
+
+#. Text in confirm dialog when disabling setting "Services -> Control -> Require authentication"
+#: xbmc/network/NetworkServices.cpp
+msgctxt "#36634"
+msgid "Anyone who has access to the web interface will be able to completely control this application and, therefore, this device, so it should be secured by a password. Are you sure you want to disable authentication?"
+msgstr ""
+
+#. Text in error dialog when trying to enter an invalid web server configuration
+#: xbmc/network/NetworkServices.cpp
+msgctxt "#36635"
+msgid "If web server authentication is enabled, a password must be entered as well."
+msgstr ""
+
+#. Text in error dialog when trying to enter an invalid web server configuration by enabling authentication without a password set
+#: xbmc/network/NetworkServices.cpp
+msgctxt "#36636"
+msgid "You must first enter a password before web server authentication can be enabled."
+msgstr ""
+
+#empty strings from id 36637 to 36898
 
 #. Description of setting with label #729 "Enable SSL"
 #: system/settings/settings.xml
@@ -20890,6 +21048,7 @@ msgid "Enable higher colour depth artwork"
 msgstr ""
 
 #: system/settings/rbp.xml
+#: system/settings/gbm.xml
 msgctxt "#37021"
 msgid "Set GUI resolution limit"
 msgstr ""
@@ -20927,6 +21086,7 @@ msgstr ""
 
 #: system/settings/rbp.xml
 #: system/settings/android.xml
+#: system/settings/gbm.xml
 msgctxt "#37028"
 msgid "720"
 msgstr ""
@@ -20938,6 +21098,7 @@ msgstr ""
 
 #: system/settings/rbp.xml
 #: system/settings/android.xml
+#: system/settings/gbm.xml
 msgctxt "#37030"
 msgid "Unlimited"
 msgstr ""
@@ -21033,6 +21194,7 @@ msgid "Extract chapter thumbnails for presentation in the chapters / bookmarks d
 msgstr ""
 
 #: system/settings/android.xml
+#: system/settings/gbm.xml
 msgctxt "#37046"
 msgid "1080"
 msgstr ""
@@ -21352,8 +21514,37 @@ msgctxt "#38077"
 msgid "Total discs"
 msgstr ""
 
-#empty strings from id 38078 to 38099
-#strings 38078 to 38099 reserved for music library
+#: xbmc/dialogs/GUIDialogMediaFilter.cpp
+#: xbmc/dialogs/GUIDialogSmartPlaylistRule.cpp
+#: xbmc/filesystem/MusicDatabaseDirectory/DirectoryNodeOverview.cpp
+#: xbmc/music/GUIViewStateMusic.cpp
+#: xbmc/playlists/SmartPlaylist.cpp
+msgctxt "#38078"
+msgid "Original year"
+msgstr ""
+
+#: xbmc/utils/SortUtils.cpp
+#: xbmc/music/GUIViewStateMusic.cpp
+msgctxt "#38079"
+msgid "Original date"
+msgstr ""
+
+#. Music property - Beats Per Minute
+#: xbmc/utils/SortUtils.cpp
+#: xbmc/music/GUIViewStateMusic.cpp
+#: xbmc/playlists/SmartPlaylist.cpp
+msgctxt "#38080"
+msgid "BPM"
+msgstr ""
+
+#. Music property - Album release status
+#: xbmc/playlists/SmartPlaylist.cpp
+msgctxt "#38081"
+msgid "Release status"
+msgstr ""
+
+#empty strings from id 38082 to 38099
+#strings 38082 to 38099 reserved for music library
 
 #. Description of section #14200 "Player""
 #: system/settings/settings.xml
@@ -21957,3 +22148,9 @@ msgstr ""
 msgctxt "#39118"
 msgid "Share debug log"
 msgstr ""
+
+#: xbmc/playlists/SmartPlaylist.cpp
+msgctxt "#39119"
+msgid "Last modified"
+msgstr ""
+

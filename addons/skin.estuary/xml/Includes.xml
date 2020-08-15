@@ -293,7 +293,7 @@
 				<usecontrolcoords>true</usecontrolcoords>
 				<control type="group">
 					<width>150</width>
-					<visible>System.HasAddon(resource.images.studios.white) + !String.IsEmpty($PARAM[infolabel_prefix]ListItem.Studio)</visible>
+					<visible>System.AddonIsEnabled(resource.images.studios.white) + !String.IsEmpty($PARAM[infolabel_prefix]ListItem.Studio)</visible>
 					<include content="MediaFlag">
 						<param name="texture" value="$INFO[$PARAM[infolabel_prefix]ListItem.Studio,resource://resource.images.studios.white/,.png]" />
 					</include>
@@ -692,7 +692,7 @@
 			<animation effect="fade" time="300">VisibleChange</animation>
 			<animation effect="fade" start="0" end="100" time="300">WindowOpen</animation>
 			<animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
-			<texture colordiffuse="C2FFFFFF">colors/black.png</texture>
+			<texture colordiffuse="80FFFFFF">colors/black.png</texture>
 			<visible>$PARAM[darken_bg]</visible>
 		</control>
 		<control type="button">
@@ -998,7 +998,7 @@
 					<visible>!System.HasActiveModalDialog</visible>
 					<visible>Container.Scrolling</visible>
 					<visible>!Container.Content(seasons)</visible>
-					<visible>String.IsEqual(Container.SortMethod,$LOCALIZE[551]) | String.IsEqual(Container.SortMethod,$LOCALIZE[561]) | String.IsEqual(Container.SortMethod,$LOCALIZE[558]) | String.IsEqual(Container.SortMethod,$LOCALIZE[557]) | String.IsEqual(Container.SortMethod,$LOCALIZE[556]) | String.IsEqual(Container.SortMethod,$LOCALIZE[563])</visible>
+					<visible>Container.SortMethod(1) | Container.SortMethod(4) | Container.SortMethod(12) | Container.SortMethod(10) | Container.SortMethod(7) | Container.SortMethod(29) | Container.SortMethod(17)</visible>
 					<animation effect="fade" start="0" end="100" time="200" reversible="true">VisibleChange</animation>
 					<animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
 				</control>
@@ -1354,6 +1354,49 @@
 			<textureradioonnofocus colordiffuse="grey">icons/back.png</textureradioonnofocus>
 			<textureradioofffocus>icons/back.png</textureradioofffocus>
 			<textureradiooffnofocus colordiffuse="grey">icons/back.png</textureradiooffnofocus>
+		</control>
+	</include>
+	<include name="TouchBackOSDButton">
+		<control type="radiobutton" id="799">
+			<left>-10</left>
+			<top>-10</top>
+			<width>120</width>
+			<height>120</height>
+			<align>center</align>
+			<aligny>center</aligny>
+			<onclick>Dialog.Close(all,true)</onclick>
+			<onclick>Action(FullScreen)</onclick>
+			<texturefocus colordiffuse="button_focus">buttons/roundbutton-fo.png</texturefocus>
+			<texturenofocus />
+			<radioposx>30</radioposx>
+			<radiowidth>60</radiowidth>
+			<radioheight>60</radioheight>
+			<textureradioonfocus>icons/back.png</textureradioonfocus>
+			<textureradioonnofocus colordiffuse="grey">icons/back.png</textureradioonnofocus>
+			<textureradioofffocus>icons/back.png</textureradioofffocus>
+			<textureradiooffnofocus colordiffuse="grey">icons/back.png</textureradiooffnofocus>
+			<include>Animation_TopSlide</include>
+		</control>
+	</include>
+	<include name="TouchBackSlideshowButton">
+		<control type="radiobutton" id="13">
+			<left>-10</left>
+			<top>-10</top>
+			<width>120</width>
+			<height>120</height>
+			<align>center</align>
+			<aligny>center</aligny>
+			<onfocus>Action(Back)</onfocus>
+			<texturefocus colordiffuse="button_focus">buttons/roundbutton-fo.png</texturefocus>
+			<texturenofocus />
+			<radioposx>30</radioposx>
+			<radiowidth>60</radiowidth>
+			<radioheight>60</radioheight>
+			<textureradioonfocus>icons/back.png</textureradioonfocus>
+			<textureradioonnofocus colordiffuse="grey">icons/back.png</textureradioonnofocus>
+			<textureradioofffocus>icons/back.png</textureradioofffocus>
+			<textureradiooffnofocus colordiffuse="grey">icons/back.png</textureradiooffnofocus>
+			<visible>!Window.IsVisible(PictureInfo)</visible>
 		</control>
 	</include>
 	<include name="SettingsPanel">

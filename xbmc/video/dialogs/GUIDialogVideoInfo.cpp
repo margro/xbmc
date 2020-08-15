@@ -37,6 +37,7 @@
 #include "profiles/ProfileManager.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSourceSettings.h"
+#include "settings/SettingUtils.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
@@ -351,7 +352,7 @@ void CGUIDialogVideoInfo::SetMovie(const CFileItem *item)
         item->SetArt("thumb", it->thumb);
       else if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOLIBRARY_ACTORTHUMBS))
       { // backward compatibility
-        std::string thumb = CScraperUrl::GetThumbURL(it->thumbUrl.GetFirstThumb());
+        std::string thumb = CScraperUrl::GetThumbUrl(it->thumbUrl.GetFirstUrlByType());
         if (!thumb.empty())
         {
           item->SetArt("thumb", thumb);
@@ -402,13 +403,13 @@ void CGUIDialogVideoInfo::Update()
     CServiceBroker::GetSettingsComponent()->GetSettings()->GetSetting(CSettings::SETTING_VIDEOLIBRARY_SHOWUNWATCHEDPLOTS)));
   std::string strTmp = m_movieItem->GetVideoInfoTag()->m_strPlot;
   if (m_movieItem->GetVideoInfoTag()->m_type != MediaTypeTvShow)
-    if (m_movieItem->GetVideoInfoTag()->GetPlayCount() == 0 && 
-        setting &&
-        (
-         (m_movieItem->GetVideoInfoTag()->m_type == MediaTypeMovie && (!setting->FindIntInList(CSettings::VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_MOVIES))) || 
-         (m_movieItem->GetVideoInfoTag()->m_type == MediaTypeEpisode && (!setting->FindIntInList(CSettings::VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_TVSHOWEPISODES)))
-        )
-       )
+    if (m_movieItem->GetVideoInfoTag()->GetPlayCount() == 0 && setting &&
+        ((m_movieItem->GetVideoInfoTag()->m_type == MediaTypeMovie &&
+          !CSettingUtils::FindIntInList(setting,
+                                        CSettings::VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_MOVIES)) ||
+         (m_movieItem->GetVideoInfoTag()->m_type == MediaTypeEpisode &&
+          !CSettingUtils::FindIntInList(
+              setting, CSettings::VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_TVSHOWEPISODES))))
       strTmp = g_localizeStrings.Get(20370);
 
   StringUtils::Trim(strTmp);
@@ -824,9 +825,10 @@ void CGUIDialogVideoInfo::OnGetArt()
     }
 
     // Grab the thumbnails from the web
+    m_movieItem->GetVideoInfoTag()->m_strPictureURL.Parse();
     std::vector<std::string> thumbs;
     int season = (m_movieItem->GetVideoInfoTag()->m_type == MediaTypeSeason) ? m_movieItem->GetVideoInfoTag()->m_iSeason : -1;
-    m_movieItem->GetVideoInfoTag()->m_strPictureURL.GetThumbURLs(thumbs, type, season);
+    m_movieItem->GetVideoInfoTag()->m_strPictureURL.GetThumbUrls(thumbs, type, season);
 
     for (unsigned int i = 0; i < thumbs.size(); ++i)
     {
@@ -1637,7 +1639,13 @@ bool CGUIDialogVideoInfo::GetSetForMovie(const CFileItem *movieItem, CFileItemPt
     return false;
 
   CFileItemList listItems;
-  std::string baseDir = "videodb://movies/sets/";
+
+  // " ignoreSingleMovieSets=false " as an option in the url is needed here
+  // to override the gui-setting "Include sets containing a single movie"
+  // and retrieve all moviesets
+
+  std::string baseDir = "videodb://movies/sets/?ignoreSingleMovieSets=false";
+
   if (!CDirectory::GetDirectory(baseDir, listItems, "", DIR_FLAG_DEFAULTS))
     return false;
   listItems.Sort(SortByLabel, SortOrderAscending, CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_FILELISTS_IGNORETHEWHENSORTING) ? SortAttributeIgnoreArticle : SortAttributeNone);
@@ -1653,6 +1661,15 @@ bool CGUIDialogVideoInfo::GetSetForMovie(const CFileItem *movieItem, CFileItemPt
 
   if (currentSetId > 0)
   {
+    // remove duplicate entry
+    for (int listIndex = 0; listIndex < listItems.Size(); listIndex++)
+    {
+      if (listItems.Get(listIndex)->GetVideoInfoTag()->m_iDbId == currentSetId)
+      {
+        listItems.Remove(listIndex);
+        break;
+      }
+    }
     // add clear item
     std::string strClear = StringUtils::Format(g_localizeStrings.Get(20467).c_str(), currentSetLabel.c_str());
     CFileItemPtr clearItem(new CFileItem(strClear));
@@ -1951,7 +1968,8 @@ bool CGUIDialogVideoInfo::ManageVideoItemArtwork(const CFileItemPtr &item, const
     if (type == MediaTypeSeason)
     {
       videodb.GetTvShowInfo("", tag, item->GetVideoInfoTag()->m_iIdShow);
-      tag.m_strPictureURL.GetThumbURLs(thumbs, artType, item->GetVideoInfoTag()->m_iSeason);
+      tag.m_strPictureURL.Parse();
+      tag.m_strPictureURL.GetThumbUrls(thumbs, artType, item->GetVideoInfoTag()->m_iSeason);
     }
     else if (type == MediaTypeVideoCollection)
     {
@@ -1963,14 +1981,15 @@ bool CGUIDialogVideoInfo::ManageVideoItemArtwork(const CFileItemPtr &item, const
         {
           CVideoInfoTag* pTag = items[i]->GetVideoInfoTag();
           pTag->m_strPictureURL.Parse();
-          pTag->m_strPictureURL.GetThumbURLs(thumbs, "set." + artType, -1, true);
+          pTag->m_strPictureURL.GetThumbUrls(thumbs, "set." + artType, -1, true);
         }
       }
     }
     else
     {
       tag = *item->GetVideoInfoTag();
-      tag.m_strPictureURL.GetThumbURLs(thumbs, artType);
+      tag.m_strPictureURL.Parse();
+      tag.m_strPictureURL.GetThumbUrls(thumbs, artType);
     }
 
     for (size_t i = 0; i < thumbs.size(); i++)

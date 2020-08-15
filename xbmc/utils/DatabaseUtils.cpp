@@ -54,8 +54,12 @@ std::string DatabaseUtils::GetField(Field field, const MediaType &mediaType, Dat
     if (field == FieldId) return "albumview.idAlbum";
     else if (field == FieldAlbum) return "albumview.strAlbum";
     else if (field == FieldArtist || field == FieldAlbumArtist) return "albumview.strArtists";
-    else if (field == FieldGenre) return "albumview.strGenre";
-    else if (field == FieldYear) return "albumview.iYear";
+    else if (field == FieldGenre)
+      return "albumview.strGenres";
+    else if (field == FieldYear)
+      return "albumview.strReleaseDate";
+    else if (field == FieldOrigYear || field == FieldOrigDate)
+      return "albumview.strOrigReleaseDate";
     else if (field == FieldMoods) return "albumview.strMoods";
     else if (field == FieldStyles) return "albumview.strStyles";
     else if (field == FieldThemes) return "albumview.strThemes";
@@ -67,10 +71,14 @@ std::string DatabaseUtils::GetField(Field field, const MediaType &mediaType, Dat
     else if (field == FieldVotes) return "albumview.iVotes";
     else if (field == FieldUserRating) return "albumview.iUserrating";
     else if (field == FieldDateAdded) return "albumview.dateAdded";
+    else if (field == FieldDateNew) return "albumview.dateNew";
+    else if (field == FieldDateModified) return "albumview.dateModified";
     else if (field == FieldPlaycount) return "albumview.iTimesPlayed";
     else if (field == FieldLastPlayed) return "albumview.lastPlayed";
     else if (field == FieldTotalDiscs)
       return "albumview.iDiscTotal";
+    else if (field == FieldAlbumStatus)
+        return "albumview.strReleaseStatus";
   }
   else if (mediaType == MediaTypeSong)
   {
@@ -78,7 +86,10 @@ std::string DatabaseUtils::GetField(Field field, const MediaType &mediaType, Dat
     else if (field == FieldTitle) return "songview.strTitle";
     else if (field == FieldTrackNumber) return "songview.iTrack";
     else if (field == FieldTime) return "songview.iDuration";
-    else if (field == FieldYear) return "songview.iYear";
+    else if (field == FieldYear)
+      return "songview.strReleaseDate";
+    else if (field == FieldOrigYear || field == FieldOrigDate)
+      return "songview.strOrigReleaseDate";
     else if (field == FieldFilename) return "songview.strFilename";
     else if (field == FieldPlaycount) return "songview.iTimesPlayed";
     else if (field == FieldStartOffset) return "songview.iStartOffset";
@@ -92,10 +103,22 @@ std::string DatabaseUtils::GetField(Field field, const MediaType &mediaType, Dat
     else if (field == FieldAlbum) return "songview.strAlbum";
     else if (field == FieldPath) return "songview.strPath";
     else if (field == FieldArtist || field == FieldAlbumArtist) return "songview.strArtists";
-    else if (field == FieldGenre) return "songview.strGenre";
+    else if (field == FieldGenre)
+      return "songview.strGenres";
     else if (field == FieldDateAdded) return "songview.dateAdded";
+    else if (field == FieldDateNew) return "songview.dateNew";
+    else if (field == FieldDateModified) return "songview.dateModified";
+
     else if (field == FieldDiscTitle)
       return "songview.strDiscSubtitle";
+    else if (field == FieldBPM)
+        return "songview.iBPM";
+    else if (field == FieldMusicBitRate)
+        return "songview.iBitRate";
+    else if (field == FieldSampleRate)
+        return "songview.iSampleRate";
+    else if (field == FieldNoOfChannels)
+        return "songview.iChannels";
   }
   else if (mediaType == MediaTypeArtist)
   {
@@ -115,6 +138,8 @@ std::string DatabaseUtils::GetField(Field field, const MediaType &mediaType, Dat
     else if (field == FieldDisbanded) return "artistview.strDisbanded";
     else if (field == FieldDied) return "artistview.strDied";
     else if (field == FieldDateAdded) return "artistview.dateAdded";
+    else if (field == FieldDateNew) return "artistview.dateNew";
+    else if (field == FieldDateModified) return "artistview.dateModified";
   }
   else if (mediaType == MediaTypeMusicVideo)
   {
@@ -451,8 +476,12 @@ bool DatabaseUtils::GetDatabaseResults(const MediaType &mediaType, const FieldLi
 
 std::string DatabaseUtils::BuildLimitClause(int end, int start /* = 0 */)
 {
+  return " LIMIT " + BuildLimitClauseOnly(end, start);
+}
+
+std::string DatabaseUtils::BuildLimitClauseOnly(int end, int start /* = 0 */)
+{
   std::ostringstream sql;
-  sql << " LIMIT ";
   if (start > 0)
   {
     if (end > 0)
@@ -470,6 +499,20 @@ std::string DatabaseUtils::BuildLimitClause(int end, int start /* = 0 */)
   return sql.str();
 }
 
+size_t DatabaseUtils::GetLimitCount(int end, int start)
+{
+  if (start > 0)
+  {
+    if (end - start < 0)
+      return 0;
+    else
+      return static_cast<size_t>(end - start);
+  }
+  else if (end > 0)
+    return static_cast<size_t>(end);
+  return 0;
+}
+
 int DatabaseUtils::GetField(Field field, const MediaType &mediaType, bool asIndex)
 {
   if (field == FieldNone || mediaType == MediaTypeNone)
@@ -483,7 +526,7 @@ int DatabaseUtils::GetField(Field field, const MediaType &mediaType, bool asInde
     else if (field == FieldAlbum) return CMusicDatabase::album_strAlbum;
     else if (field == FieldArtist || field == FieldAlbumArtist) return CMusicDatabase::album_strArtists;
     else if (field == FieldGenre) return CMusicDatabase::album_strGenres;
-    else if (field == FieldYear) return CMusicDatabase::album_iYear;
+    else if (field == FieldYear) return CMusicDatabase::album_strReleaseDate;
     else if (field == FieldMoods) return CMusicDatabase::album_strMoods;
     else if (field == FieldStyles) return CMusicDatabase::album_strStyles;
     else if (field == FieldThemes) return CMusicDatabase::album_strThemes;
@@ -495,9 +538,15 @@ int DatabaseUtils::GetField(Field field, const MediaType &mediaType, bool asInde
     else if (field == FieldUserRating) return CMusicDatabase::album_iUserrating;
     else if (field == FieldPlaycount) return CMusicDatabase::album_iTimesPlayed;
     else if (field == FieldLastPlayed) return CMusicDatabase::album_dtLastPlayed;
-    else if (field == FieldDateAdded) return CMusicDatabase::album_dtDateAdded;
+    else if (field == FieldDateAdded) return CMusicDatabase::album_dateAdded;
+    else if (field == FieldDateNew) return CMusicDatabase::album_dateNew;
+    else if (field == FieldDateModified) return CMusicDatabase::album_dateModified;
     else if (field == FieldTotalDiscs)
       return CMusicDatabase::album_iTotalDiscs;
+    else if (field == FieldOrigYear || field == FieldOrigDate)
+      return CMusicDatabase::album_strOrigReleaseDate;
+    else if (field == FieldAlbumStatus)
+      return CMusicDatabase::album_strReleaseStatus;
   }
   else if (mediaType == MediaTypeSong)
   {
@@ -505,7 +554,7 @@ int DatabaseUtils::GetField(Field field, const MediaType &mediaType, bool asInde
     else if (field == FieldTitle) return CMusicDatabase::song_strTitle;
     else if (field == FieldTrackNumber) return CMusicDatabase::song_iTrack;
     else if (field == FieldTime) return CMusicDatabase::song_iDuration;
-    else if (field == FieldYear) return CMusicDatabase::song_iYear;
+    else if (field == FieldYear) return CMusicDatabase::song_strReleaseDate;
     else if (field == FieldFilename) return CMusicDatabase::song_strFileName;
     else if (field == FieldPlaycount) return CMusicDatabase::song_iTimesPlayed;
     else if (field == FieldStartOffset) return CMusicDatabase::song_iStartOffset;
@@ -521,6 +570,16 @@ int DatabaseUtils::GetField(Field field, const MediaType &mediaType, bool asInde
     else if (field == FieldGenre) return CMusicDatabase::song_strGenres;
     else if (field == FieldArtist || field == FieldAlbumArtist) return CMusicDatabase::song_strArtists;
     else if (field == FieldDateAdded) return CMusicDatabase::song_dateAdded;
+    else if (field == FieldDateNew) return CMusicDatabase::song_dateNew;
+    else if (field == FieldDateModified) return CMusicDatabase::song_dateModified;
+    else if (field == FieldBPM)
+      return CMusicDatabase::song_iBPM;
+    else if (field == FieldMusicBitRate)
+        return CMusicDatabase::song_iBitRate;
+    else if (field == FieldSampleRate)
+        return CMusicDatabase::song_iSampleRate;
+    else if (field == FieldNoOfChannels)
+        return CMusicDatabase::song_iChannels;
   }
   else if (mediaType == MediaTypeArtist)
   {
@@ -539,7 +598,9 @@ int DatabaseUtils::GetField(Field field, const MediaType &mediaType, bool asInde
     else if (field == FieldBandFormed) return CMusicDatabase::artist_strFormed;
     else if (field == FieldDisbanded) return CMusicDatabase::artist_strDisbanded;
     else if (field == FieldDied) return CMusicDatabase::artist_strDied;
-    else if (field == FieldDateAdded) return CMusicDatabase::artist_dtDateAdded;
+    else if (field == FieldDateAdded) return CMusicDatabase::artist_dateAdded;
+    else if (field == FieldDateNew) return CMusicDatabase::artist_dateNew;
+    else if (field == FieldDateModified) return CMusicDatabase::artist_dateModified;
   }
   else if (mediaType == MediaTypeMusicVideo)
   {

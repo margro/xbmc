@@ -10,6 +10,7 @@
 
 #include "Application.h"
 #include "FileItem.h"
+#include "PlayListPlayer.h"
 #include "ServiceBroker.h"
 #include "URL.h"
 #include "cores/DataCacheCore.h"
@@ -22,7 +23,9 @@
 #include "guilib/guiinfo/GUIInfo.h"
 #include "guilib/guiinfo/GUIInfoHelper.h"
 #include "guilib/guiinfo/GUIInfoLabels.h"
+#include "playlists/PlayList.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/SettingUtils.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
@@ -83,6 +86,11 @@ bool CVideoGUIInfo::InitCurrentItem(CFileItem *item)
 
 bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int contextWindow, const CGUIInfo &info, std::string *fallback) const
 {
+  // For videoplayer "offset" and "position" info labels check playlist
+  if (info.GetData1() && info.m_info >= VIDEOPLAYER_OFFSET_POSITION_FIRST &&
+      info.m_info <= VIDEOPLAYER_OFFSET_POSITION_LAST)
+    return GetPlaylistInfo(value, info);
+
   const CVideoInfoTag* tag = item->GetVideoInfoTag();
   if (tag)
   {
@@ -139,6 +147,19 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
           return true;
         }
         break;
+      case VIDEOPLAYER_TVSHOWDBID:
+      case LISTITEM_TVSHOWDBID:
+        if (tag->m_iIdShow > -1)
+        {
+          value = StringUtils::Format("%i", tag->m_iIdShow);
+          return true;
+        }
+        break;
+      case VIDEOPLAYER_UNIQUEID:
+      case LISTITEM_UNIQUEID:
+        if (!info.GetData3().empty())
+          value = tag->GetUniqueID(info.GetData3());
+        return true;
       case VIDEOPLAYER_RATING:
       case LISTITEM_RATING:
       {
@@ -331,15 +352,14 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
         {
           std::shared_ptr<CSettingList> setting(std::dynamic_pointer_cast<CSettingList>( 
             CServiceBroker::GetSettingsComponent()->GetSettings()->GetSetting(CSettings::SETTING_VIDEOLIBRARY_SHOWUNWATCHEDPLOTS)));
-          if (tag->m_type != MediaTypeTvShow &&
-              tag->m_type != MediaTypeVideoCollection &&
-              tag->GetPlayCount() == 0 &&
-              setting &&
-              (
-               (tag->m_type == MediaTypeMovie && (!setting->FindIntInList(CSettings::VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_MOVIES))) ||  
-               (tag->m_type == MediaTypeEpisode && (!setting->FindIntInList(CSettings::VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_TVSHOWEPISODES)))
-              )
-             ) 
+          if (tag->m_type != MediaTypeTvShow && tag->m_type != MediaTypeVideoCollection &&
+              tag->GetPlayCount() == 0 && setting &&
+              ((tag->m_type == MediaTypeMovie &&
+                !CSettingUtils::FindIntInList(
+                    setting, CSettings::VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_MOVIES)) ||
+               (tag->m_type == MediaTypeEpisode &&
+                !CSettingUtils::FindIntInList(
+                    setting, CSettings::VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_TVSHOWEPISODES))))
           {
             value = g_localizeStrings.Get(20370);
           }
@@ -572,6 +592,48 @@ bool CVideoGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
   }
 
   return false;
+}
+
+bool CVideoGUIInfo::GetPlaylistInfo(std::string& value, const CGUIInfo& info) const
+{
+  PLAYLIST::CPlayList& playlist = CServiceBroker::GetPlaylistPlayer().GetPlaylist(PLAYLIST_VIDEO);
+  if (playlist.size() < 1)
+    return false;
+
+  int index = info.GetData2();
+  if (info.GetData1() == 1)
+  { // relative index (requires current playlist is PLAYLIST_VIDEO)
+    if (CServiceBroker::GetPlaylistPlayer().GetCurrentPlaylist() != PLAYLIST_VIDEO)
+      return false;
+
+    index = CServiceBroker::GetPlaylistPlayer().GetNextSong(index);
+  }
+
+  if (index < 0 || index >= playlist.size())
+    return false;
+
+  const CFileItemPtr playlistItem = playlist[index];
+  // try to set a thumbnail
+  if (!playlistItem->HasArt("thumb"))
+  {
+    CVideoThumbLoader loader;
+    loader.LoadItem(playlistItem.get());
+    // still no thumb? then just the set the default cover
+    if (!playlistItem->HasArt("thumb"))
+      playlistItem->SetArt("thumb", "DefaultVideoCover.png");
+  }
+  if (info.m_info == VIDEOPLAYER_PLAYLISTPOS)
+  {
+    value = StringUtils::Format("%i", index + 1);
+    return true;
+  }
+  else if (info.m_info == VIDEOPLAYER_COVER)
+  {
+    value = playlistItem->GetArt("thumb");
+    return true;
+  }
+
+  return GetLabel(value, playlistItem.get(), 0, CGUIInfo(info.m_info), nullptr);
 }
 
 bool CVideoGUIInfo::GetInt(int& value, const CGUIListItem *gitem, int contextWindow, const CGUIInfo &info) const

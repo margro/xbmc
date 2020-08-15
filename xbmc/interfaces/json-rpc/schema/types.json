@@ -108,7 +108,7 @@
                   "album", "albumtype", "genre", "country", "year", "rating", "userrating", "votes", "top250", "programcount",
                   "playlist", "episode", "season", "totalepisodes", "watchedepisodes", "tvshowstatus", "tvshowtitle",
                   "sorttitle", "productioncode", "mpaa", "studio", "dateadded", "lastplayed", "playcount", "listeners",
-                  "bitrate", "random", "totaldiscs" ]
+                  "bitrate", "random", "totaldiscs", "originaldate", "bpm" ]
       },
       "order": { "type": "string", "default": "ascending", "enum": [ "ascending", "descending" ] },
       "ignorearticle": { "type": "boolean", "default": false },
@@ -233,7 +233,8 @@
       "channels": { "type": "integer", "required": true },
       "isdefault": { "type": "boolean", "required": true },
       "isoriginal": { "type": "boolean", "required": true },
-      "isimpaired": { "type": "boolean", "required": true }
+      "isimpaired": { "type": "boolean", "required": true },
+      "samplerate": { "type": "integer", "required": true }
     }
   },
   "Player.Video.Stream": {
@@ -265,7 +266,7 @@
               "canseek", "canchangespeed", "canmove", "canzoom", "canrotate",
               "canshuffle", "canrepeat", "currentaudiostream", "audiostreams",
               "subtitleenabled", "currentsubtitle", "subtitles", "live",
-              "currentvideostream", "videostreams" ]
+              "currentvideostream", "videostreams", "cachepercentage" ]
   },
   "Player.Property.Value": {
     "type": "object",
@@ -294,7 +295,8 @@
       "subtitleenabled": { "type": "boolean" },
       "currentsubtitle": { "$ref": "Player.Subtitle" },
       "subtitles": { "type": "array", "items": { "$ref": "Player.Subtitle" } },
-      "live": { "type": "boolean" }
+      "live": { "type": "boolean" },
+      "cachepercentage": { "$ref": "Player.Position.Percentage" }
     }
   },
   "Notifications.Item.Type": {
@@ -394,6 +396,10 @@
     "properties": {
       "label": { "type": "string", "required": true }
     }
+  },
+  "Item.CustomProperties": {
+    "type": "object",
+    "additionalProperties": { "$ref": "Global.String.NotEmpty" }
   },
   "Media.Details.Base": {
     "extends": "Item.Details.Base",
@@ -502,7 +508,8 @@
                 "yearsactive", "musicbrainzartistid", "fanart",
                 "thumbnail", "compilationartist", "dateadded",
                 "roles", "songgenres", "isalbumartist",
-                "sortname", "type", "gender", "disambiguation", "art", "sourceid"]
+                "sortname", "type", "gender", "disambiguation", "art", "sourceid",
+                "datemodified", "datenew" ]
     }
   },
   "Audio.Fields.Album": {
@@ -516,7 +523,8 @@
                 "playcount", "artistid", "displayartist",
                 "compilation", "releasetype", "dateadded",
                 "sortartist", "musicbrainzreleasegroupid", "songgenres", "art",
-                "lastplayed", "sourceid","isboxset", "totaldiscs"]
+                "lastplayed", "sourceid","isboxset", "totaldiscs",
+                "releasedate", "originaldate", "albumstatus", "datemodified", "datenew"]
     }
   },
   "Audio.Fields.Song": {
@@ -532,7 +540,8 @@
                 "albumartistid", "albumreleasetype", "dateadded",
                 "votes", "userrating", "mood", "contributors",
                 "displaycomposer", "displayconductor", "displayorchestra", "displaylyricist",
-                "sortartist", "art", "sourceid", "disctitle"]
+                "sortartist", "art", "sourceid", "disctitle", "releasedate", "originaldate",
+                "bpm", "samplerate", "bitrate", "channels", "datemodified", "datenew" ]
     }
   },
   "Audio.Album.ReleaseType": {
@@ -593,7 +602,9 @@
       "displayartist": { "type" : "string" },
       "votes": { "type": "integer" },
       "userrating": { "type": "integer" },
-      "sortartist": { "type" : "string" }
+      "sortartist": { "type" : "string" },
+      "releasedate": { "type" : "string" },
+      "originaldate": { "type" : "string" }
     }
   },
   "Audio.Details.Artist": {
@@ -641,7 +652,8 @@
       "lastplayed": { "type": "string" },
       "sourceid": { "$ref": "Array.Integer" }, 
       "isboxset" : { "type": "boolean" },
-      "totaldiscs" : { "type": "integer"}
+      "totaldiscs": { "type": "integer" },
+      "albumstatus": { "type": "string" }
     }
   },
   "Audio.Details.Song": {
@@ -671,18 +683,33 @@
       "displaylyricist": { "type": "string"},
       "genreid": { "$ref": "Array.Integer"},
       "sourceid": { "$ref": "Array.Integer" },
-      "disctitle": { "type": "string" }
+      "disctitle": { "type": "string" },
+      "bpm": { "type": "Integer" },
+      "samplerate": { "type": "Integer" },
+      "bitrate": { "type": "Integer"},
+      "channels": { "type": "Integer"}
     }
   },
   "Audio.Property.Name": {
     "type": "string",
-    "enum": [ "missingartistid", "librarylastupdated" ]
+    "enum": [ "missingartistid", "librarylastupdated", "librarylastcleaned", "artistlinksupdated",
+              "songslastadded", "albumslastadded", "artistslastadded", "genreslastadded",
+			  "songsmodified", "albumsmodified", "artistsmodified"]
   },
   "Audio.Property.Value": {
     "type": "object",
     "properties": {
       "missingartistid": { "$ref": "Library.Id" },
-      "librarylastupdated": { "type": "string" }
+      "librarylastupdated": { "type": "string" },
+      "librarylastcleaned": { "type": "string" },
+      "artistlinksupdated": { "type": "string" },
+      "songslastadded": { "type": "string" },
+      "albumslastadded": { "type": "string" },
+      "artistslastadded": { "type": "string" },
+      "genreslastadded": { "type": "string" },	  
+      "songsmodified": { "type": "string" },
+      "albumsmodified": { "type": "string" },
+      "artistsmodified": { "type": "string" }
     }
   },
   "Video.Fields.Movie": {
@@ -799,8 +826,8 @@
   "Video.Resume": {
     "type": "object",
     "properties": {
-      "position": { "type": "number", "minimum": 0 },
-      "total": { "type": "number", "minimum": 0 }
+      "position": { "type": "number", "minimum": 0.0 },
+      "total": { "type": "number", "minimum": 0.0 }
     },
     "additionalProperties": false
   },
@@ -1497,7 +1524,15 @@
       "dynpath": { "type": "string", "description": "An experimental property for debug purposes, often same as mediapath but when different gives the actual file playing that should also be in file property"},
       "isboxset": { "type": "boolean" },
       "totaldiscs": { "type": "integer" },
-      "disctitle": { "type": "string" }
+      "disctitle": { "type": "string" },
+      "releasedate": { "type": "string" },
+      "originaldate": { "type": "string" },
+      "bpm": { "type": "integer" },
+      "bitrate": { "type": "integer" },
+      "samplerate": { "type": "integer" },
+      "channels": { "type": "integer"},
+      "albumstatus": { "type": "string" },
+      "customproperties": { "$ref": "Item.CustomProperties" }
     }
   },
   "List.Fields.All": {
@@ -1519,7 +1554,8 @@
                 "specialsortepisode", "compilation", "releasetype", "albumreleasetype",
                 "contributors", "displaycomposer", "displayconductor", "displayorchestra", "displaylyricist",
                 "userrating", "votes", "sortartist", "musicbrainzreleasegroupid", "mediapath", "dynpath",
-                "isboxset", "totaldiscs", "disctitle"]
+                "isboxset", "totaldiscs", "disctitle", "releasedate", "originaldate", "bpm",
+                "bitrate", "samplerate", "channels", "albumstatus", "datemodified", "datenew", "customproperties"]
     }
   },
   "List.Item.All": {
@@ -1550,7 +1586,8 @@
                 "description", "theme", "mood", "style", "albumlabel", "sorttitle",
                 "episodeguide", "uniqueid", "dateadded", "size", "lastmodified", "mimetype",
                 "specialsortseason", "specialsortepisode", "sortartist", "musicbrainzreleasegroupid",
-                "isboxset", "totaldiscs", "disctitle"]
+                "isboxset", "totaldiscs", "disctitle", "releasedate", "originaldate", "bpm",
+                "bitrate", "samplerate", "channels", "datemodified", "datenew", "customproperties"]
     }
   },
   "List.Item.File": {
@@ -1700,7 +1737,7 @@
   },
   "Favourite.Type": {
     "type": "string",
-    "enum": [ "media", "window", "script", "unknown" ]
+    "enum": [ "media", "window", "script", "androidapp", "unknown" ]
   },
   "Favourite.Details.Favourite": {
     "type": "object",

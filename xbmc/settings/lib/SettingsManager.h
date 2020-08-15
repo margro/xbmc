@@ -18,6 +18,7 @@
 #include "SettingDefinitions.h"
 #include "SettingDependency.h"
 #include "threads/SharedSection.h"
+#include "utils/StaticLoggerBase.h"
 
 #include <map>
 #include <set>
@@ -37,14 +38,17 @@ class TiXmlNode;
  \brief Settings manager responsible for initializing, loading and handling
  all settings.
  */
-class CSettingsManager : public ISettingCreator, public ISettingControlCreator,
-                         private ISettingCallback, private ISettingsHandler
+class CSettingsManager : public ISettingCreator,
+                         public ISettingControlCreator,
+                         protected CStaticLoggerBase,
+                         private ISettingCallback,
+                         private ISettingsHandler
 {
 public:
   /*!
    \brief Creates a new (uninitialized) settings manager.
    */
-  CSettingsManager() = default;
+  CSettingsManager();
   ~CSettingsManager() override;
 
   static const uint32_t Version;
@@ -400,15 +404,6 @@ public:
    \return True if setting the values was successful, false otherwise
    */
   bool SetList(const std::string &id, const std::vector< std::shared_ptr<CSetting> > &value);
-
-  /*!
-   \brief Search in a list of Ints for a given value.
-
-   \param id Setting identifier
-   \param value value to search for
-   \return True if value was found in list, false otherwise
-  */
-  bool FindIntInList(const std::string &id, int value) const;
 
   /*!
    \brief Sets the value of the setting to its default.

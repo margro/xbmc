@@ -10,7 +10,6 @@
 
 #include "AddonString.h"
 #include "Tuple.h"
-//#include "Monitor.h"
 
 #include "utils/LangCodeExpander.h"
 #include "swighelper.h"
@@ -42,7 +41,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.log(msg[, level]) }
-    ///-----------------------------------------------------------------------
     /// Write a string to Kodi's log file and the debug window.
     ///
     /// @param msg                 string - text to output.
@@ -52,25 +50,28 @@ namespace XBMCAddon
     ///  |----------------:|---------------------------------------------------|
     ///  | xbmc.LOGDEBUG   | In depth information about the status of Kodi. This information can pretty much only be deciphered by a developer or long time Kodi power user.
     ///  | xbmc.LOGINFO    | Something has happened. It's not a problem, we just thought you might want to know. Fairly excessive output that most people won't care about.
-    ///  | xbmc.LOGNOTICE  | Similar to INFO but the average Joe might want to know about these events. This level and above are logged by default.
     ///  | xbmc.LOGWARNING | Something potentially bad has happened. If Kodi did something you didn't expect, this is probably why. Watch for errors to follow.
     ///  | xbmc.LOGERROR   | This event is bad. Something has failed. You likely noticed problems with the application be it skin artifacts, failure of playback a crash, etc.
     ///  | xbmc.LOGFATAL   | We're screwed. Kodi is about to crash.
     ///
-    /// @note You can use the above as keywords for arguments and skip certain
-    ///       optional arguments. Once you use a keyword, all following
-    ///       arguments require the keyword.
+    /// @note Addon developers are advised to keep `LOGDEBUG` as the default
+    /// logging level and to use conservative logging (log only if needed).
+    /// Excessive logging makes it harder to debug kodi itself.
     ///
-    /// Text is written to the log for the following conditions.
-    ///           - loglevel == -1 (NONE, nothing at all is logged)
-    ///           - loglevel == 0 (NORMAL, shows LOGNOTICE, LOGERROR, LOGSEVERE
-    ///             and LOGFATAL)
-    ///           - loglevel == 1 (DEBUG, shows all)
-    ///           See pydocs for valid values for level.
+    /// Logging in kodi has a global configuration level that controls how text
+    /// is written to the log. This global logging behaviour can be changed in
+    /// the GUI (**Settings -> System -> Logging**) (debug toggle) or furthered
+    /// configured in advancedsettings (loglevel setting).
+    ///
+    /// Text is written to the log for the following conditions:
+    ///  - loglevel == -1 (NONE, nothing at all is logged to the log)
+    ///  - loglevel == 0 (NORMAL, shows `LOGINFO`, `LOGWARNING`, `LOGERROR` and `LOGFATAL`) - Default kodi behaviour
+    ///  - loglevel == 1 (DEBUG, shows all) - Behaviour if you toggle debug log in the GUI
     ///
     ///
     /// ------------------------------------------------------------------------
-    /// @python_v17 Default level changed from LOGNOTICE to LOGDEBUG
+    /// @python_v17 Default level changed from `LOGNOTICE` to `LOGDEBUG`
+    /// @python_v19 Removed `LOGNOTICE` (use `LOGINFO`) and `LOGSEVERE` (use `LOGFATAL`)
     ///
     /// **Example:**
     /// ~~~~~~~~~~~~~{.py}
@@ -87,8 +88,7 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
     ///
     /// \ingroup python_xbmc
-    /// @brief \python_func{ xbmc.Shutdown() }
-    ///-----------------------------------------------------------------------
+    /// @brief \python_func{ xbmc.shutdown() }
     /// Shutdown the htpc.
     ///
     ///
@@ -110,7 +110,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.restart() }
-    ///-----------------------------------------------------------------------
     /// Restart the htpc.
     ///
     ///
@@ -132,7 +131,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.executescript(script) }
-    ///-----------------------------------------------------------------------
     /// Execute a python script.
     ///
     /// @param script                  string - script filename to execute.
@@ -156,13 +154,12 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.executebuiltin(function) }
-    ///-----------------------------------------------------------------------
     /// Execute a built in Kodi function.
     ///
     /// @param function                string - builtin function to execute.
     ///
     ///
-    /// List of functions - http://kodi.wiki/view/List_of_Built_In_Functions
+    /// \ref page_List_of_built_in_functions "List of builtin functions"
     ///
     ///
     /// ------------------------------------------------------------------------
@@ -183,14 +180,12 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.executeJSONRPC(jsonrpccommand) }
-    ///-----------------------------------------------------------------------
     /// Execute an JSONRPC command.
     ///
     /// @param jsonrpccommand       string - jsonrpc command to execute.
     /// @return                     jsonrpc return string
     ///
     ///
-    /// List of commands -
     ///
     ///
     /// ------------------------------------------------------------------------
@@ -211,15 +206,22 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.sleep(time) }
-    ///-----------------------------------------------------------------------
-    /// Sleeps for 'time' msec.
+    /// Sleeps for 'time' (msec).
+    /// \anchor xbmc_Sleep
     ///
     /// @param time                 integer - number of msec to sleep.
     ///
     /// @throws PyExc_TypeError     If time is not an integer.
     ///
-    /// @note This is useful if you have for example a Player class that is
-    ///       waiting for onPlayBackEnded() calls.
+    /// @warning This is useful if you need to sleep for a small amount of time
+    /// (milisecond range) somewhere in your addon logic. Please note that Kodi
+    /// will attempt to stop any running scripts when signaled to exit and wait for a maximum
+    /// of 5 seconds before trying to force stop your script. If your addon makes use
+    /// of \ref xbmc_Sleep "xbmc.sleep()" incorrectly (long periods of time, e.g. that exceed
+    /// the force stop waiting time) it may lead to Kodi hanging on shutdown.
+    /// In case your addon needs long sleep/idle periods use
+    /// \ref xbmc_Monitor_waitForAbort "xbmc.Monitor().waitForAbort(secs)"
+    /// instead.
     ///
     ///
     /// ------------------------------------------------------------------------
@@ -240,7 +242,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getLocalizedString(id) }
-    ///-----------------------------------------------------------------------
     /// Get a localized 'unicode string'.
     ///
     /// @param id                   integer - id# for string you want to
@@ -269,7 +270,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getSkinDir() }
-    ///-----------------------------------------------------------------------
     /// Get the active skin directory.
     ///
     /// @return                         The active skin directory as a string
@@ -297,7 +297,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getLanguage([format], [region]) }
-    ///-----------------------------------------------------------------------
     /// Get the active language.
     ///
     /// @param format               [opt] format of the returned language
@@ -332,7 +331,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getIPAddress() }
-    ///-----------------------------------------------------------------------
     /// Get the current ip address.
     ///
     /// @return The current ip address as a string
@@ -356,7 +354,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getDVDState() }
-    ///-----------------------------------------------------------------------
     /// Returns the dvd state as an integer.
     ///
     /// @return Values for state are:
@@ -387,7 +384,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getFreeMem() }
-    ///-----------------------------------------------------------------------
     /// Get amount of free memory in MB.
     ///
     /// @return The amount of free memory in MB as an integer
@@ -411,14 +407,13 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getInfoLabel(infotag) }
-    ///-----------------------------------------------------------------------
     /// Get a info label
     ///
     /// @param infotag               string - infoTag for value you want
     ///                              returned.
     /// @return                      InfoLabel as a string
     ///
-    /// List of InfoTags - http://kodi.wiki/view/InfoLabels
+    /// \ref modules__infolabels_boolean_conditions "List of InfoTags"
     ///
     ///
     /// ------------------------------------------------------------------------
@@ -439,7 +434,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getInfoImage(infotag) }
-    ///-----------------------------------------------------------------------
     /// Get filename including path to the InfoImage's thumbnail.
     ///
     /// @param infotag               string - infotag for value you want
@@ -469,7 +463,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.playSFX(filename,[useCached]) }
-    ///-----------------------------------------------------------------------
     /// Plays a wav file by filename
     ///
     /// @param filename              string - filename of the wav file to
@@ -499,7 +492,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.stopSFX() }
-    ///-----------------------------------------------------------------------
     /// Stops wav file
     ///
     ///
@@ -522,10 +514,9 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.enableNavSounds(yesNo) }
-    ///-----------------------------------------------------------------------
     /// Enables/Disables nav sounds
     ///
-    /// @param yesNo                 integer - enable (True) or disable
+    /// @param yesNo                 bool - enable (True) or disable
     ///                              (False) nav sounds
     ///
     ///
@@ -547,13 +538,12 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getCondVisibility(condition) }
-    ///-----------------------------------------------------------------------
     /// Get visibility conditions
     ///
     /// @param condition             string - condition to check
-    /// @return                      True (1) or False (0) as a bool
+    /// @return                      True (if the condition is verified) or False (otherwise)
     ///
-    /// List of Conditions - http://kodi.wiki/view/List_of_Boolean_Conditions
+    /// \ref modules__infolabels_boolean_conditions "List of boolean conditions"
     ///
     /// @note You can combine two (or more) of the above settings by using <b>"+"</b> as an AND operator,
     /// <b>"|"</b> as an OR operator, <b>"!"</b> as a NOT operator, and <b>"["</b> and <b>"]"</b> to bracket expressions.
@@ -577,7 +567,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getGlobalIdleTime() }
-    ///-----------------------------------------------------------------------
     /// Get the elapsed idle time in seconds.
     ///
     /// @return Elapsed idle time in seconds as an integer
@@ -601,10 +590,9 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getCacheThumbName(path) }
-    ///-----------------------------------------------------------------------
     /// Get thumb cache filename.
     ///
-    /// @param path                  string or unicode - path to file
+    /// @param path                  string - path to file
     /// @return                      Thumb cache filename
     ///
     ///
@@ -625,48 +613,14 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
     ///
     /// \ingroup python_xbmc
-    /// @brief \python_func{ xbmc.makeLegalFilename(filename[, fatX]) }
-    ///-----------------------------------------------------------------------
-    /// Returns a legal filename or path as a string.
-    ///
-    /// @param filename              string or unicode - filename/path to
-    ///                              make legal
-    /// @param fatX                  [opt] bool - True=Xbox file system(Default)
-    /// @return                      Legal filename or path as a string
-    ///
-    ///
-    /// @note If fatX is true you should pass a full path. If fatX is false only pass
-    ///       the basename of the path.\n\n
-    ///       You can use the above as keywords for arguments and skip certain optional arguments.
-    ///       Once you use a keyword, all following arguments require the keyword.
-    ///
-    ///
-    /// ------------------------------------------------------------------------
-    ///
-    /// **Example:**
-    /// ~~~~~~~~~~~~~{.py}
-    /// ..
-    /// filename = xbmc.makeLegalFilename('F:\\Trailers\\Ice Age: The Meltdown.avi')
-    /// ..
-    /// ~~~~~~~~~~~~~
-    ///
-    makeLegalFilename(...);
-#else
-    String makeLegalFilename(const String& filename,bool fatX = true);
-#endif
-
-#ifdef DOXYGEN_SHOULD_USE_THIS
-    ///
-    /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.translatePath(path)  }
-    ///-----------------------------------------------------------------------
     /// Returns the translated path.
     ///
-    /// @param path                  string or unicode - Path to format
+    /// @param path                  string - Path to format
     /// @return                      Translated path
     ///
     /// @note Only useful if you are coding for both Linux and Windows.
-    ///        e.g. Converts 'special://masterprofile/script_data' -> '/home/user/XBMC/UserData/script_data'
+    ///        e.g. Converts 'special://home' -> '/home/[username]/.kodi'
     ///        on Linux.
     ///
     ///
@@ -675,7 +629,7 @@ namespace XBMCAddon
     /// **Example:**
     /// ~~~~~~~~~~~~~{.py}
     /// ..
-    /// fpath = xbmc.translatePath('special://masterprofile/script_data')
+    /// fpath = xbmc.translatePath('special://home')
     /// ..
     /// ~~~~~~~~~~~~~
     ///
@@ -688,10 +642,9 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getCleanMovieTitle(path[, usefoldername]) }
-    ///-----------------------------------------------------------------------
     /// Get clean movie title and year string if available.
     ///
-    /// @param path                  string or unicode - String to clean
+    /// @param path                  string - String to clean
     /// @param usefoldername         [opt] bool - use folder names (defaults
     ///                              to false)
     /// @return                      Clean movie title and year string if
@@ -715,36 +668,7 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
     ///
     /// \ingroup python_xbmc
-    /// @brief \python_func{ xbmc.validatePath(path) }
-    ///-----------------------------------------------------------------------
-    /// Returns the validated path.
-    ///
-    /// @param path                  string or unicode - Path to format
-    /// @return                      Validated path
-    ///
-    /// @note Only useful if you are coding for both Linux and Windows for fixing slash problems.
-    ///       e.g. Corrects 'Z://something' -> 'Z:\something'
-    ///
-    ///
-    /// ------------------------------------------------------------------------
-    ///
-    /// **Example:**
-    /// ~~~~~~~~~~~~~{.py}
-    /// ..
-    /// fpath = xbmc.validatePath(somepath)
-    /// ..
-    /// ~~~~~~~~~~~~~
-    ///
-    validatePath(...);
-#else
-    String validatePath(const String& path);
-#endif
-
-#ifdef DOXYGEN_SHOULD_USE_THIS
-    ///
-    /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getRegion(id) }
-    ///-----------------------------------------------------------------------
     /// Returns your regions setting as a string for the specified id.
     ///
     /// @param id                    string - id of setting to return
@@ -772,7 +696,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getSupportedMedia(media) }
-    ///-----------------------------------------------------------------------
     /// Get the supported file types for the specific media.
     ///
     /// @param media                 string - media type
@@ -782,7 +705,7 @@ namespace XBMCAddon
     ///
     /// @note Media type can be (video, music, picture).
     ///       The return value is a pipe separated string of filetypes
-    ///       (eg. '.mov|.avi').\n
+    ///       (eg. '.mov |.avi').\n
     ///       You can use the above as keywords for arguments.
     ///
     ///
@@ -804,7 +727,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.skinHasImage(image) }
-    ///-----------------------------------------------------------------------
     /// Check skin for presence of Image.
     ///
     /// @param image                 string - image filename
@@ -830,10 +752,9 @@ namespace XBMCAddon
 #endif
 
 #ifdef DOXYGEN_SHOULD_USE_THIS
-    ///
     /// \ingroup python_xbmc
+    ///
     /// @brief \python_func{ xbmc.startServer(typ, bStart, bWait) }
-    ///-------------------------------------------------------------------------
     /// Start or stop a server.
     ///
     /// @param typ                  integer - use SERVER_* constants
@@ -870,7 +791,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.audioSuspend() }
-    ///-----------------------------------------------------------------------
     /// Suspend Audio engine.
     ///
     ///
@@ -892,7 +812,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.audioResume() }
-    ///-----------------------------------------------------------------------
     /// Resume Audio engine.
     ///
     ///
@@ -914,7 +833,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.getUserAgent() }
-    ///-----------------------------------------------------------------------
     /// @brief Returns Kodi's HTTP UserAgent string
     ///
     /// @return                           HTTP user agent
@@ -941,7 +859,6 @@ namespace XBMCAddon
     ///
     /// \ingroup python_xbmc
     /// @brief \python_func{ xbmc.convertLanguage(language, format) }
-    ///-----------------------------------------------------------------------
     /// @brief Returns the given language converted to the given format as a
     /// string.
     ///

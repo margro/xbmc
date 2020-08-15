@@ -276,16 +276,16 @@ bool CEGLContextUtils::InitializeDisplay(EGLint renderingApi)
 
   const char* value;
   value = eglQueryString(m_eglDisplay, EGL_VERSION);
-  CLog::Log(LOGNOTICE, "EGL_VERSION = %s", value ? value : "NULL");
+  CLog::Log(LOGINFO, "EGL_VERSION = %s", value ? value : "NULL");
 
   value = eglQueryString(m_eglDisplay, EGL_VENDOR);
-  CLog::Log(LOGNOTICE, "EGL_VENDOR = %s", value ? value : "NULL");
+  CLog::Log(LOGINFO, "EGL_VENDOR = %s", value ? value : "NULL");
 
   value = eglQueryString(m_eglDisplay, EGL_EXTENSIONS);
-  CLog::Log(LOGNOTICE, "EGL_EXTENSIONS = %s", value ? value : "NULL");
+  CLog::Log(LOGINFO, "EGL_EXTENSIONS = %s", value ? value : "NULL");
 
   value = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
-  CLog::Log(LOGNOTICE, "EGL_CLIENT_EXTENSIONS = %s", value ? value : "NULL");
+  CLog::Log(LOGINFO, "EGL_CLIENT_EXTENSIONS = %s", value ? value : "NULL");
 
   if (eglBindAPI(renderingApi) != EGL_TRUE)
   {
@@ -364,7 +364,7 @@ bool CEGLContextUtils::ChooseConfig(EGLint renderableType, EGLint visualId, bool
       break;
 
     if (eglGetConfigAttrib(m_eglDisplay, *currentConfig, EGL_NATIVE_VISUAL_ID, &id) != EGL_TRUE)
-      CEGLUtils::Log(LOGERROR, "failed to query EGL attibute EGL_NATIVE_VISUAL_ID");
+      CEGLUtils::Log(LOGERROR, "failed to query EGL attribute EGL_NATIVE_VISUAL_ID");
 
     if (visualId == id)
       break;
@@ -382,7 +382,7 @@ bool CEGLContextUtils::ChooseConfig(EGLint renderableType, EGLint visualId, bool
   {
     EGLint value{0};
     if (eglGetConfigAttrib(m_eglDisplay, *currentConfig, eglAttribute.first, &value) != EGL_TRUE)
-      CEGLUtils::Log(LOGERROR, StringUtils::Format("failed to query EGL attibute %s", eglAttribute.second));
+      CEGLUtils::Log(LOGERROR, StringUtils::Format("failed to query EGL attribute %s", eglAttribute.second));
 
     // we only need to print the hex value if it's an actual EGL define
     CLog::Log(LOGDEBUG, "  %s: %s", eglAttribute.second, (value >= 0x3000 && value <= 0x3200) ? StringUtils::Format("0x%04x", value) : StringUtils::Format("%d", value));
@@ -395,7 +395,7 @@ EGLint CEGLContextUtils::GetConfigAttrib(EGLint attribute) const
 {
   EGLint value{0};
   if (eglGetConfigAttrib(m_eglDisplay, m_eglConfig, attribute, &value) != EGL_TRUE)
-    CEGLUtils::Log(LOGERROR, "failed to query EGL attibute");
+    CEGLUtils::Log(LOGERROR, "failed to query EGL attribute");
   return value;
 }
 

@@ -24,7 +24,6 @@
 #include "ServiceBroker.h"
 #include "URL.h"
 #include "Util.h"
-#include "addons/binary-addons/BinaryAddonManager.h"
 #include "cores/VideoPlayer/Interface/Addon/InputStreamConstants.h"
 #include "filesystem/CurlFile.h"
 #include "filesystem/File.h"
@@ -51,15 +50,21 @@ std::shared_ptr<CDVDInputStream> CDVDFactoryInputStream::CreateInputStream(IVide
     }
   }
 
-  BinaryAddonBaseList addonInfos;
-  CServiceBroker::GetBinaryAddonManager().GetAddonInfos(addonInfos, true /*enabled only*/, ADDON_INPUTSTREAM);
+  std::vector<AddonInfoPtr> addonInfos;
+  CServiceBroker::GetAddonMgr().GetAddonInfos(addonInfos, true /*enabled only*/, ADDON_INPUTSTREAM);
   for (auto addonInfo : addonInfos)
   {
     if (CInputStreamAddon::Supports(addonInfo, fileitem))
-      return std::shared_ptr<CInputStreamAddon>(new CInputStreamAddon(addonInfo, pPlayer, fileitem));
+    {
+      // Used to inform input stream about special identifier;
+      const std::string instanceId =
+          fileitem.GetProperty(STREAM_PROPERTY_INPUTSTREAM_INSTANCE_ID).asString();
+
+      return std::make_shared<CInputStreamAddon>(addonInfo, pPlayer, fileitem, instanceId);
+    }
   }
 
-  if (fileitem.GetProperty(STREAM_PROPERTY_INPUTSTREAMCLASS).asString() ==
+  if (fileitem.GetProperty(STREAM_PROPERTY_INPUTSTREAM).asString() ==
       STREAM_PROPERTY_VALUE_INPUTSTREAMFFMPEG)
     return std::shared_ptr<CDVDInputStreamFFmpeg>(new CDVDInputStreamFFmpeg(fileitem));
 
@@ -100,8 +105,8 @@ std::shared_ptr<CDVDInputStream> CDVDFactoryInputStream::CreateInputStream(IVide
   else if (URIUtils::IsPVRRecording(file))
     return std::shared_ptr<CInputStreamPVRRecording>(new CInputStreamPVRRecording(pPlayer, fileitem));
 #ifdef HAVE_LIBBLURAY
-  else if (fileitem.IsType(".bdmv") || fileitem.IsType(".mpls") 
-          || fileitem.IsType(".bdm") || fileitem.IsType(".mpl") 
+  else if (fileitem.IsType(".bdmv") || fileitem.IsType(".mpls")
+          || fileitem.IsType(".bdm") || fileitem.IsType(".mpl")
           || StringUtils::StartsWithNoCase(file, "bluray:"))
     return std::shared_ptr<CDVDInputStreamBluray>(new CDVDInputStreamBluray(pPlayer, fileitem));
 #endif

@@ -98,7 +98,7 @@ cmake_install.cmake
 /kodi-test
 /kodi-xrandr
 /*.patch
-/kodi-build/
+/kodi-build*/
 /gtestresults.xml
 
 # /addons/
@@ -118,6 +118,7 @@ cmake_install.cmake
 /addons/kodi.binary.global.gui/addon.xml
 /addons/kodi.binary.global.main/addon.xml
 /addons/kodi.binary.global.network/addon.xml
+/addons/kodi.binary.global.tools/addon.xml
 /addons/kodi.binary.instance.audiodecoder/addon.xml
 /addons/kodi.binary.instance.audioencoder/addon.xml
 /addons/kodi.binary.instance.game/addon.xml

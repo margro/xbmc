@@ -21,6 +21,12 @@ const int AUTO_UPDATES_ON = 0;
 const int AUTO_UPDATES_NOTIFY = 1;
 const int AUTO_UPDATES_NEVER = 2;
 
+enum class AddonRepoUpdateMode
+{
+  OFFICIAL_ONLY = 0,
+  ANY_REPOSITORY = 1
+};
+
 class CAddonSystemSettings : public ISettingCallback
 {
 public:
@@ -33,25 +39,30 @@ public:
   bool IsActive(const IAddon& addon);
 
   /*!
+   * Gets Kodi addon auto update mode
+   *
+   * @return the autoupdate mode value
+  */
+  int GetAddonAutoUpdateMode() const;
+
+
+  /*!
+   * Gets Kodi preferred addon repository update mode
+   *
+   * @return the preferred mode value
+   */
+  AddonRepoUpdateMode GetAddonRepoUpdateMode() const;
+
+  /*!
    * Attempt to unset addon as active. Returns true if addon is no longer active,
    * false if it could not be unset (e.g. if the addon is the default)
    */
-  bool UnsetActive(const AddonPtr& addon);
-
-  /*!
-   * Check compatibility of installed addons and attempt to migrate.
-   *
-   * @param onMigrate Called when a long running migration task takes place.
-   * @return list of addons that was modified.
-   */
-  std::vector<std::string> MigrateAddons(std::function<void(void)> onMigrate);
+  bool UnsetActive(const AddonInfoPtr& addon);
 
 private:
   CAddonSystemSettings();
-  CAddonSystemSettings(const CAddonSystemSettings&) = default;
+  CAddonSystemSettings(const CAddonSystemSettings&) = delete;
   CAddonSystemSettings& operator=(const CAddonSystemSettings&) = delete;
-  CAddonSystemSettings(CAddonSystemSettings&&);
-  CAddonSystemSettings& operator=(CAddonSystemSettings&&);
   ~CAddonSystemSettings() override = default;
 
   const std::map<ADDON::TYPE, std::string> m_activeSettings;

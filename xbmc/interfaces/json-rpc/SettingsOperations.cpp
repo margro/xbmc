@@ -479,7 +479,6 @@ bool CSettingsOperations::SerializeSettingInt(std::shared_ptr<const CSettingInt>
   if (setting == NULL)
     return false;
 
-  obj["value"] = setting->GetValue();
   obj["default"] = setting->GetDefault();
 
   switch (setting->GetOptionsType())
@@ -491,8 +490,8 @@ bool CSettingsOperations::SerializeSettingInt(std::shared_ptr<const CSettingInt>
       for (const auto& itOption : options)
       {
         CVariant varOption(CVariant::VariantTypeObject);
-        varOption["label"] = g_localizeStrings.Get(itOption.first);
-        varOption["value"] = itOption.second;
+        varOption["label"] = g_localizeStrings.Get(itOption.label);
+        varOption["value"] = itOption.value;
         obj["options"].push_back(varOption);
       }
       break;
@@ -534,6 +533,10 @@ bool CSettingsOperations::SerializeSettingInt(std::shared_ptr<const CSettingInt>
       break;
   }
 
+  // this must be done after potentially calling CSettingInt::UpdateDynamicOptions() because it can
+  // change the value of the setting
+  obj["value"] = setting->GetValue();
+
   return true;
 }
 
@@ -557,10 +560,10 @@ bool CSettingsOperations::SerializeSettingString(std::shared_ptr<const CSettingS
   if (setting == NULL)
     return false;
 
-  obj["value"] = setting->GetValue();
   obj["default"] = setting->GetDefault();
 
   obj["allowempty"] = setting->AllowEmpty();
+  obj["allownewoption"] = setting->AllowNewOption();
 
   switch (setting->GetOptionsType())
   {
@@ -610,6 +613,10 @@ bool CSettingsOperations::SerializeSettingString(std::shared_ptr<const CSettingS
     default:
       break;
   }
+
+  // this must be done after potentially calling CSettingString::UpdateDynamicOptions() because it
+  // can change the value of the setting
+  obj["value"] = setting->GetValue();
 
   std::shared_ptr<const ISettingControl> control = setting->GetControl();
   if (control->GetFormat() == "path")

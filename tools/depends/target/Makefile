@@ -6,15 +6,15 @@ endif
 
 DEPENDS = \
 	pcre expat gettext sqlite3 libgpg-error \
-	libgcrypt bzip2 libfstrcmp liblzo2 libzip freetype2 fontconfig \
-	openssl gmp nettle gnutls curl nghttp2 \
+	libgcrypt bzip2 libfstrcmp liblzo2 freetype2 fontconfig \
+	openssl gmp nettle gnutls googletest curl nghttp2 \
 	libjpeg-turbo libpng fribidi libass \
 	libxml2 rapidjson libmicrohttpd mariadb libffi \
-	python3 libshairplay libfmt \
+	python3 libshairplay libfmt libspdlog \
 	libplist libcec libbluray tinyxml \
 	taglib libusb libnfs meson-cross-file \
 	pythonmodule-pil pythonmodule-pycryptodome pythonmodule-setuptools \
-	libxslt ffmpeg crossguid \
+	libxslt ffmpeg crossguid libudfread \
 	libdvdread libdvdnav libdvdcss p8-platform flatbuffers dav1d
 
 ifeq ($(ENABLE_GPLV3),yes)
@@ -39,7 +39,7 @@ endif
 
 ifeq ($(OS),android)
   EXCLUDED_DEPENDS = libcec libusb
-  DEPENDS += dummy-libxbmc libuuid libandroidjni
+  DEPENDS += dummy-libxbmc libuuid libandroidjni libzip
   PYMODULE_DEPS = dummy-libxbmc
   LIBUUID = libuuid
 endif
@@ -89,13 +89,13 @@ fontconfig: freetype2 expat $(ICONV) $(LIBUUID)
 curl: openssl nghttp2
 libass: fontconfig fribidi libpng freetype2 expat $(ICONV)
 libmicrohttpd: gnutls libgcrypt libgpg-error
-python3: expat gettext libxml2 sqlite3 openssl libffi
+python3: expat gettext libxml2 sqlite3 openssl libffi bzip2
 libcdio: $(ICONV)
 libcdio-gplv3: $(ICONV)
 libplist: $(ZLIB)
 libbluray: fontconfig freetype2 $(ICONV) libxml2
 mariadb: openssl $(ICONV) $(ZLIB)
-libzip: $(ZLIB)
+libzip: bzip2 gnutls $(ZLIB)
 libpng: $(ZLIB)
 openssl: $(ZLIB)
 gnutls: nettle $(ZLIB)
@@ -117,6 +117,8 @@ libevdev: libudev
 samba-gplv3: gnutls
 taglib: $(ZLIB)
 dav1d: meson-cross-file
+fribidi: meson-cross-file
+libspdlog: libfmt
 
 .installed-$(PLATFORM): $(DEPENDS)
 	touch $@

@@ -7,7 +7,6 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonDll.h"
 #include "addons/binary-addons/AddonInstanceHandler.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/VFS.h"
 #include "filesystem/IDirectory.h"
@@ -55,12 +54,12 @@ namespace ADDON
       int label;             //!< String ID to use as label in dialog
 
       //! \brief The constructor reads the info from an add-on info structure.
-      ProtocolInfo(BinaryAddonBasePtr addonInfo);
+      ProtocolInfo(const AddonInfoPtr& addonInfo);
     };
 
     //! \brief Construct from add-on properties.
     //! \param addonInfo General addon properties
-    explicit CVFSEntry(BinaryAddonBasePtr addonInfo);
+    explicit CVFSEntry(const AddonInfoPtr& addonInfo);
     ~CVFSEntry() override;
 
     // Things that MUST be supplied by the child classes
@@ -97,6 +96,18 @@ namespace ADDON
     const std::string& GetZeroconfType() const { return m_zeroconf; }
     const ProtocolInfo& GetProtocolInfo() const { return m_protocolInfo; }
   protected:
+    /*!
+     * @brief TO translate `enum XFILE::EIoControl` to/from `enum VFS_IOCTRL`.
+     *
+     * This is meant to interact securely between Kodi and addon.
+     *
+     * @note The `int` there is `enum XFILE::EIoControl`
+     */
+    //@{
+    static int TranslateIOCTRLToKodi(VFS_IOCTRL ioctrl);
+    static VFS_IOCTRL TranslateIOCTRLToAddon(int ioctrl);
+    //@}
+
     std::string m_protocols;  //!< Protocols for VFS entry.
     std::string m_extensions; //!< Extensions for VFS entry.
     std::string m_zeroconf;   //!< Zero conf announce string for VFS protocol.

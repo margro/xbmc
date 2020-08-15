@@ -9,9 +9,7 @@
 #include "AddonSystemSettings.h"
 
 #include "ServiceBroker.h"
-#include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
-#include "addons/RepositoryUpdater.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "messaging/helpers/DialogHelper.h"
@@ -101,9 +99,9 @@ bool CAddonSystemSettings::IsActive(const IAddon& addon)
   return GetActive(addon.Type(), active) && active->ID() == addon.ID();
 }
 
-bool CAddonSystemSettings::UnsetActive(const AddonPtr& addon)
+bool CAddonSystemSettings::UnsetActive(const AddonInfoPtr& addon)
 {
-  auto it = m_activeSettings.find(addon->Type());
+  auto it = m_activeSettings.find(addon->MainType());
   if (it == m_activeSettings.end())
     return true;
 
@@ -118,50 +116,16 @@ bool CAddonSystemSettings::UnsetActive(const AddonPtr& addon)
   return true;
 }
 
-
-std::vector<std::string> CAddonSystemSettings::MigrateAddons(std::function<void(void)> onMigrate)
+int CAddonSystemSettings::GetAddonAutoUpdateMode() const
 {
-  auto getIncompatible = [](){
-    VECADDONS incompatible;
-    CServiceBroker::GetAddonMgr().GetAddons(incompatible);
-    incompatible.erase(std::remove_if(incompatible.begin(), incompatible.end(),
-        [](const AddonPtr a){ return CServiceBroker::GetAddonMgr().IsCompatible(*a); }), incompatible.end());
-    return incompatible;
-  };
+  return CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(
+      CSettings::SETTING_ADDONS_AUTOUPDATES);
+}
 
-  if (getIncompatible().empty())
-    return std::vector<std::string>();
-
-  if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(CSettings::SETTING_ADDONS_AUTOUPDATES) == AUTO_UPDATES_ON)
-  {
-    onMigrate();
-
-    if (CServiceBroker::GetRepositoryUpdater().CheckForUpdates())
-      CServiceBroker::GetRepositoryUpdater().Await();
-
-    CLog::Log(LOGINFO, "ADDON: waiting for add-ons to update...");
-    CAddonInstaller::GetInstance().InstallUpdatesAndWait();
-  }
-
-  auto incompatible = getIncompatible();
-  for (const auto& addon : incompatible)
-    CLog::Log(LOGNOTICE, "ADDON: %s version %s is incompatible", addon->ID().c_str(), addon->Version().asString().c_str());
-
-  std::vector<std::string> changed;
-  for (const auto& addon : incompatible)
-  {
-    if (!UnsetActive(addon))
-    {
-      CLog::Log(LOGWARNING, "ADDON: failed to unset %s", addon->ID().c_str());
-      continue;
-    }
-    if (!CServiceBroker::GetAddonMgr().DisableAddon(addon->ID()))
-    {
-      CLog::Log(LOGWARNING, "ADDON: failed to disable %s", addon->ID().c_str());
-    }
-    changed.push_back(addon->Name());
-  }
-
-  return changed;
+AddonRepoUpdateMode CAddonSystemSettings::GetAddonRepoUpdateMode() const
+{
+  const int updateMode = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(
+      CSettings::SETTING_ADDONS_UPDATEMODE);
+  return static_cast<AddonRepoUpdateMode>(updateMode);
 }
 }

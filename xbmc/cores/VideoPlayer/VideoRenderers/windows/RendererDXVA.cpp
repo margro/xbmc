@@ -110,14 +110,13 @@ bool CRendererDXVA::Configure(const VideoPicture& picture, float fps, unsigned o
 
 bool CRendererDXVA::NeedBuffer(int idx)
 {
-  if (m_renderBuffers[idx]->IsLoaded())
+  if (m_renderBuffers[idx]->IsLoaded() && m_renderBuffers[idx]->pictureFlags & DVP_FLAG_INTERLACED)
   {
-    const int numPast = m_processor->PastRefs();
-    if (m_renderBuffers[idx]->pictureFlags & DVP_FLAG_INTERLACED &&
-      m_renderBuffers[idx]->frameIdx + numPast * 2 >=
-      m_renderBuffers[m_iBufferIndex]->frameIdx)
+    if (m_renderBuffers[idx]->frameIdx + (m_processor->PastRefs() * 2u) >=
+        m_renderBuffers[m_iBufferIndex]->frameIdx)
       return true;
   }
+
   return false;
 }
 
@@ -267,21 +266,16 @@ CRendererDXVA::CRenderBufferImpl::~CRenderBufferImpl()
   CRenderBufferImpl::ReleasePicture();
 }
 
-bool CRendererDXVA::CRenderBufferImpl::IsLoaded()
-{
-  if (videoBuffer && videoBuffer->GetFormat() == AV_PIX_FMT_D3D11VA_VLD)
-    return true;
-
-  return m_loaded;
-}
-
 bool CRendererDXVA::CRenderBufferImpl::UploadBuffer()
 {
   if (!videoBuffer)
     return false;
 
   if (videoBuffer->GetFormat() == AV_PIX_FMT_D3D11VA_VLD)
+  {
+    m_bLoaded = true;
     return true;
+  }
 
   return UploadToTexture();
 }
@@ -301,12 +295,6 @@ HRESULT CRendererDXVA::CRenderBufferImpl::GetResource(ID3D11Resource** ppResourc
   *index = 0;
 
   return S_OK;
-}
-
-void CRendererDXVA::CRenderBufferImpl::ReleasePicture()
-{
-  __super::ReleasePicture();
-  m_loaded = false;
 }
 
 DXGI_FORMAT CRendererDXVA::CRenderBufferImpl::GetDXGIFormat(AVPixelFormat format, DXGI_FORMAT default_fmt)
@@ -394,6 +382,6 @@ bool CRendererDXVA::CRenderBufferImpl::UploadToTexture()
     convert_yuv420_p01x_chrome(&src[1], &srcStrides[1], 2, 32, dst[1], dstStride[1], bpp);
   }
 
-  m_loaded = m_texture.UnlockRect(0);
-  return m_loaded;
+  m_bLoaded = m_texture.UnlockRect(0);
+  return m_bLoaded;
 }

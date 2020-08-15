@@ -252,7 +252,7 @@ bool CEventClient::OnPacketHELO(CEventPacket *packet)
   if (!ParseString(payload, psize, m_deviceName))
     return false;
 
-  CLog::Log(LOGNOTICE, "ES: Incoming connection from %s", m_deviceName.c_str());
+  CLog::Log(LOGINFO, "ES: Incoming connection from %s", m_deviceName.c_str());
 
   // icon type
   unsigned char ltype;
@@ -370,7 +370,11 @@ bool CEventClient::OnPacketBUTTON(CEventPacket *packet)
   float famount = 0;
   bool active = (flags & PTB_DOWN) ? true : false;
   
-  CLog::Log(LOGDEBUG, "EventClient: button code %d %s", bcode, active ? "pressed" : "released");
+  if (flags & PTB_USE_NAME)
+    CLog::Log(LOGDEBUG, "EventClient: button name \"%s\" map \"%s\" %s",
+              button.c_str(), map.c_str(), active ? "pressed" : "released");
+  else
+    CLog::Log(LOGDEBUG, "EventClient: button code %d %s", bcode, active ? "pressed" : "released");
 
   if(flags & PTB_USE_AMOUNT)
   {

@@ -281,7 +281,6 @@ bool CProfileManager::LoadProfile(unsigned int index)
       pWindow->ResetControlStates();
 
     UpdateCurrentProfileDate();
-    Save();
     FinalizeLoadProfile();
 
     return true;
@@ -361,7 +360,6 @@ bool CProfileManager::LoadProfile(unsigned int index)
   lock.Leave();
 
   UpdateCurrentProfileDate();
-  Save();
   FinalizeLoadProfile();
 
   m_profileLoadedForLogin = false;
@@ -427,17 +425,11 @@ void CProfileManager::FinalizeLoadProfile()
   // Load initial window
   int firstWindow = g_SkinInfo->GetFirstWindow();
 
-  // the startup window is considered part of the initialization as it most likely switches to the final window
-  bool uiInitializationFinished = firstWindow != WINDOW_STARTUP_ANIM;
-
   CServiceBroker::GetGUI()->GetWindowManager().ChangeActiveWindow(firstWindow);
 
-  // if the user interfaces has been fully initialized let everyone know
-  if (uiInitializationFinished)
-  {
-    CGUIMessage msg(GUI_MSG_NOTIFY_ALL, WINDOW_SETTINGS_PROFILES, 0, GUI_MSG_UI_READY);
-    CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
-  }
+  //the user interfaces has been fully initialized, let everyone know
+  CGUIMessage msg(GUI_MSG_NOTIFY_ALL, WINDOW_SETTINGS_PROFILES, 0, GUI_MSG_UI_READY);
+  CServiceBroker::GetGUI()->GetWindowManager().SendThreadMessage(msg);
 }
 
 void CProfileManager::LogOff()
@@ -586,19 +578,26 @@ int CProfileManager::GetProfileIndex(const std::string &name) const
 
 void CProfileManager::AddProfile(const CProfile &profile)
 {
-  CSingleLock lock(m_critical);
-  // data integrity check - covers off migration from old profiles.xml,
-  // incrementing of the m_nextIdProfile,and bad data coming in
-  m_nextProfileId = std::max(m_nextProfileId, profile.getId() + 1);
+  {
+    CSingleLock lock(m_critical);
+    // data integrity check - covers off migration from old profiles.xml,
+    // incrementing of the m_nextIdProfile,and bad data coming in
+    m_nextProfileId = std::max(m_nextProfileId, profile.getId() + 1);
 
-  m_profiles.push_back(profile);
+    m_profiles.push_back(profile);
+  }
+  Save();
 }
 
 void CProfileManager::UpdateCurrentProfileDate()
 {
   CSingleLock lock(m_critical);
   if (m_currentProfile < m_profiles.size())
+  {
     m_profiles[m_currentProfile].setDate();
+    CSingleExit exit(m_critical);
+    Save();
+  }
 }
 
 void CProfileManager::LoadMasterProfileForLogin()
@@ -729,7 +728,10 @@ void CProfileManager::OnSettingAction(std::shared_ptr<const CSetting> setting)
 
 void CProfileManager::SetCurrentProfileId(unsigned int profileId)
 {
-  CSingleLock lock(m_critical);
-  m_currentProfile = profileId;
-  CSpecialProtocol::SetProfilePath(GetProfileUserDataFolder());
+  {
+    CSingleLock lock(m_critical);
+    m_currentProfile = profileId;
+    CSpecialProtocol::SetProfilePath(GetProfileUserDataFolder());
+  }
+  Save();
 }

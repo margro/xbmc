@@ -495,7 +495,7 @@ void Xcddb::parseData(const char *buffer)
 
         std::map<std::string, std::string>::const_iterator it = keywords.find(strKeyword);
         if (it != keywords.end())
-          strValue = it->second + strValue; // keyword occured before, concatenate
+          strValue = it->second + strValue; // keyword occurred before, concatenate
         else
           keywordsOrder.push_back(strKeyword);
 
@@ -974,7 +974,10 @@ bool Xcddb::queryCDinfo(CCdInfo* pInfo)
     return false; //This is actually good. The calling method will handle this
 
   case 202: //No match found
-    CLog::Log(LOGNOTICE, "Xcddb::queryCDinfo No match found in CDDB database when doing the query shown below:\n%s",query_buffer);
+    CLog::Log(
+        LOGINFO,
+        "Xcddb::queryCDinfo No match found in CDDB database when doing the query shown below:\n%s",
+        query_buffer);
   case 403: //Database entry is corrupt
   case 409: //No handshake
   default:

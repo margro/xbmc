@@ -11,7 +11,7 @@
 #if defined(HAS_ISO9660PP)
 #include "ISO9660Directory.h"
 #endif
-#if defined(HAS_UDF)
+#if defined(HAS_UDFREAD)
 #include "UDFDirectory.h"
 #endif
 #include "RSSDirectory.h"
@@ -33,7 +33,6 @@
 #include "ServiceBroker.h"
 #include "addons/AudioDecoder.h"
 #include "addons/VFSEntry.h"
-#include "addons/binary-addons/BinaryAddonBase.h"
 #include "AudioBookFileDirectory.h"
 
 using namespace ADDON;
@@ -54,8 +53,8 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
   StringUtils::ToLower(strExtension);
   if (!strExtension.empty() && CServiceBroker::IsBinaryAddonCacheUp())
   {
-    BinaryAddonBaseList addonInfos;
-    CServiceBroker::GetBinaryAddonManager().GetAddonInfos(addonInfos, true, ADDON_AUDIODECODER);
+    std::vector<AddonInfoPtr> addonInfos;
+    CServiceBroker::GetAddonMgr().GetAddonInfos(addonInfos, true, ADDON_AUDIODECODER);
     for (const auto& addonInfo : addonInfos)
     {
       if (CAudioDecoder::HasTracks(addonInfo))
@@ -95,7 +94,7 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
             else
             {
               // compressed or more than one file -> create a dir
-              *pItem = wrap->m_items;
+              pItem->SetPath(wrap->m_items.GetPath());
             }
 
             // Check for folder, if yes return also wrap.
@@ -130,7 +129,7 @@ IFileDirectory* CFileDirectoryFactory::Create(const CURL& url, CFileItem* pItem,
     delete iso;
 #endif
 
-#if defined(HAS_UDF)
+#if defined(HAS_UDFREAD)
     return new CUDFDirectory();
 #endif
 

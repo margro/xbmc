@@ -7,56 +7,57 @@
  */
 
 #include "GUIWindowManager.h"
+
+#include "Application.h"
 #include "GUIAudioManager.h"
 #include "GUIDialog.h"
-#include "Application.h"
-#include "messaging/ApplicationMessenger.h"
-#include "messaging/helpers/DialogHelper.h"
-#include "GUIPassword.h"
 #include "GUIInfoManager.h"
-#include "threads/SingleLock.h"
-#include "utils/URIUtils.h"
-#include "settings/AdvancedSettings.h"
-#include "settings/SettingsComponent.h"
-#include "addons/Skin.h"
+#include "GUIPassword.h"
 #include "GUITexture.h"
-#include "utils/Variant.h"
-#include "input/Key.h"
-#include "utils/log.h"
-#include "utils/StringUtils.h"
-
-#include "windows/GUIWindowHome.h"
+#include "addons/GUIWindowAddonBrowser.h"
+#include "addons/Skin.h"
+#include "addons/interfaces/gui/Window.h"
 #include "events/windows/GUIWindowEventLog.h"
 #include "favourites/GUIDialogFavourites.h"
-#include "settings/windows/GUIWindowSettings.h"
-#include "windows/GUIWindowFileManager.h"
-#include "settings/windows/GUIWindowSettingsCategory.h"
-#include "music/windows/GUIWindowMusicPlaylist.h"
-#include "music/windows/GUIWindowMusicNav.h"
-#include "music/windows/GUIWindowMusicPlaylistEditor.h"
-#include "video/windows/GUIWindowVideoPlaylist.h"
+#include "input/Key.h"
+#include "messaging/ApplicationMessenger.h"
+#include "messaging/helpers/DialogHelper.h"
 #include "music/dialogs/GUIDialogInfoProviderSettings.h"
 #include "music/dialogs/GUIDialogMusicInfo.h"
-#include "video/dialogs/GUIDialogVideoInfo.h"
-#include "video/windows/GUIWindowVideoNav.h"
-#include "profiles/windows/GUIWindowSettingsProfile.h"
-#include "settings/windows/GUIWindowSettingsScreenCalibration.h"
-#include "programs/GUIWindowPrograms.h"
-#include "pictures/GUIWindowPictures.h"
-#include "weather/GUIWindowWeather.h"
-#include "windows/GUIWindowLoginScreen.h"
-#include "addons/GUIWindowAddonBrowser.h"
+#include "music/windows/GUIWindowMusicNav.h"
+#include "music/windows/GUIWindowMusicPlaylist.h"
+#include "music/windows/GUIWindowMusicPlaylistEditor.h"
 #include "music/windows/GUIWindowVisualisation.h"
+#include "pictures/GUIWindowPictures.h"
+#include "pictures/GUIWindowSlideShow.h"
+#include "profiles/windows/GUIWindowSettingsProfile.h"
+#include "programs/GUIWindowPrograms.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/SettingsComponent.h"
+#include "settings/windows/GUIWindowSettings.h"
+#include "settings/windows/GUIWindowSettingsCategory.h"
+#include "settings/windows/GUIWindowSettingsScreenCalibration.h"
+#include "threads/SingleLock.h"
+#include "utils/StringUtils.h"
+#include "utils/URIUtils.h"
+#include "utils/Variant.h"
+#include "utils/log.h"
+#include "video/dialogs/GUIDialogVideoInfo.h"
+#include "video/dialogs/GUIDialogVideoOSD.h"
+#include "video/windows/GUIWindowFullScreen.h"
+#include "video/windows/GUIWindowVideoNav.h"
+#include "video/windows/GUIWindowVideoPlaylist.h"
+#include "weather/GUIWindowWeather.h"
 #include "windows/GUIWindowDebugInfo.h"
+#include "windows/GUIWindowFileManager.h"
+#include "windows/GUIWindowHome.h"
+#include "windows/GUIWindowLoginScreen.h"
 #include "windows/GUIWindowPointer.h"
-#include "windows/GUIWindowSystemInfo.h"
 #include "windows/GUIWindowScreensaver.h"
 #include "windows/GUIWindowScreensaverDim.h"
-#include "pictures/GUIWindowSlideShow.h"
 #include "windows/GUIWindowSplash.h"
 #include "windows/GUIWindowStartup.h"
-#include "video/windows/GUIWindowFullScreen.h"
-#include "video/dialogs/GUIDialogVideoOSD.h"
+#include "windows/GUIWindowSystemInfo.h"
 
 // Dialog includes
 #include "music/dialogs/GUIDialogMusicOSD.h"
@@ -130,7 +131,6 @@
 
 #include "peripherals/dialogs/GUIDialogPeripherals.h"
 #include "peripherals/dialogs/GUIDialogPeripheralSettings.h"
-#include "addons/interfaces/AddonInterfaces.h"
 
 /* Game related include files */
 #include "cores/RetroPlayer/guiwindows/GameWindowFullScreen.h"
@@ -773,14 +773,18 @@ void CGUIWindowManager::ActivateWindow_Internal(int iWindowID, const std::vector
 
   // make sure we check mediasources from home
   if (GetActiveWindow() == WINDOW_HOME)
-    g_passwordManager.strMediasourcePath = !params.empty() ? params[0] : "";
+  {
+    g_passwordManager.SetMediaSourcePath(!params.empty() ? params[0] : "");
+  }
   else
-    g_passwordManager.strMediasourcePath = "";
+  {
+    g_passwordManager.SetMediaSourcePath("");
+  }
 
   if (!g_passwordManager.CheckMenuLock(iWindowID))
   {
     CLog::Log(LOGERROR,
-              "MasterCode or Mediasource-code is wrong: Window with id {} will not be loaded! "
+              "MasterCode or MediaSource-code is wrong: Window with id {} will not be loaded! "
               "Enter a correct code!",
               iWindowID);
     if (GetActiveWindow() == WINDOW_INVALID && iWindowID != WINDOW_HOME)
@@ -886,7 +890,7 @@ void CGUIWindowManager::OnApplicationMessage(ThreadMessage* pMsg)
   case TMSG_GUI_DIALOG_OPEN:
   {
     if (pMsg->lpVoid)
-      static_cast<CGUIDialog*>(pMsg->lpVoid)->Open(pMsg->strParam);
+      static_cast<CGUIDialog*>(pMsg->lpVoid)->Open(pMsg->param2, pMsg->strParam);
     else
     {
       CGUIDialog* pDialog = static_cast<CGUIDialog*>(GetWindow(pMsg->param1));
@@ -920,7 +924,7 @@ void CGUIWindowManager::OnApplicationMessage(ThreadMessage* pMsg)
   {
     if (pMsg->lpVoid)
     {
-      ADDON::CAddonInterfaces::OnApplicationMessage(pMsg);
+      static_cast<ADDON::CGUIAddonWindowDialog*>(pMsg->lpVoid)->Show_Internal(pMsg->param2 > 0);
     }
   }
   break;

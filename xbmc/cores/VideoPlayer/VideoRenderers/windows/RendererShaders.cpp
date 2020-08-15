@@ -132,7 +132,14 @@ void CRendererShaders::UpdateVideoFilters()
   if (!m_colorShader)
   {
     m_colorShader = std::make_unique<CYUV2RGBShader>();
-    if (!m_colorShader->Create(m_format, AVCOL_PRI_BT709, m_srcPrimaries))
+
+    AVColorPrimaries dstPrimaries = AVCOL_PRI_BT709;
+
+    if (DX::Windowing()->IsHDROutput() &&
+        (m_srcPrimaries == AVCOL_PRI_BT709 || m_srcPrimaries == AVCOL_PRI_BT2020))
+      dstPrimaries = m_srcPrimaries;
+
+    if (!m_colorShader->Create(m_format, dstPrimaries, m_srcPrimaries))
     {
       // we are in a big trouble
       CLog::LogF(LOGERROR, "unable to create YUV->RGB shader, rendering is not possible");
@@ -274,18 +281,6 @@ void CRendererShaders::CRenderBufferImpl::AppendPicture(const VideoPicture& pict
   }
 }
 
-bool CRendererShaders::CRenderBufferImpl::IsLoaded()
-{
-  if (!videoBuffer)
-    return false;
-
-  if (videoBuffer->GetFormat() == AV_PIX_FMT_D3D11VA_VLD &&
-    AV_PIX_FMT_D3D11VA_VLD == av_format)
-    return true;
-
-  return m_bLoaded;
-}
-
 bool CRendererShaders::CRenderBufferImpl::UploadBuffer()
 {
   if (!videoBuffer)
@@ -293,7 +288,9 @@ bool CRendererShaders::CRenderBufferImpl::UploadBuffer()
 
   if (videoBuffer->GetFormat() == AV_PIX_FMT_D3D11VA_VLD)
   {
-    if (AV_PIX_FMT_D3D11VA_VLD != av_format)
+    if (AV_PIX_FMT_D3D11VA_VLD == av_format)
+      m_bLoaded = true;
+    else
       m_bLoaded = UploadFromGPU();
   }
   else
@@ -353,7 +350,6 @@ void CRendererShaders::CRenderBufferImpl::ReleasePicture()
 
   m_planes[0] = nullptr;
   m_planes[1] = nullptr;
-  m_bLoaded = false;
 }
 
 bool CRendererShaders::CRenderBufferImpl::UploadFromGPU()

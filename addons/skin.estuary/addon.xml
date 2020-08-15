@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="skin.estuary" version="2.0.23" name="Estuary" provider-name="phil65, Ichabod Fletchman">
+<addon id="skin.estuary" version="3.0.2" name="Estuary" provider-name="phil65, Ichabod Fletchman">
 	<requires>
-		<import addon="xbmc.gui" version="5.14.0"/>
+		<import addon="xbmc.gui" version="5.15.0"/>
 	</requires>
 	<extension point="xbmc.gui.skin" debugging="false">
 		<res width="1920" height="1440" aspect="4:3" default="false" folder="xml" />
@@ -15,6 +15,7 @@
 	</extension>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="af_ZA">Estuary oortreksel deur phil65. (Kodi se bestek oortreksel)</summary>
+		<summary lang="be_BY">Абалонка "Estuary" ад phil65. (прадвызначаная абалонка Kodi)</summary>
 		<summary lang="bg_BG">Estuary облик от phil65 и Piers. (стандартния облик на Kodi)</summary>
 		<summary lang="ca_ES">Aparença Estuary per phil65 i Piers. (aparença predeterminada de Kodi)</summary>
 		<summary lang="cs_CZ">Vzhled Estuary od autora phil65. (Výchozí vzhled Kodi)</summary>
@@ -59,9 +60,11 @@
 		<summary lang="th_TH">สกิน Estuary โดย phil65 และ Piers (หน้าตาเริ่มต้นของKodi)</summary>
 		<summary lang="tr_TR">Estuary dış görünümü. phil65 (Kodi'nin varsayılan dış görünümü)</summary>
 		<summary lang="uk_UA">Обкладинка Estuary від phil65 і Piers. (стандартна обкладинка Kodi)</summary>
+		<summary lang="vi_VN">Giao diện Estuary của phil65. (Giao diện mặc định của Kodi)</summary>
 		<summary lang="zh_CN">phil65 开发的 Estuary 皮肤（Kodi 的默认皮肤）。</summary>
 		<summary lang="zh_TW">phil65與Piers 製作的Estuary佈景主題（Kodi的預設佈景主題）</summary>
 		<description lang="af_ZA">Estuary is die bestek oortreksel vir Kodi 17.0 en op. Dit poog om maklik te wees vir eerste keer Kodi gebruikers om te verstaan en te gebruik.</description>
+		<description lang="be_BY">Estuary - прадвызначаная абалонка для Kodi 17.0 і пазнейшых версій. Яна будзе простай і зразумелай для карыстальнікаў, якія не мелі досведу працы з Kodi.</description>
 		<description lang="bg_BG">Estuary е стандартният облик на Kodi 17 и по-новите версии. Целта е да се улеснят хората, които се сблъскват за първи път с Kodi.</description>
 		<description lang="ca_ES">Estuary és l'aparença predeterminada de Kodi 17.0 i posteriors. Per als usuaris per primera vegada de Kodi, intenta ser fàcil d'entendre i d'utilitzar.</description>
 		<description lang="cs_CZ">Estuary je výchozí vzhled pro Kodi 17.0 a vyšší. Snaží se být jednoduše pochopitelný a použitelný pro nové uživatele Kodi.</description>
@@ -103,9 +106,11 @@
 		<description lang="th_TH">Estuary คือหน้าตาเริ่มต้นของ Kodi 17.0 และสูงกว่า เป็นความพยายามที่จะทำให้ง่ายสำหรับผู้ใช้ Kodi ในครั้งแรก ที่จะเข้าใจและใช้งาน</description>
 		<description lang="tr_TR">Estuary Kodi 17.0 ve yukarısı için varsayılan dış görünümdür. İlk kez Kodi kullananlar için anlaşılması ve kullanımı kolaydır.</description>
 		<description lang="uk_UA">Estuary є стандартною обкладинкою Kodi 17.0 і подальших версій. Її основна ідея — простота використання для нових користувачів Kodi.</description>
+		<description lang="vi_VN">Estuary là giao diện mặc định cho Kodi 17.0 trở lên. Nó dễ dàng cho người dùng Kodi lần đầu tiên hiểu và sử dụng.</description>
 		<description lang="zh_CN">Estuary 是 Kodi 17.0 的默认皮肤。它力求使首次使用 Kodi 的用户易于上手。</description>
 		<description lang="zh_TW">Estuary是Kodi 17.0開始搭載的預設佈景主題。主要在讓第一次使用 Kodi 的使用者可以簡單地上手。</description>
 		<disclaimer lang="af_ZA">Estuary is die bestek oortreksel vir Kodi, verwydering mag probleme veroorsaak</disclaimer>
+		<disclaimer lang="be_BY">Estuary - прадвызначаная абалонка для Kodi. Яе выдаленне можа прывесці да праблем</disclaimer>
 		<disclaimer lang="bg_BG">Estuary е стандартният облик на Kodi. Премахването му може да предизвика проблеми</disclaimer>
 		<disclaimer lang="ca_ES">Estuary és l'aparença predeterminada de Kodi, si s'elimina pot causar problemes.</disclaimer>
 		<disclaimer lang="cs_CZ">Estuary je výchozí vzhled pro Kodi, jeho odebrání může způsobit problémy</disclaimer>
@@ -148,6 +153,7 @@
 		<disclaimer lang="th_TH">Estuary เป็นหน้าตาเริ่มต้นสำหรับ Kodi, การลบมัน อาจทำให้เกิดปัญหา</disclaimer>
 		<disclaimer lang="tr_TR">Estuary Kodi için varsayılan dış görünümdür, kaldırmak sorunlara yol açabilir</disclaimer>
 		<disclaimer lang="uk_UA">Estuary — основна обкладинка Kodi, і її видалення може призвести до проблем</disclaimer>
+		<disclaimer lang="vi_VN">Estuary là giao diện mặc định cho Kodi, loại bỏ nó có thể gây ra sự cố</disclaimer>
 		<disclaimer lang="zh_CN">Estuary 是 Kodi 的默认皮肤，删除它可能导致故障。</disclaimer>
 		<disclaimer lang="zh_TW">Estuary 是 Kodi 預設的佈景主題，移除它可能會造成問題</disclaimer>
 		<platform>all</platform>

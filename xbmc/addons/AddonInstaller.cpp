@@ -334,7 +334,10 @@ bool CAddonInstaller::CheckDependencies(const AddonPtr &addon,
     // need to enable the dependency
     if (dep && CServiceBroker::GetAddonMgr().IsAddonDisabled(addonID))
       if (!CServiceBroker::GetAddonMgr().EnableAddon(addonID))
+      {
+        database.Close();
         return false;
+      }
 
     // at this point we have our dep, or the dep is optional (and we don't have it) so check that it's OK as well
     //! @todo should we assume that installed deps are OK?
@@ -413,30 +416,24 @@ void CAddonInstaller::PrunePackageCache()
     delete it->second;
 }
 
-void CAddonInstaller::InstallUpdates()
+void CAddonInstaller::InstallAddons(const VECADDONS& addons, bool wait)
 {
-  auto updates = CServiceBroker::GetAddonMgr().GetAvailableUpdates();
-  for (const auto& addon : updates)
+  for (const auto& addon : addons)
   {
-    if (!CServiceBroker::GetAddonMgr().IsBlacklisted(addon->ID()))
-    {
-      AddonPtr toInstall;
-      RepositoryPtr repo;
-      if (CAddonInstallJob::GetAddon(addon->ID(), repo, toInstall))
-        DoInstall(toInstall, repo, true, false, true);
-    }
+    AddonPtr toInstall;
+    RepositoryPtr repo;
+    if (CAddonInstallJob::GetAddon(addon->ID(), repo, toInstall))
+      DoInstall(toInstall, repo, false, false, true);
   }
-}
-
-void CAddonInstaller::InstallUpdatesAndWait()
-{
-  InstallUpdates();
-  CSingleLock lock(m_critSection);
-  if (!m_downloadJobs.empty())
+  if (wait)
   {
-    m_idle.Reset();
-    lock.Leave();
-    m_idle.Wait();
+    CSingleLock lock(m_critSection);
+    if (!m_downloadJobs.empty())
+    {
+      m_idle.Reset();
+      lock.Leave();
+      m_idle.Wait();
+    }
   }
 }
 
@@ -659,7 +656,7 @@ bool CAddonInstallJob::DoWork()
   if (m_isAutoUpdate && m_addon->IsBroken())
   {
     CLog::Log(LOGDEBUG, "CAddonInstallJob[%s]: auto-disabling due to being marked as broken", m_addon->ID().c_str());
-    CServiceBroker::GetAddonMgr().DisableAddon(m_addon->ID());
+    CServiceBroker::GetAddonMgr().DisableAddon(m_addon->ID(), AddonDisabledReason::USER);
     CServiceBroker::GetEventLog().Add(EventPtr(new CAddonManagementEvent(m_addon, 24094)), true, false);
   }
 

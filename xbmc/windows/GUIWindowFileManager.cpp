@@ -51,9 +51,6 @@
 #include "Autorun.h"
 #include "URL.h"
 #include "platform/Filesystem.h"
-#ifdef TARGET_POSIX
-#include "platform/posix/XFileUtils.h"
-#endif
 
 using namespace XFILE;
 using namespace PLAYLIST;
@@ -1248,11 +1245,13 @@ void CGUIWindowFileManager::OnInitWindow()
   else if (!bResult0)
   {
     ShowShareErrorMessage(m_Directory[0]); //show the error message after window is loaded!
+    Update(0, ""); // reset view to root
   }
 
   if (!bResult1)
   {
     ShowShareErrorMessage(m_Directory[1]); //show the error message after window is loaded!
+    Update(1, ""); // reset view to root
   }
 }
 

@@ -28,6 +28,7 @@
 #include "utils/URIUtils.h"
 #include "utils/XTimeUtils.h"
 #include "utils/log.h"
+#include "Util.h"
 
 #include <sstream>
 #include <utility>
@@ -199,11 +200,12 @@ bool CDVDDemuxFFmpeg::Aborted()
   return false;
 }
 
-bool CDVDDemuxFFmpeg::Open(std::shared_ptr<CDVDInputStream> pInput, bool streaminfo, bool fileinfo)
+bool CDVDDemuxFFmpeg::Open(std::shared_ptr<CDVDInputStream> pInput, bool fileinfo)
 {
   AVInputFormat* iformat = NULL;
   std::string strFile;
-  m_streaminfo = streaminfo;
+  m_streaminfo = !pInput->IsRealtime() && !m_reopen;
+  m_reopen = false;
   m_currentPts = DVD_NOPTS_VALUE;
   m_speed = DVD_PLAYSPEED_NORMAL;
   m_program = UINT_MAX;
@@ -586,7 +588,7 @@ bool CDVDDemuxFFmpeg::Open(std::shared_ptr<CDVDInputStream> pInput, bool streami
           }
         }
       }
-      else if (m_pFormatContext->iformat && strcmp(m_pFormatContext->iformat->name, "hls,applehttp") == 0)
+      else if (m_pFormatContext->iformat && strcmp(m_pFormatContext->iformat->name, "hls") == 0)
       {
         nProgram = HLSSelectProgram();
       }
@@ -628,16 +630,10 @@ bool CDVDDemuxFFmpeg::Open(std::shared_ptr<CDVDInputStream> pInput, bool streami
     int64_t duration = m_pFormatContext->duration;
     std::shared_ptr<CDVDInputStream> pInputStream = m_pInput;
     Dispose();
+    m_reopen = true;
     if (!Open(pInputStream, false))
       return false;
     m_pFormatContext->duration = duration;
-  }
-
-  // seems to be a bug in ffmpeg, hls jumps back to start after a couple of seconds
-  // this cures the issue
-  if (m_pFormatContext->iformat && strcmp(m_pFormatContext->iformat->name, "hls,applehttp") == 0)
-  {
-    SeekTime(0);
   }
 
   return true;
@@ -677,7 +673,7 @@ bool CDVDDemuxFFmpeg::Reset()
 {
   std::shared_ptr<CDVDInputStream> pInputStream = m_pInput;
   Dispose();
-  return Open(pInputStream, m_streaminfo);
+  return Open(pInputStream, false);
 }
 
 void CDVDDemuxFFmpeg::Flush()
@@ -713,15 +709,9 @@ void CDVDDemuxFFmpeg::SetSpeed(int iSpeed)
     return;
 
   if (m_speed != DVD_PLAYSPEED_PAUSE && iSpeed == DVD_PLAYSPEED_PAUSE)
-  {
-    m_pInput->Pause(m_currentPts);
     av_read_pause(m_pFormatContext);
-  }
   else if (m_speed == DVD_PLAYSPEED_PAUSE && iSpeed != DVD_PLAYSPEED_PAUSE)
-  {
-    m_pInput->Pause(m_currentPts);
     av_read_play(m_pFormatContext);
-  }
   m_speed = iSpeed;
 
   AVDiscard discard = AVDISCARD_NONE;
@@ -1031,7 +1021,7 @@ DemuxPacket* CDVDDemuxFFmpeg::Read()
 
       if (IsProgramChange())
       {
-        CLog::Log(LOGNOTICE, "CDVDDemuxFFmpeg::Read() stream change");
+        CLog::Log(LOGINFO, "CDVDDemuxFFmpeg::Read() stream change");
         av_dump_format(m_pFormatContext, 0, CURL::GetRedacted(m_pInput->GetFileName()).c_str(), 0);
 
         // update streams
@@ -1675,7 +1665,7 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
           }
           else
           {
-            fileName += nameTag->value;
+            fileName += CUtil::MakeLegalFileName(nameTag->value, LEGAL_WIN32_COMPAT);
             XFILE::CFile file;
             if (pStream->codecpar->extradata && file.OpenForWrite(fileName))
             {
@@ -1969,7 +1959,7 @@ std::string CDVDDemuxFFmpeg::GetStreamCodecName(int iStreamId)
 
     AVCodec* codec = avcodec_find_decoder(stream->codec);
     if (codec)
-      strName = codec->name;
+      strName = avcodec_get_name(codec->id);
   }
   return strName;
 }

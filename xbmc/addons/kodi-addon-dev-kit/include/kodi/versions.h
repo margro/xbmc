@@ -30,102 +30,133 @@
  * overview.
  */
 
-#define ADDON_GLOBAL_VERSION_MAIN                     "1.1.0"
-#define ADDON_GLOBAL_VERSION_MAIN_MIN                 "1.0.12"
+// Ignore clang here, as this must be good in overview and as the main reason,
+// because cmake uses this area in this form to perform its addon dependency
+// check.
+// clang-format off
+#define ADDON_GLOBAL_VERSION_MAIN                     "1.2.4"
+#define ADDON_GLOBAL_VERSION_MAIN_MIN                 "1.2.0"
 #define ADDON_GLOBAL_VERSION_MAIN_XML_ID              "kodi.binary.global.main"
 #define ADDON_GLOBAL_VERSION_MAIN_DEPENDS             "AddonBase.h" \
-                                                      "xbmc_addon_dll.h" \
-                                                      "xbmc_addon_types.h" \
-                                                      "libXBMC_addon.h" \
-                                                      "addon-instance/"
+                                                      "addon-instance/" \
+                                                      "c-api/addon_base.h"
 
-#define ADDON_GLOBAL_VERSION_GENERAL                  "1.0.3"
-#define ADDON_GLOBAL_VERSION_GENERAL_MIN              "1.0.2"
+#define ADDON_GLOBAL_VERSION_GENERAL                  "1.0.5"
+#define ADDON_GLOBAL_VERSION_GENERAL_MIN              "1.0.4"
 #define ADDON_GLOBAL_VERSION_GENERAL_XML_ID           "kodi.binary.global.general"
 #define ADDON_GLOBAL_VERSION_GENERAL_DEPENDS          "General.h"
 
-#define ADDON_GLOBAL_VERSION_GUI                      "5.14.0"
+#define ADDON_GLOBAL_VERSION_GUI                      "5.14.1"
 #define ADDON_GLOBAL_VERSION_GUI_MIN                  "5.14.0"
 #define ADDON_GLOBAL_VERSION_GUI_XML_ID               "kodi.binary.global.gui"
-#define ADDON_GLOBAL_VERSION_GUI_DEPENDS              "libKODI_guilib.h" \
+#define ADDON_GLOBAL_VERSION_GUI_DEPENDS              "ActionIDs.h" \
                                                       "gui/"
 
-#define ADDON_GLOBAL_VERSION_AUDIOENGINE              "1.0.2"
-#define ADDON_GLOBAL_VERSION_AUDIOENGINE_MIN          "1.0.2"
+#define ADDON_GLOBAL_VERSION_AUDIOENGINE              "1.1.1"
+#define ADDON_GLOBAL_VERSION_AUDIOENGINE_MIN          "1.1.0"
 #define ADDON_GLOBAL_VERSION_AUDIOENGINE_XML_ID       "kodi.binary.global.audioengine"
-#define ADDON_GLOBAL_VERSION_AUDIOENGINE_DEPENDS      "AudioEngine.h"
+#define ADDON_GLOBAL_VERSION_AUDIOENGINE_DEPENDS      "AudioEngine.h" \
+                                                      "c-api/audio_engine.h"
 
-#define ADDON_GLOBAL_VERSION_FILESYSTEM               "1.0.3"
-#define ADDON_GLOBAL_VERSION_FILESYSTEM_MIN           "1.0.3"
+#define ADDON_GLOBAL_VERSION_FILESYSTEM               "1.1.4"
+#define ADDON_GLOBAL_VERSION_FILESYSTEM_MIN           "1.1.0"
 #define ADDON_GLOBAL_VERSION_FILESYSTEM_XML_ID        "kodi.binary.global.filesystem"
 #define ADDON_GLOBAL_VERSION_FILESYSTEM_DEPENDS       "Filesystem.h" \
-                                                      "gui/gl/Shader.h"
+                                                      "c-api/filesystem.h" \
+                                                      "gui/gl/Shader.h" \
+                                                      "tools/DllHelper.h"
 
-#define ADDON_GLOBAL_VERSION_NETWORK                  "1.0.0"
+#define ADDON_GLOBAL_VERSION_NETWORK                  "1.0.4"
 #define ADDON_GLOBAL_VERSION_NETWORK_MIN              "1.0.0"
 #define ADDON_GLOBAL_VERSION_NETWORK_XML_ID           "kodi.binary.global.network"
-#define ADDON_GLOBAL_VERSION_NETWORK_DEPENDS          "Network.h"
+#define ADDON_GLOBAL_VERSION_NETWORK_DEPENDS          "Network.h" \
+                                                      "c-api/network.h"
 
-#define ADDON_INSTANCE_VERSION_AUDIODECODER           "2.0.0"
-#define ADDON_INSTANCE_VERSION_AUDIODECODER_MIN       "2.0.0"
+#define ADDON_GLOBAL_VERSION_TOOLS                    "1.0.1"
+#define ADDON_GLOBAL_VERSION_TOOLS_MIN                "1.0.0"
+#define ADDON_GLOBAL_VERSION_TOOLS_XML_ID             "kodi.binary.global.tools"
+#define ADDON_GLOBAL_VERSION_TOOLS_DEPENDS            "tools/DllHelper.h"
+
+#define ADDON_INSTANCE_VERSION_AUDIODECODER           "3.0.0"
+#define ADDON_INSTANCE_VERSION_AUDIODECODER_MIN       "3.0.0"
 #define ADDON_INSTANCE_VERSION_AUDIODECODER_XML_ID    "kodi.binary.instance.audiodecoder"
-#define ADDON_INSTANCE_VERSION_AUDIODECODER_DEPENDS   "addon-instance/AudioDecoder.h"
+#define ADDON_INSTANCE_VERSION_AUDIODECODER_DEPENDS   "c-api/addon-instance/audio_decoder.h" \
+                                                      "addon-instance/AudioDecoder.h"
 
-#define ADDON_INSTANCE_VERSION_AUDIOENCODER           "2.0.0"
-#define ADDON_INSTANCE_VERSION_AUDIOENCODER_MIN       "2.0.0"
+#define ADDON_INSTANCE_VERSION_AUDIOENCODER           "2.1.0"
+#define ADDON_INSTANCE_VERSION_AUDIOENCODER_MIN       "2.1.0"
 #define ADDON_INSTANCE_VERSION_AUDIOENCODER_XML_ID    "kodi.binary.instance.audioencoder"
-#define ADDON_INSTANCE_VERSION_AUDIOENCODER_DEPENDS   "addon-instance/AudioEncoder.h"
+#define ADDON_INSTANCE_VERSION_AUDIOENCODER_DEPENDS   "c-api/addon-instance/audio_encoder.h" \
+                                                      "addon-instance/AudioEncoder.h"
 
-#define ADDON_INSTANCE_VERSION_GAME                   "2.0.0"
-#define ADDON_INSTANCE_VERSION_GAME_MIN               "2.0.0"
+#define ADDON_INSTANCE_VERSION_GAME                   "2.0.2"
+#define ADDON_INSTANCE_VERSION_GAME_MIN               "2.0.1"
 #define ADDON_INSTANCE_VERSION_GAME_XML_ID            "kodi.binary.instance.game"
 #define ADDON_INSTANCE_VERSION_GAME_DEPENDS           "addon-instance/Game.h"
 
-#define ADDON_INSTANCE_VERSION_IMAGEDECODER           "2.0.0"
-#define ADDON_INSTANCE_VERSION_IMAGEDECODER_MIN       "2.0.0"
+#define ADDON_INSTANCE_VERSION_IMAGEDECODER           "2.1.1"
+#define ADDON_INSTANCE_VERSION_IMAGEDECODER_MIN       "2.1.0"
 #define ADDON_INSTANCE_VERSION_IMAGEDECODER_XML_ID    "kodi.binary.instance.imagedecoder"
 #define ADDON_INSTANCE_VERSION_IMAGEDECODER_DEPENDS   "addon-instance/ImageDecoder.h"
 
-#define ADDON_INSTANCE_VERSION_INPUTSTREAM            "2.0.11"
-#define ADDON_INSTANCE_VERSION_INPUTSTREAM_MIN        "2.0.7"
+#define ADDON_INSTANCE_VERSION_INPUTSTREAM            "2.3.3"
+#define ADDON_INSTANCE_VERSION_INPUTSTREAM_MIN        "2.3.1"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_XML_ID     "kodi.binary.instance.inputstream"
 #define ADDON_INSTANCE_VERSION_INPUTSTREAM_DEPENDS    "addon-instance/Inputstream.h"
 
-#define ADDON_INSTANCE_VERSION_PERIPHERAL             "1.3.7"
-#define ADDON_INSTANCE_VERSION_PERIPHERAL_MIN         "1.3.4"
+#define ADDON_INSTANCE_VERSION_PERIPHERAL             "1.3.9"
+#define ADDON_INSTANCE_VERSION_PERIPHERAL_MIN         "1.3.8"
 #define ADDON_INSTANCE_VERSION_PERIPHERAL_XML_ID      "kodi.binary.instance.peripheral"
 #define ADDON_INSTANCE_VERSION_PERIPHERAL_DEPENDS     "addon-instance/Peripheral.h" \
                                                       "addon-instance/PeripheralUtils.h"
 
-#define ADDON_INSTANCE_VERSION_PVR                    "6.1.0"
-#define ADDON_INSTANCE_VERSION_PVR_MIN                "6.1.0"
+#define ADDON_INSTANCE_VERSION_PVR                    "7.0.1"
+#define ADDON_INSTANCE_VERSION_PVR_MIN                "7.0.0"
 #define ADDON_INSTANCE_VERSION_PVR_XML_ID             "kodi.binary.instance.pvr"
-#define ADDON_INSTANCE_VERSION_PVR_DEPENDS            "xbmc_pvr_dll.h" \
-                                                      "xbmc_pvr_types.h" \
-                                                      "xbmc_epg_types.h" \
-                                                      "libXBMC_pvr.h"
+#define ADDON_INSTANCE_VERSION_PVR_DEPENDS            "c-api/addon-instance/pvr.h" \
+                                                      "c-api/addon-instance/pvr/pvr_channel_groups.h" \
+                                                      "c-api/addon-instance/pvr/pvr_channels.h" \
+                                                      "c-api/addon-instance/pvr/pvr_defines.h" \
+                                                      "c-api/addon-instance/pvr/pvr_edl.h" \
+                                                      "c-api/addon-instance/pvr/pvr_epg.h" \
+                                                      "c-api/addon-instance/pvr/pvr_general.h" \
+                                                      "c-api/addon-instance/pvr/pvr_menu_hook.h" \
+                                                      "c-api/addon-instance/pvr/pvr_recordings.h" \
+                                                      "c-api/addon-instance/pvr/pvr_stream.h" \
+                                                      "c-api/addon-instance/pvr/pvr_timers.h" \
+                                                      "addon-instance/PVR.h" \
+                                                      "addon-instance/pvr/ChannelGroups.h" \
+                                                      "addon-instance/pvr/Channels.h" \
+                                                      "addon-instance/pvr/EDL.h" \
+                                                      "addon-instance/pvr/EPG.h" \
+                                                      "addon-instance/pvr/General.h" \
+                                                      "addon-instance/pvr/MenuHook.h" \
+                                                      "addon-instance/pvr/Recordings.h" \
+                                                      "addon-instance/pvr/Stream.h" \
+                                                      "addon-instance/pvr/Timers.h"
 
-#define ADDON_INSTANCE_VERSION_SCREENSAVER            "2.0.0"
-#define ADDON_INSTANCE_VERSION_SCREENSAVER_MIN        "2.0.0"
+#define ADDON_INSTANCE_VERSION_SCREENSAVER            "2.0.2"
+#define ADDON_INSTANCE_VERSION_SCREENSAVER_MIN        "2.0.1"
 #define ADDON_INSTANCE_VERSION_SCREENSAVER_XML_ID     "kodi.binary.instance.screensaver"
 #define ADDON_INSTANCE_VERSION_SCREENSAVER_DEPENDS    "addon-instance/Screensaver.h"
 
-#define ADDON_INSTANCE_VERSION_VFS                    "2.2.0"
-#define ADDON_INSTANCE_VERSION_VFS_MIN                "2.1.0"
+#define ADDON_INSTANCE_VERSION_VFS                    "2.3.2"
+#define ADDON_INSTANCE_VERSION_VFS_MIN                "2.3.1"
 #define ADDON_INSTANCE_VERSION_VFS_XML_ID             "kodi.binary.instance.vfs"
 #define ADDON_INSTANCE_VERSION_VFS_DEPENDS            "addon-instance/VFS.h"
 
-#define ADDON_INSTANCE_VERSION_VISUALIZATION          "2.0.2"
-#define ADDON_INSTANCE_VERSION_VISUALIZATION_MIN      "2.0.2"
+#define ADDON_INSTANCE_VERSION_VISUALIZATION          "2.0.4"
+#define ADDON_INSTANCE_VERSION_VISUALIZATION_MIN      "2.0.3"
 #define ADDON_INSTANCE_VERSION_VISUALIZATION_XML_ID   "kodi.binary.instance.visualization"
 #define ADDON_INSTANCE_VERSION_VISUALIZATION_DEPENDS  "addon-instance/Visualization.h"
 
-#define ADDON_INSTANCE_VERSION_VIDEOCODEC             "1.0.1"
-#define ADDON_INSTANCE_VERSION_VIDEOCODEC_MIN         "1.0.1"
+#define ADDON_INSTANCE_VERSION_VIDEOCODEC             "1.0.3"
+#define ADDON_INSTANCE_VERSION_VIDEOCODEC_MIN         "1.0.2"
 #define ADDON_INSTANCE_VERSION_VIDEOCODEC_XML_ID      "kodi.binary.instance.videocodec"
 #define ADDON_INSTANCE_VERSION_VIDEOCODEC_DEPENDS     "addon-instance/VideoCodec.h" \
                                                       "StreamCodec.h" \
                                                       "StreamCrypto.h"
+// clang-format on
 
 //==============================================================================
 ///
@@ -146,7 +177,10 @@ typedef enum ADDON_TYPE
   ADDON_GLOBAL_GENERAL = 3,
   ADDON_GLOBAL_NETWORK = 4,
   ADDON_GLOBAL_FILESYSTEM = 5,
-  ADDON_GLOBAL_MAX = 5, // Last used global id, used in loops to check versions. Need to change if new global type becomes added.
+  ADDON_GLOBAL_TOOLS = 6,
+  // Last used global id, used in loops to check versions.
+  // Need to change if new global type becomes added!
+  ADDON_GLOBAL_MAX = 6,
 
   /* addon type instances */
 
@@ -229,6 +263,10 @@ inline const char* GetTypeVersion(int type)
     case ADDON_GLOBAL_NETWORK:
       return ADDON_GLOBAL_VERSION_NETWORK;
 #endif
+#if !defined(BUILD_KODI_ADDON) || defined(ADDON_GLOBAL_VERSION_TOOLS_USED)
+    case ADDON_GLOBAL_TOOLS:
+      return ADDON_GLOBAL_VERSION_TOOLS;
+#endif
 
     /* addon type instances */
 #if !defined(BUILD_KODI_ADDON) || defined(ADDON_INSTANCE_VERSION_AUDIODECODER_USED)
@@ -304,6 +342,8 @@ inline const char* GetTypeMinVersion(int type)
       return ADDON_GLOBAL_VERSION_FILESYSTEM_MIN;
     case ADDON_GLOBAL_NETWORK:
       return ADDON_GLOBAL_VERSION_NETWORK_MIN;
+    case ADDON_GLOBAL_TOOLS:
+      return ADDON_GLOBAL_VERSION_TOOLS_MIN;
 
     /* addon type instances */
     case ADDON_INSTANCE_AUDIODECODER:
@@ -356,6 +396,8 @@ inline const char* GetTypeName(int type)
       return "Filesystem";
     case ADDON_GLOBAL_NETWORK:
       return "Network";
+    case ADDON_GLOBAL_TOOLS:
+      return "Tools";
 
     /* addon type instances */
     case ADDON_INSTANCE_AUDIODECODER:
@@ -407,6 +449,8 @@ inline int GetTypeId(const char* name)
       return ADDON_GLOBAL_FILESYSTEM;
     else if (strcmp(name, "network") == 0)
       return ADDON_GLOBAL_NETWORK;
+    else if (strcmp(name, "tools") == 0)
+      return ADDON_GLOBAL_TOOLS;
     else if (strcmp(name, "audiodecoder") == 0)
       return ADDON_INSTANCE_AUDIODECODER;
     else if (strcmp(name, "audioencoder") == 0)

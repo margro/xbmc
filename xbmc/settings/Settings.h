@@ -153,6 +153,7 @@ public:
   static const std::string SETTING_PVRMANAGER_SYNCCHANNELGROUPS;
   static const std::string SETTING_PVRMANAGER_BACKENDCHANNELORDER;
   static const std::string SETTING_PVRMANAGER_USEBACKENDCHANNELNUMBERS;
+  static const std::string SETTING_PVRMANAGER_USEBACKENDCHANNELNUMBERSALWAYS;
   static const std::string SETTING_PVRMANAGER_STARTGROUPCHANNELNUMBERSFROMONE;
   static const std::string SETTING_PVRMANAGER_CLIENTPRIORITIES;
   static const std::string SETTING_PVRMANAGER_CHANNELMANAGER;
@@ -170,7 +171,7 @@ public:
   static const std::string SETTING_EPG_EPGUPDATE;
   static const std::string SETTING_EPG_PREVENTUPDATESWHILEPLAYINGTV;
   static const std::string SETTING_EPG_RESETEPG;
-  static const std::string SETTING_PVRPLAYBACK_SWITCHTOFULLSCREEN;
+  static const std::string SETTING_PVRPLAYBACK_SWITCHTOFULLSCREENCHANNELTYPES;
   static const std::string SETTING_PVRPLAYBACK_SIGNALQUALITY;
   static const std::string SETTING_PVRPLAYBACK_CONFIRMCHANNELSWITCH;
   static const std::string SETTING_PVRPLAYBACK_CHANNELENTRYTIMEOUT;
@@ -197,6 +198,7 @@ public:
   static const std::string SETTING_PVRTIMERS_HIDEDISABLEDTIMERS;
   static const std::string SETTING_MUSICLIBRARY_SHOWCOMPILATIONARTISTS;
   static const std::string SETTING_MUSICLIBRARY_SHOWDISCS;
+  static const std::string SETTING_MUSICLIBRARY_USEORIGINALDATE;
   static const std::string SETTING_MUSICLIBRARY_USEARTISTSORTNAME;
   static const std::string SETTING_MUSICLIBRARY_DOWNLOADINFO;
   static const std::string SETTING_MUSICLIBRARY_ARTISTSFOLDER;
@@ -264,6 +266,7 @@ public:
   static const std::string SETTING_SERVICES_UPNPRENDERER;
   static const std::string SETTING_SERVICES_WEBSERVER;
   static const std::string SETTING_SERVICES_WEBSERVERPORT;
+  static const std::string SETTING_SERVICES_WEBSERVERAUTHENTICATION;
   static const std::string SETTING_SERVICES_WEBSERVERUSERNAME;
   static const std::string SETTING_SERVICES_WEBSERVERPASSWORD;
   static const std::string SETTING_SERVICES_WEBSERVERSSL;
@@ -376,6 +379,7 @@ public:
   static const std::string SETTING_ADDONS_SHOW_RUNNING;
   static const std::string SETTING_ADDONS_MANAGE_DEPENDENCIES;
   static const std::string SETTING_ADDONS_ALLOW_UNKNOWN_SOURCES;
+  static const std::string SETTING_ADDONS_UPDATEMODE;
   static const std::string SETTING_GENERAL_ADDONFOREIGNFILTER;
   static const std::string SETTING_GENERAL_ADDONBROKENFILTER;
   static const std::string SETTING_SOURCE_VIDEOS;

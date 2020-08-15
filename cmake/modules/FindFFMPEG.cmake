@@ -33,14 +33,14 @@
 #
 
 # required ffmpeg library versions
-set(REQUIRED_FFMPEG_VERSION 4.2)
-set(_avcodec_ver ">=58.54.100")
-set(_avfilter_ver ">=7.57.100")
-set(_avformat_ver ">=58.29.100")
-set(_avutil_ver ">=56.31.100")
-set(_swscale_ver ">=5.5.100")
-set(_swresample_ver ">=3.5.100")
-set(_postproc_ver ">=55.5.100")
+set(REQUIRED_FFMPEG_VERSION 4.3)
+set(_avcodec_ver ">=58.91.100")
+set(_avfilter_ver ">=7.85.100")
+set(_avformat_ver ">=58.45.100")
+set(_avutil_ver ">=56.51.100")
+set(_swscale_ver ">=5.7.100")
+set(_swresample_ver ">=3.7.100")
+set(_postproc_ver ">=55.7.100")
 
 
 # Allows building with external ffmpeg not found in system paths,
@@ -229,13 +229,16 @@ if(NOT FFMPEG_FOUND)
     message(STATUS "FFMPEG_URL: ${FFMPEG_URL}")
   endif()
 
-  find_package(Dav1d)
+  if (NOT DAV1D_FOUND)
+    message(STATUS "dav1d not found, internal ffmpeg build will be missing AV1 support!")
+  endif()
 
   set(FFMPEG_OPTIONS -DENABLE_CCACHE=${ENABLE_CCACHE}
                      -DCCACHE_PROGRAM=${CCACHE_PROGRAM}
                      -DENABLE_VAAPI=${ENABLE_VAAPI}
                      -DENABLE_VDPAU=${ENABLE_VDPAU}
-                     -DENABLE_DAV1D=${DAV1D_FOUND})
+                     -DENABLE_DAV1D=${DAV1D_FOUND}
+                     -DEXTRA_FLAGS=${FFMPEG_EXTRA_FLAGS})
 
   if(KODI_DEPENDSBUILD)
     set(CROSS_ARGS -DDEPENDS_PATH=${DEPENDS_PATH}

@@ -18,7 +18,6 @@
 #include "ServiceBroker.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
-#include "guilib/LocalizeStrings.h"
 #include "LangInfo.h"
 #include "network/DNSNameCache.h"
 #include "profiles/ProfileManager.h"
@@ -53,25 +52,22 @@ void CAdvancedSettings::OnSettingsLoaded()
   Load(*profileManager);
 
   // default players?
-  CLog::Log(LOGNOTICE, "Default Video Player: %s", m_videoDefaultPlayer.c_str());
-  CLog::Log(LOGNOTICE, "Default Audio Player: %s", m_audioDefaultPlayer.c_str());
+  CLog::Log(LOGINFO, "Default Video Player: %s", m_videoDefaultPlayer.c_str());
+  CLog::Log(LOGINFO, "Default Audio Player: %s", m_audioDefaultPlayer.c_str());
 
   // setup any logging...
   const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
   if (settings->GetBool(CSettings::SETTING_DEBUG_SHOWLOGINFO))
   {
     m_logLevel = std::max(m_logLevelHint, LOG_LEVEL_DEBUG_FREEMEM);
-    CLog::Log(LOGNOTICE, "Enabled debug logging due to GUI setting (%d)", m_logLevel);
+    CLog::Log(LOGINFO, "Enabled debug logging due to GUI setting (%d)", m_logLevel);
   }
   else
   {
     m_logLevel = std::min(m_logLevelHint, LOG_LEVEL_DEBUG/*LOG_LEVEL_NORMAL*/);
-    CLog::Log(LOGNOTICE, "Disabled debug logging due to GUI setting. Level %d.", m_logLevel);
+    CLog::Log(LOGINFO, "Disabled debug logging due to GUI setting. Level %d.", m_logLevel);
   }
-  CLog::SetLogLevel(m_logLevel);
-
-  m_extraLogEnabled = settings->GetBool(CSettings::SETTING_DEBUG_EXTRALOGGING);
-  SetExtraLogLevel(settings->GetList(CSettings::SETTING_DEBUG_SETEXTRALOGLEVEL));
+  CServiceBroker::GetLogging().SetLogLevel(m_logLevel);
 }
 
 void CAdvancedSettings::OnSettingsUnloaded()
@@ -87,10 +83,6 @@ void CAdvancedSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting
   const std::string &settingId = setting->GetId();
   if (settingId == CSettings::SETTING_DEBUG_SHOWLOGINFO)
     SetDebugMode(std::static_pointer_cast<const CSettingBool>(setting)->GetValue());
-  else if (settingId == CSettings::SETTING_DEBUG_EXTRALOGGING)
-    m_extraLogEnabled = std::static_pointer_cast<const CSettingBool>(setting)->GetValue();
-  else if (settingId == CSettings::SETTING_DEBUG_SETEXTRALOGLEVEL)
-    SetExtraLogLevel(CSettingUtils::GetList(std::static_pointer_cast<const CSettingList>(setting)));
 }
 
 void CAdvancedSettings::Initialize(const CAppParamParser &params, CSettingsManager& settingsMgr)
@@ -99,12 +91,9 @@ void CAdvancedSettings::Initialize(const CAppParamParser &params, CSettingsManag
 
   params.SetAdvancedSettings(*this);
 
-  settingsMgr.RegisterSettingOptionsFiller("loggingcomponents", SettingOptionsLoggingComponentsFiller);
   settingsMgr.RegisterSettingsHandler(this, true);
   std::set<std::string> settingSet;
   settingSet.insert(CSettings::SETTING_DEBUG_SHOWLOGINFO);
-  settingSet.insert(CSettings::SETTING_DEBUG_EXTRALOGGING);
-  settingSet.insert(CSettings::SETTING_DEBUG_SETEXTRALOGLEVEL);
   settingsMgr.RegisterCallback(this, settingSet);
 }
 
@@ -184,7 +173,7 @@ void CAdvancedSettings::Initialize()
 
   m_songInfoDuration = 10;
 
-  m_cddbAddress = "freedb.freedb.org";
+  m_cddbAddress = "gnudb.gnudb.org";
   m_addSourceOnTop = false;
 
   m_handleMounting = g_application.IsStandAlone();
@@ -291,6 +280,7 @@ void CAdvancedSettings::Initialize()
   m_musicArtistSeparators = { ";", " feat. ", " ft. " };
   m_videoItemSeparator = " / ";
   m_iMusicLibraryDateAdded = 1; // prefer mtime over ctime and current time
+  m_bMusicLibraryUseISODates = false;
 
   m_bVideoLibraryAllItemsOnBottom = false;
   m_iVideoLibraryRecentlyAddedItems = 25;
@@ -405,6 +395,8 @@ void CAdvancedSettings::Initialize()
   m_databaseMusic.Reset();
   m_databaseVideo.Reset();
 
+  m_useLocaleCollation = true;
+
   m_pictureExtensions = ".png|.jpg|.jpeg|.bmp|.gif|.ico|.tif|.tiff|.tga|.pcx|.cbz|.zip|.rss|.webp|.jp2|.apng";
   m_musicExtensions = ".nsv|.m4a|.flac|.aac|.strm|.pls|.rm|.rma|.mpa|.wav|.wma|.ogg|.mp3|.mp2|.m3u|.gdm|.imf|.m15|.sfx|.uni|.ac3|.dts|.cue|.aif|.aiff|.wpl|.xspf|.ape|.mac|.mpc|.mp+|.mpp|.shn|.zip|.wv|.dsp|.xsp|.xwav|.waa|.wvs|.wam|.gcm|.idsp|.mpdsp|.mss|.spt|.rsd|.sap|.cmc|.cmr|.dmc|.mpt|.mpd|.rmt|.tmc|.tm8|.tm2|.oga|.url|.pxml|.tta|.rss|.wtv|.mka|.tak|.opus|.dff|.dsf|.m4b|.dtshd";
   m_videoExtensions = ".m4v|.3g2|.3gp|.nsv|.tp|.ts|.ty|.strm|.pls|.rm|.rmvb|.mpd|.m3u|.m3u8|.ifo|.mov|.qt|.divx|.xvid|.bivx|.vob|.nrg|.img|.iso|.udf|.pva|.wmv|.asf|.asx|.ogm|.m2v|.avi|.bin|.dat|.mpg|.mpeg|.mp4|.mkv|.mk3d|.avc|.vp3|.svq3|.nuv|.viv|.dv|.fli|.flv|.001|.wpl|.xspf|.zip|.vdr|.dvr-ms|.xsp|.mts|.m2t|.m2ts|.evo|.ogv|.sdp|.avs|.rec|.url|.pxml|.vc1|.h264|.rcv|.rss|.mpls|.mpl|.webm|.bdmv|.bdm|.wtv|.trp|.f4v";
@@ -419,17 +411,15 @@ void CAdvancedSettings::Initialize()
   m_stereoscopicregex_sbs = "[-. _]h?sbs[-. _]";
   m_stereoscopicregex_tab = "[-. _]h?tab[-. _]";
 
-  m_allowUseSeparateDeviceForDecoding = false;
-
   m_videoAssFixedWorks = false;
 
   m_logLevelHint = m_logLevel = LOG_LEVEL_NORMAL;
-  m_extraLogEnabled = false;
-  m_extraLogLevels = 0;
 
   m_openGlDebugging = false;
 
   m_userAgent = g_sysinfo.GetUserAgent();
+
+  m_nfsTimeout = 5;
 
   m_initialized = true;
 }
@@ -458,7 +448,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   CXBMCTinyXML advancedXML;
   if (!CFile::Exists(file))
   {
-    CLog::Log(LOGNOTICE, "No settings file to load (%s)", file.c_str());
+    CLog::Log(LOGINFO, "No settings file to load (%s)", file.c_str());
     return;
   }
 
@@ -469,14 +459,14 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   }
 
   TiXmlElement *pRootElement = advancedXML.RootElement();
-  if (!pRootElement || strcmpi(pRootElement->Value(),"advancedsettings") != 0)
+  if (!pRootElement || StringUtils::CompareNoCase(pRootElement->Value(), "advancedsettings") != 0)
   {
     CLog::Log(LOGERROR, "Error loading %s, no <advancedsettings> node", file.c_str());
     return;
   }
 
   // succeeded - tell the user it worked
-  CLog::Log(LOGNOTICE, "Loaded settings file from %s", file.c_str());
+  CLog::Log(LOGINFO, "Loaded settings file from %s", file.c_str());
 
   //Make a copy of the AS.xml and hide advancedsettings passwords
   CXBMCTinyXML advancedXMLCopy(advancedXML);
@@ -511,6 +501,14 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
         passTag->LinkEndChild(new TiXmlText("*****"));
       }
     }
+    if (network->FirstChildElement("nfstimeout"))
+    {
+#ifdef HAS_NFS_SET_TIMEOUT
+      XMLUtils::GetUInt(network, "nfstimeout", m_nfsTimeout, 0, 3600);
+#else
+      CLog::Log(LOGWARNING, "nfstimeout unsupported");
+#endif
+    }
   }
 
   // Dump contents of copied AS.xml to debug log
@@ -518,7 +516,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   printer.SetLineBreak("\n");
   printer.SetIndent("  ");
   advancedXMLCopy.Accept(&printer);
-  CLog::Log(LOGNOTICE, "Contents of %s are...\n%s", file.c_str(), printer.CStr());
+  CLog::Log(LOGINFO, "Contents of %s are...\n%s", file.c_str(), printer.CStr());
 
   TiXmlElement *pElement = pRootElement->FirstChildElement("audio");
   if (pElement)
@@ -695,7 +693,6 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
 
     m_DXVACheckCompatibilityPresent = XMLUtils::GetBoolean(pElement,"checkdxvacompatibility", m_DXVACheckCompatibility);
 
-    XMLUtils::GetBoolean(pElement, "allowdiscretedecoder", m_allowUseSeparateDeviceForDecoding);
     //0 = disable fps detect, 1 = only detect on timestamps with uniform spacing, 2 detect on all timestamps
     XMLUtils::GetInt(pElement, "fpsdetect", m_videoFpsDetect, 0, 2);
     XMLUtils::GetFloat(pElement, "maxtempo", m_maxTempo, 1.5, 2.1);
@@ -750,6 +747,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetString(pElement, "albumformat", m_strMusicLibraryAlbumFormat);
     XMLUtils::GetString(pElement, "itemseparator", m_musicItemSeparator);
     XMLUtils::GetInt(pElement, "dateadded", m_iMusicLibraryDateAdded);
+    XMLUtils::GetBoolean(pElement, "useisodates", m_bMusicLibraryUseISODates);
     //Music artist name separators
     TiXmlElement* separators = pElement->FirstChildElement("artistseparators");
     if (separators)
@@ -798,7 +796,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   pElement = pRootElement->FirstChildElement("externalplayer");
   if (pElement)
   {
-    CLog::Log(LOGWARNING, "External player configuration has been removed from advancedsettings.xml.  It can now be configed in userdata/playercorefactory.xml");
+    CLog::Log(LOGWARNING, "External player configuration has been removed from advancedsettings.xml.  It can now be configured in userdata/playercorefactory.xml");
   }
   pElement = pRootElement->FirstChildElement("slideshow");
   if (pElement)
@@ -858,14 +856,14 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     // as altering it will do nothing - we don't write to advancedsettings.xml
     XMLUtils::GetInt(pRootElement, "loglevel", m_logLevelHint, LOG_LEVEL_NONE, LOG_LEVEL_MAX);
     const char* hide = pElement->Attribute("hide");
-    if (hide == NULL || strnicmp("false", hide, 5) != 0)
+    if (hide == NULL || StringUtils::CompareNoCase("false", hide, 5) != 0)
     {
       SettingPtr setting = CServiceBroker::GetSettingsComponent()->GetSettings()->GetSetting(CSettings::SETTING_DEBUG_SHOWLOGINFO);
       if (setting != NULL)
         setting->SetVisible(false);
     }
     m_logLevel = std::max(m_logLevel, m_logLevelHint);
-    CLog::SetLogLevel(m_logLevel);
+    CServiceBroker::GetLogging().SetLogLevel(m_logLevel);
   }
 
   XMLUtils::GetString(pRootElement, "cddbaddress", m_cddbAddress);
@@ -917,8 +915,8 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetInt(pElement, "mincommbreaklength", m_iEdlMinCommBreakLength, 0, 5 * 60);  // Between 0 and 5 minutes
     XMLUtils::GetInt(pElement, "maxcommbreakgap", m_iEdlMaxCommBreakGap, 0, 5 * 60);        // Between 0 and 5 minutes.
     XMLUtils::GetInt(pElement, "maxstartgap", m_iEdlMaxStartGap, 0, 10 * 60);               // Between 0 and 10 minutes
-    XMLUtils::GetInt(pElement, "commbreakautowait", m_iEdlCommBreakAutowait, 0, 10);        // Between 0 and 10 seconds
-    XMLUtils::GetInt(pElement, "commbreakautowind", m_iEdlCommBreakAutowind, 0, 10);        // Between 0 and 10 seconds
+    XMLUtils::GetInt(pElement, "commbreakautowait", m_iEdlCommBreakAutowait, -60, 60);        // Between -60 and 60 seconds
+    XMLUtils::GetInt(pElement, "commbreakautowind", m_iEdlCommBreakAutowind, -60, 60);        // Between -60 and 60 seconds
   }
 
   // picture exclude regexps
@@ -1032,6 +1030,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   if (XMLUtils::GetString(pRootElement, "imagescalingalgorithm", tmp))
     m_imageScalingAlgorithm = CPictureScalingAlgorithm::FromString(tmp);
   XMLUtils::GetBoolean(pRootElement, "playlistasfolders", m_playlistAsFolders);
+  XMLUtils::GetBoolean(pRootElement, "uselocalecollation", m_useLocaleCollation);
   XMLUtils::GetBoolean(pRootElement, "detectasudf", m_detectAsUdf);
 
   // music thumbs
@@ -1219,16 +1218,16 @@ void CAdvancedSettings::GetCustomTVRegexps(TiXmlElement *pRootElement, SETTINGS_
     int iAction = 0; // overwrite
     // for backward compatibility
     const char* szAppend = pElement->Attribute("append");
-    if ((szAppend && stricmp(szAppend, "yes") == 0))
+    if ((szAppend && StringUtils::CompareNoCase(szAppend, "yes") == 0))
       iAction = 1;
     // action takes precedence if both attributes exist
     const char* szAction = pElement->Attribute("action");
     if (szAction)
     {
       iAction = 0; // overwrite
-      if (stricmp(szAction, "append") == 0)
+      if (StringUtils::CompareNoCase(szAction, "append") == 0)
         iAction = 1; // append
-      else if (stricmp(szAction, "prepend") == 0)
+      else if (StringUtils::CompareNoCase(szAction, "prepend") == 0)
         iAction = 2; // prepend
     }
     if (iAction == 0)
@@ -1275,16 +1274,16 @@ void CAdvancedSettings::GetCustomRegexps(TiXmlElement *pRootElement, std::vector
     int iAction = 0; // overwrite
     // for backward compatibility
     const char* szAppend = pElement->Attribute("append");
-    if ((szAppend && stricmp(szAppend, "yes") == 0))
+    if ((szAppend && StringUtils::CompareNoCase(szAppend, "yes") == 0))
       iAction = 1;
     // action takes precedence if both attributes exist
     const char* szAction = pElement->Attribute("action");
     if (szAction)
     {
       iAction = 0; // overwrite
-      if (stricmp(szAction, "append") == 0)
+      if (StringUtils::CompareNoCase(szAction, "append") == 0)
         iAction = 1; // append
-      else if (stricmp(szAction, "prepend") == 0)
+      else if (StringUtils::CompareNoCase(szAction, "prepend") == 0)
         iAction = 2; // prepend
     }
     if (iAction == 0)
@@ -1349,66 +1348,15 @@ void CAdvancedSettings::SetDebugMode(bool debug)
   {
     int level = std::max(m_logLevelHint, LOG_LEVEL_DEBUG_FREEMEM);
     m_logLevel = level;
-    CLog::SetLogLevel(level);
-    CLog::Log(LOGNOTICE, "Enabled debug logging due to GUI setting. Level %d.", level);
+    CServiceBroker::GetLogging().SetLogLevel(level);
+    CLog::Log(LOGINFO, "Enabled debug logging due to GUI setting. Level %d.", level);
   }
   else
   {
     int level = std::min(m_logLevelHint, LOG_LEVEL_DEBUG/*LOG_LEVEL_NORMAL*/);
-    CLog::Log(LOGNOTICE, "Disabled debug logging due to GUI setting. Level %d.", level);
+    CLog::Log(LOGINFO, "Disabled debug logging due to GUI setting. Level %d.", level);
     m_logLevel = level;
-    CLog::SetLogLevel(level);
-  }
-}
-
-bool CAdvancedSettings::CanLogComponent(int component) const
-{
-  if (!m_extraLogEnabled || component <= 0)
-    return false;
-
-  return ((m_extraLogLevels & component) == component);
-}
-
-void CAdvancedSettings::SettingOptionsLoggingComponentsFiller(SettingConstPtr setting, std::vector<IntegerSettingOption> &list, int &current, void *data)
-{
-  list.emplace_back(g_localizeStrings.Get(669), LOGSAMBA);
-  list.emplace_back(g_localizeStrings.Get(670), LOGCURL);
-  list.emplace_back(g_localizeStrings.Get(672), LOGFFMPEG);
-  list.emplace_back(g_localizeStrings.Get(675), LOGJSONRPC);
-  list.emplace_back(g_localizeStrings.Get(676), LOGAUDIO);
-  list.emplace_back(g_localizeStrings.Get(680), LOGVIDEO);
-  list.emplace_back(g_localizeStrings.Get(683), LOGAVTIMING);
-  list.emplace_back(g_localizeStrings.Get(684), LOGWINDOWING);
-  list.emplace_back(g_localizeStrings.Get(685), LOGPVR);
-  list.emplace_back(g_localizeStrings.Get(686), LOGEPG);
-  list.emplace_back(g_localizeStrings.Get(39117), LOGANNOUNCE);
-#ifdef HAS_DBUS
-  list.emplace_back(g_localizeStrings.Get(674), LOGDBUS);
-#endif
-#ifdef HAS_WEB_SERVER
-  list.emplace_back(g_localizeStrings.Get(681), LOGWEBSERVER);
-#endif
-#ifdef HAS_AIRTUNES
-  list.emplace_back(g_localizeStrings.Get(677), LOGAIRTUNES);
-#endif
-#ifdef HAS_UPNP
-  list.emplace_back(g_localizeStrings.Get(678), LOGUPNP);
-#endif
-#ifdef HAVE_LIBCEC
-  list.emplace_back(g_localizeStrings.Get(679), LOGCEC);
-#endif
-  list.emplace_back(g_localizeStrings.Get(682), LOGDATABASE);
-}
-
-void CAdvancedSettings::SetExtraLogLevel(const std::vector<CVariant> &components)
-{
-  m_extraLogLevels = 0;
-  for (std::vector<CVariant>::const_iterator it = components.begin(); it != components.end(); ++it)
-  {
-    if (!it->isInteger())
-      continue;
-
-    m_extraLogLevels |= static_cast<int>(it->asInteger());
+    CServiceBroker::GetLogging().SetLogLevel(level);
   }
 }
 

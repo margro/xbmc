@@ -7,18 +7,22 @@
  */
 
 #include "DeviceResources.h"
+
 #include "DirectXHelper.h"
 #include "RenderContext.h"
+#include "ServiceBroker.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
-#include "windowing/GraphicContext.h"
 #include "messaging/ApplicationMessenger.h"
-#include "platform/win32/CharsetConverter.h"
-#include "ServiceBroker.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
-#include "utils/log.h"
 #include "utils/SystemInfo.h"
+#include "utils/log.h"
+#include "windowing/GraphicContext.h"
+
+#include "platform/win32/CharsetConverter.h"
+#include "platform/win32/WIN32Util.h"
 
 #ifdef _DEBUG
 #include <dxgidebug.h>
@@ -309,9 +313,13 @@ void DX::DeviceResources::CreateDeviceResources()
   // Don't forget to declare your application's minimum required feature level in its
   // description.  All applications are assumed to support 9.1 unless otherwise stated.
   std::vector<D3D_FEATURE_LEVEL> featureLevels;
+  if (CSysInfo::IsWindowsVersionAtLeast(CSysInfo::WindowsVersionWin10))
+  {
+    featureLevels.push_back(D3D_FEATURE_LEVEL_12_1);
+    featureLevels.push_back(D3D_FEATURE_LEVEL_12_0);
+  }
   if (CSysInfo::IsWindowsVersionAtLeast(CSysInfo::WindowsVersionWin8))
     featureLevels.push_back(D3D_FEATURE_LEVEL_11_1);
-
   featureLevels.push_back(D3D_FEATURE_LEVEL_11_0);
   featureLevels.push_back(D3D_FEATURE_LEVEL_10_1);
   featureLevels.push_back(D3D_FEATURE_LEVEL_10_0);
@@ -362,10 +370,8 @@ void DX::DeviceResources::CreateDeviceResources()
   // Store pointers to the Direct3D 11.1 API device and immediate context.
   hr = device.As(&m_d3dDevice); CHECK_ERR();
 
-  // To enable multi-threaded access (optional)
-  ComPtr<ID3D10Multithread> d3dMultiThread;
-  hr = m_d3dDevice.As(&d3dMultiThread); CHECK_ERR();
-  d3dMultiThread->SetMultithreadProtected(1);
+  // Check shared textures support
+  CheckNV12SharedTexturesSupport();
 
 #ifdef _DEBUG
   if (SUCCEEDED(m_d3dDevice.As(&m_d3dDebug)))
@@ -404,8 +410,9 @@ void DX::DeviceResources::CreateDeviceResources()
   DXGI_ADAPTER_DESC aDesc;
   m_adapter->GetDesc(&aDesc);
 
-  CLog::LogF(LOGDEBUG, "device is created on adapter '%s' with feature level %04x.",
-             KODI::PLATFORM::WINDOWS::FromW(aDesc.Description), m_d3dFeatureLevel);
+  CLog::LogF(LOGINFO, "device is created on adapter '{}' with {}",
+             KODI::PLATFORM::WINDOWS::FromW(aDesc.Description),
+             GetFeatureLevelDescription(m_d3dFeatureLevel));
 
   m_bDeviceCreated = true;
 }
@@ -513,11 +520,13 @@ void DX::DeviceResources::ResizeBuffers()
 
   CLog::LogF(LOGDEBUG, "resize buffers.");
 
-  bool bHWStereoEnabled = RENDER_STEREO_MODE_HARDWAREBASED == CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
+  bool bHWStereoEnabled = RENDER_STEREO_MODE_HARDWAREBASED ==
+                          CServiceBroker::GetWinSystem()->GetGfxContext().GetStereoMode();
   bool windowed = true;
+  bool isHdrEnabled = false;
   HRESULT hr = E_FAIL;
+  DXGI_SWAP_CHAIN_DESC1 scDesc = {};
 
-  DXGI_SWAP_CHAIN_DESC1 scDesc = { 0 };
   if (m_swapChain)
   {
     BOOL bFullcreen = 0;
@@ -529,6 +538,7 @@ void DX::DeviceResources::ResizeBuffers()
 
     // check if swapchain needs to be recreated
     m_swapChain->GetDesc1(&scDesc);
+
     if ((scDesc.Stereo == TRUE) != bHWStereoEnabled)
     {
       // check fullscreen state and go to windowing if necessary
@@ -536,24 +546,23 @@ void DX::DeviceResources::ResizeBuffers()
       {
         m_swapChain->SetFullscreenState(false, nullptr); // mandatory before releasing swapchain
       }
-
       m_swapChain = nullptr;
       m_deferrContext->Flush();
       m_d3dContext->Flush();
     }
   }
 
+  isHdrEnabled = (HDR_STATUS::HDR_ON == CWIN32Util::GetWindowsHDRStatus());
+
   if (m_swapChain != nullptr)
   {
     // If the swap chain already exists, resize it.
     m_swapChain->GetDesc1(&scDesc);
-    hr = m_swapChain->ResizeBuffers(
-      scDesc.BufferCount,
-      lround(m_outputSize.Width),
-      lround(m_outputSize.Height),
-      scDesc.Format,
-      windowed ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
-    );
+    isHdrEnabled ? scDesc.Format = DXGI_FORMAT_R10G10B10A2_UNORM
+                 : scDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    hr = m_swapChain->ResizeBuffers(scDesc.BufferCount, lround(m_outputSize.Width),
+                                    lround(m_outputSize.Height), scDesc.Format,
+                                    windowed ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
 
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
     {
@@ -569,27 +578,31 @@ void DX::DeviceResources::ResizeBuffers()
   else
   {
     // Otherwise, create a new one using the same adapter as the existing Direct3D device.
-    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = { 0 };
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
     swapChainDesc.Width = lround(m_outputSize.Width);
     swapChainDesc.Height = lround(m_outputSize.Height);
     swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     swapChainDesc.Stereo = bHWStereoEnabled;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDesc.BufferCount = 3 * (1 + bHWStereoEnabled);
-    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+    // HDR 60 fps needs 6 buffers to avoid frame drops but it's good for all
+    swapChainDesc.BufferCount = 6;
+    // FLIP_DISCARD improves performance (needed in some systems for 4K HDR 60 fps)
+    swapChainDesc.SwapEffect = (m_d3dFeatureLevel >= D3D_FEATURE_LEVEL_12_0)
+                                   ? DXGI_SWAP_EFFECT_FLIP_DISCARD
+                                   : DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
     swapChainDesc.Flags = windowed ? 0 : DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
     swapChainDesc.SampleDesc.Count = 1;
     swapChainDesc.SampleDesc.Quality = 0;
 
-    DXGI_SWAP_CHAIN_FULLSCREEN_DESC scFSDesc = { 0 }; // unused for uwp
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC scFSDesc = {}; // unused for uwp
     scFSDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
     scFSDesc.Windowed = windowed;
 
     ComPtr<IDXGISwapChain1> swapChain;
-    if ( m_d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_0
-      && !bHWStereoEnabled
-      && CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_bTry10bitOutput)
+    if (m_d3dFeatureLevel >= D3D_FEATURE_LEVEL_11_0 && !bHWStereoEnabled &&
+        (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_bTry10bitOutput ||
+         isHdrEnabled))
     {
       swapChainDesc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
       hr = CreateSwapChain(swapChainDesc, scFSDesc, &swapChain);
@@ -607,7 +620,7 @@ void DX::DeviceResources::ResizeBuffers()
     {
       // switch to stereo mode failed, create mono swapchain
       CLog::LogF(LOGERROR, "creating stereo swap chain failed with error.");
-      CLog::LogF(LOGNOTICE, "fallback to monoscopic mode.");
+      CLog::LogF(LOGINFO, "fallback to monoscopic mode.");
 
       swapChainDesc.Stereo = false;
       bHWStereoEnabled = false;
@@ -615,7 +628,8 @@ void DX::DeviceResources::ResizeBuffers()
       hr = CreateSwapChain(swapChainDesc, scFSDesc, &swapChain); CHECK_ERR();
 
       // fallback to split_horizontal mode.
-      CServiceBroker::GetWinSystem()->GetGfxContext().SetStereoMode(RENDER_STEREO_MODE_SPLIT_HORIZONTAL);
+      CServiceBroker::GetWinSystem()->GetGfxContext().SetStereoMode(
+          RENDER_STEREO_MODE_SPLIT_HORIZONTAL);
     }
 
     if (FAILED(hr))
@@ -623,6 +637,15 @@ void DX::DeviceResources::ResizeBuffers()
       CLog::LogF(LOGERROR, "unable to create swapchain.");
       return;
     }
+
+    m_IsHDROutput = (swapChainDesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM) && isHdrEnabled;
+
+    const int bits = (swapChainDesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM) ? 10 : 8;
+    std::string flip =
+        (swapChainDesc.SwapEffect == DXGI_SWAP_EFFECT_FLIP_DISCARD) ? "discard" : "sequential";
+
+    CLog::LogF(LOGINFO, "{} bit swapchain is used with {} flip {} buffers and {} output", bits,
+               swapChainDesc.BufferCount, flip, m_IsHDROutput ? "HDR" : "SDR");
 
     hr = swapChain.As(&m_swapChain); CHECK_ERR();
     m_stereoEnabled = bHWStereoEnabled;
@@ -633,6 +656,8 @@ void DX::DeviceResources::ResizeBuffers()
     hr = m_d3dDevice.As(&dxgiDevice); CHECK_ERR();
     dxgiDevice->SetMaximumFrameLatency(1);
   }
+
+  CLog::LogF(LOGDEBUG, "end resize buffers.");
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -1019,23 +1044,17 @@ bool DX::DeviceResources::IsStereoAvailable() const
   return false;
 }
 
-bool DX::DeviceResources::DoesTextureSharingWork()
+void DX::DeviceResources::CheckNV12SharedTexturesSupport()
 {
   if (m_d3dFeatureLevel < D3D_FEATURE_LEVEL_10_0 ||
-    CSysInfo::GetWindowsDeviceFamily() != CSysInfo::Desktop)
-    return false;
+      CSysInfo::GetWindowsDeviceFamily() != CSysInfo::Desktop)
+    return;
 
-  if (!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_allowUseSeparateDeviceForDecoding)
-  {
-    D3D11_FEATURE_DATA_D3D11_OPTIONS options;
-    if (SUCCEEDED(m_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &options, sizeof(options))))
-    {
-      CLog::LogF(LOGDEBUG, "extended sharing resource is{}supported", !!options.ExtendedResourceSharing ? " " : " not ");
-      return !!options.ExtendedResourceSharing;
-    }
-    return false;
-  }
-  return true;
+  D3D11_FEATURE_DATA_D3D11_OPTIONS4 op4 = {};
+  HRESULT hr = m_d3dDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS4, &op4, sizeof(op4));
+  m_NV12SharedTexturesSupport = SUCCEEDED(hr) && !!op4.ExtendedNV12SharedTextureSupported;
+  CLog::LogF(LOGINFO, "extended NV12 shared textures is{}supported",
+             m_NV12SharedTexturesSupport ? " " : " NOT ");
 }
 
 #if defined(TARGET_WINDOWS_DESKTOP)
@@ -1097,3 +1116,126 @@ void DX::DeviceResources::Trim() const
 }
 
 #endif
+
+void DX::DeviceResources::SetHdrMetaData(DXGI_HDR_METADATA_HDR10& hdr10) const
+{
+  ComPtr<IDXGISwapChain4> swapChain4;
+
+  if (m_swapChain == nullptr)
+    return;
+
+  if (SUCCEEDED(m_swapChain.As(&swapChain4)))
+  {
+    if (SUCCEEDED(swapChain4->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(hdr10), &hdr10)))
+    {
+      CLog::LogF(LOGDEBUG,
+                 "(raw) RP {} {} | GP {} {} | BP {} {} | WP {} {} | Max ML {} | min ML "
+                 "{} | Max CLL {} | Max FALL {}",
+                 hdr10.RedPrimary[0], hdr10.RedPrimary[1], hdr10.GreenPrimary[0],
+                 hdr10.GreenPrimary[1], hdr10.BluePrimary[0], hdr10.BluePrimary[1],
+                 hdr10.WhitePoint[0], hdr10.WhitePoint[1], hdr10.MaxMasteringLuminance,
+                 hdr10.MinMasteringLuminance, hdr10.MaxContentLightLevel,
+                 hdr10.MaxFrameAverageLightLevel);
+
+      constexpr double FACTOR_1 = 50000.0;
+      constexpr double FACTOR_2 = 10000.0;
+      const double RP_0 = static_cast<double>(hdr10.RedPrimary[0]) / FACTOR_1;
+      const double RP_1 = static_cast<double>(hdr10.RedPrimary[1]) / FACTOR_1;
+      const double GP_0 = static_cast<double>(hdr10.GreenPrimary[0]) / FACTOR_1;
+      const double GP_1 = static_cast<double>(hdr10.GreenPrimary[1]) / FACTOR_1;
+      const double BP_0 = static_cast<double>(hdr10.BluePrimary[0]) / FACTOR_1;
+      const double BP_1 = static_cast<double>(hdr10.BluePrimary[1]) / FACTOR_1;
+      const double WP_0 = static_cast<double>(hdr10.WhitePoint[0]) / FACTOR_1;
+      const double WP_1 = static_cast<double>(hdr10.WhitePoint[1]) / FACTOR_1;
+      const double Max_ML = static_cast<double>(hdr10.MaxMasteringLuminance) / FACTOR_2;
+      const double min_ML = static_cast<double>(hdr10.MinMasteringLuminance) / FACTOR_2;
+
+      CLog::LogF(LOGINFO,
+                 "RP {:0.3f} {:0.3f} | GP {:0.3f} {:0.3f} | BP {:0.3f} {:0.3f} | WP {:0.3f} "
+                 "{:0.3f} | Max ML {:0.0f} | min ML {:0.3f} | Max CLL {} | Max FALL {}",
+                 RP_0, RP_1, GP_0, GP_1, BP_0, BP_1, WP_0, WP_1, Max_ML, min_ML,
+                 hdr10.MaxContentLightLevel, hdr10.MaxFrameAverageLightLevel);
+    }
+    else
+    {
+      CLog::LogF(LOGERROR, "DXGI SetHDRMetaData failed");
+    }
+  }
+}
+
+void DX::DeviceResources::SetHdrColorSpace(const DXGI_COLOR_SPACE_TYPE colorSpace) const
+{
+  ComPtr<IDXGISwapChain3> swapChain3;
+
+  if (m_swapChain == nullptr)
+    return;
+
+  if (SUCCEEDED(m_swapChain.As(&swapChain3)))
+  {
+    DXGI_COLOR_SPACE_TYPE cs = colorSpace;
+    if (DX::Windowing()->UseLimitedColor())
+    {
+      switch (cs)
+      {
+        case DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709:
+          cs = DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P709;
+          break;
+        case DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020:
+          cs = DXGI_COLOR_SPACE_RGB_STUDIO_G2084_NONE_P2020;
+          break;
+        case DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P2020:
+          cs = DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P2020;
+          break;
+        case DXGI_COLOR_SPACE_YCBCR_FULL_GHLG_TOPLEFT_P2020:
+          cs = DXGI_COLOR_SPACE_YCBCR_STUDIO_GHLG_TOPLEFT_P2020;
+          break;
+      }
+    }
+    if (SUCCEEDED(swapChain3->SetColorSpace1(cs)))
+    {
+      CLog::LogF(LOGDEBUG, "DXGI SetColorSpace1 success");
+    }
+    else
+    {
+      CLog::LogF(LOGERROR, "DXGI SetColorSpace1 failed");
+    }
+  }
+}
+
+HDR_STATUS DX::DeviceResources::ToggleHDR()
+{
+  DXGI_MODE_DESC md = {};
+
+  if (m_swapChain)
+    GetDisplayMode(&md);
+
+  // Toggle display HDR
+  DX::Windowing()->SetAlteringWindow(true);
+
+  HDR_STATUS hdrStatus = CWIN32Util::ToggleWindowsHDR(md);
+
+  // Kill swapchain
+  if (m_swapChain && hdrStatus != HDR_STATUS::HDR_TOGGLE_FAILED)
+  {
+    CLog::LogF(LOGDEBUG, "Re-create swapchain due HDR <-> SDR switch");
+    BOOL bFullcreen = 0;
+    m_swapChain->GetFullscreenState(&bFullcreen, nullptr);
+    if (!!bFullcreen)
+      m_swapChain->SetFullscreenState(false, nullptr);
+    m_swapChain = nullptr;
+    m_deferrContext->Flush();
+    m_d3dContext->Flush();
+  }
+
+  DX::Windowing()->SetAlteringWindow(false);
+
+  // Re-create swapchain
+  if (hdrStatus != HDR_STATUS::HDR_TOGGLE_FAILED)
+  {
+    CreateWindowSizeDependentResources();
+
+    DX::Windowing()->NotifyAppFocusChange(true);
+  }
+
+  return hdrStatus;
+}

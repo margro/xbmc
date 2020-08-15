@@ -9,7 +9,6 @@
 #include "EpgInfoTag.h"
 
 #include "ServiceBroker.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
 #include "pvr/PVRManager.h"
 #include "pvr/PVRPlaybackState.h"
 #include "pvr/addons/PVRClient.h"
@@ -72,9 +71,9 @@ CPVREpgInfoTag::CPVREpgInfoTag(const EPG_TAG& data, int iClientId, const std::sh
   m_iFlags(data.iFlags),
   m_iEpgID(iEpgID)
 {
-  // firstAired is optional, so check if supported before assigning it
-  if (data.firstAired > 0)
-    m_firstAired = time_t(data.firstAired + CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_iPVRTimeCorrection);
+  // strFirstAired is optional, so check if supported before assigning it
+  if (data.strFirstAired && strlen(data.strFirstAired) > 0)
+    m_firstAired.SetFromW3CDate(data.strFirstAired);
 
   if (channelData)
   {
@@ -196,12 +195,8 @@ int CPVREpgInfoTag::ClientID() const
 
 CDateTime CPVREpgInfoTag::GetCurrentPlayingTime() const
 {
-  const std::shared_ptr<CPVRPlaybackState> playbackState =
-      CServiceBroker::GetPVRManager().PlaybackState();
-  if (playbackState && playbackState->IsPlayingChannel(ClientID(), UniqueChannelID()))
-    return playbackState->GetPlaybackTime();
-  else
-    return CDateTime::GetUTCDateTime();
+  return CServiceBroker::GetPVRManager().PlaybackState()->GetChannelPlaybackTime(ClientID(),
+                                                                                 UniqueChannelID());
 }
 
 bool CPVREpgInfoTag::IsActive() const
@@ -419,16 +414,9 @@ const std::vector<std::string> CPVREpgInfoTag::Genre() const
   return m_genre;
 }
 
-CDateTime CPVREpgInfoTag::FirstAiredAsUTC() const
+CDateTime CPVREpgInfoTag::FirstAired() const
 {
   return m_firstAired;
-}
-
-CDateTime CPVREpgInfoTag::FirstAiredAsLocalTime() const
-{
-  CDateTime retVal;
-  retVal.SetFromUTCDateTime(m_firstAired);
-  return retVal;
 }
 
 int CPVREpgInfoTag::ParentalRating() const
@@ -643,7 +631,7 @@ bool CPVREpgInfoTag::IsPlayable() const
 
 bool CPVREpgInfoTag::IsSeries() const
 {
-  if ((m_iFlags & EPG_TAG_FLAG_IS_SERIES) > 0 || SeriesNumber() > 0 || EpisodeNumber() > 0 || EpisodePart() > 0)
+  if ((m_iFlags & EPG_TAG_FLAG_IS_SERIES) > 0 || SeriesNumber() >= 0 || EpisodeNumber() >= 0 || EpisodePart() >= 0)
     return true;
   else
     return false;
@@ -665,6 +653,26 @@ bool CPVREpgInfoTag::IsGapTag() const
 {
   CSingleLock lock(m_critSection);
   return m_bIsGapTag;
+}
+
+bool CPVREpgInfoTag::IsNew() const
+{
+  return (m_iFlags & EPG_TAG_FLAG_IS_NEW) > 0;
+}
+
+bool CPVREpgInfoTag::IsPremiere() const
+{
+  return (m_iFlags & EPG_TAG_FLAG_IS_PREMIERE) > 0;
+}
+
+bool CPVREpgInfoTag::IsFinale() const
+{
+  return (m_iFlags & EPG_TAG_FLAG_IS_FINALE) > 0;
+}
+
+bool CPVREpgInfoTag::IsLive() const
+{
+  return (m_iFlags & EPG_TAG_FLAG_IS_LIVE) > 0;
 }
 
 const std::vector<std::string> CPVREpgInfoTag::Tokenize(const std::string& str)

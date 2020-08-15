@@ -53,9 +53,9 @@ bool CPVRTimersContainer::UpdateFromClient(const std::shared_ptr<CPVRTimerInfoTa
 std::shared_ptr<CPVRTimerInfoTag> CPVRTimersContainer::GetByClient(int iClientId, int iClientIndex) const
 {
   CSingleLock lock(m_critSection);
-  for (const auto startDates : m_tags)
+  for (const auto& startDates : m_tags)
   {
-    for (const auto timer : startDates.second)
+    for (const auto& timer : startDates.second)
     {
       if (timer->m_iClientId == iClientId && timer->m_iClientIndex == iClientIndex)
       {
@@ -520,14 +520,13 @@ bool CPVRTimers::UpdateEntries(int iMaxNotificationDelay)
         }
 
         // check for due timers and announce/delete them
-        int iMarginStart = timer->GetTimerType()->SupportsStartEndMargin() ? timer->MarginStart() : 0;
+        int iMarginStart = timer->GetTimerType()->SupportsStartMargin() ? timer->MarginStart() : 0;
         if (!timer->IsTimerRule() && (timer->StartAsUTC() - CDateTimeSpan(0, 0, iMarginStart, iMaxNotificationDelay)) < now)
         {
           if (timer->IsReminder() && timer->m_state != PVR_TIMER_STATE_DISABLED)
           {
             // reminder is due / over due. announce it.
             m_remindersToAnnounce.push(timer);
-            CServiceBroker::GetPVRManager().PublishEvent(PVREvent::AnnounceReminder);
           }
 
           if (timer->EndAsUTC() >= now)
@@ -649,10 +648,10 @@ bool CPVRTimers::UpdateEntries(int iMaxNotificationDelay)
 
   // announce changes
   if (bChanged)
-  {
-    lock.Leave();
     NotifyTimersEvent();
-  }
+
+  if (!m_remindersToAnnounce.empty())
+    CServiceBroker::GetPVRManager().PublishEvent(PVREvent::AnnounceReminder);
 
   return bChanged;
 }

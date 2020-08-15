@@ -9,13 +9,14 @@
 #pragma once
 
 #include "XBDateTime.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_epg.h"
 #include "pvr/settings/PVRSettings.h"
 #include "threads/CriticalSection.h"
 #include "threads/Event.h"
 #include "threads/Thread.h"
 #include "utils/EventStream.h"
 
+#include <atomic>
 #include <list>
 #include <map>
 #include <memory>
@@ -196,6 +197,16 @@ namespace PVR
      */
     void OnPlaybackStopped();
 
+    /*!
+     * @brief Inform the epg container that the system is going to sleep
+     */
+    void OnSystemSleep();
+
+    /*!
+     * @brief Inform the epg container that the system gets awake from sleep
+     */
+    void OnSystemWake();
+
   private:
     /*!
      * @brief Notify EPG table observers when the currently active tag changed.
@@ -286,5 +297,7 @@ namespace PVR
     bool m_bUpdateNotificationPending = false; /*!< true while an epg updated notification to observers is pending. */
     CPVRSettings m_settings;
     CEventSource<PVREvent> m_events;
+
+    std::atomic<bool> m_bSuspended = {false};
   };
 }

@@ -263,7 +263,8 @@ void URIUtils::GetCommonPath(std::string& strParent, const std::string& strPath)
 {
   // find the common path of parent and path
   unsigned int j = 1;
-  while (j <= std::min(strParent.size(), strPath.size()) && strnicmp(strParent.c_str(), strPath.c_str(), j) == 0)
+  while (j <= std::min(strParent.size(), strPath.size()) &&
+         StringUtils::CompareNoCase(strParent, strPath, j) == 0)
     j++;
   strParent.erase(j - 1);
   // they should at least share a / at the end, though for things such as path/cd1 and path/cd2 there won't be
@@ -1392,7 +1393,8 @@ std::string URIUtils::resolvePath(const std::string &path)
   // put together the path
   realPath += StringUtils::Join(realParts, delim);
   // re-add any / or \ at the end
-  if (path.at(path.size() - 1) == delim.at(0) && realPath.at(realPath.size() - 1) != delim.at(0))
+  if (path.at(path.size() - 1) == delim.at(0) &&
+      realPath.size() > 0 && realPath.at(realPath.size() - 1) != delim.at(0))
     realPath += delim;
 
   return realPath;
@@ -1436,9 +1438,4 @@ bool URIUtils::UpdateUrlEncoding(std::string &strFilename)
 
   strFilename = newFilename;
   return true;
-}
-
-bool URIUtils::IsUsingFastSwitch(const std::string& strFile)
-{
-  return IsUDP(strFile) || IsTCP(strFile) || IsPVRChannel(strFile);
 }

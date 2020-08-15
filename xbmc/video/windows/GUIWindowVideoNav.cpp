@@ -593,7 +593,7 @@ void CGUIWindowVideoNav::LoadVideoInfo(CFileItemList &items, CVideoDatabase &dat
     CFileItemPtr pItem = items[i];
     CFileItemPtr match;
 
-    if (!content.empty() && pItem->m_bIsFolder && !pItem->IsParentFolder())
+    if (pItem->m_bIsFolder && !pItem->IsParentFolder())
     {
       // we need this for enabling the right context menu entries, like mark watched / unwatched
       pItem->SetProperty("IsVideoFolder", true);
@@ -1021,9 +1021,8 @@ bool CGUIWindowVideoNav::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
     item = m_vecItems->Get(itemNumber);
   if (CGUIDialogContextMenu::OnContextButton("video", item, button))
   {
-    //! @todo should we search DB for entries from plugins?
-    if (button == CONTEXT_BUTTON_REMOVE_SOURCE && !item->IsPlugin()
-        && !item->IsLiveTV() &&!item->IsRSS() && !URIUtils::IsUPnP(item->GetPath()))
+    if (button == CONTEXT_BUTTON_REMOVE_SOURCE && !item->IsLiveTV() 
+        &&!item->IsRSS() && !URIUtils::IsUPnP(item->GetPath()))
     {
       // if the source has been properly removed, remove the cached source list because the list has changed
       if (OnUnAssignContent(item->GetPath(), 20375, 20340))

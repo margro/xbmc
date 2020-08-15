@@ -113,8 +113,8 @@ public:
   static bool EqualsNoCase(const std::string &str1, const std::string &str2);
   static bool EqualsNoCase(const std::string &str1, const char *s2);
   static bool EqualsNoCase(const char *s1, const char *s2);
-  static int  CompareNoCase(const std::string &str1, const std::string &str2);
-  static int  CompareNoCase(const char *s1, const char *s2);
+  static int CompareNoCase(const std::string& str1, const std::string& str2, size_t n = 0);
+  static int CompareNoCase(const char* s1, const char* s2, size_t n = 0);
   static int ReturnDigits(const std::string &str);
   static std::string Left(const std::string &str, size_t count);
   static std::string Mid(const std::string &str, size_t first, size_t count = std::string::npos);
@@ -245,6 +245,7 @@ public:
   static std::vector<std::string> SplitMulti(const std::vector<std::string> &input, const std::vector<std::string> &delimiters, unsigned int iMaxStrings = 0);
   static int FindNumber(const std::string& strInput, const std::string &strFind);
   static int64_t AlphaNumericCompare(const wchar_t *left, const wchar_t *right);
+  static int AlphaNumericCollation(int nKey1, const void* pKey1, int nKey2, const void* pKey2);
   static long TimeStringToSeconds(const std::string &timeString);
   static void RemoveCRLF(std::string& strLine);
 
@@ -306,6 +307,7 @@ public:
   static size_t FindWords(const char *str, const char *wordLowerCase);
   static int FindEndBracket(const std::string &str, char opener, char closer, int startPos = 0);
   static int DateStringToYYYYMMDD(const std::string &dateString);
+  static std::string ISODateToLocalizedDate (const std::string& strIsoDate);
   static void WordToDigits(std::string &word);
   static std::string CreateUUID();
   static bool ValidateUUID(const std::string &uuid); // NB only validates syntax

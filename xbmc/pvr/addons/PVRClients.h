@@ -9,7 +9,7 @@
 #pragma once
 
 #include "addons/AddonManager.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_general.h"
 #include "threads/CriticalSection.h"
 
 #include <functional>
@@ -48,8 +48,8 @@ namespace PVR
     int numRecordings = 0;
     int numDeletedRecordings = 0;
     int numChannels = 0;
-    long long diskUsed = 0;
-    long long diskTotal = 0;
+    uint64_t diskUsed = 0;
+    uint64_t diskTotal = 0;
   };
 
   class CPVRClients : public ADDON::IAddonMgrCallback
@@ -81,33 +81,25 @@ namespace PVR
 
     /*!
      * @brief Restart a single client add-on.
-     * @param addon The add-on to restart.
+     * @param id The add-on to restart.
      * @param bDataChanged True if the client's data changed, false otherwise (unused).
      * @return True if the client was found and restarted, false otherwise.
      */
-    bool RequestRestart(ADDON::AddonPtr addon, bool bDataChanged) override;
+    bool RequestRestart(const std::string& id, bool bDataChanged) override;
 
     /*!
      * @brief Stop a client.
-     * @param addon The client to stop.
+     * @param id The client to stop.
      * @param bRestart If true, restart the client.
      * @return True if the client was found, false otherwise.
      */
-    bool StopClient(const ADDON::AddonPtr& addon, bool bRestart);
+    bool StopClient(const std::string& id, bool bRestart);
 
     /*!
      * @brief Handle addon events (enable, disable, ...).
      * @param event The addon event.
      */
     void OnAddonEvent(const ADDON::AddonEvent& event);
-
-    /*!
-     * @brief Get a client given its ID.
-     * @param strId The ID of the client.
-     * @param addon On success, filled with the client matching the given ID, null otherwise.
-     * @return True if the client was found, false otherwise.
-     */
-    bool GetClient(const std::string& strId, ADDON::AddonPtr& addon) const;
 
     /*!
      * @brief Get a client's numeric ID given its string ID.
@@ -267,6 +259,23 @@ namespace PVR
      */
     std::vector<std::shared_ptr<CPVRClient>> GetClientsSupportingChannelSettings(bool bRadio) const;
 
+    /*!
+     * @brief Get whether or not any client supports recording size.
+     * @return True if any client supports recording size.
+     */
+    bool AnyClientSupportingRecordingsSize() const;
+
+    /*!
+     * @brief Get whether or not any client supports EPG.
+     * @return True if any client supports EPG.
+     */
+    bool AnyClientSupportingEPG() const;
+
+    /*!
+     * @brief Get whether or not any client supports recordings.
+     * @return True if any client supports recordings.
+     */
+    bool AnyClientSupportingRecordings() const;
     //@}
 
     /*! @name Power management methods */
@@ -317,17 +326,17 @@ namespace PVR
 
     /*!
      * @brief Check whether a client is known.
-     * @param client The client to check.
+     * @param id The addon id to check.
      * @return True if this client is known, false otherwise.
      */
-    bool IsKnownClient(const ADDON::AddonPtr& client) const;
+    bool IsKnownClient(const std::string& id) const;
 
     /*!
      * @brief Check whether an given addon instance is a created pvr client.
-     * @param addon The addon.
+     * @param id The addon id.
      * @return True if the the addon represents a created client, false otherwise.
      */
-    bool IsCreatedClient(const ADDON::AddonPtr& addon);
+    bool IsCreatedClient(const std::string& id) const;
 
     /*!
      * @brief Get all created clients and clients not (yet) ready to use.

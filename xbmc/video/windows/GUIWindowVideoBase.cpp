@@ -221,6 +221,17 @@ void CGUIWindowVideoBase::OnItemInfo(const CFileItem& fileItem, ADDON::ScraperPt
       CFileItemList items;
       CDirectory::GetDirectory(item.GetPath(), items, CServiceBroker::GetFileExtensionProvider().GetVideoExtensions(),
                                DIR_FLAG_DEFAULTS);
+
+      // Check for cases 1_dir/1_dir/.../file (e.g. by packages where have a extra folder)
+      while (items.Size() == 1 && items[0]->m_bIsFolder)
+      {
+        const std::string path = items[0]->GetPath();
+        items.Clear();
+        CDirectory::GetDirectory(path, items,
+                                 CServiceBroker::GetFileExtensionProvider().GetVideoExtensions(),
+                                 DIR_FLAG_DEFAULTS);
+      }
+
       items.Stack();
 
       // check for media files
@@ -897,10 +908,12 @@ void CGUIWindowVideoBase::GetContextButtons(int itemNumber, CContextButtons &but
         buttons.Add(CONTEXT_BUTTON_PLAY_PARTYMODE, 15216); // Play in Partymode
       }
 
-      //if the item isn't a folder or script, is a member of a list rather than a single item
-      //and we're not on the last element of the list,
-      //then add add either 'play from here' or 'play only this' depending on default behaviour
-      if (!(item->m_bIsFolder || item->IsScript()) && m_vecItems->Size() > 1 && itemNumber < m_vecItems->Size()-1)
+      // if the item isn't a folder or script, is not explicitly marked as not playable,
+      // is a member of a list rather than a single item and we're not on the last element of the list,
+      // then add either 'play from here' or 'play only this' depending on default behaviour
+      if (!(item->m_bIsFolder || item->IsScript()) &&
+          (!item->HasProperty("IsPlayable") || item->GetProperty("IsPlayable").asBoolean()) &&
+          m_vecItems->Size() > 1 && itemNumber < m_vecItems->Size() - 1)
       {
         if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOPLAYER_AUTOPLAYNEXTITEM))
           buttons.Add(CONTEXT_BUTTON_PLAY_AND_QUEUE, 13412);

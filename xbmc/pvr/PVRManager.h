@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/kodi-addon-dev-kit/include/kodi/xbmc_pvr_types.h"
+#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_general.h"
 #include "interfaces/IAnnouncer.h"
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/guilib/PVRGUIActionListener.h"
@@ -264,6 +264,11 @@ namespace PVR
      * @brief Let the background thread update the recordings list.
      */
     void TriggerRecordingsUpdate();
+
+    /*!
+     * @brief Let the background thread update the size for any in progress recordings.
+     */
+    void TriggerRecordingsSizeInProgressUpdate();
 
     /*!
      * @brief Let the background thread update the timer list.

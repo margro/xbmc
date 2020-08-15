@@ -64,7 +64,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_action
       /// @brief \python_func{ getId() }
-      ///-----------------------------------------------------------------------
       /// To get \ref kodi_key_action_ids
       ///
       /// This function returns the identification code used by the explained
@@ -95,7 +94,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_action
       /// @brief \python_func{ getButtonCode() }
-      ///-----------------------------------------------------------------------
       /// Returns the button code for this action.
       ///
       /// @return                        [integer] button code
@@ -109,7 +107,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_action
       /// @brief \python_func{ getAmount1() }
-      ///-----------------------------------------------------------------------
       /// Returns the first amount of force applied to the thumbstick.
       ///
       /// @return                        [float] first amount
@@ -123,7 +120,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_action
       /// @brief \python_func{ getAmount2() }
-      ///-----------------------------------------------------------------------
       /// Returns the second amount of force applied to the thumbstick.
       ///
       /// @return                        [float] second amount
@@ -299,7 +295,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window_cb
       /// @brief \python_func{ onAction(self, Action action) }
-      ///-----------------------------------------------------------------------
       /// **onAction method.**
       ///
       /// This method will receive all actions that the main program will send
@@ -347,7 +342,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window_cb
       /// @brief \python_func{ onControl(self, Control) }
-      ///-----------------------------------------------------------------------
       /// **onControl method.**
       ///
       /// This method will receive all click events on owned and selected
@@ -377,7 +371,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window_cb
       /// @brief \python_func{ onClick(self, int controlId) }
-      ///-----------------------------------------------------------------------
       /// **onClick method.**
       ///
       /// This method will receive all click events that the main program will
@@ -409,7 +402,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window_cb
       /// @brief \python_func{ onDoubleClick(self, int controlId) }
-      ///-----------------------------------------------------------------------
       /// __onDoubleClick method.__
       ///
       /// This method will receive all double click events that the main program
@@ -441,7 +433,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window_cb
       /// @brief \python_func{ onFocus(self, int controlId) }
-      ///-----------------------------------------------------------------------
       /// __onFocus method.__
       ///
       /// This method will receive all focus events that the main program will
@@ -472,7 +463,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window_cb
       /// @brief \python_func{ onInit(self) }
-      ///-----------------------------------------------------------------------
       /// __onInit method.__
       ///
       /// This method will be called to initialize the window
@@ -501,7 +491,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ show() }
-      ///-----------------------------------------------------------------------
       /// Show this window.
       ///
       /// Shows this window by activating it, calling close() after it wil
@@ -520,7 +509,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ setFocus(Control) }
-      ///-----------------------------------------------------------------------
       /// Give the supplied control focus.
       ///
       /// @param Control             \ref python_xbmcgui_control "Control" class to focus
@@ -538,7 +526,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ setFocusId(ControlId) }
-      ///-----------------------------------------------------------------------
       /// Gives the control with the supplied focus.
       ///
       /// @param ControlId           [integer] On skin defined id of control
@@ -554,7 +541,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ getFocus(Control) }
-      ///-----------------------------------------------------------------------
       /// Returns the control which is focused.
       ///
       /// @return                        Focused control class
@@ -570,7 +556,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ getFocusId(int) }
-      ///-----------------------------------------------------------------------
       /// Returns the id of the control which is focused.
       ///
       /// @return                        Focused control id
@@ -586,7 +571,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ removeControl(Control) }
-      ///-----------------------------------------------------------------------
       /// Removes the control from this window.
       ///
       /// @param Control             \ref python_xbmcgui_control "Control" class to remove
@@ -605,7 +589,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ removeControls(List) }
-      ///-----------------------------------------------------------------------
       /// Removes a list of controls from this window.
       ///
       /// @param List               List with controls to remove
@@ -625,7 +608,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ getHeight() }
-      ///-----------------------------------------------------------------------
       /// Returns the height of this Window instance.
       ///
       /// @return                       Window height in pixels
@@ -642,7 +624,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ getWidth() }
-      ///-----------------------------------------------------------------------
       /// Returns the width of this Window instance.
       ///
       /// @return                       Window width in pixels
@@ -658,83 +639,7 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
       ///
       /// \ingroup python_xbmcgui_window
-      /// @brief \python_func{ getResolution() }
-      ///-----------------------------------------------------------------------
-      /// Returns The resolution of the screen
-      ///
-      /// @return                       Used Resolution
-      ///  The returned value is one of the following:
-      ///  | value | Resolution                |
-      ///  |:-----:|:--------------------------|
-      ///  |   0   | 1080i      (1920x1080)
-      ///  |   1   | 720p       (1280x720)
-      ///  |   2   | 480p 4:3   (720x480)
-      ///  |   3   | 480p 16:9  (720x480)
-      ///  |   4   | NTSC 4:3   (720x480)
-      ///  |   5   | NTSC 16:9  (720x480)
-      ///  |   6   | PAL 4:3    (720x576)
-      ///  |   7   | PAL 16:9   (720x576)
-      ///  |   8   | PAL60 4:3  (720x480)
-      ///  |   9   | PAL60 16:9 (720x480)
-      ///
-      ///-----------------------------------------------------------------------
-      /// @python_v18 Deprecated.
-      ///
-      getResolution();
-#else
-      SWIGHIDDENVIRTUAL long getResolution();
-#endif
-
-#ifdef DOXYGEN_SHOULD_USE_THIS
-      ///
-      /// \ingroup python_xbmcgui_window
-      /// @brief \python_func{ setCoordinateResolution(int resolution) }
-      ///-----------------------------------------------------------------------
-      /// Sets the resolution
-      ///
-      /// That the coordinates of all controls are defined in.  Allows Kodi
-      /// to scale control positions and width/heights to whatever resolution
-      /// Kodi is currently using.
-      ///
-      /// @param res                Coordinate resolution to set
-      ///  Resolution is one of the following:
-      ///  | value | Resolution                |
-      ///  |:-----:|:--------------------------|
-      ///  |   0   | 1080i      (1920x1080)
-      ///  |   1   | 720p       (1280x720)
-      ///  |   2   | 480p 4:3   (720x480)
-      ///  |   3   | 480p 16:9  (720x480)
-      ///  |   4   | NTSC 4:3   (720x480)
-      ///  |   5   | NTSC 16:9  (720x480)
-      ///  |   6   | PAL 4:3    (720x576)
-      ///  |   7   | PAL 16:9   (720x576)
-      ///  |   8   | PAL60 4:3  (720x480)
-      ///  |   9   | PAL60 16:9 (720x480)
-      ///
-      ///
-      ///
-      ///-----------------------------------------------------------------------
-      ///
-      /// **Example:**
-      /// ~~~~~~~~~~~~~{.py}
-      /// ..
-      /// win = xbmcgui.Window(xbmcgui.getCurrentWindowId())
-      /// win.setCoordinateResolution(0)
-      /// ..
-      /// ~~~~~~~~~~~~~
-      ///-----------------------------------------------------------------------
-      /// @python_v18 Deprecated.
-      ///
-      setCoordinateResolution(...);
-#else
-      SWIGHIDDENVIRTUAL void setCoordinateResolution(long res);
-#endif
-
-#ifdef DOXYGEN_SHOULD_USE_THIS
-      ///
-      /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ setProperty(key, value) }
-      ///-----------------------------------------------------------------------
       /// Sets a window property, similar to an infolabel.
       ///
       /// @param key                 string - property name.
@@ -767,7 +672,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ getProperty(key) }
-      ///-----------------------------------------------------------------------
       /// Returns a window property as a string, similar to an infolabel.
       ///
       /// @param key                string - property name.
@@ -798,7 +702,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ clearProperty(key) }
-      ///-----------------------------------------------------------------------
       /// Clears the specific window property.
       ///
       /// @param key                string - property name.
@@ -829,7 +732,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ clearProperties() }
-      ///-----------------------------------------------------------------------
       /// Clears all window properties.
       ///
       ///
@@ -852,7 +754,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ close() }
-      ///-----------------------------------------------------------------------
       /// Closes this window.
       ///
       /// Closes this window by activating the old window.
@@ -868,7 +769,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ doModal() }
-      ///-----------------------------------------------------------------------
       /// Display this window until close() is called.
       ///
       doModal();
@@ -881,7 +781,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ addControl(Control) }
-      ///-----------------------------------------------------------------------
       /// Add a \ref python_xbmcgui_control "Control" to this window.
       ///
       /// @param Control                \ref python_xbmcgui_control "Control" to add
@@ -918,7 +817,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ addControls(List) }
-      ///-----------------------------------------------------------------------
       /// Add a list of Controls to this window.
       ///
       /// @param List                   List with controls to add
@@ -938,7 +836,6 @@ namespace XBMCAddon
       ///
       /// \ingroup python_xbmcgui_window
       /// @brief \python_func{ getControl(controlId) }
-      ///-----------------------------------------------------------------------
       /// Gets the control from this window.
       ///
       /// @param controlId              \ref python_xbmcgui_control id to get

@@ -38,14 +38,14 @@ namespace KODI
 
 namespace KEYBOARD
 {
-  class IKeyboardDriverHandler;
+class IKeyboardDriverHandler;
 }
 
 namespace MOUSE
 {
-  class IMouseDriverHandler;
+class IMouseDriverHandler;
 }
-}
+} // namespace KODI
 
 /// \addtogroup input
 /// \{
@@ -60,12 +60,10 @@ namespace MOUSE
  * \copydoc keyboard
  * \copydoc mouse
  */
-class CInputManager : public ISettingCallback,
-                      public IActionListener,
-                      public Observable
+class CInputManager : public ISettingCallback, public IActionListener, public Observable
 {
 public:
-  explicit CInputManager(const CAppParamParser &params);
+  explicit CInputManager(const CAppParamParser& params);
   CInputManager(const CInputManager&) = delete;
   CInputManager const& operator=(CInputManager const&) = delete;
   ~CInputManager() override;
@@ -77,7 +75,8 @@ public:
    */
   bool ProcessMouse(int windowId);
 
-  /*! \brief decode an event from the event service, this can be mouse, key, joystick, reset idle timers.
+  /*! \brief decode an event from the event service, this can be mouse, key, joystick, reset idle
+   * timers.
    *
    * \param windowId Currently active window
    * \param frameTime Time in seconds since last call
@@ -167,6 +166,11 @@ public:
    */
   void SetMouseResolution(int maxX, int maxY, float speedX, float speedY);
 
+  /*! \brief Get the status of the controller-enable setting
+   * \return True if controller input is enabled for the UI, false otherwise
+   */
+  bool IsControllerEnabled() const;
+
   /*! \brief Returns whether or not we can handle a given built-in command.
    *
    */
@@ -185,24 +189,30 @@ public:
   bool LoadKeymaps();
   bool ReloadKeymaps();
   void ClearKeymaps();
-  void AddKeymap(const std::string &keymap);
-  void RemoveKeymap(const std::string &keymap);
+  void AddKeymap(const std::string& keymap);
+  void RemoveKeymap(const std::string& keymap);
 
-  const IKeymapEnvironment *KeymapEnvironment() const { return m_keymapEnvironment.get(); }
+  const IKeymapEnvironment* KeymapEnvironment() const { return m_keymapEnvironment.get(); }
 
   /*! \brief Obtain the action configured for a given window and key
    *
    * \param window the window id
    * \param key the key to query the action for
-   * \param fallback if no action is directly configured for the given window, obtain the action from fallback window, if exists or from global config as last resort
+   * \param fallback if no action is directly configured for the given window, obtain the action
+   * from fallback window, if exists or from global config as last resort
    *
    * \return the action matching the key
    */
-  CAction GetAction(int window, const CKey &key, bool fallback = true);
+  CAction GetAction(int window, const CKey& key, bool fallback = true);
 
-  bool TranslateCustomControllerString(int windowId, const std::string& controllerName, int buttonId, int& action, std::string& strAction);
+  bool TranslateCustomControllerString(int windowId,
+                                       const std::string& controllerName,
+                                       int buttonId,
+                                       int& action,
+                                       std::string& strAction);
 
-  bool TranslateTouchAction(int windowId, int touchAction, int touchPointers, int &action, std::string &actionString);
+  bool TranslateTouchAction(
+      int windowId, int touchAction, int touchPointers, int& action, std::string& actionString);
 
   std::vector<std::shared_ptr<const IWindowKeymap>> GetJoystickKeymaps() const;
 
@@ -224,7 +234,6 @@ public:
   virtual void UnregisterMouseDriverHandler(KODI::MOUSE::IMouseDriverHandler* handler);
 
 private:
-
   /*! \brief Process keyboard event and translate into an action
    *
    * \param key keypress details
@@ -263,7 +272,7 @@ private:
    * \return result from CApplication::OnAction
    * \sa CAction
    */
-  bool ExecuteInputAction(const CAction &action);
+  bool ExecuteInputAction(const CAction& action);
 
   /*! \brief Dispatch actions queued since the last call to Process()
    */
@@ -273,10 +282,10 @@ private:
   CMouseStat m_Mouse;
   CKey m_LastKey;
 
-  std::map<std::string, std::map<int, float> > m_lastAxisMap;
+  std::map<std::string, std::map<int, float>> m_lastAxisMap;
 
   std::vector<CAction> m_queuedActions;
-  CCriticalSection     m_actionMutex;
+  CCriticalSection m_actionMutex;
 
   // Button translation
   std::unique_ptr<IKeymapEnvironment> m_keymapEnvironment;
@@ -289,6 +298,12 @@ private:
   std::vector<KODI::MOUSE::IMouseDriverHandler*> m_mouseHandlers;
 
   std::unique_ptr<KODI::KEYBOARD::IKeyboardDriverHandler> m_keyboardEasterEgg;
+
+  // Input state
+  bool m_enableController = true;
+
+  // Settings
+  static const std::string SETTING_INPUT_ENABLE_CONTROLLER;
 };
 
 /// \}

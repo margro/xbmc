@@ -128,6 +128,7 @@ IInputDeviceCallbacks* CXBMCApp::m_inputDeviceCallbacks = nullptr;
 IInputDeviceEventHandler* CXBMCApp::m_inputDeviceEventHandler = nullptr;
 bool CXBMCApp::m_hasReqVisible = false;
 CCriticalSection CXBMCApp::m_applicationsMutex;
+CCriticalSection CXBMCApp::m_activityResultMutex;
 std::vector<androidPackage> CXBMCApp::m_applications;
 CVideoSyncAndroid* CXBMCApp::m_syncImpl = NULL;
 CEvent CXBMCApp::m_vsyncEvent;
@@ -139,10 +140,11 @@ float CXBMCApp::m_refreshRate = 0.0f;
 
 uint32_t CXBMCApp::m_playback_state = PLAYBACK_STATE_STOPPED;
 
-CXBMCApp::CXBMCApp(ANativeActivity* nativeActivity)
-  : CJNIMainActivity(nativeActivity)
-  , CJNIBroadcastReceiver(CJNIContext::getPackageName() + ".XBMCBroadcastReceiver")
-  , m_videosurfaceInUse(false)
+CXBMCApp::CXBMCApp(ANativeActivity* nativeActivity, IInputHandler& inputHandler)
+  : CJNIMainActivity(nativeActivity),
+    CJNIBroadcastReceiver(CJNIContext::getPackageName() + ".XBMCBroadcastReceiver"),
+    m_inputHandler(inputHandler),
+    m_videosurfaceInUse(false)
 {
   m_xbmcappinstance = this;
   m_activity = nativeActivity;
@@ -226,6 +228,12 @@ void CXBMCApp::onStart()
     registerReceiver(*this, intentFilter);
     m_mediaSession.reset(new CJNIXBMCMediaSession());
   }
+  if (g_application.IsInitialized())
+  {
+    IPowerSyscall* syscall = CServiceBroker::GetPowerManager().GetPowerSyscall();
+    if (syscall)
+      static_cast<CAndroidPowerSyscall*>(syscall)->SetOnResume();
+  }
 }
 
 void CXBMCApp::onResume()
@@ -244,25 +252,36 @@ void CXBMCApp::onResume()
     m_applications.clear();
   }
 
+  if (m_bResumePlayback && g_application.GetAppPlayer().IsPlaying())
+  {
+    if (g_application.GetAppPlayer().HasVideo())
+    {
+      if (g_application.GetAppPlayer().IsPaused())
+        CApplicationMessenger::GetInstance().SendMsg(
+            TMSG_GUI_ACTION, WINDOW_INVALID, -1,
+            static_cast<void*>(new CAction(ACTION_PLAYER_PLAY)));
+    }
+  }
+
   // Re-request Visible Behind
   if ((m_playback_state & PLAYBACK_STATE_PLAYING) && (m_playback_state & PLAYBACK_STATE_VIDEO))
     RequestVisibleBehind(true);
-
-  if (g_application.IsInitialized())
-    dynamic_cast<CAndroidPowerSyscall*>(CServiceBroker::GetPowerManager().GetPowerSyscall())
-        ->SetOnResume();
 }
 
 void CXBMCApp::onPause()
 {
   android_printf("%s: ", __PRETTY_FUNCTION__);
+  m_bResumePlayback = false;
 
   if (g_application.GetAppPlayer().IsPlaying())
   {
     if (g_application.GetAppPlayer().HasVideo())
     {
       if (!g_application.GetAppPlayer().IsPaused() && !m_hasReqVisible)
+      {
         CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+        m_bResumePlayback = true;
+      }
     }
   }
 
@@ -271,9 +290,6 @@ void CXBMCApp::onPause()
 
   EnableWakeLock(false);
   m_hasReqVisible = false;
-
-  dynamic_cast<CAndroidPowerSyscall*>(CServiceBroker::GetPowerManager().GetPowerSyscall())
-      ->SetOnPause();
 }
 
 void CXBMCApp::onStop()
@@ -286,6 +302,13 @@ void CXBMCApp::onStop()
       CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
     else if (m_playback_state & PLAYBACK_STATE_VIDEO)
       CApplicationMessenger::GetInstance().SendMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+  }
+
+  if (!g_application.IsStopping())
+  {
+    IPowerSyscall* syscall = CServiceBroker::GetPowerManager().GetPowerSyscall();
+    if (syscall)
+      static_cast<CAndroidPowerSyscall*>(syscall)->SetOnPause();
   }
 }
 
@@ -370,6 +393,7 @@ void CXBMCApp::Initialize()
   CServiceBroker::GetAnnouncementManager()->AddAnnouncer(CXBMCApp::get());
   runNativeOnUiThread(RegisterDisplayListener, nullptr);
   m_activityManager.reset(new CJNIActivityManager(getSystemService(CJNIContext::ACTIVITY_SERVICE)));
+  m_inputHandler.setDPI(GetDPI());
 }
 
 void CXBMCApp::Deinitialize()
@@ -997,6 +1021,9 @@ void CXBMCApp::SetSystemVolume(float percent)
 
 void CXBMCApp::onReceive(CJNIIntent intent)
 {
+  if (!g_application.IsInitialized())
+    return;
+
   std::string action = intent.getAction();
   CLog::Log(LOGDEBUG, "CXBMCApp::onReceive - Got intent. Action: %s", action.c_str());
   if (action == "android.intent.action.BATTERY_CHANGED")
@@ -1011,7 +1038,24 @@ void CXBMCApp::onReceive(CJNIIntent intent)
   {
     bool newstate = m_headsetPlugged;
     if (action == "android.intent.action.HEADSET_PLUG")
+    {
       newstate = (intent.getIntExtra("state", 0) != 0);
+
+      // If unplugged headset and playing content then pause or stop playback
+      if (!newstate && (m_playback_state & PLAYBACK_STATE_PLAYING))
+      {
+        if (g_application.GetAppPlayer().CanPause())
+        {
+          CApplicationMessenger::GetInstance().PostMsg(
+              TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_PAUSE)));
+        }
+        else
+        {
+          CApplicationMessenger::GetInstance().PostMsg(
+              TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(new CAction(ACTION_STOP)));
+        }
+      }
+    }
     else if (action == "android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED")
       newstate = (intent.getIntExtra("android.bluetooth.profile.extra.STATE", 0) == 2 /* STATE_CONNECTED */);
 
@@ -1088,7 +1132,7 @@ void CXBMCApp::onNewIntent(CJNIIntent intent)
 {
   if (!intent)
   {
-    CLog::Log(LOGNOTICE, "CXBMCApp::onNewIntent - Got invalid intent.");
+    CLog::Log(LOGINFO, "CXBMCApp::onNewIntent - Got invalid intent.");
     return;
   }
 
@@ -1147,6 +1191,7 @@ void CXBMCApp::onNewIntent(CJNIIntent intent)
 
 void CXBMCApp::onActivityResult(int requestCode, int resultCode, CJNIIntent resultData)
 {
+  CSingleLock lock(m_activityResultMutex);
   for (auto it = m_activityResultEvents.begin(); it != m_activityResultEvents.end(); ++it)
   {
     if ((*it)->GetRequestCode() == requestCode)
@@ -1179,7 +1224,10 @@ int CXBMCApp::WaitForActivityResult(const CJNIIntent &intent, int requestCode, C
 {
   int ret = 0;
   CActivityResultEvent* event = new CActivityResultEvent(requestCode);
-  m_activityResultEvents.push_back(event);
+  {
+    CSingleLock lock(m_activityResultMutex);
+    m_activityResultEvents.push_back(event);
+  }
   startActivityForResult(intent, requestCode);
   if (event->Wait())
   {
@@ -1192,10 +1240,9 @@ int CXBMCApp::WaitForActivityResult(const CJNIIntent &intent, int requestCode, C
 
 void CXBMCApp::onVolumeChanged(int volume)
 {
-  // System volume was used; Reset Kodi volume to 100% if it isn't, already
-  if (g_application.GetVolumeRatio() != 1.0)
-    CApplicationMessenger::GetInstance().PostMsg(TMSG_GUI_ACTION, WINDOW_INVALID, -1, static_cast<void*>(
-                                                 new CAction(ACTION_VOLUME_SET, static_cast<float>(CXBMCApp::GetMaxSystemVolume()))));
+  // don't do anything. User wants to use kodi's internal volume freely while
+  // using the external volume to change it relatively
+  // See: https://forum.kodi.tv/showthread.php?tid=350764
 }
 
 void CXBMCApp::onAudioFocusChange(int focusChange)
@@ -1313,9 +1360,8 @@ void CXBMCApp::SetupEnv()
   else
     setenv("HOME", getenv("KODI_TEMP"), 0);
 
-  std::string apkPath = getenv("KODI_ANDROID_APK");
-  apkPath += "/assets/python3.7";
-  setenv("PYTHONHOME", apkPath.c_str(), 1);
+  std::string pythonPath = cacheDir + "/apk/assets/python3.7";
+  setenv("PYTHONHOME", pythonPath.c_str(), 1);
   setenv("PYTHONPATH", "", 1);
   setenv("PYTHONOPTIMIZE","", 1);
   setenv("PYTHONNOUSERSITE", "1", 1);
@@ -1434,6 +1480,7 @@ void CXBMCApp::onDisplayChanged(int displayId)
     winSystemAndroid->UpdateDisplayModes();
 
   m_displayChangeEvent.Set();
+  m_inputHandler.setDPI(GetDPI());
   android_printf("%s: ", __PRETTY_FUNCTION__);
 }
 

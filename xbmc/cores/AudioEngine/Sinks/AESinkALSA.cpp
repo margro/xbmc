@@ -12,8 +12,6 @@
 #include "cores/AudioEngine/AESinkFactory.h"
 #include "cores/AudioEngine/Utils/AEELDParser.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
-#include "settings/AdvancedSettings.h"
-#include "settings/SettingsComponent.h"
 #include "threads/SingleLock.h"
 #include "utils/MathUtils.h"
 #include "utils/SystemInfo.h"
@@ -445,7 +443,7 @@ snd_pcm_chmap_t* CAESinkALSA::SelectALSAChannelMap(const CAEChannelInfo& info)
       chmap = CopyALSAchmap(&supportedMaps[best]->map);
   }
 
-  if (chmap && CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGAUDIO))
+  if (chmap && CServiceBroker::GetLogging().CanLogComponent(LOGAUDIO))
     CLog::Log(LOGDEBUG, "CAESinkALSA::SelectALSAChannelMap - Selected ALSA map \"%s\"", ALSAchmapToString(chmap).c_str());
 
   snd_pcm_free_chmaps(supportedMaps);
@@ -944,7 +942,7 @@ void CAESinkALSA::HandleError(const char* name, int err)
       while((err = snd_pcm_resume(m_pcm)) == -EAGAIN)
         KODI::TIME::Sleep(1);
 
-      /* if the hardware doesnt support resume, prepare the stream */
+      /* if the hardware doesn't support resume, prepare the stream */
       if (err == -ENOSYS)
         if ((err = snd_pcm_prepare(m_pcm)) < 0)
           CLog::Log(LOGERROR, "CAESinkALSA::HandleError(%s) - snd_pcm_prepare returned %d (%s)", name, err, snd_strerror(err));
@@ -1621,7 +1619,7 @@ bool CAESinkALSA::GetELD(snd_hctl_t *hctl, int device, CAEDeviceInfo& info, bool
 
 void CAESinkALSA::sndLibErrorHandler(const char *file, int line, const char *function, int err, const char *fmt, ...)
 {
-  if(!CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->CanLogComponent(LOGAUDIO))
+  if (!CServiceBroker::GetLogging().CanLogComponent(LOGAUDIO))
     return;
 
   va_list arg;

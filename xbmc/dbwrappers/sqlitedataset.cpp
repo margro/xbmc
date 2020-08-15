@@ -284,6 +284,12 @@ const char *SqliteDatabase::getErrorMsg() {
    return error.c_str();
 }
 
+static int AlphaNumericCollation(
+    void* not_used, int nKey1, const void* pKey1, int nKey2, const void* pKey2)
+{
+  return StringUtils::AlphaNumericCollation(nKey1, pKey1, nKey2, pKey2);
+}
+
 int SqliteDatabase::connect(bool create) {
   if (host.empty() || db.empty())
     return DB_CONNECTION_NONE;
@@ -317,6 +323,12 @@ int SqliteDatabase::connect(bool create) {
       {
         CLog::Log(LOGFATAL, "SqliteDatabase: %s is read only", db_fullpath.c_str());
         throw std::runtime_error("SqliteDatabase: " + db_fullpath + " is read only");
+      }
+      errorCode = sqlite3_create_collation(conn, "ALPHANUM", SQLITE_UTF8, 0, AlphaNumericCollation);
+      if (errorCode != SQLITE_OK)
+      {
+        CLog::Log(LOGFATAL, "SqliteDatabase: can not register collation");
+        throw std::runtime_error("SqliteDatabase: can not register collation " + db_fullpath);
       }
       active = true;
       return DB_CONNECTION_OK;
@@ -461,19 +473,22 @@ long SqliteDatabase::nextid(const char* sname) {
   int id;/*,nrow,ncol;*/
   result_set res;
   char sqlcmd[512];
-  sprintf(sqlcmd,"select nextid from %s where seq_name = '%s'",sequence_table.c_str(), sname);
+  snprintf(sqlcmd, sizeof(sqlcmd), "SELECT nextid FROM %s WHERE seq_name = '%s'",
+           sequence_table.c_str(), sname);
   if ((last_err = sqlite3_exec(getHandle(),sqlcmd,&callback,&res,NULL)) != SQLITE_OK) {
     return DB_UNEXPECTED_RESULT;
     }
   if (res.records.empty()) {
     id = 1;
-    sprintf(sqlcmd,"insert into %s (nextid,seq_name) values (%d,'%s')",sequence_table.c_str(),id,sname);
+    snprintf(sqlcmd, sizeof(sqlcmd), "INSERT INTO %s (nextid,seq_name) VALUES (%d,'%s')",
+             sequence_table.c_str(), id, sname);
     if ((last_err = sqlite3_exec(conn,sqlcmd,NULL,NULL,NULL)) != SQLITE_OK) return DB_UNEXPECTED_RESULT;
     return id;
   }
   else {
     id = res.records[0]->at(0).get_asInt()+1;
-    sprintf(sqlcmd,"update %s set nextid=%d where seq_name = '%s'",sequence_table.c_str(),id,sname);
+    snprintf(sqlcmd, sizeof(sqlcmd), "UPDATE %s SET nextid=%d WHERE seq_name = '%s'",
+             sequence_table.c_str(), id, sname);
     if ((last_err = sqlite3_exec(conn,sqlcmd,NULL,NULL,NULL)) != SQLITE_OK) return DB_UNEXPECTED_RESULT;
     return id;
   }
@@ -536,6 +551,7 @@ std::string SqliteDatabase::vprepare(const char *format, va_list args)
   // Strip SEPARATOR from all GROUP_CONCAT statements:
   // before: GROUP_CONCAT(field SEPARATOR '; ')
   // after:  GROUP_CONCAT(field, '; ')
+  // Can not specify separator when have DISTINCT, comma used by default
   pos = strResult.find("GROUP_CONCAT(");
   while (pos != std::string::npos)
   {
@@ -545,24 +561,37 @@ std::string SqliteDatabase::vprepare(const char *format, va_list args)
     pos = strResult.find("GROUP_CONCAT(", pos + 1);
   }
   // Replace CONCAT with || to concatenate text fields:
-  // before: CONCAT(field1, field2)
-  // after:  field1 || field2
+  // before: CONCAT(field1, field2, field3)
+  // after: field1 || field2 || field3
+  // Avoid commas in substatements and within single quotes
+  // before: CONCAT(field1, ',', REPLACE(field2, ',', '-'), field3)
+  // after: field1 || ',' || REPLACE(field2, ',', '-') || field3
   pos = strResult.find("CONCAT(");
   while (pos != std::string::npos)
   {
     if (pos == 0 || strResult[pos - 1] == ' ') // Not GROUP_CONCAT
     {
-      size_t pos2 = strResult.find(",", pos + 1);
-      if (pos2 != std::string::npos)
+      // Check each char for other bracket or single quote pairs
+      unsigned int brackets = 1;
+      bool quoted = false;
+      size_t index = pos + 7; // start after "CONCAT("
+      while (index < strResult.size() && brackets != 0)
       {
-        size_t pos3 = strResult.find(")", pos2 + 1);
-        if (pos3 != std::string::npos)
+        if (strResult[index] == '(')
+          brackets++;
+        else if (strResult[index] == ')')
         {
-          strResult.erase(pos3, 1);
-          strResult.replace(pos2, 1, " || ");
-          strResult.erase(pos, 7);
+          brackets--;
+          if (brackets == 0)
+            strResult.erase(index, 1); //Remove closing bracket of CONCAT
         }
+        else if (strResult[index] == '\'')
+          quoted = !quoted;
+        else if (strResult[index] == ',' && brackets == 1 && !quoted)
+          strResult.replace(index, 1, "||");
+        index++;
       }
+      strResult.erase(pos, 7); //Remove "CONCAT("
     }
     pos = strResult.find("CONCAT(", pos + 1);
   }

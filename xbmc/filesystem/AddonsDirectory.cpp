@@ -52,12 +52,6 @@ const auto CATEGORY_GAME_PROVIDERS = "category.gameproviders";
 const auto CATEGORY_GAME_RESOURCES = "category.gameresources";
 const auto CATEGORY_GAME_SUPPORT_ADDONS = "category.gamesupport";
 
-const std::set<TYPE> dependencyTypes = {
-    ADDON_SCRAPER_LIBRARY,
-    ADDON_SCRIPT_LIBRARY,
-    ADDON_SCRIPT_MODULE,
-};
-
 const std::set<TYPE> infoProviderTypes = {
   ADDON_SCRAPER_ALBUMS,
   ADDON_SCRAPER_ARTISTS,
@@ -144,15 +138,9 @@ static bool IsGameAddon(const AddonPtr& addon)
          IsGameSupportAddon(addon);
 }
 
-static bool IsDependencyType(TYPE type)
-{
-  return dependencyTypes.find(type) != dependencyTypes.end();
-}
-
 static bool IsUserInstalled(const AddonPtr& addon)
 {
-  return std::find_if(dependencyTypes.begin(), dependencyTypes.end(),
-                      [&](TYPE type) { return addon->HasType(type); }) == dependencyTypes.end();
+  return !CAddonType::IsDependencyType(addon->MainType());
 }
 
 static bool IsOrphaned(const AddonPtr& addon, const VECADDONS& all)
@@ -349,8 +337,9 @@ static void GenerateMainCategoryListing(const CURL& path, const VECADDONS& addon
      *   subtypes (audio, video, app or/and game) and not needed to show
      *   together in a Script or Plugin list
      */
-    if (!IsInfoProviderType(type) && !IsLookAndFeelType(type) && !IsDependencyType(type) &&
-        !IsGameType(type) && type != ADDON_SCRIPT && type != ADDON_PLUGIN)
+    if (!IsInfoProviderType(type) && !IsLookAndFeelType(type) &&
+        !CAddonType::IsDependencyType(type) && !IsGameType(type) && type != ADDON_SCRIPT &&
+        type != ADDON_PLUGIN)
       uncategorized.insert(static_cast<TYPE>(i));
   }
   GenerateTypeListing(path, uncategorized, addons, items);
@@ -700,7 +689,7 @@ bool CAddonsDirectory::GetDirectory(const CURL& url, CFileItemList &items)
     VECADDONS addons;
     ADDON::TYPE type;
 
-    if (path.GetFileName() == "xbmc.pvrclient")
+    if (path.GetFileName() == "kodi.pvrclient")
       type = ADDON_PVRDLL;
     else if (path.GetFileName() == "kodi.vfs")
       type = ADDON_VFS;
@@ -798,10 +787,30 @@ void CAddonsDirectory::GenerateAddonListing(const CURL &path,
     bool installed = CServiceBroker::GetAddonMgr().IsAddonInstalled(addon->ID());
     bool disabled = CServiceBroker::GetAddonMgr().IsAddonDisabled(addon->ID());
     bool hasUpdate = outdated.find(addon->ID()) != outdated.end();
+    bool fromOfficialRepo = CServiceBroker::GetAddonMgr().IsFromOfficialRepo(addon);
+    AddonOriginType addonOriginType = CServiceBroker::GetAddonMgr().GetAddonOriginType(addon);
 
     pItem->SetProperty("Addon.IsInstalled", installed);
     pItem->SetProperty("Addon.IsEnabled", installed && !disabled);
     pItem->SetProperty("Addon.HasUpdate", hasUpdate);
+    pItem->SetProperty("Addon.IsFromOfficialRepo", fromOfficialRepo);
+    pItem->SetProperty("Addon.IsBinary", addon->IsBinary());
+
+    std::string addonOriginTypeProperty;
+    switch (addonOriginType)
+    {
+      case AddonOriginType::SYSTEM:
+        addonOriginTypeProperty = g_localizeStrings.Get(25014); // system
+        break;
+      case AddonOriginType::REPOSITORY:
+        addonOriginTypeProperty = g_localizeStrings.Get(25015); // repository
+        break;
+      case AddonOriginType::MANUAL:
+      default:
+        addonOriginTypeProperty = g_localizeStrings.Get(25016); // manual
+        break;
+    }
+    pItem->SetProperty("Addon.OriginType", addonOriginTypeProperty);
 
     if (installed)
       pItem->SetProperty("Addon.Status", g_localizeStrings.Get(305));

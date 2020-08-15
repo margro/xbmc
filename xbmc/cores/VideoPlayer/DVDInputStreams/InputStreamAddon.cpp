@@ -8,8 +8,6 @@
 
 #include "InputStreamAddon.h"
 
-#include "addons/binary-addons/AddonDll.h"
-#include "addons/binary-addons/BinaryAddonBase.h"
 #include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/VideoCodec.h"
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemux.h"
 #include "cores/VideoPlayer/DVDDemuxers/DVDDemuxUtils.h"
@@ -19,20 +17,21 @@
 #include "filesystem/SpecialProtocol.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
+#include "utils/log.h"
 
-CInputStreamProvider::CInputStreamProvider(ADDON::BinaryAddonBasePtr addonBase,
+CInputStreamProvider::CInputStreamProvider(const ADDON::AddonInfoPtr& addonInfo,
                                            KODI_HANDLE parentInstance)
-  : m_addonBase(addonBase), m_parentInstance(parentInstance)
+  : m_addonInfo(addonInfo), m_parentInstance(parentInstance)
 {
 }
 
-void CInputStreamProvider::getAddonInstance(INSTANCE_TYPE instance_type,
-                                            ADDON::BinaryAddonBasePtr& addonBase,
+void CInputStreamProvider::GetAddonInstance(INSTANCE_TYPE instance_type,
+                                            ADDON::AddonInfoPtr& addonInfo,
                                             KODI_HANDLE& parentInstance)
 {
   if (instance_type == ADDON::IAddonProvider::INSTANCE_VIDEOCODEC)
   {
-    addonBase = m_addonBase;
+    addonInfo = m_addonInfo;
     parentInstance = m_parentInstance;
   }
 }
@@ -42,13 +41,17 @@ void CInputStreamProvider::getAddonInstance(INSTANCE_TYPE instance_type,
 using namespace ADDON;
 using namespace kodi::addon;
 
-CInputStreamAddon::CInputStreamAddon(BinaryAddonBasePtr& addonBase, IVideoPlayer* player, const CFileItem& fileitem)
-  : IAddonInstanceHandler(ADDON_INSTANCE_INPUTSTREAM, addonBase),
+CInputStreamAddon::CInputStreamAddon(const AddonInfoPtr& addonInfo,
+                                     IVideoPlayer* player,
+                                     const CFileItem& fileitem,
+                                     const std::string& instanceId)
+  : IAddonInstanceHandler(ADDON_INSTANCE_INPUTSTREAM, addonInfo, nullptr, instanceId),
     CDVDInputStream(DVDSTREAM_TYPE_ADDON, fileitem),
     m_player(player)
 {
-  std::string listitemprops = addonBase->Type(ADDON_INPUTSTREAM)->GetValue("@listitemprops").asString();
-  std::string name(addonBase->ID());
+  std::string listitemprops =
+      addonInfo->Type(ADDON_INPUTSTREAM)->GetValue("@listitemprops").asString();
+  std::string name(addonInfo->ID());
 
   m_fileItemProps = StringUtils::Tokenize(listitemprops, "|");
   for (auto &key : m_fileItemProps)
@@ -65,23 +68,27 @@ CInputStreamAddon::~CInputStreamAddon()
   Close();
 }
 
-bool CInputStreamAddon::Supports(BinaryAddonBasePtr& addonBase, const CFileItem &fileitem)
+bool CInputStreamAddon::Supports(const AddonInfoPtr& addonInfo, const CFileItem& fileitem)
 {
-  // check if a specific inputstream addon is requested
-  CVariant addon = fileitem.GetProperty(STREAM_PROPERTY_INPUTSTREAMCLASS);
-  if (!addon.isNull())
-    return (addon.asString() == addonBase->ID());
+  /// @todo Error for users to show deprecation, can be removed in Kodi 20
+  CVariant oldAddonProp = fileitem.GetProperty("inputstreamaddon");
+  if (!oldAddonProp.isNull())
+  {
+    CLog::Log(LOGERROR,
+              "CInputStreamAddon::%s - 'inputstreamaddon' has been deprecated, "
+              "please use `#KODIPROP:inputstream=%s` instead", __func__, oldAddonProp.asString());
+  }
 
-  // TODO: to be deprecated for the above - all addons must change
-  addon = fileitem.GetProperty("inputstreamaddon");
+  // check if a specific inputstream addon is requested
+  CVariant addon = fileitem.GetProperty(STREAM_PROPERTY_INPUTSTREAM);
   if (!addon.isNull())
-    return (addon.asString() == addonBase->ID());
+    return (addon.asString() == addonInfo->ID());
 
   // check protocols
   std::string protocol = CURL(fileitem.GetDynPath()).GetProtocol();
   if (!protocol.empty())
   {
-    std::string protocols = addonBase->Type(ADDON_INPUTSTREAM)->GetValue("@protocols").asString();
+    std::string protocols = addonInfo->Type(ADDON_INPUTSTREAM)->GetValue("@protocols").asString();
     if (!protocols.empty())
     {
       std::vector<std::string> protocolsList = StringUtils::Tokenize(protocols, "|");
@@ -97,7 +104,7 @@ bool CInputStreamAddon::Supports(BinaryAddonBasePtr& addonBase, const CFileItem 
   std::string filetype = fileitem.GetURL().GetFileType();
   if (!filetype.empty())
   {
-    std::string extensions = addonBase->Type(ADDON_INPUTSTREAM)->GetValue("@extension").asString();
+    std::string extensions = addonInfo->Type(ADDON_INPUTSTREAM)->GetValue("@extension").asString();
     if (!extensions.empty())
     {
       std::vector<std::string> extensionsList = StringUtils::Tokenize(extensions, "|");
@@ -137,9 +144,21 @@ bool CInputStreamAddon::Open()
     props.m_ListItemProperties[props.m_nCountInfoValues].m_strKey = pair.first.c_str();
     props.m_ListItemProperties[props.m_nCountInfoValues].m_strValue = pair.second.c_str();
     props.m_nCountInfoValues++;
+
+    if (props.m_nCountInfoValues >= STREAM_MAX_PROPERTY_COUNT)
+    {
+      CLog::Log(LOGERROR,
+                "CInputStreamAddon::%s - Hit max count of stream properties, "
+                "have %d, actual count: %d",
+                __func__,
+                STREAM_MAX_PROPERTY_COUNT,
+                propsMap.size());
+      break;
+    }
   }
 
   props.m_strURL = m_item.GetDynPath().c_str();
+  props.m_mimeType = m_item.GetMimeType().c_str();
 
   std::string libFolder = URIUtils::GetDirectory(Addon()->Path());
   std::string profileFolder = CSpecialProtocol::TranslatePath(Addon()->Profile());
@@ -158,7 +177,8 @@ bool CInputStreamAddon::Open()
     m_caps = { 0 };
     m_struct.toAddon.get_capabilities(&m_struct, &m_caps);
 
-    m_subAddonProvider = std::shared_ptr<CInputStreamProvider>(new CInputStreamProvider(GetAddonBase(), m_struct.toAddon.addonInstance));
+    m_subAddonProvider = std::shared_ptr<CInputStreamProvider>(
+        new CInputStreamProvider(GetAddonInfo(), m_struct.toAddon.addonInstance));
   }
   return ret;
 }
@@ -200,13 +220,12 @@ int64_t CInputStreamAddon::GetLength()
   return m_struct.toAddon.length_stream(&m_struct);
 }
 
-bool CInputStreamAddon::Pause(double time)
+int CInputStreamAddon::GetBlockSize()
 {
-  if (!m_struct.toAddon.pause_stream)
-    return false;
+  if (!m_struct.toAddon.block_size_stream)
+    return 0;
 
-  m_struct.toAddon.pause_stream(&m_struct, time);
-  return true;
+  return m_struct.toAddon.block_size_stream(&m_struct);
 }
 
 bool CInputStreamAddon::CanSeek()
@@ -434,7 +453,8 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
   demuxStream->flags = static_cast<StreamFlags>(stream.m_flags);
   demuxStream->language = stream.m_language;
 
-  if (GetAddonBase()->DependencyVersion(ADDON_INSTANCE_VERSION_INPUTSTREAM_XML_ID) >= AddonVersion("2.0.8"))
+  if (GetAddonInfo()->DependencyVersion(ADDON_INSTANCE_VERSION_INPUTSTREAM_XML_ID) >=
+      AddonVersion("2.0.8"))
   {
     demuxStream->codec_fourcc = stream.m_codecFourCC;
   }
@@ -450,11 +470,11 @@ CDemuxStream* CInputStreamAddon::GetStream(int streamId) const
   if (stream.m_cryptoInfo.m_CryptoKeySystem != CRYPTO_INFO::CRYPTO_KEY_SYSTEM_NONE &&
     stream.m_cryptoInfo.m_CryptoKeySystem < CRYPTO_INFO::CRYPTO_KEY_SYSTEM_COUNT)
   {
-    static const CryptoSessionSystem map[] =
-    {
-      CRYPTO_SESSION_SYSTEM_NONE,
-      CRYPTO_SESSION_SYSTEM_WIDEVINE,
-      CRYPTO_SESSION_SYSTEM_PLAYREADY
+    static const CryptoSessionSystem map[] = {
+        CRYPTO_SESSION_SYSTEM_NONE,
+        CRYPTO_SESSION_SYSTEM_WIDEVINE,
+        CRYPTO_SESSION_SYSTEM_PLAYREADY,
+        CRYPTO_SESSION_SYSTEM_WISEPLAY,
     };
     demuxStream->cryptoSession = std::shared_ptr<DemuxCryptoSession>(new DemuxCryptoSession(
       map[stream.m_cryptoInfo.m_CryptoKeySystem], stream.m_cryptoInfo.m_CryptoSessionIdSize, stream.m_cryptoInfo.m_CryptoSessionId, stream.m_cryptoInfo.flags));

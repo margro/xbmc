@@ -111,26 +111,6 @@ function(core_add_test_library name)
   endforeach()
 endfunction()
 
-# Add an addon callback library
-# Arguments:
-#   name name of the library to add
-# Implicit arguments:
-#   SOURCES the sources of the library
-#   HEADERS the headers of the library (only for IDE support)
-#   OTHERS  other library related files (only for IDE support)
-# On return:
-#   Library target is defined and added to LIBRARY_FILES
-function(core_add_addon_library name)
-  get_filename_component(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-  list(APPEND SOURCES lib${name}.cpp)
-  core_add_shared_library(${name} OUTPUT_DIRECTORY addons/${DIRECTORY})
-  set_target_properties(${name} PROPERTIES FOLDER addons)
-  target_include_directories(${name} PRIVATE
-                             ${CMAKE_CURRENT_SOURCE_DIR}
-                             ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-addon-dev-kit/include/kodi
-                             ${CMAKE_SOURCE_DIR}/xbmc)
-endfunction()
-
 # Add an dl-loaded shared library
 # Arguments:
 #   name name of the library to add
@@ -646,6 +626,9 @@ endfunction()
 #   APP_VERSION_TAG_LC - lowercased app version tag
 #   APP_VERSION - the app version (${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}-${APP_VERSION_TAG})
 #   APP_ADDON_API - the addon API version in the form of 16.9.702
+#   ADDON_REPOS - official addon repositories and their origin path delimited by pipe
+#                 - e.g. repository.xbmc.org|https://mirrors.kodi.tv -
+#                 (multiple repo/path-sets are delimited by comma)
 #   FILE_VERSION - file version in the form of 16,9,702,0 - Windows only
 #   JSONRPC_VERSION - the json api version in the form of 8.3.0
 #
@@ -666,6 +649,7 @@ macro(core_find_versions)
   string(REGEX REPLACE "([^ ;]*) ([^;]*)" "\\1;\\2" version_list "${version_list};${json_version}")
   set(version_props
     ADDON_API
+    ADDON_REPOS
     APP_NAME
     APP_PACKAGE
     COMPANY_NAME
@@ -696,6 +680,7 @@ macro(core_find_versions)
     string(TOLOWER ${APP_VERSION_TAG} APP_VERSION_TAG_LC)
   endif()
   string(REPLACE "." "," FILE_VERSION ${APP_ADDON_API}.0)
+  set(ADDON_REPOS ${APP_ADDON_REPOS})
   set(JSONRPC_VERSION ${APP_JSONRPC_VERSION})
 
   # Set defines used in addon.xml.in and read from versions.h to set add-on

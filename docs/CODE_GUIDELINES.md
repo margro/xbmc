@@ -44,7 +44,7 @@
   * [11.3. Overriding virtual functions](#113-overriding-virtual-functions)
   * [11.4. Default member initialization](#114-default-member-initialization)
   * [11.5. Destructors in interfaces](#115-destructors-in-interfaces)
-  * [11.6. Constructor Initialzation Lists](#116-constructor-initialzation-lists)
+  * [11.6. Constructor Initialization Lists](#116-constructor-initialization-lists)
 * [12. Other conventions](#12-other-conventions)
   * [12.1. Output parameters](#121-output-parameters)
   * [12.2. Casts](#122-casts)
@@ -244,7 +244,7 @@ void Test();
 void Test(void);
 ```
 
-### 3.7. Exceptions to the Formating Rules For Beter Readability
+### 3.7. Exceptions to the Formatting Rules For Better Readability
 There are some special situations where vertical alignment and longer lines does greatly aid readability, for example the initialization of some table-like multiple row structures. In these **rare** cases exceptions can be made to the formatting rules on vertical alignment, and the defined line length can be exceeded. 
 
 The layout can be protected from being reformatted when `clang-format` is applied by adding `// clang-format off` and `// clang-format on` statements either side of the lines of code.
@@ -504,7 +504,7 @@ void MyDummyClass::DoSomething();
 Use CamelCase. Type prefixing (Systems Hungarian notation) is discouraged.
 
 #### Member variables
-Prefix nonstatic member variables with `m_`. Prefix static member variables with `ms_`.
+Prefix non-static member variables with `m_`. Prefix static member variables with `ms_`.
 ```cpp
 int m_variableA;
 static int ms_variableB;
@@ -651,9 +651,9 @@ class Foo
 
 ### 11.5. Destructors in interfaces
 
-A class with any virtual functions should have a destructor that is either public and virtual or else protected and nonvirtual (cf. [ISO C++ guidelines](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-dtor-virtual)).
+A class with any virtual functions should have a destructor that is either public and virtual or else protected and non-virtual (cf. [ISO C++ guidelines](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-dtor-virtual)).
 
-### 11.6. Constructor Initialzation Lists
+### 11.6. Constructor Initialization Lists
 
 For lines up to [line length](#line-length) everything stays on one line, excluding the braces which must be on the following lines.
 

@@ -85,7 +85,7 @@ class CXBMCApp
     , public CJNISurfaceHolderCallback
 {
 public:
-  explicit CXBMCApp(ANativeActivity *nativeActivity);
+  explicit CXBMCApp(ANativeActivity* nativeActivity, IInputHandler& inputhandler);
   ~CXBMCApp() override;
   static CXBMCApp* get() { return m_xbmcappinstance; }
 
@@ -224,6 +224,7 @@ private:
   static void RegisterDisplayListener(CVariant*);
 
   static ANativeActivity *m_activity;
+  IInputHandler& m_inputHandler;
   static CJNIWakeLock *m_wakeLock;
   static int m_batteryLevel;
   static bool m_hasFocus;
@@ -237,8 +238,10 @@ private:
   bool m_videosurfaceInUse;
   bool m_firstrun;
   bool m_exiting;
+  bool m_bResumePlayback = false;
   pthread_t m_thread;
   static CCriticalSection m_applicationsMutex;
+  static CCriticalSection m_activityResultMutex;
   static std::vector<androidPackage> m_applications;
   static std::vector<CActivityResultEvent*> m_activityResultEvents;
 

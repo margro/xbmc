@@ -498,6 +498,7 @@ void CDVDInputStreamBluray::ProcessEvent() {
       m_title = disc_info->titles[m_event.param];
     else
       m_title = nullptr;
+    m_menu = false;
 
     break;
   }
@@ -758,7 +759,6 @@ void CDVDInputStreamBluray::OverlayFlush(int64_t pts)
 
   m_player->OnDiscNavResult(static_cast<void*>(group), BD_EVENT_MENU_OVERLAY);
   group->Release();
-  m_menu = true;
 #endif
 }
 
@@ -1018,8 +1018,12 @@ void CDVDInputStreamBluray::GetStreamInfo(int pid, std::string &language)
     find_stream(pid, m_clip->audio_streams, m_clip->audio_stream_count, language);
   else if (HDMV_PID_PG_FIRST <= pid && pid <= HDMV_PID_PG_LAST)
     find_stream(pid, m_clip->pg_streams, m_clip->pg_stream_count, language);
+  else if (HDMV_PID_PG_HDR_FIRST <= pid && pid <= HDMV_PID_PG_HDR_LAST)
+    find_stream(pid, m_clip->pg_streams, m_clip->pg_stream_count, language);
   else if (HDMV_PID_IG_FIRST <= pid && pid <= HDMV_PID_IG_LAST)
     find_stream(pid, m_clip->ig_streams, m_clip->ig_stream_count, language);
+  else
+    CLog::Log(LOGDEBUG, "CDVDInputStreamBluray::GetStreamInfo - unhandled pid %d", pid);
 }
 
 CDVDInputStream::ENextStream CDVDInputStreamBluray::NextStream()
@@ -1108,7 +1112,10 @@ void CDVDInputStreamBluray::OnMenu()
   }
 
   if(bd_user_input(m_bd, -1, BD_VK_POPUP) >= 0)
+  {
+    m_menu = !m_menu;
     return;
+  }
   CLog::Log(LOGDEBUG, "CDVDInputStreamBluray::OnMenu - popup failed, trying root");
 
   if(bd_user_input(m_bd, -1, BD_VK_ROOT_MENU) >= 0)
