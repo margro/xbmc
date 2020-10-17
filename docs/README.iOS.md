@@ -81,12 +81,13 @@ git clone https://github.com/xbmc/xbmc kodi
 Kodi can be built as a 64bit program for iOS. The dependencies are built in `$HOME/kodi/tools/depends` and installed into `/Users/Shared/xbmc-depends`.
 
 **TIP:** Look for comments starting with `Or ...` and only execute the command(s) you need.
+**NOTE:** `--with-platform` is mandatory for all Apple platforms
 
 Configure build:
 ```
 cd $HOME/kodi/tools/depends
 ./bootstrap
-./configure --host=aarch64-apple-darwin
+./configure --host=aarch64-apple-darwin --with-platform=ios
 ```
 
 Build tools and dependencies:
@@ -100,7 +101,7 @@ make -j$(getconf _NPROCESSORS_ONLN)
 
 **NOTE:** **Advanced developers** may want to specify an iOS SDK version (if multiple versions are installed) in the configure line(s) shown above. The example below would use the iOS SDK 11.0:
 ```
-./configure --host=aarch64-apple-darwin --with-sdk=11.0
+./configure --host=aarch64-apple-darwin --with-platform=ios --with-sdk=11.0
 ```
 
 **[back to top](#table-of-contents)** | **[back to section top](#4-configure-and-build-tools-and-dependencies)**
@@ -130,6 +131,7 @@ Build a specific group of add-ons:
 ```
 make -j$(getconf _NPROCESSORS_ONLN) -C tools/depends/target/binary-addons ADDONS="pvr.*"
 ```
+For additional information on regular expression usage for ADDONS_TO_BUILD, view ADDONS_TO_BUILD section located here [Kodi add-ons CMake based buildsystem](../cmake/addons/README.md)
 
 ## 5.2. Xcode project building
 
@@ -146,9 +148,7 @@ Generate Xcode project to build a specific group of add-ons:
 make -C tools/depends/target/cmakebuildsys CMAKE_EXTRA_ARGUMENTS="-DENABLE_XCODE_ADDONBUILD=ON -DADDONS_TO_BUILD='pvr.*'"
 ```
 
-**TIP:** When using addontype.* for -DADDONS_TO_BUILD argument, you cannot have multiple 
-addon types. ie -DADDONS_TO_BUILD='game.libretro.* peripheral.*' is not valid. You will 
-need to individually list the addons as per the first example for specific addon building.
+For additional information on regular expression usage for ADDONS_TO_BUILD, view ADDONS_TO_BUILD section located at [Kodi add-ons CMake based buildsystem](../cmake/addons/README.md)
 
 Generate Xcode project to build all add-ons automatically:
 ```sh

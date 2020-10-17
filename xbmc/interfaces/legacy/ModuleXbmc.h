@@ -625,6 +625,7 @@ namespace XBMCAddon
     ///
     ///
     /// ------------------------------------------------------------------------
+    /// @python_v19 Deprecated **xbmc.translatePath**. Moved to **xbmcvfs.translatePath**
     ///
     /// **Example:**
     /// ~~~~~~~~~~~~~{.py}
@@ -906,10 +907,8 @@ namespace XBMCAddon
     SWIG_CONSTANT_FROM_GETTER(int, TRAY_CLOSED_MEDIA_PRESENT);
     SWIG_CONSTANT_FROM_GETTER(int, LOGDEBUG);
     SWIG_CONSTANT_FROM_GETTER(int, LOGINFO);
-    SWIG_CONSTANT_FROM_GETTER(int, LOGNOTICE);
     SWIG_CONSTANT_FROM_GETTER(int, LOGWARNING);
     SWIG_CONSTANT_FROM_GETTER(int, LOGERROR);
-    SWIG_CONSTANT_FROM_GETTER(int, LOGSEVERE);
     SWIG_CONSTANT_FROM_GETTER(int, LOGFATAL);
     SWIG_CONSTANT_FROM_GETTER(int, LOGNONE);
 

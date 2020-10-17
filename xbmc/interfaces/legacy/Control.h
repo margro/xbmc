@@ -239,11 +239,15 @@ namespace XBMCAddon
       /// \ingroup python_xbmcgui_control
       /// @brief \python_func{ setVisible(visible) }
       /// Set's the control's visible/hidden state.
+      /// \anchor python_xbmcgui_control_setVisible
       ///
       /// @param visible            bool - True=visible / False=hidden.
       ///
       ///
       ///-----------------------------------------------------------------------
+      /// @python_v19 You can now define the visible state of a control before it being
+      /// added to a window. This value will be taken into account when the control is later
+      /// added.
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -261,7 +265,11 @@ namespace XBMCAddon
 #ifdef DOXYGEN_SHOULD_USE_THIS
       /// \ingroup python_xbmcgui_control
       /// @brief \python_func{ isVisible() }
-      /// Get the control's visible/hidden state.
+      /// Get the control's visible/hidden state with respect to the container/window
+      ///
+      /// @note If a given control is set visible (c.f. \ref python_xbmcgui_control_setVisible "setVisible()"
+      /// but was not yet added to a window, this method will return `False` (the control is not visible yet since
+      /// it was not added to the window).
       ///
       ///-----------------------------------------------------------------------
       /// @python_v18 New function added.
@@ -604,6 +612,8 @@ namespace XBMCAddon
       int iControlDown = 0;
       int iControlLeft = 0;
       int iControlRight = 0;
+      std::string m_label{};
+      bool m_visible{true};
       CGUIControl* pGUIControl = nullptr;
 #endif
 
@@ -1798,7 +1808,7 @@ namespace XBMCAddon
     /// below shows how a ControlTextBox can be created, added to the current window and
     /// have some of its properties changed.
     ///
-    /// /// **Extended example:**
+    /// **Extended example:**
     /// ~~~~~~~~~~~~~{.py}
     /// ...
     /// textbox = xbmcgui.ControlTextBox(100, 250, 300, 300, textColor='0xFFFFFFFF')
@@ -1826,9 +1836,10 @@ namespace XBMCAddon
       ///
       /// @param text                 string  - text string.
       ///
-      /// @note setText only has effect after the control is added to a window
+      ///-----------------------------------------------------------------------
       ///
-      ///--------------------------------------------------------------------------
+      /// @python_v19 setText can now be used before adding the control to the window (the defined
+      /// value is taken into consideration when the control is created)
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -1852,11 +1863,9 @@ namespace XBMCAddon
       ///
       /// @return                       To get text from box
       ///
-      /// @note getText only works after you add the control to a window
-      /// and set the control text (using \ref python_xbmcgui_control_textbox_settext
-      /// "setText").
-      ///
       ///-----------------------------------------------------------------------
+      ///
+      /// @python_v19 getText() can now be used before adding the control to the window
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -1878,9 +1887,8 @@ namespace XBMCAddon
       /// @brief \python_func{ reset() }
       /// Clear's this textbox.
       ///
-      /// @note reset only works after you add the control to a window.
-      ///
       ///-----------------------------------------------------------------------
+      /// @python_v19 reset() will reset any text defined for this control even before you add the control to the window
       ///
       /// **Example:**
       /// ~~~~~~~~~~~~~{.py}
@@ -1905,6 +1913,7 @@ namespace XBMCAddon
       /// @param id                 integer - position to scroll to.
       ///
       /// @note scroll() only works after the control is added to a window.
+      ///
       ///
       ///-----------------------------------------------------------------------
       ///
@@ -1935,6 +1944,7 @@ namespace XBMCAddon
       /// @note autoScroll only works after you add the control to a window.
       ///
       ///-----------------------------------------------------------------------
+      ///
       /// @python_v15 New function added.
       ///
       /// **Example:**

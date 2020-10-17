@@ -8,13 +8,15 @@
 
 #pragma once
 
+#include "addons/kodi-dev-kit/include/kodi/c-api/gui/dialogs/text_viewer.h"
+
 extern "C"
 {
 
-struct AddonGlobalInterface;
+  struct AddonGlobalInterface;
 
-namespace ADDON
-{
+  namespace ADDON
+  {
 
   /*!
    * @brief Global gui Add-on to Kodi callback functions
@@ -22,7 +24,7 @@ namespace ADDON
    * To hold functions not related to a instance type and usable for
    * every add-on type.
    *
-   * Related add-on header is "./xbmc/addons/kodi-addon-dev-kit/include/kodi/gui/dialogs/TextViewer.h"
+   * Related add-on header is "./xbmc/addons/kodi-dev-kit/include/kodi/gui/dialogs/TextViewer.h"
    */
   struct Interface_GUIDialogTextViewer
   {
@@ -40,9 +42,9 @@ namespace ADDON
      * class.
      */
     //@{
-    static void open(void* kodiBase, const char *heading, const char *text);
+    static void open(KODI_HANDLE kodiBase, const char* heading, const char* text);
     //@}
   };
 
-} /* namespace ADDON */
+  } /* namespace ADDON */
 } /* extern "C" */

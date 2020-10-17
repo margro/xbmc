@@ -9,7 +9,7 @@
 #include "PVREdl.h"
 
 #include "FileItem.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_edl.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_edl.h"
 #include "cores/Cut.h"
 #include "pvr/epg/EpgInfoTag.h"
 #include "pvr/recordings/PVRRecording.h"
@@ -24,12 +24,13 @@ std::vector<EDL::Cut> CPVREdl::GetCuts(const CFileItem& item)
 
   if (item.HasPVRRecordingInfoTag())
   {
-    CLog::LogFC(LOGDEBUG, LOGPVR, "Reading EDL for recording: %s", item.GetPVRRecordingInfoTag()->m_strTitle.c_str());
+    CLog::LogFC(LOGDEBUG, LOGPVR, "Reading EDL for recording: {}",
+                item.GetPVRRecordingInfoTag()->m_strTitle);
     edl = item.GetPVRRecordingInfoTag()->GetEdl();
   }
   else if (item.HasEPGInfoTag())
   {
-    CLog::LogFC(LOGDEBUG, LOGPVR, "Reading EDL for EPG tag: %s", item.GetEPGInfoTag()->Title().c_str());
+    CLog::LogFC(LOGDEBUG, LOGPVR, "Reading EDL for EPG tag: {}", item.GetEPGInfoTag()->Title());
     edl = item.GetEPGInfoTag()->GetEdl();
   }
 
@@ -55,7 +56,7 @@ std::vector<EDL::Cut> CPVREdl::GetCuts(const CFileItem& item)
       cut.action = EDL::Action::COMM_BREAK;
       break;
     default:
-      CLog::LogF(LOGWARNING, "Ignoring entry of unknown EDL type: %d", entry.type);
+      CLog::LogF(LOGWARNING, "Ignoring entry of unknown EDL type: {}", entry.type);
       continue;
     }
 

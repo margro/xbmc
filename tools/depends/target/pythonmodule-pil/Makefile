@@ -10,28 +10,36 @@ VERSION=7.1.2
 SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.gz
 
-PYTHONPATH=$(PREFIX)/lib/python3.7/site-packages/
+PYTHONPATH=$(PREFIX)/lib/python3.8/site-packages/
 PILPATH=$(PYTHONPATH)
 LDSHARED=$(CC) -shared
+
+# Clear pkg-config data, as it will pull from Native pkg-config incorrectly
+ifeq ($(CROSS_COMPILING), yes)
+export PKG_CONFIG_PATH=
+export PKG_CONFIG_LIBDIR=${PREFIX}/lib/pkgconfig
+export PKG_CONFIG_SYSROOT_DIR=${SDKROOT}
+endif
 
 ifeq ($(OS),android)
 PILPATH=$(PREFIX)/share/$(APP_NAME)/addons/script.module.pil
 PILPATHLIB=$(PILPATH)/lib
-PYTHONPATH=$(PILPATH):$(PREFIX)/lib/python3.7/site-packages/
+PYTHONPATH=$(PILPATH):$(PREFIX)/lib/python3.8/site-packages/
 EXTRALDFLAGS=-L$(PREFIX)/lib/dummy-lib$(APP_NAME)/ -l$(APP_NAME) -lm
 else ifeq ($(OS),darwin_embedded)
 PILPATH=$(PREFIX)/share/$(APP_NAME)/addons/script.module.pil
 PILPATHLIB=$(PILPATH)/lib
-PYTHONPATH=$(PILPATH):$(PREFIX)/lib/python3.7/site-packages/
+PYTHONPATH=$(PILPATH):$(PREFIX)/lib/python3.8/site-packages/
 endif
 
 ifeq (darwin, $(findstring darwin, $(HOST)))
 #ensure that only our target ldflags are passed to the python build
 LDSHARED=$(CC) -bundle -undefined dynamic_lookup
+ZLIB_ROOT=ZLIB_ROOT="$(SDKROOT)/usr"
 endif
 
 BUILD_OPTS=--plat-name $(OS)-$(CPU) --disable-jpeg2000 --disable-webp --disable-imagequant --disable-tiff --disable-webp --disable-webpmux --disable-xcb --disable-lcms --disable-platform-guessing
-CROSSFLAGS=PYTHONXCPREFIX="$(PREFIX)" CC="$(CC) $(CFLAGS)" LDSHARED="$(LDSHARED)" LDFLAGS="$(LDFLAGS) $(EXTRALDFLAGS)" PYTHONPATH="$(PYTHONPATH)"
+CROSSFLAGS=$(ZLIB_ROOT) PYTHONXCPREFIX="$(PREFIX)" CC="$(CC) $(CFLAGS)" LDSHARED="$(LDSHARED)" LDFLAGS="$(LDFLAGS) $(EXTRALDFLAGS)" PYTHONPATH="$(PYTHONPATH)"
 
 all: .installed-$(PLATFORM)
 

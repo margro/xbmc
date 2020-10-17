@@ -167,34 +167,37 @@ CXBMCApp::~CXBMCApp()
   delete m_wakeLock;
 }
 
-void CXBMCApp::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
+void CXBMCApp::Announce(ANNOUNCEMENT::AnnouncementFlag flag,
+                        const std::string& sender,
+                        const std::string& message,
+                        const CVariant& data)
 {
-  if (strcmp(sender, "xbmc") != 0)
+  if (sender != CAnnouncementManager::ANNOUNCEMENT_SENDER)
     return;
 
   if (flag & Input)
   {
-    if (strcmp(message, "OnInputRequested") == 0)
+    if (message == "OnInputRequested")
       CAndroidKey::SetHandleSearchKeys(true);
-    else if (strcmp(message, "OnInputFinished") == 0)
+    else if (message == "OnInputFinished")
       CAndroidKey::SetHandleSearchKeys(false);
   }
   else if (flag & Player)
   {
-    if (strcmp(message, "OnPlay") == 0 || strcmp(message, "OnResume") == 0)
+    if (message == "OnPlay" || message == "OnResume")
       OnPlayBackStarted();
-    else if (strcmp(message, "OnPause") == 0)
+    else if (message == "OnPause")
       OnPlayBackPaused();
-    else if (strcmp(message, "OnStop") == 0)
+    else if (message == "OnStop")
       OnPlayBackStopped();
-    else if (strcmp(message, "OnSeek") == 0)
+    else if (message == "OnSeek")
       UpdateSessionState();
-    else if (strcmp(message, "OnSpeedChanged") == 0)
+    else if (message == "OnSpeedChanged")
       UpdateSessionState();
   }
   else if (flag & Info)
   {
-     if (strcmp(message, "OnChanged") == 0)
+    if (message == "OnChanged")
       UpdateSessionMetadata();
   }
 }
@@ -1360,7 +1363,7 @@ void CXBMCApp::SetupEnv()
   else
     setenv("HOME", getenv("KODI_TEMP"), 0);
 
-  std::string pythonPath = cacheDir + "/apk/assets/python3.7";
+  std::string pythonPath = cacheDir + "/apk/assets/python3.8";
   setenv("PYTHONHOME", pythonPath.c_str(), 1);
   setenv("PYTHONPATH", "", 1);
   setenv("PYTHONOPTIMIZE","", 1);

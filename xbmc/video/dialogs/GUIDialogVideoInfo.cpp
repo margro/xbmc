@@ -249,14 +249,26 @@ void CGUIDialogVideoInfo::OnInitWindow()
 
   const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
-  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_REFRESH, (profileManager->GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser) && !StringUtils::StartsWithNoCase(m_movieItem->GetVideoInfoTag()->GetUniqueID(), "xx"));
-  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_GET_THUMB, (profileManager->GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser) && !StringUtils::StartsWithNoCase(m_movieItem->GetVideoInfoTag()->GetUniqueID().c_str() + 2, "plugin"));
+  const std::string uniqueId = m_movieItem->GetProperty("xxuniqueid").asString();
+  if (uniqueId.empty() || !StringUtils::StartsWithNoCase(uniqueId.c_str(), "xx"))
+    CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_REFRESH,
+        (profileManager->GetCurrentProfile().canWriteDatabases() ||
+        g_passwordManager.bMasterUser));
+  else
+    CONTROL_DISABLE(CONTROL_BTN_REFRESH);
+  CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_GET_THUMB,
+      (profileManager->GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser) &&
+      !StringUtils::StartsWithNoCase(m_movieItem->GetVideoInfoTag()->
+      GetUniqueID().c_str(), "plugin"));
   // Disable video user rating button for plugins and sets as they don't have tables to save this
   CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_USERRATING, !m_movieItem->IsPlugin() && m_movieItem->GetVideoInfoTag()->m_type != MediaTypeVideoCollection);
 
   VIDEODB_CONTENT_TYPE type = static_cast<VIDEODB_CONTENT_TYPE>(m_movieItem->GetVideoContentType());
   if (type == VIDEODB_CONTENT_TVSHOWS || type == VIDEODB_CONTENT_MOVIES)
-    CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_GET_FANART, (profileManager->GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser) && !StringUtils::StartsWithNoCase(m_movieItem->GetVideoInfoTag()->GetUniqueID().c_str() + 2, "plugin"));
+    CONTROL_ENABLE_ON_CONDITION(CONTROL_BTN_GET_FANART, (profileManager->
+        GetCurrentProfile().canWriteDatabases() || g_passwordManager.bMasterUser) &&
+        !StringUtils::StartsWithNoCase(m_movieItem->GetVideoInfoTag()->
+        GetUniqueID().c_str(), "plugin"));
   else
     CONTROL_DISABLE(CONTROL_BTN_GET_FANART);
 
@@ -350,13 +362,20 @@ void CGUIDialogVideoInfo::SetMovie(const CFileItem *item)
       CFileItemPtr item(new CFileItem(it->strName));
       if (!it->thumb.empty())
         item->SetArt("thumb", it->thumb);
-      else if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_VIDEOLIBRARY_ACTORTHUMBS))
-      { // backward compatibility
-        std::string thumb = CScraperUrl::GetThumbUrl(it->thumbUrl.GetFirstUrlByType());
-        if (!thumb.empty())
-        {
-          item->SetArt("thumb", thumb);
-          CTextureCache::GetInstance().BackgroundCacheImage(thumb);
+      else
+      {
+        const std::shared_ptr<CSettings> settings =
+            CServiceBroker::GetSettingsComponent()->GetSettings();
+        if (settings->GetInt(CSettings::SETTING_VIDEOLIBRARY_ARTWORK_LEVEL) !=
+                CSettings::VIDEOLIBRARY_ARTWORK_LEVEL_NONE &&
+            settings->GetBool(CSettings::SETTING_VIDEOLIBRARY_ACTORTHUMBS))
+        { // backward compatibility
+          std::string thumb = CScraperUrl::GetThumbUrl(it->thumbUrl.GetFirstUrlByType());
+          if (!thumb.empty())
+          {
+            item->SetArt("thumb", thumb);
+            CTextureCache::GetInstance().BackgroundCacheImage(thumb);
+          }
         }
       }
       item->SetArt("icon", "DefaultActor.png");
@@ -620,9 +639,28 @@ void CGUIDialogVideoInfo::Play(bool resume)
 {
   if (m_movieItem->GetVideoInfoTag()->m_type == MediaTypeTvShow)
   {
-    std::string strPath = StringUtils::Format("videodb://tvshows/titles/%i/",m_movieItem->GetVideoInfoTag()->m_iDbId);
-    Close();
-    CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_VIDEO_NAV,strPath);
+    std::string strPath;
+    if (m_movieItem->IsPlugin())
+    {
+      strPath = m_movieItem->GetPath();
+      Close();
+      if (CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() == WINDOW_VIDEO_NAV)
+      {
+        CGUIMessage message(GUI_MSG_NOTIFY_ALL, CServiceBroker::GetGUI()->
+                            GetWindowManager().GetActiveWindow(), 0, GUI_MSG_UPDATE, 0);
+        message.SetStringParam(strPath);
+        CServiceBroker::GetGUI()->GetWindowManager().SendMessage(message);
+      }
+      else
+        CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_VIDEO_NAV,strPath);
+    }
+    else
+    {
+      strPath = StringUtils::Format("videodb://tvshows/titles/%i/",
+                                    m_movieItem->GetVideoInfoTag()->m_iDbId);
+      Close();
+      CServiceBroker::GetGUI()->GetWindowManager().ActivateWindow(WINDOW_VIDEO_NAV,strPath);
+    }
     return;
   }
 

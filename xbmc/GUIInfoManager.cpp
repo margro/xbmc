@@ -469,6 +469,22 @@ const infomap integer_bools[] =  {{ "isequal",          INTEGER_IS_EQUAL },
 ///     video.
 ///     <p>
 ///   }
+///   \table_row3{   <b>`Player.offset(number).Title`</b>,
+///                  \anchor Player_Offset_Title
+///                  _string_,
+///     @return The title of audio or video which has an offset `number` with respect to the currently playing item.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link Player_Offset_Title `Player.offset(number).Title`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`Player.position(number).Title`</b>,
+///                  \anchor Player_Position_Title
+///                  _string_,
+///     @return The title of the audio or video which has an offset `number` with respect to the start of the playlist.
+///     <p>><hr>
+///     @skinning_v19 **[New Infolabel]** \link Player_Position_Title `Player.position(number).Title`\endlink
+///     <p>
+///   }
 ///   \table_row3{   <b>`Player.Muted`</b>,
 ///                  \anchor Player_Muted
 ///                  _boolean_,
@@ -553,11 +569,43 @@ const infomap integer_bools[] =  {{ "isequal",          INTEGER_IS_EQUAL },
 ///     @return The full path of the currently playing song or movie
 ///     <p>
 ///   }
+///   \table_row3{   <b>`Player.offset(number).Folderpath`</b>,
+///                  \anchor Player_Offset_Folderpath
+///                  _string_,
+///     @return The full path of the audio or video file which has an offset `number` with respect to the currently playing item.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link Player_Offset_Folderpath `Player.offset(number).Folderpath`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`Player.position(number).Folderpath`</b>,
+///                  \anchor Player_Position_Folderpath
+///                  _string_,
+///     @return The full path of the audio or video file which has an offset `number` with respect to the start of the playlist.
+///     <p>><hr>
+///     @skinning_v19 **[New Infolabel]** \link Player_Position_Folderpath `Player.position(number).Folderpath`\endlink
+///     <p>
+///   }
 ///   \table_row3{   <b>`Player.FilenameAndPath`</b>,
 ///                  \anchor Player_FilenameAndPath
 ///                  _string_,
 ///     @return The full path with filename of the currently
 ///     playing song or movie
+///     <p>
+///   }
+///   \table_row3{   <b>`Player.offset(number).FilenameAndPath`</b>,
+///                  \anchor Player_Offset_FilenameAndPath
+///                  _string_,
+///     @return The full path with filename of audio or video file which has an offset `number` with respect to the currently playing item.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link Player_Offset_FilenameAndPath `Player.offset(number).FilenameAndPath`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`Player.position(number).FilenameAndPath`</b>,
+///                  \anchor Player_Position_FilenameAndPath
+///                  _string_,
+///     @return The full path with filename of the audio or video file which has an offset `number` with respect to the start of the playlist.
+///     <p>><hr>
+///     @skinning_v19 **[New Infolabel]** \link Player_Position_FilenameAndPath `Player.position(number).FilenameAndPath`\endlink
 ///     <p>
 ///   }
 ///   \table_row3{   <b>`Player.Filename`</b>,
@@ -566,6 +614,22 @@ const infomap integer_bools[] =  {{ "isequal",          INTEGER_IS_EQUAL },
 ///     @return The filename of the currently playing media.
 ///     <p><hr>
 ///     @skinning_v13 **[New Infolabel]** \link Player_Filename `Player.Filename`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`Player.offset(number).Filename`</b>,
+///                  \anchor Player_Offset_Filename
+///                  _string_,
+///     @return The filename of audio or video file which has an offset `number` with respect to the currently playing item.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link Player_Offset_Filename `Player.offset(number).Filename`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`Player.position(number).Filename`</b>,
+///                  \anchor Player_Position_Filename
+///                  _string_,
+///     @return The filename of the audio or video file which has an offset `number` with respect to the start of the playlist.
+///     <p>><hr>
+///     @skinning_v19 **[New Infolabel]** \link Player_Position_Filename `Player.position(number).Filename`\endlink
 ///     <p>
 ///   }
 ///   \table_row3{   <b>`Player.IsInternetStream`</b>,
@@ -1164,14 +1228,6 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///     @return **True** if Kodi is running on a linux/unix based computer.
 ///     <p>
 ///   }
-///   \table_row3{   <b>`System.Platform.Linux.RaspberryPi`</b>,
-///                  \anchor System_PlatformLinuxRaspberryPi
-///                  _boolean_,
-///     @return **True** if Kodi is running on a Raspberry Pi.
-///     <p><hr>
-///     @skinning_v13 **[New Boolean Condition]** \link System_PlatformLinuxRaspberryPi
-///     `System.Platform.Linux.RaspberryPi`\endlink <p>
-///   }
 ///   \table_row3{   <b>`System.Platform.Windows`</b>,
 ///                  \anchor System_PlatformWindows
 ///                  _boolean_,
@@ -1641,6 +1697,14 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///     @param id - the addon id
 ///     <p>
 ///   }
+///   \table_row3{   <b>`System.AddonUpdateCount`</b>,
+///                  \anchor System_AddonUpdateCount
+///                  _string_,
+///     @return The number of available addon updates.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link  System_AddonUpdateCount `
+///     System.AddonUpdateCount`\endlink <p>
+///   }
 ///   \table_row3{   <b>`System.IdleTime(time)`</b>,
 ///                  \anchor System_IdleTime
 ///                  _boolean_,
@@ -1734,6 +1798,7 @@ const infomap system_labels[] = {{"hasnetwork", SYSTEM_ETHERNET_LINK_ACTIVE},
                                  {"hascms", SYSTEM_HAS_CMS},
                                  {"privacypolicy", SYSTEM_PRIVACY_POLICY},
                                  {"haspvraddon", SYSTEM_HAS_PVR_ADDON},
+                                 {"addonupdatecount", SYSTEM_ADDON_UPDATE_COUNT},
                                  {"supportscpuusage", SYSTEM_SUPPORTS_CPU_USAGE}};
 
 /// \page modules__infolabels_boolean_conditions
@@ -2601,6 +2666,30 @@ const infomap musicpartymode[] = {{ "enabled",           MUSICPM_ENABLED },
 ///     @skinning_v19 **[New Infolabel]** \link MusicPlayer_BPM `MusicPlayer.BPM`\endlink
 ///     <p>
 ///   }
+///   \table_row3{   <b>`MusicPlayer.IsMultiDisc`</b>,
+///                  \anchor MusicPlayer_IsMultiDisc
+///                  _boolean_,
+///     @return Returns **true** if the album currently playing has more than one disc.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link MusicPlayer_IsMultiDisc `MusicPlayer.IsMultiDisc`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`MusicPlayer.TotalDiscs`</b>,
+///                  \anchor MusicPlayer_TotalDiscs
+///                  _string_,
+///     @return The number of discs associated with the currently playing album.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link MusicPlayer_TotalDiscs `MusicPlayer.TotalDiscs`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`MusicPlayer.Station`</b>,
+///                  \anchor MusicPlayer_Station
+///                  _string_,
+///     @return The name of the radio station currently playing (if available).
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link MusicPlayer_Station `MusicPlayer.Station`\endlink
+///     <p>
+///   }
 /// \table_end
 ///
 /// -----------------------------------------------------------------------------
@@ -2644,7 +2733,10 @@ const infomap musicplayer[] =    {{ "title",            MUSICPLAYER_TITLE },
                                   { "property",         MUSICPLAYER_PROPERTY },
                                   { "releasedate",      MUSICPLAYER_RELEASEDATE },
                                   { "originaldate",     MUSICPLAYER_ORIGINALDATE },
-                                  { "bpm",              MUSICPLAYER_BPM }
+                                  { "bpm",              MUSICPLAYER_BPM },
+                                  { "ismultidisc",      MUSICPLAYER_ISMULTIDISC },
+                                  { "totaldiscs",       MUSICPLAYER_TOTALDISCS },
+                                  { "station",          MUSICPLAYER_STATIONNAME }
 };
 
 /// \page modules__infolabels_boolean_conditions
@@ -4373,6 +4465,14 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     replaces `ListItem.Property(Addon.UpdateAvail)`.
 ///     <p>
 ///   }
+///   \table_row3{   <b>`ListItem.IsAutoUpdateable`</b>,
+///                  \anchor ListItem_IsAutoUpdateable
+///                  _boolean_,
+///     @return **True** if this add-on can be updated automatically.
+///     <p><hr>
+///     @skinning_v19 **[New Boolean Condition]** \link ListItem_IsAutoUpdateable `ListItem.IsAutoUpdateable`\endlink
+///     <p>
+///   }
 ///   \table_row3{   <b>`ListItem.Property(Addon.IsFromOfficialRepo)`</b>,
 ///                  \anchor ListItem_Property_AddonIsFromOfficialRepo
 ///                  _boolean_,
@@ -4389,12 +4489,20 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     @skinning_v19 **[New Boolean Condition]** \link ListItem_Property_AddonIsBinary `ListItem.Property(Addon.IsBinary)`\endlink
 ///     <p>
 ///   }
-///   \table_row3{   <b>`ListItem.Property(Addon.OriginType)`</b>,
-///                  \anchor ListItem_Property_AddonOriginType
-///                  _string_,
-///     @return A string representing the origin type. One of system\, repository or manual.
+///   \table_row3{   <b>`ListItem.Property(Addon.IsUpdate)`</b>,
+///                  \anchor ListItem_Property_AddonIsUpdate
+///                  _boolean_,
+///     @return **True** if this add-on is a valid update of an installed outdated add-on.
 ///     <p><hr>
-///     @skinning_v19 **[New String Value]** \link ListItem_Property_AddonOriginType `ListItem.Property(Addon.OriginType)`\endlink
+///     @skinning_v19 **[New Boolean Condition]** \link ListItem_Property_AddonIsUpdate `ListItem.Property(Addon.IsUpdate)`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.Property(Addon.ValidUpdateVersion)`</b>,
+///                  \anchor ListItem_Property_ValidUpdateVersion
+///                  _string_,
+///     @return The version string of a valid update for the addon. Empty string if there is no valid update available.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_Property_ValidUpdateVersion `ListItem.Property(Addon.ValidUpdateVersion)`\endlink
 ///     <p>
 ///   }
 ///   \table_row3{   <b>`ListItem.Label`</b>,
@@ -4598,6 +4706,14 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     @return **True** if the album is a boxset.
 ///     <p><hr>
 ///     @skinning_v19 **[New Infobool]** \link ListItem.Property(Album_Isboxset) `ListItem.Property(Album_Isboxset)`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.Property(Album_Duration)`</b>,
+///                  \anchor ListItem_Property_Album_Duration
+///                  _string_,
+///     @return The duration of the album in HH:MM:SS.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_Property_Album_Duration `ListItem.Property(Album_Duration)`\endlink
 ///     <p>
 ///   }
 ///   \table_row3{   <b>`ListItem.DiscNumber`</b>,
@@ -6062,11 +6178,35 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///                  \anchor ListItem_AddonBroken
 ///                  _string_,
 ///     @return A message when the addon is marked as broken in the repo.
+///     @deprecated but still available\, use \ref ListItem_AddonLifecycleDesc "ListItem.AddonLifecycleDesc"
+///     instead
 ///     <p><hr>
 ///     @skinning_v17 **[Infolabel Updated]** \link ListItem_AddonBroken `ListItem.AddonBroken`\endlink
 ///     replaces `ListItem.Property(Addon.Broken)`.
 ///     <p>
 ///   }
+///   \table_row3{   <b>`ListItem.AddonLifecycleType`</b>,
+///                  \anchor ListItem_AddonLifecycleType
+///                  _string_,
+///     @return String name when the addon is marked as special condition in the repo.
+///       - <b>Label: 24169 (Normal)</b> - Used if an add-on has no special lifecycle state which is the default state
+///       - <b>Label: 24170 (Deprecated)</b> - The add-on should be marked as deprecated but is still usable
+///       - <b>Label: 24171 (Broken)</b> - The add-on should marked as broken in the repository
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_AddonLifecycleType `ListItem.AddonLifecycleType`\endlink
+///     replaces `ListItem.AddonBroken`.
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.AddonLifecycleDesc`</b>,
+///                  \anchor ListItem_AddonLifecycleDesc
+///                  _string_,
+///     @return From addon defined message text when it is marked as special condition inside repository.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_AddonLifecycleDesc `ListItem.AddonLifecycleDesc``\endlink
+///     replaces `ListItem.AddonBroken`.
+///     <p>
+///   }
+
 ///   \table_row3{   <b>`ListItem.AddonType`</b>,
 ///                  \anchor ListItem_AddonType
 ///                  _string_,
@@ -6480,7 +6620,6 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     @return The Musicbrainz release status of the album (offical, bootleg, promotion etc)
 ///     <p><hr>
 ///     @skinning_v19 **[New Infolabel]** \link ListItem_AlbumStatus `ListItem.AlbumStatus`\endlink
-///     <p>
 ///   }
 /// \table_end
 ///
@@ -6663,6 +6802,8 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "addondisclaimer",  LISTITEM_ADDON_DISCLAIMER },
                                   { "addonnews",        LISTITEM_ADDON_NEWS },
                                   { "addonbroken",      LISTITEM_ADDON_BROKEN },
+                                  { "addonlifecycletype", LISTITEM_ADDON_LIFECYCLE_TYPE },
+                                  { "addonlifecycledesc", LISTITEM_ADDON_LIFECYCLE_DESC },
                                   { "addontype",        LISTITEM_ADDON_TYPE },
                                   { "addoninstalldate", LISTITEM_ADDON_INSTALL_DATE },
                                   { "addonlastupdated", LISTITEM_ADDON_LAST_UPDATED },
@@ -6690,6 +6831,7 @@ const infomap listitem_labels[]= {{ "thumb",            LISTITEM_THUMB },
                                   { "islive",           LISTITEM_IS_LIVE },
                                   { "tvshowdbid",       LISTITEM_TVSHOWDBID },
                                   { "albumstatus",      LISTITEM_ALBUMSTATUS },
+                                  { "isautoupdateable", LISTITEM_ISAUTOUPDATEABLE },
 };
 
 /// \page modules__infolabels_boolean_conditions
@@ -7320,6 +7462,14 @@ const infomap playlist[] =       {{ "length",           PLAYLIST_LENGTH },
 ///     @return The position of currently timeshifted title on TV as integer.
 ///     <p>
 ///   }
+///   \table_row3{   <b>`PVR.TimeShiftSeekbar`</b>,
+///                  \anchor PVR_TimeShiftSeekbar
+///                  _integer_,
+///     @return The percentage we are seeking to in a timeshifted title.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link PVR_TimeShiftSeekbar `PVR.TimeShiftSeekbar`\endlink
+///     <p>
+///   }
 ///   \table_row3{   <b>`PVR.NowRecordingTitle`</b>,
 ///                  \anchor PVR_NowRecordingTitle
 ///                  _string_,
@@ -7665,6 +7815,7 @@ const infomap pvr[] =            {{ "isrecording",              PVR_IS_RECORDING
                                   { "actstreamprovidername",    PVR_ACTUAL_STREAM_PROVIDER },
                                   { "istimeshift",              PVR_IS_TIMESHIFTING },
                                   { "timeshiftprogress",        PVR_TIMESHIFT_PROGRESS },
+                                  { "timeshiftseekbar",         PVR_TIMESHIFT_SEEKBAR },
                                   { "nowrecordingtitle",        PVR_NOW_RECORDING_TITLE },
                                   { "nowrecordingdatetime",     PVR_NOW_RECORDING_DATETIME },
                                   { "nowrecordingchannel",      PVR_NOW_RECORDING_CHANNEL },
@@ -9260,6 +9411,11 @@ const infomap slideshow[] =      {{ "ispaused",               SLIDESHOW_ISPAUSED
 /// \page modules__infolabels_boolean_conditions
 /// \section modules_rm_infolabels_booleans Additional revision history for Infolabels and Boolean Conditions
 /// <hr>
+/// \subsection modules_rm_infolabels_booleans_v19 Kodi v19 (Matrix)
+/// @skinning_v19 **[Removed Infolabels]** The following infolabels have been removed:
+///   - `System.Platform.Linux.RaspberryPi` - use \link System_Platform_Linux `System.Platform.Linux`\endlink instead
+///
+/// <hr>
 /// \subsection modules_rm_infolabels_booleans_v18 Kodi v18 (Leia)
 ///
 /// @skinning_v18 **[Removed Infolabels]** The following infolabels have been removed:
@@ -9910,15 +10066,7 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
     { //! @todo replace with a single system.platform
       std::string platform = info[2].name;
       if (platform == "linux")
-      {
-        if (info.size() == 4)
-        {
-          std::string device = info[3].name;
-          if (device == "raspberrypi")
-            return SYSTEM_PLATFORM_LINUX_RASPBERRY_PI;
-        }
-        else return SYSTEM_PLATFORM_LINUX;
-      }
+        return SYSTEM_PLATFORM_LINUX;
       else if (platform == "windows")
         return SYSTEM_PLATFORM_WINDOWS;
       else if (platform == "uwp")
@@ -9961,6 +10109,21 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
       {
         int position = atoi(info[1].param().c_str());
         int value = TranslateVideoPlayerString(info[2].name); // videoplayer.offset(foo).bar
+        return AddMultiInfo(CGUIInfo(value, 1, position)); // 1 => relative
+      }
+    }
+    else if (info[0].name == "player")
+    { //! @todo these two don't allow duration(foo) and also don't allow more than this number of levels...
+      if (info[1].name == "position")
+      {
+        int position = atoi(info[1].param().c_str());
+        int value = TranslatePlayerString(info[2].name); // player.position(foo).bar
+        return AddMultiInfo(CGUIInfo(value, 2, position)); // 2 => absolute (0 used for not set)
+      }
+      else if (info[1].name == "offset")
+      {
+        int position = atoi(info[1].param().c_str());
+        int value = TranslatePlayerString(info[2].name); // player.offset(foo).bar
         return AddMultiInfo(CGUIInfo(value, 1, position)); // 1 => relative
       }
     }
@@ -10073,6 +10236,16 @@ int CGUIInfoManager::TranslateMusicPlayerString(const std::string &info) const
 int CGUIInfoManager::TranslateVideoPlayerString(const std::string& info) const
 {
   for (const infomap& i : videoplayer)
+  {
+    if (info == i.str)
+      return i.val;
+  }
+  return 0;
+}
+
+int CGUIInfoManager::TranslatePlayerString(const std::string& info) const
+{
+  for (const infomap& i : player_labels)
   {
     if (info == i.str)
       return i.val;
@@ -10467,7 +10640,7 @@ void CGUIInfoManager::SetCurrentItem(const CFileItem &item)
 
   m_infoProviders.InitCurrentItem(m_currentFile);
 
-  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::Info, "xbmc", "OnChanged");
+  CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::Info, "OnChanged");
 }
 
 void CGUIInfoManager::SetCurrentAlbumThumb(const std::string &thumbFileName)

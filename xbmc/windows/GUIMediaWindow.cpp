@@ -523,9 +523,13 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
     {
       if (m_vecItems->GetPath() == "?")
         m_vecItems->SetPath("");
+
       std::string dir = message.GetStringParam(0);
-      const std::string &ret = message.GetStringParam(1);
-      bool returning = StringUtils::EqualsNoCase(ret, "return");
+      const std::string& ret = message.GetStringParam(1);
+      const std::string& swap = message.GetStringParam(message.GetNumStringParams() - 1);
+      const bool returning = StringUtils::EqualsNoCase(ret, "return");
+      const bool replacing = StringUtils::EqualsNoCase(swap, "replace");
+
       if (!dir.empty())
       {
         // ensure our directory is valid
@@ -561,8 +565,9 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
         // if "return" is defined make sure we set the startDirectory to the directory we are
         // moving to (so that we can move back to where we were onBack). If we are activating
         // the same window but with a different path, do nothing - we are simply adding to the
-        // window history.
-        if (message.GetParam1() != message.GetParam2())
+        // window history. Note that if the window is just being replaced, the start directory
+        // also needs to be set as the manager has just popped the previous window.
+        if (message.GetParam1() != message.GetParam2() || replacing)
           m_startDirectory = returning ? dir : GetRootPath();
       }
       if (message.GetParam2() == PLUGIN_REFRESH_DELAY)
@@ -1518,7 +1523,7 @@ bool CGUIMediaWindow::OnPlayAndQueueMedia(const CFileItemPtr &item, std::string 
     std::string mainDVD;
     for (int i = 0; i < m_vecItems->Size(); i++)
     {
-      std::string path = URIUtils::GetFileName(m_vecItems->Get(i)->GetPath());
+      std::string path = URIUtils::GetFileName(m_vecItems->Get(i)->GetDynPath());
       if (StringUtils::EqualsNoCase(path, "VIDEO_TS.IFO"))
       {
         mainDVD = path;
@@ -1534,7 +1539,7 @@ bool CGUIMediaWindow::OnPlayAndQueueMedia(const CFileItemPtr &item, std::string 
       if (nItem->m_bIsFolder)
         continue;
 
-      if (!nItem->IsZIP() && !nItem->IsRAR() && (!nItem->IsDVDFile() || (URIUtils::GetFileName(nItem->GetPath()) == mainDVD)))
+      if (!nItem->IsZIP() && !nItem->IsRAR() && (!nItem->IsDVDFile() || (URIUtils::GetFileName(nItem->GetDynPath()) == mainDVD)))
         CServiceBroker::GetPlaylistPlayer().Add(iPlaylist, nItem);
 
       if (item->IsSamePath(nItem.get()))

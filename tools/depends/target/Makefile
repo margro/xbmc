@@ -12,7 +12,7 @@ DEPENDS = \
 	libxml2 rapidjson libmicrohttpd mariadb libffi \
 	python3 libshairplay libfmt libspdlog \
 	libplist libcec libbluray tinyxml \
-	taglib libusb libnfs meson-cross-file \
+	taglib libusb libnfs \
 	pythonmodule-pil pythonmodule-pycryptodome pythonmodule-setuptools \
 	libxslt ffmpeg crossguid libudfread \
 	libdvdread libdvdnav libdvdcss p8-platform flatbuffers dav1d
@@ -29,7 +29,7 @@ ifeq ($(OS),darwin_embedded)
     DEPENDS += boblight
     EXCLUDED_DEPENDS += libshairplay libplist
   endif
-  DEPENDS += iosentitlements
+  DEPENDS += darwin-embedded-entitlements
 endif
 
 ifeq ($(OS),osx)
@@ -61,17 +61,19 @@ endif
 WAYLANDPP_DEPS=
 ALSA_LIB=
 ifeq ($(OS),linux)
-  DEPENDS += dbus libuuid
-  #not for raspberry pi
-  ifneq ($(TARGET_PLATFORM),raspberry-pi)
-    DEPENDS += linux-system-libs
-    WAYLANDPP_DEPS += linux-system-libs
-  endif
-  DEPENDS += alsa-lib
+  DEPENDS += dbus libuuid alsa-lib
   ALSA_LIB = alsa-lib
   LIBUUID = libuuid
-  ifeq ($(TARGET_PLATFORM),$(filter $(TARGET_PLATFORM),raspberry-pi gbm))
-    DEPENDS += libxkbcommon libinput libudev libevdev mtdev
+
+  ifeq ($(TARGET_PLATFORM),gbm)
+    DEPENDS += libxkbcommon libinput libudev libevdev mtdev libdrm mesa
+    ifeq ($(CPU),x86_64)
+      DEPENDS += libva
+      LIBVA = libva
+    endif
+  else
+    DEPENDS += linux-system-libs
+    WAYLANDPP_DEPS += linux-system-libs
   endif
 endif
 
@@ -104,7 +106,7 @@ pythonmodule-pycryptodome: $(PYMODULE_DEPS) python3 pythonmodule-setuptools
 pythonmodule-pil: bzip2 $(PYMODULE_DEPS) $(ZLIB) libjpeg-turbo libpng freetype2 python3 pythonmodule-setuptools
 pythonmodule-setuptools: $(PYMODULE_DEPS) python3
 libxslt: libgcrypt libxml2
-ffmpeg: $(ICONV) $(ZLIB) bzip2 gnutls dav1d
+ffmpeg: $(ICONV) $(ZLIB) bzip2 gnutls dav1d $(LIBVA)
 libcec: p8-platform
 crossguid: $(LIBUUID)
 libdvdnav: libdvdread
@@ -119,6 +121,9 @@ taglib: $(ZLIB)
 dav1d: meson-cross-file
 fribidi: meson-cross-file
 libspdlog: libfmt
+libdrm: meson-cross-file
+mesa: libdrm meson-cross-file
+libva: libdrm
 
 .installed-$(PLATFORM): $(DEPENDS)
 	touch $@
@@ -186,7 +191,7 @@ linux-system-libs: linux-system-libs-egl
 	[ -f $(PREFIX)/lib/pkgconfig/xkbcommon.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/xkbcommon.pc $(PREFIX)/lib/pkgconfig/xkbcommon.pc
 	[ -f $(PREFIX)/lib/pkgconfig/libva.pc ] || ln -sf /usr/lib/$(HOST)/pkgconfig/libva.pc $(PREFIX)/lib/pkgconfig/libva.pc
 
-meson-cross-file:
+$(PREFIX)/share/cross-file.meson:
 	PREFIX="$(PREFIX)" \
 	NATIVEPREFIX="$(NATIVEPREFIX)" \
 	CC="$(CC)" \
@@ -199,5 +204,7 @@ meson-cross-file:
 	CFLAGS="$(CFLAGS)" \
 	CXXFLAGS="$(CXXFLAGS)" \
 	LDFLAGS="$(LDFLAGS)" \
-	./meson-cross-setup.sh
+	./meson-cross-setup.sh $@
 
+.PHONY: meson-cross-file
+meson-cross-file: $(PREFIX)/share/cross-file.meson

@@ -80,10 +80,10 @@ CPVREpgInfoTag::CPVREpgInfoTag(const EPG_TAG& data, int iClientId, const std::sh
     m_channelData = channelData;
 
     if (m_channelData->ClientId() != iClientId)
-      CLog::LogF(LOGERROR, "Client id mismatch (channel: %d, epg: %d)!",
-                 m_channelData->ClientId(), iClientId);
+      CLog::LogF(LOGERROR, "Client id mismatch (channel: {}, epg: {})!", m_channelData->ClientId(),
+                 iClientId);
     if (m_channelData->UniqueClientChannelId() != static_cast<int>(data.iUniqueChannelId))
-      CLog::LogF(LOGERROR, "Channel uid mismatch (channel: %d, epg: %d)!",
+      CLog::LogF(LOGERROR, "Channel uid mismatch (channel: {}, epg: {})!",
                  m_channelData->UniqueClientChannelId(), data.iUniqueChannelId);
   }
   else
@@ -550,26 +550,15 @@ bool CPVREpgInfoTag::Update(const CPVREpgInfoTag& tag, bool bUpdateBroadcastId /
   return bChanged;
 }
 
-bool CPVREpgInfoTag::Persist(const std::shared_ptr<CPVREpgDatabase>& database, bool bSingleUpdate /* = true */)
+bool CPVREpgInfoTag::QueuePersistQuery(const std::shared_ptr<CPVREpgDatabase>& database)
 {
-  bool bReturn = false;
-
   if (!database)
   {
     CLog::LogF(LOGERROR, "Could not open the EPG database");
-    return bReturn;
+    return false;
   }
 
-  int iId = database->Persist(*this, bSingleUpdate);
-  if (iId >= 0)
-  {
-    bReturn = true;
-
-    if (iId > 0)
-      m_iDatabaseID = iId;
-  }
-
-  return bReturn;
+  return database->QueuePersistQuery(*this);
 }
 
 std::vector<PVR_EDL_ENTRY> CPVREpgInfoTag::GetEdl() const

@@ -4,8 +4,10 @@ set(SOURCES Addon.cpp
             AddonDatabase.cpp
             AddonInstaller.cpp
             AddonManager.cpp
+            AddonRepos.cpp
             AddonStatusHandler.cpp
             AddonSystemSettings.cpp
+            AddonUpdateRules.cpp
             AddonVersion.cpp
             AudioDecoder.cpp
             AudioEncoder.cpp
@@ -14,9 +16,6 @@ set(SOURCES Addon.cpp
             FontResource.cpp
             FilesystemInstaller.cpp
             GameResource.cpp
-            GUIDialogAddonInfo.cpp
-            GUIViewStateAddonBrowser.cpp
-            GUIWindowAddonBrowser.cpp
             ImageDecoder.cpp
             ImageResource.cpp
             LanguageResource.cpp
@@ -35,13 +34,16 @@ set(SOURCES Addon.cpp
 set(HEADERS Addon.h
             AddonBuilder.h
             AddonEvents.h
+            AddonRepoInfo.h
             BinaryAddonCache.h
             AddonDatabase.h
             AddonInstaller.h
             AddonManager.h
             AddonProvider.h
+            AddonRepos.h
             AddonStatusHandler.h
             AddonSystemSettings.h
+            AddonUpdateRules.h
             AddonVersion.h
             AudioDecoder.h
             AudioEncoder.h
@@ -50,9 +52,6 @@ set(HEADERS Addon.h
             FilesystemInstaller.h
             FontResource.h
             GameResource.h
-            GUIDialogAddonInfo.h
-            GUIViewStateAddonBrowser.h
-            GUIWindowAddonBrowser.h
             IAddon.h
             ImageDecoder.h
             ImageResource.h

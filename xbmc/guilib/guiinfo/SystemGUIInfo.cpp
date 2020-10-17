@@ -305,6 +305,10 @@ bool CSystemGUIInfo::GetLabel(std::string& value, const CFileItem *item, int con
     case SYSTEM_RENDER_VERSION:
       value = CServiceBroker::GetRenderSystem()->GetRenderVersionString();
       return true;
+    case SYSTEM_ADDON_UPDATE_COUNT:
+      value =
+          StringUtils::Format("{0}", CServiceBroker::GetAddonMgr().GetAvailableUpdates().size());
+      return true;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // NETWORK_*
@@ -487,13 +491,6 @@ bool CSystemGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int context
       return true;
     case SYSTEM_PLATFORM_ANDROID:
 #if defined(TARGET_ANDROID)
-      value = true;
-#else
-      value = false;
-#endif
-      return true;
-    case SYSTEM_PLATFORM_LINUX_RASPBERRY_PI:
-#if defined(TARGET_RASPBERRY_PI)
       value = true;
 #else
       value = false;

@@ -3,7 +3,7 @@ DEPS= ../../Makefile.include Makefile 01-fix-dependencies.patch 02-cross_compile
 
 # lib name, version
 LIBNAME=samba
-VERSION=4.11.6
+VERSION=4.11.13
 SOURCE=$(LIBNAME)-$(VERSION)
 ARCHIVE=$(SOURCE).tar.gz
 
@@ -25,6 +25,11 @@ CONFIGURE=./configure --prefix=$(PREFIX) \
           --without-regedit
 
 LIBDYLIB=$(PLATFORM)/bin/default/source3/libsmb/libsmbclient.a
+
+ifeq ($(OS), darwin_embedded)
+  # build errors with _yp_get_default_domain NIS failure
+  CFLAGS+= -Wno-error=implicit-function-declaration
+endif
 
 export CC CXX CPP AR RANLIB LD AS NM STRIP TOOLCHAIN
 export CFLAGS CXXFLAGS CPPFLAGS LDFLAGS

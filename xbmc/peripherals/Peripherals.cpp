@@ -8,11 +8,12 @@
 
 #include "Peripherals.h"
 
+#include "CompileInfo.h"
 #include "EventScanner.h"
 #include "addons/AddonButtonMap.h"
 #include "addons/AddonManager.h"
-#include "addons/GUIWindowAddonBrowser.h"
-#include "addons/settings/GUIDialogAddonSettings.h"
+#include "addons/gui/GUIDialogAddonSettings.h"
+#include "addons/gui/GUIWindowAddonBrowser.h"
 #include "bus/PeripheralBus.h"
 #include "bus/PeripheralBusUSB.h"
 
@@ -1008,13 +1009,14 @@ int CPeripherals::GetMessageMask()
 }
 
 void CPeripherals::Announce(ANNOUNCEMENT::AnnouncementFlag flag,
-                            const char* sender,
-                            const char* message,
+                            const std::string& sender,
+                            const std::string& message,
                             const CVariant& data)
 {
-  if (flag == ANNOUNCEMENT::Player && strcmp(sender, "xbmc") == 0)
+  if (flag == ANNOUNCEMENT::Player &&
+      sender == ANNOUNCEMENT::CAnnouncementManager::ANNOUNCEMENT_SENDER)
   {
-    if (strcmp(message, "OnQuit") == 0)
+    if (message == "OnQuit")
     {
       if (CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(
               CSettings::SETTING_INPUT_CONTROLLERPOWEROFF))

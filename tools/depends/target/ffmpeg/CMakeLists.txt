@@ -39,20 +39,16 @@ if(CMAKE_BUILD_TYPE STREQUAL Release)
 endif()
 
 if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
-  if(CORE_PLATFORM_NAME STREQUAL rbpi)
-    list(APPEND ffmpeg_conf --cpu=${CPU} --disable-vaapi --disable-vdpau)
+  list(APPEND ffmpeg_conf --enable-pic)
+  if(ENABLE_VAAPI)
+    list(APPEND ffmpeg_conf --enable-vaapi)
   else()
-    list(APPEND ffmpeg_conf --enable-pic)
-    if(ENABLE_VAAPI)
-      list(APPEND ffmpeg_conf --enable-vaapi)
-    else()
-      list(APPEND ffmpeg_conf --disable-vaapi)
-    endif()
-    if(ENABLE_VDPAU)
-      list(APPEND ffmpeg_conf --enable-vdpau)
-    else()
-      list(APPEND ffmpeg_conf --disable-vdpau)
-    endif()
+    list(APPEND ffmpeg_conf --disable-vaapi)
+  endif()
+  if(ENABLE_VDPAU)
+    list(APPEND ffmpeg_conf --enable-vdpau)
+  else()
+    list(APPEND ffmpeg_conf --disable-vdpau)
   endif()
 elseif(CORE_SYSTEM_NAME STREQUAL android)
   if(CPU MATCHES arm64)
@@ -75,7 +71,7 @@ elseif(CORE_SYSTEM_NAME STREQUAL osx)
                           --disable-securetransport)
 endif()
 
-if(CPU MATCHES arm OR CORE_PLATFORM_NAME STREQUAL rbpi)
+if(CPU MATCHES arm)
   list(APPEND ffmpeg_conf --enable-pic --disable-armv5te --disable-armv6t2)
 elseif(CPU MATCHES mips)
   list(APPEND ffmpeg_conf --disable-mips32r2 --disable-mipsdsp --disable-mipsdspr2)
@@ -98,6 +94,16 @@ if(EXTRA_FLAGS)
 endif()
 
 message(STATUS "FFMPEG_CONF: ${ffmpeg_conf}")
+
+set(MAKE_COMMAND $(MAKE))
+if(CMAKE_GENERATOR STREQUAL Ninja)
+  set(MAKE_COMMAND make)
+  include(ProcessorCount)
+  ProcessorCount(N)
+  if(NOT N EQUAL 0)
+    set(MAKE_COMMAND make -j${N})
+  endif()
+endif()
 
 include(ExternalProject)
 externalproject_add(ffmpeg
@@ -124,7 +130,8 @@ externalproject_add(ffmpeg
                       --enable-protocol=http
                       --enable-encoder=png
                       --enable-encoder=mjpeg
-                      ${ffmpeg_conf})
+                      ${ffmpeg_conf}
+                    BUILD_COMMAND ${MAKE_COMMAND})
 
 install(CODE "Message(Done)")
 

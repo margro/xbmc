@@ -9,7 +9,7 @@
 #pragma once
 
 #include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/Visualization.h"
+#include "addons/kodi-dev-kit/include/kodi/addon-instance/Visualization.h"
 
 namespace ADDON
 {
@@ -26,7 +26,14 @@ public:
   bool IsDirty();
   void Render();
   void GetInfo(VIS_INFO *info);
-  bool OnAction(VIS_ACTION action, const void *param);
+  bool NextPreset();
+  bool PrevPreset();
+  bool LoadPreset(int select);
+  bool RandomPreset();
+  bool LockPreset();
+  bool RatePreset(bool plus_minus);
+  bool UpdateAlbumart(const char* albumart);
+  bool UpdateTrack(const VIS_TRACK* track);
   bool HasPresets();
   bool GetPresetList(std::vector<std::string>& vecpresets);
   int GetActivePreset();

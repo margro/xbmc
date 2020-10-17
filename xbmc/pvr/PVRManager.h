@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_general.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_general.h"
 #include "interfaces/IAnnouncer.h"
 #include "pvr/epg/EpgContainer.h"
 #include "pvr/guilib/PVRGUIActionListener.h"
@@ -97,7 +97,10 @@ namespace PVR
      */
     ~CPVRManager() override;
 
-    void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char* sender, const char* message, const CVariant& data) override;
+    void Announce(ANNOUNCEMENT::AnnouncementFlag flag,
+                  const std::string& sender,
+                  const std::string& message,
+                  const CVariant& data) override;
 
     /*!
      * @brief Get the channel groups container.
@@ -433,7 +436,7 @@ namespace PVR
 
     CEventSource<PVREvent> m_events;
 
-    std::shared_ptr<CPVRPlaybackState> m_playbackState;
+    const std::shared_ptr<CPVRPlaybackState> m_playbackState;
 
     CPVRGUIActionListener m_actionListener;
     CPVRSettings m_settings;

@@ -8,7 +8,7 @@
 #pragma once
 
 #include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/VFS.h"
+#include "addons/kodi-dev-kit/include/kodi/addon-instance/VFS.h"
 #include "filesystem/IDirectory.h"
 #include "filesystem/IFile.h"
 #include "filesystem/IFileDirectory.h"
@@ -19,7 +19,7 @@ namespace ADDON
   class CVFSEntry;
   typedef std::shared_ptr<CVFSEntry> VFSEntryPtr;
 
-  class CVFSAddonCache
+  class CVFSAddonCache : public CAddonDllInformer
   {
   public:
     virtual ~CVFSAddonCache();
@@ -29,8 +29,9 @@ namespace ADDON
     VFSEntryPtr GetAddonInstance(const std::string& strId);
 
   protected:
-    void Update();
+    void Update(const std::string& id);
     void OnEvent(const AddonEvent& event);
+    bool IsInUse(const std::string& id) override;
 
     CCriticalSection m_critSection;
     std::vector<VFSEntryPtr> m_addonsInstances;
@@ -96,18 +97,6 @@ namespace ADDON
     const std::string& GetZeroconfType() const { return m_zeroconf; }
     const ProtocolInfo& GetProtocolInfo() const { return m_protocolInfo; }
   protected:
-    /*!
-     * @brief TO translate `enum XFILE::EIoControl` to/from `enum VFS_IOCTRL`.
-     *
-     * This is meant to interact securely between Kodi and addon.
-     *
-     * @note The `int` there is `enum XFILE::EIoControl`
-     */
-    //@{
-    static int TranslateIOCTRLToKodi(VFS_IOCTRL ioctrl);
-    static VFS_IOCTRL TranslateIOCTRLToAddon(int ioctrl);
-    //@}
-
     std::string m_protocols;  //!< Protocols for VFS entry.
     std::string m_extensions; //!< Extensions for VFS entry.
     std::string m_zeroconf;   //!< Zero conf announce string for VFS protocol.

@@ -8,13 +8,15 @@
 
 #pragma once
 
+#include "addons/kodi-dev-kit/include/kodi/c-api/gui/dialogs/context_menu.h"
+
 extern "C"
 {
 
-struct AddonGlobalInterface;
+  struct AddonGlobalInterface;
 
-namespace ADDON
-{
+  namespace ADDON
+  {
 
   /*!
    * @brief Global gui Add-on to Kodi callback functions
@@ -22,7 +24,7 @@ namespace ADDON
    * To hold functions not related to a instance type and usable for
    * every add-on type.
    *
-   * Related add-on header is "./xbmc/addons/kodi-addon-dev-kit/include/kodi/gui/dialogs/ContextMenu.h"
+   * Related add-on header is "./xbmc/addons/kodi-dev-kit/include/kodi/gui/dialogs/ContextMenu.h"
    */
   struct Interface_GUIDialogContextMenu
   {
@@ -40,9 +42,12 @@ namespace ADDON
      * class.
      */
     //@{
-    static int open(void* kodiBase, const char *heading, const char *entries[], unsigned int size);
+    static int open(KODI_HANDLE kodiBase,
+                    const char* heading,
+                    const char* entries[],
+                    unsigned int size);
     //@}
   };
 
-} /* namespace ADDON */
+  } /* namespace ADDON */
 } /* extern "C" */

@@ -203,16 +203,19 @@ CPVRManager::~CPVRManager()
   CLog::LogFC(LOGDEBUG, LOGPVR, "PVR Manager instance destroyed");
 }
 
-void CPVRManager::Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char* sender, const char* message, const CVariant& data)
+void CPVRManager::Announce(ANNOUNCEMENT::AnnouncementFlag flag,
+                           const std::string& sender,
+                           const std::string& message,
+                           const CVariant& data)
 {
   if (!IsStarted())
     return;
 
   if ((flag & (ANNOUNCEMENT::GUI)))
   {
-    if (strcmp(message, "OnScreensaverActivated") == 0)
+    if (message == "OnScreensaverActivated")
       m_addons->OnPowerSavingActivated();
-    else if (strcmp(message, "OnScreensaverDeactivated") == 0)
+    else if (message == "OnScreensaverDeactivated")
       m_addons->OnPowerSavingDeactivated();
   }
 }
@@ -294,7 +297,7 @@ std::shared_ptr<CPVRGUIActions> CPVRManager::GUIActions() const
 
 std::shared_ptr<CPVRPlaybackState> CPVRManager::PlaybackState() const
 {
-  CSingleLock lock(m_critSection);
+  // note: m_playbackState is const (only set/reset in ctor/dtor). no need for a lock here.
   return m_playbackState;
 }
 
@@ -306,6 +309,7 @@ CPVREpgContainer& CPVRManager::EpgContainer()
 
 void CPVRManager::Clear()
 {
+  m_playbackState->Clear();
   m_pendingUpdates->Clear();
   m_epgContainer.Clear();
 
@@ -316,7 +320,6 @@ void CPVRManager::Clear()
   m_recordings.reset();
   m_channelGroups.reset();
   m_parentalTimer.reset();
-  m_playbackState.reset();
   m_database.reset();
 
   m_bEpgsCreated = false;
@@ -333,7 +336,6 @@ void CPVRManager::ResetProperties()
   m_timers.reset(new CPVRTimers);
   m_guiInfo.reset(new CPVRGUIInfo);
   m_parentalTimer.reset(new CStopWatch);
-  m_playbackState.reset(new CPVRPlaybackState);
 }
 
 void CPVRManager::Init()
@@ -572,7 +574,8 @@ bool CPVRManager::SetWakeupCommand()
 
       const int iReturn = system(strExecCommand.c_str());
       if (iReturn != 0)
-        CLog::LogF(LOGERROR, "PVR Manager failed to execute wakeup command '%s': %s (%d)", strExecCommand.c_str(), strerror(iReturn), iReturn);
+        CLog::LogF(LOGERROR, "PVR Manager failed to execute wakeup command '{}': {} ({})",
+                   strExecCommand, strerror(iReturn), iReturn);
 
       return iReturn == 0;
     }

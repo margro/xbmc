@@ -75,6 +75,7 @@ bool CRecentlyAddedJob::UpdateVideo()
 
       home->SetProperty("LatestMovie." + value + ".Thumb"       , item->GetArt("thumb"));
       home->SetProperty("LatestMovie." + value + ".Fanart"      , item->GetArt("fanart"));
+      home->SetProperty("LatestMovie." + value + ".Poster"      , item->GetArt("poster"));
     }
   }
   for (; i < NUM_ITEMS; ++i)
@@ -89,6 +90,7 @@ bool CRecentlyAddedJob::UpdateVideo()
     home->SetProperty("LatestMovie." + value + ".Path"        , "");
     home->SetProperty("LatestMovie." + value + ".Trailer"     , "");
     home->SetProperty("LatestMovie." + value + ".Fanart"      , "");
+    home->SetProperty("LatestMovie." + value + ".Poster"      , "");
   }
 
   i = 0;
@@ -145,8 +147,9 @@ bool CRecentlyAddedJob::UpdateVideo()
   }
 
 #if defined(TARGET_DARWIN_TVOS)
-  // send recently added Movies and TvShows to TopShelf
-  CTVOSTopShelf::GetInstance().SetTopShelfItems(items, TVShowItems);
+  // Add recently added Movies and TvShows items on tvOS Kodi TopShelf
+  CTVOSTopShelf::GetInstance().SetTopShelfItems(items, TVOSTopShelfItemsCategory::MOVIES);
+  CTVOSTopShelf::GetInstance().SetTopShelfItems(TVShowItems, TVOSTopShelfItemsCategory::TV_SHOWS);
 #endif
 
   i = 0;

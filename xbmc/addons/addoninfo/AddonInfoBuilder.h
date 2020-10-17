@@ -44,7 +44,11 @@ public:
     void SetArt(std::map<std::string, std::string> art) { m_addonInfo->m_art = std::move(art); }
     void SetScreenshots(std::vector<std::string> screenshots) { m_addonInfo->m_screenshots = std::move(screenshots); }
     void SetChangelog(std::string changelog) { m_addonInfo->m_changelog.insert(std::pair<std::string, std::string>("unk", std::move(changelog))); }
-    void SetBroken(std::string broken) { m_addonInfo->m_broken = std::move(broken); }
+    void SetLifecycleState(AddonLifecycleState state, std::string description)
+    {
+      m_addonInfo->m_lifecycleState = state;
+      m_addonInfo->m_lifecycleStateDescription.emplace("unk", std::move(description));
+    }
     void SetPath(std::string path) { m_addonInfo->m_path = std::move(path); }
     void SetLibName(std::string libname) { m_addonInfo->m_libname = std::move(libname); }
     void SetVersion(AddonVersion version) { m_addonInfo->m_version = std::move(version); }
@@ -53,21 +57,19 @@ public:
     void SetExtrainfo(InfoMap extrainfo)
     {
       m_addonInfo->m_extrainfo = std::move(extrainfo);
-
-      const auto& it = m_addonInfo->m_extrainfo.find("provides");
-      if (it != m_addonInfo->m_extrainfo.end())
-      {
-        CAddonType addonType(m_addonInfo->m_mainType);
-        addonType.SetProvides(it->second);
-        m_addonInfo->m_types.push_back(addonType);
-      }
     }
-    void SetType(TYPE type) { m_addonInfo->m_mainType = type; }
     void SetInstallDate(const CDateTime& installDate) { m_addonInfo->m_installDate = installDate; }
     void SetLastUpdated(const CDateTime& lastUpdated) { m_addonInfo->m_lastUpdated = lastUpdated; }
     void SetLastUsed(const CDateTime& lastUsed) { m_addonInfo->m_lastUsed = lastUsed; }
     void SetOrigin(std::string origin) { m_addonInfo->m_origin = std::move(origin); }
     void SetPackageSize(uint64_t size) { m_addonInfo->m_packageSize = size; }
+    void SetExtensions(CAddonType addonType)
+    {
+      if (!addonType.GetValue("provides").empty())
+        addonType.SetProvides(addonType.GetValue("provides").asString());
+      m_addonInfo->m_types.push_back(std::move(addonType));
+      m_addonInfo->m_mainType = addonType.m_type;
+    }
 
     const AddonInfoPtr& get() { return m_addonInfo; }
 

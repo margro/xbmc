@@ -227,9 +227,9 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     bool m_bHTTPDirectoryStatFilesize;
 
     bool m_bFTPThumbs;
+    bool m_bShoutcastArt;
 
     std::string m_musicThumbs;
-    std::string m_fanartImages;
     std::vector<std::string> m_musicArtistExtraArt;
     std::vector<std::string> m_musicAlbumExtraArt;
 
@@ -369,4 +369,5 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     void Initialize();
     void Clear();
     void SetExtraArtwork(const TiXmlElement* arttypes, std::vector<std::string>& artworkMap);
+    void MigrateOldArtSettings();
 };

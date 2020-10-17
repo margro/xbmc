@@ -83,6 +83,12 @@ public:
   static const std::string SETTING_VIDEOLIBRARY_IMPORT;
   static const std::string SETTING_VIDEOLIBRARY_SHOWEMPTYTVSHOWS;
   static const std::string SETTING_VIDEOLIBRARY_MOVIESETSFOLDER;
+  static const std::string SETTING_VIDEOLIBRARY_ARTWORK_LEVEL;
+  static const std::string SETTING_VIDEOLIBRARY_MOVIEART_WHITELIST;
+  static const std::string SETTING_VIDEOLIBRARY_TVSHOWART_WHITELIST;
+  static const std::string SETTING_VIDEOLIBRARY_EPISODEART_WHITELIST;
+  static const std::string SETTING_VIDEOLIBRARY_MUSICVIDEOART_WHITELIST;
+  static const std::string SETTING_VIDEOLIBRARY_ARTSETTINGS_UPDATED;
   static const std::string SETTING_LOCALE_AUDIOLANGUAGE;
   static const std::string SETTING_VIDEOPLAYER_PREFERDEFAULTFLAG;
   static const std::string SETTING_VIDEOPLAYER_AUTOPLAYNEXTITEM;
@@ -107,7 +113,6 @@ public:
   static const std::string SETTING_VIDEOPLAYER_USEVDPAUVC1;
   static const std::string SETTING_VIDEOPLAYER_USEDXVA2;
   static const std::string SETTING_VIDEOPLAYER_USEVTB;
-  static const std::string SETTING_VIDEOPLAYER_USEMMAL;
   static const std::string SETTING_VIDEOPLAYER_USEPRIMEDECODER;
   static const std::string SETTING_VIDEOPLAYER_USESTAGEFRIGHT;
   static const std::string SETTING_VIDEOPLAYER_LIMITGUIUPDATE;
@@ -203,6 +208,13 @@ public:
   static const std::string SETTING_MUSICLIBRARY_DOWNLOADINFO;
   static const std::string SETTING_MUSICLIBRARY_ARTISTSFOLDER;
   static const std::string SETTING_MUSICLIBRARY_PREFERONLINEALBUMART;
+  static const std::string SETTING_MUSICLIBRARY_ARTWORKLEVEL;
+  static const std::string SETTING_MUSICLIBRARY_USEALLLOCALART;
+  static const std::string SETTING_MUSICLIBRARY_USEALLREMOTEART;
+  static const std::string SETTING_MUSICLIBRARY_ARTISTART_WHITELIST;
+  static const std::string SETTING_MUSICLIBRARY_ALBUMART_WHITELIST;
+  static const std::string SETTING_MUSICLIBRARY_MUSICTHUMBS;
+  static const std::string SETTING_MUSICLIBRARY_ARTSETTINGS_UPDATED;
   static const std::string SETTING_MUSICLIBRARY_ALBUMSSCRAPER;
   static const std::string SETTING_MUSICLIBRARY_ARTISTSSCRAPER;
   static const std::string SETTING_MUSICLIBRARY_OVERRIDETAGS;
@@ -389,6 +401,17 @@ public:
   static const int VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_MOVIES = 0;
   static const int VIDEOLIBRARY_PLOTS_SHOW_UNWATCHED_TVSHOWEPISODES = 1;
   static const int VIDEOLIBRARY_THUMB_SHOW_UNWATCHED_EPISODE = 2;
+  // values for SETTING_VIDEOLIBRARY_ARTWORK_LEVEL
+  static const int VIDEOLIBRARY_ARTWORK_LEVEL_ALL = 0;
+  static const int VIDEOLIBRARY_ARTWORK_LEVEL_BASIC = 1;
+  static const int VIDEOLIBRARY_ARTWORK_LEVEL_CUSTOM = 2;
+  static const int VIDEOLIBRARY_ARTWORK_LEVEL_NONE = 3;
+
+  // values for SETTING_MUSICLIBRARY_ARTWORKLEVEL
+  static const int MUSICLIBRARY_ARTWORK_LEVEL_ALL = 0;
+  static const int MUSICLIBRARY_ARTWORK_LEVEL_BASIC = 1;
+  static const int MUSICLIBRARY_ARTWORK_LEVEL_CUSTOM = 2;
+  static const int MUSICLIBRARY_ARTWORK_LEVEL_NONE = 3;
 
   /*!
    \brief Creates a new settings wrapper around a new settings manager.

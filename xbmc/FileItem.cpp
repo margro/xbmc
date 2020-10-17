@@ -141,16 +141,14 @@ void CFileItem::FillMusicInfoTag(const std::shared_ptr<CPVRChannel>& channel, co
       musictag->SetGenre(tag->Genre());
       musictag->SetDuration(tag->GetDuration());
     }
-    else
+    else if (!CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(
+                 CSettings::SETTING_EPG_HIDENOINFOAVAILABLE))
     {
-      musictag->SetTitle(channel->ChannelName()); // can be overwritten by PVRGUIInfo
+      musictag->SetTitle(g_localizeStrings.Get(19055)); // no information available
     }
+
     musictag->SetURL(channel->Path());
-    musictag->SetArtist(channel->ChannelName());
-    musictag->SetAlbumArtist(channel->ChannelName());
     musictag->SetLoaded(true);
-    musictag->SetComment("");
-    musictag->SetLyrics("");
   }
 }
 
@@ -164,20 +162,15 @@ CFileItem::CFileItem(const std::shared_ptr<CPVREpgInfoTag>& tag)
   SetLabel(GetEpgTagTitle(tag));
   m_dateTime = tag->StartAsLocalTime();
 
+  const std::shared_ptr<CPVRChannel> channel =
+      CServiceBroker::GetPVRManager().ChannelGroups()->GetChannelForEpgTag(tag);
+
   if (!tag->Icon().empty())
     SetArt("icon", tag->Icon());
-  else
-  {
-    const std::shared_ptr<CPVRChannel> channel = CServiceBroker::GetPVRManager().ChannelGroups()->GetChannelForEpgTag(tag);
-    if (channel)
-    {
-      if (!channel->IconPath().empty())
-        SetArt("icon", channel->IconPath());
+  else if (channel && !channel->IconPath().empty())
+    SetArt("icon", channel->IconPath());
 
-      FillMusicInfoTag(channel, tag);
-    }
-  }
-
+  FillMusicInfoTag(channel, tag);
   FillInMimeType(false);
 }
 
@@ -1093,7 +1086,7 @@ bool CFileItem::IsNFO() const
 
 bool CFileItem::IsDiscImage() const
 {
-  return URIUtils::HasExtension(m_strPath, ".img|.iso|.nrg|.udf");
+  return URIUtils::HasExtension(GetDynPath(), ".img|.iso|.nrg|.udf");
 }
 
 bool CFileItem::IsOpticalMediaFile() const
@@ -1106,7 +1099,7 @@ bool CFileItem::IsOpticalMediaFile() const
 
 bool CFileItem::IsDVDFile(bool bVobs /*= true*/, bool bIfos /*= true*/) const
 {
-  std::string strFileName = URIUtils::GetFileName(m_strPath);
+  std::string strFileName = URIUtils::GetFileName(GetDynPath());
   if (bIfos)
   {
     if (StringUtils::EqualsNoCase(strFileName, "video_ts.ifo"))
@@ -1127,7 +1120,7 @@ bool CFileItem::IsDVDFile(bool bVobs /*= true*/, bool bIfos /*= true*/) const
 
 bool CFileItem::IsBDFile() const
 {
-  std::string strFileName = URIUtils::GetFileName(m_strPath);
+  std::string strFileName = URIUtils::GetFileName(GetDynPath());
   return (StringUtils::EqualsNoCase(strFileName, "index.bdmv") || StringUtils::EqualsNoCase(strFileName, "MovieObject.bdmv")
           || StringUtils::EqualsNoCase(strFileName, "INDEX.BDM") || StringUtils::EqualsNoCase(strFileName, "MOVIEOBJ.BDM"));
 }
@@ -1681,13 +1674,68 @@ void CFileItem::SetFromVideoInfoTag(const CVideoInfoTag &video)
   FillInMimeType(false);
 }
 
-void CFileItem::SetFromMusicInfoTag(const MUSIC_INFO::CMusicInfoTag &music)
+namespace
 {
-  if (!music.GetTitle().empty())
-    SetLabel(music.GetTitle());
-  if (!music.GetURL().empty())
-    m_strPath = music.GetURL();
-  m_bIsFolder = URIUtils::HasSlashAtEnd(m_strPath);
+class CPropertySaveHelper
+{
+public:
+  CPropertySaveHelper(CFileItem& item, const std::string& property, const std::string& value)
+    : m_item(item), m_property(property), m_value(value)
+  {
+  }
+
+  bool NeedsSave() const { return !m_value.empty() || m_item.HasProperty(m_property); }
+
+  std::string GetValueToSave(const std::string& currentValue) const
+  {
+    std::string value;
+
+    if (!m_value.empty())
+    {
+      // Overwrite whatever we have; remember what we had originally.
+      if (!m_item.HasProperty(m_property))
+        m_item.SetProperty(m_property, currentValue);
+
+      value = m_value;
+    }
+    else if (m_item.HasProperty(m_property))
+    {
+      // Restore original value
+      value = m_item.GetProperty(m_property).asString();
+      m_item.ClearProperty(m_property);
+    }
+
+    return value;
+  }
+
+private:
+  CFileItem& m_item;
+  const std::string m_property;
+  const std::string m_value;
+};
+} // unnamed namespace
+
+void CFileItem::SetFromMusicInfoTag(const MUSIC_INFO::CMusicInfoTag& music)
+{
+  const std::string path = GetPath();
+  if (path.empty())
+  {
+    SetPath(music.GetURL());
+  }
+  else
+  {
+    const CPropertySaveHelper dynpath(*this, "OriginalDynPath", music.GetURL());
+    if (dynpath.NeedsSave())
+      SetDynPath(dynpath.GetValueToSave(m_strDynPath));
+  }
+
+  const CPropertySaveHelper label(*this, "OriginalLabel", music.GetTitle());
+  if (label.NeedsSave())
+    SetLabel(label.GetValueToSave(GetLabel()));
+
+  const CPropertySaveHelper thumb(*this, "OriginalThumb", music.GetStationArt());
+  if (thumb.NeedsSave())
+    SetArt("thumb", thumb.GetValueToSave(GetArt("thumb")));
 
   *GetMusicInfoTag() = music;
   FillInDefaultIcon();
@@ -3045,13 +3093,40 @@ std::string CFileItem::GetUserMusicThumb(bool alwaysCheckRemote /* = false */, b
   // if a folder, check for folder.jpg
   if (m_bIsFolder && !IsFileFolder() && (!IsRemote() || alwaysCheckRemote || CServiceBroker::GetSettingsComponent()->GetSettings()->GetBool(CSettings::SETTING_MUSICFILES_FINDREMOTETHUMBS)))
   {
-    std::vector<std::string> thumbs = StringUtils::Split(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicThumbs, "|");
-    for (std::vector<std::string>::const_iterator i = thumbs.begin(); i != thumbs.end(); ++i)
+    std::vector<CVariant> thumbs = CServiceBroker::GetSettingsComponent()->GetSettings()->GetList(
+        CSettings::SETTING_MUSICLIBRARY_MUSICTHUMBS);
+    for (const auto& i : thumbs)
     {
-      std::string folderThumb(GetFolderThumb(*i));
-      if (CFile::Exists(folderThumb))
-      {
+      std::string strFileName = i.asString();
+      std::string folderThumb(GetFolderThumb(strFileName));
+      if (CFile::Exists(folderThumb))   // folder.jpg
         return folderThumb;
+      size_t period = strFileName.find_last_of(".");
+      if (period != std::string::npos)
+      {
+        std::string ext;
+        std::string name = strFileName;
+        std::string folderThumb1 = folderThumb;
+        name.erase(period);
+        ext = strFileName.substr(period);
+        StringUtils::ToUpper(ext);
+        StringUtils::Replace(folderThumb1, strFileName, name + ext);
+        if (CFile::Exists(folderThumb1)) // folder.JPG
+          return folderThumb1;
+        
+        folderThumb1 = folderThumb;
+        std::string firstletter = name.substr(0, 1);
+        StringUtils::ToUpper(firstletter);
+        name.replace(0, 1, firstletter);
+        StringUtils::Replace(folderThumb1, strFileName, name + ext);
+        if (CFile::Exists(folderThumb1)) // Folder.JPG
+          return folderThumb1;
+        
+        folderThumb1 = folderThumb;
+        StringUtils::ToLower(ext);
+        StringUtils::Replace(folderThumb1, strFileName, name + ext);
+        if (CFile::Exists(folderThumb1)) // Folder.jpg
+          return folderThumb1;
       }
     }
   }
@@ -3145,19 +3220,17 @@ std::string CFileItem::FindLocalArt(const std::string &artFile, bool useFolder) 
   return "";
 }
 
-std::string CFileItem::GetLocalArt(const std::string &artFile, bool useFolder) const
+std::string CFileItem::GetLocalArtBaseFilename() const
 {
-  // no retrieving of empty art files from folders
-  if (useFolder && artFile.empty())
-    return "";
+  bool useFolder = false;
+  return GetLocalArtBaseFilename(useFolder);
+}
 
+std::string CFileItem::GetLocalArtBaseFilename(bool& useFolder) const
+{
   std::string strFile = m_strPath;
   if (IsStack())
   {
-/*    CFileItem item(CStackDirectory::GetFirstStackedFile(strFile),false);
-    std::string localArt = item.GetLocalArt(artFile);
-    return localArt;
-    */
     std::string strPath;
     URIUtils::GetParentPath(m_strPath,strPath);
     strFile = URIUtils::AddFileToFolder(strPath, URIUtils::GetFileName(CStackDirectory::GetStackedTitlePath(strFile)));
@@ -3182,6 +3255,16 @@ std::string CFileItem::GetLocalArt(const std::string &artFile, bool useFolder) c
   else if (useFolder && !(m_bIsFolder && !IsFileFolder()))
     strFile = URIUtils::GetDirectory(strFile);
 
+  return strFile;
+}
+
+std::string CFileItem::GetLocalArt(const std::string& artFile, bool useFolder) const
+{
+  // no retrieving of empty art files from folders
+  if (useFolder && artFile.empty())
+    return "";
+
+  std::string strFile = GetLocalArtBaseFilename(useFolder);
   if (strFile.empty()) // empty filepath -> nothing to find
     return "";
 
@@ -3336,7 +3419,7 @@ std::string CFileItem::GetLocalFanart() const
     items.Append(moreItems);
   }
 
-  std::vector<std::string> fanarts = StringUtils::Split(CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_fanartImages, "|");
+  std::vector<std::string> fanarts = { "fanart" };
 
   strFile = URIUtils::ReplaceExtension(strFile, "-fanart");
   fanarts.insert(m_bIsFolder ? fanarts.end() : fanarts.begin(), URIUtils::GetFileName(strFile));

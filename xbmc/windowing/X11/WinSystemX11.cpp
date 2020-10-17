@@ -36,7 +36,7 @@
 #include <X11/extensions/Xrandr.h>
 
 using namespace KODI::MESSAGING;
-using namespace KODI::WINDOWING;
+using namespace KODI::WINDOWING::X11;
 
 #define EGL_NO_CONFIG (EGLConfig)0
 
@@ -63,6 +63,13 @@ CWinSystemX11::~CWinSystemX11() = default;
 
 bool CWinSystemX11::InitWindowSystem()
 {
+  const char* env = getenv("DISPLAY");
+  if (!env)
+  {
+    CLog::Log(LOGDEBUG, "CWinSystemX11::{} - DISPLAY env not set", __FUNCTION__);
+    return false;
+  }
+
   if ((m_dpy = XOpenDisplay(NULL)))
   {
     bool ret = CWinSystemBase::InitWindowSystem();
@@ -477,7 +484,7 @@ void CWinSystemX11::ShowOSMouse(bool show)
     XDefineCursor(m_dpy,m_mainWindow, m_invisibleCursor);
 }
 
-std::unique_ptr<IOSScreenSaver> CWinSystemX11::GetOSScreenSaverImpl()
+std::unique_ptr<KODI::WINDOWING::IOSScreenSaver> CWinSystemX11::GetOSScreenSaverImpl()
 {
   std::unique_ptr<IOSScreenSaver> ret;
   if (m_dpy)

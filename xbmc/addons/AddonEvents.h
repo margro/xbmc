@@ -81,5 +81,13 @@ namespace ADDON
     {
       explicit Unload(std::string id) : AddonEvent(std::move(id)) {}
     };
+
+    /**
+     * Emitted after the auto-update state of the add-on has been changed.
+     */
+    struct AutoUpdateStateChanged : AddonEvent
+    {
+      explicit AutoUpdateStateChanged(std::string id) : AddonEvent(std::move(id)) {}
+    };
   }
 }

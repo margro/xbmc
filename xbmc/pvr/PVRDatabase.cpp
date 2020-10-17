@@ -104,17 +104,16 @@ void CPVRDatabase::CreateTables()
   );
 
   CLog::LogFC(LOGDEBUG, LOGPVR, "Creating table 'channelgroups'");
-  m_pDS->exec(
-      "CREATE TABLE channelgroups ("
-        "idGroup         integer primary key,"
-        "bIsRadio        bool, "
-        "iGroupType      integer, "
-        "sName           varchar(64), "
-        "iLastWatched    integer, "
-        "bIsHidden       bool, "
-        "iPosition       integer"
-      ")"
-  );
+  m_pDS->exec("CREATE TABLE channelgroups ("
+              "idGroup         integer primary key,"
+              "bIsRadio        bool, "
+              "iGroupType      integer, "
+              "sName           varchar(64), "
+              "iLastWatched    integer, "
+              "bIsHidden       bool, "
+              "iPosition       integer, "
+              "iLastOpened     integer"
+              ")");
 
   CLog::LogFC(LOGDEBUG, LOGPVR, "Creating table 'map_channelgroups_channels'");
   m_pDS->exec(
@@ -217,6 +216,9 @@ void CPVRDatabase::UpdateTables(int iVersion)
     m_pDS->exec("ALTER TABLE map_channelgroups_channels ADD iClientSubChannelNumber integer");
     m_pDS->exec("UPDATE map_channelgroups_channels SET iClientSubChannelNumber = 0");
   }
+
+  if (iVersion < 37)
+    m_pDS->exec("ALTER TABLE channelgroups ADD iLastOpened integer");
 }
 
 /********** Client methods **********/
@@ -234,7 +236,7 @@ bool CPVRDatabase::Persist(const CPVRClient& client)
   if (client.GetID() == PVR_INVALID_CLIENT_ID)
     return false;
 
-  CLog::LogFC(LOGDEBUG, LOGPVR, "Persisting client '%s' to database", client.ID().c_str());
+  CLog::LogFC(LOGDEBUG, LOGPVR, "Persisting client '{}' to database", client.ID());
 
   CSingleLock lock(m_critSection);
 
@@ -249,7 +251,7 @@ bool CPVRDatabase::Delete(const CPVRClient& client)
   if (client.GetID() == PVR_INVALID_CLIENT_ID)
     return false;
 
-  CLog::LogFC(LOGDEBUG, LOGPVR, "Deleting client '%s' from the database", client.ID().c_str());
+  CLog::LogFC(LOGDEBUG, LOGPVR, "Deleting client '{}' from the database", client.ID());
 
   CSingleLock lock(m_critSection);
 
@@ -264,7 +266,7 @@ int CPVRDatabase::GetPriority(const CPVRClient& client)
   if (client.GetID() == PVR_INVALID_CLIENT_ID)
     return 0;
 
-  CLog::LogFC(LOGDEBUG, LOGPVR, "Getting priority for client '%s' from the database", client.ID().c_str());
+  CLog::LogFC(LOGDEBUG, LOGPVR, "Getting priority for client '{}' from the database", client.ID());
 
   CSingleLock lock(m_critSection);
 
@@ -293,7 +295,7 @@ bool CPVRDatabase::Delete(const CPVRChannel& channel)
   if (channel.ChannelID() <= 0)
     return false;
 
-  CLog::LogFC(LOGDEBUG, LOGPVR, "Deleting channel '%s' from the database", channel.ChannelName().c_str());
+  CLog::LogFC(LOGDEBUG, LOGPVR, "Deleting channel '{}' from the database", channel.ChannelName());
 
   Filter filter;
   filter.AppendWhere(PrepareSQL("idChannel = %u", channel.ChannelID()));
@@ -389,7 +391,7 @@ bool CPVRDatabase::GetCurrentGroupMembers(const CPVRChannelGroup& group, std::ve
   /* invalid group id */
   if (group.GroupID() <= 0)
   {
-    CLog::LogF(LOGERROR, "Invalid channel group id: %d", group.GroupID());
+    CLog::LogF(LOGERROR, "Invalid channel group id: {}", group.GroupID());
     return false;
   }
 
@@ -428,7 +430,7 @@ bool CPVRDatabase::DeleteChannelsFromGroup(const CPVRChannelGroup& group, const 
   /* invalid group id */
   if (group.GroupID() <= 0)
   {
-    CLog::LogF(LOGERROR, "Invalid channel group id: %d", group.GroupID());
+    CLog::LogF(LOGERROR, "Invalid channel group id: {}", group.GroupID());
     return false;
   }
 
@@ -474,7 +476,7 @@ bool CPVRDatabase::RemoveStaleChannelsFromGroup(const CPVRChannelGroup& group)
   /* invalid group id */
   if (group.GroupID() <= 0)
   {
-    CLog::LogF(LOGERROR, "Invalid channel group id: %d", group.GroupID());
+    CLog::LogF(LOGERROR, "Invalid channel group id: {}", group.GroupID());
     return false;
   }
 
@@ -546,7 +548,7 @@ bool CPVRDatabase::Delete(const CPVRChannelGroup& group)
   /* invalid group id */
   if (group.GroupID() <= 0)
   {
-    CLog::LogF(LOGERROR, "Invalid channel group id: %d", group.GroupID());
+    CLog::LogF(LOGERROR, "Invalid channel group id: {}", group.GroupID());
     return false;
   }
 
@@ -598,9 +600,10 @@ bool CPVRDatabase::Get(CPVRChannelGroups& results)
         data.SetLastWatched(static_cast<time_t>(m_pDS->fv("iLastWatched").get_asInt()));
         data.SetHidden(m_pDS->fv("bIsHidden").get_asBool());
         data.SetPosition(m_pDS->fv("iPosition").get_asInt());
+        data.SetLastOpened(static_cast<uint64_t>(m_pDS->fv("iLastOpened").get_asInt64()));
         results.Update(data);
 
-        CLog::LogFC(LOGDEBUG, LOGPVR, "Group '%s' loaded from PVR database", data.GroupName().c_str());
+        CLog::LogFC(LOGDEBUG, LOGPVR, "Group '{}' loaded from PVR database", data.GroupName());
         m_pDS->next();
       }
       m_pDS->close();
@@ -622,7 +625,7 @@ int CPVRDatabase::Get(CPVRChannelGroup& group, const CPVRChannelGroup& allGroup)
   /* invalid group id */
   if (group.GroupID() < 0)
   {
-    CLog::LogF(LOGERROR, "Invalid channel group id: %d", group.GroupID());
+    CLog::LogF(LOGERROR, "Invalid channel group id: {}", group.GroupID());
     return -1;
   }
 
@@ -785,11 +788,19 @@ bool CPVRDatabase::Persist(CPVRChannelGroup& group)
   {
     /* insert a new entry when this is a new group, or replace the existing one otherwise */
     if (group.GroupID() <= 0)
-      strQuery = PrepareSQL("INSERT INTO channelgroups (bIsRadio, iGroupType, sName, iLastWatched, bIsHidden, iPosition) VALUES (%i, %i, '%s', %u, %i, %i)",
-          (group.IsRadio() ? 1 :0), group.GroupType(), group.GroupName().c_str(), static_cast<unsigned int>(group.LastWatched()), group.IsHidden(), group.GetPosition());
+      strQuery =
+          PrepareSQL("INSERT INTO channelgroups (bIsRadio, iGroupType, sName, iLastWatched, "
+                     "bIsHidden, iPosition, iLastOpened) VALUES (%i, %i, '%s', %u, %i, %i, %llu)",
+                     (group.IsRadio() ? 1 : 0), group.GroupType(), group.GroupName().c_str(),
+                     static_cast<unsigned int>(group.LastWatched()), group.IsHidden(),
+                     group.GetPosition(), group.LastOpened());
     else
-      strQuery = PrepareSQL("REPLACE INTO channelgroups (idGroup, bIsRadio, iGroupType, sName, iLastWatched, bIsHidden, iPosition) VALUES (%i, %i, %i, '%s', %u, %i, %i)",
-          group.GroupID(), (group.IsRadio() ? 1 :0), group.GroupType(), group.GroupName().c_str(), static_cast<unsigned int>(group.LastWatched()), group.IsHidden(), group.GetPosition());
+      strQuery = PrepareSQL(
+          "REPLACE INTO channelgroups (idGroup, bIsRadio, iGroupType, sName, iLastWatched, "
+          "bIsHidden, iPosition, iLastOpened) VALUES (%i, %i, %i, '%s', %u, %i, %i, %llu)",
+          group.GroupID(), (group.IsRadio() ? 1 : 0), group.GroupType(), group.GroupName().c_str(),
+          static_cast<unsigned int>(group.LastWatched()), group.IsHidden(), group.GetPosition(),
+          group.LastOpened());
 
     bReturn = ExecuteQuery(strQuery);
 
@@ -819,7 +830,7 @@ bool CPVRDatabase::Persist(CPVRChannel& channel, bool bCommit)
   /* invalid channel */
   if (channel.UniqueID() <= 0)
   {
-    CLog::LogF(LOGERROR, "Invalid channel uid: %d", channel.UniqueID());
+    CLog::LogF(LOGERROR, "Invalid channel uid: {}", channel.UniqueID());
     return bReturn;
   }
 
@@ -878,6 +889,15 @@ bool CPVRDatabase::UpdateLastWatched(const CPVRChannelGroup& group)
   CSingleLock lock(m_critSection);
   const std::string strQuery = PrepareSQL("UPDATE channelgroups SET iLastWatched = %u WHERE idGroup = %d",
     static_cast<unsigned int>(group.LastWatched()), group.GroupID());
+  return ExecuteQuery(strQuery);
+}
+
+bool CPVRDatabase::UpdateLastOpened(const CPVRChannelGroup& group)
+{
+  CSingleLock lock(m_critSection);
+  const std::string strQuery =
+      PrepareSQL("UPDATE channelgroups SET iLastOpened = %llu WHERE idGroup = %d",
+                 group.LastOpened(), group.GroupID());
   return ExecuteQuery(strQuery);
 }
 
@@ -989,7 +1009,7 @@ bool CPVRDatabase::Delete(const CPVRTimerInfoTag& timer)
   if (timer.m_iClientIndex == PVR_TIMER_NO_CLIENT_INDEX)
     return false;
 
-  CLog::LogFC(LOGDEBUG, LOGPVR, "Deleting timer '%i' from the database", timer.m_iClientIndex);
+  CLog::LogFC(LOGDEBUG, LOGPVR, "Deleting timer '{}' from the database", timer.m_iClientIndex);
 
   CSingleLock lock(m_critSection);
 

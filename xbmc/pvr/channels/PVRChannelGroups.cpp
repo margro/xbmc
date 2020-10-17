@@ -22,6 +22,7 @@
 #include "utils/log.h"
 
 #include <algorithm>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <vector>
@@ -92,6 +93,7 @@ bool CPVRChannelGroups::Update(const CPVRChannelGroup& group, bool bUpdateFromCl
     {
       updateGroup->SetLastWatched(group.LastWatched());
       updateGroup->SetHidden(group.IsHidden());
+      updateGroup->SetLastOpened(group.LastOpened());
     }
   }
 
@@ -276,7 +278,8 @@ bool CPVRChannelGroups::LoadUserDefinedChannelGroups()
   if (bSyncWithBackends)
   {
     GetGroupsFromClients();
-    CLog::LogFC(LOGDEBUG, LOGPVR, "%d new user defined %s channel groups fetched from clients", (m_groups.size() - iSize), m_bRadio ? "radio" : "TV");
+    CLog::LogFC(LOGDEBUG, LOGPVR, "{} new user defined {} channel groups fetched from clients",
+                (m_groups.size() - iSize), m_bRadio ? "radio" : "TV");
   }
   else
     CLog::LogFC(LOGDEBUG, LOGPVR, "'sync channelgroups' is disabled; skipping groups from clients");
@@ -292,7 +295,8 @@ bool CPVRChannelGroups::LoadUserDefinedChannelGroups()
       std::vector<std::shared_ptr<CPVRChannel>> channelsToRemove;
       if (!(*it)->Load(channelsToRemove))
       {
-        CLog::LogFC(LOGDEBUG, LOGPVR, "Failed to load user defined channel group '%s'", (*it)->GroupName().c_str());
+        CLog::LogFC(LOGDEBUG, LOGPVR, "Failed to load user defined channel group '{}'",
+                    (*it)->GroupName());
         return false;
       }
 
@@ -306,7 +310,7 @@ bool CPVRChannelGroups::LoadUserDefinedChannelGroups()
 
   for (std::vector<std::shared_ptr<CPVRChannelGroup>>::iterator it = emptyGroups.begin(); it != emptyGroups.end(); ++it)
   {
-    CLog::LogFC(LOGDEBUG, LOGPVR, "Deleting empty channel group '%s'", (*it)->GroupName().c_str());
+    CLog::LogFC(LOGDEBUG, LOGPVR, "Deleting empty channel group '{}'", (*it)->GroupName());
     DeleteGroup(*(*it));
   }
 
@@ -325,7 +329,7 @@ bool CPVRChannelGroups::Load()
   // remove previous contents
   Clear();
 
-  CLog::LogFC(LOGDEBUG, LOGPVR, "Loading all %s channel groups", m_bRadio ? "radio" : "TV");
+  CLog::LogFC(LOGDEBUG, LOGPVR, "Loading all {} channel groups", m_bRadio ? "radio" : "TV");
 
   // create the internal channel group
   std::shared_ptr<CPVRChannelGroup> internalGroup = std::shared_ptr<CPVRChannelGroup>(new CPVRChannelGroupInternal(m_bRadio));
@@ -333,7 +337,8 @@ bool CPVRChannelGroups::Load()
 
   // load groups from the database
   database->Get(*this);
-  CLog::LogFC(LOGDEBUG, LOGPVR, "%d %s groups fetched from the database", m_groups.size(), m_bRadio ? "radio" : "TV");
+  CLog::LogFC(LOGDEBUG, LOGPVR, "{} {} groups fetched from the database", m_groups.size(),
+              m_bRadio ? "radio" : "TV");
 
   // load channels of internal group
   std::vector<std::shared_ptr<CPVRChannel>> channelsToRemove;
@@ -352,11 +357,12 @@ bool CPVRChannelGroups::Load()
     return false;
   }
 
-  // set the last played group as selected group at startup
-  std::shared_ptr<CPVRChannelGroup> lastPlayedGroup = GetLastPlayedGroup();
-  SetSelectedGroup(lastPlayedGroup ? lastPlayedGroup : internalGroup);
+  // set the last opened group as selected group at startup
+  std::shared_ptr<CPVRChannelGroup> lastOpenedGroup = GetLastOpenedGroup();
+  SetSelectedGroup(lastOpenedGroup ? lastOpenedGroup : internalGroup);
 
-  CLog::LogFC(LOGDEBUG, LOGPVR, "%d %s channel groups loaded", m_groups.size(), m_bRadio ? "radio" : "TV");
+  CLog::LogFC(LOGDEBUG, LOGPVR, "{} {} channel groups loaded", m_groups.size(),
+              m_bRadio ? "radio" : "TV");
 
   // need at least 1 group
   return m_groups.size() > 0;
@@ -405,6 +411,21 @@ std::shared_ptr<CPVRChannelGroup> CPVRChannelGroups::GetLastPlayedGroup(int iCha
   }
 
   return group;
+}
+
+std::shared_ptr<CPVRChannelGroup> CPVRChannelGroups::GetLastOpenedGroup() const
+{
+  std::shared_ptr<CPVRChannelGroup> lastOpenedGroup;
+
+  CSingleLock lock(m_critSection);
+  for (const auto& group : m_groups)
+  {
+    if (group->LastOpened() > 0 &&
+        (!lastOpenedGroup || group->LastOpened() > lastOpenedGroup->LastOpened()))
+      lastOpenedGroup = group;
+  }
+
+  return lastOpenedGroup;
 }
 
 std::vector<std::shared_ptr<CPVRChannelGroup>> CPVRChannelGroups::GetMembers(bool bExcludeHidden /* = false */) const
@@ -493,6 +514,10 @@ void CPVRChannelGroups::SetSelectedGroup(const std::shared_ptr<CPVRChannelGroup>
 
   for (auto& group : m_groups)
     group->SetSelectedGroup(group == m_selectedGroup);
+
+  auto duration = std::chrono::system_clock::now().time_since_epoch();
+  uint64_t tsMillis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+  m_selectedGroup->SetLastOpened(tsMillis);
 }
 
 void CPVRChannelGroups::UpdateSelectedGroup()

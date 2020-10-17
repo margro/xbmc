@@ -15,11 +15,12 @@
 #include "cores/VideoPlayer/VideoRenderers/RenderFlags.h"
 #include "rendering/gles/RenderSystemGLES.h"
 #include "utils/EGLFence.h"
+#include "utils/EGLImage.h"
 #include "utils/GLUtils.h"
 #include "utils/log.h"
-#include "windowing/gbm/WinSystemGbmEGLContext.h"
+#include "windowing/WinSystem.h"
+#include "windowing/linux/WinSystemEGL.h"
 
-using namespace KODI::WINDOWING::GBM;
 using namespace KODI::UTILS::EGL;
 
 CRendererDRMPRIMEGLES::~CRendererDRMPRIMEGLES()
@@ -29,10 +30,40 @@ CRendererDRMPRIMEGLES::~CRendererDRMPRIMEGLES()
 
 CBaseRenderer* CRendererDRMPRIMEGLES::Create(CVideoBuffer* buffer)
 {
-  if (buffer && dynamic_cast<CVideoBufferDRMPRIME*>(buffer))
-    return new CRendererDRMPRIMEGLES();
+  if (!buffer)
+    return nullptr;
 
-  return nullptr;
+  auto buf = dynamic_cast<CVideoBufferDRMPRIME*>(buffer);
+  if (!buf)
+    return nullptr;
+
+#if defined(EGL_EXT_image_dma_buf_import_modifiers)
+  if (!buf->AcquireDescriptor())
+    return nullptr;
+
+  auto desc = buf->GetDescriptor();
+  if (!desc)
+  {
+    buf->ReleaseDescriptor();
+    return nullptr;
+  }
+
+  uint64_t modifier = desc->objects[0].format_modifier;
+  uint32_t format = desc->layers[0].format;
+
+  buf->ReleaseDescriptor();
+
+  auto winSystemEGL =
+      dynamic_cast<KODI::WINDOWING::LINUX::CWinSystemEGL*>(CServiceBroker::GetWinSystem());
+  if (!winSystemEGL)
+    return nullptr;
+
+  CEGLImage image{winSystemEGL->GetEGLDisplay()};
+  if (!image.SupportsFormatAndModifier(format, modifier))
+    return nullptr;
+#endif
+
+  return new CRendererDRMPRIMEGLES();
 }
 
 void CRendererDRMPRIMEGLES::Register()
@@ -44,11 +75,6 @@ bool CRendererDRMPRIMEGLES::Configure(const VideoPicture& picture,
                                       float fps,
                                       unsigned int orientation)
 {
-  CWinSystemGbmEGLContext* winSystem =
-      dynamic_cast<CWinSystemGbmEGLContext*>(CServiceBroker::GetWinSystem());
-  if (!winSystem)
-    return false;
-
   m_format = picture.videoBuffer->GetFormat();
   m_sourceWidth = picture.iWidth;
   m_sourceHeight = picture.iHeight;
@@ -66,7 +92,18 @@ bool CRendererDRMPRIMEGLES::Configure(const VideoPicture& picture,
 
   Flush(false);
 
-  EGLDisplay eglDisplay = winSystem->GetEGLDisplay();
+  auto winSystem = CServiceBroker::GetWinSystem();
+
+  if (!winSystem)
+    return false;
+
+  auto winSystemEGL = dynamic_cast<KODI::WINDOWING::LINUX::CWinSystemEGL*>(winSystem);
+
+  if (!winSystemEGL)
+    return false;
+
+  EGLDisplay eglDisplay = winSystemEGL->GetEGLDisplay();
+
   for (auto&& buf : m_buffers)
   {
     if (!buf.fence)

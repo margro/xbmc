@@ -234,7 +234,7 @@ bool CPVREpg::UpdateEntry(const std::shared_ptr<CPVREpgInfoTag>& tag, EPG_EVENT_
   }
   else
   {
-    CLog::LogF(LOGERROR, "Unknown epg event state value: %d", newState);
+    CLog::LogF(LOGERROR, "Unknown epg event state value: {}", newState);
     bRet = false;
   }
 
@@ -277,7 +277,7 @@ bool CPVREpg::Update(time_t start,
     bGrabSuccess = LoadFromClients(start, end, bForceUpdate);
 
   if (!bGrabSuccess)
-    CLog::LogF(LOGERROR, "Failed to update table '%s'", Name().c_str());
+    CLog::LogF(LOGERROR, "Failed to update table '{}'", Name());
 
   CSingleLock lock(m_critSection);
   m_bUpdatePending = false;
@@ -291,7 +291,7 @@ std::vector<std::shared_ptr<CPVREpgInfoTag>> CPVREpg::GetTags() const
   return m_tags.GetAllTags();
 }
 
-bool CPVREpg::Persist(const std::shared_ptr<CPVREpgDatabase>& database, bool bQueueWrite)
+bool CPVREpg::QueuePersistQuery(const std::shared_ptr<CPVREpgDatabase>& database)
 {
   // Note: It is guaranteed that both this EPG instance and database instance are already
   //       locked when this method gets called! No additional locking is needed here!
@@ -313,15 +313,15 @@ bool CPVREpg::Persist(const std::shared_ptr<CPVREpgDatabase>& database, bool bQu
   }
 
   if (m_tags.NeedsSave())
-    m_tags.Persist(!bQueueWrite);
+    m_tags.QueuePersistQuery();
 
   if (m_bUpdateLastScanTime)
-    database->PersistLastEpgScanTime(m_iEpgID, m_lastScanTime, bQueueWrite);
+    database->QueuePersistLastEpgScanTimeQuery(m_iEpgID, m_lastScanTime);
 
   m_bChanged = false;
   m_bUpdateLastScanTime = false;
 
-  return bQueueWrite || database->CommitInsertQueries();
+  return true;
 }
 
 bool CPVREpg::Delete(const std::shared_ptr<CPVREpgDatabase>& database)
@@ -359,7 +359,7 @@ bool CPVREpg::UpdateFromScraper(time_t start, time_t end, bool bForceUpdate)
 {
   if (m_strScraperName.empty())
   {
-    CLog::LogF(LOGERROR, "No EPG scraper defined for table '%s'", m_strName.c_str());
+    CLog::LogF(LOGERROR, "No EPG scraper defined for table '{}'", m_strName);
   }
   else if (m_strScraperName == "client")
   {
@@ -377,8 +377,8 @@ bool CPVREpg::UpdateFromScraper(time_t start, time_t end, bool bForceUpdate)
     {
       if (!client->GetClientCapabilities().SupportsEPG())
       {
-        CLog::LogF(LOGERROR, "The backend for channel '%s' on client '%i' does not support EPGs",
-                   m_channelData->ChannelName().c_str(), m_channelData->ClientId());
+        CLog::LogF(LOGERROR, "The backend for channel '{}' on client '{}' does not support EPGs",
+                   m_channelData->ChannelName(), m_channelData->ClientId());
       }
       else if (!bForceUpdate && client->GetClientCapabilities().SupportsAsyncEPGTransfer())
       {
@@ -387,14 +387,14 @@ bool CPVREpg::UpdateFromScraper(time_t start, time_t end, bool bForceUpdate)
       }
       else
       {
-        CLog::LogFC(LOGDEBUG, LOGEPG, "Updating EPG for channel '%s' from client '%i'",
-                    m_channelData->ChannelName().c_str(), m_channelData->ClientId());
+        CLog::LogFC(LOGDEBUG, LOGEPG, "Updating EPG for channel '{}' from client '{}'",
+                    m_channelData->ChannelName(), m_channelData->ClientId());
         return (client->GetEPGForChannel(m_channelData->UniqueClientChannelId(), this, start, end) == PVR_ERROR_NO_ERROR);
       }
     }
     else
     {
-      CLog::LogF(LOGERROR, "Client '%i' not found, can't update", m_channelData->ClientId());
+      CLog::LogF(LOGERROR, "Client '{}' not found, can't update", m_channelData->ClientId());
     }
   }
   else // other non-empty scraper name...

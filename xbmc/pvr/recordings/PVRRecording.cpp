@@ -9,7 +9,7 @@
 #include "PVRRecording.h"
 
 #include "ServiceBroker.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_recordings.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_recordings.h"
 #include "guilib/LocalizeStrings.h"
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClient.h"
@@ -579,6 +579,16 @@ const std::string CPVRRecording::GetGenresLabel() const
 CDateTime CPVRRecording::FirstAired() const
 {
   return m_firstAired;
+}
+
+int CPVRRecording::GetYear() const
+{
+  return m_premiered.GetYear();
+}
+
+bool CPVRRecording::HasYear() const
+{
+  return m_premiered.IsValid();
 }
 
 bool CPVRRecording::IsNew() const

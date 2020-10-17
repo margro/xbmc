@@ -8,13 +8,15 @@
 
 #pragma once
 
+#include "addons/kodi-dev-kit/include/kodi/c-api/gui/dialogs/select.h"
+
 extern "C"
 {
 
-struct AddonGlobalInterface;
+  struct AddonGlobalInterface;
 
-namespace ADDON
-{
+  namespace ADDON
+  {
 
   /*!
    * @brief Global gui Add-on to Kodi callback functions
@@ -22,7 +24,7 @@ namespace ADDON
    * To hold functions not related to a instance type and usable for
    * every add-on type.
    *
-   * Related add-on header is "./xbmc/addons/kodi-addon-dev-kit/include/kodi/gui/dialogs/Select.h"
+   * Related add-on header is "./xbmc/addons/kodi-dev-kit/include/kodi/gui/dialogs/Select.h"
    */
   struct Interface_GUIDialogSelect
   {
@@ -40,11 +42,21 @@ namespace ADDON
      * class.
      */
     //@{
-    static int open(void* kodiBase, const char *heading, const char *entries[], unsigned int size, int selected, unsigned int autoclose);
-    static bool open_multi_select(void* kodiBase, const char *heading, const char *entryIDs[], const char *entryNames[],
-                                  bool entriesSelected[], unsigned int size, unsigned int autoclose);
+    static int open(KODI_HANDLE kodiBase,
+                    const char* heading,
+                    const char* entries[],
+                    unsigned int size,
+                    int selected,
+                    unsigned int autoclose);
+    static bool open_multi_select(KODI_HANDLE kodiBase,
+                                  const char* heading,
+                                  const char* entryIDs[],
+                                  const char* entryNames[],
+                                  bool entriesSelected[],
+                                  unsigned int size,
+                                  unsigned int autoclose);
     //@}
   };
 
-} /* namespace ADDON */
+  } /* namespace ADDON */
 } /* extern "C" */

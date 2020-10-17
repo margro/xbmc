@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/kodi-addon-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_channels.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/pvr/pvr_channels.h"
 #include "guilib/guiinfo/GUIInfoProvider.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/guilib/guiinfo/PVRGUITimerInfo.h"
@@ -82,6 +82,7 @@ namespace PVR
 
     bool GetListItemAndPlayerInt(const CFileItem* item, const KODI::GUILIB::GUIINFO::CGUIInfo& info, int& iValue) const;
     bool GetPVRInt(const CFileItem* item, const KODI::GUILIB::GUIINFO::CGUIInfo& info, int& iValue) const;
+    int GetTimeShiftSeekPercent() const;
 
     bool GetListItemAndPlayerBool(const CFileItem* item, const KODI::GUILIB::GUIINFO::CGUIInfo& info, bool& bValue) const;
     bool GetPVRBool(const CFileItem* item, const KODI::GUILIB::GUIINFO::CGUIInfo& info, bool& bValue) const;

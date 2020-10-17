@@ -10,7 +10,7 @@
 
 #include "GameClient.h"
 #include "GameClientProperties.h"
-#include "addons/kodi-addon-dev-kit/include/kodi/addon-instance/Game.h"
+#include "addons/kodi-dev-kit/include/kodi/addon-instance/Game.h"
 #include "games/addons/input/GameClientInput.h"
 #include "games/addons/streams/GameClientStreams.h"
 
@@ -33,7 +33,7 @@ GameClientSubsystems CGameClientSubsystem::CreateSubsystems(CGameClient& gameCli
   GameClientSubsystems subsystems = {};
 
   subsystems.Input.reset(new CGameClientInput(gameClient, gameStruct, clientAccess));
-  subsystems.AddonProperties.reset(new CGameClientProperties(gameClient, gameStruct.props));
+  subsystems.AddonProperties.reset(new CGameClientProperties(gameClient, *gameStruct.props));
   subsystems.Streams.reset(new CGameClientStreams(gameClient));
 
   return subsystems;

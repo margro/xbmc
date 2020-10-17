@@ -11,10 +11,36 @@
 #include "AddonBuilder.h"
 #include "FileItem.h"
 #include "addons/Addon.h"
+#include "addons/addoninfo/AddonInfoBuilder.h"
 #include "dbwrappers/Database.h"
 
 #include <string>
 #include <vector>
+
+namespace ADDON
+{
+
+/*!
+ * @brief Addon content serializer/deserializer.
+ *
+ * Used to save data from the add-on in the database using json format.
+ * The corresponding field in SQL is "addons" for "metadata".
+ *
+ * @warning Changes in the json format need a way to update the addon database
+ * for users, otherwise problems may occur when reading the old content.
+ */
+class CAddonDatabaseSerializer
+{
+  CAddonDatabaseSerializer() = delete;
+
+public:
+  static std::string SerializeMetadata(const CAddonInfo& addon);
+  static void DeserializeMetadata(const std::string& document, CAddonInfoBuilder::CFromDB& builder);
+
+private:
+  static CVariant SerializeExtensions(const CAddonExtensions& addonType);
+  static void DeserializeExtensions(const CVariant& document, CAddonExtensions& addonType);
+};
 
 class CAddonDatabase : public CDatabase
 {
@@ -40,10 +66,12 @@ public:
   std::pair<ADDON::AddonVersion, std::string> GetAddonVersion(const std::string &id);
 
   /*! Returns all addons in the repositories with id `addonId`. */
-  bool FindByAddonId(const std::string& addonId, ADDON::VECADDONS& addons);
+  bool FindByAddonId(const std::string& addonId, ADDON::VECADDONS& addons) const;
 
-  bool UpdateRepositoryContent(const std::string& repositoryId, const ADDON::AddonVersion& version,
-      const std::string& checksum, const std::vector<ADDON::AddonPtr>& addons);
+  bool UpdateRepositoryContent(const std::string& repositoryId,
+                               const ADDON::AddonVersion& version,
+                               const std::string& checksum,
+                               const std::vector<AddonInfoPtr>& addons);
 
   int GetRepoChecksum(const std::string& id, std::string& checksum);
 
@@ -57,19 +85,41 @@ public:
   /*! Get addons across all repositories */
   bool GetRepositoryContent(ADDON::VECADDONS& addons) const;
 
-  /*!
-   \brief Set repo last checked date, and create the repo if needed
-   \param id id of the repository
-   \returns id of the repository, or -1 on error.
-   */
-  int SetLastChecked(const std::string& id, const ADDON::AddonVersion& version, const std::string& timestamp);
+  struct RepoUpdateData
+  {
+    /*! \brief last time the repo was checked, or invalid CDateTime if never checked */
+    CDateTime lastCheckedAt;
+    /*! \brief last version of the repo add-on that was checked, or empty if never checked */
+    ADDON::AddonVersion lastCheckedVersion{""};
+    /*! \brief next time the repo should be checked, or invalid CDateTime if unknown */
+    CDateTime nextCheckAt;
+
+    RepoUpdateData() = default;
+
+    RepoUpdateData(CDateTime lastCheckedAt,
+                   ADDON::AddonVersion lastCheckedVersion,
+                   CDateTime nextCheckAt)
+      : lastCheckedAt{lastCheckedAt},
+        lastCheckedVersion{lastCheckedVersion},
+        nextCheckAt{nextCheckAt}
+    {
+    }
+  };
 
   /*!
-   \brief Retrieve the time a repository was last checked and the version it was for
-   \param id id of the repo
-   \return last time the repo was checked, or invalid CDateTime if never checked
+   \brief Set data concerning repository update (last/next date etc.), and create the repo if needed
+   \param id add-on id of the repository
+   \param updateData update data to set
+   \returns id of the repository, or -1 on error.
    */
-  std::pair<CDateTime, ADDON::AddonVersion> LastChecked(const std::string& id);
+  int SetRepoUpdateData(const std::string& id, const RepoUpdateData& updateData);
+
+  /*!
+   \brief Retrieve repository update data (last/next date etc.)
+   \param id add-on id of the repo
+   \return update data of the repository
+   */
+  RepoUpdateData GetRepoUpdateData(const std::string& id);
 
   bool Search(const std::string& search, ADDON::VECADDONS& items);
 
@@ -92,9 +142,37 @@ public:
    */
   bool EnableAddon(const std::string& addonID);
 
-  bool BlacklistAddon(const std::string& addonID);
-  bool RemoveAddonFromBlacklist(const std::string& addonID);
-  bool GetBlacklisted(std::set<std::string>& addons);
+  /*!
+   * \brief Write dataset with addon-id and rule to the db
+   * \param addonID the addonID
+   * \param updateRule the rule value to be written
+   * \return true on success, false otherwise
+   */
+  bool AddUpdateRuleForAddon(const std::string& addonID, ADDON::AddonUpdateRule updateRule);
+
+  /*!
+   * \brief Remove all rule datasets for an addon-id from the db
+   * \param addonID the addonID
+   * \return true on success, false otherwise
+   */
+  bool RemoveAllUpdateRulesForAddon(const std::string& addonID);
+
+  /*!
+   * \brief Remove a single rule dataset for an addon-id from the db
+   * \note specifying AddonUpdateRule::ANY will remove all rules.
+   *       use @ref RemoveAllUpdateRulesForAddon() instead
+   * \param addonID the addonID
+   * \param updateRule the rule to remove
+   * \return true on success, false otherwise
+   */
+  bool RemoveUpdateRuleForAddon(const std::string& addonID, AddonUpdateRule updateRule);
+
+  /*!
+   * \brief Retrieve all rule datasets from db and store them into map
+   * \param rulesMap target map
+   * \return true on success, false otherwise
+   */
+  bool GetAddonUpdateRules(std::map<std::string, std::vector<AddonUpdateRule>>& rulesMap) const;
 
   /*! \brief Store an addon's package filename and that file's hash for future verification
       \param  addonID         id of the addon we're adding a package for
@@ -136,6 +214,13 @@ public:
 
   void GetInstallData(const ADDON::AddonInfoPtr& addon);
 
+  /*! \brief Add dataset for a new installed addon to the database
+   *  \param addon the addon to insert
+   *  \param origin the origin it was installed from
+   *  \return true on success, false otherwise
+   */
+  bool AddInstalledAddon(const std::shared_ptr<CAddonInfo>& addon, const std::string& origin);
+
 protected:
   void CreateTables() override;
   void CreateAnalytics() override;
@@ -146,5 +231,8 @@ protected:
 
   bool GetAddon(int id, ADDON::AddonPtr& addon);
   void DeleteRepository(const std::string& id);
+  void DeleteRepositoryContents(const std::string& id);
+  int GetRepositoryId(const std::string& addonId);
 };
 
+}; // namespace ADDON

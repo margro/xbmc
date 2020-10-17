@@ -42,7 +42,10 @@ include(ExternalProject)
 
 # general
 option(VERBOSE            "Enable verbose output?" OFF)
+option(ENABLE_CLANGTIDY   "Enable clang-tidy support?" OFF)
+option(ENABLE_CPPCHECK    "Enable cppcheck support?" OFF)
 option(ENABLE_DVDCSS      "Enable libdvdcss support?" ON)
+option(ENABLE_INCLUDEWHATYOUUSE "Enable include-what-you-use support?" OFF)
 option(ENABLE_UPNP        "Enable UPnP support?" ON)
 option(ENABLE_AIRTUNES    "Enable AirTunes support?" ON)
 option(ENABLE_OPTICAL     "Enable optical support?" ON)
@@ -146,8 +149,11 @@ set(optional_deps Alsa
                   CCache
                   CEC
                   ClangFormat
+                  ClangTidy
+                  Cppcheck
                   Dav1d
                   DBus
+                  IncludeWhatYouUse
                   Iso9660pp
                   LCMS2
                   LircClient
@@ -164,15 +170,15 @@ set(optional_deps Alsa
                   XSLT
                   ${PLATFORM_OPTIONAL_DEPS})
 
-# Required tools
-find_package(TexturePacker REQUIRED)
-find_package(JsonSchemaBuilder REQUIRED)
-
 # Check optional deps first, since their availability can influence required ones, e.g. ffmpeg
 core_optional_dep(${optional_deps})
 core_require_dep(${required_deps})
 
-SET(PYTHON_VERSION 3.7)
+# Required tools
+find_package(TexturePacker REQUIRED)
+find_package(JsonSchemaBuilder REQUIRED)
+
+SET(PYTHON_VERSION 3.8)
 
 if(ENABLE_MARIADBCLIENT AND NOT ENABLE_MARIADBCLIENT STREQUAL AUTO AND ENABLE_MYSQLCLIENT AND NOT ENABLE_MYSQLCLIENT STREQUAL AUTO)
   MESSAGE(FATAL_ERROR "You can not use MySql and MariaDB at the same time. Disable one by adding -DENABLE_MYSQLCLIENT=OFF or -DENABLE_MARIADBCLIENT=OFF.")
@@ -235,7 +241,8 @@ add_custom_command(OUTPUT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp
 list(APPEND install_data ${ADDON_INSTALL_DATA})
 add_library(compileinfo OBJECT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp)
 set_target_properties(compileinfo PROPERTIES FOLDER "Build Utilities")
-target_compile_options(compileinfo PRIVATE "${SYSTEM_DEFINES}")
+target_compile_options(compileinfo PRIVATE "${SYSTEM_DEFINES} ${ARCH_DEFINES}")
+add_dependencies(compileinfo fmt)
 
 # RC File
 if(WIN32)

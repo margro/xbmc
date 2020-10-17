@@ -86,6 +86,7 @@ git clone https://github.com/xbmc/xbmc kodi
 
 ## 4. Configure and build tools and dependencies
 Kodi can be built as a 64bit program only for tvOS. The dependencies are built in `$HOME/kodi/tools/depends` and installed into `/Users/Shared/xbmc-depends`.
+**NOTE:** `--with-platform` is mandatory for all Apple platforms
 
 Configure build:
 ```
@@ -161,6 +162,7 @@ Generate Xcode project to build a specific group of add-ons:
 ```
 make -C tools/depends/target/cmakebuildsys CMAKE_EXTRA_ARGUMENTS="-DENABLE_XCODE_ADDONBUILD=ON -DADDONS_TO_BUILD='pvr.*'"
 ```
+For additional information on regular expression usage for ADDONS_TO_BUILD, view ADDONS_TO_BUILD section located at [Kodi add-ons CMake based buildsystem](../cmake/addons/README.md)
 
 Generate Xcode project to build all add-ons automatically:
 ```

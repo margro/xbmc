@@ -35,22 +35,23 @@ protected:
     std::set<std::string> installed{"repository.a", "repository.b"};
     database.SyncInstalled(installed, installed, std::set<std::string>());
 
-    VECADDONS addons;
+    std::vector<AddonInfoPtr> addons;
     CreateAddon(addons, "foo.bar", "1.0.0");
+    database.SetRepoUpdateData("repository.a", {});
     database.UpdateRepositoryContent("repository.a", AddonVersion("1.0.0"), "test", addons);
 
     addons.clear();
     CreateAddon(addons, "foo.baz", "1.1.0");
+    database.SetRepoUpdateData("repository.b", {});
     database.UpdateRepositoryContent("repository.b", AddonVersion("1.0.0"), "test", addons);
   }
 
-  void CreateAddon(VECADDONS& addons, std::string id, std::string version)
+  void CreateAddon(std::vector<AddonInfoPtr>& addons, std::string id, std::string version)
   {
     CAddonInfoBuilder::CFromDB builder;
     builder.SetId(id);
     builder.SetVersion(AddonVersion(version));
-    AddonPtr addon = CAddonBuilder::Generate(builder.get(), ADDON_UNKNOWN);
-    addons.push_back(addon);
+    addons.push_back(builder.get());
   }
 
   void TearDown() override

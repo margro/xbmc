@@ -9,12 +9,11 @@
 #include "ContextMenus.h"
 
 #include "AddonManager.h"
-#include "GUIDialogAddonInfo.h"
 #include "Repository.h"
 #include "RepositoryUpdater.h"
 #include "ServiceBroker.h"
-#include "settings/GUIDialogAddonSettings.h"
-
+#include "addons/gui/GUIDialogAddonSettings.h"
+#include "addons/gui/GUIHelpers.h"
 
 namespace CONTEXTMENU
 {
@@ -62,6 +61,10 @@ bool CEnableAddon::IsVisible(const CFileItem& item) const
 
 bool CEnableAddon::Execute(const CFileItemPtr& item) const
 {
+  // Check user want to enable if lifecycle not normal
+  if (!ADDON::GUI::CHelpers::DialogAddonLifecycleUseAsk(item->GetAddonInfo()))
+    return false;
+
   return CServiceBroker::GetAddonMgr().EnableAddon(item->GetAddonInfo()->ID());
 }
 

@@ -770,7 +770,11 @@ void DetailsFromFileItem<CAlbum>(const CFileItem &item, CAlbum &album)
   album.fRating = item.GetProperty("album.rating").asFloat();
   album.iUserrating = item.GetProperty("album.user_rating").asInteger32();
   album.iVotes = item.GetProperty("album.votes").asInteger32();
-  album.art = item.GetArt();
+  
+  /* Scrapers fetch a list of possible art but do not set the current images used because art
+     selection depends on other preferences so is handled by CMusicInfoScanner
+     album.art = item.GetArt();
+  */
 
   int nThumbs = item.GetProperty("album.thumbs").asInteger32();
   ParseThumbs(album.thumbURL, item, nThumbs, "album.thumb");
@@ -794,7 +798,11 @@ void DetailsFromFileItem<CArtist>(const CFileItem &item, CArtist &artist)
   artist.strBiography = FromString(item, "artist.biography");
   artist.strDied = FromString(item, "artist.died");
   artist.strDisbanded = FromString(item, "artist.disbanded");
-  artist.art = item.GetArt();
+
+  /* Scrapers fetch a list of possible art but do not set the current images used because art
+     selection depends on other preferences so is handled by CMusicInfoScanner
+     artist.art = item.GetArt();
+  */
 
   int nAlbums = item.GetProperty("artist.albums").asInteger32();
   artist.discography.reserve(nAlbums);
@@ -812,9 +820,16 @@ void DetailsFromFileItem<CArtist>(const CFileItem &item, CArtist &artist)
   int nThumbs = item.GetProperty("artist.thumbs").asInteger32();
   ParseThumbs(artist.thumbURL, item, nThumbs, "artist.thumb");
 
+  // Support deprecated fanarts property, add to artist.thumbURL
   int nFanart = item.GetProperty("artist.fanarts").asInteger32();
-  artist.fanart.m_xml = ParseFanart(item, nFanart, "artist.fanart");
-  artist.fanart.Unpack();
+  if (nFanart > 0)
+  {
+    CFanart fanart;
+    fanart.m_xml = ParseFanart(item, nFanart, "artist.fanart");
+    fanart.Unpack();
+    for (unsigned int i = 0; i < fanart.GetNumFanarts(); i++)
+      artist.thumbURL.AddParsedUrl(fanart.GetImageURL(i), "fanart", fanart.GetPreviewURL(i));
+  }
 }
 
 template<>

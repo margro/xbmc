@@ -239,7 +239,6 @@ bool CInputManager::ProcessEventServer(int windowId, float frameTime)
       if (wKeyID & ES_FLAG_UNICODE)
       {
         key = CKey(0u, 0u, static_cast<wchar_t>(wKeyID & ~ES_FLAG_UNICODE), 0, 0, 0, 0);
-        key.SetFromService(true);
         return OnKey(key);
       }
 
@@ -439,8 +438,8 @@ bool CInputManager::OnEvent(XBMC_Event& newEvent)
     } // case
     case XBMC_BUTTON:
     {
-      CKey key(newEvent.keybutton.button, newEvent.keybutton.holdtime);
-      OnKey(key);
+      HandleKey(
+          m_buttonStat.TranslateKey(CKey(newEvent.keybutton.button, newEvent.keybutton.holdtime)));
       break;
     }
   } // switch

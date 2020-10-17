@@ -33,9 +33,6 @@
 #if defined(TARGET_DARWIN_EMBEDDED)
 #include "SettingAddon.h"
 #endif
-#if defined(TARGET_RASPBERRY_PI)
-#include "platform/linux/RBP.h"
-#endif
 #include "powermanagement/PowerTypes.h"
 #include "profiles/ProfileManager.h"
 #include "ServiceBroker.h"
@@ -118,6 +115,18 @@ const std::string CSettings::SETTING_VIDEOLIBRARY_EXPORT = "videolibrary.export"
 const std::string CSettings::SETTING_VIDEOLIBRARY_IMPORT = "videolibrary.import";
 const std::string CSettings::SETTING_VIDEOLIBRARY_SHOWEMPTYTVSHOWS = "videolibrary.showemptytvshows";
 const std::string CSettings::SETTING_VIDEOLIBRARY_MOVIESETSFOLDER = "videolibrary.moviesetsfolder";
+const std::string CSettings::SETTING_VIDEOLIBRARY_ARTWORK_LEVEL =
+    "videolibrary.artworklevel";
+const std::string CSettings::SETTING_VIDEOLIBRARY_MOVIEART_WHITELIST =
+    "videolibrary.movieartwhitelist";
+const std::string CSettings::SETTING_VIDEOLIBRARY_TVSHOWART_WHITELIST =
+    "videolibrary.tvshowartwhitelist";
+const std::string CSettings::SETTING_VIDEOLIBRARY_EPISODEART_WHITELIST =
+    "videolibrary.episodeartwhitelist";
+const std::string CSettings::SETTING_VIDEOLIBRARY_MUSICVIDEOART_WHITELIST =
+    "videolibrary.musicvideoartwhitelist";
+const std::string CSettings::SETTING_VIDEOLIBRARY_ARTSETTINGS_UPDATED =
+    "videolibrary.artsettingsupdated";
 const std::string CSettings::SETTING_LOCALE_AUDIOLANGUAGE = "locale.audiolanguage";
 const std::string CSettings::SETTING_VIDEOPLAYER_PREFERDEFAULTFLAG = "videoplayer.preferdefaultflag";
 const std::string CSettings::SETTING_VIDEOPLAYER_AUTOPLAYNEXTITEM = "videoplayer.autoplaynextitem";
@@ -142,7 +151,6 @@ const std::string CSettings::SETTING_VIDEOPLAYER_USEVDPAUMPEG4 = "videoplayer.us
 const std::string CSettings::SETTING_VIDEOPLAYER_USEVDPAUVC1 = "videoplayer.usevdpauvc1";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEDXVA2 = "videoplayer.usedxva2";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEVTB = "videoplayer.usevtb";
-const std::string CSettings::SETTING_VIDEOPLAYER_USEMMAL = "videoplayer.usemmal";
 const std::string CSettings::SETTING_VIDEOPLAYER_USEPRIMEDECODER = "videoplayer.useprimedecoder";
 const std::string CSettings::SETTING_VIDEOPLAYER_USESTAGEFRIGHT = "videoplayer.usestagefright";
 const std::string CSettings::SETTING_VIDEOPLAYER_LIMITGUIUPDATE = "videoplayer.limitguiupdate";
@@ -238,6 +246,15 @@ const std::string CSettings::SETTING_MUSICLIBRARY_USEARTISTSORTNAME = "musiclibr
 const std::string CSettings::SETTING_MUSICLIBRARY_DOWNLOADINFO = "musiclibrary.downloadinfo";
 const std::string CSettings::SETTING_MUSICLIBRARY_ARTISTSFOLDER = "musiclibrary.artistsfolder";
 const std::string CSettings::SETTING_MUSICLIBRARY_PREFERONLINEALBUMART = "musiclibrary.preferonlinealbumart";
+const std::string CSettings::SETTING_MUSICLIBRARY_ARTWORKLEVEL = "musiclibrary.artworklevel";
+const std::string CSettings::SETTING_MUSICLIBRARY_USEALLLOCALART = "musiclibrary.usealllocalart";
+const std::string CSettings::SETTING_MUSICLIBRARY_USEALLREMOTEART = "musiclibrary.useallremoteart";
+const std::string CSettings::SETTING_MUSICLIBRARY_ARTISTART_WHITELIST =
+    "musiclibrary.artistartwhitelist";
+const std::string CSettings::SETTING_MUSICLIBRARY_ALBUMART_WHITELIST =
+    "musiclibrary.albumartwhitelist";
+const std::string CSettings::SETTING_MUSICLIBRARY_MUSICTHUMBS = "musiclibrary.musicthumbs";
+const std::string CSettings::SETTING_MUSICLIBRARY_ARTSETTINGS_UPDATED = "musiclibrary.artsettings";
 const std::string CSettings::SETTING_MUSICLIBRARY_ALBUMSSCRAPER = "musiclibrary.albumsscraper";
 const std::string CSettings::SETTING_MUSICLIBRARY_ARTISTSSCRAPER = "musiclibrary.artistsscraper";
 const std::string CSettings::SETTING_MUSICLIBRARY_OVERRIDETAGS = "musiclibrary.overridetags";
@@ -625,11 +642,6 @@ bool CSettings::InitializeDefinitions()
 #elif defined(TARGET_ANDROID)
   if (CFile::Exists(SETTINGS_XML_FOLDER "android.xml") && !Initialize(SETTINGS_XML_FOLDER "android.xml"))
     CLog::Log(LOGFATAL, "Unable to load android-specific settings definitions");
-#elif defined(TARGET_RASPBERRY_PI)
-  if (CFile::Exists(SETTINGS_XML_FOLDER "rbp.xml") && !Initialize(SETTINGS_XML_FOLDER "rbp.xml"))
-    CLog::Log(LOGFATAL, "Unable to load rbp-specific settings definitions");
-  if (g_RBP.RaspberryPiVersion() > 1 && CFile::Exists(SETTINGS_XML_FOLDER "rbp2.xml") && !Initialize(SETTINGS_XML_FOLDER "rbp2.xml"))
-    CLog::Log(LOGFATAL, "Unable to load rbp2-specific settings definitions");
 #elif defined(TARGET_FREEBSD)
   if (CFile::Exists(SETTINGS_XML_FOLDER "freebsd.xml") && !Initialize(SETTINGS_XML_FOLDER "freebsd.xml"))
     CLog::Log(LOGFATAL, "Unable to load freebsd-specific settings definitions");

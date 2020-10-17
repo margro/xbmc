@@ -8,13 +8,15 @@
 
 #pragma once
 
+#include "addons/kodi-dev-kit/include/kodi/c-api/gui/controls/label.h"
+
 extern "C"
 {
 
-struct AddonGlobalInterface;
+  struct AddonGlobalInterface;
 
-namespace ADDON
-{
+  namespace ADDON
+  {
 
   /*!
    * @brief Global gui Add-on to Kodi callback functions
@@ -22,7 +24,7 @@ namespace ADDON
    * To hold general gui functions and initialize also all other gui related types not
    * related to a instance type and usable for every add-on type.
    *
-   * Related add-on header is "./xbmc/addons/kodi-addon-dev-kit/include/kodi/gui/controls/Label.h"
+   * Related add-on header is "./xbmc/addons/kodi-dev-kit/include/kodi/gui/controls/Label.h"
    */
   struct Interface_GUIControlLabel
   {
@@ -40,12 +42,12 @@ namespace ADDON
      * class.
      */
     //@{
-    static void set_visible(void* kodiBase, void* handle, bool visible);
+    static void set_visible(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool visible);
 
-    static void set_label(void* kodiBase, void* handle, const char* label);
-    static char* get_label(void* kodiBase, void* handle);
+    static void set_label(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, const char* label);
+    static char* get_label(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
     //@}
   };
 
-} /* namespace ADDON */
+  } /* namespace ADDON */
 } /* extern "C" */

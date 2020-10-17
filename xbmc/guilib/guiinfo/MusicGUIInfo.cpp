@@ -77,8 +77,9 @@ bool CMusicGUIInfo::InitCurrentItem(CFileItem *item)
 bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int contextWindow, const CGUIInfo &info, std::string *fallback) const
 {
   // For musicplayer "offset" and "position" info labels check playlist
-  if (info.GetData1() && info.m_info >= MUSICPLAYER_OFFSET_POSITION_FIRST &&
-      info.m_info <= MUSICPLAYER_OFFSET_POSITION_LAST)
+  if (info.GetData1() && ((info.m_info >= MUSICPLAYER_OFFSET_POSITION_FIRST &&
+      info.m_info <= MUSICPLAYER_OFFSET_POSITION_LAST) ||
+      (info.m_info >= PLAYER_OFFSET_POSITION_FIRST && info.m_info <= PLAYER_OFFSET_POSITION_LAST)))
     return GetPlaylistInfo(value, info);
 
   const CMusicInfoTag* tag = item->GetMusicInfoTag();
@@ -145,6 +146,7 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
           return true;
         }
         break;
+      case MUSICPLAYER_TOTALDISCS:
       case LISTITEM_TOTALDISCS:
         value = StringUtils::Format("%i", tag->GetTotalDiscs());
         return true;
@@ -275,6 +277,12 @@ bool CMusicGUIInfo::GetLabel(std::string& value, const CFileItem *item, int cont
           return true;
         }
         break;
+      case MUSICPLAYER_STATIONNAME:
+        // This property can be used for example by addons to enforce/override the station name.
+        value = item->GetProperty("StationName").asString();
+        if (value.empty())
+          value = tag->GetStationName();
+        return true;
 
       /////////////////////////////////////////////////////////////////////////////////////////////
       // LISTITEM_*
@@ -573,6 +581,9 @@ bool CMusicGUIInfo::GetInt(int& value, const CGUIListItem *gitem, int contextWin
 
 bool CMusicGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int contextWindow, const CGUIInfo &info) const
 {
+  const CFileItem* item = static_cast<const CFileItem*>(gitem);
+  const CMusicInfoTag* tag = item->GetMusicInfoTag();
+
   switch (info.m_info)
   {
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -619,7 +630,13 @@ bool CMusicGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int contextW
       value = (index >= 0 && index < CServiceBroker::GetPlaylistPlayer().GetPlaylist(PLAYLIST_MUSIC).size());
       return true;
     }
-
+    case MUSICPLAYER_ISMULTIDISC:
+      if (tag)
+      {
+        value = (item->GetMusicInfoTag()->GetTotalDiscs() > 1);
+        return true;
+      }
+      break;
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // MUSICPM_*
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -631,11 +648,9 @@ bool CMusicGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int contextW
     // LISTITEM_*
     ///////////////////////////////////////////////////////////////////////////////////////////////
     case LISTITEM_IS_BOXSET:
-      const CFileItem* item = static_cast<const CFileItem*>(gitem);
-      const CMusicInfoTag* tag = item->GetMusicInfoTag();
       if (tag)
       {
-        value = item->GetMusicInfoTag()->GetBoxset() == true;
+        value = tag->GetBoxset() == true;
         return true;
       }
       break;

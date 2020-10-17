@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "DRMUtils.h"
 #include "VideoLayerBridge.h"
+#include "drm/DRMUtils.h"
 #include "threads/CriticalSection.h"
 #include "windowing/WinSystem.h"
 
@@ -40,6 +40,8 @@ public:
 
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
+  bool DisplayHardwareScalingEnabled() override;
+  void UpdateDisplayHardwareScaling(const RESOLUTION_INFO& resInfo) override;
 
   void FlipPage(bool rendered, bool videoLayer);
 
@@ -56,8 +58,7 @@ public:
   std::shared_ptr<CVideoLayerBridge> GetVideoLayerBridge() const { return m_videoLayerBridge; };
   void RegisterVideoLayerBridge(std::shared_ptr<CVideoLayerBridge> bridge) { m_videoLayerBridge = bridge; };
 
-  std::string GetModule() const { return m_DRM->GetModule(); }
-  struct gbm_device *GetGBMDevice() const { return m_GBM->GetDevice(); }
+  CGBMUtils::CGBMDevice* GetGBMDevice() const { return m_GBM->GetDevice(); }
   std::shared_ptr<CDRMUtils> GetDrm() const { return m_DRM; }
 
 protected:

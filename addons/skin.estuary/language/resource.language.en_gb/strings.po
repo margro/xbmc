@@ -614,7 +614,10 @@ msgctxt "#31134"
 msgid "Remaining"
 msgstr ""
 
-#empty string with id 31135
+#: /xml/DialogAddonInfo.xml
+msgctxt "#31135"
+msgid "Binary"
+msgstr ""
 
 #: /xml/DialogAddonInfo.xml
 msgctxt "#31136"
@@ -686,7 +689,7 @@ msgstr ""
 
 #: /xml/DialogAddonInfo.xml
 msgctxt "#31150"
-msgid "Repository"
+msgid "Origin"
 msgstr ""
 
 #: /xml/Home.xml
@@ -776,4 +779,16 @@ msgstr ""
 #: /xml/SkinSettings.xml
 msgctxt "#31167"
 msgid "Animate background"
+msgstr ""
+
+#. Label of a setting
+#: /xml/SkinSettings.xml
+msgctxt "#31168"
+msgid "Show posters instead of thumbs for musicvideos"
+msgstr ""
+
+#. Description label for skin settings area
+#: /xml/Variables.xml
+msgctxt "#31169"
+msgid "Artwork related settings."
 msgstr ""

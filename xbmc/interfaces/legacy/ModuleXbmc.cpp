@@ -22,7 +22,7 @@
 #include "aojsonrpc.h"
 #include "cores/AudioEngine/Interfaces/AE.h"
 #include "filesystem/File.h"
-#include "filesystem/SpecialProtocol.h"
+#include "filesystem/SpecialProtocol.h" //! @todo remove me when dropping translatePath from this file
 #include "guilib/GUIAudioManager.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -380,6 +380,8 @@ namespace XBMCAddon
     String translatePath(const String& path)
     {
       XBMC_TRACE;
+      CLog::Log(LOGWARNING, "xbmc.translatePath is deprecated and might be removed in future kodi "
+                            "versions. Please use xbmcvfs.translatePath instead.");
       return CSpecialProtocol::TranslatePath(path);
     }
 
@@ -543,10 +545,8 @@ namespace XBMCAddon
     int getTRAY_CLOSED_MEDIA_PRESENT() { return TRAY_CLOSED_MEDIA_PRESENT; }
     int getLOGDEBUG() { return LOGDEBUG; }
     int getLOGINFO() { return LOGINFO; }
-    int getLOGNOTICE() { return LOGNOTICE; }
     int getLOGWARNING() { return LOGWARNING; }
     int getLOGERROR() { return LOGERROR; }
-    int getLOGSEVERE() { return LOGSEVERE; }
     int getLOGFATAL() { return LOGFATAL; }
     int getLOGNONE() { return LOGNONE; }
 

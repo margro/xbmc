@@ -85,6 +85,10 @@ static int ActivateWindow(const std::vector<std::string>& params2)
         bIsSameStartFolder = static_cast<CGUIMediaWindow*>(activeWindow)->IsSameStartFolder(params[0]);
     }
 
+    // let the window know it is being replaced
+    if (Replace)
+      params.emplace_back("replace");
+
     // activate window only if window and path differ from the current active window
     if (iWindow != CServiceBroker::GetGUI()->GetWindowManager().GetActiveWindow() || !bIsSameStartFolder)
     {
@@ -300,7 +304,7 @@ static int Screenshot(const std::vector<std::string>& params)
     {
       if (XFILE::CDirectory::Exists(strSaveToPath))
       {
-        std::string file = CUtil::GetNextFilename(URIUtils::AddFileToFolder(strSaveToPath, "screenshot%03d.png"), 999);
+        std::string file = CUtil::GetNextFilename(URIUtils::AddFileToFolder(strSaveToPath, "screenshot%05d.png"), 65535);
 
         if (!file.empty())
         {

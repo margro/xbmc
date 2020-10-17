@@ -26,12 +26,21 @@ namespace VIDEO
 
   typedef struct SScanSettings
   {
-    SScanSettings() { parent_name = parent_name_root = noupdate = exclude = false; recurse = 1;}
+    SScanSettings()
+    {
+      parent_name = false;
+      parent_name_root = false;
+      noupdate = false;
+      exclude = false;
+      m_allExtAudio = false;
+      recurse = 1;
+    }
     bool parent_name;       /* use the parent dirname as name of lookup */
     bool parent_name_root;  /* use the name of directory where scan started as name for files in that dir */
     int  recurse;           /* recurse into sub folders (indicate levels) */
     bool noupdate;          /* exclude from update library function */
     bool exclude;           /* exclude this path from scraping */
+    bool m_allExtAudio; /* treat all audio files in video directory as external tracks */
   } SScanSettings;
 
   class CVideoInfoScanner : public CInfoScanner
@@ -81,14 +90,6 @@ namespace VIDEO
      \param actorArtPath the path to search for actor thumbs. Defaults to empty.
      */
     void GetArtwork(CFileItem *pItem, const CONTENT_TYPE &content, bool bApplyToDir=false, bool useLocal=true, const std::string &actorArtPath = "");
-
-    /*! \brief Retrieve the art type for an image from the given size.
-     \param width the width of the image.
-     \param height the height of the image.
-     \return "poster" if the aspect ratio is at most 4:5, "banner" if the aspect ratio
-             is at least 1:4, "thumb" otherwise.
-     */
-    static std::string GetArtTypeFromSize(unsigned int width, unsigned int height);
 
     /*! \brief Get season thumbs for a tvshow.
      All seasons (regardless of whether the user has episodes) are added to the art map.
@@ -235,8 +236,17 @@ namespace VIDEO
     std::set<int> m_pathsToClean;
 
   private:
-    void GetLocalMovieSetArtwork(CGUIListItem::ArtMap& art,
-        const std::vector<std::string>& artTypes, const std::string& setTitle);
+    static void AddLocalItemArtwork(CGUIListItem::ArtMap& itemArt,
+      const std::vector<std::string>& wantedArtTypes, const std::string& itemPath,
+      bool addAll, bool exactName);
+
+    /*! \brief Retrieve the art type for an image from the given size.
+     \param width the width of the image.
+     \param height the height of the image.
+     \return "poster" if the aspect ratio is at most 4:5, "banner" if the aspect ratio
+             is at least 1:4, "thumb" otherwise.
+     */
+    static std::string GetArtTypeFromSize(unsigned int width, unsigned int height);
   };
 }
 

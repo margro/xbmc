@@ -350,19 +350,20 @@ bool CRendererBase::CreateIntermediateTarget(unsigned width, unsigned height, bo
   return true;
 }
 
-void CRendererBase::OnCMSConfigChanged(unsigned flags)
+void CRendererBase::OnCMSConfigChanged(AVColorPrimaries srcPrimaries)
 {
   m_lutSize = 0;
   m_clutLoaded = false;
 
-  auto loadLutTask = Concurrency::create_task([this, flags] {
+  auto loadLutTask = Concurrency::create_task([this, srcPrimaries] {
     // load 3DLUT data
     int lutSize, dataSize;
     if (!CColorManager::Get3dLutSize(CMS_DATA_FMT_RGBA, &lutSize, &dataSize))
       return 0;
 
     const auto lutData = static_cast<uint16_t*>(KODI::MEMORY::AlignedMalloc(dataSize, 16));
-    bool success = m_colorManager->GetVideo3dLut(flags, &m_cmsToken, CMS_DATA_FMT_RGBA, lutSize, lutData);
+    bool success = m_colorManager->GetVideo3dLut(srcPrimaries, &m_cmsToken, CMS_DATA_FMT_RGBA,
+                                                 lutSize, lutData);
     if (success)
     {
       success = COutputShader::CreateLUTView(lutSize, lutData, false, m_pLUTView.ReleaseAndGetAddressOf());
@@ -442,7 +443,7 @@ void CRendererBase::CheckVideoParameters()
     OnOutputReset();
   }
 
-  const unsigned color_primaries = GetFlagsColorPrimaries(buf->primaries);
+  const AVColorPrimaries color_primaries = static_cast<AVColorPrimaries>(buf->primaries);
   if (m_cmsOn && !m_colorManager->CheckConfiguration(m_cmsToken, color_primaries))
   {
     OnCMSConfigChanged(color_primaries);
@@ -518,7 +519,13 @@ void CRendererBase::ProcessHDR(CRenderBuffer* rb)
   }
 
   if (!DX::Windowing()->IsHDROutput())
+  {
+    if (m_lastHdr10.RedPrimary[0] != 0)
+      m_lastHdr10 = {};
+    if (m_HdrType != HDR_TYPE::HDR_NONE_SDR)
+      m_HdrType = HDR_TYPE::HDR_NONE_SDR;
     return;
+  }
 
   // HDR10
   if (rb->color_transfer == AVCOL_TRC_SMPTE2084 && rb->primaries == AVCOL_PRI_BT2020)
@@ -579,6 +586,7 @@ void CRendererBase::ProcessHDR(CRenderBuffer* rb)
         DX::Windowing()->SetHdrColorSpace(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
         m_HdrType = HDR_TYPE::HDR_NONE_SDR;
         m_iCntMetaData = 0;
+        m_lastHdr10 = {};
         if (m_AutoSwitchHDR)
           DX::Windowing()->ToggleHDR(); // Toggle display HDR OFF
       }

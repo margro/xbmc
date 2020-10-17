@@ -6875,7 +6875,7 @@ msgctxt "#13386"
 msgid "Use time based seeking"
 msgstr ""
 
-#: system/settings/settings.xml
+#. unused?
 msgctxt "#13387"
 msgid "Track naming template - right"
 msgstr ""
@@ -7338,6 +7338,7 @@ msgstr ""
 #. Button to add a new type of art e.g. "thumb", "poster", "fanart" etc.
 #: xbmc/music/MusicUtils.cpp
 #: xbmc/video/dialogs/GUIDialogVideoInfo.cpp
+#: system/settings/settings.xml
 msgctxt "#13516"
 msgid "Add art type"
 msgstr ""
@@ -9037,29 +9038,7 @@ msgctxt "#16329"
 msgid "VAAPI - Motion compensated"
 msgstr ""
 
-#. Description of OSD video settings for deinterlace method with label #16330
-#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
-msgctxt "#16330"
-msgid "MMAL - Advanced"
-msgstr ""
-
-#. Description of OSD video settings for deinterlace method with label #16331
-#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
-msgctxt "#16331"
-msgid "MMAL - Advanced (half)"
-msgstr ""
-
-#. Description of OSD video settings for deinterlace method with label #16332
-#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
-msgctxt "#16332"
-msgid "MMAL - Bob"
-msgstr ""
-
-#. Description of OSD video settings for deinterlace method with label #16333
-#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
-msgctxt "#16333"
-msgid "MMAL - Bob (half)"
-msgstr ""
+#empty strings from id 16330 to 16333
 
 #. Description of OSD video settings for deinterlace method with label #16334
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
@@ -9391,17 +9370,7 @@ msgctxt "#19040"
 msgid "Timers"
 msgstr ""
 
-#. label for "rename recording" confirmation input dialog
-#: xbmc/pvr/PVRGUIActions.cpp
-msgctxt "#19041"
-msgid "Are you sure you want to rename this recording?"
-msgstr ""
-
-#. label for "rename timer" confirmation input dialog
-#: xbmc/pvr/PVRGUIActions.cpp
-msgctxt "#19042"
-msgid "Are you sure you want to rename this timer?"
-msgstr ""
+#empty strings from id 19041 to 19042
 
 #. pvr settings "recording" category label
 #: system/settings/settings.xml
@@ -13667,7 +13636,7 @@ msgstr ""
 
 #: xbmc/addons/GUIDialogAddonInfo.cpp
 msgctxt "#21342"
-msgid "There are currently no updates available for this add-on."
+msgid "There are currently no versions available for this add-on."
 msgstr ""
 
 #: system/settings.xml
@@ -15134,7 +15103,12 @@ msgctxt "#24048"
 msgid "VideoPlayer InputStream"
 msgstr ""
 
-#empty string with id 24049
+#. To show addon as deprecated over icon
+#: addons/skin.estuary/xml/AddonBrowser.xml
+#: addons/skin.estuary/xml/DialogAddonInfo.xml
+msgctxt "#24049"
+msgid "Add-on has been marked deprecated in repository."
+msgstr ""
 
 #: unknown
 msgctxt "#24050"
@@ -15240,7 +15214,7 @@ msgid "Update available"
 msgstr ""
 
 msgctxt "#24069"
-msgid "Update"
+msgid "Versions"
 msgstr ""
 
 msgctxt "#24070"
@@ -15336,7 +15310,11 @@ msgctxt "#24087"
 msgid "All repositories"
 msgstr ""
 
-#empty string with id 24088
+#. Used as a text in the progress dialog when install of a repo fails
+#: xbmc/addons/AddonInstaller.cpp
+msgctxt "#24088"
+msgid "Failed to install repository"
+msgstr ""
 
 msgctxt "#24089"
 msgid "Add-on restarts"
@@ -15373,6 +15351,8 @@ msgctxt "#24095"
 msgid "Local package cache"
 msgstr ""
 
+#. To show addon as broken over icon
+#: addons/skin.estuary/xml/AddonBrowser.xml
 #: addons/skin.estuary/xml/DialogAddonInfo.xml
 msgctxt "#24096"
 msgid "Add-on has been marked broken in repository."
@@ -15511,7 +15491,7 @@ msgstr ""
 #. Button in Add-on Manager -> Available Updates for updating all add-ons when auto-updating is off.
 #: xbmc/filesystem/AddonDirectory.cpp
 msgctxt "#24122"
-msgid "Update all"
+msgid "Install all updates"
 msgstr ""
 
 #. Description of setting with label #24105 "Pause when searching for subtitles"
@@ -15588,7 +15568,17 @@ msgctxt "#24136"
 msgid "Would you like to enable this add-on?"
 msgstr ""
 
-#empty strings from id 24137 to 24138
+#. Button in Add-on Manager -> Available Updates for updating all possible add-ons when auto-updating is off.
+#: xbmc/filesystem/AddonDirectory.cpp
+msgctxt "#24137"
+msgid "Install auto updates only"
+msgstr ""
+
+#. Button caption in DialogAddoninfo
+#: xbmc/addons/gui/GUIDialogAddonInfo.cpp
+msgctxt "#24138"
+msgid "Update"
+msgstr ""
 
 #. Label for the action provided by addon management events to jump to a specific Add-on
 #: xbmc/events/AddonManagementEvent.cpp
@@ -15727,7 +15717,67 @@ msgctxt "#24163"
 msgid "Match Apple tvOS Standard (Siri remote)"
 msgstr ""
 
-#empty strings from id 24164 to 24990
+#. Header text for yes/no dialog about enable of broken addon
+#: xbmc/addons/gui/GUIHelpers.cpp
+msgctxt "#24164"
+msgid "Addon \"{0:s}\" broken"
+msgstr ""
+
+#. Yes/no dialog text with addon broken string value and to ask for use
+#: xbmc/addons/gui/GUIHelpers.cpp
+msgctxt "#24165"
+msgid "Addon marked as broken with following note:[CR][B][I]{0:s}[/I][/B][CR][CR]Do you want to enable?"
+msgstr ""
+
+#. Header text for yes/no dialog about enable of deprecated addon
+#: xbmc/addons/gui/GUIHelpers.cpp
+msgctxt "#24166"
+msgid "Addon \"{0:s}\" deprecated"
+msgstr ""
+
+#. Yes/no dialog text with addon deprecated string value and to ask for use
+#: xbmc/addons/gui/GUIHelpers.cpp
+msgctxt "#24167"
+msgid "Addon marked as deprecated with following note:[CR][B][I]{0:s}[/I][/B][CR][CR]Do you want to enable?"
+msgstr ""
+
+#. Notification event to show addon marked as deprecated.
+#: xbmc/addons/AddonInstaller.cpp
+msgctxt "#24168"
+msgid "Deprecated: {0:s}"
+msgstr ""
+
+#. Lifecycle state name, for normal addons (no special). Used also on skin to compare and identify related state.
+#: addons/skin.estuary/xml/AddonBrowser.xml
+#: addons/skin.estuary/xml/DialogAddonInfo.xml
+#: addons/skin.estuary/xml/Variables.xml
+#: xbmc/guilib/guiinfo/AddonsGUIInfo.cpp
+msgctxt "#24169"
+msgid "Normal"
+msgstr ""
+
+#. Lifecycle state name, for deprecated addons. Used also on skin to compare and identify related state.
+#: addons/skin.estuary/xml/AddonBrowser.xml
+#: addons/skin.estuary/xml/DialogAddonInfo.xml
+#: addons/skin.estuary/xml/Variables.xml
+#: xbmc/filesystem/AddonsDirectory.cpp
+#: xbmc/guilib/guiinfo/AddonsGUIInfo.cpp
+msgctxt "#24170"
+msgid "Deprecated"
+msgstr ""
+
+#. Lifecycle state name, for broken and not usable addons. Used also on skin to compare and identify related state.
+#: addons/skin.estuary/xml/AddonBrowser.xml
+#: addons/skin.estuary/xml/DialogAddonInfo.xml
+#: addons/skin.estuary/xml/Variables.xml
+#: xbmc/guilib/guiinfo/AddonsGUIInfo.cpp
+msgctxt "#24171"
+msgid "Broken"
+msgstr ""
+
+#24171-24179 reserved for future use of lifecycle state name (to have continuous chain of GUI)
+
+#empty strings from id 24180 to 24990
 
 #. Used as error message in add-on browser when add-on repository data could not be downloaded
 #: xbmc/filesystem/AddonsDirectory.cpp
@@ -15853,29 +15903,13 @@ msgctxt "#25013"
 msgid "Auto-skip on"
 msgstr ""
 
-#. Used for skins to tell addon origin type
-#. xbmc/filesystem/AddonsDirectory.cpp
-#: addons/skin.estuary/xml/DialogAddonInfo.xml
+#. Used to tell addon origin type
+#. xbmc/guilib/guiinfo/AddonsGUIInfo.cpp
 msgctxt "#25014"
-msgid "system"
+msgid "Manual"
 msgstr ""
 
-#. Used for skins to tell addon origin type
-#. xbmc/filesystem/AddonsDirectory.cpp
-#: addons/skin.estuary/xml/AddonBrowser.xml
-msgctxt "#25015"
-msgid "repository"
-msgstr ""
-
-#. Used for skins to tell addon origin type
-#. xbmc/filesystem/AddonsDirectory.cpp
-#: addons/skin.estuary/xml/AddonBrowser.xml
-#: addons/skin.estuary/xml/DialogAddonInfo.xml
-msgctxt "#25016"
-msgid "manual"
-msgstr ""
-
-#empty strings from id 25017 to 29800
+#empty strings from id 25015 to 29800
 
 #: unused
 msgctxt "#29801"
@@ -19178,44 +19212,41 @@ msgctxt "#36273"
 msgid "Select the visualisation that will be displayed while listening to music."
 msgstr ""
 
-#. Description of setting with label #258 "Enable tag reading"
+#. Description of setting with label #39125 "Enable tag reading in file view"
 #: system/settings/settings.xml
 msgctxt "#36274"
-msgid "Read the tag information from song files. For large directories this can increase read time, especially over a network."
+msgid "When browsing music files in file view read the tags of those not in the music library as you go. This can make large directories slow to display, especially over a network."
 msgstr ""
 
-#. Description of setting with label #13307 "Track naming template"
+#. Description of setting with label #13307 "Track naming template" for musicfiles.trackformat
 #: system/settings/settings.xml
 msgctxt "#36275"
 msgid "Control the way that the names of songs are displayed in the user interface. In order to function properly, tag reading needs to be enabled."
 msgstr ""
 
-#. Description of setting with label #13387 "Track naming template - right"
-#: system/settings/settings.xml
+#. unused?
 msgctxt "#36276"
 msgid "Used for formatting the second column in file lists."
 msgstr ""
 
-#. Description of setting with label #13307 "Now Playing - Track naming template"
+#. Description of setting with label #13307 "Track naming template" in musicfiles.nowplayingtrackformat
 #: system/settings/settings.xml
 msgctxt "#36277"
 msgid "Control the way that the names of songs are displayed in the now playing list."
 msgstr ""
 
-#. Description of setting with label #13387 "Now Playing - Track naming template - right"
-#: system/settings/settings.xml
+#. unused?
 msgctxt "#36278"
 msgid "Used for formatting the second column in the now playing list."
 msgstr ""
 
-#. Description of setting with label #13307 "Library - Track naming template"
+#. Description of setting with label #13307 "Track naming template" in musicfiles.librarytrackformat
 #: system/settings/settings.xml
 msgctxt "#36279"
 msgid "Control the way that the names of songs are displayed in library lists."
 msgstr ""
 
-#. Description of setting with label #13387 "Library - Track naming template - right"
-#: system/settings/settings.xml
+#. unused?
 msgctxt "#36280"
 msgid "Used for formatting the second column in library lists."
 msgstr ""
@@ -19250,7 +19281,7 @@ msgctxt "#36285"
 msgid "Select the location on your hard drive where ripped tracks will be saved to."
 msgstr ""
 
-#. Description of setting with label #13307 "Track naming template"
+#. Description of setting with label #13307 "Track naming template" in audiocds.trackpathformat
 #: system/settings/settings.xml
 msgctxt "#36286"
 msgid "Control how saved music is named from the tags. Tags: [B]%N[/B]: TrackNumber, [B]%S[/B]: DiscNumber, [B]%A[/B]: Artist, [B]%T[/B]: Title, [B]%B[/B]: Album, [B]%G[/B]: Genre, [B]%Y[/B]: Year, [B]%F[/B]: FileName, [B]%D[/B]: Duration, [B]%J[/B]: Date, [B]%R[/B]: Rating, [B]%I[/B]: FileSize."
@@ -20112,17 +20143,7 @@ msgctxt "#36433"
 msgid "When enabled, VAAPI render method is preferred and the CPU has less load. If you experience hangs, disable this option."
 msgstr ""
 
-#. Description of setting "Enable MMAL hardware decoding of video files"
-#: system/settings/settings.xml
-msgctxt "#36434"
-msgid "Allow hardware acceleration - MMAL"
-msgstr ""
-
-#. Description of setting "Enable MMAL hardware decoding of video files"
-#: system/settings/settings.xml
-msgctxt "#36435"
-msgid "Use VideoPlayer for decoding of video files with MMAL acceleration."
-msgstr ""
+#empty strings from id 36434 to 36435
 
 #. Description for setting #310: "Keyboard layouts"
 #: system/settings/settings.xml
@@ -20367,15 +20388,7 @@ msgctxt "#36541"
 msgid "Allows volume control from AirPlay clients."
 msgstr ""
 
-#: system/settings/rbp.xml
-msgctxt "#36542"
-msgid "Output to both analogue (headphones) and HDMI"
-msgstr ""
-
-#: system/settings/rbp.xml
-msgctxt "#36543"
-msgid "Enable this to make dialogue louder compared to background sounds when downmixing multichannel audio"
-msgstr ""
+#empty strings from id 36542 to 36543
 
 #: system/settings/settings.xml
 msgctxt "#36544"
@@ -20394,12 +20407,10 @@ msgctxt "#36546"
 msgid "Sets the visual depth of subtitles for stereoscopic 3D videos. The higher the value, the closer the subtitles will appear to the viewer."
 msgstr ""
 
-#: system/settings/rbp.xml
-msgctxt "#36547"
-msgid "Use higher quality textures for covers and fanart (uses more memory)"
-msgstr ""
+#empty string with id 36547
 
-#: system/settings/rbp.xml
+#. Description of setting with label #37021 "Set GUI resolution limit"
+#: system/settings/android.xml
 #: system/settings/gbm.xml
 msgctxt "#36548"
 msgid "Limits resolution of GUI to save memory. Does not affect video playback. Requires restart."
@@ -20678,7 +20689,7 @@ msgctxt "#36602"
 msgid "This category contains the settings for how the AirPlay service is handled."
 msgstr ""
 
-#. Description of settings category with label #14216 Display
+#. Description of settings category with label #14220 Display
 #: system/settings/settings.xml
 msgctxt "#36603"
 msgid "This category contains the settings for displays."
@@ -20876,7 +20887,13 @@ msgctxt "#36636"
 msgid "You must first enter a password before web server authentication can be enabled."
 msgstr ""
 
-#empty strings from id 36637 to 36898
+#. Text in confirm dialog when installing addon from zip
+#: xbmc/addons/GUIWindowAddonBrowser.cpp
+msgctxt "#36637"
+msgid "Note that add-ons installed from zip (excluding served repositories) will not auto-update and must be manually updated. Would you like to proceed?"
+msgstr ""
+
+#empty strings from id 36638 to 36898
 
 #. Description of setting with label #729 "Enable SSL"
 #: system/settings/settings.xml
@@ -21030,24 +21047,9 @@ msgctxt "#37016"
 msgid "Select this option if your receiver is capable of decoding Dolby Digital Plus (E-AC3) streams."
 msgstr ""
 
-#: system/settings/rbp.xml
-msgctxt "#37017"
-msgid "Dual audio output"
-msgstr ""
+#empty strings from id 37017 to 37020
 
-#: system/settings/rbp.xml
-msgctxt "#37018"
-msgid "Boost centre channel when downmixing"
-msgstr ""
-
-#empty string with id 37019
-
-#: system/settings/rbp.xml
-msgctxt "#37020"
-msgid "Enable higher colour depth artwork"
-msgstr ""
-
-#: system/settings/rbp.xml
+#: system/settings/android.xml
 #: system/settings/gbm.xml
 msgctxt "#37021"
 msgid "Set GUI resolution limit"
@@ -21063,40 +21065,34 @@ msgctxt "#37023"
 msgid "Do you wish to stop playback on the remote device?"
 msgstr ""
 
-#: system/settings/rbp.xml
-msgctxt "#37024"
-msgid "Select this if the audio out connection only supports multichannel audio as Dolby Digital 5.1 (AC3), this allows multichannel audio such as AAC 5.1 or FLAC 5.1 to be listened to in 5.1 surround sound. Note: Not recommended on Pi as this requires a lot of CPU."
-msgstr ""
+#empty string id 37024
 
 #: system/settings/settings.xml
 msgctxt "#37025"
 msgid "Configure audio encoder settings such as quality and compression level"
 msgstr ""
 
-#: system/settings/rbp.xml
 #: system/settings/android.xml
 msgctxt "#37026"
 msgid "Auto"
 msgstr ""
 
-#: system/settings/rbp.xml
+#: system/settings/android.xml
 msgctxt "#37027"
 msgid "540"
 msgstr ""
 
-#: system/settings/rbp.xml
 #: system/settings/android.xml
 #: system/settings/gbm.xml
 msgctxt "#37028"
 msgid "720"
 msgstr ""
 
-#: system/settings/rbp.xml
+#: system/settings/android.xml
 msgctxt "#37029"
 msgid "900"
 msgstr ""
 
-#: system/settings/rbp.xml
 #: system/settings/android.xml
 #: system/settings/gbm.xml
 msgctxt "#37030"
@@ -21199,12 +21195,7 @@ msgctxt "#37046"
 msgid "1080"
 msgstr ""
 
-#empty strings from id 37047 to 38009
-
-#: system/settings/rbp.xml
-msgctxt "#38010"
-msgid "GPU accelerated"
-msgstr ""
+#empty strings from id 37047 to 38010
 
 #. Setting #38011 "Show All Items entry"
 #: system/settings/settings.xml
@@ -21285,27 +21276,7 @@ msgctxt "#38026"
 msgid "Appearances"
 msgstr ""
 
-#: system/settings/rbp.xml
-msgctxt "#38027"
-msgid "Decode the stereo stream from 3D files"
-msgstr ""
-
-#. Description of setting with label #38027 "Decode the stereo stream from 3D files"
-#: system/settings/rbp.xml
-msgctxt "#38028"
-msgid "If enabled, videos created in Multiview Video Coding (MVC) format can also be watched in stereoscopic 3D. MVC format is typically found on 3D Blu-rays.[CR]Note: Processing of this data may reduce playback performance, so only enable if you require stereoscopic 3D support."
-msgstr ""
-
-#: system/settings/rbp.xml
-msgctxt "#38029"
-msgid "Enable Full HD HDMI modes for stereoscopic 3D"
-msgstr ""
-
-#. Description of setting "Enable Full HD HDMI modes for stereoscopic 3D" with label #38029
-#: system/settings/rbp.xml
-msgctxt "#38030"
-msgid "This option uses frame-packing to output full resolution for 3D through HDMI.[CR]Enabling this improves quality of Multiview Video Coding (MVC) videos, but may not be supported by all displays."
-msgstr ""
+#empty strings from id 38027 to 38030
 
 #. Label for an option to select the video stream to play if current video has more than one video stream
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
@@ -21696,7 +21667,7 @@ msgstr ""
 
 #: xbmc/settings/dialogs/GUIDialogLibExportSettings.cpp
 msgctxt "#38307"
-msgid "Include art work such as thumbnails and fanart"
+msgid "Include artwork such as thumbnails and fanart"
 msgstr ""
 
 #: xbmc/settings/dialogs/GUIDialogLibExportSettings.cpp
@@ -21887,7 +21858,7 @@ msgstr ""
 #. Description of category "Library" with label #14202
 #: system/settings/settings.xml
 msgctxt "#39004"
-msgid "This category provides access to the windows for source management and the Library settings for the databases"
+msgid "This category provides access to the windows for source management and library management facilities"
 msgstr ""
 
 #. Description of setting "Videos... with label #14242
@@ -22017,7 +21988,13 @@ msgctxt "#39027"
 msgid "Sortname"
 msgstr ""
 
-#empty strings from id 39028 to 39029
+#. Text for yes/no dialog when silently uninstalling an addon
+#: xbmc/addons/gui/GUIDialogAddonInfo.cpp
+msgctxt "#39028"
+msgid "Addon \"{0:s}\"[CR]Origin \"{1:s}\"[CR]Version \"{2:s}\"[CR]- will uninstall and be replaced. Would you like to proceed?"
+msgstr ""
+
+#empty string id 39029
 
 #. Media source, a filter and smart playlist rule option
 #: xbmc/dialogs/GUIDialogMediaFilter.cpp
@@ -22154,3 +22131,167 @@ msgctxt "#39119"
 msgid "Last modified"
 msgstr ""
 
+#: xbmc/settings/dialogs/GUIDialogContentSettings.cpp
+msgctxt "#39120"
+msgid "Skip filename matching for external audio tracks"
+msgstr ""
+
+#. Label for section of settings controling what is shown on the library windows
+#: system/settings/settings.xml
+msgctxt "#39121"
+msgid "Library Display and Navigation"
+msgstr ""
+
+#. Label for section of settings controling how library is populated
+#: system/settings/settings.xml
+msgctxt "#39122"
+msgid "Library Information Sources"
+msgstr ""
+
+#. Label for section of settings
+#: system/settings/settings.xml
+msgctxt "#39123"
+msgid "Artwork"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39125"
+msgid "Enable tag reading in file view"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39127"
+msgid "Use all local image files as artwork"
+msgstr ""
+
+#. Description of setting with label #39127 "Use all local image files as artwork"
+#: system/settings/settings.xml
+msgctxt "#39128"
+msgid "All image files located alongside the media files are picked up as artwork during library scan, with the file name as the art type."
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39129"
+msgid "Use all remote artwork fetched by scrapers"
+msgstr ""
+
+#. Description of setting with label #39129 "Use all remote artwork fetched by scrapers"
+#: system/settings/settings.xml
+msgctxt "#39130"
+msgid "Use the first of each art type of the remote artwork in scraper results to fill any missing art not populated with local art."
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39131"
+msgid "Artist art types whitelist"
+msgstr ""
+
+#. Description of setting with label #39131 "Artist art types whitelist"
+#: system/settings/settings.xml
+msgctxt "#39132"
+msgid "Limit the artist artwork fetched locally or applied from scraper remote art results to just those art types in the whitelist"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39133"
+msgid "Album art types whitelist"
+msgstr ""
+
+#. Description of setting with label #39133 "Album art types whitelist"
+#: system/settings/settings.xml
+msgctxt "#39134"
+msgid "Limit the album artwork fetched locally or applied from scraper remote art results to just those art types in the whitelist"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39135"
+msgid "Thumbnail image files"
+msgstr ""
+
+#. Description of setting with label #39135 "Thumbnail image files"
+#: system/settings/settings.xml
+msgctxt "#39136"
+msgid "The names of files that contain primary artwork (thumbnails), generally square and used both full and in reduced size to visually identify a folder, artist, album or song"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39137"
+msgid "Artwork level"
+msgstr ""
+
+#. Description of setting with label #39137 "Artwork level"
+#: system/settings/settings.xml
+msgctxt "#39138"
+msgid "The amount of artwork automatically selected - [Maximum] all local images and remote art; [Basic] save space on limited devices or when using a simple skin; [Custom] configured by user for detailed control; [None] no art"
+msgstr ""
+
+#. Value of setting with label #39137 "Artwork level"
+#: system/settings/settings.xml
+msgctxt "#39140"
+msgid "Maximum"
+msgstr ""
+
+#. Value of setting with label #39137 "Artwork level"
+#: system/settings/settings.xml
+msgctxt "#39141"
+msgid "Basic"
+msgstr ""
+
+#. Value of setting with label #39137 "Artwork level"
+#: system/settings/settings.xml
+msgctxt "#39142"
+msgid "Custom"
+
+#: system/settings/settings.xml
+msgctxt "#39143"
+msgid "Movie art types whitelist"
+msgstr ""
+
+#. Description of setting with label #39150 "Movie art types whitelist"
+#: system/settings/settings.xml
+msgctxt "#39144"
+msgid "Limit the movie and movie set artwork fetched locally or applied from scraper remote art results to just those art types in the whitelist"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39145"
+msgid "TV show art types whitelist"
+msgstr ""
+
+#. Description of setting with label #39152 "TV show art types whitelist"
+#: system/settings/settings.xml
+msgctxt "#39146"
+msgid "Limit the TV show and season artwork fetched locally or applied from scraper remote art results to just those art types in the whitelist"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39147"
+msgid "Episode art types whitelist"
+msgstr ""
+
+#. Description of setting with label #39154 "Episode art types whitelist"
+#: system/settings/settings.xml
+msgctxt "#39148"
+msgid "Limit the episode artwork fetched locally or applied from scraper remote art results to just those art types in the whitelist"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#39149"
+msgid "Music video art types whitelist"
+msgstr ""
+
+#. Description of setting with label #39156 "Music video art types whitelist"
+#: system/settings/settings.xml
+msgctxt "#39150"
+msgid "Limit the music video artwork fetched locally or applied from scraper remote art results to just those art types in the whitelist"
+msgstr ""
+
+#.Display Hardware scaling filter setting toggle
+msgctxt "#39151"
+msgid "Display hardware scaling filter"
+msgstr ""
+
+#. Description
+msgctxt "#39152"
+msgid "Integer scaling (IS) is a Nearest-Neighbor(NN) upscaling technique using Display Engine"
+msgstr ""
