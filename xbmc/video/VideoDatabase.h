@@ -159,7 +159,8 @@ typedef enum
   VIDEODB_CONTENT_TVSHOWS = 2,
   VIDEODB_CONTENT_MUSICVIDEOS = 3,
   VIDEODB_CONTENT_EPISODES = 4,
-  VIDEODB_CONTENT_MOVIE_SETS = 5
+  VIDEODB_CONTENT_MOVIE_SETS = 5,
+  VIDEODB_CONTENT_MUSICALBUMS = 6
 } VIDEODB_CONTENT_TYPE;
 
 typedef enum // this enum MUST match the offset struct further down!! and make sure to keep min and max at -1 and sizeof(offsets)
@@ -604,7 +605,7 @@ public:
    * Erases video settings for files starting with path
    * @param path pattern
    */
-  void EraseAllVideoSettings(std::string path);
+  void EraseAllVideoSettings(const std::string& path);
 
   bool GetStackTimes(const std::string &filePath, std::vector<uint64_t> &times);
   void SetStackTimes(const std::string &filePath, const std::vector<uint64_t> &times);
@@ -1013,6 +1014,6 @@ private:
   std::vector<int> CleanMediaType(const std::string &mediaType, const std::string &cleanableFileIDs,
                                   std::map<int, bool> &pathsDeleteDecisions, std::string &deletedFileIDs, bool silent);
 
-  static void AnnounceRemove(std::string content, int id, bool scanning = false);
-  static void AnnounceUpdate(std::string content, int id);
+  static void AnnounceRemove(const std::string& content, int id, bool scanning = false);
+  static void AnnounceUpdate(const std::string& content, int id);
 };

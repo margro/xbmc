@@ -3555,6 +3555,8 @@ const infomap musicplayer[] =    {{ "title",            MUSICPLAYER_TITLE },
 ///                  _string_,
 ///     @return The language of the subtitle of the currently playing video
 ///     (possible values: see \ref ListItem_SubtitleLanguage "ListItem.SubtitleLanguage").
+///     @note `VideoPlayer.SubtitlesLanguage` holds the language of the next available
+///     subtitle stream if subtitles are disabled in the player
 ///     <p><hr>
 ///     @skinning_v13 **[New Infolabel]** \link VideoPlayer_SubtitlesLanguage `VideoPlayer.SubtitlesLanguage`\endlink
 ///     <p>
@@ -4495,6 +4497,14 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     @return **True** if this add-on is a valid update of an installed outdated add-on.
 ///     <p><hr>
 ///     @skinning_v19 **[New Boolean Condition]** \link ListItem_Property_AddonIsUpdate `ListItem.Property(Addon.IsUpdate)`\endlink
+///     <p>
+///   }
+///   \table_row3{   <b>`ListItem.Property(Addon.ValidUpdateOrigin)`</b>,
+///                  \anchor ListItem_Property_ValidUpdateOrigin
+///                  _string_,
+///     @return The origin string of a valid update for the addon. Empty string if there is no valid update available.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_Property_ValidUpdateOrigin `ListItem.Property(Addon.ValidUpdateOrigin)`\endlink
 ///     <p>
 ///   }
 ///   \table_row3{   <b>`ListItem.Property(Addon.ValidUpdateVersion)`</b>,

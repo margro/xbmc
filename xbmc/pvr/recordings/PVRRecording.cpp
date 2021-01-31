@@ -201,6 +201,8 @@ void CPVRRecording::Serialize(CVariant& value) const
     value["art"]["thumb"] = m_strThumbnailPath;
   if (!m_strFanartPath.empty())
     value["art"]["fanart"] = m_strFanartPath;
+
+  value["clientid"] = m_iClientId;
 }
 
 void CPVRRecording::ToSortable(SortItem& sortable, Field field) const
@@ -579,6 +581,12 @@ const std::string CPVRRecording::GetGenresLabel() const
 CDateTime CPVRRecording::FirstAired() const
 {
   return m_firstAired;
+}
+
+void CPVRRecording::SetYear(int year)
+{
+  if (year > 0)
+    m_premiered = CDateTime(year, 1, 1, 0, 0, 0);
 }
 
 int CPVRRecording::GetYear() const

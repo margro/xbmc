@@ -13,10 +13,16 @@
 #include "rendering/dx/DirectXHelper.h"
 #include "utils/XTimeUtils.h"
 #include "utils/log.h"
+#include "windowing/WindowSystemFactory.h"
 
 #include "platform/win32/WIN32Util.h"
 
-std::unique_ptr<CWinSystemBase> CWinSystemBase::CreateWinSystem()
+void CWinSystemWin10DX::Register()
+{
+  KODI::WINDOWING::CWindowSystemFactory::RegisterWindowSystem(CreateWinSystem);
+}
+
+std::unique_ptr<CWinSystemBase> CWinSystemWin10DX::CreateWinSystem()
 {
   return std::make_unique<CWinSystemWin10DX>();
 }
@@ -174,6 +180,11 @@ HDR_STATUS CWinSystemWin10DX::ToggleHDR()
 bool CWinSystemWin10DX::IsHDROutput() const
 {
   return m_deviceResources->IsHDROutput();
+}
+
+bool CWinSystemWin10DX::IsTransferPQ() const
+{
+  return m_deviceResources->IsTransferPQ();
 }
 
 void CWinSystemWin10DX::SetHdrMetaData(DXGI_HDR_METADATA_HDR10& hdr10) const

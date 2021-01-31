@@ -685,10 +685,9 @@ bool CMusicDatabase::AddAlbum(CAlbum& album, int idSource)
     AddAlbumArtist(artistCredit->idArtist,
                    album.idAlbum,
                    artistCredit->GetArtist(),
-                   std::distance(album.artistCredits.begin(), artistCredit));
+                   static_cast<int>(std::distance(album.artistCredits.begin(), artistCredit)));
   }
 
-  int albumDuration = 0;
   for (auto song = album.songs.begin(); song != album.songs.end(); ++song)
   {
     song->idAlbum = album.idAlbum;
@@ -725,13 +724,20 @@ bool CMusicDatabase::AddAlbum(CAlbum& album, int idSource)
                     song->idSong,
                     ROLE_ARTIST,
                     artistCredit->GetArtist(), // we don't have song artist breakdowns from scrapers, yet
-                    std::distance(song->artistCredits.begin(), artistCredit));
+                    static_cast<int>(std::distance(song->artistCredits.begin(), artistCredit)));
     }
     // Having added artist credits (maybe with MBID) add the other contributing artists (no MBID)
     // and use COMPOSERSORT tag data to provide sort names for artists that are composers
     AddSongContributors(song->idSong, song->GetContributors(), song->GetComposerSort());
-    albumDuration += song->iDuration;
   }
+
+  // Set album duration as total of all songs on album.
+  // Folder layout may mean AddAlbum call has added more songs to an existing album
+  std::string strSQL;
+  strSQL = PrepareSQL("SELECT SUM(iDuration) FROM song WHERE idAlbum = %i", album.idAlbum);
+  int albumDuration = GetSingleValueInt(strSQL);
+  m_pDS->exec(PrepareSQL("UPDATE album SET iAlbumDuration = %i WHERE idAlbum = %i", albumDuration,
+                         album.idAlbum));
 
   // Add album sources
   if (idSource > 0)
@@ -756,7 +762,7 @@ bool CMusicDatabase::AddAlbum(CAlbum& album, int idSource)
     std::string strSQL;
     strSQL = PrepareSQL("SELECT COUNT(DISTINCT strDiscSubtitle) FROM song WHERE song.idAlbum = %i",
                         album.idAlbum);
-    int numTitles = static_cast<int>(strtol(GetSingleValue(strSQL).c_str(), nullptr, 10));
+    int numTitles = GetSingleValueInt(strSQL);
     if (numTitles >=3)
     {
       strSQL = PrepareSQL("UPDATE album SET bBoxedSet=1 WHERE album.idAlbum=%i", album.idAlbum);
@@ -782,7 +788,6 @@ bool CMusicDatabase::AddAlbum(CAlbum& album, int idSource)
      For artists that are neither album nor song artists (other roles only) dateadded will be null.
   */
   std::vector<std::string> artistIDs;
-  std::string strSQL;
   // Get distinct song and album artist IDs for this album
   GetArtistsByAlbum(album.idAlbum, artistIDs);
   std::string strIDs = "(" + StringUtils::Join(artistIDs, ",") + ")";
@@ -791,8 +796,6 @@ bool CMusicDatabase::AddAlbum(CAlbum& album, int idSource)
                       albumdateadded.c_str(), strIDs.c_str(), albumdateadded.c_str());
   m_pDS->exec(strSQL);
 
-  m_pDS->exec(PrepareSQL("UPDATE album SET iAlbumDuration = %i WHERE idAlbum = %i", albumDuration,
-                         album.idAlbum));
   CommitTransaction();
   return true;
 }
@@ -813,7 +816,7 @@ bool CMusicDatabase::UpdateAlbum(CAlbum& album)
     { // not a boxset already so make sure we have enough discs & they all have titles
       std::string strSQL;
       strSQL = PrepareSQL("SELECT iDiscTotal FROM album WHERE idAlbum = %i", album.idAlbum);
-      int numDiscs = static_cast<int>(strtol(GetSingleValue(strSQL).c_str(), nullptr, 10));
+      int numDiscs = GetSingleValueInt(strSQL);
       if (numDiscs >= 2)
       {
         canBeBoxset = true;
@@ -880,7 +883,7 @@ bool CMusicDatabase::UpdateAlbum(CAlbum& album)
       AddAlbumArtist(artistCredit->idArtist,
         album.idAlbum,
         artistCredit->GetArtist(),
-        std::distance(album.artistCredits.begin(), artistCredit));
+        static_cast<int>(std::distance(album.artistCredits.begin(), artistCredit)));
     }
     /* Replace the songs with those scraped or imported, but if new songs is empty
        (such as when called from JSON) do not remove the original ones
@@ -1166,7 +1169,7 @@ bool CMusicDatabase::UpdateSong(CSong& song,
         song.idSong,
         ROLE_ARTIST,
         artistCredit->GetArtist(),
-        std::distance(song.artistCredits.begin(), artistCredit));
+        static_cast<int>(std::distance(song.artistCredits.begin(), artistCredit)));
     }
     // Having added artist credits (maybe with MBID) add the other contributing artists (MBID unknown)
     // and use COMPOSERSORT tag data to provide sort names for artists that are composers
@@ -1396,6 +1399,14 @@ int CMusicDatabase::UpdateAlbum(int idAlbum,
   if (idAlbum < 0)
     return -1;
 
+  // Art URLs limited on MySQL databases to 65535 characters (TEXT field)
+  // Truncate value cleaning up xml when URLs exceeds this
+  std::string strImageURLs = strImage;
+  if (StringUtils::EqualsNoCase(
+          CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_databaseMusic.type,
+          "mysql"))
+    TrimImageURLs(strImageURLs, 65535);
+    
   std::string strSQL;
   strSQL = PrepareSQL("UPDATE album SET "
                       " strAlbum = '%s', strArtistDisp = '%s', strGenres = '%s', "
@@ -1408,7 +1419,7 @@ int CMusicDatabase::UpdateAlbum(int idAlbum,
                       " lastScraped = '%s', bScrapedMBID = %i",
                       strAlbum.c_str(), strArtist.c_str(), strGenre.c_str(),
                       strMoods.c_str(), strStyles.c_str(), strThemes.c_str(),
-                      strReview.c_str(), strImage.c_str(), strLabel.c_str(),
+                      strReview.c_str(), strImageURLs.c_str(), strLabel.c_str(),
                       strType.c_str(), fRating, iUserrating, iVotes,
                       strReleaseDate.c_str(), strOrigReleaseDate.c_str(),
                       bBoxedSet, bCompilation,
@@ -1808,6 +1819,14 @@ int  CMusicDatabase::UpdateArtist(int idArtist,
     isScrapedMBID = false;
   }
 
+  // Art URLs limited on MySQL databases to 65535 characters (TEXT field)
+  // Truncate value cleaning up xml when URLs exceeds this
+  std::string strImageURLs = strImage;
+  if (StringUtils::EqualsNoCase(
+    CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_databaseMusic.type,
+    "mysql"))
+    TrimImageURLs(strImageURLs, 65535);
+
   std::string strSQL;
   strSQL = PrepareSQL("UPDATE artist SET "
                       " strArtist = '%s', "
@@ -1824,7 +1843,7 @@ int  CMusicDatabase::UpdateArtist(int idArtist,
                       strBorn.c_str(), strFormed.c_str(), strGenres.c_str(),
                       strMoods.c_str(), strStyles.c_str(), strInstruments.c_str(),
                       strBiography.c_str(), strDied.c_str(), strDisbanded.c_str(),
-                      strYearsActive.c_str(), strImage.c_str(),
+                      strYearsActive.c_str(), strImageURLs.c_str(),
                       CDateTime::GetUTCDateTime().GetAsDBDateTime().c_str(), isScrapedMBID);
   if (useMBIDNull)
     strSQL += PrepareSQL(", strMusicBrainzArtistID = NULL");
@@ -2313,7 +2332,10 @@ bool CMusicDatabase::DeleteSongArtistsBySong(int idSong)
   return ExecuteQuery(PrepareSQL("DELETE FROM song_artist WHERE idSong = %i", idSong));
 }
 
-bool CMusicDatabase::AddAlbumArtist(int idArtist, int idAlbum, std::string strArtist, int iOrder)
+bool CMusicDatabase::AddAlbumArtist(int idArtist,
+                                    int idAlbum,
+                                    const std::string& strArtist,
+                                    int iOrder)
 {
   std::string strSQL;
   strSQL = PrepareSQL("replace into album_artist (idArtist, idAlbum, strArtist, iOrder) values(%i,%i,'%s',%i)",
@@ -2667,7 +2689,7 @@ bool CMusicDatabase::GetIsAlbumArtist(int idArtist, CFileItem* item)
 {
   try
   {
-    int countalbum = strtol(GetSingleValue("album_artist", "count(idArtist)", PrepareSQL("idArtist=%i", idArtist)).c_str(), NULL, 10);
+    int countalbum = GetSingleValueInt("album_artist", "count(idArtist)", PrepareSQL("idArtist=%i", idArtist));
     CVariant IsAlbumArtistObj(CVariant::VariantTypeBoolean);
     IsAlbumArtistObj = (countalbum > 0);
     item->SetProperty("isalbumartist", IsAlbumArtistObj);
@@ -3001,7 +3023,7 @@ bool CMusicDatabase::GetSongByFileName(const std::string& strFileNameAndPath, CS
   {
     std::string strFile = URIUtils::GetFileName(strFileNameAndPath);
     URIUtils::RemoveExtension(strFile);
-    return GetSong(atol(strFile.c_str()), song);
+    return GetSong(atoi(strFile.c_str()), song);
   }
 
   if (nullptr == m_pDB)
@@ -3019,7 +3041,7 @@ bool CMusicDatabase::GetSongByFileName(const std::string& strFileNameAndPath, CS
   if (startOffset)
     strSQL += PrepareSQL(" AND iStartOffset=%" PRIi64, startOffset);
 
-  int idSong = (int)strtol(GetSingleValue(strSQL).c_str(), NULL, 10);
+  int idSong = GetSingleValueInt(strSQL);
   if (idSong > 0)
     return GetSong(idSong, song);
 
@@ -3110,7 +3132,7 @@ bool CMusicDatabase::SearchArtists(const std::string& search, CFileItemList &art
       return false;
     }
 
-    std::string artistLabel(g_localizeStrings.Get(557)); // Artist
+    const std::string& artistLabel(g_localizeStrings.Get(557)); // Artist
     while (!m_pDS->eof())
     {
       std::string path = StringUtils::Format("musicdb://artists/%i/", m_pDS->fv(0).get_asInt());
@@ -3679,7 +3701,6 @@ bool CMusicDatabase::SearchSongs(const std::string& search, CFileItemList &items
     if (!m_pDS->query(strSQL)) return false;
     if (m_pDS->num_rows() == 0) return false;
 
-    std::string songLabel = g_localizeStrings.Get(179); // Song
     while (!m_pDS->eof())
     {
       CFileItemPtr item(new CFileItem);
@@ -3716,7 +3737,7 @@ bool CMusicDatabase::SearchAlbums(const std::string& search, CFileItemList &albu
 
     if (!m_pDS->query(strSQL)) return false;
 
-    std::string albumLabel(g_localizeStrings.Get(558)); // Album
+    const std::string& albumLabel(g_localizeStrings.Get(558)); // Album
     while (!m_pDS->eof())
     {
       CAlbum album = GetAlbumFromDataset(m_pDS.get());
@@ -3802,7 +3823,7 @@ bool CMusicDatabase::CleanupSongs(CGUIDialogProgress* progressDialog /*= nullptr
   {
     int total;
     // Count total number of songs
-    total = (int)strtol(GetSingleValue("SELECT COUNT(1) FROM song", m_pDS).c_str(), nullptr, 10);
+    total = GetSingleValueInt("SELECT COUNT(1) FROM song", m_pDS);
     // No songs to clean
     if (total == 0)
       return true;
@@ -4227,6 +4248,20 @@ error:
   return ret;
 }
 
+bool CMusicDatabase::TrimImageURLs(std::string& strImage, const size_t space)
+{
+  if (strImage.length() > space)
+  {
+    strImage = strImage.substr(0, space);
+    // Tidy to last </thumb> tag
+    size_t iPos = strImage.rfind("</thumb>");
+    if (iPos == std::string::npos)
+      return false;
+    strImage = strImage.substr(0, iPos + 8);
+  }
+  return true;
+}
+
 bool CMusicDatabase::LookupCDDBInfo(bool bRequery/*=false*/)
 {
 #ifdef HAS_DVD_DRIVE
@@ -4294,7 +4329,7 @@ bool CMusicDatabase::LookupCDDBInfo(bool bRequery/*=false*/)
           std::string strTitle = cddb.getInexactTitle(i);
           if (strTitle == "") break;
 
-          std::string strArtist = cddb.getInexactArtist(i);
+          const std::string& strArtist = cddb.getInexactArtist(i);
           if (!strArtist.empty())
             strTitle += " - " + strArtist;
 
@@ -4994,7 +5029,6 @@ bool CMusicDatabase::GetArtistsByWhere(const std::string& strBaseDir, const Filt
     // Count done in full query fetch when unlimited
     if (countOnly || limitedInSQL)
     {
-      std::string strValue;
       if (extended)
       {
         // Count distinct without group by
@@ -5003,12 +5037,11 @@ bool CMusicDatabase::GetArtistsByWhere(const std::string& strBaseDir, const Filt
         std::string strSQLWhere;
         if (!BuildSQL(strSQLWhere, countFilter, strSQLWhere))
           return false;
-        strValue = GetSingleValue(
-          "SELECT COUNT(DISTINCT artistview.idArtist) FROM artistview " + strSQLWhere, m_pDS);
+        total = GetSingleValueInt(
+            "SELECT COUNT(DISTINCT artistview.idArtist) FROM artistview " + strSQLWhere, m_pDS);
       }
       else
-        strValue = GetSingleValue("SELECT COUNT(1) FROM artistview " + strSQLExtra, m_pDS);
-      total = static_cast<int>(strtol(strValue.c_str(), NULL, 10));
+        total = GetSingleValueInt("SELECT COUNT(1) FROM artistview " + strSQLExtra, m_pDS);
     }
     if (countOnly)
     {
@@ -5205,7 +5238,6 @@ bool CMusicDatabase::GetAlbumsByWhere(const std::string &baseDir, const Filter &
     // Count done in full query fetch when unlimited
     if (countOnly || limitedInSQL)
     {
-      std::string strValue;
       if (extended)
       {
         // Count distinct without group by
@@ -5214,12 +5246,11 @@ bool CMusicDatabase::GetAlbumsByWhere(const std::string &baseDir, const Filter &
         std::string strSQLWhere;
         if (!BuildSQL(strSQLWhere, countFilter, strSQLWhere))
           return false;
-        strValue = GetSingleValue(
+        total = GetSingleValueInt(
             "SELECT COUNT(DISTINCT albumview.idAlbum) FROM albumview " + strSQLWhere, m_pDS);
       }
       else
-        strValue = GetSingleValue("SELECT COUNT(1) FROM albumview " + strSQLExtra, m_pDS);
-      total = static_cast<int>(strtol(strValue.c_str(), NULL, 10));
+        total = GetSingleValueInt("SELECT COUNT(1) FROM albumview " + strSQLExtra, m_pDS);
     }
     if (countOnly)
     {
@@ -5409,7 +5440,7 @@ bool CMusicDatabase::GetDiscsByWhere(CMusicDbUrl& musicUrl,
                "albumview.idAlbum " +
                strSQLExtra;
       strSQL = "SELECT COUNT(1) FROM (" + strSQL + ") AS albumdisc ";
-      total = static_cast<int>(strtol(GetSingleValue(strSQL, m_pDS).c_str(), nullptr, 10));
+      total = GetSingleValueInt(strSQL, m_pDS);
     }
     if (countOnly)
     {
@@ -5547,7 +5578,7 @@ int CMusicDatabase::GetDiscsCount(const std::string& baseDir, const Filter& filt
   int iDiscTotal = -1;
   CFileItemList itemscount;
   if (GetDiscsByWhere(baseDir, filter, itemscount, SortDescription(), true))
-    iDiscTotal = itemscount.GetProperty("total").asInteger();
+    iDiscTotal = itemscount.GetProperty("total").asInteger32();
   return iDiscTotal;
 }
 
@@ -5587,20 +5618,18 @@ bool CMusicDatabase::GetSongsFullByWhere(const std::string &baseDir, const Filte
 
     // Count (without group by) number of songs that satisfy selection criteria
     // Much quicker to use song table, not songview, when filtering only on song fields
-    std::string strValue;
     if (extended ||
         (!extFilter.where.empty() && (extFilter.where.find("strAlbum") != std::string::npos ||
                                       extFilter.where.find("strPath") != std::string::npos ||
                                       extFilter.where.find("bCompilation") != std::string::npos ||
                                       extFilter.where.find("bBoxedset") != std::string::npos)))
-      strValue = GetSingleValue("SELECT COUNT(1) FROM songview " + strSQLExtra, m_pDS);
+      total = GetSingleValueInt("SELECT COUNT(1) FROM songview " + strSQLExtra, m_pDS);
     else
     {
       std::string strSQLsong = strSQLExtra;
       StringUtils::Replace(strSQLsong, "songview", "song");
-      strValue = GetSingleValue("SELECT COUNT(1) FROM song " + strSQLsong, m_pDS);
+      total = GetSingleValueInt("SELECT COUNT(1) FROM song " + strSQLsong, m_pDS);
     }
-    total = static_cast<int>(strtol(strValue.c_str(), NULL, 10));
 
     if (extended)
       extFilter.AppendGroup("songview.idSong");
@@ -5823,7 +5852,7 @@ bool CMusicDatabase::GetSongsByWhere(const std::string &baseDir, const Filter &f
         sorting.sortBy == SortByNone &&
        (sorting.limitStart > 0 || sorting.limitEnd > 0))
     {
-      total = (int)strtol(GetSingleValue(PrepareSQL(strSQL, "COUNT(1)") + strSQLExtra, m_pDS).c_str(), NULL, 10);
+      total = GetSingleValueInt(PrepareSQL(strSQL, "COUNT(1)") + strSQLExtra, m_pDS);
       strSQLExtra += DatabaseUtils::BuildLimitClause(sorting.limitEnd, sorting.limitStart);
     }
 
@@ -6012,7 +6041,7 @@ bool CMusicDatabase::GetArtistsByWhereJSON(const std::set<std::string>& fields, 
 
     // Count number of artists that satisfy selection criteria 
     //(includes xsp limits from filter, but not sort limits)
-    total = static_cast<int>(strtol(GetSingleValue("SELECT COUNT(1) FROM artist " + strSQLExtra, m_pDS).c_str(), NULL, 10));
+    total = GetSingleValueInt("SELECT COUNT(1) FROM artist " + strSQLExtra, m_pDS);
     resultcount = static_cast<size_t>(total);
 
     // Process albumartistsonly option
@@ -6307,7 +6336,7 @@ bool CMusicDatabase::GetArtistsByWhereJSON(const std::set<std::string>& fields, 
     // Adjust where in the results record the join fields are allowing for the
     // inline view fields (Quicker than finding field by name every time)
     // idArtist + other artist fields    
-    joinLayout.AdjustRecordNumbers(1 + dbfieldindex.size());
+    joinLayout.AdjustRecordNumbers(static_cast<int>(1 + dbfieldindex.size()));
 
     // Build full query
     // When have multiple value joins e.g. song genres, use inline view
@@ -6695,7 +6724,7 @@ bool CMusicDatabase::GetAlbumsByWhereJSON(const std::set<std::string>& fields, c
     // Count number of albums that satisfy selection criteria
     // (includes xsp limits from filter, but not sort limits)
     // Use albumview as filter rules in where clause may use scalar query fields
-    total = static_cast<int>(strtol(GetSingleValue("SELECT COUNT(1) FROM albumview " + strSQLExtra, m_pDS).c_str(), nullptr, 10));
+    total = GetSingleValueInt("SELECT COUNT(1) FROM albumview " + strSQLExtra, m_pDS);
     resultcount = static_cast<size_t>(total);
 
     // Get order by (and any scalar query artist fields
@@ -6829,7 +6858,7 @@ bool CMusicDatabase::GetAlbumsByWhereJSON(const std::set<std::string>& fields, c
     // Adjust where in the results record the join fields are allowing for the
     // inline view fields (Quicker than finding field by name every time)
     // idAlbum + other album fields    
-    joinLayout.AdjustRecordNumbers(1 + dbfieldindex.size());
+    joinLayout.AdjustRecordNumbers(static_cast<int>(1 + dbfieldindex.size()));
     
     // Build full query
     // When have multiple value joins (artists or song genres) use inline view
@@ -7120,8 +7149,7 @@ bool CMusicDatabase::GetSongsByWhereJSON(const std::set<std::string>& fields, co
 
     // Count number of songs that satisfy selection criteria 
     // (includes xsp limits from filter, but not sort limits)
-    total = static_cast<int>(strtol(
-        GetSingleValue("SELECT COUNT(1) FROM song " + strSQLExtra, m_pDS).c_str(), nullptr, 10));
+    total = GetSingleValueInt("SELECT COUNT(1) FROM song " + strSQLExtra, m_pDS);
     resultcount = static_cast<size_t>(total);
 
     int iAddedFields = GetOrderFilter(MediaTypeSong, sortDescription, extFilter);
@@ -7393,7 +7421,7 @@ bool CMusicDatabase::GetSongsByWhereJSON(const std::set<std::string>& fields, co
     // Adjust where in the results record the join fields are allowing for the
     // inline view fields (Quicker than finding field by name every time)
     // idSong + other song fields
-    joinLayout.AdjustRecordNumbers(1 + dbfieldindex.size());
+    joinLayout.AdjustRecordNumbers(static_cast<int>(1 + dbfieldindex.size()));
 
     // Build full query
     // When have multiple value joins use inline view
@@ -7671,8 +7699,8 @@ std::string CMusicDatabase::GetIgnoreArticleSQL(const std::string& strField)
     StringUtils::Replace(tokenclause, "%", "%%");
     // Single %, _ and ' so avoid using PrepareSQL
     tokenclause = strField + " LIKE '" + tokenclause + "%'";
-    if (token.find("_") != std::string::npos)
-       tokenclause += " ESCAPE '_'";
+    if (token.find('_') != std::string::npos)
+      tokenclause += " ESCAPE '_'";
     if (!strWhen.empty())
        strWhen += " OR ";
     strWhen += tokenclause;
@@ -8143,7 +8171,7 @@ void CMusicDatabase::UpdateTables(int version)
     strSQL = "SELECT count(idSong) FROM song "
              "WHERE NOT EXISTS(SELECT idSong FROM song_artist "
              "WHERE song_artist.idsong = song.idsong AND song_artist.idRole = 1)";
-    int numsongs = strtol(GetSingleValue(strSQL).c_str(), NULL, 10);
+    int numsongs = GetSingleValueInt(strSQL);
     if (numsongs > 0)
     {
       CLog::Log(LOGDEBUG, "%i songs have no artist, setting artist to [Missing]", numsongs);
@@ -8167,7 +8195,7 @@ void CMusicDatabase::UpdateTables(int version)
     strSQL = "SELECT count(idAlbum) FROM album "
       "WHERE NOT EXISTS(SELECT idAlbum FROM album_artist "
       "WHERE album_artist.idAlbum = album.idAlbum)";
-    int numalbums = strtol(GetSingleValue(strSQL).c_str(), NULL, 10);
+    int numalbums = GetSingleValueInt(strSQL);
     if (numalbums > 0)
     {
       CLog::Log(LOGDEBUG, "%i albums have no artist, setting artist to [Missing]", numalbums);
@@ -8585,6 +8613,42 @@ void CMusicDatabase::UpdateTables(int version)
     m_pDS->exec("UPDATE artist SET strFanart = REPLACE(strFanart, '</fanart>', '')");
     m_pDS->exec("UPDATE artist SET strFanart = REPLACE(strFanart, 'thumb preview', 'thumb "
                 "aspect=\"fanart\" preview')");
+    // Art URLs limited on MySQL databases to 65535 characters (TEXT field)
+    // Truncate the fanart when total URLs exceeds this
+    bool bisMySQL = StringUtils::EqualsNoCase(
+        CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_databaseMusic.type,
+        "mysql");
+    if (bisMySQL)
+    {
+      std::string strSQL = "SELECT idArtist, strFanart, strImage FROM artist "
+                           "WHERE LENGTH(strImage) + LENGTH(strFanart) > 65535";
+      if (m_pDS->query(strSQL))
+      {
+        while (!m_pDS->eof())
+        {
+          int idArtist = m_pDS->fv("idArtist").get_asInt();
+          std::string strFanart = m_pDS->fv("strFanart").get_asString();
+          std::string strImage = m_pDS->fv("strImage").get_asString();
+          size_t space = 65535;
+          // Trim strImage to allow arbitrary half space for fanart
+          if (!TrimImageURLs(strImage, space / 2))
+            strImage.clear(); // </thumb> not found, empty field
+          space = space - strImage.length();
+          // Trim fanart to fit remaining space
+          if (!TrimImageURLs(strFanart, space))
+            strFanart.clear(); // </thumb> not found, empty field
+
+          strSQL = PrepareSQL("UPDATE artist SET strFanart = '%s', strImage = '%s' "
+                              "WHERE idArtist = %i",
+                              strFanart.c_str(), strImage.c_str(), idArtist);
+          m_pDS2->exec(strSQL); // Use other dataset to update while looping result set
+
+          m_pDS->next();
+        }
+        m_pDS->close();
+      }
+    }
+
     // Remove strFanart column from artist table
     m_pDS->exec("CREATE TABLE artist_new (idArtist INTEGER PRIMARY KEY, "
                 "strArtist varchar(256), strMusicBrainzArtistID text, "
@@ -8791,7 +8855,7 @@ unsigned int CMusicDatabase::GetRandomSongIDs(const Filter &filter, std::vector<
       m_pDS->next();
     }    // cleanup
     m_pDS->close();
-    return songIDs.size();
+    return static_cast<unsigned int>(songIDs.size());
   }
   catch (...)
   {
@@ -9404,7 +9468,7 @@ bool CMusicDatabase::CheckSources(VECSOURCES& sources)
   }
 
   // Check number of entries matches
-  size_t total = static_cast<size_t>(strtol(GetSingleValue("SELECT COUNT(1) FROM source").c_str(), NULL, 10));
+  size_t total = static_cast<size_t>(GetSingleValueInt("SELECT COUNT(1) FROM source"));
   if (total != sources.size())
     return false;
 
@@ -9911,7 +9975,7 @@ bool CMusicDatabase::IsSongAlbumArtist(int idSong, int idArtist)
 bool CMusicDatabase::IsAlbumBoxset(int idAlbum)
 {
   std::string strSQL = PrepareSQL("SELECT bBoxedSet FROM album WHERE idAlbum = %i", idAlbum);
-  int isBoxSet = strtol(GetSingleValue(strSQL).c_str(), nullptr, 10);
+  int isBoxSet = GetSingleValueInt(strSQL);
   return (isBoxSet == 1 ? true : false);
 }
 
@@ -9944,6 +10008,91 @@ int CMusicDatabase::GetAlbumByName(const std::string& strAlbum, const std::strin
     CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
   }
   return -1;
+}
+
+bool CMusicDatabase::GetMatchingMusicVideoAlbum(const std::string& strAlbum,
+                                                const std::string& strArtist,
+                                                int& idAlbum,
+                                                std::string& strReview)
+{
+  /*
+    Get the first album that matches with the title and artist display name.
+    Artist(s) and album title may not be sufficient to uniquely identify a match since library can
+    store multiple releases, and occasionally artists even have different albums with same name.
+    Taking the first album that matches and ignoring re-releases etc. is acceptable for musicvideo
+  */
+  try
+  {
+    if (nullptr == m_pDB)
+      return false;
+    if (nullptr == m_pDS)
+      return false;
+
+    std::string strSQL;
+    if (strArtist.empty())
+      strSQL =
+          PrepareSQL("SELECT idAlbum, strReview FROM album WHERE album.strAlbum LIKE '%s'",
+                     strAlbum.c_str());
+    else
+      strSQL =
+          PrepareSQL("SELECT idAlbum, strReview FROM album WHERE album.strAlbum LIKE '%s' AND "
+                     "album.strArtistDisp LIKE '%s'",
+                     strAlbum.c_str(), strArtist.c_str());
+    // run query
+    if (!m_pDS->query(strSQL))
+      return false;
+    int iRowsFound = m_pDS->num_rows();
+    if (iRowsFound > 0)
+    {
+      idAlbum = m_pDS->fv("idAlbum").get_asInt();
+      strReview = m_pDS->fv("strReview").get_asString();
+      return true;
+    }
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
+  return false;
+}
+
+bool CMusicDatabase::SearchAlbumsByArtistName(const std::string& strArtist, CFileItemList& items)
+{
+  try
+  {
+    if (nullptr == m_pDB)
+      return false;
+    if (nullptr == m_pDS)
+      return false;
+
+    std::string strSQL;
+    strSQL = PrepareSQL("SELECT albumview.* FROM albumview "
+      "JOIN album_artist ON album_artist.idAlbum = albumview.idAlbum "
+      "WHERE  album_artist.strArtist LIKE '%s'",
+      strArtist.c_str());
+
+    if (!m_pDS->query(strSQL))
+      return false;
+
+    while (!m_pDS->eof())
+    {
+      CAlbum album = GetAlbumFromDataset(m_pDS.get());
+      std::string path = StringUtils::Format("musicdb://albums/%ld/", album.idAlbum);
+      CFileItemPtr pItem(new CFileItem(path, album));
+      std::string label =
+        StringUtils::Format("%s (%i)", album.strAlbum, pItem->GetMusicInfoTag()->GetYear());
+      pItem->SetLabel(label);
+      items.Add(pItem);
+      m_pDS->next();
+    }
+    m_pDS->close(); // cleanup recordset data
+    return true;
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+  }
+  return false;
 }
 
 int CMusicDatabase::GetAlbumByName(const std::string& strAlbum, const std::vector<std::string>& artist)
@@ -10227,18 +10376,18 @@ std::string CMusicDatabase::GetAlbumDiscTitle(int idAlbum, int idDisc)
 
 int CMusicDatabase::GetBoxsetsCount()
 {
-  return strtol(GetSingleValue("album", "count(idAlbum)", "bBoxedSet = 1").c_str(), nullptr, 10);
+  return GetSingleValueInt("album", "count(idAlbum)", "bBoxedSet = 1");
 }
 
 int CMusicDatabase::GetAlbumDiscsCount(int idAlbum)
 {
   std::string strSQL = PrepareSQL("SELECT iDiscTotal FROM album WHERE album.idAlbum = %i", idAlbum);
-  return strtol(GetSingleValue(strSQL).c_str(), nullptr, 10);
+  return GetSingleValueInt(strSQL);
 }
 
 int CMusicDatabase::GetCompilationAlbumsCount()
 {
-  return strtol(GetSingleValue("album", "count(idAlbum)", "bCompilation = 1").c_str(), NULL, 10);
+  return GetSingleValueInt("album", "count(idAlbum)", "bCompilation = 1");
 }
 
 int CMusicDatabase::GetSinglesCount()
@@ -10250,13 +10399,13 @@ int CMusicDatabase::GetSinglesCount()
 int CMusicDatabase::GetArtistCountForRole(int role)
 {
   std::string strSQL = PrepareSQL("SELECT COUNT(DISTINCT idartist) FROM song_artist WHERE song_artist.idRole = %i", role);
-  return strtol(GetSingleValue(strSQL).c_str(), NULL, 10);
+  return GetSingleValueInt(strSQL);
 }
 
 int CMusicDatabase::GetArtistCountForRole(const std::string& strRole)
 {
   std::string strSQL = PrepareSQL("SELECT COUNT(DISTINCT idartist) FROM song_artist JOIN role ON song_artist.idRole = role.idRole WHERE role.strRole LIKE '%s'", strRole.c_str());
-  return strtol(GetSingleValue(strSQL).c_str(), NULL, 10);
+  return GetSingleValueInt(strSQL);
 }
 
 bool CMusicDatabase::SetPathHash(const std::string &path, const std::string &hash)
@@ -10399,7 +10548,7 @@ bool CMusicDatabase::RemoveSongsFromPath(const std::string &path1, MAPSONGS& son
 void CMusicDatabase::CheckArtistLinksChanged()
 {
   std::string strSQL = "SELECT COUNT(1) FROM removed_link ";
-  int iLinks = static_cast<int>(strtol(GetSingleValue(strSQL, m_pDS).c_str(), nullptr, 10));  
+  int iLinks = GetSingleValueInt(strSQL, m_pDS);
   if (iLinks > 0)
   {
     SetArtistLinksUpdated(); // Store datetime artist links last updated
@@ -10540,7 +10689,7 @@ int CMusicDatabase::GetSongIDFromPath(const std::string &filePath)
   {
     std::string strFile=URIUtils::GetFileName(filePath);
     URIUtils::RemoveExtension(strFile);
-    return atol(strFile.c_str());
+    return atoi(strFile.c_str());
   }
   // hit the db
   try
@@ -10588,7 +10737,7 @@ bool CMusicDatabase::CommitTransaction()
   return false;
 }
 
-bool CMusicDatabase::SetScraperAll(const std::string & strBaseDir, const ADDON::ScraperPtr scraper)
+bool CMusicDatabase::SetScraperAll(const std::string& strBaseDir, const ADDON::ScraperPtr& scraper)
 {
   if (nullptr == m_pDB)
     return false;
@@ -10665,7 +10814,9 @@ bool CMusicDatabase::SetScraperAll(const std::string & strBaseDir, const ADDON::
   return false;
 }
 
-bool CMusicDatabase::SetScraper(int id, const CONTENT_TYPE &content, const ADDON::ScraperPtr scraper)
+bool CMusicDatabase::SetScraper(int id,
+                                const CONTENT_TYPE& content,
+                                const ADDON::ScraperPtr& scraper)
 {
   if (nullptr == m_pDB)
     return false;
@@ -10744,7 +10895,10 @@ bool CMusicDatabase::GetScraper(int id, const CONTENT_TYPE &content, ADDON::Scra
 
       // Use pre configured or default scraper
       ADDON::AddonPtr addon;
-      if (!scraperUUID.empty() && CServiceBroker::GetAddonMgr().GetAddon(scraperUUID, addon) && addon)
+      if (!scraperUUID.empty() &&
+          CServiceBroker::GetAddonMgr().GetAddon(scraperUUID, addon, ADDON::ADDON_UNKNOWN,
+                                                 ADDON::OnlyEnabled::YES) &&
+          addon)
       {
         scraper = std::dynamic_pointer_cast<ADDON::CScraper>(addon);
         if (scraper)
@@ -11633,7 +11787,7 @@ bool CMusicDatabase::ImportSongHistory(const std::string& xmlFile, const int tot
     m_pDS->exec("CREATE INDEX idxHistSong ON HistSong(idSong)");
 
     // Log how many songs matched
-    int unmatched = static_cast<int>(strtol(GetSingleValue("SELECT COUNT(1) FROM HistSong WHERE idSong < 0", m_pDS).c_str(), nullptr, 10));
+    int unmatched = GetSingleValueInt("SELECT COUNT(1) FROM HistSong WHERE idSong < 0", m_pDS);
     CLog::Log(LOGINFO, "{0}: Importing song history {1} of {2} songs matched", __FUNCTION__, total - unmatched,  total);
 
     if (progressDialog)
@@ -11787,7 +11941,7 @@ void CMusicDatabase::SetPropertiesForFileItem(CFileItem& item)
   if (item.HasProperty("artistid") && item.GetProperty("artistid").isArray())
   {
     CVariant::const_iterator_array varid = item.GetProperty("artistid").begin_array();
-    idArtist = varid->asInteger();
+    idArtist = static_cast<int>(varid->asInteger());
   }
   else
     idArtist = GetArtistByName(item.GetMusicInfoTag()->GetArtistString());
@@ -11806,6 +11960,36 @@ void CMusicDatabase::SetPropertiesForFileItem(CFileItem& item)
     CAlbum album;
     if (GetAlbum(idAlbum, album, false))
       SetPropertiesFromAlbum(item,album);
+  }
+}
+
+void CMusicDatabase::SetItemUpdated(int mediaId, const std::string& mediaType)
+{
+  std::string strSQL;
+  try
+  {
+    if (mediaType != MediaTypeArtist && mediaType != MediaTypeAlbum && mediaType != MediaTypeSong)
+      return;
+    if (nullptr == m_pDB)
+      return;
+    if (nullptr == m_pDS)
+      return;
+
+    // Fire AFTER UPDATE db trigger on artist, album or song table to set datemodified field
+    // e.g. when artwork for item is changed from info dialog but not item details.
+    // Use SQL UPDATE that does not change record data.
+    if (mediaType == MediaTypeArtist)
+      strSQL = PrepareSQL("UPDATE artist SET strArtist = strArtist WHERE idArtist = %i", mediaId);
+    else if (mediaType == MediaTypeAlbum)
+      strSQL = PrepareSQL("UPDATE album SET strAlbum = strAlbum WHERE idAlbum = %i", mediaId);
+    else // MediaTypeSong
+      strSQL = PrepareSQL("UPDATE song SET strTitle = strTitle WHERE idSong = %i", mediaId);
+    m_pDS->exec(strSQL);
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "CMusicDatabase::{0} ({1}, {2}) - failed to execute {3}", __FUNCTION__,
+              mediaId, mediaType.c_str(), strSQL.c_str());
   }
 }
 

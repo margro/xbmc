@@ -311,7 +311,12 @@ public:
   bool GetAlbumFromSong(int idSong, CAlbum &album);
   int  GetAlbumByName(const std::string& strAlbum, const std::string& strArtist="");
   int  GetAlbumByName(const std::string& strAlbum, const std::vector<std::string>& artist);
-  int  GetAlbumByMatch(const CAlbum &album);
+  bool GetMatchingMusicVideoAlbum(const std::string& strAlbum,
+                                  const std::string& strArtist,
+                                  int& idAlbum,
+                                  std::string& strReview);
+  bool SearchAlbumsByArtistName(const std::string& strArtist, CFileItemList& items);
+  int GetAlbumByMatch(const CAlbum& album);
   std::string GetAlbumById(int id);
   std::string GetAlbumDiscTitle(int idAlbum, int idDisc);
   bool SetAlbumUserrating(const int idAlbum, int userrating);
@@ -408,7 +413,7 @@ public:
   /////////////////////////////////////////////////
   // Link tables
   /////////////////////////////////////////////////
-  bool AddAlbumArtist(int idArtist, int idAlbum, std::string strArtist, int iOrder);
+  bool AddAlbumArtist(int idArtist, int idAlbum, const std::string& strArtist, int iOrder);
   bool GetAlbumsByArtist(int idArtist, std::vector<int>& albums);
   bool GetArtistsByAlbum(int idAlbum, CFileItem* item);
   bool GetArtistsByAlbum(int idAlbum, std::vector<std::string>& artistIDs);
@@ -535,8 +540,8 @@ public:
   /////////////////////////////////////////////////
   // Scraper
   /////////////////////////////////////////////////
-  bool SetScraper(int id, const CONTENT_TYPE &content, const ADDON::ScraperPtr scraper);
-  bool SetScraperAll(const std::string& strBaseDir, const ADDON::ScraperPtr scraper);
+  bool SetScraper(int id, const CONTENT_TYPE& content, const ADDON::ScraperPtr& scraper);
+  bool SetScraperAll(const std::string& strBaseDir, const ADDON::ScraperPtr& scraper);
   bool GetScraper(int id, const CONTENT_TYPE &content, ADDON::ScraperPtr& scraper);
 
   /*! \brief Check whether a given scraper is in use.
@@ -566,6 +571,7 @@ public:
   void SetPropertiesForFileItem(CFileItem& item);
   static void SetPropertiesFromArtist(CFileItem& item, const CArtist& artist);
   static void SetPropertiesFromAlbum(CFileItem& item, const CAlbum& album);
+  void SetItemUpdated(int mediaId, const std::string& mediaType);
 
   /////////////////////////////////////////////////
   // Art
@@ -748,6 +754,7 @@ private:
   bool SearchSongs(const std::string& strSearch, CFileItemList &songs);
   int GetSongIDFromPath(const std::string &filePath);
   void NormaliseSongDates(std::string& strRelease, std::string& strOriginal);
+  bool TrimImageURLs(std::string& strImage, const size_t space);
 
   /*! \brief Build SQL  for sort subquery from ignore article token list
   \param strField original name or title field that articles could be removed from

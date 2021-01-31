@@ -945,7 +945,7 @@ int CMusicInfoScanner::RetrieveMusicInfo(const std::string& strDirectory, CFileI
     m_musicDatabase.AddAlbum(album, m_idSourcePath);
     m_albumsAdded.insert(album.idAlbum);
 
-    numAdded += album.songs.size();
+    numAdded += static_cast<int>(album.songs.size());
   }
   return numAdded;
 }
@@ -999,7 +999,7 @@ void MUSIC_INFO::CMusicInfoScanner::ScrapeInfoAddedAlbums()
       if (m_handle)
       {
         m_handle->SetText(album.GetAlbumArtistString() + " - " + album.strAlbum);
-        m_handle->SetProgress(i, m_albumsAdded.size());
+        m_handle->SetProgress(i, static_cast<int>(m_albumsAdded.size()));
       }
 
       // Fetch any artist mbids for album artist(s) and song artists when scraping those too.
@@ -1168,7 +1168,7 @@ void MUSIC_INFO::CMusicInfoScanner::RetrieveLocalArt()
     if (m_handle)
     {
       m_handle->SetText(album.GetAlbumArtistString() + " - " + album.strAlbum);
-      m_handle->SetProgress(count, m_albumsAdded.size());
+      m_handle->SetProgress(count, static_cast<int>(m_albumsAdded.size()));
     }
 
     /*
@@ -1931,7 +1931,7 @@ void CMusicInfoScanner::ScannerWait(unsigned int milliseconds)
     m_StopEvent.WaitMSec(milliseconds);
   }
   else
-    XbmcThreads::ThreadSleep(milliseconds);
+    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
 
 bool CMusicInfoScanner::AddArtistArtwork(CArtist& artist, const std::string& artfolder)

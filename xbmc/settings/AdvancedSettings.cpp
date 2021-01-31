@@ -8,32 +8,33 @@
 
 #include "AdvancedSettings.h"
 
-#include <climits>
-#include <algorithm>
-#include <string>
-#include <vector>
-
 #include "AppParamParser.h"
 #include "Application.h"
+#include "LangInfo.h"
 #include "ServiceBroker.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
-#include "LangInfo.h"
 #include "network/DNSNameCache.h"
 #include "profiles/ProfileManager.h"
+#include "settings/SettingUtils.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingDefinitions.h"
 #include "settings/lib/SettingsManager.h"
-#include "settings/Settings.h"
-#include "settings/SettingsComponent.h"
-#include "settings/SettingUtils.h"
 #include "utils/LangCodeExpander.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
 #include "utils/SystemInfo.h"
 #include "utils/URIUtils.h"
 #include "utils/Variant.h"
 #include "utils/XMLUtils.h"
+#include "utils/log.h"
+
+#include <algorithm>
+#include <climits>
+#include <regex>
+#include <string>
+#include <vector>
 
 using namespace ADDON;
 using namespace XFILE;
@@ -75,7 +76,7 @@ void CAdvancedSettings::OnSettingsUnloaded()
   m_initialized = false;
 }
 
-void CAdvancedSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
+void CAdvancedSettings::OnSettingChanged(const std::shared_ptr<const CSetting>& setting)
 {
   if (setting == NULL)
     return;
@@ -232,7 +233,8 @@ void CAdvancedSettings::Initialize()
   // foo.s01.e01, foo.s01_e01, S01E02 foo, S01 - E02, S01xE02
   m_tvshowEnumRegExps.push_back(TVShowRegexp(false,"s([0-9]+)[ ._x-]*e([0-9]+(?:(?:[a-i]|\\.[1-9])(?![0-9]))?)([^\\\\/]*)$"));
   // foo.ep01, foo.EP_01, foo.E01
-  m_tvshowEnumRegExps.push_back(TVShowRegexp(false,"[\\._ -]()e(?:p[ ._-]?)?([0-9]+(?:(?:[a-i]|\\.[1-9])(?![0-9]))?)([^\\\\/]*)$"));
+  m_tvshowEnumRegExps.push_back(TVShowRegexp(
+      false, "[\\._ -]?()e(?:p[ ._-]?)?([0-9]+(?:(?:[a-i]|\\.[1-9])(?![0-9]))?)([^\\\\/]*)$"));
   // foo.yyyy.mm.dd.* (byDate=true)
   m_tvshowEnumRegExps.push_back(TVShowRegexp(true,"([0-9]{4})[\\.-]([0-9]{2})[\\.-]([0-9]{2})"));
   // foo.mm.dd.yyyy.* (byDate=true)
@@ -346,6 +348,7 @@ void CAdvancedSettings::Initialize()
 #endif
   m_showExitButton = true;
   m_splashImage = true;
+  m_showAllDependencies = false;
 
   m_playlistRetries = 100;
   m_playlistTimeout = 20; // 20 seconds timeout
@@ -371,6 +374,8 @@ void CAdvancedSettings::Initialize()
   m_iPVRNumericChannelSwitchTimeout = 2000;
   m_iPVRTimeshiftThreshold = 10;
   m_bPVRTimeshiftSimpleOSD = true;
+  m_PVRDefaultSortOrder.sortBy = SortByDate;
+  m_PVRDefaultSortOrder.sortOrder = SortOrderDescending;
 
   m_cacheMemSize = 1024 * 1024 * 20; // 20 MiB
   m_cacheBufferMode = CACHE_BUFFER_MODE_INTERNET; // Default (buffer all internet streams/filesystems)
@@ -517,7 +522,10 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   printer.SetLineBreak("\n");
   printer.SetIndent("  ");
   advancedXMLCopy.Accept(&printer);
-  CLog::Log(LOGINFO, "Contents of %s are...\n%s", file.c_str(), printer.CStr());
+  // redact User/pass in URLs
+  std::regex redactRe("(\\w+://)\\S+:\\S+@");
+  CLog::Log(LOGINFO, "Contents of {} are...\n{}", file,
+            std::regex_replace(printer.CStr(), redactRe, "$1USERNAME:PASSWORD@"));
 
   TiXmlElement *pElement = pRootElement->FirstChildElement("audio");
   if (pElement)
@@ -815,6 +823,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetInt(pElement, "curlretries", m_curlretries, 0, 10);
     XMLUtils::GetBoolean(pElement, "disableipv6", m_curlDisableIPV6);
     XMLUtils::GetBoolean(pElement, "disablehttp2", m_curlDisableHTTP2);
+    XMLUtils::GetString(pElement, "catrustfile", m_caTrustFile);
   }
 
   pElement = pRootElement->FirstChildElement("cache");
@@ -880,6 +889,7 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   XMLUtils::GetBoolean(pRootElement, "fullscreen", m_startFullScreen);
 #endif
   XMLUtils::GetBoolean(pRootElement, "splash", m_splashImage);
+  XMLUtils::GetBoolean(pRootElement, "showalldependencies", m_showAllDependencies);
   XMLUtils::GetBoolean(pRootElement, "showexitbutton", m_showExitButton);
   XMLUtils::GetBoolean(pRootElement, "canwindowed", m_canWindowed);
 
@@ -1005,8 +1015,8 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
       if (!strFrom.empty() && !strTo.empty())
       {
         CLog::Log(LOGDEBUG,"  Registering substitution pair:");
-        CLog::Log(LOGDEBUG,"    From: [%s]", strFrom.c_str());
-        CLog::Log(LOGDEBUG,"    To:   [%s]", strTo.c_str());
+        CLog::Log(LOGDEBUG, "    From: [{}]", CURL::GetRedacted(strFrom));
+        CLog::Log(LOGDEBUG, "    To:   [{}]", CURL::GetRedacted(strTo));
         m_pathSubstitutions.push_back(std::make_pair(strFrom,strTo));
       }
       else
@@ -1086,6 +1096,24 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetInt(pPVR, "numericchannelswitchtimeout", m_iPVRNumericChannelSwitchTimeout, 50, 60000);
     XMLUtils::GetInt(pPVR, "timeshiftthreshold", m_iPVRTimeshiftThreshold, 0, 60);
     XMLUtils::GetBoolean(pPVR, "timeshiftsimpleosd", m_bPVRTimeshiftSimpleOSD);
+    TiXmlElement* pSortDecription = pPVR->FirstChildElement("pvrrecordings");
+    if (pSortDecription)
+    {
+      const char* XML_SORTMETHOD = "sortmethod";
+      const char* XML_SORTORDER = "sortorder";
+      int sortMethod;
+      // ignore SortByTime for duration defaults
+      if (XMLUtils::GetInt(pSortDecription, XML_SORTMETHOD, sortMethod, SortByLabel, SortByFile))
+      {
+        int sortOrder;
+        if (XMLUtils::GetInt(pSortDecription, XML_SORTORDER, sortOrder, SortOrderAscending,
+                             SortOrderDescending))
+        {
+          m_PVRDefaultSortOrder.sortBy = (SortBy)sortMethod;
+          m_PVRDefaultSortOrder.sortOrder = (SortOrder)sortOrder;
+        }
+      }
+    }
   }
 
   TiXmlElement* pDatabase = pRootElement->FirstChildElement("videodatabase");
@@ -1421,6 +1449,7 @@ void CAdvancedSettings::MigrateOldArtSettings()
           thumbs2.emplace_back(it);
       }
       std::vector<CVariant> thumbs;
+      thumbs.reserve(thumbs2.size());
       for (const auto& it : thumbs2)
         thumbs.emplace_back(it);
       settings->SetList(CSettings::SETTING_MUSICLIBRARY_MUSICTHUMBS, thumbs);

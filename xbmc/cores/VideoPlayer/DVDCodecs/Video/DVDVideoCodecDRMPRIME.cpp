@@ -96,10 +96,33 @@ CDVDVideoCodec* CDVDVideoCodecDRMPRIME::Create(CProcessInfo& processInfo)
 
 void CDVDVideoCodecDRMPRIME::Register()
 {
-  CServiceBroker::GetSettingsComponent()
-      ->GetSettings()
-      ->GetSetting(CSettings::SETTING_VIDEOPLAYER_USEPRIMEDECODER)
-      ->SetVisible(true);
+  auto settingsComponent = CServiceBroker::GetSettingsComponent();
+  if (!settingsComponent)
+    return;
+
+  auto settings = settingsComponent->GetSettings();
+  if (!settings)
+    return;
+
+  auto setting = settings->GetSetting(CSettings::SETTING_VIDEOPLAYER_USEPRIMEDECODER);
+  if (!setting)
+  {
+    CLog::Log(LOGERROR, "Failed to load setting for: {}",
+              CSettings::SETTING_VIDEOPLAYER_USEPRIMEDECODER);
+    return;
+  }
+
+  setting->SetVisible(true);
+
+  setting = settings->GetSetting(SETTING_VIDEOPLAYER_USEPRIMEDECODERFORHW);
+  if (!setting)
+  {
+    CLog::Log(LOGERROR, "Failed to load setting for: {}", SETTING_VIDEOPLAYER_USEPRIMEDECODERFORHW);
+    return;
+  }
+
+  setting->SetVisible(true);
+
   CDVDFactoryCodec::RegisterHWVideoCodec("drm_prime", CDVDVideoCodecDRMPRIME::Create);
 }
 
@@ -251,27 +274,16 @@ bool CDVDVideoCodecDRMPRIME::Open(CDVDStreamInfo& hints, CDVDCodecOptions& optio
 #if defined(HAVE_GBM)
     auto winSystem = dynamic_cast<KODI::WINDOWING::GBM::CWinSystemGbm*>(CServiceBroker::GetWinSystem());
 
-    if (!winSystem)
-      return false;
+    if (winSystem)
+    {
+      auto drm = winSystem->GetDrm();
 
-    auto drm = winSystem->GetDrm();
+      if (!drm)
+        return false;
 
-    if (!drm)
-      return false;
-
-    int fd = drm->GetFileDescriptor();
-
-    if (fd < 0)
-      return false;
-
-    if (!device)
-      device = drmGetRenderDeviceNameFromFd(fd);
-
-    if (!device)
-      device = drmGetDeviceNameFromFd2(fd);
-
-    if (!device)
-      device = drmGetDeviceNameFromFd(fd);
+      if (!device)
+        device = drm->GetRenderDevicePath();
+    }
 #endif
 
     //! @todo: fix with proper device when dma-hints wayland protocol works

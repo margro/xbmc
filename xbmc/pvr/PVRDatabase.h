@@ -25,6 +25,8 @@ namespace PVR
 
   /** The PVR database */
 
+  static constexpr int CHANNEL_COMMIT_QUERY_COUNT_LIMIT = 10000;
+
   class CPVRDatabase : public CDatabase
   {
   public:
@@ -44,6 +46,16 @@ namespace PVR
      * @brief Close the database.
      */
     void Close() override;
+
+    /*!
+     * @brief Lock the database.
+     */
+    void Lock();
+
+    /*!
+     * @brief Unlock the database.
+     */
+    void Unlock();
 
     /*!
      * @brief Get the minimal database version that is required to operate correctly.
@@ -109,7 +121,7 @@ namespace PVR
      * @param channel The channel to remove.
      * @return True if the channel was removed, false otherwise.
      */
-    bool Delete(const CPVRChannel& channel);
+    bool QueueDeleteQuery(const CPVRChannel& channel);
 
     /*!
      * @brief Get the list of channels from the database

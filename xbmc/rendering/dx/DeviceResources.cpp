@@ -80,6 +80,8 @@ DX::DeviceResources::DeviceResources()
   , m_deviceNotify(nullptr)
   , m_stereoEnabled(false)
   , m_bDeviceCreated(false)
+  , m_IsHDROutput(false)
+  , m_IsTransferPQ(false)
 {
 }
 
@@ -1151,8 +1153,8 @@ void DX::DeviceResources::SetHdrMetaData(DXGI_HDR_METADATA_HDR10& hdr10) const
       const double min_ML = static_cast<double>(hdr10.MinMasteringLuminance) / FACTOR_2;
 
       CLog::LogF(LOGINFO,
-                 "RP {:0.3f} {:0.3f} | GP {:0.3f} {:0.3f} | BP {:0.3f} {:0.3f} | WP {:0.3f} "
-                 "{:0.3f} | Max ML {:0.0f} | min ML {:0.3f} | Max CLL {} | Max FALL {}",
+                 "RP {:.3f} {:.3f} | GP {:.3f} {:.3f} | BP {:.3f} {:.3f} | WP {:.3f} "
+                 "{:.3f} | Max ML {:.0f} | min ML {:.4f} | Max CLL {} | Max FALL {}",
                  RP_0, RP_1, GP_0, GP_1, BP_0, BP_1, WP_0, WP_1, Max_ML, min_ML,
                  hdr10.MaxContentLightLevel, hdr10.MaxFrameAverageLightLevel);
     }
@@ -1163,7 +1165,7 @@ void DX::DeviceResources::SetHdrMetaData(DXGI_HDR_METADATA_HDR10& hdr10) const
   }
 }
 
-void DX::DeviceResources::SetHdrColorSpace(const DXGI_COLOR_SPACE_TYPE colorSpace) const
+void DX::DeviceResources::SetHdrColorSpace(const DXGI_COLOR_SPACE_TYPE colorSpace)
 {
   ComPtr<IDXGISwapChain3> swapChain3;
 
@@ -1172,27 +1174,10 @@ void DX::DeviceResources::SetHdrColorSpace(const DXGI_COLOR_SPACE_TYPE colorSpac
 
   if (SUCCEEDED(m_swapChain.As(&swapChain3)))
   {
-    DXGI_COLOR_SPACE_TYPE cs = colorSpace;
-    if (DX::Windowing()->UseLimitedColor())
+    if (SUCCEEDED(swapChain3->SetColorSpace1(colorSpace)))
     {
-      switch (cs)
-      {
-        case DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709:
-          cs = DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P709;
-          break;
-        case DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020:
-          cs = DXGI_COLOR_SPACE_RGB_STUDIO_G2084_NONE_P2020;
-          break;
-        case DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P2020:
-          cs = DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P2020;
-          break;
-        case DXGI_COLOR_SPACE_YCBCR_FULL_GHLG_TOPLEFT_P2020:
-          cs = DXGI_COLOR_SPACE_YCBCR_STUDIO_GHLG_TOPLEFT_P2020;
-          break;
-      }
-    }
-    if (SUCCEEDED(swapChain3->SetColorSpace1(cs)))
-    {
+      m_IsTransferPQ = (colorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
+
       CLog::LogF(LOGDEBUG, "DXGI SetColorSpace1 success");
     }
     else
@@ -1225,6 +1210,7 @@ HDR_STATUS DX::DeviceResources::ToggleHDR()
     m_swapChain = nullptr;
     m_deferrContext->Flush();
     m_d3dContext->Flush();
+    m_IsTransferPQ = false;
   }
 
   DX::Windowing()->SetAlteringWindow(false);

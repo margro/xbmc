@@ -21,6 +21,9 @@ public:
   CWinSystemWin32DX();
   ~CWinSystemWin32DX();
 
+  static void Register();
+  static std::unique_ptr<CWinSystemBase> CreateWinSystem();
+
   // Implementation of CWinSystemBase via CWinSystemWin32
   CRenderSystemBase *GetRenderSystem() override { return this; }
   bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
@@ -72,6 +75,7 @@ public:
 
   // HDR support
   bool IsHDROutput() const;
+  bool IsTransferPQ() const;
   void SetHdrMetaData(DXGI_HDR_METADATA_HDR10& hdr10) const;
   void SetHdrColorSpace(const DXGI_COLOR_SPACE_TYPE colorSpace) const;
 

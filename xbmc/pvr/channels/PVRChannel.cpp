@@ -41,7 +41,12 @@ bool CPVRChannel::operator!=(const CPVRChannel& right) const
   return !(*this == right);
 }
 
-CPVRChannel::CPVRChannel(bool bRadio /* = false */)
+CPVRChannel::CPVRChannel()
+{
+  UpdateEncryptionName();
+}
+
+CPVRChannel::CPVRChannel(bool bRadio)
   : m_bIsRadio(bRadio)
 {
   UpdateEncryptionName();
@@ -65,6 +70,11 @@ CPVRChannel::CPVRChannel(const PVR_CHANNEL& channel, unsigned int iClientId)
     m_strChannelName = StringUtils::Format("%s %d", g_localizeStrings.Get(19029).c_str(), m_iUniqueId);
 
   UpdateEncryptionName();
+}
+
+CPVRChannel::~CPVRChannel()
+{
+  ResetEPG();
 }
 
 void CPVRChannel::Serialize(CVariant& value) const
@@ -96,11 +106,10 @@ void CPVRChannel::Serialize(CVariant& value) const
 
   value["isrecording"] = false; // compat
   value["hasarchive"] = m_bHasArchive;
+  value["clientid"] = m_iClientId;
 }
 
-/********** XBMC related channel methods **********/
-
-bool CPVRChannel::Delete()
+bool CPVRChannel::QueueDelete()
 {
   bool bReturn = false;
   const std::shared_ptr<CPVRDatabase> database = CServiceBroker::GetPVRManager().GetTVDatabase();
@@ -109,14 +118,9 @@ bool CPVRChannel::Delete()
 
   const std::shared_ptr<CPVREpg> epg = GetEPG();
   if (epg)
-  {
-    CServiceBroker::GetPVRManager().EpgContainer().DeleteEpg(epg);
+    ResetEPG();
 
-    CSingleLock lock(m_critSection);
-    m_epg.reset();
-  }
-
-  bReturn = database->Delete(*this);
+  bReturn = database->QueueDeleteQuery(*this);
   return bReturn;
 }
 
@@ -146,10 +150,37 @@ bool CPVRChannel::CreateEPG()
         m_iEpgId = m_epg->EpgID();
         m_bChanged = true;
       }
+
+      // Subscribe for EPG delete event
+      m_epg->Events().Subscribe(this, &CPVRChannel::Notify);
       return true;
     }
   }
   return false;
+}
+
+void CPVRChannel::Notify(const PVREvent& event)
+{
+  if (event == PVREvent::EpgDeleted)
+  {
+    ResetEPG();
+  }
+}
+
+void CPVRChannel::ResetEPG()
+{
+  std::shared_ptr<CPVREpg> epgToUnsubscribe;
+  {
+    CSingleLock lock(m_critSection);
+    if (m_epg)
+    {
+      epgToUnsubscribe = m_epg;
+      m_epg.reset();
+    }
+  }
+
+  if (epgToUnsubscribe)
+    epgToUnsubscribe->Events().Unsubscribe(this);
 }
 
 bool CPVRChannel::UpdateFromClient(const std::shared_ptr<CPVRChannel>& channel)

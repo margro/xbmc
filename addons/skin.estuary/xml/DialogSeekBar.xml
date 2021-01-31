@@ -10,7 +10,7 @@
 		<include>PVRChannelNumberInput</include>
 		<control type="group">
 			<animation effect="slide" start="0,200" end="0,0" time="300" tween="cubic" easing="out">VisibleChange</animation>
-			<visible>Player.ShowInfo | Window.IsActive(fullscreeninfo) | Player.ShowTime | Window.IsActive(videoosd) | Window.IsActive(musicosd) | Window.IsActive(playerprocessinfo) | !String.IsEmpty(Player.SeekNumeric) | !String.IsEmpty(PVR.ChannelNumberInput) | Window.IsActive(pvrosdchannels) | Window.IsActive(pvrchannelguide) | ![Player.Seeking | Player.DisplayAfterSeek | Player.Forwarding | Player.Rewinding | Player.Paused + !Window.IsActive(visualisation)]</visible>
+			<visible>Player.ShowInfo | Window.IsActive(fullscreeninfo) | Player.ShowTime | Window.IsActive(videoosd) | Window.IsActive(musicosd) | Window.IsActive(playerprocessinfo) | !String.IsEmpty(PVR.ChannelNumberInput) | Window.IsActive(pvrosdchannels) | Window.IsActive(pvrchannelguide) | ![!String.IsEmpty(Player.SeekNumeric) | Player.Seeking | Player.DisplayAfterSeek | Player.Forwarding | Player.Rewinding | Player.Paused]</visible>
 			<visible>!Player.HasGame</visible>
 			<bottom>0</bottom>
 			<height>190</height>
@@ -142,32 +142,6 @@
 							<param name="texture" value="flags/flag.png" />
 						</include>
 					</control>
-				</control>
-				<control type="label">
-					<centertop>145</centertop>
-					<right>20</right>
-					<width>400</width>
-					<height>100</height>
-					<align>right</align>
-					<aligny>center</aligny>
-					<font>font13</font>
-					<wrapmultiline>true</wrapmultiline>
-					<animation effect="fade" time="200">VisibleChange</animation>
-					<label>$INFO[Player.TimeRemaining,[COLOR button_focus]$LOCALIZE[31134]:[CR][/COLOR]]</label>
-					<visible>![Player.ShowInfo | Window.IsVisible(playerprocessinfo) | VideoPlayer.HasEpg] + !Window.IsActive(fullscreeninfo)</visible>
-				</control>
-				<control type="label">
-					<centertop>125</centertop>
-					<right>20</right>
-					<width>400</width>
-					<height>100</height>
-					<align>right</align>
-					<aligny>center</aligny>
-					<font>font13</font>
-					<wrapmultiline>true</wrapmultiline>
-					<animation effect="fade" time="200">VisibleChange</animation>
-					<label>$INFO[PVR.EpgEventRemainingTime,[COLOR button_focus]$LOCALIZE[31134]:[CR][/COLOR]]</label>
-					<visible>![Player.ShowInfo | Window.IsVisible(playerprocessinfo)] + VideoPlayer.HasEpg + !Window.IsActive(fullscreeninfo)</visible>
 				</control>
 			</control>
 			<control type="label">
@@ -351,8 +325,9 @@
 			<control type="label">
 				<left>240</left>
 				<top>180</top>
+				<right>20</right>
 				<height>25</height>
-				<label>[COLOR button_focus]$LOCALIZE[19031]:[/COLOR] $INFO[VideoPlayer.NextStartTime] - $INFO[VideoPlayer.NextEndTime]: $INFO[VideoPlayer.NextTitle]</label>
+				<label>$VAR[OSDNextLabelVar]</label>
 				<visible>VideoPlayer.HasEpg + !RDS.HasRadioText</visible>
 			</control>
 			<control type="label">
@@ -405,7 +380,7 @@
 				</control>
 				<control type="label">
 					<height>50</height>
-					<label>[COLOR button_focus]$LOCALIZE[19031]: [/COLOR]$INFO[VideoPlayer.offset(1).TVShowtitle, , - ]$INFO[VideoPlayer.offset(1).Season,S,]$INFO[VideoPlayer.offset(1).Episode,E, - ]$INFO[VideoPlayer.offset(1).Title]</label>
+					<label>$VAR[OSDNextLabelVar]</label>
 					<visible>Integer.IsGreater(Playlist.Length(video),1)</visible>
 				</control>
 			</control>

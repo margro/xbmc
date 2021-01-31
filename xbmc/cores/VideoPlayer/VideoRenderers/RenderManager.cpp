@@ -13,7 +13,7 @@
 #include "RenderFactory.h"
 #include "RenderFlags.h"
 #include "ServiceBroker.h"
-#include "cores/VideoPlayer/Interface/Addon/TimingConstants.h"
+#include "cores/VideoPlayer/Interface/TimingConstants.h"
 #include "messaging/ApplicationMessenger.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/MediaSettings.h"
@@ -1055,10 +1055,6 @@ int CRenderManager::WaitForBuffer(volatile std::atomic_bool&bStop, int timeout)
     m_presentevent.wait(lock, std::min(50, timeout));
     if (endtime.IsTimePast() || bStop)
     {
-      if (timeout != 0 && !bStop)
-      {
-        CLog::Log(LOGWARNING, "CRenderManager::WaitForBuffer - timeout waiting for buffer");
-      }
       return -1;
     }
   }

@@ -80,7 +80,7 @@ bool CGUIDialogSubtitleSettings::OnMessage(CGUIMessage& message)
   return CGUIDialogSettingsManualBase::OnMessage(message);
 }
 
-void CGUIDialogSubtitleSettings::OnSettingChanged(std::shared_ptr<const CSetting> setting)
+void CGUIDialogSubtitleSettings::OnSettingChanged(const std::shared_ptr<const CSetting>& setting)
 {
   if (setting == NULL)
     return;
@@ -154,7 +154,7 @@ std::string CGUIDialogSubtitleSettings::BrowseForSubtitle()
   return "";
 }
 
-void CGUIDialogSubtitleSettings::OnSettingAction(std::shared_ptr<const CSetting> setting)
+void CGUIDialogSubtitleSettings::OnSettingAction(const std::shared_ptr<const CSetting>& setting)
 {
   if (setting == NULL)
     return;
@@ -184,22 +184,22 @@ void CGUIDialogSubtitleSettings::OnSettingAction(std::shared_ptr<const CSetting>
     Save();
 }
 
-void CGUIDialogSubtitleSettings::Save()
+bool CGUIDialogSubtitleSettings::Save()
 {
   const std::shared_ptr<CProfileManager> profileManager = CServiceBroker::GetSettingsComponent()->GetProfileManager();
 
   if (!g_passwordManager.CheckSettingLevelLock(SettingLevel::Expert) &&
       profileManager->GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE)
-    return;
+    return true;
 
   // prompt user if they are sure
   if (!CGUIDialogYesNo::ShowAndGetInput(CVariant{12376}, CVariant{12377}))
-    return;
+    return true;
 
   // reset the settings
   CVideoDatabase db;
   if (!db.Open())
-    return;
+    return true;
 
   db.EraseAllVideoSettings();
   db.Close();
@@ -207,6 +207,8 @@ void CGUIDialogSubtitleSettings::Save()
   CMediaSettings::GetInstance().GetDefaultVideoSettings() = g_application.GetAppPlayer().GetVideoSettings();
   CMediaSettings::GetInstance().GetDefaultVideoSettings().m_SubtitleStream = -1;
   CServiceBroker::GetSettingsComponent()->GetSettings()->Save();
+
+  return true;
 }
 
 void CGUIDialogSubtitleSettings::SetupView()
@@ -296,7 +298,8 @@ bool CGUIDialogSubtitleSettings::SupportsSubtitleFeature(int feature)
   return false;
 }
 
-void CGUIDialogSubtitleSettings::AddSubtitleStreams(std::shared_ptr<CSettingGroup> group, const std::string &settingId)
+void CGUIDialogSubtitleSettings::AddSubtitleStreams(const std::shared_ptr<CSettingGroup>& group,
+                                                    const std::string& settingId)
 {
   if (group == NULL || settingId.empty())
     return;
@@ -308,7 +311,11 @@ void CGUIDialogSubtitleSettings::AddSubtitleStreams(std::shared_ptr<CSettingGrou
   m_subtitleStreamSetting = AddList(group, settingId, 462, SettingLevel::Basic, m_subtitleStream, SubtitleStreamsOptionFiller, 462);
 }
 
-void CGUIDialogSubtitleSettings::SubtitleStreamsOptionFiller(SettingConstPtr setting, std::vector<IntegerSettingOption> &list, int &current, void *data)
+void CGUIDialogSubtitleSettings::SubtitleStreamsOptionFiller(
+    const SettingConstPtr& setting,
+    std::vector<IntegerSettingOption>& list,
+    int& current,
+    void* data)
 {
   int subtitleStreamCount = g_application.GetAppPlayer().GetSubtitleCount();
 
@@ -343,7 +350,12 @@ void CGUIDialogSubtitleSettings::SubtitleStreamsOptionFiller(SettingConstPtr set
   }
 }
 
-std::string CGUIDialogSubtitleSettings::SettingFormatterDelay(std::shared_ptr<const CSettingControlSlider> control, const CVariant &value, const CVariant &minimum, const CVariant &step, const CVariant &maximum)
+std::string CGUIDialogSubtitleSettings::SettingFormatterDelay(
+    const std::shared_ptr<const CSettingControlSlider>& control,
+    const CVariant& value,
+    const CVariant& minimum,
+    const CVariant& step,
+    const CVariant& maximum)
 {
   if (!value.isDouble())
     return "";

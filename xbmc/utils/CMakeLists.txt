@@ -12,6 +12,7 @@ set(SOURCES ActorProtocol.cpp
             CharsetConverter.cpp
             CharsetDetection.cpp
             ColorUtils.cpp
+            ContentUtils.cpp
             CPUInfo.cpp
             Crc32.cpp
             CryptThreading.cpp
@@ -89,6 +90,7 @@ set(HEADERS ActorProtocol.h
             CPUInfo.h
             Color.h
             ColorUtils.h
+            ContentUtils.h
             Crc32.h
             CryptThreading.h
             DatabaseUtils.h
@@ -189,13 +191,13 @@ if(OPENGL_FOUND OR OPENGLES_FOUND)
   list(APPEND HEADERS GLUtils.h)
 endif()
 
-if(CORE_PLATFORM_NAME_LC STREQUAL gbm OR CORE_PLATFORM_NAME_LC STREQUAL wayland)
+if("gbm" IN_LIST CORE_PLATFORM_NAME_LC OR "wayland" IN_LIST CORE_PLATFORM_NAME_LC)
   list(APPEND SOURCES BufferObject.cpp
                       BufferObjectFactory.cpp)
   list(APPEND HEADERS BufferObject.h
                       BufferObjectFactory.h)
 
-  if(CORE_PLATFORM_NAME_LC STREQUAL gbm)
+  if("gbm" IN_LIST CORE_PLATFORM_NAME_LC)
     list(APPEND SOURCES DumbBufferObject.cpp)
     list(APPEND SOURCES DumbBufferObject.h)
   endif()
@@ -210,7 +212,7 @@ if(CORE_PLATFORM_NAME_LC STREQUAL gbm OR CORE_PLATFORM_NAME_LC STREQUAL wayland)
     list(APPEND HEADERS DMAHeapBufferObject.h)
   endif()
 
-  if(GBM_HAS_BO_MAP AND CORE_PLATFORM_NAME_LC STREQUAL gbm)
+  if(GBM_HAS_BO_MAP AND "gbm" IN_LIST CORE_PLATFORM_NAME_LC)
     list(APPEND SOURCES GBMBufferObject.cpp)
     list(APPEND HEADERS GBMBufferObject.h)
   endif()

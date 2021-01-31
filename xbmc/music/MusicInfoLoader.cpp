@@ -98,7 +98,7 @@ bool CMusicInfoLoader::LoadAdditionalTagInfo(CFileItem* pItem)
     if (pItem->HasProperty("artistid") && pItem->GetProperty("artistid").isArray())
     {
       CVariant::const_iterator_array varid = pItem->GetProperty("artistid").begin_array();
-      int idArtist = varid->asInteger();
+      int idArtist = static_cast<int>(varid->asInteger());
       artistfound = database.GetArtist(idArtist, artist, false);
     }
     else
@@ -172,7 +172,7 @@ bool CMusicInfoLoader::LoadItemLookup(CFileItem* pItem)
       pItem->IsNFO() || (pItem->IsInternetStream() && !pItem->IsMusicDb()))
     return false;
 
-  if (!pItem->HasMusicInfoTag() || !pItem->GetMusicInfoTag()->Loaded())
+  if ((!pItem->HasMusicInfoTag() || !pItem->GetMusicInfoTag()->Loaded()) && pItem->IsAudio())
   {
     // first check the cached item
     CFileItemPtr mapItem = (*m_mapFileItems)[pItem->GetPath()];

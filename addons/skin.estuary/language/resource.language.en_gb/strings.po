@@ -257,7 +257,7 @@ msgctxt "#31048"
 msgid "Available"
 msgstr ""
 
-#empty strings with id 31049 to 31051
+#empty strings from id 31049 to 31051
 
 #: /xml/Includes.xml
 msgctxt "#31052"

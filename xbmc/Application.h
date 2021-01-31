@@ -157,7 +157,7 @@ public:
 
   bool IsCurrentThread() const;
   void Stop(int exitCode);
-  void UnloadSkin(bool forReload = false);
+  void UnloadSkin();
   bool LoadCustomWindows();
   void ReloadSkin(bool confirm = false);
   const std::string& CurrentFile();
@@ -207,6 +207,7 @@ public:
   void ActivateScreenSaver(bool forceType = false);
   void CloseNetworkShares();
 
+  void ConfigureAndEnableAddons();
   void ShowAppMigrationMessage();
   void Process() override;
   void ProcessSlow();
@@ -360,9 +361,11 @@ protected:
   bool OnSettingsSaving() const override;
   bool Load(const TiXmlNode *settings) override;
   bool Save(TiXmlNode *settings) const override;
-  void OnSettingChanged(std::shared_ptr<const CSetting> setting) override;
-  void OnSettingAction(std::shared_ptr<const CSetting> setting) override;
-  bool OnSettingUpdate(std::shared_ptr<CSetting> setting, const char *oldSettingId, const TiXmlNode *oldSettingNode) override;
+  void OnSettingChanged(const std::shared_ptr<const CSetting>& setting) override;
+  void OnSettingAction(const std::shared_ptr<const CSetting>& setting) override;
+  bool OnSettingUpdate(const std::shared_ptr<CSetting>& setting,
+                       const char* oldSettingId,
+                       const TiXmlNode* oldSettingNode) override;
 
   bool LoadSkin(const std::string& skinID);
 
@@ -486,6 +489,7 @@ private:
   CApplicationPlayer m_appPlayer;
   CEvent m_playerEvent;
   CApplicationStackHelper m_stackHelper;
+  std::string m_windowing;
 };
 
 XBMC_GLOBAL_REF(CApplication,g_application);

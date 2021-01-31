@@ -225,6 +225,7 @@ add_custom_command(OUTPUT ${CORE_BUILD_DIR}/xbmc/CompileInfo.cpp
                           ${ADDON_XML_OUTPUTS}
                    COMMAND ${CMAKE_COMMAND} -DCORE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
                                             -DCORE_SYSTEM_NAME=${CORE_SYSTEM_NAME}
+                                            -DCORE_PLATFORM_NAME_LC="${CORE_PLATFORM_NAME_LC}"
                                             -DCORE_BUILD_DIR=${CORE_BUILD_DIR}
                                             -DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
                                             -DARCH_DEFINES="${ARCH_DEFINES}"
@@ -308,9 +309,12 @@ set_target_properties(lib${APP_NAME_LC} PROPERTIES PREFIX "")
 set(OTHER_FILES cmake/README.md)
 
 # Subdirs
+foreach(CORE_PLATFORM_LC ${CORE_PLATFORM_NAME_LC})
+  core_add_subdirs_from_filelist(${CMAKE_SOURCE_DIR}/cmake/treedata/common/${CORE_PLATFORM_LC}/*.txt
+                                 ${CMAKE_SOURCE_DIR}/cmake/treedata/${CORE_SYSTEM_NAME}/${CORE_PLATFORM_LC}/*.txt)
+endforeach()
+
 core_add_subdirs_from_filelist(${CMAKE_SOURCE_DIR}/cmake/treedata/common/*.txt
-                               ${CMAKE_SOURCE_DIR}/cmake/treedata/common/${CORE_PLATFORM_NAME_LC}/*.txt
-                               ${CMAKE_SOURCE_DIR}/cmake/treedata/${CORE_SYSTEM_NAME}/${CORE_PLATFORM_NAME_LC}/*.txt
                                ${CMAKE_SOURCE_DIR}/cmake/treedata/${CORE_SYSTEM_NAME}/*.txt)
 core_add_optional_subdirs_from_filelist(${CMAKE_SOURCE_DIR}/cmake/treedata/optional/common/*.txt
                                         ${CMAKE_SOURCE_DIR}/cmake/treedata/optional/${CORE_SYSTEM_NAME}/*.txt)
@@ -411,16 +415,16 @@ if(CORE_HOST_IS_TARGET AND ENABLE_TESTING)
       message(FATAL_ERROR "Code coverage not (yet) implemented for platform ${CORE_SYSTEM_NAME}")
     endif()
   endif()
+endif()
 
-  # Documentation
-  find_package(Doxygen)
-  if(DOXYGEN_FOUND)
-    add_custom_target(doc
-                      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/docs/doxygen/Doxyfile.doxy
-                      COMMAND ${CMAKE_COMMAND} -E echo "Documentation built to: file://${CMAKE_SOURCE_DIR}/docs/html/index.html"
-                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/docs/doxygen
-                      COMMENT "Generating Doxygen documentation" VERBATIM)
-  endif()
+# Documentation
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+  add_custom_target(doc
+                    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/docs/doxygen/Doxyfile.doxy
+                    COMMAND ${CMAKE_COMMAND} -E echo "Documentation built to: file://${CMAKE_SOURCE_DIR}/docs/html/index.html"
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/docs/doxygen
+                    COMMENT "Generating Doxygen documentation" VERBATIM)
 endif()
 
 # link wrapper
