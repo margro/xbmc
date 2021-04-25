@@ -1619,6 +1619,28 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
         st->iBitsPerPixel = pStream->codecpar->bits_per_coded_sample;
         st->iBitRate = static_cast<int>(pStream->codecpar->bit_rate);
 
+        st->colorPrimaries = pStream->codecpar->color_primaries;
+        st->colorSpace = pStream->codecpar->color_space;
+        st->colorTransferCharacteristic = pStream->codecpar->color_trc;
+        st->colorRange = pStream->codecpar->color_range;
+
+        int size = 0;
+        uint8_t* side_data = nullptr;
+
+        side_data = av_stream_get_side_data(pStream, AV_PKT_DATA_MASTERING_DISPLAY_METADATA, &size);
+        if (side_data && size)
+        {
+          st->masteringMetaData = std::make_shared<AVMasteringDisplayMetadata>(
+              *reinterpret_cast<AVMasteringDisplayMetadata*>(side_data));
+        }
+
+        side_data = av_stream_get_side_data(pStream, AV_PKT_DATA_CONTENT_LIGHT_LEVEL, &size);
+        if (side_data && size)
+        {
+          st->contentLightMetaData = std::make_shared<AVContentLightMetadata>(
+              *reinterpret_cast<AVContentLightMetadata*>(side_data));
+        }
+
         AVDictionaryEntry* rtag = av_dict_get(pStream->metadata, "rotate", NULL, 0);
         if (rtag)
           st->iOrientation = atoi(rtag->value);
@@ -1686,7 +1708,7 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
         if (pStream->codecpar->codec_id == AV_CODEC_ID_TTF ||
             pStream->codecpar->codec_id == AV_CODEC_ID_OTF || AttachmentIsFont(attachmentMimetype))
         {
-          std::string fileName = "special://temp/fonts/";
+          std::string fileName = "special://home/media/Fonts/";
           XFILE::CDirectory::Create(fileName);
           AVDictionaryEntry* nameTag = av_dict_get(pStream->metadata, "filename", NULL, 0);
           if (!nameTag)
@@ -1695,7 +1717,11 @@ CDemuxStream* CDVDDemuxFFmpeg::AddStream(int streamIdx)
           }
           else
           {
-            fileName += CUtil::MakeLegalFileName(nameTag->value, LEGAL_WIN32_COMPAT);
+            // Note: libass only supports a single font directory to look for aditional fonts
+            // (c.f. ass_set_fonts_dir). To support both user defined fonts (those placed in
+            // special://home/media/Fonts/) and fonts extracted by the demuxer, make it extract
+            // fonts to the user directory with a known, easy to identify, prefix (tmp.font.*).
+            fileName += "tmp.font." + CUtil::MakeLegalFileName(nameTag->value, LEGAL_WIN32_COMPAT);
             XFILE::CFile file;
             if (pStream->codecpar->extradata && file.OpenForWrite(fileName))
             {
@@ -2041,12 +2067,12 @@ bool CDVDDemuxFFmpeg::IsProgramChange()
       return true;
     if (m_pFormatContext->streams[idx]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
     {
-        CDemuxStreamAudioFFmpeg* audiostream = dynamic_cast<CDemuxStreamAudioFFmpeg*>(stream);
-        if (audiostream &&
-            m_pFormatContext->streams[idx]->codecpar->channels != audiostream->iChannels)
-        {
-          return true;
-        }
+      CDemuxStreamAudioFFmpeg* audiostream = dynamic_cast<CDemuxStreamAudioFFmpeg*>(stream);
+      if (audiostream &&
+          m_pFormatContext->streams[idx]->codecpar->channels != audiostream->iChannels)
+      {
+        return true;
+      }
     }
     if (m_pFormatContext->streams[idx]->codecpar->extradata_size != static_cast<int>(stream->ExtraSize))
       return true;

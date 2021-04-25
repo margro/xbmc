@@ -217,9 +217,9 @@ public:
 
   //// Misc Song
   bool GetSongByFileName(const std::string& strFileName, CSong& song, int64_t startOffset = 0);
-  bool GetSongsByPath(const std::string& strPath, MAPSONGS& songs, bool bAppendToMap = false);
+  bool GetSongsByPath(const std::string& strPath, MAPSONGS& songmap, bool bAppendToMap = false);
   bool Search(const std::string& search, CFileItemList &items);
-  bool RemoveSongsFromPath(const std::string &path, MAPSONGS& songs, bool exact=true);
+  bool RemoveSongsFromPath(const std::string &path, MAPSONGS& songmap, bool exact=true);
   void CheckArtistLinksChanged();
   bool SetSongUserrating(const std::string &filePath, int userrating);
   bool SetSongUserrating(int idSong, int userrating);
@@ -669,6 +669,16 @@ public:
   \return the types of art e.g. "thumb", "fanart", etc.
   */
   std::vector<std::string> GetAvailableArtTypesForItem(int mediaId, const MediaType& mediaType);
+
+  /*! \brief Fetch the list of available-but-unassigned art URLs held in the
+  database for a specific media item and art type.
+  \param mediaId the id in the media (artist/album) table.
+  \param mediaType corresponds to the table the item resides in (artist/album).
+  \param artType e.g. "thumb", "fanart", etc.
+  \return list of URLs
+  */
+  std::vector<CScraperUrl::SUrlEntry> GetAvailableArtForItem(
+    int mediaId, const MediaType& mediaType, const std::string& artType);
 
   /////////////////////////////////////////////////
   // Tag Scan Version
