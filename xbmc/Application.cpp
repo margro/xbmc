@@ -2525,11 +2525,18 @@ void CApplication::FrameMove(bool processEvents, bool processGUI)
 }
 
 
+void CApplication::ResetCurrentItem()
+{
+  m_itemCurrentFile->Reset();
+  if (m_pGUI)
+    m_pGUI->GetInfoManager().ResetCurrentItem();
+}
 
 bool CApplication::Cleanup()
 {
   try
   {
+    ResetCurrentItem();
     StopPlaying();
 
     if (m_ServiceManager)
@@ -3173,7 +3180,14 @@ void CApplication::OnPlayBackStarted(const CFileItem &file)
   CLog::LogF(LOGDEBUG,"CApplication::OnPlayBackStarted");
 
   // check if VideoPlayer should set file item stream details from its current streams
-  if (file.GetProperty("get_stream_details_from_player").asBoolean())
+  if (file.GetProperty("get_stream_details_from_player").asBoolean()
+      || ((!file.HasVideoInfoTag() || !file.GetVideoInfoTag()->HasStreamDetails())
+      && (file.IsDiscImage()
+      || file.IsDVDFile()
+      || file.IsBDFile()
+      || file.IsBluray()
+      || file.IsDVD()
+      || file.IsOnDVD())))
     m_appPlayer.SetUpdateStreamDetails();
 
   if (m_stackHelper.IsPlayingISOStack() || m_stackHelper.IsPlayingRegularStack())
@@ -4042,8 +4056,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
 
   case GUI_MSG_PLAYBACK_STOPPED:
     m_playerEvent.Set();
-    m_itemCurrentFile->Reset();
-    CServiceBroker::GetGUI()->GetInfoManager().ResetCurrentItem();
+    ResetCurrentItem();
     PlaybackCleanup();
 #ifdef HAS_PYTHON
     CServiceBroker::GetXBPython().OnPlayBackStopped();
@@ -4057,8 +4070,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
       PlayFile(m_stackHelper.SetNextStackPartCurrentFileItem(), "", true);
       return true;
     }
-    m_itemCurrentFile->Reset();
-    CServiceBroker::GetGUI()->GetInfoManager().ResetCurrentItem();
+    ResetCurrentItem();
     if (!CServiceBroker::GetPlaylistPlayer().PlayNext(1, true))
       m_appPlayer.ClosePlayer();
 
@@ -4070,8 +4082,7 @@ bool CApplication::OnMessage(CGUIMessage& message)
     return true;
 
   case GUI_MSG_PLAYLISTPLAYER_STOPPED:
-    m_itemCurrentFile->Reset();
-    CServiceBroker::GetGUI()->GetInfoManager().ResetCurrentItem();
+    ResetCurrentItem();
     if (m_appPlayer.IsPlaying())
       StopPlaying();
     PlaybackCleanup();

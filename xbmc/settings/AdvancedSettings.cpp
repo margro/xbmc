@@ -379,8 +379,9 @@ void CAdvancedSettings::Initialize()
   m_PVRDefaultSortOrder.sortOrder = SortOrderDescending;
 
   m_cacheMemSize = 1024 * 1024 * 20; // 20 MiB
-  m_cacheBufferMode = CACHE_BUFFER_MODE_INTERNET; // Default (buffer all internet streams/filesystems)
+  m_cacheBufferMode = CACHE_BUFFER_MODE_REMOTE; // Default (buffer all remote filesystems)
   m_cacheChunkSize = 128 * 1024; // 128 KiB
+
   // the following setting determines the readRate of a player data
   // as multiply of the default data read rate
   m_cacheReadFactor = 4.0f;
@@ -427,6 +428,7 @@ void CAdvancedSettings::Initialize()
   m_userAgent = g_sysinfo.GetUserAgent();
 
   m_nfsTimeout = 5;
+  m_nfsRetries = -1;
 
   m_initialized = true;
 }
@@ -515,6 +517,10 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
 #else
       CLog::Log(LOGWARNING, "nfstimeout unsupported");
 #endif
+    }
+    if (network->FirstChildElement("nfsretries"))
+    {
+      XMLUtils::GetInt(network, "nfsretries", m_nfsRetries, -1, 30);
     }
   }
 
